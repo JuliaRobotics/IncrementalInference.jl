@@ -1,5 +1,13 @@
 module IncrementalInference
 
+using
+  Graphs,
+  GraphViz,
+  Gadfly,
+  Colors,
+  NLsolve,
+  KernelDensityEstimate
+
 export
   FactorGraph,
   addNode!,
