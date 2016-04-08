@@ -6,6 +6,7 @@ using
   Gadfly,
   Colors,
   NLsolve,
+  Distributions,
   KernelDensityEstimate
 
 export
@@ -37,7 +38,7 @@ export
   spyCliqMat
 
 
-include("FactorGraph.jl")
+include("FactorGraph01.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
 include("SolveTree01.jl")

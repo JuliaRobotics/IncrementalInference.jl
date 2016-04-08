@@ -41,7 +41,7 @@ end
 
 function drawTreeUpwardMsgs(fgl::FactorGraph, bt::BayesTree; N=300)
     len = length(bt.cliques)-1
-    vv = Array{Compose.Context,1}(len)
+    vv = Array{Gadfly.Compose.Context,1}(len)
     #r = Array{RemoteRef,1}(len)
     i = 0
     for cliq in bt.cliques
@@ -58,7 +58,7 @@ end
 function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
                         N=300, gt=Union{})
     len = length(bt.cliques)
-    vv = Array{Compose.Context,1}(len)
+    vv = Array{Gadfly.Compose.Context,1}(len)
     i = 0
     for cliq in bt.cliques
         #@show cliq[2].attributes["label"]
@@ -302,7 +302,7 @@ function investigatePoseKDE(p::BallTreeDensity)
 end
 
 function vArrPotentials(potens::Dict{Int,EasyMessage})
-  vv = Array{Compose.Context,1}(length(potens))
+  vv = Array{Gadfly.Compose.Context,1}(length(potens))
   i = 0
   oned=false
   for p in potens
@@ -378,7 +378,7 @@ function dwnMsgsAtCliq(fg::FactorGraph, bt::BayesTree, lbl::ASCIIString)
     dwnMsgsAtCliq(fg, whichCliq(bt, lbl) )
 end
 
-function drawPose2DMC!(plots::Array{Compose.Context,1}, cliqMC::CliqGibbsMC)
+function drawPose2DMC!(plots::Array{Gadfly.Compose.Context,1}, cliqMC::CliqGibbsMC)
 
     for prod in cliqMC.prods
         prodVal = kde!(prod.product,"lcv") #cliqMC.prods[1]
@@ -387,7 +387,7 @@ function drawPose2DMC!(plots::Array{Compose.Context,1}, cliqMC::CliqGibbsMC)
     vstackedPlots(plots)
 end
 
-function mcmcPose2D!(plots::Array{Compose.Context,1}, cliqDbg::DebugCliqMCMC, iter::Int=1)
+function mcmcPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliqDbg::DebugCliqMCMC, iter::Int=1)
     # for mc in cliqDbg.mcmc
     mc = cliqDbg.mcmc[iter]
     v = drawPose2DMC!(plots, mc)
@@ -395,25 +395,25 @@ function mcmcPose2D!(plots::Array{Compose.Context,1}, cliqDbg::DebugCliqMCMC, it
     return v
 end
 
-function drawUpMCMCPose2D!(plots::Array{Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
+function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
     whosWith(cliq)
     cliqDbg = cliq.attributes["debug"]
     sleep(0.1)
     mcmcPose2D!(plots, cliqDbg, iter)
 end
 
-function drawUpMCMCPose2D!(plots::Array{Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
+function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
     drawUpMCMCPose2D!(plots, whichCliq(bt,frt), iter)
 end
 
-function drawDwnMCMCPose2D!(plots::Array{Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
+function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
     whosWith(cliq)
     cliqDbg = cliq.attributes["debugDwn"]
     sleep(0.1)
     mcmcPose2D!(plots, cliqDbg, iter)
 end
 
-function drawDwnMCMCPose2D!(plots::Array{Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
+function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
     drawDwnMCMCPose2D!(plots, whichCliq(bt,frt), iter)
 end
 
@@ -458,7 +458,7 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{ASCIIString,1};
     nhor = round(Int,sqrt(len))
   end
   vlen = ceil(Int, len/nhor)
-  vv = Array{Compose.Context,1}(vlen)
+  vv = Array{Gadfly.Compose.Context,1}(vlen)
   conslb = deepcopy(lbls)
   vidx = 0
   for i in 1:nhor:len
@@ -749,7 +749,7 @@ function getAllFGsKDEs(fgD::Array{FactorGraph,1}, vertid::Int64)
   return ret
 end
 
-function drawAllPose2DBeliefs(plots::Array{Compose.Context,1}, fgD::Array{FactorGraph,1})
+function drawAllPose2DBeliefs(plots::Array{Gadfly.Compose.Context,1}, fgD::Array{FactorGraph,1})
     ids = sort(collect(keys(fgD[1].v)))
     co = ["black"; "blue"; "green"; "red"; "magenta"; "cyan"; "cyan1"; "cyan2"]
     println(co[1:length(fgD)])
@@ -769,7 +769,7 @@ function drawAllPose2DBeliefs(plots::Array{Compose.Context,1}, fgD::Array{Factor
 end
 
 # legacy function -- use the array version instead
-function drawAllPose2DBeliefs(plots::Array{Compose.Context,1}, fgD::FactorGraph, fgD0=Union{})
+function drawAllPose2DBeliefs(plots::Array{Gadfly.Compose.Context,1}, fgD::FactorGraph, fgD0=Union{})
   println("WARNING: drawAllPose2DBeliefs -- legacy function -- use the array version instead.")
   if fgD0 != Union{}
     drawAllPose2DBeliefs(plots, [fgD;fgD0])
