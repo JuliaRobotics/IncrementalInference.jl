@@ -13,6 +13,7 @@ export
   FactorGraph,
   addNode!,
   addFactor!,
+  getVal,
   BayesTree,
   emptyFactorGraph,
   getEliminationOrder,
@@ -35,7 +36,24 @@ export
   get2DLandmMax,
   writeGraphPdf,
   # Tree stuff
-  spyCliqMat
+  spyCliqMat,
+  evalPotential,
+  evalFactor2,
+  inferOverTree!,
+  inferOverTreeR!,
+
+  #Robot stuff
+  PriorPose2,
+  Pose2Pose2,
+  addPose2Pose2,
+  Pose2DPoint2DBearingRange,
+  solveLandm,
+  solvePose2,
+  solveSetSeps,
+
+  # should improve abstraction
+  R
+
 
 
 include("FactorGraph01.jl")
