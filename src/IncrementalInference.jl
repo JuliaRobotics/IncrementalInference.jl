@@ -11,6 +11,8 @@ using
 
 export
   FactorGraph,
+  NBPMessage,
+  ExploreTreeType,
   addNode!,
   addFactor!,
   getVal,
@@ -35,6 +37,7 @@ export
   get2DLandmMeans,
   get2DLandmMax,
   writeGraphPdf,
+  ls,
   # Tree stuff
   spyCliqMat,
   evalPotential,
@@ -50,9 +53,18 @@ export
   solveLandm,
   solvePose2,
   solveSetSeps,
+  addPose2Pose2!,
 
   # should improve abstraction
-  R
+  R,
+
+  #development interface
+  upMsgPassingRecursive,
+
+  #Visualization stuff for robots should be moved to RoME
+  drawPosesLandms,
+  getKDEMax,
+  spyCliqMat
 
 
 

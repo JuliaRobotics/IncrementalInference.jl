@@ -174,14 +174,14 @@ end
 
 function drawLandms(fg::FactorGraph;
               from::Int64=0, to::Int64=99999999, minnei::Int64=0,
-              meanmax=:max,lbls=true,showmm=false,drawhist=true,c="red")
+              meanmax=:max,lbls=true,showmm=false,drawhist=true,c="red",MM=Union{})
     #Gadfly.set_default_plot_size(20cm, 30cm)
     Xp,Yp = get2DLandmSamples(fg, from=from, to=to)
     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; lblstags=ASCIIString[];
     if meanmax==:mean
       Xpp,Ypp, t, lbltags = get2DLandmMeans(fg, from=from, to=to)
     elseif meanmax==:max
-      Xpp,Ypp, t, lbltags = get2DLandmMax(fg, from=from, to=to,showmm=showmm)
+      Xpp,Ypp, t, lbltags = get2DLandmMax(fg, from=from, to=to,showmm=showmm,MM=MM)
     end
 
     if lbls
@@ -204,9 +204,9 @@ end
 
 function drawPosesLandms(fg::FactorGraph;
                     from::Int64=0, to::Int64=99999999, minnei::Int64=0,
-                    meanmax=:max,lbls=true,drawhist=true)
+                    meanmax=:max,lbls=true,drawhist=true, MM=Union{})
   p = drawPoses(fg, from=from,to=to,meanmax=meanmax,lbls=lbls,drawhist=drawhist)
-  pl = drawLandms(fg, from=from, to=to, minnei=minnei,lbls=lbls,drawhist=drawhist)
+  pl = drawLandms(fg, from=from, to=to, minnei=minnei,lbls=lbls,drawhist=drawhist, MM=MM)
   for l in pl.layers
     push!(p.layers, l)
   end

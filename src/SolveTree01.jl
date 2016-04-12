@@ -152,12 +152,14 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     packFromLocalPotentials!(fg, dens, cliq, vertid, N)
     potprod = PotProd(vertid, getVal(fg.v[vertid]), Array{Float64,2}(), dens) #
 
+    pGM = Array{Float64,2}()
     if length(dens) > 1
         Ndims = dens[1].bt.dims
         dummy = kde!(rand(Ndims,N),[1.0]);
         print("[$(length(dens)) prod.]")
         pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 10)
         #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
+        # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing
     elseif length(dens) == 1
         print("[direct]")
         pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end], dens[1].bt.dims, Npts(dens[1]))  #N
@@ -166,10 +168,11 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     end
     potprod.product = pGM
     print(", ")
+
     return pGM, potprod
 end
 
-function fmcmc!(fg::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage,1}, IDs::Array{Int64,1}, N::Int64, MCMCIter::Int)
+function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage,1}, IDs::Array{Int64,1}, N::Int64, MCMCIter::Int)
     println("------------- functional mcmc ----------------$(cliq.attributes["label"])")
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
     if length(IDs) == 1
@@ -183,22 +186,24 @@ function fmcmc!(fg::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage,
         dbg = CliqGibbsMC([])
         for vertid in IDs
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-            densPts, potprod = cliqGibbs(fg, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+            densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
             if size(densPts,1)>0
-                fg.v[vertid].attributes["val"] = densPts
+                fgl.v[vertid].attributes["val"] = densPts
                 push!(dbg.prods, potprod)
             end
         end
         push!(mcmcdbg, dbg)
         println("")
     end
+
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
     d = Dict{Int64,Array{Float64,2}}()
     for vertid in IDs
-        d[vertid] = getVal(fg.v[vertid])
+        d[vertid] = getVal(fgl.v[vertid])
     end
     println("fmcmc! -- finished on $(cliq.attributes["label"])")
+    @show getVal(fgl.v[1])[1,1]
     return mcmcdbg, d
 end
 
@@ -262,51 +267,62 @@ end
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     print("up w $(length(inp.sendmsgs)) msgs")
     # Loval mcmc over belief functions
-
+    @show "INSIDE", getVal(inp.fg.v[1])[1,1]
     # this is so slow! TODO Can be ignored once we have partial working
-    loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
+    # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     d = Union{}
     mcmcdbg = Union{}
-    if false
+    if true
       IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
-    elseif true
+    elseif false
+      @show "GOFMCMC", getVal(inp.fg.v[1])
       dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
-      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
-      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
+      if length(inp.cliq.attributes["msgskipIDs"]) > 0
+        dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
+        for md in dd d[md[1]] = md[2]; end
+      end
+      if length(inp.cliq.attributes["itervarIDs"]) > 0
+        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
+        for md in ddd d[md[1]] = md[2]; end
+      end
       # TODO -- do direct conditionals from msg also, before transits and iterations are done.
-      dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
-      for md in dd d[md[1]] = md[2]; end
-      for md in ddd d[md[1]] = md[2]; end
-      for md in dddd d[md[1]] = md[2]; end
-    # else
-    #   rr = Array{RemoteRef,1}(4)
-    #   rr[1] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
-    #   rr[2] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
-    #   rr[3] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
-    #   rr[4] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
-    #   dummy, d = fetch(rr[1])
-    #   dummy, dd = fetch(rr[2])
-    #   mcmcdbg, ddd = fetch(rr[3])
-    #   dummy, dddd = fetch(rr[4])
-    #
-    #   for md in dd d[md[1]] = md[2]; end
-    #   for md in ddd d[md[1]] = md[2]; end
-    #   for md in dddd d[md[1]] = md[2]; end
+      if length(inp.cliq.attributes["directvarIDs"]) > 0
+        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
+        for md in dddd d[md[1]] = md[2]; end
+      end
+
+      @show "RETURNING", getVal(inp.fg.v[1])[1,1]
+      @show "D", d[1]
     end
 
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
     m = upPrepOutMsg!(d, inp.cliq.attributes["conditIDs"])
 
     # Copy frontal variables back
-    for id in inp.cliq.attributes["frontalIDs"]
-        inp.fg.v[id].attributes["val"] = loclfg.v[id].attributes["val"] # inp.
-    end
+    # for id in inp.cliq.attributes["frontalIDs"]
+    #     inp.fg.v[id].attributes["val"] = loclfg.v[id].attributes["val"] # inp.
+    # end
+    # @show getVal(inp.fg.v[1])
 
     mdbg = DebugCliqMCMC(mcmcdbg, m)
     return UpReturnBPType(m, mdbg, d)
 end
+# else
+#   rr = Array{RemoteRef,1}(4)
+#   rr[1] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
+#   rr[2] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
+#   rr[3] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
+#   rr[4] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
+#   dummy, d = fetch(rr[1])
+#   dummy, dd = fetch(rr[2])
+#   mcmcdbg, ddd = fetch(rr[3])
+#   dummy, dddd = fetch(rr[4])
+#
+#   for md in dd d[md[1]] = md[2]; end
+#   for md in ddd d[md[1]] = md[2]; end
+#   for md in dddd d[md[1]] = md[2]; end
 
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, Array{Float64,2}})
     # pack all downcoming conditionals in a dictionary too.
@@ -435,10 +451,11 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200) #upmsgdict = Di
     println("====================== Clique $(inp.cliq.attributes["label"]) =============================")
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
 
+    # @show "BEFORE", getVal(ett.fg.v[1])
     # upmsg = Dict{Int64, Array{Float64,2}}()
     urt = upGibbsCliqueDensity(ett, N) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt)
-
+    # @show "AFTER", getVal(ett.fg.v[1])
     println("End Clique $(inp.cliq.attributes["label"]) =============================")
     urt.upMsgs
 end

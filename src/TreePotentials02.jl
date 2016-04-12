@@ -85,6 +85,7 @@ end
 
 function evalPotential(odom::Pose2Pose2, Xid::Int64)
     rz,cz = size(odom.Zij)
+    Xval = Array{Float64,2}()
     # implicit equation portion -- bi-directional pairwise function
     if Xid == odom.Xi[1].index
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
@@ -123,10 +124,13 @@ function evalPotential(odom::Pose2Pose2, Xid::Int64)
     # Repeat ENT values for new modes from meas
     for j in 1:cz
       for i in 1:c
-          @fastmath @inbounds z = Z[1:r,j].+ENT[1:r,i]
-          @fastmath @inbounds addPose2Pose2!(RES[1:r,i*j], Xval[1:r,i], z )
+          z = Z[1:r,j].+ENT[1:r,i]
+          # addPose2Pose2!(RES[1:r,i*j], Xval[1:r,i], z ) # doesn't seem to work between modules
+          RES[1:r,i*j] = addPose2Pose2(Xval[1:r,i], z )
+          #sum(abs(RES[1:r,i*j])) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- RET col is zero, z=$(z), X=$(Xval[1:r,i])") : nothing
       end
     end
+    #sum(abs(RES)) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- an input is zero") : nothing
 
     return RES
 end
@@ -194,6 +198,7 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
     val = Array{Float64,2}()
     ini = Array{Graphs.ExVertex,1}()
     par = Array{Graphs.ExVertex,1}()
+    oth = Array{Graphs.ExVertex,1}()
     ff::Function = +
     nullhyp = 0.0
     # mmodes = 1 < length(brpho.W)
@@ -210,6 +215,7 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
     elseif Xid == brpho.Xi[2].index # find landmark
         if length(brpho.Xi) > 2
             nullhyp = 0.5 # should be variable weight
+            oth = brpho.Xi[3]
         end
         ff = solveLandm
         ini = brpho.Xi[2]
@@ -219,6 +225,7 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
         if Xid == brpho.Xi[3].index # find second mode landmark
             ff = solveLandm
             ini = brpho.Xi[3]
+            oth = brpho.Xi[2]
             par = brpho.Xi[1]
         end
     end
@@ -230,14 +237,16 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
 
     inits = getVal(ini)
     pars = getVal(par)
+    others =  length(brpho.Xi) > 2 && Xid != brpho.Xi[1].index ? getVal(oth) : Union{}
     # add null hypothesis case
-    len = size(inits,2)
+    len = length(brpho.Xi) > 2 && Xid != brpho.Xi[1].index ? size(others,2) : 0
     # gamma = mmodes ? rand(Gamma) : 1
     numnh = floor(Int, 2*nullhyp*len) # this doubles the value count for null cases
     nhvals = zeros(size(inits,1),numnh)
     for i in 1:numnh
         idx = floor(Int,len*rand()+1)
-        nhvals[:,i] = inits[:,idx] # WRONG! this should be the other landmark, not current landmark
+        # nhvals[:,i] = inits[:,idx] # WRONG! this should be the other landmark, not current landmark
+        nhvals[:,i] = others[:,idx]
     end
 
     val = solveSetSeps(ff, vec(brpho.Zij[:,1]), brpho.Cov, pars, inits)

@@ -608,7 +608,7 @@ function removeKeysFromArr(fgl::FactorGraph, torm::Array{Int,1}, lbl::Array{ASCI
 end
 
 function get2DLandmMax(fgl::FactorGraph;
-                from::Int=-99999999999, to::Int=9999999999, showmm=false )
+                from::Int=-99999999999, to::Int=9999999999, showmm=false,MM=Union{} )
   xLB,lLB = ls(fgl) # TODO add: from, to, special option 'x'
   if !showmm lLB = removeKeysFromArr(fgl, collect(keys(MM)), lLB); end
   X = Array{Float64,1}()
