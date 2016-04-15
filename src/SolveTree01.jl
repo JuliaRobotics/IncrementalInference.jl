@@ -203,7 +203,7 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
         d[vertid] = getVal(fgl.v[vertid])
     end
     println("fmcmc! -- finished on $(cliq.attributes["label"])")
-    @show getVal(fgl.v[1])[1,1]
+
     return mcmcdbg, d
 end
 
@@ -267,7 +267,6 @@ end
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     print("up w $(length(inp.sendmsgs)) msgs")
     # Loval mcmc over belief functions
-    @show "INSIDE", getVal(inp.fg.v[1])[1,1]
     # this is so slow! TODO Can be ignored once we have partial working
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
@@ -277,7 +276,6 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
       IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
     elseif false
-      @show "GOFMCMC", getVal(inp.fg.v[1])
       dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
       if length(inp.cliq.attributes["msgskipIDs"]) > 0
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
@@ -292,9 +290,6 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
         dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
         for md in dddd d[md[1]] = md[2]; end
       end
-
-      @show "RETURNING", getVal(inp.fg.v[1])[1,1]
-      @show "D", d[1]
     end
 
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
