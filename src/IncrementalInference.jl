@@ -54,6 +54,7 @@ export
   solvePose2,
   solveSetSeps,
   addPose2Pose2!,
+  uppA,
 
   # should improve abstraction
   R,
