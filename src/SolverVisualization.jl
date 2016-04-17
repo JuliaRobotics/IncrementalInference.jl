@@ -240,17 +240,17 @@ function drawSubmaps(fgl::FactorGraph, fromto::Array{Int,1}; spread::Int=25,
   drawSubmaps(fgl, ft, m1hist=m1hist, m2hist=m2hist, m3hist=m3hist, showmm=showmm)
 end
 
-function getKDEMax(p::BallTreeDensity;N=200)
-  m = zeros(p.bt.dims)
-  for i in 1:p.bt.dims
-    mm = marginal(p,[i])
-    rangeV = getKDERange(mm)
-    X = linspace(rangeV[1],rangeV[2],N)
-    yV = evaluateDualTree(mm,X)
-    m[i] = X[findfirst(yV,maximum(yV))]
-  end
-  return m
-end
+# function getKDEMax(p::BallTreeDensity;N=200)
+#   m = zeros(p.bt.dims)
+#   for i in 1:p.bt.dims
+#     mm = marginal(p,[i])
+#     rangeV = getKDERange(mm)
+#     X = linspace(rangeV[1],rangeV[2],N)
+#     yV = evaluateDualTree(mm,X)
+#     m[i] = X[findfirst(yV,maximum(yV))]
+#   end
+#   return m
+# end
 
 function investigatePoseKDE(p::BallTreeDensity, p0::BallTreeDensity)
     co = ["black"; "blue"]

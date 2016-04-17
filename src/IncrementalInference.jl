@@ -58,13 +58,15 @@ export
 
   # should improve abstraction
   R,
+  se2vee,
+  SE2,
+  wrapRad,
 
   #development interface
   upMsgPassingRecursive,
 
   #Visualization stuff for robots should be moved to RoME
   drawPosesLandms,
-  getKDEMax,
   spyCliqMat
 
 
