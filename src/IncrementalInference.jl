@@ -11,39 +11,48 @@ using
 
 export
   FactorGraph,
-  NBPMessage,
-  ExploreTreeType,
   addNode!,
   addFactor!,
   getVal,
   BayesTree,
+  EasyMessage,
+  NBPMessage,
+  ExploreTreeType,
   emptyFactorGraph,
   getEliminationOrder,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
-  get2DSamples,
-  getAll2D,
-  get2DSampleMeans,
-  getAll2DMeans,
-  getAll2DPoses,
-  get2DPoseSamples,
-  get2DPoseMeans,
   getKDE,
   getVertKDE,
-  get2DPoseMax,
-  getAll2DLandmarks,
-  get2DLandmSamples,
-  get2DLandmMeans,
-  get2DLandmMax,
+  # get2DSamples,
+  # getAll2D,
+  # get2DSampleMeans,
+  # getAll2DMeans,
+  # getAll2DPoses,
+  # get2DPoseSamples,
+  # get2DPoseMeans,
+  # get2DPoseMax,
+  # getAll2DLandmarks,
+  # get2DLandmSamples,
+  # get2DLandmMeans,
+  # get2DLandmMax,
+
+  #Visualization
+  investigateMultidimKDE,
   writeGraphPdf,
   ls,
+
   # Tree stuff
   spyCliqMat,
   evalPotential,
   evalFactor2,
+
+  # solve inference
   inferOverTree!,
   inferOverTreeR!,
+    #development interface
+    upMsgPassingRecursive,
 
   #Robot stuff
   PriorPose2,
@@ -60,14 +69,7 @@ export
   R,
   se2vee,
   SE2,
-  wrapRad,
-
-  #development interface
-  upMsgPassingRecursive,
-
-  #Visualization stuff for robots should be moved to RoME
-  drawPosesLandms,
-  spyCliqMat
+  wrapRad
 
 
 

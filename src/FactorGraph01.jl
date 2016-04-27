@@ -480,80 +480,6 @@ function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
     return X,Y
 end
 
-
-function get2DSamples(fg::FactorGraph, sym; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
-  X = Array{Float64,1}()
-  Y = Array{Float64,1}()
-
-  # if sym = 'l', ignore single measurement landmarks
-
-  for id in fg.IDs
-      if id[1][1] == sym
-        val = parse(Int,id[1][2:end])
-        if from <= val && val <= to
-          if length(out_neighbors(fg.v[id[2]],fg.g)) >= minnei
-              X=[X;vec(fg.v[id[2]].attributes["val"][1,:])]
-              Y=[Y;vec(fg.v[id[2]].attributes["val"][2,:])]
-          end
-        end
-      end
-  end
-  return X,Y
-end
-
-function getAll2D(fg, sym; minnei::Int64=0)
-  return get2DSamples(fg, sym, minnei=minnei)
-end
-
-
-function get2DSampleMeans(fg::FactorGraph, sym; from::Int64=0, to::Int64=9999999999, minnei::Int64=0)
-  X = Array{Float64,1}()
-  Y = Array{Float64,1}()
-  Th = Array{Float64,1}()
-  LB = ASCIIString[]
-
-  # if sym = 'l', ignore single measurement landmarks
-  allIDs = Array{Int,1}()
-  for id in fg.IDs
-      if id[1][1] == sym
-          val = parse(Int,id[1][2:end])
-          if from <= val && val <= to
-            if length(out_neighbors(fg.v[id[2]],fg.g)) >= minnei
-              push!(allIDs, val)
-            end
-          end
-      end
-  end
-  allIDs = sort(allIDs)
-
-  for id in allIDs
-      X=[X;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][1,:]))]
-      Y=[Y;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][2,:]))]
-      if sym == 'x'
-        Th=[Th;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][3,:]))]
-      end
-      push!(LB, string(sym,id))
-  end
-  return X,Y,Th,LB
-end
-
-#draw landmark positions
-function getAll2DMeans(fg, sym)
-  return get2DSampleMeans(fg, sym)
-end
-
-function getAll2DPoses(fg::FactorGraph)
-    return getAll2D(fg, 'x')
-end
-
-function get2DPoseSamples(fg::FactorGraph; from::Int64=0, to::Int64=999999999)
-  return get2DSamples(fg, 'x'; from=from, to=to)
-end
-
-function get2DPoseMeans(fg::FactorGraph; from::Int64=0, to::Int64=999999999)
-  return get2DSampleMeans(fg, 'x', from=from, to=to)
-end
-
 function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), "lcv") # todo - getBW(v)
 end
@@ -563,68 +489,143 @@ function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)
   return getKDE(v)
 end
 
-function get2DPoseMax(fgl::FactorGraph;
-            from::Int=-99999999999, to::Int=9999999999 )
-  xLB,ll = ls(fgl) # TODO add: from, to, special option 'x'
-  X = Array{Float64,1}()
-  Y = Array{Float64,1}()
-  Th = Array{Float64,1}()
-  LB = ASCIIString[]
-  for lbl in xLB
-    if from <= parse(Int,lbl[2:end]) <=to
-      mv = getKDEMax(getVertKDE(fgl,lbl))
-      push!(X,mv[1])
-      push!(Y,mv[2])
-      push!(Th,mv[3])
-      push!(LB, lbl)
-    end
-  end
-  return X, Y, Th, LB
-end
+#
+# function get2DSamples(fg::FactorGraph, sym; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
+#   X = Array{Float64,1}()
+#   Y = Array{Float64,1}()
+#
+#   # if sym = 'l', ignore single measurement landmarks
+#
+#   for id in fg.IDs
+#       if id[1][1] == sym
+#         val = parse(Int,id[1][2:end])
+#         if from <= val && val <= to
+#           if length(out_neighbors(fg.v[id[2]],fg.g)) >= minnei
+#               X=[X;vec(fg.v[id[2]].attributes["val"][1,:])]
+#               Y=[Y;vec(fg.v[id[2]].attributes["val"][2,:])]
+#           end
+#         end
+#       end
+#   end
+#   return X,Y
+# end
+#
+# function getAll2D(fg, sym; minnei::Int64=0)
+#   return get2DSamples(fg, sym, minnei=minnei)
+# end
 
-function getAll2DLandmarks(fg::FactorGraph, minnei::Int64=0)
-    return getAll2D(fg, 'l', minnei=minnei)
-end
-
-function get2DLandmSamples(fg::FactorGraph; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
-  return get2DSamples(fg, 'l', from=from, to=to, minnei=minnei)
-end
-
-function get2DLandmMeans(fg::FactorGraph; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
-  return get2DSampleMeans(fg, 'l', from=from, to=to, minnei=minnei)
-end
-
-function removeKeysFromArr(fgl::FactorGraph, torm::Array{Int,1}, lbl::Array{ASCIIString,1})
-  retlbs = ASCIIString[]
-  for i in 1:length(lbl)
-    id = parse(Int,lbl[i][2:end])
-    if findfirst(torm,id) == 0
-      push!(retlbs, lbl[i])
-    else
-      println("removeKeysFromArr -- skipping $(lbl[i]), id=$(id)")
-    end
-  end
-  return retlbs
-end
-
-function get2DLandmMax(fgl::FactorGraph;
-                from::Int=-99999999999, to::Int=9999999999, showmm=false,MM=Union{} )
-  xLB,lLB = ls(fgl) # TODO add: from, to, special option 'x'
-  if !showmm lLB = removeKeysFromArr(fgl, collect(keys(MM)), lLB); end
-  X = Array{Float64,1}()
-  Y = Array{Float64,1}()
-  Th = Array{Float64,1}()
-  LB = ASCIIString[]
-  for lbl in lLB
-    if from <= parse(Int,lbl[2:end]) <=to
-      mv = getKDEMax(getVertKDE(fgl,lbl))
-      push!(X,mv[1])
-      push!(Y,mv[2])
-      push!(LB, lbl)
-    end
-  end
-  return X, Y, Th, LB
-end
+#
+# function get2DSampleMeans(fg::FactorGraph, sym; from::Int64=0, to::Int64=9999999999, minnei::Int64=0)
+#   X = Array{Float64,1}()
+#   Y = Array{Float64,1}()
+#   Th = Array{Float64,1}()
+#   LB = ASCIIString[]
+#
+#   # if sym = 'l', ignore single measurement landmarks
+#   allIDs = Array{Int,1}()
+#   for id in fg.IDs
+#       if id[1][1] == sym
+#           val = parse(Int,id[1][2:end])
+#           if from <= val && val <= to
+#             if length(out_neighbors(fg.v[id[2]],fg.g)) >= minnei
+#               push!(allIDs, val)
+#             end
+#           end
+#       end
+#   end
+#   allIDs = sort(allIDs)
+#
+#   for id in allIDs
+#       X=[X;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][1,:]))]
+#       Y=[Y;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][2,:]))]
+#       if sym == 'x'
+#         Th=[Th;Base.mean(vec(fg.v[fg.IDs[string(sym,id)]].attributes["val"][3,:]))]
+#       end
+#       push!(LB, string(sym,id))
+#   end
+#   return X,Y,Th,LB
+# end
+#
+# #draw landmark positions
+# function getAll2DMeans(fg, sym)
+#   return get2DSampleMeans(fg, sym)
+# end
+#
+# function getAll2DPoses(fg::FactorGraph)
+#     return getAll2D(fg, 'x')
+# end
+#
+# function get2DPoseSamples(fg::FactorGraph; from::Int64=0, to::Int64=999999999)
+#   return get2DSamples(fg, 'x'; from=from, to=to)
+# end
+#
+# function get2DPoseMeans(fg::FactorGraph; from::Int64=0, to::Int64=999999999)
+#   return get2DSampleMeans(fg, 'x', from=from, to=to)
+# end
+#
+#
+# function get2DPoseMax(fgl::FactorGraph;
+#             from::Int=-99999999999, to::Int=9999999999 )
+#   xLB,ll = ls(fgl) # TODO add: from, to, special option 'x'
+#   X = Array{Float64,1}()
+#   Y = Array{Float64,1}()
+#   Th = Array{Float64,1}()
+#   LB = ASCIIString[]
+#   for lbl in xLB
+#     if from <= parse(Int,lbl[2:end]) <=to
+#       mv = getKDEMax(getVertKDE(fgl,lbl))
+#       push!(X,mv[1])
+#       push!(Y,mv[2])
+#       push!(Th,mv[3])
+#       push!(LB, lbl)
+#     end
+#   end
+#   return X, Y, Th, LB
+# end
+#
+# function getAll2DLandmarks(fg::FactorGraph, minnei::Int64=0)
+#     return getAll2D(fg, 'l', minnei=minnei)
+# end
+#
+# function get2DLandmSamples(fg::FactorGraph; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
+#   return get2DSamples(fg, 'l', from=from, to=to, minnei=minnei)
+# end
+#
+# function get2DLandmMeans(fg::FactorGraph; from::Int64=0, to::Int64=999999999, minnei::Int64=0)
+#   return get2DSampleMeans(fg, 'l', from=from, to=to, minnei=minnei)
+# end
+#
+# function removeKeysFromArr(fgl::FactorGraph, torm::Array{Int,1}, lbl::Array{ASCIIString,1})
+#   retlbs = ASCIIString[]
+#   for i in 1:length(lbl)
+#     id = parse(Int,lbl[i][2:end])
+#     if findfirst(torm,id) == 0
+#       push!(retlbs, lbl[i])
+#     else
+#       println("removeKeysFromArr -- skipping $(lbl[i]), id=$(id)")
+#     end
+#   end
+#   return retlbs
+# end
+#
+# function get2DLandmMax(fgl::FactorGraph;
+#                 from::Int=-99999999999, to::Int=9999999999, showmm=false,MM=Union{} )
+#   xLB,lLB = ls(fgl) # TODO add: from, to, special option 'x'
+#   if !showmm lLB = removeKeysFromArr(fgl, collect(keys(MM)), lLB); end
+#   X = Array{Float64,1}()
+#   Y = Array{Float64,1}()
+#   Th = Array{Float64,1}()
+#   LB = ASCIIString[]
+#   for lbl in lLB
+#     if from <= parse(Int,lbl[2:end]) <=to
+#       mv = getKDEMax(getVertKDE(fgl,lbl))
+#       push!(X,mv[1])
+#       push!(Y,mv[2])
+#       push!(LB, lbl)
+#     end
+#   end
+#   return X, Y, Th, LB
+# end
 
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
