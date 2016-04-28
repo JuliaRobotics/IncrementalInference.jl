@@ -10,10 +10,23 @@ This code is still in development.
 
 ![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png)
 
-Usage
-=====
+Installation
+------------
 
-WIP
+Currently an unregistered package, so use:
+
+    Pkg.clone("https://github.com/dehann/IncrementalInference.jl.git")
+    
+It will be useful to also install these two packages
+
+    for p in ["Cairo"; "Fontconfig"]  Pkg.add(p) end
+
+Basic example
+=============
+
+A multimodal 4 door robot example is available at:
+
+    examples/RobotfourDoor.jl
 
 References
 ==========
