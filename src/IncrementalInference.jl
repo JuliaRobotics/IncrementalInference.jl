@@ -42,6 +42,9 @@ export
   investigateMultidimKDE,
   writeGraphPdf,
   ls,
+  drawHorDens,
+  drawHorBeliefsList,
+  # vstackedDensities, # global scope naming issue with msgPlots
 
   # Tree stuff
   spyCliqMat,
@@ -64,6 +67,12 @@ export
   solveSetSeps,
   addPose2Pose2!,
   uppA,
+
+  # For 1D example
+  Odo,
+  odoAdd,
+  Obsv2,
+  Ranged,
 
   # should improve abstraction
   R,
