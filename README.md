@@ -1,5 +1,5 @@
 # IncrementalInference.jl
-Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the ![Julia language](http://julialang.org/).
+Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the ![Julia language](http://www.julialang.org/).
 
 Introduction
 ------------
