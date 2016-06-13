@@ -1,4 +1,8 @@
 # IncrementalInference.jl
+
+[![codecov.io](https://codecov.io/github/dehann/IIncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/IncrementalInference.jl?branch=master)
+
+
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/).
 
 Introduction
@@ -16,7 +20,7 @@ Installation
 Currently an unregistered package, so use:
 
     Pkg.clone("https://github.com/dehann/IncrementalInference.jl.git")
-    
+
 It will be useful to also install these two packages
 
     for p in ["Cairo"; "Fontconfig"]  Pkg.add(p) end
