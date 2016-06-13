@@ -17,15 +17,34 @@ type FactorGraph
   dimID::Int64
 end
 
+function getVal(v::Graphs.ExVertex)
+  return v.attributes["val"]
+end
+function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
+  v.attributes["val"] = val
+  nothing
+end
+function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
+  v.attributes["bw"] = bw
+  nothing
+end
+function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
+  setVal!(v,val)
+  setBW!(v,bw)
+  nothing
+end
+function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,1})
+  setVal!(v,val,(bw')')
+  nothing
+end
+function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
+  p = kde!(val)
+  setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
+  nothing
+end
 
-function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
-  fg.id+=1
-  fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
-  fg.IDs[lbl] = fg.id
-  fg.v[fg.id].attributes = Graphs.AttributeDict()
-  fg.v[fg.id].attributes["label"] = lbl
-  fg.v[fg.id].attributes["initval"] = initval
-  fg.v[fg.id].attributes["initstdev"] = stdev
+function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
+                              stdev::Array{Float64,2}, dodims::Int64, N::Int64)
   pN = Union{}
   if size(initval,2) < N
     p = kde!(initval,diag(stdev));
@@ -33,27 +52,35 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
   else
     pN = kde!(initval, "lcv")
   end
-  fg.v[fg.id].attributes["val"] = getPoints(pN)
-  fg.v[fg.id].attributes["bw"] = getBW(pN)[:,1]
-  #fg.v[fg.id].attributes["initialized"]  = false
-  push!(fg.nodeIDs,fg.id)
-  fg.v[fg.id].attributes["eliminated"] = false
-  fg.v[fg.id].attributes["BayesNetVert"] = Union{}
+  setVal!(v, getPoints(pN), getBW(pN)[:,1])
+  v.attributes["initval"] = initval
+  v.attributes["initstdev"] = stdev
+  v.attributes["eliminated"] = false
+  v.attributes["BayesNetVert"] = Union{}
   dims = size(initval,1) # rows indicate dimensions
-  fg.v[fg.id].attributes["dims"] = dims
-  fg.dimID+=1
-  fg.v[fg.id].attributes["dimIDs"] = round(Int64,linspace(fg.dimID,fg.dimID+dims-1,dims))
-  fg.dimID+=dims-1 # move to last dimension
+  v.attributes["dims"] = dims
+  v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
+  nothing
+end
+
+function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
+  fg.id+=1
+  fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
+  fg.IDs[lbl] = fg.id
+  fg.v[fg.id].attributes = Graphs.AttributeDict()
+  fg.v[fg.id].attributes["label"] = lbl
+  dodims = fg.dimID+1
+
+  setDefaultNodeData!(fg.v[fg.id], initval, stdev, dodims, N)
+
+  fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
+  push!(fg.nodeIDs,fg.id)
   return fg.v[fg.id]
 end
 
 function addEdge!(g,n1,n2)
   edge = Graphs.make_edge(g, n1, n2)
   Graphs.add_edge!(g, edge)
-end
-
-function getVal(v::Graphs.ExVertex)
-  return v.attributes["val"]
 end
 
 function getVal(vA::Array{Graphs.ExVertex,1})
@@ -474,14 +501,17 @@ end
 
 # some plotting functions on the factor graph
 function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
-    id = fg.IDs[lbl]
-    X=vec(fg.v[id].attributes["val"][1,:])
-    Y=vec(fg.v[id].attributes["val"][2,:])
+    v = fg.v[fg.IDs[lbl]]
+    vals = getVal(v)
+    X=vec(vals[1,:])
+    Y=vec(vals[2,:])
+    # X=vec(v.attributes["val"][1,:])
+    # Y=vec(v.attributes["val"][2,:])
     return X,Y
 end
 
 function getKDE(v::Graphs.ExVertex)
-  return kde!(getVal(v), "lcv") # todo - getBW(v)
+  return kde!(getVal(v), "lcv") # TODO - getBW(v)
 end
 
 function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)

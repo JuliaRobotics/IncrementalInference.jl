@@ -72,7 +72,9 @@ function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
 
         for frid in cliq[2].attributes["frontalIDs"]
             j+=1
-            p[j] = kde!(fg.v[frid].attributes["val"])
+            p[j] = getKDE(fg.v[frid])
+            # p[j] = kde!(fg.v[frid].attributes["val"])
+
             #pvals[j] = fg.v[frid].attributes["val"]
 
             if gt!=Union{}

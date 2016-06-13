@@ -157,7 +157,7 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
         Ndims = dens[1].bt.dims
         dummy = kde!(rand(Ndims,N),[1.0]);
         print("[$(length(dens)) prod.]")
-        pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 10)
+        pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 5) #10
         #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
         # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing
     elseif length(dens) == 1
@@ -188,7 +188,8 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
             densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
             if size(densPts,1)>0
-                fgl.v[vertid].attributes["val"] = densPts
+                setValKDE!(fgl.v[vertid], densPts)
+                # fgl.v[vertid].attributes["val"] = densPts
                 push!(dbg.prods, potprod)
             end
         end
@@ -371,7 +372,8 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn) #inp.
     for dat in ddt.IDvals
-        fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+        setValKDE!(fg.v[dat[1]], deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+        # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
     end
     nothing
 end
@@ -380,7 +382,8 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
-        fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+      setValKDE!(fg.v[dat[1]], deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+      # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
     nothing
