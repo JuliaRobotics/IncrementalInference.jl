@@ -2,14 +2,17 @@
 
 [![codecov.io](https://codecov.io/github/dehann/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/IncrementalInference.jl?branch=master)
 
+[![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.4.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.4) (WIP)
+
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/).
+
+This code is still in development.
 
 Introduction
 ------------
 
 This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2] and parametric inference techniques. Inference is perfomed from a graphical model standpoint, where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
 
-This code is still in development.
 
 ![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png)
 
