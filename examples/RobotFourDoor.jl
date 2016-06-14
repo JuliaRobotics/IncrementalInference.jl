@@ -5,6 +5,7 @@ using Cairo, Fontconfig # for drawing PNG/PDF
 # if you want to add multiple process here rather than calling $ julia -p4
 # addprocs(3)
 
+gt = Dict{ASCIIString, Array{Float64,2}}()
 # HMM computed ground truth for first 3 poses only
 gt["x1"]=[[-100.0; 1.96]';[0.0; 1.96]']'
 gt["x2"]=[[-50.0; 3.1]';[50.0; 3.1]']'
@@ -12,7 +13,7 @@ gt["x3"]=[[100.0; 3.05]';[0.0; 3.05]']'
 
 fg = emptyFactorGraph()
 
-N=100
+N=500
 
 doors = [-100.0;0.0;100.0;300.0]'
 pd = kde!(doors,[3.0])
