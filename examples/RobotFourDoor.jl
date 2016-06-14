@@ -74,7 +74,7 @@ if true
 end
 
 writeGraphPdf(fg);
-tree = prepBatchTree!(fg);
+tree = prepBatchTree!(fg,drawpdf=true);
 
 
 # list vertices in fg

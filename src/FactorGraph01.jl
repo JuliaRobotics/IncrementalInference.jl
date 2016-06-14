@@ -438,7 +438,7 @@ end
 
 marg(x...) = -1, [0.0]
 ## Find batch belief propagation solution
-function prepBatchTree!(fg::FactorGraph; ordering=:qr)
+function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=false)
   p = getEliminationOrder(fg, ordering=ordering)
   #@show p=[1, 3, 8, 10, 5]
   # for v in p
@@ -461,10 +461,12 @@ function prepBatchTree!(fg::FactorGraph; ordering=:qr)
   #GraphViz.Graph(to_dot(fge.bn))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
   println("Bayes Tree")
-  fid = open("bt.dot","w+")
-  write(fid,to_dot(tree.bt))
-  close(fid)
-  run(`dot bt.dot -Tpdf -o bt.pdf`)
+  if drawpdf
+    fid = open("bt.dot","w+")
+    write(fid,to_dot(tree.bt))
+    close(fid)
+    run(`dot bt.dot -Tpdf -o bt.pdf`)
+  end
 
   # GraphViz.Graph(to_dot(tree.bt))
   #Michael reference 3sig -- x2l1x4x3    x1|x2
