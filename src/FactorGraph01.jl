@@ -132,6 +132,18 @@ function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
   return evalFactor(fg, fct.attributes["evalstr"] )
 end
 
+function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
+  fact.attributes["fnc"] = f
+  fact.attributes["fncargvID"] = Dict{Int,Int}()
+  fact.attributes["eliminated"] = false
+  fact.attributes["potentialused"] = false
+  nothing
+end
+function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
+  fact.attributes["fncargvID"][idx] = index
+  nothing
+end
+
 function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
   namestring = ""
   for vert in f.Xi
@@ -140,15 +152,11 @@ function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
   fg.id+=1
   fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
   fg.fIDs[namestring] = fg.id
+  # for graphviz drawing
   fg.f[fg.id].attributes["shape"] = "point"
   fg.f[fg.id].attributes["width"] = 0.2
-  fg.f[fg.id].attributes["fnc"] = f
-  fg.f[fg.id].attributes["fncargvID"] = Dict{Int,Int}()
-  #fg.f[fg.id].attributes["meas"] = f.Zij
-  #fg.f[fg.id].attributes["stdev"] = f.Cov
-  fg.f[fg.id].attributes["eliminated"] = false
-  fg.f[fg.id].attributes["potentialused"] = false
-  #@show fg.f[fg.id].attributes["function"](10.)
+
+  setDefaultFactorNode!(fg.f[fg.id], f)
   push!(fg.factorIDs,fg.id)
 
   idx=0
@@ -156,45 +164,46 @@ function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
     addEdge!(fg.g,vert,fg.f[fg.id])
     # add function handle for later fnc evaluation
     idx+=1
-    fg.f[fg.id].attributes["fncargvID"][idx] = vert.index
+    setFncArgIDs!(fg.f[fg.id],idx,vert.index)
   end
 
   #fg.f[fg.id].attributes["evalstr"] = FactorEvalStr(fg,fg.f[fg.id])
   return fg.f[fg.id]
 end
 
-function addFactor!(fg, f::Function, nodes, meas=[], sig=[])
-  namestring = ""
-  for label in nodes
-    namestring = string(namestring,label)
-  end
-  fg.id+=1
-  fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
-  fg.fIDs[namestring] = fg.id
-  fghdl = fg.f[fg.id]
-  #fg.IDs[lbl] = fg.id
-  fghdl.attributes["shape"] = "point"
-  fghdl.attributes["width"] = 0.2
-  fghdl.attributes["fnc"] = f
-  fghdl.attributes["fncargvID"] = Dict{Int,Int}()
-  fghdl.attributes["meas"] = meas
-  fghdl.attributes["stdev"] = sig
-  fghdl.attributes["eliminated"] = false
-  fghdl.attributes["potentialused"] = false
-  #@show fg.f[fg.id].attributes["function"](10.)
-  push!(fg.factorIDs,fg.id)
-
-
-  idx=0
-  for label in nodes
-    addEdge!(fg.g,fg.v[fg.IDs[label]],fghdl)
-    # add function handle for later fnc evaluation
-    idx+=1
-    fg.f[fg.id].attributes["fncargvID"][idx] = fg.IDs[label]
-  end
-
-  fghdl.attributes["evalstr"] = FactorEvalStr(fg,fghdl) # TODO add nothing as return
-end
+#
+# function addFactor!(fg::FactorGraph, f::Function, nodes, meas=[], sig=[])
+#   namestring = ""
+#   for label in nodes
+#     namestring = string(namestring,label)
+#   end
+#   fg.id+=1
+#   fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
+#   fg.fIDs[namestring] = fg.id
+#   fghdl = fg.f[fg.id]
+#   #fg.IDs[lbl] = fg.id
+#   fghdl.attributes["shape"] = "point"
+#   fghdl.attributes["width"] = 0.2
+#   fghdl.attributes["fnc"] = f
+#   fghdl.attributes["fncargvID"] = Dict{Int,Int}()
+#   fghdl.attributes["meas"] = meas
+#   fghdl.attributes["stdev"] = sig
+#   fghdl.attributes["eliminated"] = false
+#   fghdl.attributes["potentialused"] = false
+#   #@show fg.f[fg.id].attributes["function"](10.)
+#   push!(fg.factorIDs,fg.id)
+#
+#
+#   idx=0
+#   for label in nodes
+#     addEdge!(fg.g,fg.v[fg.IDs[label]],fghdl)
+#     # add function handle for later fnc evaluation
+#     idx+=1
+#     fg.f[fg.id].attributes["fncargvID"][idx] = fg.IDs[label]
+#   end
+#
+#   fghdl.attributes["evalstr"] = FactorEvalStr(fg,fghdl) # TODO add nothing as return
+# end
 
 
 function emptyFactorGraph()
@@ -261,10 +270,14 @@ end
 
 function addChainRuleMarginal!(fg::FactorGraph, Si)
   lbls = ASCIIString[]
+  genmarg = GenericMarginal()
+  genmarg.Xi = Graphs.ExVertex[]
   for s in Si
-    push!(lbls,fg.v[s].attributes["label"])
+    # push!(lbls,fg.v[s].attributes["label"])
+    push!(genmarg.Xi,fg.v[s])
   end
-  addFactor!(fg, marg, lbls)
+  # addFactor!(fg, marg, lbls)
+  addFactor!(fg,genmarg)
   Union{}
 end
 
@@ -436,7 +449,9 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
 end
 
 
-marg(x...) = -1, [0.0]
+marg(x...) = -1, [0.0] # TODO -- this should be removed
+
+
 ## Find batch belief propagation solution
 function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=false)
   p = getEliminationOrder(fg, ordering=ordering)

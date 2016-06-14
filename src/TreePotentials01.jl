@@ -22,6 +22,15 @@ type Ranged <: Pairwise
     W::Array{Float64,1}
 end
 
+type GenericMarginal <: Pairwise
+    Xi::Array{Graphs.ExVertex,1}
+    Zij::Array{Float64,1}
+    Cov::Array{Float64,1}
+    W::Array{Float64,1}
+    GenericMarginal() = new()
+    GenericMarginal(a,b,c,d) = new(a,b,c,d)
+end
+
 
 # DX = [tx,ty]
 function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
