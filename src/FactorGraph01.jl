@@ -47,7 +47,7 @@ type PackedVariableNodeData
   dims::Int64
   eliminated::Bool
   BayesNetVertID::Int64
-  separator::Array{Int64,1} # Will bring to hard type soon, don't worry about this one just yet
+  separator::Array{Int64,1}
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
@@ -83,6 +83,20 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator)
 end
 
+function compare(a::VariableNodeData,b::VariableNodeData)
+    TP = true
+    TP = TP && a.initval == b.initval
+    TP = TP && a.initstdev == b.initstdev
+    TP = TP && a.val == b.val
+    TP = TP && a.bw == b.bw
+    TP = TP && a.BayesNetOutVertIDs == b.BayesNetOutVertIDs
+    TP = TP && a.dimIDs == b.dimIDs
+    TP = TP && a.dims == b.dims
+    TP = TP && a.eliminated == b.eliminated
+    TP = TP && a.BayesNetVertID == b.BayesNetVertID
+    TP = TP && a.separator == b.separator
+    return TP
+end
 
 
 
@@ -150,7 +164,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
   data = VariableNodeData(initval, stdev, getPoints(pN),
                           (getBW(pN)[:,1]')', Int64[], sp,
-                          dims, false, -1, Int64[])
+                          dims, false, 0, Int64[])
 
   v.attributes["data"] = data
   v.attributes["BayesNetVert"] = Union{} # TODO -- remove
@@ -289,7 +303,7 @@ function prtslperr(s)
 end
 
 # for computing the Bayes Net-----------------------------------------------------
-function getEliminationOrder(fg; ordering=:qr)
+function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     s = fg.nodeIDs
     sf = fg.factorIDs
     A=convert(Array{Int},adjacency_matrix(fg.g))[sf,s]
@@ -307,7 +321,7 @@ function getEliminationOrder(fg; ordering=:qr)
 end
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(fg, elimOrder)
+function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
     if (fg.v[p].attributes["BayesNetVert"] == Union{})
       fg.bnid+=1
@@ -321,9 +335,9 @@ function addBayesNetVerts!(fg, elimOrder)
 end
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVertsNew!(fg, elimOrder)
+function addBayesNetVertsNew!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    if fg.v[p].attributes["data"].BayesNetVertID == -1
+    if fg.v[p].attributes["data"].BayesNetVertID == 0
       fg.bnid+=1
       # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       fg.v[p].attributes["data"].BayesNetVertID = p#fg.bnverts[p]
@@ -334,14 +348,15 @@ function addBayesNetVertsNew!(fg, elimOrder)
   end
 end
 
-function addConditional!(fg, vertID, lbl, Si)
+function addConditional!(fg::FactorGraph, vertID, lbl, Si)
   bnv = fg.v[vertID]
   bnvd = bnv.attributes["data"]
-  bnvert = bnv.attributes["BayesNetVert"]
-  fg.v[vertID].attributes["separator"] = Si
+  bnvd.separator = Si
+  bnv.attributes["separator"] = Si # TODO -- remove
+  bnvert = bnv.attributes["BayesNetVert"] # TODO -- remove
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
-    addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert)
+    addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
   end
 end
 
@@ -365,8 +380,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       #fg.v[v].attributes["label"]
 
       # all factors adjacent to this variable
-      fi = Int[]
-      Si = Int[]
+      fi = Int64[]
+      Si = Int64[]
       for fct in out_neighbors(fg.v[v],fg.g)
         if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
@@ -496,7 +511,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
     else
       Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      firstelim = 9999999999
+      firstelim = 99999999999
       for s in Sj
         temp = findfirst(p, s)
         if (temp < firstelim)
@@ -575,9 +590,10 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
     v[2].attributes["data"].eliminated = false
     # v[2].attributes["eliminated"] = false
     v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
-    v[2].attributes["data"].BayesNetVertID = -1
+    v[2].attributes["data"].BayesNetVertID = 0
+    v[2].attributes["data"].separator = Int64[]
     v[2].attributes["BayesNetVert"] = Union{}
-    v[2].attributes["separator"] = Int[]
+    v[2].attributes["separator"] = Int64[]
   end
   for f in fg.f
     f[2].attributes["eliminated"] = false

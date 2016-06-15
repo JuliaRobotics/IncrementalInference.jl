@@ -73,6 +73,7 @@ export
   addPose2Pose2!,
   uppA,
   convert, # for magic protobuf stuff
+  compare,
 
   # For 1D example
   Odo,
