@@ -157,7 +157,7 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
         Ndims = dens[1].bt.dims
         dummy = kde!(rand(Ndims,N),[1.0]);
         print("[$(length(dens)) prod.]")
-        pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 5) #10
+        pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
         #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
         # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing
     elseif length(dens) == 1

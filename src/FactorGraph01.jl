@@ -134,27 +134,27 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 
-function setDefaultNodeDataOld!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                              stdev::Array{Float64,2}, dodims::Int64, N::Int64)
-  pN = Union{}
-  if size(initval,2) < N
-    p = kde!(initval,diag(stdev));
-    pN = resample(p,N)
-  else
-    pN = kde!(initval, "lcv")
-  end
-  # v.attributes["initval"] = initval
-  # v.attributes["initstdev"] = stdev
-  # v.attributes["eliminated"] = false
-  v.attributes["BayesNetVert"] = Union{}
-  dims = size(initval,1) # rows indicate dimensions
-  # v.attributes["dims"] = dims
-  # v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
-
-  setDefaultNodeDataReplace!(v,initval,stdev,dodims,N)
-  # setVal!(v, getPoints(pN), getBW(pN)[:,1])
-  nothing
-end
+# function setDefaultNodeDataOld!(v::Graphs.ExVertex, initval::Array{Float64,2},
+#                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
+#   pN = Union{}
+#   if size(initval,2) < N
+#     p = kde!(initval,diag(stdev));
+#     pN = resample(p,N)
+#   else
+#     pN = kde!(initval, "lcv")
+#   end
+#   # v.attributes["initval"] = initval
+#   # v.attributes["initstdev"] = stdev
+#   # v.attributes["eliminated"] = false
+#   v.attributes["BayesNetVert"] = Union{}
+#   dims = size(initval,1) # rows indicate dimensions
+#   # v.attributes["dims"] = dims
+#   # v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
+#
+#   setDefaultNodeDataReplace!(v,initval,stdev,dodims,N)
+#   # setVal!(v, getPoints(pN), getBW(pN)[:,1])
+#   nothing
+# end
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
@@ -172,7 +172,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                           dims, false, 0, Int64[])
 
   v.attributes["data"] = data
-  v.attributes["BayesNetVert"] = Union{} # TODO -- remove
+  # v.attributes["BayesNetVert"] = Union{} # TODO -- remove
   nothing
 end
 
@@ -326,21 +326,21 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
 end
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
-  for p in elimOrder
-    if (fg.v[p].attributes["BayesNetVert"] == Union{})
-      fg.bnid+=1
-      fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
-      fg.v[p].attributes["BayesNetVert"] = fg.bnverts[p]
-      fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
-    else
-      println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
-    end
-  end
-end
+# function addBayesNetVertsOld!(fg::FactorGraph, elimOrder::Array{Int64,1})
+#   for p in elimOrder
+#     if (fg.v[p].attributes["BayesNetVert"] == Union{})
+#       fg.bnid+=1
+#       fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
+#       fg.v[p].attributes["BayesNetVert"] = fg.bnverts[p]
+#       fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
+#     else
+#       println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
+#     end
+#   end
+# end
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVertsNew!(fg::FactorGraph, elimOrder::Array{Int64,1})
+function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
     if fg.v[p].attributes["data"].BayesNetVertID == 0
       fg.bnid+=1
@@ -357,11 +357,11 @@ function addConditional!(fg::FactorGraph, vertID, lbl, Si)
   bnv = fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
-  bnv.attributes["separator"] = Si # TODO -- remove
-  bnvert = bnv.attributes["BayesNetVert"] # TODO -- remove
+  # bnv.attributes["separator"] = Si # TODO -- remove
+  # bnvert = bnv.attributes["BayesNetVert"] # TODO -- remove
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
-    addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
+    # addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
   end
 end
 
@@ -507,7 +507,7 @@ end
 # eliminate a variable for new
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     #@show fg.v[var].attributes["label"]
-    if (length(fg.v[var].attributes["separator"]) == 0)
+    if (length(fg.v[var].attributes["data"].separator) == 0) #(length(fg.v[var].attributes["separator"]) == 0)
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else
@@ -598,8 +598,8 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
     v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
     v[2].attributes["data"].BayesNetVertID = 0
     v[2].attributes["data"].separator = Int64[]
-    v[2].attributes["BayesNetVert"] = Union{}
-    v[2].attributes["separator"] = Int64[]
+    # v[2].attributes["BayesNetVert"] = Union{}
+    # v[2].attributes["separator"] = Int64[]
   end
   for f in fg.f
     f[2].attributes["eliminated"] = false
