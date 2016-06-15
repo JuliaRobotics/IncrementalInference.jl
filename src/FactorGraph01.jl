@@ -1,6 +1,7 @@
+import Base.convert
+
 abstract Pairwise
 abstract Singleton
-
 
 type FactorGraph
   g
@@ -12,20 +13,38 @@ type FactorGraph
   id::Int
   nodeIDs::Array{Int,1}
   factorIDs::Array{Int,1}
-  bnverts
+  bnverts::Dict{Int,Graphs.ExVertex}
   bnid::Int
   dimID::Int64
 end
 
+type VariableNodeData
+  initval::Array{Float64,2}
+  initstdev::Array{Float64,2}
+  val::Array{Float64,2}
+  bw::Array{Float64,2}
+  BayesNetOutVertIDs::Array{Int64,1}
+  dimIDs::Array{Int64,1}
+  dims::Int64
+  eliminated::Bool
+  BayesNetVertID::Int64
+  separator::Array{Int64,1} # Will bring to hard type soon, don't worry about this one just yet
+  VariableNodeData() = new()
+  VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
+end
+
 function getVal(v::Graphs.ExVertex)
-  return v.attributes["val"]
+  return v.attributes["data"].val
+  # return v.attributes["val"]
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
-  v.attributes["val"] = val
+  v.attributes["data"].val = val
+  # v.attributes["val"] = val
   nothing
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
-  v.attributes["bw"] = bw
+  v.attributes["data"].bw = bw
+  # v.attributes["bw"] = bw
   nothing
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
@@ -43,6 +62,28 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 
+function setDefaultNodeDataOld!(v::Graphs.ExVertex, initval::Array{Float64,2},
+                              stdev::Array{Float64,2}, dodims::Int64, N::Int64)
+  pN = Union{}
+  if size(initval,2) < N
+    p = kde!(initval,diag(stdev));
+    pN = resample(p,N)
+  else
+    pN = kde!(initval, "lcv")
+  end
+  # v.attributes["initval"] = initval
+  # v.attributes["initstdev"] = stdev
+  # v.attributes["eliminated"] = false
+  v.attributes["BayesNetVert"] = Union{}
+  dims = size(initval,1) # rows indicate dimensions
+  # v.attributes["dims"] = dims
+  # v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
+
+  setDefaultNodeDataReplace!(v,initval,stdev,dodims,N)
+  # setVal!(v, getPoints(pN), getBW(pN)[:,1])
+  nothing
+end
+
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
   pN = Union{}
@@ -52,14 +93,14 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   else
     pN = kde!(initval, "lcv")
   end
-  setVal!(v, getPoints(pN), getBW(pN)[:,1])
-  v.attributes["initval"] = initval
-  v.attributes["initstdev"] = stdev
-  v.attributes["eliminated"] = false
-  v.attributes["BayesNetVert"] = Union{}
   dims = size(initval,1) # rows indicate dimensions
-  v.attributes["dims"] = dims
-  v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
+  sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
+  data = VariableNodeData(initval, stdev, getPoints(pN),
+                          (getBW(pN)[:,1]')', Int64[], sp,
+                          dims, false, -1, Int64[])
+
+  v.attributes["data"] = data
+  v.attributes["BayesNetVert"] = Union{} # TODO -- remove
   nothing
 end
 
@@ -171,40 +212,6 @@ function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
   return fg.f[fg.id]
 end
 
-#
-# function addFactor!(fg::FactorGraph, f::Function, nodes, meas=[], sig=[])
-#   namestring = ""
-#   for label in nodes
-#     namestring = string(namestring,label)
-#   end
-#   fg.id+=1
-#   fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
-#   fg.fIDs[namestring] = fg.id
-#   fghdl = fg.f[fg.id]
-#   #fg.IDs[lbl] = fg.id
-#   fghdl.attributes["shape"] = "point"
-#   fghdl.attributes["width"] = 0.2
-#   fghdl.attributes["fnc"] = f
-#   fghdl.attributes["fncargvID"] = Dict{Int,Int}()
-#   fghdl.attributes["meas"] = meas
-#   fghdl.attributes["stdev"] = sig
-#   fghdl.attributes["eliminated"] = false
-#   fghdl.attributes["potentialused"] = false
-#   #@show fg.f[fg.id].attributes["function"](10.)
-#   push!(fg.factorIDs,fg.id)
-#
-#
-#   idx=0
-#   for label in nodes
-#     addEdge!(fg.g,fg.v[fg.IDs[label]],fghdl)
-#     # add function handle for later fnc evaluation
-#     idx+=1
-#     fg.f[fg.id].attributes["fncargvID"][idx] = fg.IDs[label]
-#   end
-#
-#   fghdl.attributes["evalstr"] = FactorEvalStr(fg,fghdl) # TODO add nothing as return
-# end
-
 
 function emptyFactorGraph()
     fg = FactorGraph(Graphs.inclist(Graphs.ExVertex,is_directed=false),
@@ -260,10 +267,27 @@ function addBayesNetVerts!(fg, elimOrder)
   end
 end
 
+# lets create all the vertices first and then deal with the elimination variables thereafter
+function addBayesNetVertsNew!(fg, elimOrder)
+  for p in elimOrder
+    if fg.v[p].attributes["data"].BayesNetVertID == -1
+      fg.bnid+=1
+      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
+      fg.v[p].attributes["data"].BayesNetVertID = p#fg.bnverts[p]
+      # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
+    else
+      println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
+    end
+  end
+end
+
 function addConditional!(fg, vertID, lbl, Si)
-bnvert = fg.v[vertID].attributes["BayesNetVert"]
+  bnv = fg.v[vertID]
+  bnvd = bnv.attributes["data"]
+  bnvert = bnv.attributes["BayesNetVert"]
   fg.v[vertID].attributes["separator"] = Si
   for s in Si
+    push!(bnvd.BayesNetOutVertIDs, s)
     addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert)
   end
 end
@@ -304,11 +328,11 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       #@show fg.v[v].attributes["sepfactors"] = fi
       addConditional!(fg, v, "", Si)
       # not yet inserting the new prior p(Si) back into the factor graph
-      fg.v[v].attributes["eliminated"] = true
+      fg.v[v].attributes["data"].eliminated = true
+      # fg.v[v].attributes["eliminated"] = true
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si
-      #@show fg.v[v].attributes["label"],"Marginals",Si
       addChainRuleMarginal!(fg, Si)
     end
     nothing
@@ -495,7 +519,10 @@ end
 
 function resetFactorGraphNewTree!(fg::FactorGraph)
   for v in fg.v
-    v[2].attributes["eliminated"] = false
+    v[2].attributes["data"].eliminated = false
+    # v[2].attributes["eliminated"] = false
+    v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
+    v[2].attributes["data"].BayesNetVertID = -1
     v[2].attributes["BayesNetVert"] = Union{}
     v[2].attributes["separator"] = Int[]
   end
@@ -726,10 +753,12 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
     allids = [frtl;cond]
     alldimIDs = Int[]
     for fid in frtl
-        alldimIDs = [alldimIDs;fg.v[fid].attributes["dimIDs"]]
+      alldimIDs = [alldimIDs;fg.v[fid].attributes["data"].dimIDs]
+      # alldimIDs = [alldimIDs;fg.v[fid].attributes["dimIDs"]]
     end
     for cid in cond
-        alldimIDs = [alldimIDs;fg.v[cid].attributes["dimIDs"]]
+      alldimIDs = [alldimIDs;fg.v[cid].attributes["data"].dimIDs]
+      # alldimIDs = [alldimIDs;fg.v[cid].attributes["dimIDs"]]
     end
 
     for fid in frtl
