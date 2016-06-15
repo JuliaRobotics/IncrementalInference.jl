@@ -11,3 +11,5 @@ pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
 unpckd = convert(VariableNodeData, pd)
 
 @test compare(fg.v[1].attributes["data"], unpckd)
+@test fg.v[1].attributes["data"] == unpckd
+println("Conversions and comparisons agree")

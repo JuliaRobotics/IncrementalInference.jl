@@ -1,4 +1,5 @@
 import Base.convert
+import Base.==
 
 abstract Pairwise
 abstract Singleton
@@ -96,6 +97,10 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
     return TP
+end
+
+function ==(a::VariableNodeData,b::VariableNodeData)
+  return compare(a,b)
 end
 
 
@@ -509,7 +514,8 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
         appendClique!(tree, 1, fg, var) # add to root
       end
     else
-      Sj = fg.v[var].attributes["separator"]
+      Sj = fg.v[var].attributes["data"].separator
+      # Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
       for s in Sj
