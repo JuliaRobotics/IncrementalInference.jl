@@ -10,6 +10,8 @@ using
   KernelDensityEstimate
 
 export
+  VariableNodeData,
+  PackedVariableNodeData,
   FactorGraph,
   addNode!,
   addFactor!,
@@ -70,6 +72,7 @@ export
   solveSetSeps,
   addPose2Pose2!,
   uppA,
+  convert, # for magic protobuf stuff
 
   # For 1D example
   Odo,

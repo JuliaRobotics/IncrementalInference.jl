@@ -33,6 +33,59 @@ type VariableNodeData
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
 end
 
+type PackedVariableNodeData
+  vecinitval::Array{Float64,1}
+  diminitval::Int64
+  vecinitstdev::Array{Float64,1}
+  diminitdev::Int64
+  vecval::Array{Float64,1}
+  dimval::Int64
+  vecbw::Array{Float64,1}
+  dimbw::Int64
+  BayesNetOutVertIDs::Array{Int64,1}
+  dimIDs::Array{Int64,1}
+  dims::Int64
+  eliminated::Bool
+  BayesNetVertID::Int64
+  separator::Array{Int64,1} # Will bring to hard type soon, don't worry about this one just yet
+  PackedVariableNodeData() = new()
+  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+end
+
+
+function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+  return PackedVariableNodeData(d.initval[:],size(d.initval,1),
+                              d.initstdev[:],size(d.initstdev,1),
+                              d.val[:],size(d.val,1),
+                              d.bw[:],size(d.bw,1),
+                              d.BayesNetOutVertIDs,
+                              d.dimIDs, d.dims, d.eliminated,
+                              d.BayesNetVertID, d.separator)
+end
+function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
+  r1 = d.diminitval
+  c1 = floor(Int,length(d.vecinitval)/r1)
+  M1 = reshape(d.vecinitval,r1,c1)
+
+  r2 = d.diminitdev
+  c2 = floor(Int,length(d.vecinitstdev)/r2)
+  M2 = reshape(d.vecinitstdev,r2,c2)
+
+  r3 = d.dimval
+  c3 = floor(Int,length(d.vecval)/r3)
+  M3 = reshape(d.vecval,r3,c3)
+
+  r4 = d.dimbw
+  c4 = floor(Int,length(d.vecbw)/r4)
+  M4 = reshape(d.vecbw,r4,c4)
+
+  return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
+    d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator)
+end
+
+
+
+
 function getVal(v::Graphs.ExVertex)
   return v.attributes["data"].val
   # return v.attributes["val"]

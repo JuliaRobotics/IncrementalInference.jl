@@ -107,3 +107,13 @@ Gadfly.draw(PDF("4doors.pdf",15cm,20cm),pl) # can also do PNG
 #   Gadfly.draw(PNG("results/testMsgs.png",17cm,15cm),vvMsgs)
 #   # vvMsgs
 # end
+
+
+
+using ProtoBuf
+
+iob = PipeBuffer()
+pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
+writeproto(iob, pd)
+dd = readproto(iob, PackedVariableNodeData());
+unpckd = convert(VariableNodeData, dd)
