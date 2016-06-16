@@ -60,14 +60,14 @@ module ProtoTest
 
 end
 
-using ProtoBuf, MyMod, ProtoTest
+using MyMod, ProtoTest
 
 mydatas = MyTemplType{MyType}(rand(2),"test01",MyType(rand(3), "testT"))
 
 iob = protostring(mydatas)
 
-@show typeof(iob)
-@show iob.data
+
+
 
 registerType("MyType", MyType)
 dd = specialprotoread(iob, MyTemplType, "MyType")
