@@ -131,8 +131,7 @@ end
 # add all potentials associated with this clique and vertid to dens
 function packFromLocalPotentials!(fg::FactorGraph, dens::Array{BallTreeDensity,1}, cliq::Graphs.ExVertex, vertid::Int64, N::Int64)
     for idfct in cliq.attributes["potentials"]
-        #println("looking through $(idfct[2].attributes["fnc"].Xi)")
-        for vert in idfct[2].attributes["fnc"].Xi
+        for vert in idfct[2].attributes["data"].fnc.Xi #for vert in idfct[2].attributes["fnc"].Xi
             if vert.index == vertid
               p = findRelatedFromPotential(fg, idfct[2], vertid, N) # vert
               # if p != Union{}

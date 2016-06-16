@@ -178,7 +178,7 @@ end
 
 
 function evalFactor2(fg::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64)
-    return evalPotential(fct.attributes["fnc"], solvefor)
+    return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert

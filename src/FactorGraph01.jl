@@ -225,9 +225,9 @@ function getDev(v)
 end
 
 function FactorEvalStr(fg,factor)
-  evalstr = string(factor.attributes["fnc"])
+  evalstr = string(factor.attributes["data"].fnc) #string(factor.attributes["fnc"])
   evalstr = string(evalstr,"(")
-  dd = factor.attributes["fncargvID"]
+  dd = factor.attributes["data"].fncargvID #attributes["fncargvID"]
   idx = 0
   for node in dd
     idx += 1
@@ -262,17 +262,19 @@ end
 # end
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
-  fact.attributes["fnc"] = f
-  fact.attributes["fncargvID"] = Dict{Int,Int}()
-  fact.attributes["eliminated"] = false
-  fact.attributes["potentialused"] = false
+  # fact.attributes["fnc"] = f
+  # fact.attributes["fncargvID"] = Dict{Int,Int}()
+  # fact.attributes["eliminated"] = false
+  # fact.attributes["potentialused"] = false
 
-  data = FunctionNodeData{typeof(f)}(Dict{Int64,Int64}(), false, false, f)
+  data = FunctionNodeData{typeof(f)}(Dict{Int64,Int64}(),
+                                    false, false, f)
   fact.attributes["data"] = data
   nothing
 end
 function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
-  fact.attributes["fncargvID"][idx] = index
+  fact.attributes["data"].fncargvID[idx] = index
+  #fact.attributes["fncargvID"][idx] = index
   nothing
 end
 
@@ -407,14 +409,14 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       fi = Int64[]
       Si = Int64[]
       for fct in out_neighbors(fg.v[v],fg.g)
-        if (fct.attributes["eliminated"] != true)
+        if (fct.attributes["data"].eliminated != true) #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
           for sepNode in out_neighbors(fct,fg.g)
             if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)
               push!(Si,sepNode.index)
             end
           end
-          fct.attributes["eliminated"] = true
+          fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
         end
       end
       #@show fg.v[v].attributes["sepfactors"] = fi
@@ -621,8 +623,8 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
     # v[2].attributes["separator"] = Int64[]
   end
   for f in fg.f
-    f[2].attributes["eliminated"] = false
-    f[2].attributes["potentialused"] = false
+    f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
+    f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
   end
 
   nothing
@@ -859,11 +861,11 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
         usefcts = []
         for fct in out_neighbors(fg.v[fid],fg.g)
             #println("Checking fct=$(fct.label)")
-            if fct.attributes["potentialused"]!=true # USED TO HAVE == AND continue end here
+            if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
                 if length(out_neighbors(fct, fg.g))==1
                     appendUseFcts!(usefcts, fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)
                     #usefcts = [usefcts;(fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)]
-                    fct.attributes["potentialused"] = true
+                    fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
                 end
                 for sepSearch in out_neighbors(fct, fg.g)
                     if (fg.IDs[sepSearch.label] == fid)
@@ -873,7 +875,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                     if sea[1]==0.0
                         appendUseFcts!(usefcts, fg.IDs[sepSearch.label], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sepSearch.label], fct, fid)]
-                        fct.attributes["potentialused"] = true
+                        fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
                     end
                 end
             end
@@ -928,7 +930,7 @@ function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
     for i in 1:length(potIDs)
       idfct = cliq.attributes["potentials"][i]
       if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
-        for vert in idfct[2].attributes["fnc"].Xi
+        for vert in idfct[2].attributes["data"].fnc.Xi #for vert in idfct[2].attributes["fnc"].Xi
           if vert.index == cols[j]
             cliqAssocMat[i,j] = true
           end
