@@ -12,6 +12,7 @@ using
 export
   VariableNodeData,
   PackedVariableNodeData,
+  FunctionNodeData,
   FactorGraph,
   addNode!,
   addFactor!,

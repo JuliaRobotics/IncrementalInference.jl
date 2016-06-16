@@ -245,11 +245,30 @@ function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
   return evalFactor(fg, fct.attributes["evalstr"] )
 end
 
+
+type FunctionNodeData{T}
+  fncargvID::Dict{Int,Int}
+  eliminated::Bool
+  potentialused::Bool
+  fnc::T
+end
+
+
+# function ohdear(customtype)
+#   vertex.packed
+#   vertex.templatetype = "MyType"
+#   SPT = parse..(vertextemplatetype)
+#   readproto(convert(Vector{UInt8},props["packed"]), customtype{SPT}() ) # something to this effect
+# end
+
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
   fact.attributes["fnc"] = f
   fact.attributes["fncargvID"] = Dict{Int,Int}()
   fact.attributes["eliminated"] = false
   fact.attributes["potentialused"] = false
+
+  data = FunctionNodeData{typeof(f)}(Dict{Int64,Int64}(), false, false, f)
+  fact.attributes["data"] = data
   nothing
 end
 function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
