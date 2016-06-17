@@ -220,22 +220,23 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-function getDev(v)
-  return v.attributes["stdev"]
-end
+# function getDev(v)
+#   return v.attributes["stdev"]
+# end
 
-function FactorEvalStr(fg,factor)
-  evalstr = string(factor.attributes["data"].fnc) #string(factor.attributes["fnc"])
-  evalstr = string(evalstr,"(")
-  dd = factor.attributes["data"].fncargvID #attributes["fncargvID"]
-  idx = 0
-  for node in dd
-    idx += 1
-    evalstr=string(evalstr,"getVal(fg.v[",dd[idx],"]),")
-  end
-  evalstr = string(chop(evalstr),")")
-  return evalstr
-end
+# function FactorEvalStr(fg,factor)
+#   evalstr = string(factor.attributes["data"].fnc) #string(factor.attributes["fnc"])
+#   evalstr = string(evalstr,"(")
+#   dd = factor.attributes["data"].fncargvID #attributes["fncargvID"]
+#   idx = 0
+#   for nodeid in dd
+#     idx += 1
+#     evalstr=string(evalstr,"getVal(fg.v[",nodeid,"]),")
+#     # evalstr=string(evalstr,"getVal(fg.v[",dd[idx],"]),")
+#   end
+#   evalstr = string(chop(evalstr),")")
+#   return evalstr
+# end
 
 function evalFactor(fg::FactorGraph, evalstr::AbstractString)
   return eval(parse(evalstr))
@@ -247,7 +248,7 @@ end
 
 
 type FunctionNodeData{T}
-  fncargvID::Dict{Int,Int}
+  fncargvID::Array{Int64,1}
   eliminated::Bool
   potentialused::Bool
   fnc::T
@@ -267,13 +268,12 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   # fact.attributes["eliminated"] = false
   # fact.attributes["potentialused"] = false
 
-  data = FunctionNodeData{typeof(f)}(Dict{Int64,Int64}(),
-                                    false, false, f)
+  data = FunctionNodeData{typeof(f)}(Int64[], false, false, f)
   fact.attributes["data"] = data
   nothing
 end
 function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
-  fact.attributes["data"].fncargvID[idx] = index
+  push!(fact.attributes["data"].fncargvID, index) #[idx]=index
   #fact.attributes["fncargvID"][idx] = index
   nothing
 end
