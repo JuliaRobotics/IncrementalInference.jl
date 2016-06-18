@@ -42,8 +42,12 @@ module ProtoTest
     return readproto(iob, instance)
   end
 
-  function registerType(str::ASCIIString, spType::Type)
+  typeConterters = Dict{AbstractString,Function}()
+  function registerType(str::ASCIIString, spType::Type; converter::Union{Function,Union}=Union{})
     ProtoTest.regTypes[str] = spType
+    if converter!=Union{}
+      typeConverters[str] = converter
+    end
     nothing
   end
 
@@ -67,7 +71,7 @@ mydatas = MyTemplType{MyType}(rand(2),"test01",MyType(rand(3), "testT"))
 iob = protostring(mydatas)
 
 
-
+for elem in packedDataTypes
 
 registerType("MyType", MyType)
 dd = specialprotoread(iob, MyTemplType, "MyType")

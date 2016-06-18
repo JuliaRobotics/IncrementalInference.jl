@@ -7,6 +7,21 @@ type PriorPose2 <: Singleton
     W::Array{Float64,1}
 end
 
+# these won't pack into ProtoBuf, serialize might work
+type UniPriorPose2D <: Singleton
+  Z::Distributions.MvNormal
+end
+type GMMPriorPose2D <: Singleton
+  Z::Array{Distributions.MvNormal,1}
+  W::Array{Float64,1}
+end
+type KDEPriorPoint2D <: Singleton
+  Z::BallTreeDensity
+end
+type KDERangePoint2D <: Pairwise
+  Z::BallTreeDensity
+end
+
 type Pose2Pose2 <: Pairwise
     Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # 2translations, 1rotation

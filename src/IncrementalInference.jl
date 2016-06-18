@@ -1,5 +1,7 @@
 module IncrementalInference
 
+blas_set_num_threads(2)
+
 using
   Graphs,
   GraphViz,

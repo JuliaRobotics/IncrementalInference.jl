@@ -176,9 +176,21 @@ function evalPotential(obs::Obsv2, from::Int64)
 end
 
 
+function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64)
+  return evalPotential(typ, solvefor)
+end
 
-function evalFactor2(fg::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64)
-    return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
+function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64)
+  return evalPotential(typ, solvefor)
+end
+
+function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64)
+  # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
+  Xi = Graphs.ExVertex[]
+  for id in fct.attributes["data"].fncargvID
+    push!(Xi,fgl.v[id])
+  end
+  return evalPotentialSpecific(Xi, fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert

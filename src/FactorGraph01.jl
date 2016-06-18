@@ -930,11 +930,16 @@ function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
     for i in 1:length(potIDs)
       idfct = cliq.attributes["potentials"][i]
       if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
-        for vert in idfct[2].attributes["data"].fnc.Xi #for vert in idfct[2].attributes["fnc"].Xi
-          if vert.index == cols[j]
+        for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+          if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
         end
+        # for vert in idfct[2].attributes["data"].fnc.Xi #for vert in idfct[2].attributes["fnc"].Xi
+        #   if vert.index == cols[j]
+        #     cliqAssocMat[i,j] = true
+        #   end
+        # end
       else
         prtslperr("compCliqAssocMatrices! -- potential ID ordering was lost")
       end

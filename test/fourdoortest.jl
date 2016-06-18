@@ -66,5 +66,7 @@ tree = prepBatchTree!(fg);
 @show xx,ll = ls(fg)
 
 # do belief propagation inference over tree once
-[inferOverTree!(fg, tree) for i in 1:1];
+inferOverTreeR!(fg, tree)
+
+inferOverTree!(fg, tree)
 println("Inference finished")
