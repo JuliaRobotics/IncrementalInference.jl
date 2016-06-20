@@ -1,9 +1,9 @@
-using IncrementalInference, KernelDensityEstimate
-using Gadfly # for vstack
+
+addprocs(3) # Remove addprocs if you want to use single process only
+using IncrementalInference
+using KernelDensityEstimate, Gadfly # for vstack
 using Cairo, Fontconfig # for drawing PNG/PDF
 
-# if you want to add multiple process here rather than calling $ julia -p4
-# addprocs(3)
 
 gt = Dict{ASCIIString, Array{Float64,2}}()
 # HMM computed ground truth for first 3 poses only
