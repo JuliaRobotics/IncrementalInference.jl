@@ -278,9 +278,9 @@ function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
   nothing
 end
 
-function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
+function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton})
   namestring = ""
-  for vert in f.Xi
+  for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
   end
   fg.id+=1
@@ -294,7 +294,7 @@ function addFactor!(fg::FactorGraph, f::Union{Pairwise,Singleton})
   push!(fg.factorIDs,fg.id)
 
   idx=0
-  for vert in f.Xi
+  for vert in Xi #f.Xi
     addEdge!(fg.g,vert,fg.f[fg.id])
     # add function handle for later fnc evaluation
     idx+=1
@@ -389,13 +389,13 @@ end
 function addChainRuleMarginal!(fg::FactorGraph, Si)
   lbls = ASCIIString[]
   genmarg = GenericMarginal()
-  genmarg.Xi = Graphs.ExVertex[]
+  Xi = Graphs.ExVertex[] #genmarg.Xi = Graphs.ExVertex[]
   for s in Si
     # push!(lbls,fg.v[s].attributes["label"])
-    push!(genmarg.Xi,fg.v[s])
+    push!(Xi,fg.v[s])
   end
   # addFactor!(fg, marg, lbls)
-  addFactor!(fg,genmarg)
+  addFactor!(fg,Xi, genmarg)
   Union{}
 end
 

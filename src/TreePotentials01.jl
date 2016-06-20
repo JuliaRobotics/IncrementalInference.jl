@@ -2,28 +2,28 @@
 
 # define the pose group
 type Odo <: Pairwise
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # 0rotations, 1translation in each row
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
 type OdoMM <: Pairwise
-    Xi::Array{Graphs.ExVertex,1} # modes are Xi 2:end
+    #Xi::Array{Graphs.ExVertex,1} # modes are Xi 2:end
     Zij::Array{Float64,2} # 0rotations, 1translation in each row
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
 type Ranged <: Pairwise
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
 end
 
 type GenericMarginal <: Pairwise
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -49,16 +49,16 @@ function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return retval
 end
 
-function evalPotential(odom::Odo, Xid::Int64)
+function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
-    if Xid == odom.Xi[1].index
+    if Xid == Xi[1].index #odom.
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
         Z = - odom.Zij
-        Xval = getVal(odom.Xi[2])
-    elseif Xid == odom.Xi[2].index
+        Xval = getVal(Xi[2])
+    elseif Xid == Xi[2].index
         Z = odom.Zij
-        Xval = getVal(odom.Xi[1])
+        Xval = getVal(Xi[1])
     else
         error("Bad evalPairwise Odo")
     end
@@ -73,16 +73,16 @@ function evalPotential(odom::Odo, Xid::Int64)
     return RES
 end
 
-function evalPotential(odom::OdoMM, Xid::Int64)
+function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
-    if Xid == odom.Xi[1].index
+    if Xid == Xi[1].index #odom.
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
         Z = -odom.Zij
 
         XvalMM = Array{Array{Float64,2},1}(2)
         for i in 2:3
-            XvalMM[i-1] = getVal(odom.Xi[i])
+            XvalMM[i-1] = getVal(Xi[i])
         end
 
         len1 = size(XvalMM[1],2)
@@ -103,9 +103,9 @@ function evalPotential(odom::OdoMM, Xid::Int64)
         Xval = zeros(size(XvalMM[1]))
         Xval[:,p] = XvalMM[1][:,p]
         Xval[:,np] = XvalMM[2][:,np]
-    elseif Xid == odom.Xi[2].index || Xid == odom.Xi[3].index
+    elseif Xid == Xi[2].index || Xid == Xi[3].index
         Z = odom.Zij
-        Xval = getVal(odom.Xi[1])
+        Xval = getVal(Xi[1])
     else
         error("Bad evalPairwise OdoMM")
     end
@@ -129,13 +129,13 @@ function rangeAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return [(A*B)[1,2]]
 end
 
-function evalPotential(rang::Ranged, Xid::Int64)
-    if Xid == rang.Xi[1].index
+function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+    if Xid == Xi[1].index #rang.
         Z = -rang.Zij
-        Xval = getVal(rang.Xi[2])
-    elseif Xid == rang.Xi[2].index
+        Xval = getVal(Xi[2])
+    elseif Xid == Xi[2].index
         Z = rang.Zij
-        Xval = getVal(rang.Xi[1])
+        Xval = getVal(Xi[1])
     else
         error("Bad evalPairwise Ranged")
     end
@@ -154,34 +154,34 @@ end
 
 
 type Obsv <: Singleton
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zi::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
 end
 
-function evalPotential(obs::Obsv, from::Int64)
+function evalPotential(obs::Obsv, Xi::Array{Graphs.ExVertex,1}, from::Int64)
     return obs.Cov[1]*randn()+obs.Zi
 end
 
 type Obsv2 <: Singleton
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zi::Array{Float64,2}
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
-function evalPotential(obs::Obsv2, from::Int64)
+function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}, from::Int64)
     return obs.Cov[1]*randn()+obs.Zi
 end
 
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64)
-  return evalPotential(typ, solvefor)
+  return evalPotential(typ, Xi, solvefor)
 end
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64)
-  return evalPotential(typ, solvefor)
+  return evalPotential(typ, Xi, solvefor)
 end
 
 function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64)

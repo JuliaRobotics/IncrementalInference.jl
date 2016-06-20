@@ -1,7 +1,7 @@
 
 
 type PriorPose2 <: Singleton
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zi::Array{Float64,2}
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -23,21 +23,21 @@ type KDERangePoint2D <: Pairwise
 end
 
 type Pose2Pose2 <: Pairwise
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # 2translations, 1rotation
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
 type Pose2DPoint2DBearingRange <: Pairwise
-    Xi::Array{Graphs.ExVertex,1}
+    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # bearing and range hypotheses as columns
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
 
-function evalPotential(obs::PriorPose2, from::Int64, N::Int64=200)
+function evalPotential(obs::PriorPose2, Xi::Array{Graphs.ExVertex,1}, from::Int64, N::Int64=200)
     cov = diag(obs.Cov)
     ret = zeros(3,N)
     for j in 1:N
@@ -98,17 +98,17 @@ function addPose2Pose2!(retval::Array{Float64,1}, x::Array{Float64,1}, dx::Array
   nothing
 end
 
-function evalPotential(odom::Pose2Pose2, Xid::Int64)
+function evalPotential(odom::Pose2Pose2, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     rz,cz = size(odom.Zij)
     Xval = Array{Float64,2}()
     # implicit equation portion -- bi-directional pairwise function
-    if Xid == odom.Xi[1].index
+    if Xid == Xi[1].index #odom.
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
         Z = se2vee(SE2(vec(odom.Zij)) \ eye(3))
-        Xval = getVal(odom.Xi[2])
-    elseif Xid == odom.Xi[2].index
+        Xval = getVal(Xi[2])
+    elseif Xid == Xi[2].index
         Z = odom.Zij
-        Xval = getVal(odom.Xi[1])
+        Xval = getVal(Xi[1])
     else
         error("Bad evalPairwise Pose2Pose2")
     end
@@ -208,7 +208,7 @@ function solveSetSeps(fnc::Function, Zbr::Array{Float64,1}, CovZ::Array{Float64,
 end
 
 # Xid is the one you want to get back
-function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
+function evalPotential(brpho::Pose2DPoint2DBearingRange, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     # TODO -- add null hypothesis here, might even be done one layer higher in call stack
     val = Array{Float64,2}()
     ini = Array{Graphs.ExVertex,1}()
@@ -218,30 +218,30 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
     nullhyp = 0.0
     # mmodes = 1 < length(brpho.W)
     # implicit equation portion -- multi-dependent function
-    if Xid == brpho.Xi[1].index # find the pose
+    if Xid == Xi[1].index # brpho. ## find the pose
 
         ff = solvePose2
         # ini = brpho.Xi[1]
-        par = brpho.Xi[2:end]
-        for j in 1:(length(brpho.Xi)-1)
-            push!(ini, brpho.Xi[1])
+        par = Xi[2:end]
+        for j in 1:(length(Xi)-1)
+            push!(ini, Xi[1])
         end
         #println("Xid == brpho.Xi[1].index inits=", size(inits), ", par=", size(pars))
-    elseif Xid == brpho.Xi[2].index # find landmark
-        if length(brpho.Xi) > 2
+    elseif Xid == Xi[2].index # find landmark
+        if length(Xi) > 2
             nullhyp = 0.5 # should be variable weight
-            oth = brpho.Xi[3]
+            oth = Xi[3]
         end
         ff = solveLandm
-        ini = brpho.Xi[2]
-        par = brpho.Xi[1]
-    elseif length(brpho.Xi) > 2
+        ini = Xi[2]
+        par = Xi[1]
+    elseif length(Xi) > 2
         nullhyp = 0.5 # should be variable weight
-        if Xid == brpho.Xi[3].index # find second mode landmark
+        if Xid == Xi[3].index # find second mode landmark
             ff = solveLandm
-            ini = brpho.Xi[3]
-            oth = brpho.Xi[2]
-            par = brpho.Xi[1]
+            ini = Xi[3]
+            oth = Xi[2]
+            par = Xi[1]
         end
     end
     if ff == +
@@ -252,9 +252,9 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
 
     inits = getVal(ini)
     pars = getVal(par)
-    others =  length(brpho.Xi) > 2 && Xid != brpho.Xi[1].index ? getVal(oth) : Union{}
+    others =  length(brpho.Xi) > 2 && Xid != Xi[1].index ? getVal(oth) : Union{}
     # add null hypothesis case
-    len = length(brpho.Xi) > 2 && Xid != brpho.Xi[1].index ? size(others,2) : 0
+    len = length(Xi) > 2 && Xid != Xi[1].index ? size(others,2) : 0
     # gamma = mmodes ? rand(Gamma) : 1
     numnh = floor(Int, 2*nullhyp*len) # this doubles the value count for null cases
     nhvals = zeros(size(inits,1),numnh)
@@ -269,7 +269,7 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
     return [val';nhvals']'
 end
 
-function evalPotentialNew(brpho::Pose2DPoint2DBearingRange, Xid::Int64)
+function evalPotentialNew(brpho::Pose2DPoint2DBearingRange, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     # TODO -- add null hypothesis here, might even be done one layer higher in call stack
     val = Array{Float64,2}()
     ini = Array{Graphs.ExVertex,1}()
