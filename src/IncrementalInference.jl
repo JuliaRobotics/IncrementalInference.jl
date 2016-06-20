@@ -67,9 +67,12 @@ export
 
   #Robot stuff
   PriorPose2,
+  PackedPriorPose2,
   Pose2Pose2,
+  PackedPose2Pose2,
   addPose2Pose2,
   Pose2DPoint2DBearingRange,
+  PackedPose2DPoint2DBearingRange,
   solveLandm,
   solvePose2,
   solveSetSeps,
@@ -81,7 +84,9 @@ export
   # For 1D example
   Odo,
   odoAdd,
+  PackedOdo,
   Obsv2,
+  PackedObsv2,
   Ranged,
 
   # should improve abstraction
@@ -93,6 +98,7 @@ export
 
 
 include("FactorGraph01.jl")
+include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
 include("SolveTree01.jl")

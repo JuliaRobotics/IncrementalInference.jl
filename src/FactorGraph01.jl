@@ -4,6 +4,12 @@ import Base.==
 abstract Pairwise
 abstract Singleton
 
+reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
+# function reshapeVec2Mat(vec::Vector, rows::Int)
+#   M = reshape(vec, rows, round(Int,length(vec)/rows))
+#   return ndims(M) < 2 ? (M')' : M
+# end
+
 type FactorGraph
   g
   bn
@@ -253,8 +259,6 @@ type FunctionNodeData{T}
   potentialused::Bool
   fnc::T
 end
-
-
 
 
 # function ohdear(customtype)
