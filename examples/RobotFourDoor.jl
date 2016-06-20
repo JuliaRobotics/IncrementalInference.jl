@@ -79,6 +79,7 @@ end
 writeGraphPdf(fg);
 tree = prepBatchTree!(fg,drawpdf=true);
 
+# spyCliqMat(tree.cliques[1])
 
 # list vertices in fg
 @show xx,ll = ls(fg)

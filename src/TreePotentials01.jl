@@ -130,26 +130,26 @@ function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=300)#,
 end
 
 
-function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64)
-  return evalPotential(typ, Xi) # , solvefor
+function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
+  return evalPotential(typ, Xi, N=N) # , solvefor
 end
 
-function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64)
+function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
   return evalPotential(typ, Xi, solvefor)
 end
 
-function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64)
+function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N::Int64=100)
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
     push!(Xi,fgl.v[id])
   end
-  return evalPotentialSpecific(Xi, fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
+  return evalPotentialSpecific(Xi, fct.attributes["data"].fnc, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert
     # if vert.index == vertid
-        ptsbw = evalFactor2(fg, idfct, vertid); # idfct[2] # assuming it is properly initialized TODO
+        ptsbw = evalFactor2(fg, idfct, vertid, N=N); # idfct[2] # assuming it is properly initialized TODO
         sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing
 
         Ndim = size(ptsbw,1)

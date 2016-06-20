@@ -1,20 +1,4 @@
-# using Graphs
-# include("../NBP/BallTree01.jl")
-# include("../NBP/BallTreeDensity01.jl")
-# include("../NBP/KDE01.jl")
-# include("../NBP/DualTree01.jl")
-#
-# include("../NBP/MSGibbs01.jl")
-#
-# include("FactorGraph01.jl")
-# include("TreePotentials01.jl")
-# include("TreePotentials02.jl")
-#
-#
-# include("../NBP/KDEPlotting01.jl")
-#
-# include("../robots/RobotUtils.jl")
-# include("../robots/SimulationUtils.jl")
+
 
 type EasyMessage
   pts::Array{Float64,2}
@@ -277,10 +261,10 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
 
     d = Union{}
     mcmcdbg = Union{}
-    if true
+    if false
       IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
-    elseif false
+    elseif true
       dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
       if length(inp.cliq.attributes["msgskipIDs"]) > 0
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
