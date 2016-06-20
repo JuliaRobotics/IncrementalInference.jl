@@ -3,14 +3,14 @@
 # define the pose group
 type Odo <: Pairwise
     #Xi::Array{Graphs.ExVertex,1}
-    Zij::Array{Float64,2} # 0rotations, 1translation in each row
+    Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 
 type OdoMM <: Pairwise
     #Xi::Array{Graphs.ExVertex,1} # modes are Xi 2:end
-    Zij::Array{Float64,2} # 0rotations, 1translation in each row
+    Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
@@ -160,24 +160,28 @@ type Obsv <: Singleton
     W::Array{Float64,1}
 end
 
-function evalPotential(obs::Obsv, Xi::Array{Graphs.ExVertex,1}, from::Int64)
+# this is not right, should return many points
+function evalPotential(obs::Obsv, Xi::Array{Graphs.ExVertex,1}; N::Int64=100) #, from::Int64)
     return obs.Cov[1]*randn()+obs.Zi
 end
 
 type Obsv2 <: Singleton
     #Xi::Array{Graphs.ExVertex,1}
-    Zi::Array{Float64,2}
-    Cov::Array{Float64,2}
+    pts::Array{Float64,2}
+    bws::Array{Float64,2}
     W::Array{Float64,1}
 end
 
-function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}, from::Int64)
-    return obs.Cov[1]*randn()+obs.Zi
+function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=200)#, from::Int64)
+    # @show obs.bws, typeof(obs.bws)
+    pd = kde!(obs.pts, obs.bws[:,1])
+    return KernelDensityEstimate.sample(pd,N)[1]
+    # return obs.Cov[1]*randn()+obs.Zi
 end
 
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64)
-  return evalPotential(typ, Xi, solvefor)
+  return evalPotential(typ, Xi) # , solvefor
 end
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64)

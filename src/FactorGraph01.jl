@@ -255,6 +255,8 @@ type FunctionNodeData{T}
 end
 
 
+
+
 # function ohdear(customtype)
 #   vertex.packed
 #   vertex.templatetype = "MyType"

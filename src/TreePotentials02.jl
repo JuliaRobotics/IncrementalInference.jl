@@ -7,7 +7,7 @@ type PriorPose2 <: Singleton
     W::Array{Float64,1}
 end
 
-# these won't pack into ProtoBuf, serialize might work
+# \/\/\/these won't pack into ProtoBuf, serialize might work
 type UniPriorPose2D <: Singleton
   Z::Distributions.MvNormal
 end
@@ -21,6 +21,7 @@ end
 type KDERangePoint2D <: Pairwise
   Z::BallTreeDensity
 end
+# ^^^will work on these later
 
 type Pose2Pose2 <: Pairwise
     #Xi::Array{Graphs.ExVertex,1}
@@ -36,8 +37,17 @@ type Pose2DPoint2DBearingRange <: Pairwise
     W::Array{Float64,1}
 end
 
+type TopographicPoint2D <: Singleton
+  Heatmap::Array{Float64,2}
+  radiusOfInterest::Float64
+end
 
-function evalPotential(obs::PriorPose2, Xi::Array{Graphs.ExVertex,1}, from::Int64, N::Int64=200)
+function evalPotential(topo::TopographicPoint2D, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)
+  warn("evalPotential TopographicPoint2D is not finished yet")
+  return topo.Heatmap
+end
+
+function evalPotential(obs::PriorPose2, Xi::Array{Graphs.ExVertex,1}; N::Int64=200)
     cov = diag(obs.Cov)
     ret = zeros(3,N)
     for j in 1:N
