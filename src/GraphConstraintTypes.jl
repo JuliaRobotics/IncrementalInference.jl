@@ -26,13 +26,11 @@ end
 
 # define the pose group
 type Odo <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 type PackedOdo
-    #Xi::Array{Graphs.ExVertex,1}
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int64
     vecCov::Array{Float64,1}
@@ -62,7 +60,6 @@ end
 
 
 type OdoMM <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1} # modes are Xi 2:end
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -70,14 +67,12 @@ end
 
 
 type Ranged <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
 end
 
 type GenericMarginal <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -90,13 +85,11 @@ end
 
 
 type Obsv2 <: Singleton
-    #Xi::Array{Graphs.ExVertex,1}
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
 end
 type PackedObsv2
-    #Xi::Array{Graphs.ExVertex,1}
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int64
     vecCov::Array{Float64,1}
@@ -130,13 +123,11 @@ end
 
 
 type PriorPose2 <: Singleton
-    #Xi::Array{Graphs.ExVertex,1}
     Zi::Array{Float64,2}
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 type PackedPriorPose2
-    #Xi::Array{Graphs.ExVertex,1}
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int64
     vecCov::Array{Float64,1}
@@ -171,7 +162,6 @@ end
 
 
 type Pose2Pose2 <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # 2translations, 1rotation
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -210,13 +200,11 @@ end
 
 
 type Pose2DPoint2DBearingRange <: Pairwise
-    #Xi::Array{Graphs.ExVertex,1}
     Zij::Array{Float64,2} # bearing and range hypotheses as columns
     Cov::Array{Float64,2}
     W::Array{Float64,1}
 end
 type PackedPose2DPoint2DBearingRange
-    #Xi::Array{Graphs.ExVertex,1}
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int64
     vecCov::Array{Float64,1}
