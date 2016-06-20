@@ -152,18 +152,18 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     return RES
 end
 
-
-type Obsv <: Singleton
-    #Xi::Array{Graphs.ExVertex,1}
-    Zi::Array{Float64,1}
-    Cov::Array{Float64,1}
-    W::Array{Float64,1}
-end
+#
+# type Obsv <: Singleton
+#     #Xi::Array{Graphs.ExVertex,1}
+#     Zi::Array{Float64,1}
+#     Cov::Array{Float64,1}
+#     W::Array{Float64,1}
+# end
 
 # this is not right, should return many points
-function evalPotential(obs::Obsv, Xi::Array{Graphs.ExVertex,1}; N::Int64=100) #, from::Int64)
-    return obs.Cov[1]*randn()+obs.Zi
-end
+# function evalPotential(obs::Obsv, Xi::Array{Graphs.ExVertex,1}; N::Int64=100) #, from::Int64)
+#     return obs.Cov[1]*randn()+obs.Zi
+# end
 
 type Obsv2 <: Singleton
     #Xi::Array{Graphs.ExVertex,1}
@@ -172,7 +172,7 @@ type Obsv2 <: Singleton
     W::Array{Float64,1}
 end
 
-function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=200)#, from::Int64)
+function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=300)#, from::Int64)
     # @show obs.bws, typeof(obs.bws)
     pd = kde!(obs.pts, obs.bws[:,1])
     return KernelDensityEstimate.sample(pd,N)[1]

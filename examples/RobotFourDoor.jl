@@ -13,15 +13,18 @@ gt["x3"]=[[100.0; 3.05]';[0.0; 3.05]']'
 
 fg = emptyFactorGraph()
 
-N=200
+N=300
 
 doors = [-100.0;0.0;100.0;300.0]'
-pd = kde!(doors,[3.0])
-pd = resample(pd,N);
-bws = getBW(pd)[:,1]
-doors2 = getPoints(pd);
+cov = [3.0]
+# pd = kde!(doors,cov)
+# pd = resample(pd,N);
+# bws = getBW(pd)[:,1]
+# doors2 = getPoints(pd);
+
+
 v1 = addNode!(fg,"x1",doors,N=N)
-f1  = addFactor!(fg,[v1], Obsv2(doors2, bws', [1.0]))
+f1  = addFactor!(fg,[v1], Obsv2(doors, cov', [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,"x2", tem, N=N)
@@ -33,7 +36,7 @@ addFactor!(fg,[v1;v2],Odo([50.0]',[2.0]',[1.0]))
 
 v3=addNode!(fg,"x3",4.0*randn(1,N)+getVal(v2)+50.0, N=N)
 addFactor!(fg,[v2;v3],Odo([50.0]',[4.0]',[1.0]))
-f2 = addFactor!(fg,[v3], Obsv2(doors2, bws', [1.0]))
+f2 = addFactor!(fg,[v3], Obsv2(doors, cov', [1.0]))
 
 if true
 
@@ -58,7 +61,7 @@ if true
     v7=addNode!(fg,"x7",2.0*randn(1,N)+getVal(v6) +60.0, N=N)
     addFactor!(fg,[v6;v7],Odo([60.0]',[2.0]',[1.0]))
 
-    f3 = addFactor!(fg,[v7], Obsv2(doors, bws', [1.0]))
+    f3 = addFactor!(fg,[v7], Obsv2(doors, cov', [1.0]))
 
 
     # HMM computed ground truth, extended for 7 poses with landmark

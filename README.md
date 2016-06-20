@@ -6,7 +6,7 @@
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/).
 
-This code is still in development.
+This code is still in development (and fixing bugs as we go along).
 
 Introduction
 ------------
@@ -31,6 +31,10 @@ Basic example
 A multimodal 4 door robot example is available at:
 
     examples/RobotfourDoor.jl
+
+Which should produce maginal beliefs over all variables in the factor graphs as shown below
+
+![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/4doors.png)
 
 References
 ==========
