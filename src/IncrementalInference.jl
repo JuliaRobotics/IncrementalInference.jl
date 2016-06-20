@@ -12,6 +12,8 @@ using
   KernelDensityEstimate
 
 export
+  DataLayerAPI,
+  setDataLayerAPI,
   VariableNodeData,
   PackedVariableNodeData,
   FunctionNodeData,
@@ -96,7 +98,7 @@ export
   wrapRad
 
 
-
+include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")

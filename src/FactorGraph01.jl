@@ -184,7 +184,8 @@ end
 
 function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
   fg.id+=1
-  fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
+  fg.v[fg.id] = dlapi.addvertex!(fg.g, ExVertex(fg.id,lbl))
+  # fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
   fg.IDs[lbl] = fg.id
   fg.v[fg.id].attributes = Graphs.AttributeDict()
   fg.v[fg.id].attributes["label"] = lbl
@@ -198,8 +199,10 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
 end
 
 function addEdge!(g,n1,n2)
-  edge = Graphs.make_edge(g, n1, n2)
-  Graphs.add_edge!(g, edge)
+  edge = dlapi.makeedge(g, n1, n2)
+  dlapi.addedge!(g, edge)
+  # edge = Graphs.make_edge(g, n1, n2)
+  # Graphs.add_edge!(g, edge)
 end
 
 function getVal(vA::Array{Graphs.ExVertex,1})
@@ -290,7 +293,8 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
     namestring = string(namestring,vert.attributes["label"])
   end
   fg.id+=1
-  fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
+  fg.f[fg.id] = dlapi.addvertex!(fg.g, ExVertex(fg.id,namestring))
+  # fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
   fg.fIDs[namestring] = fg.id
   # for graphviz drawing
   fg.f[fg.id].attributes["shape"] = "point"
@@ -302,7 +306,6 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
   idx=0
   for vert in Xi #f.Xi
     addEdge!(fg.g,vert,fg.f[fg.id])
-    # add function handle for later fnc evaluation
     idx+=1
     setFncArgIDs!(fg.f[fg.id],idx,vert.index)
   end
@@ -357,7 +360,7 @@ end
 #   for p in elimOrder
 #     if (fg.v[p].attributes["BayesNetVert"] == Union{})
 #       fg.bnid+=1
-#       fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
+#       fg.bnverts[p] = dlapi.addvertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
 #       fg.v[p].attributes["BayesNetVert"] = fg.bnverts[p]
 #       fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
 #     else
