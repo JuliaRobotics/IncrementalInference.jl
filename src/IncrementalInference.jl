@@ -99,6 +99,7 @@ export
   wrapRad
 
 
+include("FactorGraphTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("GraphConstraintTypes.jl")

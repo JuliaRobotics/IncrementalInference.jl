@@ -15,7 +15,7 @@ type DataLayerAPI
 end
 
 dlapi = DataLayerAPI(Graphs.add_vertex!,
-                    IncrementalInference.getVarNode,
+                    getVarNode,
                     Graphs.make_edge,
                     Graphs.add_edge!,
                     Graphs.out_neighbors,
