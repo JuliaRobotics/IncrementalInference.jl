@@ -218,7 +218,7 @@ end
 function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     s = fg.nodeIDs
     sf = fg.factorIDs
-    A=convert(Array{Int},adjacency_matrix(fg.g))[sf,s]
+    A=convert(Array{Int},adjacency_matrix(fg.g))[sf,s] # TODO -- order seems brittle
     p = Int[]
     if ordering==:chol
       p = cholfact(A'A,:U,Val{true})[:p] #,pivot=true
@@ -335,20 +335,22 @@ end
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
   for v in fgd.v
-    delete!(v[2].attributes,"initstdev")
-    delete!(v[2].attributes,"dimIDs")
-    delete!(v[2].attributes,"eliminated")
-    delete!(v[2].attributes,"val")
-    delete!(v[2].attributes,"bw")
-    delete!(v[2].attributes,"BayesNetVert")
-    delete!(v[2].attributes,"initval")
-    delete!(v[2].attributes,"dims")
+    delete!(v[2].attributes,"data")
+    # delete!(v[2].attributes,"initstdev")
+    # delete!(v[2].attributes,"dimIDs")
+    # delete!(v[2].attributes,"eliminated")
+    # delete!(v[2].attributes,"val")
+    # delete!(v[2].attributes,"bw")
+    # delete!(v[2].attributes,"BayesNetVert")
+    # delete!(v[2].attributes,"initval")
+    # delete!(v[2].attributes,"dims")
   end
   for v in fgd.f
-    delete!(v[2].attributes,"fncargvID")
-    delete!(v[2].attributes,"eliminated")
-    delete!(v[2].attributes,"fnc")
-    delete!(v[2].attributes,"potentialused")
+    delete!(v[2].attributes,"data")
+    # delete!(v[2].attributes,"fncargvID")
+    # delete!(v[2].attributes,"eliminated")
+    # delete!(v[2].attributes,"fnc")
+    # delete!(v[2].attributes,"potentialused")
   end
   return fgd
 end
@@ -379,6 +381,98 @@ function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
 end
 
 
-function subgraphShortestPath(fgl::FactorGraph; from::Int64=nothing, to::Int64=nothing, neighbors::Int=0)
+function expandEdgeListNeigh!(fgl::FactorGraph,
+                              vertdict::Dict{Int64,Graphs.ExVertex},
+                              edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}})
+  #asfd
+  for vert in vertdict
+    for newedges in out_edges(vert[2],fgl.g)
+      if !haskey(edgedict, newedge.index)
+        edgedict[newedge.index] = newedge
+      end
+    end
+  end
 
+  nothing
+end
+
+# dictionary of unique vertices from edgelist
+function expandVertexList!(fgl::FactorGraph,
+  edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
+  vertdict::Dict{Int64,Graphs.ExVertex})
+
+  # go through all source and target nodes
+  for edge in edgedict
+    if !haskey(vertdict, edge[2].source.index)
+      vertdict[edge[2].source.index] = edge[2].source
+    end
+    if !haskey(vertdict, edge[2].target.index)
+      vertdict[edge[2].target.index] = edge[2].target
+    end
+  end
+  nothing
+end
+
+function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
+  edgedict = Dict{Int64,Graphs.Edge{Graphs.ExVertex}}()
+  for edge in edgelist
+    edgedict[edge.index] = edge
+  end
+  return edgedict
+end
+
+# NOTICE, nodeIDs and factorIDs are not brough over by this method yet
+# must sort out for incremental updates
+function genSubgraph(fgl::FactorGraph,
+    edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
+    vertdict::Dict{Int64,Graphs.ExVertex})
+
+  fgseg = FactorGraph() # new handle for just a segment of the graph
+
+  fgseg.v = Dict{Int,Graphs.ExVertex}()
+  fgseg.f = Dict{Int,Graphs.ExVertex}()
+  fgseg.IDs = Dict{AbstractString,Int}()
+  fgseg.fIDs = Dict{AbstractString,Int}()
+
+  for vert in vertdict
+    if haskey(fgl.v,vert[1])
+      fgseg.v[vert[1]] = vert[2]
+      fgseg.IDs[vert[2].label] = vert[1]
+    elseif haskey(fgl.f, vert[1])
+      # @show vert
+      # @show vert[1]
+      # @show vert[2]
+      fgseg.f[vert[1]] = vert[2]
+      fgseg.fIDs[vert[2].label] = vert[1]
+    end
+  end
+
+  # TODO -- and we need to grow fgseg.g!!!
+
+  return fgseg
+end
+
+function subgraphShortestPath(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0  )
+
+  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+  vertdict = Dict{Int64,Graphs.ExVertex}()
+  edgedict = edgelist2edgedict(edgelist)
+  expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  for i in 1:neighbors
+    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+    expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  end
+
+  return genSubgraph(fgl, edgedict, vertdict)
+end
+
+function subgraphFromVertList(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0  )
+
+  nothing
 end

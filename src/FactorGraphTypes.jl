@@ -13,12 +13,26 @@ type FactorGraph
   f::Dict{Int,Graphs.ExVertex}
   IDs::Dict{AbstractString,Int}
   fIDs::Dict{AbstractString,Int}
-  id::Int
-  nodeIDs::Array{Int,1}
+  id::Int64
+  nodeIDs::Array{Int,1} # TODO -- ordering seems brittle
   factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex}
-  bnid::Int
+  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used
+  bnid::Int # TODO -- not sure if this is still used
   dimID::Int64
+  FactorGraph() = new()
+  FactorGraph(x...) = new(
+    x[1],
+    x[2],
+    x[3],
+    x[4],
+    x[5],
+    x[6],
+    x[7],
+    x[8],
+    x[9],
+    x[10],
+    x[11],
+    x[12] )
 end
 
 type VariableNodeData
