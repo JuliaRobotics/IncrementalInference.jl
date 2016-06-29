@@ -133,12 +133,12 @@ end
 
 function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs::Array{NBPMessage,1}, N::Int=200)
     # several optimizations can be performed in this function TODO
-    print("$(fg.v[vertid].attributes["label"]) ")
+    print("$(dlapi.getvertex(fg,vertid).attributes["label"]) ") # "$(fg.v[vertid].attributes["label"]) "
     #consolidate NBPMessages and potentials
     dens = Array{BallTreeDensity,1}()
     packFromIncomingDensities!(dens, vertid, inmsgs)
     packFromLocalPotentials!(fg, dens, cliq, vertid, N)
-    potprod = PotProd(vertid, getVal(fg.v[vertid]), Array{Float64,2}(), dens) #
+    potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens) # (fg.v[vertid])
 
     pGM = Array{Float64,2}()
     if length(dens) > 1
@@ -176,7 +176,7 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
             densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
             if size(densPts,1)>0
-                setValKDE!(fgl.v[vertid], densPts)
+                setValKDE!(dlapi.getvertex(fgl,vertid), densPts) # fgl.v[vertid]
                 # fgl.v[vertid].attributes["val"] = densPts
                 push!(dbg.prods, potprod)
             end
@@ -189,7 +189,7 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
     # TODO -- change to EasyMessage dict
     d = Dict{Int64,Array{Float64,2}}()
     for vertid in IDs
-        d[vertid] = getVal(fgl.v[vertid])
+        d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
     println("fmcmc! -- finished on $(cliq.attributes["label"])")
 
@@ -360,7 +360,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn) #inp.
     for dat in ddt.IDvals
-        setValKDE!(fg.v[dat[1]], deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+        setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
         # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
     end
     nothing
@@ -370,7 +370,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
-      setValKDE!(fg.v[dat[1]], deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+      setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
       # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")

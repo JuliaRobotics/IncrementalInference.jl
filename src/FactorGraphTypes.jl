@@ -105,10 +105,19 @@ function ==(a::VariableNodeData,b::VariableNodeData)
   return compare(a,b)
 end
 
-
 function getVarNode(fgl::FactorGraph, id::Int64)
   return fgl.v[id]
 end
 function getVarNode(fgl::FactorGraph, lbl::AbstractString)
-  return getVarNode(fgl.v, fgl.IDs[lbl])
+  return getVarNode(fgl, fgl.IDs[lbl])
 end
+
+function addNewVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
+  vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
+  vert.attributes["label"] = lbl #fg.v[fg.id]
+  fgl.v[id] = vert
+  fgl.IDs[lbl] = id # fg.id
+  nothing
+end
+
+#

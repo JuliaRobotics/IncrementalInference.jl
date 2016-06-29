@@ -72,17 +72,17 @@ function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
 
         for frid in cliq[2].attributes["frontalIDs"]
             j+=1
-            p[j] = getKDE(fg.v[frid])
+            p[j] = getVertKDE(fg, frid) # getKDE(fg.v[frid])
             # p[j] = kde!(fg.v[frid].attributes["val"])
 
             #pvals[j] = fg.v[frid].attributes["val"]
 
             if gt!=Union{}
-              gtvals[j] = gt[fg.v[frid].attributes["label"]]
+              gtvals[j] = gt[dlapi.getvertex(fg,frid).attributes["label"]] # fg.v[frid].
               #push!(gtvals, gt[fg.v[frid].attributes["label"]][1])
               #push!(gtvals, gt[fg.v[frid].attributes["label"]][2])
             end
-            push!(lbls, fg.v[frid].attributes["label"])
+            push!(lbls, dlapi.getvertex(fg,frid).attributes["label"]) # fg.v[frid].
 
         end
 
@@ -356,7 +356,7 @@ end
 
 function drawUpMsgAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
     for id in keys(cliq.attributes["debug"].outmsg.p)
-        print("$(fg.v[id].attributes["label"]), ")
+        print("$(dlapi.getvertex(fg,id).attributes["label"]), ") #fg.v[id].
     end
     println("")
     sleep(0.1)
@@ -371,7 +371,7 @@ end
 # function drawDwnMsgAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
 function dwnMsgsAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
   for id in keys(cliq.attributes["debugDwn"].outmsg.p)
-      print("$(fg.v[id].label), ")
+      print("$(dlapi.getvertex(fg,id).label), ") # fg.v[id].
   end
   println("")
   sleep(0.1)
@@ -423,8 +423,9 @@ function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTre
 end
 
 function drawLbl(fg::FactorGraph, lbl::ASCIIString)
-    v = fg.v[fg.IDs[lbl]]
-    investigatePoseKDE(kde!(getVal(v)))
+    # v = dlapi.getvertex(fg,lbl) # fg.v[fg.IDs[lbl]]
+    # investigatePoseKDE(kde!(getVal(v)))
+    investigatePoseKDE(getVertKDE(fg,lbl))
 end
 
 function predCurrFactorBeliefs(fgl::FactorGraph, fc::Graphs.ExVertex)
@@ -444,7 +445,7 @@ function drawHorDens(fgl::FactorGraph, pDens::Dict{Int,EasyMessage}, N=200)
   lbls = ASCIIString[]
   for pd in pDens
     push!(p, kde!(pd[2].pts,pd[2].bws))
-    push!(lbls, fgl.v[pd[1]].attributes["label"])
+    push!(lbls, dlapi.getvertex(fgl,pd[1]).attributes["label"]) # fgl.v[pd[1]].
   end
   @show lbls
   drawHorDens(p,N,lbls=lbls)
@@ -455,8 +456,10 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{ASCIIString,1};
   len = length(lbls)
   pDens = BallTreeDensity[]
   for lb in lbls
-    pt = getVal(fgl.v[fgl.IDs[lb]])
-    push!(pDens, kde!(pt,"lcv"))
+    ptkde = getVertKDE(fgl,lb)
+    push!(pDens, ptkde )
+    # pt = getVal(fgl.v[fgl.IDs[lb]])
+    # push!(pDens, kde!(pt,"lcv"))
   end
 
   if nhor<1
@@ -574,7 +577,7 @@ function ls(fgl::FactorGraph, lbl::ASCIIString)
   else
     return ls
   end
-  v = fgl.v[id]
+  v = dlapi.getvertex(fgl,id) #fgl.v[id]
   for outn in out_neighbors(v, fgl.g)
     push!(ls, outn.label)
   end
@@ -748,8 +751,9 @@ end
 function getAllFGsKDEs(fgD::Array{FactorGraph,1}, vertid::Int64)
   ret = Array{BallTreeDensity,1}()
   for i in 1:length(fgD)
-    V = fgD[i].v[vertid]
-    push!(ret, kde!(getVal(V)))
+    push!(ret, getVertKDE(fgD[i],vertid) )
+    # V = dlapi.getvertex(fgD[i],vertid)# fgD[i].v[vertid]
+    # push!(ret, kde!(getVal(V)))
   end
   return ret
 end
@@ -761,7 +765,7 @@ function drawAllPose2DBeliefs(plots::Array{Gadfly.Compose.Context,1}, fgD::Array
     # V = fg.v[7]
     for i in ids
         # V = fgD[1].v[i]
-        @show fgD[1].v[i].attributes["label"]
+        @show dlapi.getvertex(fgD[1],i).attributes["label"] #fgD[1].v[i].
         # if length(fgD) >= 2
             # V0 = fgD[2].v[i]
             kdes = getAllFGsKDEs(fgD, i)

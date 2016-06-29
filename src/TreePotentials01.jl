@@ -142,7 +142,7 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
-    push!(Xi,fgl.v[id])
+    push!(Xi, dlapi.getvertex(fgl,id)) # fgl.v[id]
   end
   return evalPotentialSpecific(Xi, fct.attributes["data"].fnc, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
 end

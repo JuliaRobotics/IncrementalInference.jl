@@ -113,11 +113,13 @@ Gadfly.draw(PDF("4doors.pdf",15cm,20cm),pl) # can also do PNG
 # end
 
 
-
-using ProtoBuf
-
-iob = PipeBuffer()
-pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
-writeproto(iob, pd)
-dd = readproto(iob, PackedVariableNodeData());
-unpckd = convert(VariableNodeData, dd)
+#
+# using ProtoBuf
+#
+# iob = PipeBuffer()
+# dat = IncrementalInference.dlapi.getvertex(fg,1).attributes["data"]
+# pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
+# writeproto(iob, pd)
+# dd = readproto(iob, PackedVariableNodeData());
+# unpckd = convert(VariableNodeData, dd)
+#
