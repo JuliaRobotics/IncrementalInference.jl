@@ -4,15 +4,22 @@
 
 type DataLayerAPI
   addvertex!::Function
+  getvertex::Function
   makeedge::Function
   addedge!::Function
   outneighbors::Function
+  updatevertex!::Function
+  updateedge!::Function
+  deletevertex!::Function
+  deleteedge!::Function
 end
 
 dlapi = DataLayerAPI(Graphs.add_vertex!,
+                    IncrementalInference.getVarNode,
                     Graphs.make_edge,
                     Graphs.add_edge!,
-                    Graphs.out_neighbors)
+                    Graphs.out_neighbors,
+                    +, +, +, + )
 
 function setDataLayerAPI(dl::DataLayerAPI)
   IncrementalInference.dlapi = dl

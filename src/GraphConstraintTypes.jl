@@ -4,7 +4,10 @@
 # The Pose2D and Pose3D types will most likely be packaged with the RoME package in the future.
 
 
-# \/\/\/these won't pack into ProtoBuf, serialize might work
+# Examples costraint functions which can be used, however,
+# \/\/\/these won't pack into ProtoBuf -- need to write special converters
+# for Neo4j DataBase storage of complicated types. See constraints hereafter
+# for more standard types.
 type UniPriorPose2D <: Singleton
   Z::Distributions.MvNormal
 end
@@ -21,6 +24,7 @@ end
 # ^^^will work on these later
 
 
+# Active constraint types listed below
 # -------------
 
 
@@ -57,7 +61,12 @@ function convert(::Type{FunctionNodeData{Odo}}, d::FunctionNodeData{PackedOdo})
   return FunctionNodeData{Odo}(d.fncargvID, d.eliminated, d.potentialused,
           convert(Odo, d.fnc))
 end
-
+function coolencode(d::FunctionNodeData{Odo})
+  return convert(FunctionNodeData{PackedOdo}, d)
+end
+function cooldecode(d::FunctionNodeData{PackedOdo})
+  return convert(FunctionNodeData{Odo}, d)
+end
 
 type OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column

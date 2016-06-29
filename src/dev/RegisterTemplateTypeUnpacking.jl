@@ -1,21 +1,25 @@
 
+println("[TEST] Protobuf quick check on converting types and packing data")
+
 module MyMod
 
   export MyType, MyTemplType, thing
 
   type MyType
     x::Array{Float64,1}
+    val::Int64
     str::ASCIIString
     MyType() = new()
-    MyType(x...) = new(x[1],x[2])
+    MyType(x...) = new(x[1],x[2],x[3])
   end
 
   type MyTemplType{T}
     x::Array{Float64,1}
+    val::Int64
     str::ASCIIString
     a::T
     MyTemplType() = new()
-    MyTemplType(x...) = new(x[1],x[2],x[3])
+    MyTemplType(x...) = new(x[1],x[2],x[3],x[4])
   end
 
   function thing()
@@ -66,12 +70,10 @@ end
 
 using MyMod, ProtoTest
 
-mydatas = MyTemplType{MyType}(rand(2),"test01",MyType(rand(3), "testT"))
+mydatas = MyTemplType{MyType}(rand(2),1,"test01",MyType(rand(3),2, "testT"))
 
 iob = protostring(mydatas)
 
-
-for elem in packedDataTypes
 
 registerType("MyType", MyType)
 dd = specialprotoread(iob, MyTemplType, "MyType")
@@ -79,7 +81,7 @@ dd = specialprotoread(iob, MyTemplType, "MyType")
 @show dd
 @show mydatas
 
-
+@test dd.x[1] == mydatas.x[1]
 
 
 

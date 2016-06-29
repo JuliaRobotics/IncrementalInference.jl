@@ -226,7 +226,7 @@ function evalPotential(brpho::Pose2DPoint2DBearingRange, Xi::Array{Graphs.ExVert
 
     inits = getVal(ini)
     pars = getVal(par)
-    others =  length(brpho.Xi) > 2 && Xid != Xi[1].index ? getVal(oth) : Union{}
+    others =  length(Xi) > 2 && Xid != Xi[1].index ? getVal(oth) : Union{}
     # add null hypothesis case
     len = length(Xi) > 2 && Xid != Xi[1].index ? size(others,2) : 0
     # gamma = mmodes ? rand(Gamma) : 1

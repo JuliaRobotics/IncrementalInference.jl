@@ -198,6 +198,13 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
   return fg.v[fg.id]
 end
 
+function getVarNode(fgl::FactorGraph, id::Int64)
+  return fgl.v[id]
+end
+function getVarNode(fgl::FactorGraph, lbl::AbstractString)
+  return getVarNode(fgl.v, fgl.IDs[lbl])
+end
+
 function addEdge!(g,n1,n2)
   edge = dlapi.makeedge(g, n1, n2)
   dlapi.addedge!(g, edge)
