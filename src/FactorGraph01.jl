@@ -377,3 +377,8 @@ function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   push!(usefcts, tpl )
   nothing
 end
+
+
+function subgraphShortestPath(fgl::FactorGraph; from::Int64=nothing, to::Int64=nothing, neighbors::Int=0)
+
+end

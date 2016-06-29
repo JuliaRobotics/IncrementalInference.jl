@@ -36,3 +36,7 @@ for i in 1:length(msgPlots)
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 @test true
+
+print("[TEST] Ensure memory return is working properly...")
+include("typeReturnMemRef.jl")
+println("Success")
