@@ -20,6 +20,7 @@ export
   FactorGraph,
   addNode!,
   addFactor!,
+  getVarNode,
   getVal,
   setVal!,
   setBW!,
