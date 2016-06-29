@@ -319,12 +319,7 @@ function vArrPotentials(potens::Dict{Int,EasyMessage})
         vv[i] = plotKDE(pb)
       end
   end
-  # if oned
-    return vv
-  # else
-  #   println("wrong one")
-  #   return vv2
-  # end
+  return vv
 end
 
 function kde!(em::EasyMessage)

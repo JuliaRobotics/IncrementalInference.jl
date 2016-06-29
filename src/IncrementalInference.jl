@@ -102,6 +102,7 @@ export
 include("FactorGraphTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
