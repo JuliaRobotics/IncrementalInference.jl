@@ -13,11 +13,13 @@ upd = convert(FunctionNodeData{Odo}, dd)
 
 # data structure conversion tests for protobuffing
 println("Testing conversion to packed data structure and back")
-pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
+dat = IncrementalInference.dlapi.getvertex(fg,1).attributes["data"]
+pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
+# pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
 unpckd = convert(VariableNodeData, pd)
 
-@test compare(fg.v[1].attributes["data"], unpckd)
-@test fg.v[1].attributes["data"] == unpckd
+@test compare(IncrementalInference.dlapi.getvertex(fg,1).attributes["data"], unpckd)
+@test IncrementalInference.dlapi.getvertex(fg,1).attributes["data"] == unpckd
 println("Conversions and comparisons agree")
 
 

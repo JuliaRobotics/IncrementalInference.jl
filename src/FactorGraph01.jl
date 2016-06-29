@@ -80,18 +80,20 @@ end
 
 function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
   fg.id+=1
-  fg.v[fg.id] = dlapi.addvertex!(fg.g, ExVertex(fg.id,lbl))
+  vert = dlapi.addvertex!(fg.g, ExVertex(fg.id,lbl))
+  dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
   # fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
-  fg.IDs[lbl] = fg.id
-  fg.v[fg.id].attributes = Graphs.AttributeDict()
-  fg.v[fg.id].attributes["label"] = lbl
+  # fg.IDs[lbl] = fg.id # TODO -- API issue
+  # fg.v[fg.id].attributes = Graphs.AttributeDict()
+  # fg.v[fg.id].attributes["label"] = lbl
   dodims = fg.dimID+1
 
-  setDefaultNodeData!(fg.v[fg.id], initval, stdev, dodims, N)
+  # TODO -- vert should not lose information here
+  setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs,fg.id)
-  return fg.v[fg.id]
+  return vert #fg.v[fg.id]
 end
 
 function addEdge!(g,n1,n2)
@@ -268,10 +270,11 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    if fg.v[p].attributes["data"].BayesNetVertID == 0
+    vert = dlapi.getvertex(fg,p)
+    if vert.attributes["data"].BayesNetVertID == 0   #fg.v[p].
       fg.bnid+=1
       # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
-      fg.v[p].attributes["data"].BayesNetVertID = p#fg.bnverts[p]
+      vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
       # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
     else
       println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
@@ -280,7 +283,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
 end
 
 function addConditional!(fg::FactorGraph, vertID, lbl, Si)
-  bnv = fg.v[vertID]
+  bnv = dlapi.getvertex(fg, vertID) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
   # bnv.attributes["separator"] = Si # TODO -- remove
@@ -297,7 +300,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   Xi = Graphs.ExVertex[] #genmarg.Xi = Graphs.ExVertex[]
   for s in Si
     # push!(lbls,fg.v[s].attributes["label"])
-    push!(Xi,fg.v[s])
+    push!(Xi, dlapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
   end
   # addFactor!(fg, marg, lbls)
   addFactor!(fg,Xi, genmarg)
@@ -313,7 +316,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # all factors adjacent to this variable
       fi = Int64[]
       Si = Int64[]
-      for fct in out_neighbors(fg.v[v],fg.g)
+      for fct in out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
         if (fct.attributes["data"].eliminated != true) #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
           for sepNode in out_neighbors(fct,fg.g)
@@ -327,7 +330,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       #@show fg.v[v].attributes["sepfactors"] = fi
       addConditional!(fg, v, "", Si)
       # not yet inserting the new prior p(Si) back into the factor graph
-      fg.v[v].attributes["data"].eliminated = true
+      dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
       # fg.v[v].attributes["eliminated"] = true
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
@@ -376,10 +379,10 @@ function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int)
   flbl = ""
   clbl = ""
   for fr in clq.attributes["frontalIDs"]
-    flbl = string(flbl,fgl.v[fr].attributes["label"], ",")
+    flbl = string(flbl,dlapi.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
   end
   for cond in clq.attributes["conditIDs"]
-    clbl = string(clbl,fgl.v[cond].attributes["label"], ",")
+    clbl = string(clbl, dlapi.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -394,7 +397,7 @@ end
 # Add a new frontal variable to clique
 function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
   clq = bt.cliques[clqID]
-  var = fg.v[varID]
+  var = dlapi.getvertex(fg, varID) # fg.v[varID]
   # add frontal variable
   push!(clq.attributes["frontalIDs"],varID)
   # total dictionary of frontals for easy access
@@ -433,14 +436,14 @@ end
 # eliminate a variable for new
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     #@show fg.v[var].attributes["label"]
-    if (length(fg.v[var].attributes["data"].separator) == 0) #(length(fg.v[var].attributes["separator"]) == 0)
+    if (length(dlapi.getvertex(fg,var).attributes["data"].separator) == 0) #fg.v[var].
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else
         appendClique!(tree, 1, fg, var) # add to root
       end
     else
-      Sj = fg.v[var].attributes["data"].separator
+      Sj = dlapi.getvertex(fg,var).attributes["data"].separator  # fg.v[var].
       # Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
@@ -450,7 +453,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
           firstelim = temp
         end
       end
-      felbl = fg.v[p[firstelim]].attributes["label"]
+      felbl = dlapi.getvertex(fg,p[firstelim]).attributes["label"] # fg.v[p[firstelim]].
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       unFC = union(tree.cliques[CpID].attributes["frontalIDs"], tree.cliques[CpID].attributes["conditIDs"])
@@ -546,7 +549,7 @@ end
 
 # some plotting functions on the factor graph
 function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
-    v = fg.v[fg.IDs[lbl]]
+    v = dlapi.getvertex(fg,lbl) # v = fg.v[fg.IDs[lbl]]
     vals = getVal(v)
     X=vec(vals[1,:])
     Y=vec(vals[2,:])
@@ -559,8 +562,12 @@ function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), "lcv") # TODO - getBW(v)
 end
 
+function getVertKDE(fgl::FactorGraph, id::Int64)
+  v = dlapi.getvertex(fgl,id)  # v = fgl.v[fgl.IDs[lbl]]
+  return getKDE(v)
+end
 function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)
-  v = fgl.v[fgl.IDs[lbl]]
+  v = dlapi.getvertex(fgl,lbl)  # v = fgl.v[fgl.IDs[lbl]]
   return getKDE(v)
 end
 
@@ -754,17 +761,17 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
     allids = [frtl;cond]
     alldimIDs = Int[]
     for fid in frtl
-      alldimIDs = [alldimIDs;fg.v[fid].attributes["data"].dimIDs]
+      alldimIDs = [alldimIDs;dlapi.getvertex(fg,fid).attributes["data"].dimIDs] # ;fg.v[fid].
       # alldimIDs = [alldimIDs;fg.v[fid].attributes["dimIDs"]]
     end
     for cid in cond
-      alldimIDs = [alldimIDs;fg.v[cid].attributes["data"].dimIDs]
+      alldimIDs = [alldimIDs;dlapi.getvertex(fg,cid).attributes["data"].dimIDs] # ;fg.v[cid].
       # alldimIDs = [alldimIDs;fg.v[cid].attributes["dimIDs"]]
     end
 
     for fid in frtl
         usefcts = []
-        for fct in out_neighbors(fg.v[fid],fg.g)
+        for fct in out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
             if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
                 if length(out_neighbors(fct, fg.g))==1
