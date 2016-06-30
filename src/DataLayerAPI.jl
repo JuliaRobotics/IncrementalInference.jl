@@ -6,6 +6,7 @@ type DataLayerAPI
   addvertex!::Function
   getvertex::Function
   setupvertgraph!::Function
+  setupfncvertgraph!::Function
   makeedge::Function
   addedge!::Function
   outneighbors::Function
@@ -16,8 +17,9 @@ type DataLayerAPI
 end
 
 dlapi = DataLayerAPI(Graphs.add_vertex!,
-                    getVarNode,
-                    addNewVertInGraph!,
+                    getVertNode,
+                    addNewVarVertInGraph!,
+                    addNewFncVertInGraph!,
                     Graphs.make_edge,
                     Graphs.add_edge!,
                     Graphs.out_neighbors,

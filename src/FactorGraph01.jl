@@ -156,6 +156,11 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
 
   data = FunctionNodeData{typeof(f)}(Int64[], false, false, f)
   fact.attributes["data"] = data
+
+  # for graphviz drawing
+  fact.attributes["shape"] = "point"  # fg.f[fg.id]
+  fact.attributes["width"] = 0.2 #  fg.f[fg.id]
+
   nothing
 end
 function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
@@ -170,25 +175,23 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
     namestring = string(namestring,vert.attributes["label"])
   end
   fg.id+=1
-  fg.f[fg.id] = dlapi.addvertex!(fg.g, ExVertex(fg.id,namestring))
-  # fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
-  fg.fIDs[namestring] = fg.id
-  # for graphviz drawing
-  fg.f[fg.id].attributes["shape"] = "point"
-  fg.f[fg.id].attributes["width"] = 0.2
 
-  setDefaultFactorNode!(fg.f[fg.id], f)
+  newvert = dlapi.addvertex!(fg.g, ExVertex(fg.id,namestring))
+  addNewFncVertInGraph!(fg, newvert, fg.id, namestring)
+  # fg.fIDs[namestring] = fg.id
+  ## fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
+
+  setDefaultFactorNode!(newvert, f) # fg.f[fg.id]
   push!(fg.factorIDs,fg.id)
 
   idx=0
   for vert in Xi #f.Xi
-    addEdge!(fg.g,vert,fg.f[fg.id])
+    addEdge!(fg.g, vert, newvert) #fg.f[fg.id]
     idx+=1
-    setFncArgIDs!(fg.f[fg.id],idx,vert.index)
+    setFncArgIDs!(newvert, idx, vert.index) #fg.f[fg.id]
   end
 
-  #fg.f[fg.id].attributes["evalstr"] = FactorEvalStr(fg,fg.f[fg.id])
-  return fg.f[fg.id]
+  return newvert # fg.f[fg.id]
 end
 
 
@@ -447,7 +450,7 @@ function addVerticesSubgraph(fgl::FactorGraph,
           fgseg.g.inclist[elridx] = elr[keeprm]
         end
       elseif haskey(fgl.f, vert[1])
-        fgseg.f[vert[1]] = vert[2]
+        fgseg.f[vert[1]] = vert[2] # adding element to subgraph
         fgseg.fIDs[vert[2].label] = vert[1]
         # get edges associated with function nodes and push edges onto incidence list
         el = Graphs.out_edges(vert[2], fgl.g)

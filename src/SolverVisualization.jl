@@ -519,12 +519,13 @@ function localProduct(fgl::FactorGraph, lbl::ASCIIString;N=300)
   cf = ls(fgl, lbl)
   pp = Union{}
   for f in cf
-    push!(arr, kde!(evalFactor2(fgl, fgl.f[fgl.fIDs[f]], fgl.IDs[lbl])))
+    fgf = dlapi.getvertex(fgl,f,:fnc) #fgl.f[fgl.fIDs[f]]
+    push!(arr, kde!(evalFactor2(fgl, fgf, fgl.IDs[lbl])))
   end
   if length(arr)>1
     Ndims = arr[1].bt.dims
     dummy = kde!(rand(Ndims,N),[1.0]);
-    pGM, = prodAppxMSGibbsS(dummy, arr, Union{}, Union{}, 40)
+    pGM, = prodAppxMSGibbsS(dummy, arr, Union{}, Union{}, 15)
     pp = kde!(pGM,"lcv")
   end
   return pp,arr
