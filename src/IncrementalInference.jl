@@ -31,6 +31,7 @@ export
   ExploreTreeType,
   emptyFactorGraph,
   subgraphShortestPath,
+  subgraphFromVerts,
   getEliminationOrder,
   prepBatchTree!,
   wipeBuildNewTree!,

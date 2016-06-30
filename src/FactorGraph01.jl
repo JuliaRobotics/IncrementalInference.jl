@@ -96,7 +96,7 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
   return vert #fg.v[fg.id]
 end
 
-function addEdge!(g,n1,n2)
+function addEdge!(g::FGG,n1,n2)
   edge = dlapi.makeedge(g, n1, n2)
   dlapi.addedge!(g, edge)
   # edge = Graphs.make_edge(g, n1, n2)
@@ -386,7 +386,7 @@ function expandEdgeListNeigh!(fgl::FactorGraph,
                               edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}})
   #asfd
   for vert in vertdict
-    for newedges in out_edges(vert[2],fgl.g)
+    for newedge in out_edges(vert[2],fgl.g)
       if !haskey(edgedict, newedge.index)
         edgedict[newedge.index] = newedge
       end
@@ -421,35 +421,87 @@ function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
   return edgedict
 end
 
+function addVerticesSubgraph(fgl::FactorGraph,
+    fgseg::FactorGraph,
+    vertdict::Dict{Int64,Graphs.ExVertex})
+
+    for vert in vertdict
+      fgseg.g.vertices[vert[1]] = vert[2]
+      if haskey(fgl.v,vert[1])
+        fgseg.v[vert[1]] = vert[2]
+        fgseg.IDs[vert[2].label] = vert[1]
+
+        # add edges going in opposite direction
+        elr = Graphs.out_edges(vert[2], fgl.g)
+        len = length(elr)
+        keeprm = trues(len)
+        j = 0
+        for i in 1:len
+          if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
+            keeprm[i] = false
+            j+=1
+          end
+        end
+        if j < len
+          elridx = elr[1].source.index
+          fgseg.g.inclist[elridx] = elr[keeprm]
+        end
+      elseif haskey(fgl.f, vert[1])
+        fgseg.f[vert[1]] = vert[2]
+        fgseg.fIDs[vert[2].label] = vert[1]
+        # get edges associated with function nodes and push edges onto incidence list
+        el = Graphs.out_edges(vert[2], fgl.g)
+        elidx = el[1].source.index
+        fgseg.g.inclist[elidx] = el # okay because treating function nodes only
+        fgseg.g.nedges += length(el)
+      else
+        error("Unknown type factor graph vertex type, something is wrong")
+      end
+    end
+    nothing
+end
+
 # NOTICE, nodeIDs and factorIDs are not brough over by this method yet
 # must sort out for incremental updates
 function genSubgraph(fgl::FactorGraph,
-    edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
     vertdict::Dict{Int64,Graphs.ExVertex})
+    # edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
 
   fgseg = FactorGraph() # new handle for just a segment of the graph
+  fgseg.g = Graphs.inclist(Graphs.ExVertex,is_directed=false)
 
   fgseg.v = Dict{Int,Graphs.ExVertex}()
   fgseg.f = Dict{Int,Graphs.ExVertex}()
   fgseg.IDs = Dict{AbstractString,Int}()
   fgseg.fIDs = Dict{AbstractString,Int}()
 
-  for vert in vertdict
-    if haskey(fgl.v,vert[1])
-      fgseg.v[vert[1]] = vert[2]
-      fgseg.IDs[vert[2].label] = vert[1]
-    elseif haskey(fgl.f, vert[1])
-      # @show vert
-      # @show vert[1]
-      # @show vert[2]
-      fgseg.f[vert[1]] = vert[2]
-      fgseg.fIDs[vert[2].label] = vert[1]
-    end
-  end
+  fgseg.g.vertices = Array{Graphs.ExVertex,1}(length(fgl.g.vertices))
+  fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(length(fgl.g.inclist))
 
-  # TODO -- and we need to grow fgseg.g!!!
+  addVerticesSubgraph(fgl, fgseg, vertdict)
+
+  fgseg.id = fgl.id
+  fgseg.bnid = fgl.bnid
+  fgseg.dimID = fgl.dimID
 
   return fgseg
+end
+
+function getShortestPathNeighbors(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0 )
+
+  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+  vertdict = Dict{Int64,Graphs.ExVertex}()
+  edgedict = edgelist2edgedict(edgelist)
+  expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  for i in 1:neighbors
+    # println("Expanding subgraph edge dict")
+    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+    expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  end
+  return vertdict
 end
 
 function subgraphShortestPath(fgl::FactorGraph;
@@ -457,22 +509,63 @@ function subgraphShortestPath(fgl::FactorGraph;
     to::Graphs.ExVertex=nothing,
     neighbors::Int=0  )
 
-  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
-  vertdict = Dict{Int64,Graphs.ExVertex}()
-  edgedict = edgelist2edgedict(edgelist)
-  expandVertexList!(fgl, edgedict, vertdict) # grow verts
-  for i in 1:neighbors
-    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
-    expandVertexList!(fgl, edgedict, vertdict) # grow verts
-  end
-
-  return genSubgraph(fgl, edgedict, vertdict)
+  vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+  return genSubgraph(fgl, vertdict)
 end
 
-function subgraphFromVertList(fgl::FactorGraph;
-    from::Graphs.ExVertex=nothing,
-    to::Graphs.ExVertex=nothing,
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+function subgraphFromVerts(fgl::FactorGraph,
+    verts::Dict{Int64,Graphs.ExVertex};
     neighbors::Int=0  )
 
-  nothing
+    allverts = Dict{Int64,Graphs.ExVertex}()
+    allkeys = collect(keys(verts))
+    len = length(allkeys)
+    # union all shortest path combinations in a vertdict
+    for i in 1:len, j in (i+1):len
+      from = verts[allkeys[i]]
+      to = verts[allkeys[j]]
+      vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+      for vert in vertdict
+        if !haskey(allverts, vert[1])
+          allverts[vert[1]] = vert[2]
+        end
+      end
+    end
+
+  return genSubgraph(fgl, allverts)
+end
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+# Using unique index into graph data structure
+function subgraphFromVerts(fgl::FactorGraph,
+    verts::Array{Int64,1};
+    neighbors::Int=0  )
+
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    vertdict[vert] = fgl.v[vert]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+# Using unique index into graph data structure
+function subgraphFromVerts(fgl::FactorGraph,
+    verts::Array{ASCIIString,1};
+    neighbors::Int=0  )
+
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    id = -1
+    if haskey(fgl.IDs, vert)
+      id = fgl.IDs[vert]
+    else
+      error("FactorGraph01 only supports variable node subgraph search at this point")
+    end
+    vertdict[id] = fgl.v[id]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end

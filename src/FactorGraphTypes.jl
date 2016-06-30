@@ -5,9 +5,10 @@ abstract Pairwise
 abstract Singleton
 
 
+typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 
 type FactorGraph
-  g
+  g::FGG
   bn
   v::Dict{Int,Graphs.ExVertex}
   f::Dict{Int,Graphs.ExVertex}
