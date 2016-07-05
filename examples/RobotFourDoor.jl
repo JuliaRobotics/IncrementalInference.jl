@@ -1,5 +1,5 @@
 
-addprocs(3) # Remove addprocs if you want to use single process only
+addprocs(3) # Remove addprocs if you want to use a single process only
 using IncrementalInference
 using KernelDensityEstimate, Gadfly # for vstack
 using Cairo, Fontconfig # for drawing PNG/PDF
@@ -83,6 +83,13 @@ tree = prepBatchTree!(fg,drawpdf=true);
 
 # list vertices in fg
 @show xx,ll = ls(fg)
+
+from = fg.v[fg.IDs["l1"]]
+to = fg.v[fg.IDs["x7"]]
+fgs = subgraphShortestPath(fg, from=from, to=to)
+
+using Graphs
+el = shortest_path(fg.g, ones(19),from, to)
 
 # do belief propagation inference over tree once
 [inferOverTree!(fg, tree) for i in 1:1];

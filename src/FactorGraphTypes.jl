@@ -100,6 +100,13 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator)
 end
+function VNDencoder(d::VariableNodeData)
+  return convert(PackedVariableNodeData, d)
+end
+function VNDdecoder(d::PackedVariableNodeData)
+  return convert(VariableNodeData, d)
+end
+
 
 function compare(a::VariableNodeData,b::VariableNodeData)
     TP = true
@@ -121,7 +128,8 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
 end
 
 function getVertNode(fgl::FactorGraph, id::Int64, nt::Symbol=:var)
-  return nt == :var ? fgl.v[id] : fgl.f[id]
+  return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
+  # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
 function getVertNode(fgl::FactorGraph, lbl::AbstractString, nt::Symbol=:var)
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]) , nt)
@@ -130,17 +138,34 @@ end
 function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
-  fgl.v[id] = vert
-  fgl.IDs[lbl] = id # fg.id
+  fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
+  fgl.IDs[lbl] = id # fg.id, to help find it
   nothing
 end
 
 function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
-  fgl.f[id] = vert
+  fgl.f[id] = vert # TODO -- not sure if this is required
   fgl.fIDs[lbl] = id # fg.id
   nothing
 end
+
+function updateVertData!(fgl::FactorGraph,
+    id::Int64,
+    updlist::Dict{UTF8String,Any})
+    #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
+
+  id = vert.index
+  vdata = getVertNode(fgl, id).attributes["data"]
+  for item in updlist
+    eval(:(vdata.$(parse(item[1]))=$(item[2])))
+  end
+  nothing
+end
+
+# function updateVertData(fgl::FactorGraph, vert::Graphs.ExVertex)
+#
+# end
 
 #

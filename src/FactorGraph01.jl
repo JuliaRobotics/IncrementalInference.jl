@@ -80,16 +80,13 @@ end
 
 function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
   fg.id+=1
-  vert = dlapi.addvertex!(fg.g, ExVertex(fg.id,lbl))
+  vert = ExVertex(fg.id,lbl)
   dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
-  # fg.v[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,lbl))
-  # fg.IDs[lbl] = fg.id # TODO -- API issue
-  # fg.v[fg.id].attributes = Graphs.AttributeDict()
-  # fg.v[fg.id].attributes["label"] = lbl
   dodims = fg.dimID+1
-
-  # TODO -- vert should not lose information here
+  # TODO -- vert should not loose information here
   setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
+
+  dlapi.addvertex!(fg.g, vert) #vertr = 
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs,fg.id)

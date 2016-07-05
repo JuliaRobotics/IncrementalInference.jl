@@ -360,7 +360,8 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn) #inp.
     for dat in ddt.IDvals
-        setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
+      #TODO -- should become an update call
+        setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
         # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
     end
     nothing

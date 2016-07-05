@@ -16,13 +16,13 @@ type DataLayerAPI
   deleteedge!::Function
 end
 
-dlapi = DataLayerAPI(Graphs.add_vertex!,
-                    getVertNode,
-                    addNewVarVertInGraph!,
-                    addNewFncVertInGraph!,
-                    Graphs.make_edge,
-                    Graphs.add_edge!,
-                    Graphs.out_neighbors,
+dlapi = DataLayerAPI(Graphs.add_vertex!,   # addvertex
+                    getVertNode,   # getvertex
+                    addNewVarVertInGraph!,   # setupvertgraph
+                    addNewFncVertInGraph!,   # setupfncvertgraph
+                    Graphs.make_edge,   # makeedge
+                    Graphs.add_edge!,   # addedge
+                    Graphs.out_neighbors,   # outneighbors
                     +, +, +, + )
 
 function setDataLayerAPI(dl::DataLayerAPI)
