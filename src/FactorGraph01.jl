@@ -86,7 +86,7 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
   # TODO -- vert should not loose information here
   setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
 
-  dlapi.addvertex!(fg.g, vert) #vertr = 
+  dlapi.addvertex!(fg.g, vert) #vertr =
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs,fg.id)
@@ -137,12 +137,7 @@ function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
 end
 
 
-type FunctionNodeData{T}
-  fncargvID::Array{Int64,1}
-  eliminated::Bool
-  potentialused::Bool
-  fnc::T
-end
+
 
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})

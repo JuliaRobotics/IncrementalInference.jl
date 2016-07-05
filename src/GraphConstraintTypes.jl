@@ -61,10 +61,10 @@ function convert(::Type{FunctionNodeData{Odo}}, d::FunctionNodeData{PackedOdo})
   return FunctionNodeData{Odo}(d.fncargvID, d.eliminated, d.potentialused,
           convert(Odo, d.fnc))
 end
-function coolencode(d::FunctionNodeData{Odo})
+function FNDencode(d::FunctionNodeData{Odo})
   return convert(FunctionNodeData{PackedOdo}, d)
 end
-function cooldecode(d::FunctionNodeData{PackedOdo})
+function FNDdecode(d::FunctionNodeData{PackedOdo})
   return convert(FunctionNodeData{Odo}, d)
 end
 

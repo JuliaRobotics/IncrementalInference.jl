@@ -18,6 +18,8 @@ export
   PackedVariableNodeData,
   VNDencoder,
   VNDdecoder,
+  FNDencode,
+  FNDdecode,
   FunctionNodeData,
   FactorGraph,
   addNode!,

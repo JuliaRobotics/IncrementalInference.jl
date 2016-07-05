@@ -10,14 +10,14 @@ typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExV
 type FactorGraph
   g::FGG
   bn
-  v::Dict{Int,Graphs.ExVertex}
-  f::Dict{Int,Graphs.ExVertex}
+  v::Dict{Int,Graphs.ExVertex} # TODO -- remove
+  f::Dict{Int,Graphs.ExVertex} # TODO -- remove
   IDs::Dict{AbstractString,Int}
   fIDs::Dict{AbstractString,Int}
   id::Int64
   nodeIDs::Array{Int,1} # TODO -- ordering seems brittle
   factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used
+  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used
   dimID::Int64
   FactorGraph() = new()
@@ -68,6 +68,13 @@ type PackedVariableNodeData
   separator::Array{Int64,1}
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+end
+
+type FunctionNodeData{T}
+  fncargvID::Array{Int64,1}
+  eliminated::Bool
+  potentialused::Bool
+  fnc::T
 end
 
 
