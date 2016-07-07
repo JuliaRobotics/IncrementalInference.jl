@@ -74,7 +74,10 @@ end
 function newChildClique!(bt::BayesTree, fg::FactorGraph, CpID::Int, varID::Int, Sepj::Array{Int,1})
   chclq = addClique!(bt, fg, varID, Sepj)
   parent = bt.cliques[CpID]
-  addEdge!(bt.bt, parent, chclq)
+  # Staying with Graphs.jl for tree in first stage
+  edge = Graphs.make_edge(bt.bt, parent, chclq)
+  Graphs.add_edge!(bt.bt, edge)
+  # addEdge!(bt.bt, parent, chclq)
 
   return chclq
 end

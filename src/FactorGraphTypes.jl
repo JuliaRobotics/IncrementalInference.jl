@@ -20,6 +20,8 @@ type FactorGraph
   bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used
   dimID::Int64
+  cg
+  cgIDs::Dict{Int64,Int64}
   FactorGraph() = new()
   FactorGraph(x...) = new(
     x[1],
@@ -33,7 +35,9 @@ type FactorGraph
     x[9],
     x[10],
     x[11],
-    x[12] )
+    x[12],
+    x[13],
+    x[14] )
 end
 
 type VariableNodeData
@@ -75,6 +79,8 @@ type FunctionNodeData{T}
   eliminated::Bool
   potentialused::Bool
   fnc::T
+  FunctionNodeData() = new()
+  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4])
 end
 
 
@@ -132,6 +138,10 @@ end
 
 function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return compare(a,b)
+end
+
+function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex)
+  Graphs.add_vertex!(fgl.g, exvert)
 end
 
 function getVertNode(fgl::FactorGraph, id::Int64, nt::Symbol=:var)

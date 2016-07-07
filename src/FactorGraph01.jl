@@ -78,6 +78,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   nothing
 end
 
+# Must rething the abstraction here
 function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
@@ -86,19 +87,20 @@ function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100
   # TODO -- vert should not loose information here
   setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
 
-  dlapi.addvertex!(fg.g, vert) #vertr =
+  dlapi.addvertex!(fg, vert) #fg.g ##vertr =
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs,fg.id)
   return vert #fg.v[fg.id]
 end
 
-function addEdge!(g::FGG,n1,n2)
-  edge = dlapi.makeedge(g, n1, n2)
-  dlapi.addedge!(g, edge)
-  # edge = Graphs.make_edge(g, n1, n2)
-  # Graphs.add_edge!(g, edge)
-end
+# rethink abstraction, maybe closer to CloudGraph use case a better solution
+# function addEdge!(g::FGG,n1,n2)
+#   edge = dlapi.makeedge(g, n1, n2)
+#   dlapi.addedge!(g, edge)
+#   # edge = Graphs.make_edge(g, n1, n2)
+#   # Graphs.add_edge!(g, edge)
+# end
 
 function getVal(vA::Array{Graphs.ExVertex,1})
   len = length(vA)
@@ -155,11 +157,11 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
 
   nothing
 end
-function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
-  push!(fact.attributes["data"].fncargvID, index) #[idx]=index
-  #fact.attributes["fncargvID"][idx] = index
-  nothing
-end
+# function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
+#   push!(fact.attributes["data"].fncargvID, index) #[idx]=index
+#   #fact.attributes["fncargvID"][idx] = index
+#   nothing
+# end
 
 function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton})
   namestring = ""
@@ -168,19 +170,21 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
   end
   fg.id+=1
 
-  newvert = dlapi.addvertex!(fg.g, ExVertex(fg.id,namestring))
+  newvert = ExVertex(fg.id,namestring)
   addNewFncVertInGraph!(fg, newvert, fg.id, namestring)
-  # fg.fIDs[namestring] = fg.id
-  ## fg.f[fg.id] = Graphs.add_vertex!(fg.g, ExVertex(fg.id,namestring))
-
   setDefaultFactorNode!(newvert, f) # fg.f[fg.id]
   push!(fg.factorIDs,fg.id)
 
-  idx=0
+  newvert = dlapi.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
+
+  # idx=0
   for vert in Xi #f.Xi
-    addEdge!(fg.g, vert, newvert) #fg.f[fg.id]
-    idx+=1
-    setFncArgIDs!(newvert, idx, vert.index) #fg.f[fg.id]
+    edge = dlapi.makeedge(fg.g, vert, newvert)
+    dlapi.addedge!(fg.g, edge)
+    # addEdge!(fg.g, vert, newvert) #fg.f[fg.id]
+    # idx+=1
+    # setFncArgIDs!(newvert, idx, vert.index) #fg.f[fg.id]
+    push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
   return newvert # fg.f[fg.id]
@@ -199,7 +203,9 @@ function emptyFactorGraph()
                      [],
                      Dict{Int,Graphs.ExVertex}(),
                      0,
-                     0)
+                     0,
+                     nothing,
+                     Dict{Int64,Int64}())
     return fg
 end
 

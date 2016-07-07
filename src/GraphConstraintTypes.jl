@@ -33,6 +33,8 @@ type Odo <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
+    Odo() = new()
+    Odo(x...) = new(x[1], x[2], x[3])
 end
 type PackedOdo
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
@@ -40,6 +42,8 @@ type PackedOdo
     vecCov::Array{Float64,1}
     dimc::Int64
     W::Array{Float64,1}
+    PackedOdo() = new()
+    PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
 function convert(::Type{Odo}, d::PackedOdo)
   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
@@ -97,6 +101,8 @@ type Obsv2 <: Singleton
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
+    Obsv2() = new()
+    Obsv2(x...) = new(x[1], x[2], x[3])
 end
 type PackedObsv2
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
@@ -104,6 +110,8 @@ type PackedObsv2
     vecCov::Array{Float64,1}
     dimc::Int64
     W::Array{Float64,1}
+    PackedObsv2() = new()
+    PackedObsv2(x...) = new(x[1],x[2],x[3],x[4],x[5])
 end
 function convert(::Type{Obsv2}, d::PackedObsv2)
   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
@@ -125,7 +133,12 @@ function convert(::Type{FunctionNodeData{Obsv2}}, d::FunctionNodeData{PackedObsv
   return FunctionNodeData{Obsv2}(d.fncargvID, d.eliminated, d.potentialused,
           convert(Obsv2, d.fnc))
 end
-
+function FNDencode(d::FunctionNodeData{Obsv2})
+  return convert(FunctionNodeData{PackedObsv2}, d)
+end
+function FNDdecode(d::FunctionNodeData{PackedObsv2})
+  return convert(FunctionNodeData{Obsv2}, d)
+end
 
 # ------------------------------------------------------
 
@@ -135,6 +148,8 @@ type PriorPose2 <: Singleton
     Zi::Array{Float64,2}
     Cov::Array{Float64,2}
     W::Array{Float64,1}
+    PriorPose2() = new()
+    PriorPose2(x...) = new(x[1], x[2], x[3])
 end
 type PackedPriorPose2
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
@@ -142,6 +157,8 @@ type PackedPriorPose2
     vecCov::Array{Float64,1}
     dimc::Int64
     W::Array{Float64,1}
+    PackedPriorPose2() = new()
+    PackedPriorPose2(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
 function convert(::Type{PriorPose2}, d::PackedPriorPose2)
   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
@@ -163,17 +180,23 @@ function convert(::Type{FunctionNodeData{PriorPose2}}, d::FunctionNodeData{Packe
   return FunctionNodeData{PriorPose2}(d.fncargvID, d.eliminated, d.potentialused,
           convert(PriorPose2, d.fnc))
 end
+function FNDencode(d::FunctionNodeData{PriorPose2})
+  return convert(FunctionNodeData{PackedPriorPose2}, d)
+end
+function FNDdecode(d::FunctionNodeData{PackedPriorPose2})
+  return convert(FunctionNodeData{PriorPose2}, d)
+end
 
 
 # ------------------------------------
-
-
 
 
 type Pose2Pose2 <: Pairwise
     Zij::Array{Float64,2} # 2translations, 1rotation
     Cov::Array{Float64,2}
     W::Array{Float64,1}
+    Pose2Pose2() = new()
+    Pose2Pose2(x...) = new(x[1], x[2], x[3])
 end
 type PackedPose2Pose2
   vecZij::Array{Float64,1} # 2translations, 1rotation
@@ -181,6 +204,8 @@ type PackedPose2Pose2
   vecCov::Array{Float64,1}
   dimc::Int64
   W::Array{Float64,1}
+  PackedPose2Pose2() = new()
+  PackedPose2Pose2(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
 function convert(::Type{Pose2Pose2}, d::PackedPose2Pose2)
   return Pose2Pose2(reshapeVec2Mat(d.vecZij,d.dimz),
@@ -201,7 +226,12 @@ function convert(::Type{FunctionNodeData{Pose2Pose2}}, d::FunctionNodeData{Packe
   return FunctionNodeData{Pose2Pose2}(d.fncargvID, d.eliminated, d.potentialused,
           convert(Pose2Pose2, d.fnc))
 end
-
+function FNDencode(d::FunctionNodeData{Pose2Pose2})
+  return convert(FunctionNodeData{PackedPose2Pose2}, d)
+end
+function FNDdecode(d::FunctionNodeData{PackedPose2Pose2})
+  return convert(FunctionNodeData{Pose2Pose2}, d)
+end
 
 
 # --------------------------------------------
@@ -212,6 +242,8 @@ type Pose2DPoint2DBearingRange <: Pairwise
     Zij::Array{Float64,2} # bearing and range hypotheses as columns
     Cov::Array{Float64,2}
     W::Array{Float64,1}
+    Pose2DPoint2DBearingRange() = new()
+    Pose2DPoint2DBearingRange(x...) = new(x[1],x[2],x[3])
 end
 type PackedPose2DPoint2DBearingRange
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
@@ -219,6 +251,8 @@ type PackedPose2DPoint2DBearingRange
     vecCov::Array{Float64,1}
     dimc::Int64
     W::Array{Float64,1}
+    PackedPose2DPoint2DBearingRange() = new()
+    PackedPose2DPoint2DBearingRange(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
 function convert(::Type{Pose2DPoint2DBearingRange}, d::PackedPose2DPoint2DBearingRange)
   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
@@ -240,7 +274,12 @@ function convert(::Type{FunctionNodeData{Pose2DPoint2DBearingRange}}, d::Functio
   return FunctionNodeData{Pose2DPoint2DBearingRange}(d.fncargvID, d.eliminated, d.potentialused,
           convert(Pose2DPoint2DBearingRange, d.fnc))
 end
-
+function FNDencode(d::FunctionNodeData{Pose2DPoint2DBearingRange})
+  return convert(FunctionNodeData{PackedPose2DPoint2DBearingRange}, d)
+end
+function FNDdecode(d::FunctionNodeData{PackedPose2DPoint2DBearingRange})
+  return convert(FunctionNodeData{Pose2DPoint2DBearingRange}, d)
+end
 
 
 # -----------------------

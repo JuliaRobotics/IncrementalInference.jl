@@ -91,7 +91,10 @@ export
   R,
   se2vee,
   SE2,
-  wrapRad
+  wrapRad,
+
+  # dev exports
+  addGraphsVert!
 
 
 include("FactorGraphTypes.jl")

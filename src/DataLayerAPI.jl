@@ -16,7 +16,7 @@ type DataLayerAPI
   deleteedge!::Function
 end
 
-dlapi = DataLayerAPI(Graphs.add_vertex!,   # addvertex
+dlapi = DataLayerAPI(addGraphsVert!,   # addvertex
                     getVertNode,   # getvertex
                     addNewVarVertInGraph!,   # setupvertgraph
                     addNewFncVertInGraph!,   # setupfncvertgraph
@@ -29,3 +29,17 @@ function setDataLayerAPI(dl::DataLayerAPI)
   IncrementalInference.dlapi = dl
   nothing
 end
+
+function getCurrentAPI()
+  return dlapi
+end
+
+# Remember 3rd party users interact with
+# addNode!
+# addFactor!
+# prepBatchTree!
+# inferOverTree!
+#
+## Visualization functions -- Visualization may well be separated or abstracted out
+# writeGraphPdf
+# drawHorBeliefsList
