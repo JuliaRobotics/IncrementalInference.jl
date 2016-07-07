@@ -9,9 +9,14 @@ using
   Colors,
   NLsolve,
   Distributions,
-  KernelDensityEstimate
+  KernelDensityEstimate,
+  CloudGraphs
 
 export
+  # actual CloudGraphs integration experimental code
+  setCloudDataLayerAPI,
+
+  # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
   VNDencoder,
@@ -96,6 +101,7 @@ export
 
 
 include("FactorGraphTypes.jl")
+include("CloudGraphIntegration.jl") # experimental code
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("JunctionTree.jl")

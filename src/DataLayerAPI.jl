@@ -25,15 +25,6 @@ dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
                      Graphs.out_neighbors,    # outneighbors
                      +, +, +, + )
 
-function setDataLayerAPI(dl::DataLayerAPI)
-  IncrementalInference.dlapi = dl
-  nothing
-end
-
-function getCurrentAPI()
-  return dlapi
-end
-
 # Remember 3rd party users interact with
 # addNode!
 # addFactor!
