@@ -5,10 +5,9 @@
 type DataLayerAPI
   addvertex!::Function
   getvertex::Function
-  setupvertgraph!::Function
-  setupfncvertgraph!::Function
-  makeedge::Function
-  addedge!::Function
+  # setupvertgraph!::Function
+  # setupfncvertgraph!::Function
+  makeaddedge!::Function
   outneighbors::Function
   updatevertex!::Function
   updateedge!::Function
@@ -16,14 +15,15 @@ type DataLayerAPI
   deleteedge!::Function
 end
 
-dlapi = DataLayerAPI(addGraphsVert!,   # addvertex
-                    getVertNode,   # getvertex
-                    addNewVarVertInGraph!,   # setupvertgraph
-                    addNewFncVertInGraph!,   # setupfncvertgraph
-                    Graphs.make_edge,   # makeedge
-                    Graphs.add_edge!,   # addedge
-                    Graphs.out_neighbors,   # outneighbors
-                    +, +, +, + )
+# global dlapi
+
+dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
+                     getVertNode,             # getvertex
+                     # addNewVarVertInGraph!,   # setupvertgraph
+                     # addNewFncVertInGraph!,   # setupfncvertgraph
+                     makeAddEdge!,            # makeaddedge
+                     Graphs.out_neighbors,    # outneighbors
+                     +, +, +, + )
 
 function setDataLayerAPI(dl::DataLayerAPI)
   IncrementalInference.dlapi = dl

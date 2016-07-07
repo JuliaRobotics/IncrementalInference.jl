@@ -12,8 +12,6 @@ using
   KernelDensityEstimate
 
 export
-  DataLayerAPI,
-  setDataLayerAPI,
   VariableNodeData,
   PackedVariableNodeData,
   VNDencoder,
