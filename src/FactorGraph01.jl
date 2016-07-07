@@ -5,8 +5,6 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 #   return ndims(M) < 2 ? (M')' : M
 # end
 
-
-
 function getVal(v::Graphs.ExVertex)
   return v.attributes["data"].val
   # return v.attributes["val"]
@@ -263,8 +261,9 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
     vert = dlapi.getvertex(fg,p)
     if vert.attributes["data"].BayesNetVertID == 0   #fg.v[p].
       fg.bnid+=1
-      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
+      dlapi.updatevertex!(fg, vert)
+      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
     else
       println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
@@ -293,7 +292,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
     push!(Xi, dlapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
   end
   # addFactor!(fg, marg, lbls)
-  addFactor!(fg,Xi, genmarg)
+  addFactor!(fg, Xi, genmarg)
   Union{}
 end
 
@@ -306,22 +305,29 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # all factors adjacent to this variable
       fi = Int64[]
       Si = Int64[]
-      for fct in out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
+      # TODO -- optimize outneighbor calls like this
+      for fct in dlapi.outneighbors(fg, dlapi.getvertex(fg,v)) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
         if (fct.attributes["data"].eliminated != true) #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
-          for sepNode in out_neighbors(fct,fg.g)
+          for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
             if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)
               push!(Si,sepNode.index)
             end
           end
           fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
+          dlapi.updatevertex!(fg, fct)
         end
       end
       #@show fg.v[v].attributes["sepfactors"] = fi
       addConditional!(fg, v, "", Si)
       # not yet inserting the new prior p(Si) back into the factor graph
-      dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
-      # fg.v[v].attributes["eliminated"] = true
+
+
+      tuv = dlapi.getvertex(fg,v)
+      tuv.attributes["data"].eliminated = true # fg.v[v].
+      dlapi.updatevertex!(fg, tuv)
+      # dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
+      ## fg.v[v].attributes["eliminated"] = true
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si

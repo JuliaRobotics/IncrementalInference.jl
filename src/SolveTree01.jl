@@ -176,7 +176,10 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
             densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
             if size(densPts,1)>0
-                setValKDE!(dlapi.getvertex(fgl,vertid), densPts) # fgl.v[vertid]
+                updvert = dlapi.getvertex(fgl,vertid)
+                setValKDE!(updvert, densPts) # fgl.v[vertid]
+                # Go update the datalayer TODO -- excessive for general case
+                dlapi.updatevertex!(fgl, updvert)
                 # fgl.v[vertid].attributes["val"] = densPts
                 push!(dbg.prods, potprod)
             end
@@ -361,8 +364,10 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
     # cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn) #inp.
     for dat in ddt.IDvals
       #TODO -- should become an update call
-        setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+        updvert = dlapi.getvertex(fg,dat[1])
+        setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
         # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+        dlapi.updatevertex!(fg, updvert)
     end
     nothing
 end
@@ -371,8 +376,10 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
-      setValKDE!(dlapi.getvertex(fg,dat[1]), deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
+      updvert = dlapi.getvertex(fg,dat[1])
+      setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
       # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+      dlapi.updatevertex!(fg, updvert)
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
     nothing

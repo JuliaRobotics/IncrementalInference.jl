@@ -19,11 +19,10 @@ end
 
 dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
                      getVertNode,             # getvertex
-                     # addNewVarVertInGraph!,   # setupvertgraph
-                     # addNewFncVertInGraph!,   # setupfncvertgraph
                      makeAddEdge!,            # makeaddedge
-                     Graphs.out_neighbors,    # outneighbors
-                     +, +, +, + )
+                     graphsOutNeighbors,      # outneighbors
+                     updateFullVertData!,     # updatevertex!
+                     +, +, + )
 
 # Remember 3rd party users interact with
 # addNode!

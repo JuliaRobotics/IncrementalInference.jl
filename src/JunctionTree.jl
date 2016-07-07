@@ -193,10 +193,12 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
     v[2].attributes["data"].separator = Int64[]
     # v[2].attributes["BayesNetVert"] = Union{}
     # v[2].attributes["separator"] = Int64[]
+    dlapi.updatevertex!(fg, v)
   end
   for f in fg.f
     f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
     f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
+    dlapi.updatevertex!(fg, v)
   end
 
   nothing
@@ -228,15 +230,17 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
 
     for fid in frtl
         usefcts = []
-        for fct in out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
+        for fct in dlapi.outneighbors(fg, dlapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
             if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
-                if length(out_neighbors(fct, fg.g))==1
-                    appendUseFcts!(usefcts, fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)
-                    #usefcts = [usefcts;(fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)]
+                loutn = dlapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
+                if length(loutn)==1
+                    appendUseFcts!(usefcts, fg.IDs[loutn[1].label], fct, fid) #out_neighbors(fct, fg.g)
+                    # TODO -- make update vertex call
                     fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                    dlapi.updatevertex!(fg, fct)
                 end
-                for sepSearch in out_neighbors(fct, fg.g)
+                for sepSearch in loutn # out_neighbors(fct, fg.g)
                     if (fg.IDs[sepSearch.label] == fid)
                         continue # skip the fid itself
                     end
@@ -245,6 +249,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                         appendUseFcts!(usefcts, fg.IDs[sepSearch.label], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sepSearch.label], fct, fid)]
                         fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                        dlapi.updatevertex!(fg, fct)
                     end
                 end
             end

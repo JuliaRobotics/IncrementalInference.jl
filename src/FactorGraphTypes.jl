@@ -168,12 +168,12 @@ end
 #   nothing
 # end
 
+# not currently used
 function updateVertData!(fgl::FactorGraph,
     id::Int64,
     updlist::Dict{UTF8String,Any})
     #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
 
-  id = vert.index
   vdata = getVertNode(fgl, id).attributes["data"]
   for item in updlist
     eval(:(vdata.$(parse(item[1]))=$(item[2])))
@@ -181,14 +181,25 @@ function updateVertData!(fgl::FactorGraph,
   nothing
 end
 
+# excessive function, needs refactoring
+function updateFullVertData!(fgl::FactorGraph,
+    nv::Graphs.ExVertex)
+
+  # not required, since we using reference -- placeholder function CloudGraphs interface
+  # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
+  nothing
+end
+
+
 function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex)
   edge = Graphs.make_edge(fgl.g, v1, v2)
   Graphs.add_edge!(fgl.g, edge)
   edge
 end
 
-# function updateVertData(fgl::FactorGraph, vert::Graphs.ExVertex)
-#
-# end
+function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
+  Graphs.out_neighbors(vert, fgl.g)
+end
+
 
 #
