@@ -9,7 +9,7 @@ end
 
 # Return Graphs.ExVertex type containing data according to id
 function getExVertFromCloud(fgl::FactorGraph, fgid::Int64; bigdata::Bool=false)
-  neoID = fg.cgIDs[fgid]
+  neoID = fgl.cgIDs[fgid]
   cvr = CloudGraphs.get_vertex(fgl.cg, neoID, false)
   CloudGraphs.cloudVertex2ExVertex(cvr)
 end
@@ -17,8 +17,11 @@ end
 function updateFullCloudVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex)
 
-  # TODO -- this get_vertex seems excessive
-  vert = CloudGraphs.get_vertex(fgl.cg, fgl.cgIDs[nv.index])
+  # TODO -- this get_vertex seems excessive, but we need the CloudVertex
+  @show nv.index
+  neoID =fgl.cgIDs[nv.index]
+  println("updateFullCloudVertData! -- trying to get $(neoID)")
+  vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
   vert.packed = nv.attributes["data"]
   # TODO -- ignoring other properties
   CloudGraphs.update_vertex!(fgl.cg, vert)
@@ -34,7 +37,7 @@ end
 
 # return list of neighbors as Graphs.ExVertex type
 function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
-  cv = CloudGraphs.get_vertex(fgl.cg, fgl.cgIDs[vert.index])
+  cv = CloudGraphs.get_vertex(fgl.cg, fgl.cgIDs[vert.index], false)
   neighs = CloudGraphs.get_neighbors(fgl.cg, cv)
   neExV = Graphs.ExVertex[]
   for n in neighs

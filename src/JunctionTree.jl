@@ -153,6 +153,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   println()
 
   fge = deepcopy(fg)
+  println("Building Bayes net...")
   buildBayesNet!(fge, p)
 
   tree = emptyBayesTree()

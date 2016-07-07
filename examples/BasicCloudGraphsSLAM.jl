@@ -38,9 +38,11 @@ v2 = addNode!(fg, "x2", tem, N=N)
 # now add the odometry factor between them
 f1 = addFactor!(fg,[v1;v2],Odo([50.0]',[2.0]',[1.0]))
 
-# get vertex back from DB
-x1neoID = fg.cgIDs[fg.IDs["x1"]]
-cv1r = CloudGraphs.get_vertex(fg.cg, x1neoID, false)
+tree = prepBatchTree!(fg,drawpdf=false)
 
-# Get neighbors
-neighs = CloudGraphs.get_neighbors(fg.cg, cv1r)
+  # get vertex back from DB
+  # x1neoID = fg.cgIDs[fg.IDs["x1"]]
+  # cv1r = CloudGraphs.get_vertex(fg.cg, x1neoID, false)
+
+  # Get neighbors
+  # neighs = CloudGraphs.get_neighbors(fg.cg, cv1r)

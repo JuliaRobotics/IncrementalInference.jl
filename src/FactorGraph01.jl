@@ -258,7 +258,7 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    vert = dlapi.getvertex(fg,p)
+    vert = dlapi.getvertex(fg, p)
     if vert.attributes["data"].BayesNetVertID == 0   #fg.v[p].
       fg.bnid+=1
       vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
