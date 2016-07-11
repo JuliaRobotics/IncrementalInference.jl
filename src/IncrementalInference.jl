@@ -66,6 +66,7 @@ export
     #development interface
     upMsgPassingRecursive,
 
+  GenericMarginal,
   #Robot stuff
   PriorPose2,
   PackedPriorPose2,

@@ -37,7 +37,10 @@ end
 
 # return list of neighbors as Graphs.ExVertex type
 function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
-  cv = CloudGraphs.get_vertex(fgl.cg, fgl.cgIDs[vert.index], false)
+  @show vert.index
+  @show fgl.cgIDs
+  cgid = fgl.cgIDs[vert.index]
+  cv = CloudGraphs.get_vertex(fgl.cg, cgid, false)
   neighs = CloudGraphs.get_neighbors(fgl.cg, cv)
   neExV = Graphs.ExVertex[]
   for n in neighs

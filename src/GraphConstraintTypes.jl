@@ -85,14 +85,20 @@ type Ranged <: Pairwise
     W::Array{Float64,1}
 end
 
+
 type GenericMarginal <: Pairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     GenericMarginal() = new()
-    GenericMarginal(a,b,c,d) = new(a,b,c,d)
+    GenericMarginal(a,b,c) = new(a,b,c)
 end
-
+function FNDencode(d::FunctionNodeData{GenericMarginal})
+  return d
+end
+function FNDdecode(d::FunctionNodeData{GenericMarginal})
+  return d
+end
 
 # ------------------------------------------------------------
 

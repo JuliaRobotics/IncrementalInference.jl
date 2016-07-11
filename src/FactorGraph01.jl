@@ -193,7 +193,6 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
   for vert in Xi
     push!(newvert.attributes["data"].fncargvID, vert.index)
   end
-
   newvert = dlapi.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
 
   # idx=0
