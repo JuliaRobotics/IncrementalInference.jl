@@ -8,6 +8,7 @@ type DataLayerAPI
   # setupvertgraph!::Function
   # setupfncvertgraph!::Function
   makeaddedge!::Function
+  getedge::Function
   outneighbors::Function
   updatevertex!::Function
   updateedge!::Function
@@ -20,9 +21,12 @@ end
 dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
                      getVertNode,             # getvertex
                      makeAddEdge!,            # makeaddedge
+                     graphsGetEdge,           # getedge
                      graphsOutNeighbors,      # outneighbors
                      updateFullVertData!,     # updatevertex!
-                     +, +, + )
+                     +,                       # updateedge!
+                     graphsDeleteVertex!,                       # deletevertex!
+                     + )                      # deleteedge!
 
 # Remember 3rd party users interact with
 # addNode!

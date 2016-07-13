@@ -137,14 +137,24 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     #consolidate NBPMessages and potentials
     dens = Array{BallTreeDensity,1}()
     packFromIncomingDensities!(dens, vertid, inmsgs)
+    println("after incoming")
+    for d in dens
+      @show d.bt.dims
+    end
     packFromLocalPotentials!(fg, dens, cliq, vertid, N)
+    # testing
+    println("after locals")
+    for d in dens
+      @show d.bt.dims
+    end
+    # end testing
     potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens) # (fg.v[vertid])
 
     pGM = Array{Float64,2}()
     if length(dens) > 1
         Ndims = dens[1].bt.dims
         dummy = kde!(rand(Ndims,N),[1.0]);
-        print("[$(length(dens)) prod.]")
+        print("[$(length(dens)) prod. d$(Ndims),N$(N)],")
         pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
         #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
         # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing

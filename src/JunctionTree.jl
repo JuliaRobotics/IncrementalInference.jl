@@ -100,14 +100,16 @@ end
 # eliminate a variable for new
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     #@show fg.v[var].attributes["label"]
-    if (length(dlapi.getvertex(fg,var).attributes["data"].separator) == 0) #fg.v[var].
+    firvert = dlapi.getvertex(fg,var)
+    if (length(firvert.attributes["data"].separator) == 0) #fg.v[var].
+      warn("newPotential -- sep length is 0")
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else
         appendClique!(tree, 1, fg, var) # add to root
       end
     else
-      Sj = dlapi.getvertex(fg,var).attributes["data"].separator  # fg.v[var].
+      Sj = firvert.attributes["data"].separator  # fg.v[var].
       # Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
@@ -140,7 +142,7 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
 end
 
 
-marg(x...) = -1, [0.0] # TODO -- this should be removed
+# marg(x...) = -1, [0.0] #
 
 
 ## Find batch belief propagation solution
@@ -180,7 +182,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(fg, tree, cliq);
+  buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end

@@ -50,7 +50,7 @@ type VariableNodeData
   dims::Int64
   eliminated::Bool
   BayesNetVertID::Int64
-  separator::Array{Int64,1} # Will bring to hard type soon, don't worry about this one just yet
+  separator::Array{Int64,1}
   VariableNodeData() = new()
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
 end
@@ -78,9 +78,10 @@ type FunctionNodeData{T}
   fncargvID::Array{Int64,1}
   eliminated::Bool
   potentialused::Bool
+  edgeIDs::Array{Int64,1}
   fnc::T
   FunctionNodeData() = new()
-  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4])
+  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5])
 end
 
 
@@ -169,17 +170,17 @@ end
 # end
 
 # not currently used
-function updateVertData!(fgl::FactorGraph,
-    id::Int64,
-    updlist::Dict{UTF8String,Any})
-    #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
-
-  vdata = getVertNode(fgl, id).attributes["data"]
-  for item in updlist
-    eval(:(vdata.$(parse(item[1]))=$(item[2])))
-  end
-  nothing
-end
+# function updateVertData!(fgl::FactorGraph,
+#     id::Int64,
+#     updlist::Dict{UTF8String,Any})
+#     #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
+#
+#   vdata = getVertNode(fgl, id).attributes["data"]
+#   for item in updlist
+#     eval(:(vdata.$(parse(item[1]))=$(item[2])))
+#   end
+#   nothing
+# end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
@@ -191,9 +192,10 @@ function updateFullVertData!(fgl::FactorGraph,
 end
 
 
-function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex)
+function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex; saveedgeID::Bool=true)
   edge = Graphs.make_edge(fgl.g, v1, v2)
   Graphs.add_edge!(fgl.g, edge)
+  if saveedgeID push!(v2.attributes["data"].edgeIDs,edge.index) end
   edge
 end
 
@@ -201,5 +203,13 @@ function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
   Graphs.out_neighbors(vert, fgl.g)
 end
 
+function graphsGetEdge(fgl::FactorGraph, id::Int64)
+  nothing
+end
+
+function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
+  warn("graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)")
+  nothing
+end
 
 #

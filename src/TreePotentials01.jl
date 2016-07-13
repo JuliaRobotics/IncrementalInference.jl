@@ -153,7 +153,7 @@ function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, verti
         ptsbw = evalFactor2(fg, idfct, vertid, N=N); # idfct[2] # assuming it is properly initialized TODO
         sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing
 
-        Ndim = size(ptsbw,1)
+        @show Ndim = size(ptsbw,1)
         Npoints = size(ptsbw,2)
         # Assume we only have large particle population sizes, thanks to addNode!
         p = kde!(ptsbw, "lcv")
