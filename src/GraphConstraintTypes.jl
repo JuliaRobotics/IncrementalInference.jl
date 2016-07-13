@@ -135,8 +135,8 @@ end
 function convert(::Type{PackedObsv2}, d::Obsv2)
   v1 = d.pts[:];
   v2 = d.bws[:];
-  return PackedObsv2(v1,length(v1),
-                    v2,length(v2),
+  return PackedObsv2(v1,size(d.pts,1),
+                    v2,size(d.bws,1),
                     d.W)
 end
 function convert(::Type{FunctionNodeData{PackedObsv2}}, d::FunctionNodeData{Obsv2})
@@ -182,9 +182,9 @@ end
 function convert(::Type{PackedPriorPose2}, d::PriorPose2)
   v1 = d.Zij[:];
   v2 = d.Cov[:];
-  return PackedPriorPose2(v1,length(v1),
-                    v2,length(v2),
-                    d.W)
+  return PackedPriorPose2(v1,size(d.Zij,1),
+                          v2,size(d.Cov,1),
+                          d.W)
 end
 function convert(::Type{FunctionNodeData{PackedPriorPose2}}, d::FunctionNodeData{PriorPose2})
   return FunctionNodeData{PackedPriorPose2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
@@ -226,10 +226,10 @@ function convert(::Type{Pose2Pose2}, d::PackedPose2Pose2)
                     reshapeVec2Mat(d.vecCov, d.dimc), W)
 end
 function convert(::Type{PackedPose2Pose2}, d::Pose2Pose2)
-  v1 = d.vecZij[:];
+  v1 = d.Zij[:];
   v2 = d.Cov[:];
-  return PackedPose2Pose2(v1,length(v1),
-                          v2,length(v2),
+  return PackedPose2Pose2(v1,size(d.Zij,1),
+                          v2,size(d.Cov,1),
                           d.W)
 end
 function convert(::Type{FunctionNodeData{PackedPose2Pose2}}, d::FunctionNodeData{Pose2Pose2})
@@ -276,9 +276,9 @@ end
 function convert(::Type{PackedPose2DPoint2DBearingRange}, d::Pose2DPoint2DBearingRange)
   v1 = d.Zij[:];
   v2 = d.Cov[:];
-  return PackedPose2DPoint2DBearingRange(v1,length(v1),
-                                        v2,length(v2),
-                                        d.W)
+  return PackedPose2DPoint2DBearingRange(v1,size(d.Zij,1),
+                                         v2,size(d.Cov,1),
+                                         d.W)
 end
 function convert(::Type{FunctionNodeData{PackedPose2DPoint2DBearingRange}}, d::FunctionNodeData{Pose2DPoint2DBearingRange})
   return FunctionNodeData{PackedPose2DPoint2DBearingRange}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,

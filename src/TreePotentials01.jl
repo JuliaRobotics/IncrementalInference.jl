@@ -124,6 +124,7 @@ end
 
 function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=300)#, from::Int64)
     # @show obs.bws, typeof(obs.bws)
+    @show size(obs.pts), size(obs.bws[:,1])
     pd = kde!(obs.pts, obs.bws[:,1])
     return KernelDensityEstimate.sample(pd,N)[1]
     # return obs.Cov[1]*randn()+obs.Zi
@@ -131,7 +132,9 @@ end
 
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
-  return evalPotential(typ, Xi, N=N) # , solvefor
+  outpts = evalPotential(typ, Xi, N=N) # , solvefor
+  @show size(outpts)
+  return outpts
 end
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
@@ -153,7 +156,7 @@ function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, verti
         ptsbw = evalFactor2(fg, idfct, vertid, N=N); # idfct[2] # assuming it is properly initialized TODO
         sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing
 
-        @show Ndim = size(ptsbw,1)
+        Ndim = size(ptsbw,1)
         Npoints = size(ptsbw,2)
         # Assume we only have large particle population sizes, thanks to addNode!
         p = kde!(ptsbw, "lcv")
