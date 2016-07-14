@@ -124,7 +124,6 @@ end
 
 function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=300)#, from::Int64)
     # @show obs.bws, typeof(obs.bws)
-    @show size(obs.pts), size(obs.bws[:,1])
     pd = kde!(obs.pts, obs.bws[:,1])
     return KernelDensityEstimate.sample(pd,N)[1]
     # return obs.Cov[1]*randn()+obs.Zi
@@ -133,7 +132,6 @@ end
 
 function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
   outpts = evalPotential(typ, Xi, N=N) # , solvefor
-  @show size(outpts)
   return outpts
 end
 

@@ -137,16 +137,8 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     #consolidate NBPMessages and potentials
     dens = Array{BallTreeDensity,1}()
     packFromIncomingDensities!(dens, vertid, inmsgs)
-    println("after incoming")
-    for d in dens
-      @show d.bt.dims
-    end
     packFromLocalPotentials!(fg, dens, cliq, vertid, N)
     # testing
-    println("after locals")
-    for d in dens
-      @show d.bt.dims
-    end
     # end testing
     potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens) # (fg.v[vertid])
 
