@@ -14,6 +14,7 @@ type DataLayerAPI
   updateedge!::Function
   deletevertex!::Function
   deleteedge!::Function
+  cgEnabled::Bool
 end
 
 # global dlapi
@@ -26,7 +27,8 @@ dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
                      updateFullVertData!,     # updatevertex!
                      +,                       # updateedge!
                      graphsDeleteVertex!,                       # deletevertex!
-                     + )                      # deleteedge!
+                     +,
+                     false )                      # deleteedge!
 
 # Remember 3rd party users interact with
 # addNode!

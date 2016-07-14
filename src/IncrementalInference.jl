@@ -14,7 +14,7 @@ using
 
 export
   # actual CloudGraphs integration experimental code
-  setCloudDataLayerAPI,
+  setCloudDataLayerAPI!,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -30,6 +30,7 @@ export
   getVarNode,
   getVal,
   setVal!,
+  getBWVal,
   setBW!,
   setValKDE!,
   updateVertData!,

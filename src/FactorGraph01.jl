@@ -14,6 +14,9 @@ function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   # v.attributes["val"] = val
   nothing
 end
+function getBWVal(v::Graphs.ExVertex)
+  return v.attributes["data"].bw
+end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
   v.attributes["data"].bw = bw
   # v.attributes["bw"] = bw
@@ -226,7 +229,7 @@ function emptyFactorGraph()
                      0,
                      0,
                      nothing,
-                     Dict{Int64,Int64}())
+                     Dict{Int64,Int64}() )
     return fg
 end
 
@@ -303,11 +306,7 @@ end
 # TODO -- Cannot have any CloudGraph calls at this level, must refactor
 function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Graphs.ExVertex,1})
   for m in gm
-
     # get all out edges
-    # @show m.attributes["data"].edgeIDs
-    # @show m.index
-
     # get neighbors
     for n in dlapi.outneighbors(fgl, m)
       if n.index == fromvert.index
@@ -319,27 +318,23 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
           i+=1
           edge = dlapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
-            @show edge.SourceVertex.exVertexId, edge.DestVertex.exVertexId
             if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
               warn("removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)")
               dlapi.deleteedge!(fgl, edge)
-              @show alleids
-              @show m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
+              m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
               dlapi.updatevertex!(fgl, m)
             end
           end
         end
       end
     end
-
     # if 0 edges, delete the marginal
     if length(dlapi.outneighbors(fgl, m)) <= 1
       warn("removing vertex id=$(m.index)")
       dlapi.deletevertex!(fgl,m)
     end
-
   end
-nothing
+  nothing
 end
 
 function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
@@ -411,7 +406,8 @@ function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
 end
 
 function getKDE(v::Graphs.ExVertex)
-  return kde!(getVal(v), "lcv") # TODO - getBW(v)
+  #return kde!(getVal(v), "lcv") # TODO - getBW(v)
+  return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
 function getVertKDE(fgl::FactorGraph, id::Int64)
@@ -422,7 +418,6 @@ function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)
   v = dlapi.getvertex(fgl,lbl)  # v = fgl.v[fgl.IDs[lbl]]
   return getKDE(v)
 end
-
 
 
 function drawCopyFG(fgl::FactorGraph)

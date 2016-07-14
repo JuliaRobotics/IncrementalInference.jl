@@ -362,6 +362,9 @@ end
 
 
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownReturnBPType)
+    # if dlapi.cgEnabled
+    #   return nothing
+    # end
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn) #inp.
     for dat in ddt.IDvals
@@ -375,6 +378,9 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
 end
 
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpReturnBPType)
+    # if dlapi.cgEnabled
+    #   return nothing
+    # end
     cliq = bt.cliques[cliqID]
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
@@ -395,7 +401,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200)
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter) #dwnMsg
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT)
 
-    rr = Array{RemoteRef,1}()
+    # rr = Array{RemoteRef,1}()
     pcs = procs()
 
     ddt=Union{}
@@ -408,12 +414,12 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200)
         ##push!(ETT, ett)
         ##r = @spawn downMsgCliquePotentials( ett ) # loss of type information
     end
-    for r in rr
-        rDDT = fetch(r)
-        # calling updateFG here is obsolete and probably wrong at this point
-        println("dwnMsgPR -- calling updateFGBT! on $(inp.cliq.attributes["label"])...")
-        updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT) # this runs in the main thread (NBPMessage being passed back to proc1)
-    end
+    # for r in rr
+    #     rDDT = fetch(r)
+    #     # calling updateFG here is obsolete and probably wrong at this point
+    #     println("dwnMsgPR -- calling updateFGBT! on $(inp.cliq.attributes["label"])...")
+    #     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT) # this runs in the main thread (NBPMessage being passed back to proc1)
+    # end
 
     # return modifications to factorgraph to calling process
     # TODO -- is this the right information to be passing down?

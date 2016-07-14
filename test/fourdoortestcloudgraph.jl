@@ -1,5 +1,5 @@
 # a basic create robot type node example
-addprocs(3)
+
 using IncrementalInference, CloudGraphs
 
 # switch IncrementalInference to use CloudGraphs (Neo4j) data layer

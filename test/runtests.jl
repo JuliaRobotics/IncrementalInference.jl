@@ -1,10 +1,32 @@
-using IncrementalInference, KernelDensityEstimate
 using Base.Test
 
+addprocs(3)
+
+println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
+println("Success")
 @test true
 
 
+println("[TEST] plot functions...")
+using Gadfly
+# draw all beliefs
+DOYTICKS = false
+xx,ll = ls(fg)
+msgPlots = drawHorBeliefsList(fg, xx, gt=gt,nhor=2);
+evalstr = ""
+for i in 1:length(msgPlots)
+    evalstr = string(evalstr, ",msgPlots[$(i)]")
+end
+pl = eval(parse(string("vstack(",evalstr[2:end],")")));
+@test true
+
+print("[TEST] Ensure memory return is working properly...")
+include("typeReturnMemRef.jl")
+println("Success")
+
+
+println("[TEST] packing converters work...")
 # using fourdoortest data
 topack = fg.f[4].attributes["data"]
 dd = convert(FunctionNodeData{PackedOdo},topack)
@@ -24,19 +46,7 @@ println("Conversions and comparisons agree")
 
 
 
-println("Run plot functions")
-using Gadfly
-# draw all beliefs
-DOYTICKS = false
-xx,ll = ls(fg)
-msgPlots = drawHorBeliefsList(fg, xx, gt=gt,nhor=2);
-evalstr = ""
-for i in 1:length(msgPlots)
-    evalstr = string(evalstr, ",msgPlots[$(i)]")
-end
-pl = eval(parse(string("vstack(",evalstr[2:end],")")));
-@test true
-
-print("[TEST] Ensure memory return is working properly...")
-include("typeReturnMemRef.jl")
+println("[TEST] with CloudGraphs data layer (multicore)...")
+include("fourdoortestcloudgraph.jl")
 println("Success")
+@test true

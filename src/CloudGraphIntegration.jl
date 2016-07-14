@@ -14,6 +14,10 @@ function getExVertFromCloud(fgl::FactorGraph, fgid::Int64; bigdata::Bool=false)
   CloudGraphs.cloudVertex2ExVertex(cvr)
 end
 
+function getExVertFromCloud(fgl::FactorGraph, lbl::ASCIIString; bigdata::Bool=false)
+  getExVertFromCloud(fgl, fgl.IDs[lbl],bigdata=bigdata)
+end
+
 function updateFullCloudVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex)
 
@@ -23,6 +27,7 @@ function updateFullCloudVertData!(fgl::FactorGraph,
   vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
   vert.packed = nv.attributes["data"]
   # TODO -- ignoring other properties
+  fgl.g.vertices[nv.index].attributes["data"] = nv.attributes["data"]
   CloudGraphs.update_vertex!(fgl.cg, vert)
 end
 
@@ -69,7 +74,7 @@ function deleteCloudEdge!(fgl::FactorGraph, edge::CloudEdge)
   CloudGraphs.delete_edge!(fgl.cg, edge)
 end
 
-function setCloudDataLayerAPI()
+function setCloudDataLayerAPI!()
   # cgapi = DataLayerAPI(addCloudVert!,            # addvertex
   #                      dlapi.getvertex,          # getvertex
   #                      makeAddCloudEdge!,        # makeaddedge
@@ -84,6 +89,8 @@ function setCloudDataLayerAPI()
   dlapi.outneighbors = getCloudOutNeighbors
   dlapi.deletevertex! = deleteCloudVertex!
   dlapi.deleteedge! = deleteCloudEdge!
+  dlapi.cgEnabled = true
+
   println("Changed internal API calls to use CloudGraphs in appropriate places.")
   nothing
 end
