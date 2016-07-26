@@ -311,10 +311,10 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
     for n in dlapi.outneighbors(fgl, m)
       if n.index == fromvert.index
         alleids = m.attributes["data"].edgeIDs
-        println("consider marginal, edge of interest between $(m.index) and $(n.index)")
+        # println("consider marginal, edge of interest between $(m.index) and $(n.index)")
         i = 0
         for id in alleids
-          println("rmVarFromMarg -- at id=$(id)")
+          # println("rmVarFromMarg -- at id=$(id)")
           i+=1
           edge = dlapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
@@ -459,7 +459,7 @@ end
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   for tp in usefcts
     if tp[2].label == fct.label
-      println("Skipping repeat of $(fct.label)")
+      # println("Skipping repeat of $(fct.label)")
       return nothing
     end
   end

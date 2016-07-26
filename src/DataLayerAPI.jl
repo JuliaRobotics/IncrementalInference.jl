@@ -26,9 +26,9 @@ dlapi = DataLayerAPI(addGraphsVert!,          # addvertex
                      graphsOutNeighbors,      # outneighbors
                      updateFullVertData!,     # updatevertex!
                      +,                       # updateedge!
-                     graphsDeleteVertex!,                       # deletevertex!
-                     +,
-                     false )                      # deleteedge!
+                     graphsDeleteVertex!,     # deletevertex!
+                     +,                       # deleteedge!
+                     false )
 
 # Remember 3rd party users interact with
 # addNode!
