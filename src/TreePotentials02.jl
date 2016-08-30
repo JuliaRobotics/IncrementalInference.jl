@@ -21,42 +21,43 @@ function evalPotential(obs::PriorPose2, Xi::Array{Graphs.ExVertex,1}; N::Int64=2
     end
     return ret
 end
-
-function wrapRad(th::Float64)
-  if th >= pi
-    th -= 2.0*pi
-  end
-  if th < -pi
-    th += 2.0*pi
-  end
-  return th
-end
-
-
-R(th) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
-
-function SE2(X::Array{Float64,1})
-    T = eye(3)
-    T[1:2,1:2] = R(X[3])
-    T[1,3] = X[1]
-    T[2,3] = X[2]
-    return T
-end
-
-function se2vee!(retval::Array{Float64,1}, T::Array{Float64,2})
-    retval[1] = T[1,3]
-    retval[2] = T[2,3]
-    retval[3] = wrapRad(atan2(-T[1,2], T[1,1]))
-    nothing
-end
-
-function se2vee(T::Array{Float64,2})
-    retval = zeros(3)
-    #retval[1:2,1] = T[1:2,3]
-    #retval[3,1] = wrapRad(atan2(-T[1,2], T[1,1]))
-    se2vee!(retval, T)
-    return retval
-end
+#
+# function wrapRad(th::Float64)
+#   if th >= pi
+#     th -= 2.0*pi
+#   end
+#   if th < -pi
+#     th += 2.0*pi
+#   end
+#   return th
+# end
+#
+#
+# R(th) = [[cos(th);-sin(th)]';[sin(th);cos(th)]'];
+#
+# function SE2(X::Array{Float64,1})
+#     T = eye(3)
+#     T[1:2,1:2] = R(X[3])
+#     T[1,3] = X[1]
+#     T[2,3] = X[2]
+#     return T
+# end
+#
+# function se2vee!(retval::Array{Float64,1}, T::Array{Float64,2})
+#     retval[1] = T[1,3]
+#     retval[2] = T[2,3]
+#     retval[3] = wrapRad(atan2(-T[1,2], T[1,1]))
+#     nothing
+# end
+#
+# function se2vee(T::Array{Float64,2})
+#     retval = zeros(3)
+#     #retval[1:2,1] = T[1:2,3]
+#     #retval[3,1] = wrapRad(atan2(-T[1,2], T[1,1]))
+#     se2vee!(retval, T)
+#     return retval
+# end
+#
 
 # DX = [transx, transy, theta]
 function addPose2Pose2(x::Array{Float64,1}, dx::Array{Float64,1})

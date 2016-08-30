@@ -1,4 +1,4 @@
-
+using IncrementalInference, KernelDensityEstimate
 
 fg = emptyFactorGraph()
 

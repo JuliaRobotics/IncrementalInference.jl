@@ -5,8 +5,6 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 #   return ndims(M) < 2 ? (M')' : M
 # end
 
-
-
 function getVal(v::Graphs.ExVertex)
   return v.attributes["data"].val
   # return v.attributes["val"]
@@ -15,6 +13,9 @@ function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   v.attributes["data"].val = val
   # v.attributes["val"] = val
   nothing
+end
+function getBWVal(v::Graphs.ExVertex)
+  return v.attributes["data"].bw
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
   v.attributes["data"].bw = bw
@@ -157,7 +158,7 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   # fact.attributes["eliminated"] = false
   # fact.attributes["potentialused"] = false
 
-  data = FunctionNodeData{typeof(f)}(Int64[], false, false, f)
+  data = FunctionNodeData{typeof(f)}(Int64[], false, false, Int64[], f)
   fact.attributes["data"] = data
 
   # for graphviz drawing
@@ -196,8 +197,8 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
     push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
+  # TODO -- multiple accesses to DB with this method, must refactor!
   newvert = dlapi.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
-
   # idx=0
   for vert in Xi #f.Xi
     dlapi.makeaddedge!(fg, vert, newvert)
@@ -228,7 +229,7 @@ function emptyFactorGraph()
                      0,
                      0,
                      nothing,
-                     Dict{Int64,Int64}())
+                     Dict{Int64,Int64}() )
     return fg
 end
 
@@ -260,11 +261,12 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    vert = dlapi.getvertex(fg,p)
+    vert = dlapi.getvertex(fg, p)
     if vert.attributes["data"].BayesNetVertID == 0   #fg.v[p].
       fg.bnid+=1
-      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
+      dlapi.updatevertex!(fg, vert)
+      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
     else
       println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
@@ -272,7 +274,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   end
 end
 
-function addConditional!(fg::FactorGraph, vertID, lbl, Si)
+function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
   bnv = dlapi.getvertex(fg, vertID) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
@@ -282,6 +284,8 @@ function addConditional!(fg::FactorGraph, vertID, lbl, Si)
     push!(bnvd.BayesNetOutVertIDs, s)
     # addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
   end
+  dlapi.updatevertex!(fg, bnv)
+  nothing
 end
 
 function addChainRuleMarginal!(fg::FactorGraph, Si)
@@ -292,40 +296,100 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
     # push!(lbls,fg.v[s].attributes["label"])
     push!(Xi, dlapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
   end
+  println("adding marginal to")
+  for x in Xi @show x.index end
   # addFactor!(fg, marg, lbls)
-  addFactor!(fg,Xi, genmarg)
-  Union{}
+  addFactor!(fg, Xi, genmarg)
+  nothing
+end
+
+# TODO -- Cannot have any CloudGraph calls at this level, must refactor
+function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Graphs.ExVertex,1})
+  for m in gm
+    # get all out edges
+    # get neighbors
+    for n in dlapi.outneighbors(fgl, m)
+      if n.index == fromvert.index
+        alleids = m.attributes["data"].edgeIDs
+        # println("consider marginal, edge of interest between $(m.index) and $(n.index)")
+        i = 0
+        for id in alleids
+          # println("rmVarFromMarg -- at id=$(id)")
+          i+=1
+          edge = dlapi.getedge(fgl, id)
+          if edge != nothing # hack to avoid dictionary use case
+            if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
+              warn("removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)")
+              dlapi.deleteedge!(fgl, edge)
+              m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
+              dlapi.updatevertex!(fgl, m)
+            end
+          end
+        end
+      end
+    end
+    # if 0 edges, delete the marginal
+    if length(dlapi.outneighbors(fgl, m)) <= 1
+      warn("removing vertex id=$(m.index)")
+      dlapi.deletevertex!(fgl,m)
+    end
+  end
+  nothing
 end
 
 function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
     addBayesNetVerts!(fg, p)
     for v in p
+      println()
+      println("Eliminating $(v)")
+      println("===============")
+      println()
       # which variable are we eliminating
       #fg.v[v].attributes["label"]
 
       # all factors adjacent to this variable
       fi = Int64[]
       Si = Int64[]
-      for fct in out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
+      gm = ExVertex[]
+      # TODO -- optimize outneighbor calls like this
+      vert = dlapi.getvertex(fg,v)
+      for fct in dlapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
         if (fct.attributes["data"].eliminated != true) #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
-          for sepNode in out_neighbors(fct,fg.g)
+          for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
             if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)
               push!(Si,sepNode.index)
             end
           end
           fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
+          dlapi.updatevertex!(fg, fct)
+        end
+
+        if typeof(fct.attributes["data"].fnc) == GenericMarginal
+          push!(gm, fct)
         end
       end
-      #@show fg.v[v].attributes["sepfactors"] = fi
-      addConditional!(fg, v, "", Si)
-      # not yet inserting the new prior p(Si) back into the factor graph
-      dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
-      # fg.v[v].attributes["eliminated"] = true
+
+      if v != p[end]
+        addConditional!(fg, v, "", Si)
+        # not yet inserting the new prior p(Si) back into the factor graph
+      end
+
+      tuv = dlapi.getvertex(fg,v)
+      tuv.attributes["data"].eliminated = true # fg.v[v].
+      dlapi.updatevertex!(fg, tuv)
+      # dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
+      ## fg.v[v].attributes["eliminated"] = true
+
+
+      # TODO -- remove links from current vertex to any marginals
+      rmVarFromMarg(fg, vert, gm)
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si
       addChainRuleMarginal!(fg, Si)
+
+      # readline(STDIN)
     end
     nothing
 end
@@ -342,7 +406,8 @@ function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
 end
 
 function getKDE(v::Graphs.ExVertex)
-  return kde!(getVal(v), "lcv") # TODO - getBW(v)
+  #return kde!(getVal(v), "lcv") # TODO - getBW(v)
+  return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
 function getVertKDE(fgl::FactorGraph, id::Int64)
@@ -353,7 +418,6 @@ function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)
   v = dlapi.getvertex(fgl,lbl)  # v = fgl.v[fgl.IDs[lbl]]
   return getKDE(v)
 end
-
 
 
 function drawCopyFG(fgl::FactorGraph)
@@ -395,7 +459,7 @@ end
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   for tp in usefcts
     if tp[2].label == fct.label
-      println("Skipping repeat of $(fct.label)")
+      # println("Skipping repeat of $(fct.label)")
       return nothing
     end
   end
