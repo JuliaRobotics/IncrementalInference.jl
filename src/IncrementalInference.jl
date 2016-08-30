@@ -10,7 +10,8 @@ using
   NLsolve,
   Distributions,
   KernelDensityEstimate,
-  CloudGraphs
+  TransformUtils
+  # ,CloudGraphs
 
 export
   # actual CloudGraphs integration experimental code
@@ -103,7 +104,7 @@ export
 
 
 include("FactorGraphTypes.jl")
-include("CloudGraphIntegration.jl") # experimental code
+# include("CloudGraphIntegration.jl") # Work in progress code
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("JunctionTree.jl")

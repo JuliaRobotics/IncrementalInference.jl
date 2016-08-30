@@ -45,8 +45,11 @@ unpckd = convert(VariableNodeData, pd)
 println("Conversions and comparisons agree")
 
 
-
-println("[TEST] with CloudGraphs data layer (multicore)...")
-include("fourdoortestcloudgraph.jl")
-println("Success")
+if false
+  println("[TEST] with CloudGraphs data layer (multicore)...")
+  include("fourdoortestcloudgraph.jl")
+  println("Success")
+else
+  warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
+end
 @test true
