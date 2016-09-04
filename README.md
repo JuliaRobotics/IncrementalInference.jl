@@ -54,7 +54,7 @@ Install [Neo4j](https://neo4j.com/) and add these packages to your Julia system
     Pkg.clone("https://github.com/GearsAD/Neo4j.jl.git")
     Pkg.clone("https://github.com/GearsAD/CloudGraphs.jl.git")
 
-And uncomment CloudGraphs related lines from IncrementalInference/REQUIRE and src/IncrementalInference.jl (Ln 14 & 107) and test/runtests.jl Ln 48 to true.
+And uncomment CloudGraphs related lines from IncrementalInference/REQUIRE and src/IncrementalInference.jl (Ln 14 & 108) and test/runtests.jl Ln 48 to true.
 
 You should be able to rerun the four door test on both internal dictionaries and repeated on Neo4j DB
 

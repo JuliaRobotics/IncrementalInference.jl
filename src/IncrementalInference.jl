@@ -10,8 +10,8 @@ using
   NLsolve,
   Distributions,
   KernelDensityEstimate,
-  TransformUtils
-  # ,CloudGraphs
+  TransformUtils#,
+  #CloudGraphs
 
 export
   # actual CloudGraphs integration experimental code
@@ -28,6 +28,8 @@ export
   FactorGraph,
   addNode!,
   addFactor!,
+  resetData!,
+  getData,
   getVarNode,
   getVal,
   setVal!,
@@ -85,6 +87,7 @@ export
   convert, # for magic protobuf stuff
   compare,
 
+  # Going to move to RoME.jl in future
   # For 1D example
   Odo,
   odoAdd,
@@ -93,11 +96,9 @@ export
   PackedObsv2,
   Ranged,
 
-  # should improve abstraction
-  R,
-  se2vee,
-  SE2,
-  wrapRad,
+  PriorPose3,
+  Pose3Pose3,
+  projectParticles,
 
   # dev exports
   addGraphsVert!
@@ -111,6 +112,7 @@ include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
+include("TreePotentials03.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 

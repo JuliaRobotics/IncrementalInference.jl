@@ -21,7 +21,8 @@ function evalPotential(obs::PriorPose2, Xi::Array{Graphs.ExVertex,1}; N::Int64=2
     end
     return ret
 end
-#
+
+# MOVED TO TRANSFORM UTILS
 # function wrapRad(th::Float64)
 #   if th >= pi
 #     th -= 2.0*pi
@@ -57,7 +58,7 @@ end
 #     se2vee!(retval, T)
 #     return retval
 # end
-#
+
 
 # DX = [transx, transy, theta]
 function addPose2Pose2(x::Array{Float64,1}, dx::Array{Float64,1})

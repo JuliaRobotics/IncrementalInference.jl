@@ -5,9 +5,16 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 #   return ndims(M) < 2 ? (M')' : M
 # end
 
+getData(v::Graphs.ExVertex) = v.attributes["data"]
+
 function getVal(v::Graphs.ExVertex)
   return v.attributes["data"].val
   # return v.attributes["val"]
+end
+
+# Convenience function to get values for given variable label
+function getVal(fgl::FactorGraph, lbl::ASCIIString)
+  getVal(dlapi.getvertex(fgl, lbl))
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   v.attributes["data"].val = val

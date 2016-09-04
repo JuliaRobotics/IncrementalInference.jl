@@ -187,22 +187,43 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   return tree
 end
 
+function resetData!(vdata::VariableNodeData)
+  vdata.eliminated = false
+  vdata.BayesNetOutVertIDs = Int64[]
+  vdata.BayesNetVertID = 0
+  vdata.separator = Int64[]
+  nothing
+end
+
+function resetData!(vdata::FunctionNodeData)
+  vdata.eliminated = false #f[2].attributes["eliminated"] = false
+  vdata.potentialused = false #f[2].attributes["potentialused"] = false
+  nothing
+end
+
 function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in fg.v
-    v[2].attributes["data"].eliminated = false
-    # v[2].attributes["eliminated"] = false
-    v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
-    v[2].attributes["data"].BayesNetVertID = 0
-    v[2].attributes["data"].separator = Int64[]
-    # v[2].attributes["BayesNetVert"] = Union{}
-    # v[2].attributes["separator"] = Int64[]
+  for v in fg.g.vertices
+    resetData!(getData(v))
     dlapi.updatevertex!(fg, v)
   end
-  for f in fg.f
-    f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
-    f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
-    dlapi.updatevertex!(fg, v)
-  end
+
+  # for v in fg.v
+  #   # v[2].attributes["data"].eliminated = false
+  #   # # v[2].attributes["eliminated"] = false
+  #   # v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
+  #   # v[2].attributes["data"].BayesNetVertID = 0
+  #   # v[2].attributes["data"].separator = Int64[]
+  #   # # v[2].attributes["BayesNetVert"] = Union{}
+  #   # # v[2].attributes["separator"] = Int64[]
+  #   resetData!(v[2].attributes["data"])
+  #   dlapi.updatevertex!(fg, v[2])
+  # end
+  # for f in fg.f
+  #   # f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
+  #   # f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
+  #   resetData!(f[2].attributes["data"])
+  #   dlapi.updatevertex!(fg, f[2])
+  # end
 
   nothing
 end

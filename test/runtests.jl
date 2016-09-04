@@ -48,8 +48,11 @@ println("Conversions and comparisons agree")
 if false
   println("[TEST] with CloudGraphs data layer (multicore)...")
   include("fourdoortestcloudgraph.jl")
-  println("Success")
+  println("[SUCESS]")
 else
   warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
 end
-@test true
+
+println("[TEST] Pose3 evaluations...")
+include("threeDimLinearProductTest.jl")
+println("[SUCCESS]")

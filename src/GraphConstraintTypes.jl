@@ -301,49 +301,48 @@ end
 # ------------------------------------------------------
 
 
-
 type PriorPose3 <: Singleton
-    Zi::Array{Float64,2}
+    Zi::SE3
     Cov::Array{Float64,2}
-    W::Array{Float64,1}
     PriorPose3() = new()
-    PriorPose3(x...) = new(x[1], x[2], x[3])
+    PriorPose3(st::FloatInt, sr::Float64) = new(SE3(0), [[st*eye(3);zeros(3,3)];[zeros(3);sr*eye(3)]])
+    PriorPose3(s::SE3, c::Array{Float64,2}) = new(s,c)
 end
-type PackedPriorPose3
-    vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int64
-    vecCov::Array{Float64,1}
-    dimc::Int64
-    W::Array{Float64,1}
-    PackedPriorPose3() = new()
-    PackedPriorPose3(x...) = new(x[1], x[2], x[3], x[4], x[5])
-end
-function convert(::Type{PriorPose3}, d::PackedPriorPose3)
-  Zij = reshapeVec2Mat(d.vecZij,d.dimz)
-  Cov = reshapeVec2Mat(d.vecCov, d.dimc)
-  return PriorPose3(Zij, Cov, d.W)
-end
-function convert(::Type{PackedPriorPose3}, d::PriorPose3)
-  v1 = d.Zij[:];
-  v2 = d.Cov[:];
-  return PackedPriorPose3(v1,size(d.Zij,1),
-                          v2,size(d.Cov,1),
-                          d.W)
-end
-function convert(::Type{FunctionNodeData{PackedPriorPose3}}, d::FunctionNodeData{PriorPose3})
-  return FunctionNodeData{PackedPriorPose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPriorPose3, d.fnc))
-end
-function convert(::Type{FunctionNodeData{PriorPose3}}, d::FunctionNodeData{PackedPriorPose3})
-  return FunctionNodeData{PriorPose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PriorPose3, d.fnc))
-end
-function FNDencode(d::FunctionNodeData{PriorPose3})
-  return convert(FunctionNodeData{PackedPriorPose3}, d)
-end
-function FNDdecode(d::FunctionNodeData{PackedPriorPose3})
-  return convert(FunctionNodeData{PriorPose3}, d)
-end
+# type PackedPriorPose3
+#     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
+#     dimz::Int64
+#     vecCov::Array{Float64,1}
+#     dimc::Int64
+#     W::Array{Float64,1}
+#     PackedPriorPose3() = new()
+#     PackedPriorPose3(x...) = new(x[1], x[2], x[3], x[4], x[5])
+# end
+# function convert(::Type{PriorPose3}, d::PackedPriorPose3)
+#   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
+#   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
+#   return PriorPose3(Zij, Cov, d.W)
+# end
+# function convert(::Type{PackedPriorPose3}, d::PriorPose3)
+#   v1 = d.Zij[:];
+#   v2 = d.Cov[:];
+#   return PackedPriorPose3(v1,size(d.Zij,1),
+#                           v2,size(d.Cov,1),
+#                           d.W)
+# end
+# function convert(::Type{FunctionNodeData{PackedPriorPose3}}, d::FunctionNodeData{PriorPose3})
+#   return FunctionNodeData{PackedPriorPose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           convert(PackedPriorPose3, d.fnc))
+# end
+# function convert(::Type{FunctionNodeData{PriorPose3}}, d::FunctionNodeData{PackedPriorPose3})
+#   return FunctionNodeData{PriorPose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           convert(PriorPose3, d.fnc))
+# end
+# function FNDencode(d::FunctionNodeData{PriorPose3})
+#   return convert(FunctionNodeData{PackedPriorPose3}, d)
+# end
+# function FNDdecode(d::FunctionNodeData{PackedPriorPose3})
+#   return convert(FunctionNodeData{PriorPose3}, d)
+# end
 
 
 
@@ -351,46 +350,46 @@ end
 
 
 type Pose3Pose3 <: Pairwise
-    Zij::Array{Float64,2} # 3translations, 3exponential param rotation
+    Zij::SE3 # 3translations, 3exponential param rotation
     Cov::Array{Float64,2}
-    W::Array{Float64,1}
-    Pose2Pose2() = new()
-    Pose2Pose2(x...) = new(x[1], x[2], x[3])
+    Pose3Pose3() = new()
+    Pose3Pose3(st::FloatInt, sr::Float64) = new(SE3(0), [[st*eye(3);zeros(3,3)];[zeros(3);sr*eye(3)]])
+    Pose3Pose3(s::SE3, c::Array{Float64,2}) = new(s,c)
 end
-type PackedPose3Pose3
-  vecZij::Array{Float64,1} # 2translations, 1rotation
-  dimz::Int64
-  vecCov::Array{Float64,1}
-  dimc::Int64
-  W::Array{Float64,1}
-  PackedPose2Pose2() = new()
-  PackedPose2Pose2(x...) = new(x[1], x[2], x[3], x[4], x[5])
-end
-function convert(::Type{Pose3Pose3}, d::PackedPose3Pose3)
-  return Pose3Pose3(reshapeVec2Mat(d.vecZij,d.dimz),
-                    reshapeVec2Mat(d.vecCov, d.dimc), W)
-end
-function convert(::Type{PackedPose3Pose3}, d::Pose3Pose3)
-  v1 = d.Zij[:];
-  v2 = d.Cov[:];
-  return PackedPose3Pose3(v1,size(d.Zij,1),
-                          v2,size(d.Cov,1),
-                          d.W)
-end
-function convert(::Type{FunctionNodeData{PackedPose3Pose3}}, d::FunctionNodeData{Pose3Pose3})
-  return FunctionNodeData{PackedPose3Pose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPose3Pose3, d.fnc))
-end
-function convert(::Type{FunctionNodeData{Pose3Pose3}}, d::FunctionNodeData{PackedPose3Pose3})
-  return FunctionNodeData{Pose3Pose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(Pose3Pose3, d.fnc))
-end
-function FNDencode(d::FunctionNodeData{Pose3Pose3})
-  return convert(FunctionNodeData{PackedPose3Pose3}, d)
-end
-function FNDdecode(d::FunctionNodeData{PackedPose3Pose3})
-  return convert(FunctionNodeData{Pose3Pose3}, d)
-end
+# type PackedPose3Pose3
+#   vecZij::Array{Float64,1} # 2translations, 1rotation
+#   dimz::Int64
+#   vecCov::Array{Float64,1}
+#   dimc::Int64
+#   W::Array{Float64,1}
+#   PackedPose2Pose2() = new()
+#   PackedPose2Pose2(x...) = new(x[1], x[2], x[3], x[4], x[5])
+# end
+# function convert(::Type{Pose3Pose3}, d::PackedPose3Pose3)
+#   return Pose3Pose3(reshapeVec2Mat(d.vecZij,d.dimz),
+#                     reshapeVec2Mat(d.vecCov, d.dimc), W)
+# end
+# function convert(::Type{PackedPose3Pose3}, d::Pose3Pose3)
+#   v1 = d.Zij[:];
+#   v2 = d.Cov[:];
+#   return PackedPose3Pose3(v1,size(d.Zij,1),
+#                           v2,size(d.Cov,1),
+#                           d.W)
+# end
+# function convert(::Type{FunctionNodeData{PackedPose3Pose3}}, d::FunctionNodeData{Pose3Pose3})
+#   return FunctionNodeData{PackedPose3Pose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           convert(PackedPose3Pose3, d.fnc))
+# end
+# function convert(::Type{FunctionNodeData{Pose3Pose3}}, d::FunctionNodeData{PackedPose3Pose3})
+#   return FunctionNodeData{Pose3Pose3}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           convert(Pose3Pose3, d.fnc))
+# end
+# function FNDencode(d::FunctionNodeData{Pose3Pose3})
+#   return convert(FunctionNodeData{PackedPose3Pose3}, d)
+# end
+# function FNDdecode(d::FunctionNodeData{PackedPose3Pose3})
+#   return convert(FunctionNodeData{Pose3Pose3}, d)
+# end
 
 
 
