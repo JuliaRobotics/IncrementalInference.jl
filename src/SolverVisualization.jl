@@ -426,7 +426,7 @@ end
 function predCurrFactorBeliefs(fgl::FactorGraph, fc::Graphs.ExVertex)
   # TODO update to use ls and lsv functions
   prjcurvals = Dict{ASCIIString, Array{BallTreeDensity,1}}()
-  for v in out_neighbors(fc, fgl.g)
+  for v in dlapi.outneighbors(fgl, fc) #out_neighbors(fc, fgl.g)
     pred = kde!(evalFactor2(fgl, fc, v.index))
     curr = kde!(getVal(v))
     prjcurvals[v.attributes["label"]] = [curr; pred]
@@ -574,7 +574,7 @@ function ls(fgl::FactorGraph, lbl::ASCIIString)
     return ls
   end
   v = dlapi.getvertex(fgl,id) #fgl.v[id]
-  for outn in out_neighbors(v, fgl.g)
+  for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     push!(ls, outn.label)
   end
   return ls
@@ -614,7 +614,7 @@ function lsv(fgl::FactorGraph, lbl::ASCIIString)
     return ls
   end
   v = fgl.f[id]
-  for outn in out_neighbors(v, fgl.g)
+  for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     push!(ls, outn.label)
   end
   return ls

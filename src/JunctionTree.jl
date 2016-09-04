@@ -100,14 +100,16 @@ end
 # eliminate a variable for new
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     #@show fg.v[var].attributes["label"]
-    if (length(dlapi.getvertex(fg,var).attributes["data"].separator) == 0) #fg.v[var].
+    firvert = dlapi.getvertex(fg,var)
+    if (length(firvert.attributes["data"].separator) == 0) #fg.v[var].
+      warn("newPotential -- sep length is 0")
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else
         appendClique!(tree, 1, fg, var) # add to root
       end
     else
-      Sj = dlapi.getvertex(fg,var).attributes["data"].separator  # fg.v[var].
+      Sj = firvert.attributes["data"].separator  # fg.v[var].
       # Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
@@ -140,7 +142,7 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
 end
 
 
-marg(x...) = -1, [0.0] # TODO -- this should be removed
+# marg(x...) = -1, [0.0] #
 
 
 ## Find batch belief propagation solution
@@ -153,6 +155,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   println()
 
   fge = deepcopy(fg)
+  println("Building Bayes net...")
   buildBayesNet!(fge, p)
 
   tree = emptyBayesTree()
@@ -179,25 +182,48 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(fg, tree, cliq);
+  buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end
 
+function resetData!(vdata::VariableNodeData)
+  vdata.eliminated = false
+  vdata.BayesNetOutVertIDs = Int64[]
+  vdata.BayesNetVertID = 0
+  vdata.separator = Int64[]
+  nothing
+end
+
+function resetData!(vdata::FunctionNodeData)
+  vdata.eliminated = false #f[2].attributes["eliminated"] = false
+  vdata.potentialused = false #f[2].attributes["potentialused"] = false
+  nothing
+end
+
 function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in fg.v
-    v[2].attributes["data"].eliminated = false
-    # v[2].attributes["eliminated"] = false
-    v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
-    v[2].attributes["data"].BayesNetVertID = 0
-    v[2].attributes["data"].separator = Int64[]
-    # v[2].attributes["BayesNetVert"] = Union{}
-    # v[2].attributes["separator"] = Int64[]
+  for v in fg.g.vertices
+    resetData!(getData(v))
+    dlapi.updatevertex!(fg, v)
   end
-  for f in fg.f
-    f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
-    f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
-  end
+
+  # for v in fg.v
+  #   # v[2].attributes["data"].eliminated = false
+  #   # # v[2].attributes["eliminated"] = false
+  #   # v[2].attributes["data"].BayesNetOutVertIDs = Int64[]
+  #   # v[2].attributes["data"].BayesNetVertID = 0
+  #   # v[2].attributes["data"].separator = Int64[]
+  #   # # v[2].attributes["BayesNetVert"] = Union{}
+  #   # # v[2].attributes["separator"] = Int64[]
+  #   resetData!(v[2].attributes["data"])
+  #   dlapi.updatevertex!(fg, v[2])
+  # end
+  # for f in fg.f
+  #   # f[2].attributes["data"].eliminated = false #f[2].attributes["eliminated"] = false
+  #   # f[2].attributes["data"].potentialused = false #f[2].attributes["potentialused"] = false
+  #   resetData!(f[2].attributes["data"])
+  #   dlapi.updatevertex!(fg, f[2])
+  # end
 
   nothing
 end
@@ -228,15 +254,17 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
 
     for fid in frtl
         usefcts = []
-        for fct in out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
+        for fct in dlapi.outneighbors(fg, dlapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
             if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
-                if length(out_neighbors(fct, fg.g))==1
-                    appendUseFcts!(usefcts, fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)
-                    #usefcts = [usefcts;(fg.IDs[out_neighbors(fct, fg.g)[1].label], fct, fid)]
+                loutn = dlapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
+                if length(loutn)==1
+                    appendUseFcts!(usefcts, fg.IDs[loutn[1].label], fct, fid) #out_neighbors(fct, fg.g)
+                    # TODO -- make update vertex call
                     fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                    dlapi.updatevertex!(fg, fct)
                 end
-                for sepSearch in out_neighbors(fct, fg.g)
+                for sepSearch in loutn # out_neighbors(fct, fg.g)
                     if (fg.IDs[sepSearch.label] == fid)
                         continue # skip the fid itself
                     end
@@ -245,6 +273,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                         appendUseFcts!(usefcts, fg.IDs[sepSearch.label], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sepSearch.label], fct, fid)]
                         fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                        dlapi.updatevertex!(fg, fct)
                     end
                 end
             end

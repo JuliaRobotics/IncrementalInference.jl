@@ -13,7 +13,7 @@ gt["x3"]=[[100.0; 3.05]';[0.0; 3.05]']'
 
 fg = emptyFactorGraph()
 
-N=300
+N=100
 
 doors = [-100.0;0.0;100.0;300.0]'
 cov = [3.0]
@@ -84,15 +84,15 @@ tree = prepBatchTree!(fg,drawpdf=true);
 # list vertices in fg
 @show xx,ll = ls(fg)
 
-from = fg.v[fg.IDs["l1"]]
-to = fg.v[fg.IDs["x7"]]
-fgs = subgraphShortestPath(fg, from=from, to=to)
+# from = fg.v[fg.IDs["l1"]]
+# to = fg.v[fg.IDs["x7"]]
+# fgs = subgraphShortestPath(fg, from=from, to=to)
 
-using Graphs
-el = shortest_path(fg.g, ones(19),from, to)
+# using Graphs
+# el = shortest_path(fg.g, ones(19),from, to)
 
 # do belief propagation inference over tree once
-[inferOverTree!(fg, tree) for i in 1:1];
+[inferOverTree!(fg, tree, N=100) for i in 1:1];
 
 # draw all beliefs
 DOYTICKS = false
@@ -103,7 +103,7 @@ for i in 1:length(msgPlots)
     evalstr = string(evalstr, ",msgPlots[$(i)]")
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
-Gadfly.draw(PDF("4doors.pdf",15cm,20cm),pl) # can also do PNG
+Gadfly.draw(PNG("4doors.png",15cm,20cm),pl) # can also do PNG
 # Gadfly.set_default_plot_size(15cm, 20cm)
 # pl
 
