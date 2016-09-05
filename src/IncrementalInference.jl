@@ -110,7 +110,8 @@ export
   fullLocalGraphCopy!,
   removeGenericMarginals!,
   setBackendWorkingSet!,
-  setDBAllReady!
+  setDBAllReady!,
+  getExVertFromCloud
 
 
 include("FactorGraphTypes.jl")

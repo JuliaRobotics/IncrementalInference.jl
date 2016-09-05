@@ -103,6 +103,9 @@ function registerGeneralVariableTypes!(cloudGraph)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{GenericMarginal}, FunctionNodeData{GenericMarginal}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Ranged}, FunctionNodeData{Ranged}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   # TODO -- add Pose2, Pose3 stuff
+  CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{PriorPose2}, FunctionNodeData{PackedPriorPose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
+  CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2Pose2}, FunctionNodeData{PackedPose2Pose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
+  CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2DPoint2DBearingRange}, FunctionNodeData{PackedPose2DPoint2DBearingRange}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   nothing
 end
 
