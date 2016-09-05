@@ -10,8 +10,8 @@ using
   NLsolve,
   Distributions,
   KernelDensityEstimate,
-  TransformUtils#,
-  #CloudGraphs
+  TransformUtils,
+  CloudGraphs, Neo4j
 
 export
   # actual CloudGraphs integration experimental code
@@ -29,6 +29,7 @@ export
   addNode!,
   addFactor!,
   resetData!,
+  getVert,
   getData,
   getVarNode,
   getVal,
@@ -101,11 +102,19 @@ export
   projectParticles,
 
   # dev exports
-  addGraphsVert!
+  addGraphsVert!,
+  makeAddEdge!,
+
+  # CloudGraph stuff
+  registerGeneralVariableTypes!,
+  fullLocalGraphCopy!,
+  removeGenericMarginals!,
+  setBackendWorkingSet!,
+  setDBAllReady!
 
 
 include("FactorGraphTypes.jl")
-# include("CloudGraphIntegration.jl") # Work in progress code
+include("CloudGraphIntegration.jl") # Work in progress code
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("JunctionTree.jl")

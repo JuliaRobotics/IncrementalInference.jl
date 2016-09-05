@@ -45,7 +45,7 @@ unpckd = convert(VariableNodeData, pd)
 println("Conversions and comparisons agree")
 
 
-if false
+if true
   println("[TEST] with CloudGraphs data layer (multicore)...")
   include("fourdoortestcloudgraph.jl")
   println("[SUCESS]")

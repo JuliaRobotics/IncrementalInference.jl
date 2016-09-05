@@ -7,4 +7,5 @@ NLsolve
 Distributions
 KernelDensityEstimate
 TransformUtils
-#CloudGraphs
+CloudGraphs
+Neo4j

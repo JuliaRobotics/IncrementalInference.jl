@@ -5,6 +5,13 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 #   return ndims(M) < 2 ? (M')' : M
 # end
 
+function getVert(fgl::FactorGraph, lbl::ASCIIString)
+  if haskey(fgl.IDs, lbl)
+    return fgl.g.vertices[fgl.IDs[lbl]]
+  end
+  nothing
+end
+
 getData(v::Graphs.ExVertex) = v.attributes["data"]
 
 function getVal(v::Graphs.ExVertex)
@@ -82,23 +89,27 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                           dims, false, 0, Int64[])
 
   v.attributes["data"] = data
-  # v.attributes["BayesNetVert"] = Union{} # TODO -- remove
+
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
+function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
-  fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
   fgl.IDs[lbl] = id # fg.id, to help find it
+
+  # used for cloudgraph solving
+  vert.attributes["ready"] = ready
+
+  fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
   nothing
 end
 
-# Must rething the abstraction here
-function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100)
+# Must rethink the abstraction here
+function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100, ready::Int=1)
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
-  addNewVarVertInGraph!(fg, vert, fg.id, lbl)
+  addNewVarVertInGraph!(fg, vert, fg.id, lbl,ready)
   # dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
   dodims = fg.dimID+1
   # TODO -- vert should not loose information here
@@ -180,15 +191,18 @@ end
 #   nothing
 # end
 
-function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
+function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
   fgl.f[id] = vert # TODO -- not sure if this is required
   fgl.fIDs[lbl] = id # fg.id
+
+    # used for cloudgraph solving
+    vert.attributes["ready"] = ready
   nothing
 end
 
-function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton})
+function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton}; ready::Int=1)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -196,7 +210,7 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
   fg.id+=1
 
   newvert = ExVertex(fg.id,namestring)
-  addNewFncVertInGraph!(fg, newvert, fg.id, namestring)
+  addNewFncVertInGraph!(fg, newvert, fg.id, namestring, ready)
   setDefaultFactorNode!(newvert, f) # fg.f[fg.id]
   push!(fg.factorIDs,fg.id)
 
@@ -361,7 +375,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # TODO -- optimize outneighbor calls like this
       vert = dlapi.getvertex(fg,v)
       for fct in dlapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
-        if (fct.attributes["data"].eliminated != true) #if (fct.attributes["eliminated"] != true)
+        if (fct.attributes["data"].eliminated != true) && fct.attributes["ready"]==1 #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
           for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
             if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)

@@ -256,7 +256,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
         usefcts = []
         for fct in dlapi.outneighbors(fg, dlapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
-            if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
+            if fct.attributes["data"].potentialused!=true && fct.attributes["ready"]==1 #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
                 loutn = dlapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
                 if length(loutn)==1
                     appendUseFcts!(usefcts, fg.IDs[loutn[1].label], fct, fid) #out_neighbors(fct, fg.g)
