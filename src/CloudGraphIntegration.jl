@@ -96,16 +96,19 @@ function setCloudDataLayerAPI!()
 end
 
 # register types of interest (Pose2, etc) in CloudGraphs
+# you can register new types at any time (Julia is dynamic)
 function registerGeneralVariableTypes!(cloudGraph)
+  # 1D early development types
   CloudGraphs.registerPackedType!(cloudGraph, VariableNodeData, PackedVariableNodeData, encodingConverter=VNDencoder, decodingConverter=VNDdecoder);
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Obsv2}, FunctionNodeData{PackedObsv2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Odo}, FunctionNodeData{PackedOdo}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{GenericMarginal}, FunctionNodeData{GenericMarginal}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Ranged}, FunctionNodeData{Ranged}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
-  # TODO -- add Pose2, Pose3 stuff
+  # Pose2
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{PriorPose2}, FunctionNodeData{PackedPriorPose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2Pose2}, FunctionNodeData{PackedPose2Pose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2DPoint2DBearingRange}, FunctionNodeData{PackedPose2DPoint2DBearingRange}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
+  # TODO -- Pose3 stuff
   nothing
 end
 

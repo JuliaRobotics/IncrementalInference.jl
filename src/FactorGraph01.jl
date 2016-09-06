@@ -5,18 +5,19 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 #   return ndims(M) < 2 ? (M')' : M
 # end
 
+# get vertex from factor graph according to label symbol "x1"
 function getVert(fgl::FactorGraph, lbl::ASCIIString)
-  if haskey(fgl.IDs, lbl)
-    return fgl.g.vertices[fgl.IDs[lbl]]
-  end
+  dlapi.getvertex(fgl, lbl)
+  # if haskey(fgl.IDs, lbl)
+  #   return fgl.g.vertices[fgl.IDs[lbl]]
+  # end
   nothing
 end
 
 getData(v::Graphs.ExVertex) = v.attributes["data"]
 
 function getVal(v::Graphs.ExVertex)
-  return v.attributes["data"].val
-  # return v.attributes["val"]
+  return getData(v).val
 end
 
 # Convenience function to get values for given variable label
@@ -29,7 +30,7 @@ function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 function getBWVal(v::Graphs.ExVertex)
-  return v.attributes["data"].bw
+  return getData(v).bw
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
   v.attributes["data"].bw = bw
@@ -109,7 +110,7 @@ end
 function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100, ready::Int=1)
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
-  addNewVarVertInGraph!(fg, vert, fg.id, lbl,ready)
+  addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
   # dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
   dodims = fg.dimID+1
   # TODO -- vert should not loose information here
