@@ -7,11 +7,13 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 
 # get vertex from factor graph according to label symbol "x1"
 function getVert(fgl::FactorGraph, lbl::ASCIIString)
-  dlapi.getvertex(fgl, lbl)
   # if haskey(fgl.IDs, lbl)
   #   return fgl.g.vertices[fgl.IDs[lbl]]
   # end
-  nothing
+  dlapi.getvertex(fgl, lbl)
+end
+function getVert(fgl::FactorGraph, id::Int64)
+  dlapi.getvertex(fgl, id)
 end
 
 getData(v::Graphs.ExVertex) = v.attributes["data"]
@@ -24,6 +26,8 @@ end
 function getVal(fgl::FactorGraph, lbl::ASCIIString)
   getVal(dlapi.getvertex(fgl, lbl))
 end
+
+# setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   v.attributes["data"].val = val
   # v.attributes["val"] = val
@@ -52,27 +56,12 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 
-# function setDefaultNodeDataOld!(v::Graphs.ExVertex, initval::Array{Float64,2},
-#                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
-#   pN = Union{}
-#   if size(initval,2) < N
-#     p = kde!(initval,diag(stdev));
-#     pN = resample(p,N)
-#   else
-#     pN = kde!(initval, "lcv")
-#   end
-#   # v.attributes["initval"] = initval
-#   # v.attributes["initstdev"] = stdev
-#   # v.attributes["eliminated"] = false
-#   v.attributes["BayesNetVert"] = Union{}
-#   dims = size(initval,1) # rows indicate dimensions
-#   # v.attributes["dims"] = dims
-#   # v.attributes["dimIDs"] = round(Int64,linspace(dodims,dodims+dims-1,dims))
-#
-#   setDefaultNodeDataReplace!(v,initval,stdev,dodims,N)
-#   # setVal!(v, getPoints(pN), getBW(pN)[:,1])
-#   nothing
-# end
+getOutNeighbors(fgl::FactorGraph, v::ExVertex) = dlapi.outneighbors(fgl,v)
+
+function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
+  dlapi.updatevertex!(fgl, exvert)
+end
+
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
@@ -106,8 +95,9 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   nothing
 end
 
-# Must rethink the abstraction here
-function addNode!(fg::FactorGraph, lbl, initval=[0.0]', stdev=[1.0]'; N::Int=100, ready::Int=1)
+# Add node to graph, given graph struct, labal, init values,
+# std dev [TODO -- generalize], particle size and ready flag for concurrency
+function addNode!(fg::FactorGraph, lbl::ASCIIString, initval=[0.0]', stdev=[1.0]'; N::Int=100, ready::Int=1)
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
   addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)

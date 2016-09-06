@@ -169,18 +169,6 @@ end
 #   nothing
 # end
 
-# not currently used
-# function updateVertData!(fgl::FactorGraph,
-#     id::Int64,
-#     updlist::Dict{UTF8String,Any})
-#     #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
-#
-#   vdata = getVertNode(fgl, id).attributes["data"]
-#   for item in updlist
-#     eval(:(vdata.$(parse(item[1]))=$(item[2])))
-#   end
-#   nothing
-# end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
@@ -201,6 +189,9 @@ end
 
 function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
   Graphs.out_neighbors(vert, fgl.g)
+end
+function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64)
+  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId))
 end
 
 function graphsGetEdge(fgl::FactorGraph, id::Int64)

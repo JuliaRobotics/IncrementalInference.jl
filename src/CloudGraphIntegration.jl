@@ -25,9 +25,18 @@ function updateFullCloudVertData!(fgl::FactorGraph,
   neoID = fgl.cgIDs[nv.index]
   # println("updateFullCloudVertData! -- trying to get $(neoID)")
   vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
-  vert.packed = nv.attributes["data"]
+
   # TODO -- ignoring other properties
+  vert.packed = nv.attributes["data"]
+  for pair in nv.attributes
+    if pair[1] != "data"
+      vert.properties[pair[1]] = pair[2]
+    end
+  end
+
+  # also make sure our local copy is updated, need much better refactoring here
   fgl.g.vertices[nv.index].attributes["data"] = nv.attributes["data"]
+
   CloudGraphs.update_vertex!(fgl.cg, vert)
 end
 
@@ -45,11 +54,10 @@ function makeAddCloudEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExV
   retrel.id
 end
 
-# return list of neighbors as Graphs.ExVertex type
-function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
-  # @show vert.index
-  # @show fgl.cgIDs
-  cgid = fgl.cgIDs[vert.index]
+
+# TODO -- fetching of CloudVertex propably not required, make faster request to @GearsAD
+function getCloudOutNeighbors(fgl::FactorGraph, exVertId::Int64)
+  cgid = fgl.cgIDs[exVertId]
   cv = CloudGraphs.get_vertex(fgl.cg, cgid, false)
   neighs = CloudGraphs.get_neighbors(fgl.cg, cv)
   neExV = Graphs.ExVertex[]
@@ -58,6 +66,12 @@ function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
   end
   return neExV
 end
+
+# return list of neighbors as Graphs.ExVertex type
+function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
+  getCloudOutNeighbors(fgl, vert.index)
+end
+
 
 function getEdgeFromCloud(fgl::FactorGraph, id::Int64)
   println("getting id=$(id)")
@@ -223,6 +237,12 @@ function setDBAllReady!(conn)
   loadresult = commit(loadtx)
   nothing
 end
+
+# TODO --this will only work with DB version, introduces a bug
+function setDBAllReady!(fgl::FactorGraph)
+  setDBAllReady!(fgl.cg.neo4j.connection)
+end
+
 
 function setBackendWorkingSet!(conn)
   loadtx = transaction(conn)
