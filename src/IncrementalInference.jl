@@ -112,7 +112,8 @@ export
   removeGenericMarginals!,
   setBackendWorkingSet!,
   setDBAllReady!,
-  getExVertFromCloud
+  getExVertFromCloud,
+  getAllExVertexNeoIDs
 
 
 include("FactorGraphTypes.jl")

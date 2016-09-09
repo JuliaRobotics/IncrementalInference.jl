@@ -26,6 +26,10 @@ end
 function getVal(fgl::FactorGraph, lbl::ASCIIString)
   getVal(dlapi.getvertex(fgl, lbl))
 end
+function getVal(fgl::FactorGraph, exvertid::Int64)
+  getVal(dlapi.getvertex(fgl, exvertid))
+end
+
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
@@ -56,7 +60,9 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 
+# TODO -- there should be a better way, without retrieving full vertex
 getOutNeighbors(fgl::FactorGraph, v::ExVertex) = dlapi.outneighbors(fgl,v)
+getOutNeighbors(fgl::FactorGraph, vertid::Int64) = dlapi.outneighbors(fgl, dlapi.getvertex(fgl,vertid) )
 
 function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
   dlapi.updatevertex!(fgl, exvert)
@@ -90,6 +96,7 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 
   # used for cloudgraph solving
   vert.attributes["ready"] = ready
+  vert.attributes["backendset"] = 0
 
   fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
   nothing
@@ -190,6 +197,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 
     # used for cloudgraph solving
     vert.attributes["ready"] = ready
+    vert.attributes["backendset"] = 0    
   nothing
 end
 
@@ -366,7 +374,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # TODO -- optimize outneighbor calls like this
       vert = dlapi.getvertex(fg,v)
       for fct in dlapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
-        if (fct.attributes["data"].eliminated != true) && fct.attributes["ready"]==1 #if (fct.attributes["eliminated"] != true)
+        if (fct.attributes["data"].eliminated != true) && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
           for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
             if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)

@@ -130,7 +130,12 @@ end
 # function should not be necessary, but fixes a minor bug following elimination algorithm
 function removeGenericMarginals!(conn)
   loadtx = transaction(conn)
-  query = "match (n) where n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}' delete n"
+  query = "match (n)-[r]-() where n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}' detach delete n,r"
+  cph = loadtx(query, submit=true)
+  loadresult = commit(loadtx)
+  # TODO -- can probably be made better, but should not be necessary in the first place
+  loadtx = transaction(conn)
+  query = "match (n) where n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}' detach delete n"
   cph = loadtx(query, submit=true)
   loadresult = commit(loadtx)
   nothing
@@ -165,6 +170,7 @@ function copyAllEdges!(fgl::FactorGraph, cverts::Dict{Int64, CloudVertex}, IDs::
 
       if nei.properties["ready"]==1
           alreadythere = false
+          # TODO -- error point
           v2 = fgl.g.vertices[nei.exVertexId]
           for graphsnei in Graphs.out_neighbors(v2, fgl.g)
             if graphsnei.index == nei.exVertexId
@@ -212,17 +218,19 @@ function fullLocalGraphCopy!(fgl::FactorGraph, conn)
     unsorted = Int64[]
     # TODO ensure this is row is sorted
     for ids in IDs push!(unsorted, ids[1]) end
-    testlist = deepcopy(unsorted)
-    if testlist != sort(unsorted)
-      # TODO -- maybe not required, but being safe for now
-      error("Must be sorted list for elimination...")
-    end
+    perm = sortperm(unsorted)
+    # testlist = deepcopy(unsorted)
+    # if testlist != sort(unsorted)
+    #   # TODO -- maybe not required, but being safe for now
+    #   error("Must be sorted list for elimination...")
+    # end
 
     # get and add all the nodes
-    copyAllNodes!(fgl, cverts, IDs, conn)
+    sortedIDs = IDs[perm]
+    copyAllNodes!(fgl, cverts, sortedIDs, conn)
 
     # get and insert all edges
-    copyAllEdges!(fgl, cverts, IDs)
+    copyAllEdges!(fgl, cverts, sortedIDs)
     return true
   else
     print(".")
