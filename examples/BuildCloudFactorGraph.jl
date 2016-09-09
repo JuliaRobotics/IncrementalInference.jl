@@ -4,7 +4,8 @@ using IncrementalInference, CloudGraphs
 # switch IncrementalInference to use CloudGraphs (Neo4j) data layer
 # Caesar.useCloudGraphsDataLayer()
 # connect to the server, CloudGraph stuff
-configuration = CloudGraphs.CloudGraphConfiguration("localhost", 7474, "", "", "localhost", 27017, false, "", "");
+dbaddress = "localhost"
+configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, "", "", "localhost", 27017, false, "", "");
 cloudGraph = connect(configuration);
 # Connection to database
 conn = cloudGraph.neo4j.connection

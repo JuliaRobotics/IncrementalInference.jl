@@ -18,13 +18,19 @@ type PotProd
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
+    PotProd() = new()
+    PotProd(x...) = new(x[1],x[2],x[3])
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
+    CliqGibbsMC() = new()
+    CliqGibbsMC(x) = new(x)
 end
 type DebugCliqMCMC
     mcmc::Array{CliqGibbsMC,1}
     outmsg::NBPMessage
+    DebugCliqMCMC() = new()
+    DebugCliqMCMC(x...) = new(x[1],x[2])
 end
 
 type UpReturnBPType
@@ -265,7 +271,9 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     d = Union{}
-    mcmcdbg = Union{}
+    # mcmcdbg = Union{}
+    mcmcdbg = [CliqGibbsMC()]
+
     if false
       IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
@@ -315,6 +323,9 @@ end
 
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, Array{Float64,2}})
     # pack all downcoming conditionals in a dictionary too.
+    if cliq.index != 1
+      println("Dwn msg keys $(keys(dwnMsgs[1].p))")
+    end # ignore root, now incoming dwn msg
     print("Outgoing msg density on: ")
     # cdwndict = Dict{Int64, BallTreeDensity}()
     # for cvid in cliq.attributes["conditIDs"] # root has no parent
@@ -344,6 +355,8 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
+        println("")
+        println("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
 
