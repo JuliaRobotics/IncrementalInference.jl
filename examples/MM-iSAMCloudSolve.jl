@@ -21,12 +21,13 @@ while true
   fg = emptyFactorGraph()
   fg.cg = cloudGraph
     setBackendWorkingSet!(conn)
-    sleep(0.2)
 
     # function should not be necessary, but fixes a minor bug following elimination algorithm
     removeGenericMarginals!(conn)
+
+    println("get local copy of graph")
     if fullLocalGraphCopy!(fg, conn)
-      tree = wipeBuildNewTree!(fg,drawpdf=true)
+      tree = wipeBuildNewTree!(fg,drawpdf=false)
       # removeGenericMarginals!(conn)
 
       # while true # repeat while graph unchanged

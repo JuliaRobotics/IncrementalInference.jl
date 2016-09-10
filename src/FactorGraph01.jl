@@ -201,7 +201,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   nothing
 end
 
-function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton}; ready::Int=1)
+function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton}; ready::Int=1, api::DataLayerAPI=dlapi)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -218,10 +218,10 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
   end
 
   # TODO -- multiple accesses to DB with this method, must refactor!
-  newvert = dlapi.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
+  newvert = api.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
   # idx=0
   for vert in Xi #f.Xi
-    dlapi.makeaddedge!(fg, vert, newvert)
+    api.makeaddedge!(fg, vert, newvert)
     # edge = dlapi.makeedge(fg.g, vert, newvert)
     # dlapi.addedge!(fg.g, edge)
     ## addEdge!(fg.g, vert, newvert) #fg.f[fg.id]

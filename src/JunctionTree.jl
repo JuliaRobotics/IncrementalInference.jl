@@ -209,7 +209,7 @@ end
 function resetFactorGraphNewTree!(fg::FactorGraph)
   for v in fg.g.vertices
     resetData!(getData(v))
-    dlapi.updatevertex!(fg, v)
+    localapi.updatevertex!(fg, v)
   end
 
   # for v in fg.v
@@ -259,7 +259,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
 
     for fid in frtl
         usefcts = []
-        for fct in dlapi.outneighbors(fg, localapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
+        for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
             if getData(fct).potentialused!=true # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
                 loutn = localapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
