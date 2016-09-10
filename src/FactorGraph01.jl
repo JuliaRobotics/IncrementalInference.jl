@@ -281,11 +281,12 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    vert = dlapi.getvertex(fg, p)
-    if vert.attributes["data"].BayesNetVertID == 0   #fg.v[p].
+    vert = localapi.getvertex(fg, p)
+    @show vert.label, getData(vert).BayesNetVertID
+    if getData(vert).BayesNetVertID == 0   #fg.v[p].
       fg.bnid+=1
       vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
-      dlapi.updatevertex!(fg, vert)
+      localapi.updatevertex!(fg, vert)
       # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
       # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
     else
@@ -295,7 +296,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
 end
 
 function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
-  bnv = dlapi.getvertex(fg, vertID) #fg.v[vertID]
+  bnv = localapi.getvertex(fg, vertID) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
   # bnv.attributes["separator"] = Si # TODO -- remove
@@ -304,7 +305,7 @@ function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
     push!(bnvd.BayesNetOutVertIDs, s)
     # addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
   end
-  dlapi.updatevertex!(fg, bnv)
+  localapi.updatevertex!(fg, bnv)
   nothing
 end
 
@@ -314,7 +315,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   Xi = Graphs.ExVertex[] #genmarg.Xi = Graphs.ExVertex[]
   for s in Si
     # push!(lbls,fg.v[s].attributes["label"])
-    push!(Xi, dlapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
+    push!(Xi, localapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
   end
   println("adding marginal to")
   for x in Xi @show x.index end
@@ -328,7 +329,7 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
   for m in gm
     # get all out edges
     # get neighbors
-    for n in dlapi.outneighbors(fgl, m)
+    for n in localapi.outneighbors(fgl, m)
       if n.index == fromvert.index
         alleids = m.attributes["data"].edgeIDs
         # println("consider marginal, edge of interest between $(m.index) and $(n.index)")
@@ -336,22 +337,22 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
         for id in alleids
           # println("rmVarFromMarg -- at id=$(id)")
           i+=1
-          edge = dlapi.getedge(fgl, id)
+          edge = localapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
             if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
               warn("removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)")
-              dlapi.deleteedge!(fgl, edge)
+              localapi.deleteedge!(fgl, edge)
               m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
-              dlapi.updatevertex!(fgl, m)
+              localapi.updatevertex!(fgl, m)
             end
           end
         end
       end
     end
     # if 0 edges, delete the marginal
-    if length(dlapi.outneighbors(fgl, m)) <= 1
+    if length(localapi.outneighbors(fgl, m)) <= 1
       warn("removing vertex id=$(m.index)")
-      dlapi.deletevertex!(fgl,m)
+      localapi.deletevertex!(fgl,m)
     end
   end
   nothing
@@ -372,17 +373,17 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       Si = Int64[]
       gm = ExVertex[]
       # TODO -- optimize outneighbor calls like this
-      vert = dlapi.getvertex(fg,v)
-      for fct in dlapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
+      vert = localapi.getvertex(fg,v)
+      for fct in localapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
         if (getData(fct).eliminated != true) # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
-          for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
+          for sepNode in localapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
             if sepNode.index != v && length(findin(sepNode.index,Si)) == 0
               push!(Si,sepNode.index)
             end
           end
           fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
-          dlapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
+          localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
         if typeof(getData(fct).fnc) == GenericMarginal
@@ -395,9 +396,9 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         # not yet inserting the new prior p(Si) back into the factor graph
       end
 
-      tuv = dlapi.getvertex(fg, v) # TODO -- This may well through away valuable data
+      tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
       tuv.attributes["data"].eliminated = true # fg.v[v].
-      dlapi.updatevertex!(fg, tuv)
+      localapi.updatevertex!(fg, tuv)
       # dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
       ## fg.v[v].attributes["eliminated"] = true
 

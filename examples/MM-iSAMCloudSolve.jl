@@ -14,22 +14,24 @@ IncrementalInference.setCloudDataLayerAPI!()
 conn = cloudGraph.neo4j.connection
 
 
-
 # TODO -- MAKE INCREMENAL in graph, SUBGRAPHS work in progress!!!!!
 while true
   # this is being replaced by cloudGraph, added here for development period
+  println("=================================================")
   fg = emptyFactorGraph()
   fg.cg = cloudGraph
-    # function should not be necessary, but fixes a minor bug following elimination algorithm
     setBackendWorkingSet!(conn)
+    sleep(0.2)
+
+    # function should not be necessary, but fixes a minor bug following elimination algorithm
     removeGenericMarginals!(conn)
     if fullLocalGraphCopy!(fg, conn)
       tree = wipeBuildNewTree!(fg,drawpdf=true)
-      removeGenericMarginals!(conn)
+      # removeGenericMarginals!(conn)
 
       # while true # repeat while graph unchanged
         # okay now do the solve
-        inferOverTreeR!(fg, tree, N=100)
+        inferOverTree!(fg, tree, N=100)
         # if true # current hack till test is inserted
         #   break;
         # end

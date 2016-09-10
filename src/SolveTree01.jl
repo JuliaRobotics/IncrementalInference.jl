@@ -384,8 +384,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        updvert.attributes["latestEst"] = Base.mean(dat[2],2)
-        # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+        # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
         dlapi.updatevertex!(fg, updvert)
     end
     nothing
@@ -401,8 +400,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-      updvert.attributes["latestEst"] = Base.mean(dat[2],2)
-      # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
+      # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
       dlapi.updatevertex!(fg, updvert)
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
