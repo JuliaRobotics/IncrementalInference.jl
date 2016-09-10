@@ -56,20 +56,24 @@ end
 
 
 # TODO -- fetching of CloudVertex propably not required, make faster request to @GearsAD
-function getCloudOutNeighbors(fgl::FactorGraph, exVertId::Int64)
+function getCloudOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1)
   cgid = fgl.cgIDs[exVertId]
   cv = CloudGraphs.get_vertex(fgl.cg, cgid, false)
   neighs = CloudGraphs.get_neighbors(fgl.cg, cv)
   neExV = Graphs.ExVertex[]
   for n in neighs
-    push!(neExV,  CloudGraphs.cloudVertex2ExVertex(n))
+    cgn = CloudGraphs.cloudVertex2ExVertex(n)
+    if cgn.attributes["ready"] == ready && cgn.attributes["backendset"] == backendset
+      push!(neExV, cgn )
+    end
   end
   return neExV
 end
 
 # return list of neighbors as Graphs.ExVertex type
-function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
-  getCloudOutNeighbors(fgl, vert.index)
+function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1)
+  # TODO -- test for ready and backendset here
+  getCloudOutNeighbors(fgl, vert.index, ready=ready,backendset=backendset)
 end
 
 
@@ -166,14 +170,13 @@ function copyAllEdges!(fgl::FactorGraph, cverts::Dict{Int64, CloudVertex}, IDs::
   for ids in IDs
     # look at neighbors of this node
     for nei in CloudGraphs.get_neighbors(fgl.cg, cverts[ids[2]])
-      # want to ignore if the edge was previously added from the other side, comparing to the out neighbors in the Graphs structure
-
-      if nei.properties["ready"]==1
+      if nei.properties["ready"]==1 && nei.properties["backendset"] == 1
           alreadythere = false
           # TODO -- error point
           v2 = fgl.g.vertices[nei.exVertexId]
-          for graphsnei in Graphs.out_neighbors(v2, fgl.g)
-            if graphsnei.index == nei.exVertexId
+          for graphsnei in Graphs.out_neighbors(v2, fgl.g) # specifically want Graphs function
+            # want to ignore if the edge was previously added from the other side, comparing to the out neighbors in the Graphs structure
+            if graphsnei.index == ids[1] #graphsnei.index == nei.exVertexId
               alreadythere = true
               break;
             end
@@ -184,8 +187,6 @@ function copyAllEdges!(fgl::FactorGraph, cverts::Dict{Int64, CloudVertex}, IDs::
             makeAddEdge!(fgl, v1, v2, saveedgeID=false)
           end
       end
-
-
     end
   end
   nothing

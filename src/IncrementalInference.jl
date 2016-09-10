@@ -47,6 +47,9 @@ export
   subgraphShortestPath,
   subgraphFromVerts,
   getEliminationOrder,
+  buildBayesNet!,
+  emptyBayesTree,
+  buildTree!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
@@ -113,7 +116,9 @@ export
   setBackendWorkingSet!,
   setDBAllReady!,
   getExVertFromCloud,
-  getAllExVertexNeoIDs
+  getAllExVertexNeoIDs,
+  copyAllNodes!,
+  copyAllEdges!
 
 
 include("FactorGraphTypes.jl")

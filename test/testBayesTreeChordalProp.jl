@@ -1,5 +1,5 @@
 using IncrementalInference
-using KernelDensityEstimate, Gadfly # for vstack
+# using KernelDensityEstimate, Gadfly # for vstack
 
 fg = emptyFactorGraph()
 
@@ -36,7 +36,7 @@ l3=addNode!(fg, "l3", 0.5*randn(1,N)+getVal(v3)+64.0, N=N)
 addFactor!(fg, [v5,l3], Ranged([16.0],[0.5],[1.0]))
 
 
-writeGraphPdf(fg);
+# writeGraphPdf(fg);
 
 tree = prepBatchTree!(fg,drawpdf=true);
 

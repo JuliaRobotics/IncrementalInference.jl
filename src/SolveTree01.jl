@@ -18,19 +18,19 @@ type PotProd
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
-    PotProd() = new()
-    PotProd(x...) = new(x[1],x[2],x[3])
+    # PotProd() = new()
+    # PotProd(x...) = new(x[1],x[2],x[3])
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
-    CliqGibbsMC() = new()
-    CliqGibbsMC(x) = new(x)
+    # CliqGibbsMC() = new()
+    # CliqGibbsMC(x) = new(x)
 end
 type DebugCliqMCMC
     mcmc::Array{CliqGibbsMC,1}
     outmsg::NBPMessage
-    DebugCliqMCMC() = new()
-    DebugCliqMCMC(x...) = new(x[1],x[2])
+    # DebugCliqMCMC() = new()
+    # DebugCliqMCMC(x...) = new(x[1],x[2])
 end
 
 type UpReturnBPType
@@ -271,8 +271,8 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     d = Union{}
-    # mcmcdbg = Union{}
-    mcmcdbg = [CliqGibbsMC()]
+    mcmcdbg = Union{}
+    # mcmcdbg = [CliqGibbsMC()]
 
     if false
       IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
@@ -384,12 +384,14 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
+        updvert.attributes["latestEst"] = Base.mean(dat[2],2)
         # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
         dlapi.updatevertex!(fg, updvert)
     end
     nothing
 end
 
+# TODO -- use Union{} for two types, rather than separate functions
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpReturnBPType)
     # if dlapi.cgEnabled
     #   return nothing
@@ -399,6 +401,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
+      updvert.attributes["latestEst"] = Base.mean(dat[2],2)
       # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
       dlapi.updatevertex!(fg, updvert)
     end

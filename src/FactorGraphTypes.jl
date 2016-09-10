@@ -187,10 +187,10 @@ function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex
   edge
 end
 
-function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
+function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1)
   Graphs.out_neighbors(vert, fgl.g)
 end
-function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64)
+function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1)
   graphsOutNeighbors(fgl.g, getVert(fgl,exVertId))
 end
 

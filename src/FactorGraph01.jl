@@ -197,7 +197,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 
     # used for cloudgraph solving
     vert.attributes["ready"] = ready
-    vert.attributes["backendset"] = 0    
+    vert.attributes["backendset"] = 0
   nothing
 end
 
@@ -374,18 +374,18 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # TODO -- optimize outneighbor calls like this
       vert = dlapi.getvertex(fg,v)
       for fct in dlapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
-        if (fct.attributes["data"].eliminated != true) && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #if (fct.attributes["eliminated"] != true)
+        if (getData(fct).eliminated != true) # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #if (fct.attributes["eliminated"] != true)
           push!(fi, fct.index)
           for sepNode in dlapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
-            if (sepNode.index != v && length(findin(sepNode.index,Si)) == 0)
+            if sepNode.index != v && length(findin(sepNode.index,Si)) == 0
               push!(Si,sepNode.index)
             end
           end
           fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
-          dlapi.updatevertex!(fg, fct)
+          dlapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
-        if typeof(fct.attributes["data"].fnc) == GenericMarginal
+        if typeof(getData(fct).fnc) == GenericMarginal
           push!(gm, fct)
         end
       end
@@ -395,7 +395,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         # not yet inserting the new prior p(Si) back into the factor graph
       end
 
-      tuv = dlapi.getvertex(fg,v)
+      tuv = dlapi.getvertex(fg, v) # TODO -- This may well through away valuable data
       tuv.attributes["data"].eliminated = true # fg.v[v].
       dlapi.updatevertex!(fg, tuv)
       # dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
