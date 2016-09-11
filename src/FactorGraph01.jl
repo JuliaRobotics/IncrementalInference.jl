@@ -207,7 +207,8 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   nothing
 end
 
-function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton}; ready::Int=1, api::DataLayerAPI=dlapi)
+function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
+                    ready::Int=1, api::DataLayerAPI=dlapi)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -326,7 +327,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   println("adding marginal to")
   for x in Xi @show x.index end
   # addFactor!(fg, marg, lbls)
-  addFactor!(fg, Xi, genmarg)
+  addFactor!(fg, Xi, genmarg, api=localapi)
   nothing
 end
 

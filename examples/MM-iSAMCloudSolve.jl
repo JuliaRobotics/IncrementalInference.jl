@@ -22,13 +22,12 @@ while true
   fg.cg = cloudGraph
     setBackendWorkingSet!(conn)
 
-    # function should not be necessary, but fixes a minor bug following elimination algorithm
 
     println("get local copy of graph")
-    removeGenericMarginals!(conn)
+    # removeGenericMarginals!(conn) # function should not be necessary, but fixes a minor bug following elimination algorithm
     if fullLocalGraphCopy!(fg, conn)
       tree = wipeBuildNewTree!(fg,drawpdf=false)
-      removeGenericMarginals!(conn)
+      # removeGenericMarginals!(conn)
 
       # while true # repeat while graph unchanged
         # okay now do the solve

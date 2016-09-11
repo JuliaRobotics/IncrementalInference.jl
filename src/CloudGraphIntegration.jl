@@ -1,6 +1,9 @@
 
 
 function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex)
+  # if typeof(getData(exvert).fnc)==GenericMarginal
+  #   error("Should not be here")
+  # end
   cv = CloudGraphs.exVertex2CloudVertex(exvert);
   CloudGraphs.add_vertex!(fgl.cg, cv);
   fgl.cgIDs[exvert.index] = cv.neo4jNodeId
