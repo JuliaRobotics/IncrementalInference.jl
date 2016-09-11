@@ -23,12 +23,12 @@ while true
     setBackendWorkingSet!(conn)
 
     # function should not be necessary, but fixes a minor bug following elimination algorithm
-    removeGenericMarginals!(conn)
 
     println("get local copy of graph")
+    removeGenericMarginals!(conn)
     if fullLocalGraphCopy!(fg, conn)
       tree = wipeBuildNewTree!(fg,drawpdf=false)
-      # removeGenericMarginals!(conn)
+      removeGenericMarginals!(conn)
 
       # while true # repeat while graph unchanged
         # okay now do the solve

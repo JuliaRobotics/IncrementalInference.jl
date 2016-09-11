@@ -399,8 +399,11 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
+      # p = kde!(deepcopy(dat[2]))
+      # setValKDE!(updvert, p) # TODO -- not sure if deepcopy is required
+      # mv = getKDEMax(p)
+      # updvert.attributes["MAP_est"] = mv
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-      # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
       dlapi.updatevertex!(fg, updvert)
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")

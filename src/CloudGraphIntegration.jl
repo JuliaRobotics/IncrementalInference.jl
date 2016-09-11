@@ -26,6 +26,12 @@ function updateFullCloudVertData!(fgl::FactorGraph,
   # println("updateFullCloudVertData! -- trying to get $(neoID)")
   vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
 
+  if typeof(getData(nv)) == VariableNodeData
+    mv = getKDEMax(getKDE(nv))
+    nv.attributes["MAP_est"] = mv
+    # @show nv.attributes["MAP_est"]
+  end
+
   # TODO -- ignoring other properties
   vert.packed = nv.attributes["data"]
   for pair in nv.attributes
@@ -149,7 +155,7 @@ end
 function getAllExVertexNeoIDs(conn)
 
   loadtx = transaction(conn)
-  query = "match (n) where n.ready=1 and n.backendset=1 return n"
+  query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
   cph = loadtx(query, submit=true)
   ret = Array{Tuple{Int64,Int64},1}()
 
@@ -170,7 +176,14 @@ function copyAllEdges!(fgl::FactorGraph, cverts::Dict{Int64, CloudVertex}, IDs::
   for ids in IDs
     # look at neighbors of this node
     for nei in CloudGraphs.get_neighbors(fgl.cg, cverts[ids[2]])
-      if nei.properties["ready"]==1 && nei.properties["backendset"] == 1
+      # allow = true
+      # if haskey(nei.properties, "packedType")
+      #   if nei.properties["packedType"] == "IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}"
+      #     allow = false
+      #   end
+      # end
+      # TODO -- remove last test, since only works for array
+      if nei.properties["ready"]==1 && nei.properties["backendset"] == 1 && nei.exVertexId <= length(fgl.g.vertices)
           alreadythere = false
           # TODO -- error point
           v2 = fgl.g.vertices[nei.exVertexId]

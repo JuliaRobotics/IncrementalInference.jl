@@ -59,6 +59,12 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
   nothing
 end
+function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
+  pts = getPoints(p)
+  setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
+  nothing
+end
+
 
 # TODO -- there should be a better way, without retrieving full vertex
 getOutNeighbors(fgl::FactorGraph, v::ExVertex) = dlapi.outneighbors(fgl,v)
