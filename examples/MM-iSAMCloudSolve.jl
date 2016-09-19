@@ -14,6 +14,9 @@ IncrementalInference.setCloudDataLayerAPI!()
 conn = cloudGraph.neo4j.connection
 
 
+# cv2.imwrite('test.png', depth_im)
+
+
 # TODO -- MAKE INCREMENAL in graph, SUBGRAPHS work in progress!!!!!
 while true
   # this is being replaced by cloudGraph, added here for development period
@@ -21,7 +24,6 @@ while true
   fg = emptyFactorGraph()
   fg.cg = cloudGraph
     setBackendWorkingSet!(conn)
-
 
     println("get local copy of graph")
     # removeGenericMarginals!(conn) # function should not be necessary, but fixes a minor bug following elimination algorithm

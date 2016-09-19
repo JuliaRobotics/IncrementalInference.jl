@@ -117,6 +117,7 @@ export
   setDBAllReady!,
   getExVertFromCloud,
   getAllExVertexNeoIDs,
+  getPoseExVertexNeoIDs,
   copyAllNodes!,
   copyAllEdges!
 

@@ -155,10 +155,30 @@ function removeGenericMarginals!(conn)
 end
 
 
-function getAllExVertexNeoIDs(conn)
+function getAllExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1)
 
   loadtx = transaction(conn)
-  query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
+  query = "match (n) where n.ready=$(ready) and n.backendset=$(backendset) return n"
+  # query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
+  cph = loadtx(query, submit=true)
+  ret = Array{Tuple{Int64,Int64},1}()
+
+  for data in cph.results[1]["data"]
+    metadata = data["meta"][1]
+    rowdata = data["row"][1]
+    push!(ret, (rowdata["exVertexId"],metadata["id"])  )
+  end
+  return ret
+end
+
+# return array of tuples with exvertex and neo4j IDs for all poses
+function getPoseExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1)
+  # TODO -- in query we can use return n.exVertexId, n.neo4jNodeId
+  # TODO -- in query we can use n:POSE rather than length(n.MAP_est)=3
+
+  loadtx = transaction(conn)
+  query = "match (n) where n.ready=$(ready) and n.backendset=$(backendset) and n.packedType = 'IncrementalInference.PackedVariableNodeData' and length(n.MAP_est)=3 return n"
+  # query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
   cph = loadtx(query, submit=true)
   ret = Array{Tuple{Int64,Int64},1}()
 
