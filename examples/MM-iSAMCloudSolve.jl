@@ -4,7 +4,13 @@ using IncrementalInference, CloudGraphs, Neo4j
 
 # connect to the server, CloudGraph stuff
 dbaddress = length(ARGS) > 0 ? ARGS[1] : "localhost"
-configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, "", "", "localhost", 27017, false, "", "");
+dbusr = length(ARGS) > 1 ? ARGS[2] : ""
+dbpwd = length(ARGS) > 2 ? ARGS[3] : ""
+
+mongoaddress = length(ARGS) > 3 ? ARGS[4] : "localhost"
+
+
+configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, dbusr, dbpwd, mongoaddress, 27017, false, "", "");
 cloudGraph = connect(configuration);
 # register types of interest in CloudGraphs
 registerGeneralVariableTypes!(cloudGraph)
