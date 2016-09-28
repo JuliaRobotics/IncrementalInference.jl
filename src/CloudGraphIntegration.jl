@@ -294,9 +294,10 @@ function setDBAllReady!(fgl::FactorGraph)
 end
 
 
-function setBackendWorkingSet!(conn)
+function setBackendWorkingSet!(conn, sessionname::AbstractString)
   loadtx = transaction(conn)
-  query = "match (n) set n.backendset=1"
+  sn = length(sessionname) > 0 ? ":"*sessionname : ""
+  query = "match (n$(sn)) set n.backendset=1"
   cph = loadtx(query, submit=true)
   loadresult = commit(loadtx)
   nothing

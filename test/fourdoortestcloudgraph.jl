@@ -3,17 +3,20 @@
 using IncrementalInference, CloudGraphs
 
 # switch IncrementalInference to use CloudGraphs (Neo4j) data layer
-# Caesar.useCloudGraphsDataLayer()
-    # connect to the server, CloudGraph stuff
-    configuration = CloudGraphs.CloudGraphConfiguration("localhost", 7474, "", "", "localhost", 27017, false, "", "");
-    cloudGraph = connect(configuration);
+dbaddress = "localhost"
+dbusr = ""
+dbpwd = ""
+mongoaddress = "localhost"
+session = ""
+println("Attempting to solve session $(session)...")
 
-    # register types of interest in CloudGraphs
-    CloudGraphs.registerPackedType!(cloudGraph, VariableNodeData, PackedVariableNodeData, encodingConverter=VNDencoder, decodingConverter=VNDdecoder);
-    CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Obsv2}, FunctionNodeData{PackedObsv2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
-    CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Odo}, FunctionNodeData{PackedOdo}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
-    CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{GenericMarginal}, FunctionNodeData{GenericMarginal}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
-    CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Ranged}, FunctionNodeData{Ranged}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
+configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, dbusr, dbpwd, mongoaddress, 27017, false, "", "");
+cloudGraph = connect(configuration);
+# Connection to database
+conn = cloudGraph.neo4j.connection
+
+# register types of interest in CloudGraphs
+registerGeneralVariableTypes!(cloudGraph)
 
 IncrementalInference.setCloudDataLayerAPI!()
 

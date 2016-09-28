@@ -34,7 +34,7 @@ while true
   fg.cg = cloudGraph
   fg.sessionname = session
 
-    setBackendWorkingSet!(conn, sessionname=session)
+    setBackendWorkingSet!(conn, session)
 
     println("get local copy of graph")
     # removeGenericMarginals!(conn) # function should not be necessary, but fixes a minor bug following elimination algorithm
