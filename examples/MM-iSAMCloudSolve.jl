@@ -9,6 +9,9 @@ dbpwd = length(ARGS) > 2 ? ARGS[3] : ""
 
 mongoaddress = length(ARGS) > 3 ? ARGS[4] : "localhost"
 
+session = length(ARGS) > 4 ? utf8(ARGS[5]) : ""
+println("Attempting to solve session $(session)...")
+
 
 configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, dbusr, dbpwd, mongoaddress, 27017, false, "", "");
 cloudGraph = connect(configuration);
@@ -29,7 +32,9 @@ while true
   println("=================================================")
   fg = emptyFactorGraph()
   fg.cg = cloudGraph
-    setBackendWorkingSet!(conn)
+  fg.sessionname = session
+
+    setBackendWorkingSet!(conn, sessionname=session)
 
     println("get local copy of graph")
     # removeGenericMarginals!(conn) # function should not be necessary, but fixes a minor bug following elimination algorithm

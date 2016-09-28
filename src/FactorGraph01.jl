@@ -110,7 +110,8 @@ end
 
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!(fg::FactorGraph, lbl::ASCIIString, initval=[0.0]', stdev=[1.0]'; N::Int=100, ready::Int=1)
+function addNode!(fg::FactorGraph, lbl::ASCIIString, initval=[0.0]', stdev=[1.0]';
+      N::Int=100, ready::Int=1, labels=ASCIIString[])
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
   addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
@@ -119,7 +120,9 @@ function addNode!(fg::FactorGraph, lbl::ASCIIString, initval=[0.0]', stdev=[1.0]
   # TODO -- vert should not loose information here
   setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
 
-  dlapi.addvertex!(fg, vert) #fg.g ##vertr =
+  vnlbls = deepcopy(labels)
+  push!(vnlbls, fg.sessionname)
+  dlapi.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs,fg.id)
@@ -208,7 +211,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 end
 
 function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
-                    ready::Int=1, api::DataLayerAPI=dlapi)
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels=ASCIIString[])
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -224,8 +227,11 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
     push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
+  fnlbls = deepcopy(labels)
+  push!(fnlbls, "FACTOR")
+  push!(fnlbls, fg.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
-  newvert = api.addvertex!(fg, newvert)  # used to be two be three lines up ##fg.g
+  newvert = api.addvertex!(fg, newvert, labels=fnlbls)  # used to be two be three lines up ##fg.g
   # idx=0
   for vert in Xi #f.Xi
     api.makeaddedge!(fg, vert, newvert)
@@ -256,7 +262,8 @@ function emptyFactorGraph()
                      0,
                      0,
                      nothing,
-                     Dict{Int64,Int64}() )
+                     Dict{Int64,Int64}(),
+                     "" )
     return fg
 end
 

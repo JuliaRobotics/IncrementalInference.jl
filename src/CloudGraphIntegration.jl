@@ -1,10 +1,12 @@
+# integration code for database usage via CloudGraphs.jl
 
-
-function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex)
+function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
+    labels=ASCIIString[])
   # if typeof(getData(exvert).fnc)==GenericMarginal
   #   error("Should not be here")
   # end
   cv = CloudGraphs.exVertex2CloudVertex(exvert);
+  cv.labels = labels
   CloudGraphs.add_vertex!(fgl.cg, cv);
   fgl.cgIDs[exvert.index] = cv.neo4jNodeId
   IncrementalInference.addGraphsVert!(fgl, exvert)
@@ -155,10 +157,11 @@ function removeGenericMarginals!(conn)
 end
 
 
-function getAllExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1)
+function getAllExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1, sessionname::AbstractString="")
 
   loadtx = transaction(conn)
-  query = "match (n) where n.ready=$(ready) and n.backendset=$(backendset) return n"
+  sn = length(sessionname) > 0 ? ":"*sessionname : ""
+  query = "match (n$(sn)) where n.ready=$(ready) and n.backendset=$(backendset) return n"
   # query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
   cph = loadtx(query, submit=true)
   ret = Array{Tuple{Int64,Int64},1}()
@@ -172,13 +175,14 @@ function getAllExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1)
 end
 
 # return array of tuples with exvertex and neo4j IDs for all poses
-function getPoseExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1)
+function getPoseExVertexNeoIDs(conn; ready::Int=1, backendset::Int=1, sessionname::AbstractString="")
   # TODO -- in query we can use return n.exVertexId, n.neo4jNodeId
   # TODO -- in query we can use n:POSE rather than length(n.MAP_est)=3
 
   loadtx = transaction(conn)
-  query = "match (n) where n.ready=$(ready) and n.backendset=$(backendset) and n.packedType = 'IncrementalInference.PackedVariableNodeData' and length(n.MAP_est)=3 return n"
-  # query = "match (n) where n.ready=1 and n.backendset=1 and not(n.packedType = 'IncrementalInference.FunctionNodeData{IncrementalInference.GenericMarginal}') return n"
+  # query = "match (n:$(sessionname)) where n.ready=$(ready) and n.backendset=$(backendset) and n.packedType = 'IncrementalInference.PackedVariableNodeData' and length(n.MAP_est)=3 return n"
+  sn = length(sessionname) > 0 ? ":"*sessionname : ""
+  query = "match (n$(sn)) where n:POSE and n.ready=$(ready) and n.backendset=$(backendset) return n"
   cph = loadtx(query, submit=true)
   ret = Array{Tuple{Int64,Int64},1}()
 
@@ -249,7 +253,7 @@ end
 
 function fullLocalGraphCopy!(fgl::FactorGraph, conn)
 
-  IDs = getAllExVertexNeoIDs(conn)
+  IDs = getAllExVertexNeoIDs(conn, sessionname=fgl.sessionname)
   if length(IDs) > 1
     cverts = Dict{Int64, CloudVertex}()
     unsorted = Int64[]
@@ -275,9 +279,10 @@ function fullLocalGraphCopy!(fgl::FactorGraph, conn)
   end
 end
 
-function setDBAllReady!(conn)
+function setDBAllReady!(conn, sessionname)
   loadtx = transaction(conn)
-  query = "match (n) where n.ready=0 set n.ready=1"
+  sn = length(sessionname) > 0 ? ":"*sessionname : ""
+  query = "match (n$(sn)) where n.ready=0 set n.ready=1"
   cph = loadtx(query, submit=true)
   loadresult = commit(loadtx)
   nothing
@@ -285,7 +290,7 @@ end
 
 # TODO --this will only work with DB version, introduces a bug
 function setDBAllReady!(fgl::FactorGraph)
-  setDBAllReady!(fgl.cg.neo4j.connection)
+  setDBAllReady!(fgl.cg.neo4j.connection, fgl.sessionname)
 end
 
 
