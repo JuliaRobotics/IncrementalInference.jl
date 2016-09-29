@@ -294,7 +294,8 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                 end
             end
         end
-        cliq.attributes["potentials"]=[cliq.attributes["potentials"];usefcts]
+        cliq.attributes["potentials"]=union(cliq.attributes["potentials"],usefcts)
+        # cliq.attributes["potentials"]=[cliq.attributes["potentials"];usefcts]
     end
     return nothing
 end
