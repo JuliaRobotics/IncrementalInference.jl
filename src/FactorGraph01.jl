@@ -491,19 +491,6 @@ end
 
 
 
-function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
-  for tp in usefcts
-    if tp[2].label == fct.label
-      # println("Skipping repeat of $(fct.label)")
-      return nothing
-    end
-  end
-  tpl = (fct.index, fct) #(lblid, fct, fid)
-  push!(usefcts, tpl )
-  nothing
-end
-
-
 function expandEdgeListNeigh!(fgl::FactorGraph,
                               vertdict::Dict{Int64,Graphs.ExVertex},
                               edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}})
