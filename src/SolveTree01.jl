@@ -114,7 +114,7 @@ end
 
 # add all potentials associated with this clique and vertid to dens
 function packFromLocalPotentials!(fgl::FactorGraph, dens::Array{BallTreeDensity,1}, cliq::Graphs.ExVertex, vertid::Int64, N::Int64)
-    for idfct in cliq.attributes["potentials"]
+    for idfct in cliq.attributes["data"].potentials
         vert = getVertNode(fgl, idfct)
         for vertidx in getData(vert).fncargvID #for vert in idfct[2].attributes["fnc"].Xi
         # for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
@@ -270,27 +270,27 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     d = Union{}
     mcmcdbg = Union{}
     if false
-      IDS = [inp.cliq.attributes["frontalIDs"];inp.cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
+      IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
     elseif true
-      dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
-      if length(inp.cliq.attributes["msgskipIDs"]) > 0
-        dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
+      dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directFrtlMsgIDs, N, 1)
+      if length(inp.cliq.attributes["data"].msgskipIDs) > 0
+        dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].msgskipIDs, N, 1)
         for md in dd d[md[1]] = md[2]; end
       end
-      if length(inp.cliq.attributes["itervarIDs"]) > 0
-        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
+      if length(inp.cliq.attributes["data"].itervarIDs) > 0
+        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].itervarIDs, N, 3)
         for md in ddd d[md[1]] = md[2]; end
       end
       # TODO -- do direct conditionals from msg also, before transits and iterations are done.
-      if length(inp.cliq.attributes["directvarIDs"]) > 0
-        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
+      if length(inp.cliq.attributes["data"].directvarIDs) > 0
+        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directvarIDs, N, 1)
         for md in dddd d[md[1]] = md[2]; end
       end
     end
 
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
-    m = upPrepOutMsg!(d, inp.cliq.attributes["conditIDs"])
+    m = upPrepOutMsg!(d, inp.cliq.attributes["data"].conditIDs)
 
     # Copy frontal variables back
     # for id in inp.cliq.attributes["frontalIDs"]
@@ -336,14 +336,14 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     # outDens = Array{BallTreeDensity,1}(length(allIDs))
     m = NBPMessage(Dict{Int64,EasyMessage}())
     i = 0
-    for vid in cliq.attributes["frontalIDs"]
+    for vid in cliq.attributes["data"].frontalIDs
         outp = kde!(d[vid], "lcv") # need to find new down msg bandwidths
         # i+=1
         # outDens[i] = outp
         bws = vec((getBW(outp))[:,1])
         m.p[vid] = EasyMessage(  deepcopy(d[vid]) , bws  )
     end
-    for cvid in cliq.attributes["conditIDs"]
+    for cvid in cliq.attributes["data"].conditIDs
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
@@ -356,7 +356,7 @@ end
 
 function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, N::Int=200, MCMCIter::Int=3)
     print("dwn")
-    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["frontalIDs"], N, MCMCIter)
+    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["data"].frontalIDs, N, MCMCIter)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
     mdbg = DebugCliqMCMC(mcmcdbg, m)
@@ -497,7 +497,7 @@ end
 
 function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
 
-  IDS = [cliq.attributes["frontalIDs"];cliq.attributes["conditIDs"]] #inp.cliq.attributes["frontalIDs"]
+  IDS = [cliq.attributes["data"].frontalIDs;cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
 
 
   error("findVertsAssocCliq -- not completed yet")
@@ -650,6 +650,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Array
     #cliq.attributes["remoteref"] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
     refdict[cliq.index] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
   else
+    # bad way to do non multi test
     cliq.attributes["remoteref"] = upGibbsCliqueDensity(pett, N)
   end
 
