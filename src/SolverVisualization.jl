@@ -17,7 +17,7 @@ end
 
 function drawMCMCDebug(cliq; offs=2.0)
     println("$(cliq.attributes["label"])")
-    cliqDbg = cliq.attributes["debug"]
+    cliqDbg = cliq.attributes["data"].debug
     MCd = 100.0/length(cliqDbg.mcmc)
     MCo=0.0
     minmax=[99999,-99999,-10,-99999.0]
@@ -48,7 +48,7 @@ function drawTreeUpwardMsgs(fgl::FactorGraph, bt::BayesTree; N=300)
         if cliq[1] == 1 println("No upward msgs from root."); continue; end
         @show cliq[2].attributes["label"]
         i+=1
-        vv[i] = drawHorDens(fgl, cliq[2].attributes["debug"].outmsg.p, N)
+        vv[i] = drawHorDens(fgl, cliq[2].attributes["data"].debug.outmsg.p, N)
     end
     #[r[j] = @spawn drawCliqueMsgs(bt.cliques[j+1]) for j in 1:len]
     #[vv[j] = fetch(r[j]) for j in 1:len]
@@ -62,7 +62,7 @@ function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
     i = 0
     for cliq in bt.cliques
         #@show cliq[2].attributes["label"]
-        lenfr = length(cliq[2].attributes["frontalIDs"])
+        lenfr = length(cliq[2].attributes["data"].frontalIDs)
 
         p = Array{BallTreeDensity,1}(lenfr)
         j=0
@@ -70,7 +70,7 @@ function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
         gtvals = Dict{Int,Array{Float64,2}}()
         lbls = ASCIIString[]
 
-        for frid in cliq[2].attributes["frontalIDs"]
+        for frid in cliq[2].attributes["data"].frontalIDs
             j+=1
             p[j] = getVertKDE(fg, frid) # getKDE(fg.v[frid])
             # p[j] = kde!(fg.v[frid].attributes["val"])
@@ -338,8 +338,8 @@ end
 
 function whosWith(cliq::Graphs.ExVertex)
   println("$(cliq.attributes["label"])")
-  for pot in cliq.attributes["potentials"]
-      println("$(pot[2])")
+  for pot in cliq.attributes["data"].potentials
+      println("$(pot)")
   end
   nothing
 end
@@ -350,12 +350,12 @@ end
 
 
 function drawUpMsgAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
-    for id in keys(cliq.attributes["debug"].outmsg.p)
+    for id in keys(cliq.attributes["data"].debug.outmsg.p)
         print("$(dlapi.getvertex(fg,id).attributes["label"]), ") #fg.v[id].
     end
     println("")
     sleep(0.1)
-    potens = cliq.attributes["debug"].outmsg.p
+    potens = cliq.attributes["data"].debug.outmsg.p
     vArrPotentials(potens)
 end
 
@@ -365,12 +365,12 @@ end
 
 # function drawDwnMsgAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
 function dwnMsgsAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
-  for id in keys(cliq.attributes["debugDwn"].outmsg.p)
+  for id in keys(cliq.attributes["data"].debugDwn.outmsg.p)
       print("$(dlapi.getvertex(fg,id).label), ") # fg.v[id].
   end
   println("")
   sleep(0.1)
-  potens = cliq.attributes["debugDwn"].outmsg.p
+  potens = cliq.attributes["data"].debugDwn.outmsg.p
   potens
 end
 
@@ -397,7 +397,7 @@ end
 
 function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
     whosWith(cliq)
-    cliqDbg = cliq.attributes["debug"]
+    cliqDbg = cliq.attributes["data"].debug
     sleep(0.1)
     mcmcPose2D!(plots, cliqDbg, iter)
 end
@@ -408,7 +408,7 @@ end
 
 function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs.ExVertex, iter::Int=1)
     whosWith(cliq)
-    cliqDbg = cliq.attributes["debugDwn"]
+    cliqDbg = cliq.attributes["data"].debugDwn
     sleep(0.1)
     mcmcPose2D!(plots, cliqDbg, iter)
 end

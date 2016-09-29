@@ -1,5 +1,28 @@
 
+type BayesTreeNodeData
+  frontalIDs::Vector{Int64}
+  conditIDs::Vector{Int64}
+  inmsgIDs::Vector{Int64}
+  potIDs::Vector{Int64} # this is likely redundant TODO -- remove
+  potentials::Vector{Int64}
+  cliqAssocMat::Array{Bool,2}
+  cliqMsgMat::Array{Bool,2}
+  directvarIDs::Vector{Int64}
+  directFrtlMsgIDs::Vector{Int64}
+  msgskipIDs::Vector{Int64}
+  itervarIDs::Vector{Int64}
+  debug
+  debugDwn
+  BayesTreeNodeData() = new()
+  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13])
+end
 
+function emptyBTNodeData()
+  BayesTreeNodeData(Int64[],Int64[],Int64[],
+                    Int64[],Int64[],Array{Bool,2}(),
+                    Array{Bool,2}(),Int64[],Int64[],
+                    Int64[],Int64[],nothing, nothing)
+end
 
 # BayesTree declarations
 type BayesTree
@@ -24,11 +47,17 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
-  clq.attributes["frontalIDs"] = Int[]
-  clq.attributes["conditIDs"] = Int[]
 
   clq.attributes["label"] = ""
-  clq.attributes["potentials"] = []
+  # Specific data container
+  clq.attributes["data"] = emptyBTNodeData()
+
+  # obsolete, use data container
+  # clq.attributes["frontalIDs"] = Int64[]
+  # clq.attributes["conditIDs"] = Int64[]
+  #
+  # clq.attributes["potentials"] = Int64[]
+
 
   appendClique!(bt, bt.btid, fg, varID, condIDs)
   return clq
@@ -39,10 +68,10 @@ function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int)
   clq = bt.cliques[clqID]
   flbl = ""
   clbl = ""
-  for fr in clq.attributes["frontalIDs"]
+  for fr in clq.attributes["data"].frontalIDs
     flbl = string(flbl,dlapi.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
   end
-  for cond in clq.attributes["conditIDs"]
+  for cond in clq.attributes["data"].conditIDs
     clbl = string(clbl, dlapi.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
@@ -52,7 +81,7 @@ end
 function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Int,1})
   #@show "adding conditionals", condIDs
   clq = bt.cliques[clqID]
-  clq.attributes["conditIDs"] = union(clq.attributes["conditIDs"], condIDs)
+  clq.attributes["data"].conditIDs = union(clq.attributes["data"].conditIDs, condIDs)
 end
 
 # Add a new frontal variable to clique
@@ -60,7 +89,7 @@ function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, c
   clq = bt.cliques[clqID]
   var = dlapi.getvertex(fg, varID) # fg.v[varID]
   # add frontal variable
-  push!(clq.attributes["frontalIDs"],varID)
+  push!(clq.attributes["data"].frontalIDs,varID)
   # total dictionary of frontals for easy access
   bt.frontals[var.attributes["label"]] = clqID#bt.btid
 
@@ -87,7 +116,7 @@ function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
   for cliqPair in bt.cliques
     id = cliqPair[1]
     cliq = cliqPair[2]
-    for frtl in cliq.attributes["frontalIDs"]
+    for frtl in cliq.attributes["data"].frontalIDs
       if frtl == frtlID
         return cliq
       end
@@ -122,7 +151,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
       felbl = dlapi.getvertex(fg,p[firstelim]).attributes["label"] # fg.v[p[firstelim]].
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
-      unFC = union(tree.cliques[CpID].attributes["frontalIDs"], tree.cliques[CpID].attributes["conditIDs"])
+      unFC = union(tree.cliques[CpID].attributes["data"].frontalIDs, tree.cliques[CpID].attributes["data"].conditIDs)
       if (sort(unFC) == sort(Sj))
         appendClique!(tree, CpID, fg, var)
       else
@@ -238,9 +267,25 @@ function whichCliq(bt::BayesTree, frt::ASCIIString)
 end
 
 
+function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
+  for tp in usefcts
+    if tp == fct.index
+    # if tp[2].label == fct.label
+      # println("Skipping repeat of $(fct.label)")
+      return nothing
+    end
+  end
+  tpl = fct.index
+  # tpl = (fct.index, fct) #(lblid, fct, fid)
+  push!(usefcts, tpl )
+  nothing
+end
+
+
+
 function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
-    frtl = cliq.attributes["frontalIDs"]
-    cond = cliq.attributes["conditIDs"]
+    frtl = cliq.attributes["data"].frontalIDs
+    cond = cliq.attributes["data"].conditIDs
     allids = [frtl;cond]
     alldimIDs = Int[]
     for fid in frtl
@@ -278,7 +323,8 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                 end
             end
         end
-        cliq.attributes["potentials"]=[cliq.attributes["potentials"];usefcts]
+        cliq.attributes["data"].potentials=union(cliq.attributes["data"].potentials,usefcts)
+        # cliq.attributes["potentials"]=[cliq.attributes["potentials"];usefcts]
     end
     return nothing
 end
@@ -289,8 +335,9 @@ end
 
 function cliqPotentialIDs(cliq::Graphs.ExVertex)
   potIDs = Int[]
-  for idfct in cliq.attributes["potentials"]
-    push!(potIDs,idfct[1])
+  for idfct in cliq.attributes["data"].potentials
+    push!(potIDs,idfct)
+    # push!(potIDs,idfct[1])
   end
   return potIDs
 end
@@ -299,22 +346,22 @@ function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
   allseps = Int[]
   for child in out_neighbors(cliq, bt.bt)#tree
     # if length(child.attributes["conditIDs"]) > 0
-      allseps = [allseps; child.attributes["conditIDs"]]
+      allseps = [allseps; child.attributes["data"].conditIDs]
     # end
   end
   return allseps
 end
 
-function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
-  frtl = cliq.attributes["frontalIDs"]
-  cond = cliq.attributes["conditIDs"]
+function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
+  frtl = cliq.attributes["data"].frontalIDs
+  cond = cliq.attributes["data"].conditIDs
   inmsgIDs = collectSeparators(bt, cliq)
   potIDs = cliqPotentialIDs(cliq)
   # Construct associations matrix here
   # matrix has variables are columns, and messages/constraints as rows
   cols = [frtl;cond]
-  cliq.attributes["inmsgIDs"] = inmsgIDs
-  cliq.attributes["potIDs"] = potIDs
+  cliq.attributes["data"].inmsgIDs = inmsgIDs
+  cliq.attributes["data"].potIDs = potIDs
   cliqAssocMat = Array{Bool,2}(length(potIDs), length(cols))
   cliqMsgMat = Array{Bool,2}(length(inmsgIDs), length(cols))
   fill!(cliqAssocMat, false)
@@ -326,9 +373,11 @@ function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
       end
     end
     for i in 1:length(potIDs)
-      idfct = cliq.attributes["potentials"][i]
-      if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
-        for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+      idfct = cliq.attributes["data"].potentials[i]
+      if idfct == potIDs[i] # sanity check on clique potentials ordering
+        for vertidx in getData(getVertNode(fgl, idfct)).fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+      # if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
+      #   for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -343,14 +392,14 @@ function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
       end
     end
   end
-  cliq.attributes["cliqAssocMat"] = cliqAssocMat
-  cliq.attributes["cliqMsgMat"] = cliqMsgMat
+  cliq.attributes["data"].cliqAssocMat = cliqAssocMat
+  cliq.attributes["data"].cliqMsgMat = cliqMsgMat
   nothing
 end
 
 function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  assocMat = cliq.attributes["cliqAssocMat"]
-  msgMat = cliq.attributes["cliqMsgMat"]
+  assocMat = cliq.attributes["data"].cliqAssocMat
+  msgMat = cliq.attributes["data"].cliqMsgMat
   mat = showmsg ? [assocMat;msgMat] : assocMat
   # @show size(mat), size(assocMat), size(msgMat)
   return mat
@@ -372,59 +421,59 @@ function countSkips(bt::BayesTree)
 end
 
 function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
-  numfrtl1 = floor(Int,length(cliq.attributes["frontalIDs"])+1)
-  condAssocMat = cliq.attributes["cliqAssocMat"][:,numfrtl1:end]
-  condMsgMat = cliq.attributes["cliqMsgMat"][:,numfrtl1:end]
+  numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
+  condAssocMat = cliq.attributes["data"].cliqAssocMat[:,numfrtl1:end]
+  condMsgMat = cliq.attributes["data"].cliqMsgMat[:,numfrtl1:end]
   mat = [condAssocMat;condMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,condMsgMat),1) .== 1
   mab = mab & mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliq.attributes["conditIDs"][collect(mab)]
+  msgidx = cliq.attributes["data"].conditIDs[collect(mab)]
   return msgidx
 end
 
 function directAssignmentIDs(cliq::Graphs.ExVertex)
-  assocMat = cliq.attributes["cliqAssocMat"]
-  msgMat = cliq.attributes["cliqMsgMat"]
+  assocMat = cliq.attributes["data"].cliqAssocMat
+  msgMat = cliq.attributes["data"].cliqMsgMat
   mat = [assocMat;msgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabA = sum(map(Int,assocMat),1) .== 1
   mab = mab & mabA
-  frtl = cliq.attributes["frontalIDs"]
-  cond = cliq.attributes["conditIDs"]
+  frtl = cliq.attributes["data"].frontalIDs
+  cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
   return cols[collect(mab)]
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
-  numfrtl = length(cliq.attributes["frontalIDs"])
-  frntAssocMat = cliq.attributes["cliqAssocMat"][:,1:numfrtl]
-  frtlMsgMat = cliq.attributes["cliqMsgMat"][:,1:numfrtl]
+  numfrtl = length(cliq.attributes["data"].frontalIDs)
+  frntAssocMat = cliq.attributes["data"].cliqAssocMat[:,1:numfrtl]
+  frtlMsgMat = cliq.attributes["data"].cliqMsgMat[:,1:numfrtl]
   mat = [frntAssocMat; frtlMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,frtlMsgMat),1) .== 1
   mab = mab & mabM
-  return cliq.attributes["frontalIDs"][collect(mab)]
+  return cliq.attributes["data"].frontalIDs[collect(mab)]
 end
 
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
-  assocMat = cliq.attributes["cliqAssocMat"]
-  msgMat = cliq.attributes["cliqMsgMat"]
+  assocMat = cliq.attributes["data"].cliqAssocMat
+  msgMat = cliq.attributes["data"].cliqMsgMat
   mat = [assocMat;msgMat];
   sum(sum(map(Int,mat),1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),1)
-  frtl = cliq.attributes["frontalIDs"]
-  cond = cliq.attributes["conditIDs"]
+  frtl = cliq.attributes["data"].frontalIDs
+  cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
   return cols[collect(mab)]
 end
 
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
-  cliq.attributes["itervarIDs"] = mcmcIterationIDs(cliq)
-  cliq.attributes["msgskipIDs"] = skipThroughMsgsIDs(cliq)
-  cliq.attributes["directvarIDs"] = directAssignmentIDs(cliq)
-  cliq.attributes["directFrtlMsgIDs"] = directFrtlMsgIDs(cliq)
+  cliq.attributes["data"].itervarIDs = mcmcIterationIDs(cliq)
+  cliq.attributes["data"].msgskipIDs = skipThroughMsgsIDs(cliq)
+  cliq.attributes["data"].directvarIDs = directAssignmentIDs(cliq)
+  cliq.attributes["data"].directFrtlMsgIDs = directFrtlMsgIDs(cliq)
   nothing
 end
 
@@ -446,7 +495,7 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     println("Get potentials $(cliq.attributes["label"])");
     getCliquePotentials!(fg, bt, cliq);
 
-    compCliqAssocMatrices!(bt, cliq);
+    compCliqAssocMatrices!(fg, bt, cliq);
     setCliqMCIDs!(cliq);
 
     return Union{}
