@@ -339,7 +339,7 @@ end
 function whosWith(cliq::Graphs.ExVertex)
   println("$(cliq.attributes["label"])")
   for pot in cliq.attributes["potentials"]
-      println("$(pot[2])")
+      println("$(pot)")
   end
   nothing
 end

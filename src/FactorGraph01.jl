@@ -44,6 +44,7 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   nothing
 end
 
+
 # function setDefaultNodeDataOld!(v::Graphs.ExVertex, initval::Array{Float64,2},
 #                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
 #   pN = Union{}
@@ -461,19 +462,6 @@ function writeGraphPdf(fgl::FactorGraph)
 end
 
 
-
-
-function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
-  for tp in usefcts
-    if tp[2].label == fct.label
-      # println("Skipping repeat of $(fct.label)")
-      return nothing
-    end
-  end
-  tpl = (fct.index, fct) #(lblid, fct, fid)
-  push!(usefcts, tpl )
-  nothing
-end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,

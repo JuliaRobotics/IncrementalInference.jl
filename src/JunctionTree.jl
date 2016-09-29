@@ -24,11 +24,11 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
-  clq.attributes["frontalIDs"] = Int[]
-  clq.attributes["conditIDs"] = Int[]
+  clq.attributes["frontalIDs"] = Int64[]
+  clq.attributes["conditIDs"] = Int64[]
 
   clq.attributes["label"] = ""
-  clq.attributes["potentials"] = []
+  clq.attributes["potentials"] = Int64[]
 
   appendClique!(bt, bt.btid, fg, varID, condIDs)
   return clq
@@ -238,6 +238,22 @@ function whichCliq(bt::BayesTree, frt::ASCIIString)
 end
 
 
+function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
+  for tp in usefcts
+    if tp == fct.index
+    # if tp[2].label == fct.label
+      # println("Skipping repeat of $(fct.label)")
+      return nothing
+    end
+  end
+  tpl = fct.index
+  # tpl = (fct.index, fct) #(lblid, fct, fid)
+  push!(usefcts, tpl )
+  nothing
+end
+
+
+
 function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
     frtl = cliq.attributes["frontalIDs"]
     cond = cliq.attributes["conditIDs"]
@@ -290,7 +306,8 @@ end
 function cliqPotentialIDs(cliq::Graphs.ExVertex)
   potIDs = Int[]
   for idfct in cliq.attributes["potentials"]
-    push!(potIDs,idfct[1])
+    push!(potIDs,idfct)
+    # push!(potIDs,idfct[1])
   end
   return potIDs
 end
@@ -305,7 +322,7 @@ function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
   return allseps
 end
 
-function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
+function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
   frtl = cliq.attributes["frontalIDs"]
   cond = cliq.attributes["conditIDs"]
   inmsgIDs = collectSeparators(bt, cliq)
@@ -327,8 +344,10 @@ function compCliqAssocMatrices!(bt::BayesTree, cliq::Graphs.ExVertex)
     end
     for i in 1:length(potIDs)
       idfct = cliq.attributes["potentials"][i]
-      if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
-        for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+      if idfct == potIDs[i] # sanity check on clique potentials ordering
+        for vertidx in getData(getVertNode(fgl, idfct)).fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+      # if idfct[2].index == potIDs[i] # sanity check on clique potentials ordering
+      #   for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -446,7 +465,7 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     println("Get potentials $(cliq.attributes["label"])");
     getCliquePotentials!(fg, bt, cliq);
 
-    compCliqAssocMatrices!(bt, cliq);
+    compCliqAssocMatrices!(fg, bt, cliq);
     setCliqMCIDs!(cliq);
 
     return Union{}
