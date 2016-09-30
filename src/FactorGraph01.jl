@@ -249,8 +249,8 @@ end
 
 
 function emptyFactorGraph()
-    fg = FactorGraph(Graphs.inclist(Graphs.ExVertex,is_directed=false),
-                     Graphs.inclist(Graphs.ExVertex,is_directed=true),
+    fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                     Graphs.incdict(Graphs.ExVertex,is_directed=true),
                      Dict{Int,Graphs.ExVertex}(),
                      Dict{Int,Graphs.ExVertex}(),
                      Dict{AbstractString,Int}(),
@@ -276,19 +276,42 @@ end
 # for computing the Bayes Net-----------------------------------------------------
 function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     s = fg.nodeIDs
+    lens = length(s)
     sf = fg.factorIDs
-    A=convert(Array{Int},adjacency_matrix(fg.g))[sf,s] # TODO -- order seems brittle
-    p = Int[]
-    if ordering==:chol
-      p = cholfact(A'A,:U,Val{true})[:p] #,pivot=true
-    elseif ordering==:qr
-      q,r,p = qr(A,Val{true})
-    else
-      prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+    lensf = length(sf)
+    adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
+    permuteds = Vector{Int64}(lens)
+    permutedsf = Vector{Int64}(lensf)
+    for j in 1:length(dictpermu)
+      semap = 0
+      for i in 1:lens
+        if dictpermu[j] == s[i]
+          permuteds[i] = dictpermu[j]
+          semap += 1
+          if semap >= 2  break; end
+        end
+      end
+      for i in 1:lensf
+        if dictpermu[j] == sf[i]
+          permutedsf[i] = dictpermu[j]
+          semap += 1
+          if semap >= 2  break; end
+        end
+      end
     end
 
+      A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
+      p = Int[]
+      if ordering==:chol
+        p = cholfact(A'A,:U,Val{true})[:p] #,pivot=true
+      elseif ordering==:qr
+        q,r,p = qr(A,Val{true})
+      else
+        prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+      end
+
     # we need the IDs associated with the Graphs.jl and our Type fg
-    return fg.nodeIDs[p]
+    return permuteds[p] # fg.nodeIDs[p]
 end
 
 
@@ -531,6 +554,7 @@ function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
   return edgedict
 end
 
+# TODO -- convert to use add_vertex! instead, since edges type must be made also
 function addVerticesSubgraph(fgl::FactorGraph,
     fgseg::FactorGraph,
     vertdict::Dict{Int64,Graphs.ExVertex})
@@ -585,6 +609,7 @@ function genSubgraph(fgl::FactorGraph,
   fgseg.IDs = Dict{AbstractString,Int}()
   fgseg.fIDs = Dict{AbstractString,Int}()
 
+  # TODO -- convert to use empty constructor since Graphs.incdict now works
   fgseg.g.vertices = Array{Graphs.ExVertex,1}(length(fgl.g.vertices))
   fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(length(fgl.g.inclist))
 

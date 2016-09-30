@@ -214,7 +214,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
   # now update all factor graph vertices used for this tree
-  for v in fg.g.vertices
+  for v in vertices(fg.g) #fg.g.vertices
     dlapi.updatevertex!(fg, v)
   end
 
@@ -236,7 +236,7 @@ function resetData!(vdata::FunctionNodeData)
 end
 
 function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in fg.g.vertices
+  for v in vertices(fg.g) #fg.g.vertices
     resetData!(getData(v))
     localapi.updatevertex!(fg, v)
   end

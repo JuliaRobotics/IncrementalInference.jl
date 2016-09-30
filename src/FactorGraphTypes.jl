@@ -6,9 +6,11 @@ abstract Singleton
 
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
+typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
+
 
 type FactorGraph
-  g::FGG
+  g::FGGdict
   bn
   v::Dict{Int,Graphs.ExVertex} # TODO -- remove
   f::Dict{Int,Graphs.ExVertex} # TODO -- remove
