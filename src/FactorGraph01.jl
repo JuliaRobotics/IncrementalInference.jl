@@ -248,25 +248,6 @@ function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairw
 end
 
 
-function emptyFactorGraph()
-    fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                     Graphs.incdict(Graphs.ExVertex,is_directed=true),
-                     Dict{Int,Graphs.ExVertex}(),
-                     Dict{Int,Graphs.ExVertex}(),
-                     Dict{AbstractString,Int}(),
-                     Dict{AbstractString,Int}(),
-                     0,
-                     [],
-                     [],
-                     Dict{Int,Graphs.ExVertex}(),
-                     0,
-                     0,
-                     nothing,
-                     Dict{Int64,Int64}(),
-                     "" )
-    return fg
-end
-
 function prtslperr(s)
   println(s)
   sleep(0.1)

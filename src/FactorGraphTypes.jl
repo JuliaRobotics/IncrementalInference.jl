@@ -44,6 +44,25 @@ type FactorGraph
     x[15] )
 end
 
+function emptyFactorGraph()
+    fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                     Graphs.incdict(Graphs.ExVertex,is_directed=true),
+                     Dict{Int,Graphs.ExVertex}(),
+                     Dict{Int,Graphs.ExVertex}(),
+                     Dict{AbstractString,Int}(),
+                     Dict{AbstractString,Int}(),
+                     0,
+                     [],
+                     [],
+                     Dict{Int,Graphs.ExVertex}(),
+                     0,
+                     0,
+                     nothing,
+                     Dict{Int64,Int64}(),
+                     "" )
+    return fg
+end
+
 type VariableNodeData
   initval::Array{Float64,2}
   initstdev::Array{Float64,2}
