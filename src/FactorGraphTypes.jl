@@ -17,7 +17,7 @@ type FactorGraph
   IDs::Dict{AbstractString,Int}
   fIDs::Dict{AbstractString,Int}
   id::Int64
-  nodeIDs::Array{Int,1} # TODO -- ordering seems brittle
+  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
   factorIDs::Array{Int,1}
   bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used

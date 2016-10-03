@@ -27,7 +27,7 @@ type CliqGibbsMC
     # CliqGibbsMC(x) = new(x)
 end
 type DebugCliqMCMC
-    mcmc::Array{CliqGibbsMC,1}
+    mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
     # DebugCliqMCMC() = new()
     # DebugCliqMCMC(x...) = new(x[1],x[2])
@@ -269,13 +269,11 @@ end
 
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     print("up w $(length(inp.sendmsgs)) msgs")
-    # Loval mcmc over belief functions
+    # Local mcmc over belief functions
     # this is so slow! TODO Can be ignored once we have partial working
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
-    d = Union{}
-    mcmcdbg = Union{}
-    # mcmcdbg = [CliqGibbsMC()]
+    d, mcmcdbg = nothing, nothing  #Union{} # mcmcdbg = [CliqGibbsMC()]
 
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
