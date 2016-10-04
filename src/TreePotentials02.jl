@@ -77,51 +77,43 @@ end
 function evalPotential(odom::Pose2Pose2, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     rz,cz = size(odom.Zij)
     Xval = Array{Float64,2}()
+    XvalNull = Array{Float64,2}()
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
         Z = se2vee(SE2(vec(odom.Zij)) \ eye(3))
         Xval = getVal(Xi[2])
+        XvalNull = getVal(Xi[1])
     elseif Xid == Xi[2].index
         Z = odom.Zij
         Xval = getVal(Xi[1])
+        XvalNull = getVal(Xi[2])
     else
         error("Bad evalPairwise Pose2Pose2")
     end
 
     r,c = size(Xval)
     RES = zeros(r,c*cz)
-    # cov = diag(odom.Cov)
-
-    # increases the number of particles based on the number of modes in the measurement Z
-    # dd = c*cz
-    # ENT = randn(dd, 3) # this should be the covariate error from Distributions
-    # for d in 1:dd
-    #   ENT[:,d] = ENT[:,d].*cov[d]
-    # end
-    #di = 1.0/(c+1)
-    # for i in 1:dd
-    #     # ent = 1.0*[randn()*cov[1]; randn()*cov[2]; randn()*cov[3]] # TODO -- should be mvnormal, but more expensive
-    #     idx = floor(Int,i*di+1) #floor(Int,i/(c+1)+1)
-    #     RES[:,i] = addPose2Pose2(Xval[:,i], (Z[:,idx]+ENT[:,i]) )
-    # end
 
     # TODO -- this should be the covariate error from Distributions, only using diagonals here (approxmition for speed in first implementation)
     # dd = size(Z,1) == r
     ENT = randn(r,c)
+    HYP = rand(Categorical(odom.W),c) # TODO consolidate
+    HYP -= length(odom.W)>1 ? 1 : 0
     for d in 1:r
        @fastmath @inbounds ENT[d,:] = ENT[d,:].*odom.Cov[d,d]
     end
     # Repeat ENT values for new modes from meas
     for j in 1:cz
       for i in 1:c
+        if HYP[i]==1 # TODO consolidate hypotheses on Categorical
           z = Z[1:r,j].+ENT[1:r,i]
-          # addPose2Pose2!(RES[1:r,i*j], Xval[1:r,i], z ) # doesn't seem to work between modules
           RES[1:r,i*j] = addPose2Pose2(Xval[1:r,i], z )
-          #sum(abs(RES[1:r,i*j])) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- RET col is zero, z=$(z), X=$(Xval[1:r,i])") : nothing
+        else
+          RES[1:r,i*j] = XvalNull[1:r,i]
+        end
       end
     end
-    #sum(abs(RES)) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- an input is zero") : nothing
 
     return RES
 end

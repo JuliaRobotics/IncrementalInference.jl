@@ -24,14 +24,14 @@ function getExVertFromCloud(fgl::FactorGraph, lbl::ASCIIString; bigdata::Bool=fa
 end
 
 function updateFullCloudVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex)
+    nv::Graphs.ExVertex; updateMAPest=false)
 
   # TODO -- this get_vertex seems excessive, but we need the CloudVertex
   neoID = fgl.cgIDs[nv.index]
   # println("updateFullCloudVertData! -- trying to get $(neoID)")
   vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
 
-  if typeof(getData(nv)) == VariableNodeData
+  if typeof(getData(nv)) == VariableNodeData && updateMAPest
     mv = getKDEMax(getKDE(nv))
     nv.attributes["MAP_est"] = mv
     # @show nv.attributes["MAP_est"]

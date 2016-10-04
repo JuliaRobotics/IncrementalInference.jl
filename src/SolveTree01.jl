@@ -386,7 +386,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
         # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
-        dlapi.updatevertex!(fg, updvert)
+        dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
 end

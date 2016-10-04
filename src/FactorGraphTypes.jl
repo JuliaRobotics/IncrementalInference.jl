@@ -196,7 +196,7 @@ end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex)
+    nv::Graphs.ExVertex; updateMAPest=false)
 
   # not required, since we using reference -- placeholder function CloudGraphs interface
   # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
