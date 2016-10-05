@@ -296,6 +296,17 @@ function FNDdecode(d::FunctionNodeData{PackedPose2DPoint2DBearingRange})
 end
 
 
+# ------------------------------------------------------
+type Pose2DPoint2DRange <: Pairwise
+    Zij::Vector{Float64} # bearing and range hypotheses as columns
+    Cov::Float64
+    W::Vector{Float64}
+    Pose2DPoint2DRange() = new()
+    Pose2DPoint2DRange(x...) = new(x[1],x[2],x[3])
+end
+function passTypeThrough(d::FunctionNodeData{Pose2DPoint2DRange})
+  return d
+end
 
 
 # ------------------------------------------------------
