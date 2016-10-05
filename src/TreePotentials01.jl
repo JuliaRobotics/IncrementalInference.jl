@@ -108,11 +108,10 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
         error("Bad evalPairwise Ranged")
     end
 
-
     r,c = size(Xval)
     cz = size(rang.Zij,1)
     RES = zeros(r,c*cz)
-
+    
     for i in 1:(c*cz) # for each mode in the measurement
         ent = rang.Cov[1]*randn(size(vec(Z[:,floor(Int,i/(c+1)+1)])))
         RES[:,i] = rangeAdd(Xval[:,i], ent+Z[floor(Int,i/(c+1)+1)])
@@ -122,7 +121,7 @@ end
 
 
 
-function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=300)#, from::Int64)
+function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
     # @show obs.bws, typeof(obs.bws)
     pd = kde!(obs.pts, obs.bws[:,1])
     return KernelDensityEstimate.sample(pd,N)[1]
