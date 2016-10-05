@@ -267,14 +267,14 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
       semap = 0
       for i in 1:lens
         if dictpermu[j] == s[i]
-          permuteds[i] = dictpermu[j]
+          permuteds[i] = j#dictpermu[j]
           semap += 1
           if semap >= 2  break; end
         end
       end
       for i in 1:lensf
         if dictpermu[j] == sf[i]
-          permutedsf[i] = dictpermu[j]
+          permutedsf[i] = j#dictpermu[j]
           semap += 1
           if semap >= 2  break; end
         end
@@ -292,7 +292,7 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
       end
 
     # we need the IDs associated with the Graphs.jl and our Type fg
-    return permuteds[p] # fg.nodeIDs[p]
+    return  dictpermu[permuteds[p]] # fg.nodeIDs[p]
 end
 
 
