@@ -309,6 +309,51 @@ function passTypeThrough(d::FunctionNodeData{Pose2DPoint2DRange})
 end
 
 
+
+
+# ---------------------------------------------------------
+
+type PriorPoint2D <: Singleton
+    mv::MvNormal
+    W::Array{Float64,1}
+    PriorPoint2D() = new()
+    PriorPoint2D(mu, cov, W) = new(MvNormal(mu, cov), W)
+end
+type PackedPriorPoint2D
+    mu::Array{Float64,1}
+    vecCov::Array{Float64,1}
+    dimc::Int64
+    W::Array{Float64,1}
+    PackedPriorPoint2D() = new()
+    PackedPriorPoint2D(x...) = new(x[1], x[2], x[3], x[4])
+end
+function convert(::Type{PriorPoint2D}, d::PackedPriorPoint2D)
+  Cov = reshapeVec2Mat(d.vecCov, d.dimc)
+  return PriorPoint2D(d.mu, Cov, d.W)
+end
+function convert(::Type{PackedPriorPoint2D}, d::PriorPoint2D)
+  v2 = d.mv.Σ.mat[:];
+  return PackedPriorPoint2D(d.mv.μ, v2, size(d.mv.Σ.mat,1), d.W)
+end
+
+function convert(::Type{FunctionNodeData{PackedPriorPoint2D}}, d::FunctionNodeData{PriorPoint2D})
+  return FunctionNodeData{PackedPriorPoint2D}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          convert(PackedPriorPoint2D, d.fnc))
+end
+function convert(::Type{FunctionNodeData{PriorPoint2D}}, d::FunctionNodeData{PackedPriorPoint2D})
+  return FunctionNodeData{PriorPoint2D}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          convert(PriorPoint2D, d.fnc))
+end
+function FNDencode(d::FunctionNodeData{PriorPoint2D})
+  return convert(FunctionNodeData{PackedPriorPoint2D}, d)
+end
+function FNDdecode(d::FunctionNodeData{PackedPriorPoint2D})
+  return convert(FunctionNodeData{PriorPoint2D}, d)
+end
+
+
+
+
 # ------------------------------------------------------
 
 
