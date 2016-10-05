@@ -49,11 +49,14 @@ println("[TEST] Pose3 evaluations...")
 include("threeDimLinearProductTest.jl")
 println("[SUCCESS]")
 
+println("[TEST] Pose2 evaluations...")
+include("testConstraints.jl")
+println("[SUCCESS]")
 
 if true
   println("[TEST] with CloudGraphs data layer (multicore)...")
   include("fourdoortestcloudgraph.jl")
-  println("[SUCESS]")
+  println("[SUCCESS]")
 else
   warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
 end

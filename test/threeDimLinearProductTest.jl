@@ -59,13 +59,13 @@ stdX1 = Base.std(getVal(fg,"x1"),2)
 @test sum(map(Int,abs(muX1[1:3]) .< 1.0)) == 3
 @test sum(map(Int,abs(muX1[4:6]) .< 0.1)) == 3
 @test sum(map(Int, 0.5 .< stdX1[1:3] .< 1.5)) == 3
-@test sum(map(Int, 0.05 .< stdX1[4:6] .< 0.15)) == 3
+@test sum(map(Int, 0.025 .< stdX1[4:6] .< 0.25)) == 3
 muX2 = Base.mean(getVal(fg,"x2"),2)
 stdX2 = Base.std(getVal(fg,"x2"),2)
 @test sum(map(Int, abs(muX2[1:3]-[10.0;0;0]) .< 1.0)) == 3
 @test sum(map(Int, abs(muX2[4:6]) .< 0.1)) == 3
 @test sum(map(Int, 1.0 .< stdX2[1:3] .< 2.0)) == 3
-@test sum(map(Int, 0.1 .< stdX2[4:6] .< 0.2)) == 3
+@test sum(map(Int, 0.05 .< stdX2[4:6] .< 0.25)) == 3
 
 # println("Plot marginals to see what is happening")
 # plotKDE(marginal(getVertKDE(fg,"x1"),[1]))
