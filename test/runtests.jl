@@ -48,7 +48,7 @@ println("Conversions and comparisons agree")
 if false
   println("[TEST] with CloudGraphs data layer (multicore)...")
   include("fourdoortestcloudgraph.jl")
-  println("[SUCESS]")
+  println("[SUCCESS]")
 else
   warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
 end
