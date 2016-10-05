@@ -329,7 +329,9 @@ function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xi
 end
 
 
-
+function evalPotential(prior::PriorPoint2D, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
+    return rand(prior.mv, N)
+end
 
 
 

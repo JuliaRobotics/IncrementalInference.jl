@@ -79,6 +79,7 @@ export
   addPose2Pose2,
   Pose2DPoint2DBearingRange,
   Pose2DPoint2DRange,
+  PriorPoint2D,
   PackedPose2DPoint2DBearingRange,
   solveLandm,
   solvePose2,
