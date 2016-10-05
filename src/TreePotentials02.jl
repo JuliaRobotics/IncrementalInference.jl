@@ -296,3 +296,38 @@ function evalPotentialNew(brpho::Pose2DPoint2DBearingRange, Xi::Array{Graphs.ExV
 
     return [val';nhvals']'
 end
+
+
+
+# Solve for Xid, given values from vertices [Xi] and measurement rho
+function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+  fromX = nothing
+  if Xi[1].index == Xid
+    fromX = getVal( Xi[2] )
+  elseif Xi[2].index == Xid
+    fromX = getVal( Xi[1] )
+  end
+  r,c = size(fromX)
+  theta = 2*pi*rand(c)
+  noisy = rho.Cov*randn(c) + rho.Zij[1]
+
+  ret = deepcopy(fromX) # carry pose yaw row over if required
+  for i in 1:c
+    ret[1,i] = noisy[i]*cos(theta[i]) + fromX[1,i]
+    ret[2,i] = noisy[i]*sin(theta[i]) + fromX[2,i]
+  end
+
+  return ret
+end
+
+
+
+
+
+
+
+
+
+
+
+#

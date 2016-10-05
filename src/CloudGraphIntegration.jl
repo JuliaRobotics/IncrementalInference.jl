@@ -137,6 +137,7 @@ function registerGeneralVariableTypes!(cloudGraph)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{PriorPose2}, FunctionNodeData{PackedPriorPose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2Pose2}, FunctionNodeData{PackedPose2Pose2}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
   CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2DPoint2DBearingRange}, FunctionNodeData{PackedPose2DPoint2DBearingRange}, encodingConverter=FNDencode, decodingConverter=FNDdecode)
+  CloudGraphs.registerPackedType!(cloudGraph, FunctionNodeData{Pose2DPoint2DRange}, FunctionNodeData{Pose2DPoint2DRange}, encodingConverter=passTypeThrough, decodingConverter=passTypeThrough)
   # TODO -- Pose3 stuff
   nothing
 end
@@ -302,8 +303,6 @@ function setBackendWorkingSet!(conn, sessionname::AbstractString)
   loadresult = commit(loadtx)
   nothing
 end
-
-
 
 
 

@@ -20,17 +20,9 @@ This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2
 Installation
 ------------
 
-Pre-install TransformUtils, as we currently moving all transform utilities to common place (not yet tagged in the Package manager)
-
-    pkg.clone("https://github.com/dehann/TransformUtils.jl.git")
-
-And now install the main package with:
+Install the package with:
 
     Pkg.add("IncrementalInference")
-
-It will be useful to also install these two packages
-
-    for p in ["Cairo"; "Fontconfig"]  Pkg.add(p) end
 
 Basic example
 =============

@@ -83,13 +83,14 @@ export
   PackedPose2Pose2,
   addPose2Pose2,
   Pose2DPoint2DBearingRange,
+  Pose2DPoint2DRange,
   PackedPose2DPoint2DBearingRange,
   solveLandm,
   solvePose2,
   solveSetSeps,
   addPose2Pose2!,
   uppA,
-  convert, # for magic protobuf stuff
+  convert, # for protobuf stuff
   compare,
 
   # Going to move to RoME.jl in future
