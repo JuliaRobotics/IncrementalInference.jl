@@ -9,7 +9,7 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 
 This code is still in development (and fixing bugs as we go along).
 
-[Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work.
+[Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work, and a [video example](https://vimeo.com/190052649) for multi-modal SLAM.
 
 Introduction
 ------------
