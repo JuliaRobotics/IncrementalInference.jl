@@ -158,17 +158,54 @@ function pack3(xL1, xL2, p1, p2, p3, xF3)
     return X
 end
 
-function solveLandm(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
-    return (nlsolve(   (l, res) -> bearrang!(res, Zbr, par, l), init )).zero
+function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+	return (nlsolve(   (X, res) -> residFnc(res, measurement, parameters, X), x0 )).zero
 end
 
+
+function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
+		n = length(X)
+    Y = deepcopy(Alt)
+		for i in 1:d
+			Y[p[i]] = X[i]
+		end
+    return Y
+end
+
+# use residual function to approximate the convolution of conditional belief with existing
+# belief estimate from fixed to x. Conditional belief is described by Pairwise measurement
+# zDim == length(sample(measurement))
+function numericRootGenericRandomized(residFnc::Function, measurement::Vector{Float64},
+			fixed::Vector{Float64}, x0::Vector{Float64}, zDim::Int; perturb::Float64=0.01 )
+
+	# z = getSample(meas)
+  dims = length(x0)
+	if zDim < dims
+		p = collect(1:dims);
+		shuffle!(p);
+		# p1 = p.==1; p2 = p.==2; p3 = p.==3
+		r = nlsolve(    (x, res) -> residFnc(res, measurement,
+                    ( shuffleXAltD(x, x0, zDim, p), fixed) ),
+                    x0[p[1:zDim]] + perturb*randn(zDim)   )
+    return shuffleXAltD(r.zero, x0, zDim, p );
+	else
+    return (nlsolve(   (x, res) -> residFnc(res, measurement, (fixed, x) ), x0  )).zero
+	end
+end
+
+function solveLandm(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
+    return numericRoot(bearrang!, Zbr, par, init)
+    # return (nlsolve(   (l, res) -> bearrang!(res, Zbr, par, l), init )).zero
+end
+
+# old numeric residual function for pose 2 to pose 2 constraint function.
 function solvePose2(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
+    # TODO -- rework to ominus oplus and residual type method
     p = collect(1:3);
     shuffle!(p);
     p1 = p.==1; p2 = p.==2; p3 = p.==3
     #@show init, par
-    r = nlsolve(    (x, res) -> bearrang!(res, Zbr,
-                    pack3(x[1], x[2], p1, p2, p3, init[p3]), par),
+    r = nlsolve(    (x, res) -> bearrang!(res, Zbr,  pack3(x[1], x[2], p1, p2, p3, init[p3]), par),
                     [init[p1];init[p2]] )
     return pack3(r.zero[1], r.zero[2], p1, p2, p3, init[p3]);
 end
