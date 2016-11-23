@@ -75,6 +75,10 @@ export
     #development interface
     upMsgPassingRecursive,
 
+  Singleton,
+  Pairwise,
+  numericRoot,
+  numericRootGenericRandomized,
   GenericMarginal,
   #Robot stuff
   PriorPose2,
