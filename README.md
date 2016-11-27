@@ -12,24 +12,26 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 
 This code is still in development (and fixing bugs as we go along).
 
-[Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work, and a [video example](https://vimeo.com/190052649) for multi-modal SLAM.
+[Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work, and a video example:
 
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmisamvid01.gif" alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
-
-Introduction
-------------
-
-This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2] and parametric inference techniques. Inference is performed from a graphical model standpoint, where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
-
-
-![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png)
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmisamvid01.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" border="10" /></a>
 
 Installation
 ------------
 
 Install the package with
 
-    Pkg.add("IncrementalInference")
+Pkg.add("IncrementalInference")
+
+Introduction
+------------
+
+This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2] and parametric inference techniques. Inference is performed from a graphical model standpoint, where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
+
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" border="10" /></a>
+
+<!-- ![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png) -->
+
 
 Basic example
 =============
