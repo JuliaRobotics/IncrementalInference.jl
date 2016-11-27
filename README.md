@@ -14,6 +14,8 @@ This code is still in development (and fixing bugs as we go along).
 
 [Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work, and a [video example](https://vimeo.com/190052649) for multi-modal SLAM.
 
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmisamvid01.gif" alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
+
 Introduction
 ------------
 
