@@ -53,7 +53,7 @@ println("[TEST] Pose2 evaluations...")
 include("testConstraints.jl")
 println("[SUCCESS]")
 
-if true
+if false
   println("[TEST] with CloudGraphs data layer (multicore)...")
   include("fourdoortestcloudgraph.jl")
   println("[SUCCESS]")

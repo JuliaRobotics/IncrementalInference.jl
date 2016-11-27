@@ -113,7 +113,7 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     r,c = size(Xval)
     cz = size(rang.Zij,1)
     RES = zeros(r,c*cz)
-    
+
     for i in 1:(c*cz) # for each mode in the measurement
         ent = rang.Cov[1]*randn(size(vec(Z[:,floor(Int,i/(c+1)+1)])))
         RES[:,i] = rangeAdd(Xval[:,i], ent+Z[floor(Int,i/(c+1)+1)])

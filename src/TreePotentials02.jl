@@ -342,7 +342,7 @@ function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xi
   if Xi[1].index == Xid
     fromX = getVal( Xi[2] )
     ret = deepcopy(getVal( Xi[1] )) # carry pose yaw row over if required
-    ret[3,:] = 2*pi*rand(c)-pi
+    ret[3,:] = 2*pi*rand(size(fromX,2))-pi
   elseif Xi[2].index == Xid
     fromX = getVal( Xi[1] )
     ret = deepcopy(getVal( Xi[2] )) # carry pose yaw row over if required
@@ -350,7 +350,6 @@ function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xi
   r,c = size(fromX)
   theta = 2*pi*rand(c)
   noisy = rho.Cov*randn(c) + rho.Zij[1]
-
 
   for i in 1:c
     ret[1,i] = noisy[i]*cos(theta[i]) + fromX[1,i]
@@ -384,7 +383,6 @@ function evalPotential(rho::Point2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, X
     ret[1,i] = noisy[i]*cos(theta[i]) + fromX[1,i]
     ret[2,i] = noisy[i]*sin(theta[i]) + fromX[2,i]
   end
-
   return ret
 end
 

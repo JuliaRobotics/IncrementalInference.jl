@@ -25,9 +25,10 @@ This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2
 Installation
 ------------
 
-Install the package with:
+Install the package with, and you will need latest master branch of Graphs.jl:
 
     Pkg.add("IncrementalInference")
+    Pkg.checkout("Graphs")
 
 Basic example
 =============
