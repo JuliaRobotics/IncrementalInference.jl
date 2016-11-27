@@ -175,14 +175,14 @@ type PackedPriorPose2
     PackedPriorPose2(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
 function convert(::Type{PriorPose2}, d::PackedPriorPose2)
-  Zij = reshapeVec2Mat(d.vecZij,d.dimz)
+  Zi = reshapeVec2Mat(d.vecZij,d.dimz)
   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
-  return PriorPose2(Zij, Cov, d.W)
+  return PriorPose2(Zi, Cov, d.W)
 end
 function convert(::Type{PackedPriorPose2}, d::PriorPose2)
-  v1 = d.Zij[:];
+  v1 = d.Zi[:];
   v2 = d.Cov[:];
-  return PackedPriorPose2(v1,size(d.Zij,1),
+  return PackedPriorPose2(v1,size(d.Zi,1),
                           v2,size(d.Cov,1),
                           d.W)
 end
@@ -223,7 +223,7 @@ type PackedPose2Pose2
 end
 function convert(::Type{Pose2Pose2}, d::PackedPose2Pose2)
   return Pose2Pose2(reshapeVec2Mat(d.vecZij,d.dimz),
-                    reshapeVec2Mat(d.vecCov, d.dimc), W)
+                    reshapeVec2Mat(d.vecCov, d.dimc), d.W)
 end
 function convert(::Type{PackedPose2Pose2}, d::Pose2Pose2)
   v1 = d.Zij[:];

@@ -1,7 +1,12 @@
+# integration code for database usage via CloudGraphs.jl
 
-
-function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex)
+function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
+    labels=ASCIIString[])
+  # if typeof(getData(exvert).fnc)==GenericMarginal
+  #   error("Should not be here")
+  # end
   cv = CloudGraphs.exVertex2CloudVertex(exvert);
+  cv.labels = labels
   CloudGraphs.add_vertex!(fgl.cg, cv);
   fgl.cgIDs[exvert.index] = cv.neo4jNodeId
   IncrementalInference.addGraphsVert!(fgl, exvert)
@@ -19,15 +24,30 @@ function getExVertFromCloud(fgl::FactorGraph, lbl::ASCIIString; bigdata::Bool=fa
 end
 
 function updateFullCloudVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex)
+    nv::Graphs.ExVertex; updateMAPest=false)
 
   # TODO -- this get_vertex seems excessive, but we need the CloudVertex
-  neoID =fgl.cgIDs[nv.index]
+  neoID = fgl.cgIDs[nv.index]
   # println("updateFullCloudVertData! -- trying to get $(neoID)")
   vert = CloudGraphs.get_vertex(fgl.cg, neoID, false)
-  vert.packed = nv.attributes["data"]
+
+  if typeof(getData(nv)) == VariableNodeData && updateMAPest
+    mv = getKDEMax(getKDE(nv))
+    nv.attributes["MAP_est"] = mv
+    # @show nv.attributes["MAP_est"]
+  end
+
   # TODO -- ignoring other properties
+  vert.packed = nv.attributes["data"]
+  for pair in nv.attributes
+    if pair[1] != "data"
+      vert.properties[pair[1]] = pair[2]
+    end
+  end
+
+  # also make sure our local copy is updated, need much better refactoring here
   fgl.g.vertices[nv.index].attributes["data"] = nv.attributes["data"]
+
   CloudGraphs.update_vertex!(fgl.cg, vert)
 end
 
@@ -45,19 +65,28 @@ function makeAddCloudEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExV
   retrel.id
 end
 
-# return list of neighbors as Graphs.ExVertex type
-function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
-  # @show vert.index
-  # @show fgl.cgIDs
-  cgid = fgl.cgIDs[vert.index]
+
+# TODO -- fetching of CloudVertex propably not required, make faster request to @GearsAD
+function getCloudOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1)
+  cgid = fgl.cgIDs[exVertId]
   cv = CloudGraphs.get_vertex(fgl.cg, cgid, false)
   neighs = CloudGraphs.get_neighbors(fgl.cg, cv)
   neExV = Graphs.ExVertex[]
   for n in neighs
-    push!(neExV,  CloudGraphs.cloudVertex2ExVertex(n))
+    cgn = CloudGraphs.cloudVertex2ExVertex(n)
+    if cgn.attributes["ready"] == ready && cgn.attributes["backendset"] == backendset
+      push!(neExV, cgn )
+    end
   end
   return neExV
 end
+
+# return list of neighbors as Graphs.ExVertex type
+function getCloudOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1)
+  # TODO -- test for ready and backendset here
+  getCloudOutNeighbors(fgl, vert.index, ready=ready,backendset=backendset)
+end
+
 
 function getEdgeFromCloud(fgl::FactorGraph, id::Int64)
   println("getting id=$(id)")
@@ -91,7 +120,7 @@ function setCloudDataLayerAPI!()
   dlapi.deleteedge! = deleteCloudEdge!
   dlapi.cgEnabled = true
 
-  println("Changed internal API calls to use CloudGraphs in appropriate places.")
+  println("Changed internal API calls to use CloudGraphs calls.")
   nothing
 end
 

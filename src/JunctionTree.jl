@@ -69,10 +69,10 @@ function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int)
   flbl = ""
   clbl = ""
   for fr in clq.attributes["data"].frontalIDs
-    flbl = string(flbl,dlapi.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
+    flbl = string(flbl,localapi.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
   end
   for cond in clq.attributes["data"].conditIDs
-    clbl = string(clbl, dlapi.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
+    clbl = string(clbl, localapi.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -87,7 +87,7 @@ end
 # Add a new frontal variable to clique
 function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
   clq = bt.cliques[clqID]
-  var = dlapi.getvertex(fg, varID) # fg.v[varID]
+  var = localapi.getvertex(fg, varID) # fg.v[varID]
   # add frontal variable
   push!(clq.attributes["data"].frontalIDs,varID)
   # total dictionary of frontals for easy access
@@ -95,7 +95,7 @@ function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, c
 
   appendConditional(bt, clqID, condIDs)
   makeCliqueLabel(fg, bt, clqID)
-  Union{}
+  nothing #Union{}
 end
 
 
@@ -129,8 +129,8 @@ end
 # eliminate a variable for new
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     #@show fg.v[var].attributes["label"]
-    firvert = dlapi.getvertex(fg,var)
-    if (length(firvert.attributes["data"].separator) == 0) #fg.v[var].
+    firvert = localapi.getvertex(fg,var)
+    if (length(getData(firvert).separator) == 0) #fg.v[var].
       warn("newPotential -- sep length is 0")
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
@@ -138,7 +138,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
         appendClique!(tree, 1, fg, var) # add to root
       end
     else
-      Sj = firvert.attributes["data"].separator  # fg.v[var].
+      Sj = getData(firvert).separator  # fg.v[var].
       # Sj = fg.v[var].attributes["separator"]
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
@@ -148,7 +148,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
           firstelim = temp
         end
       end
-      felbl = dlapi.getvertex(fg,p[firstelim]).attributes["label"] # fg.v[p[firstelim]].
+      felbl = localapi.getvertex(fg, p[firstelim]).attributes["label"] # fg.v[p[firstelim]].
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       unFC = union(tree.cliques[CpID].attributes["data"].frontalIDs, tree.cliques[CpID].attributes["data"].conditIDs)
@@ -182,7 +182,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   #     print("$(fg.v[v].label),")
   # end
   println()
-
+  @show p
   fge = deepcopy(fg)
   println("Building Bayes net...")
   buildBayesNet!(fge, p)
@@ -213,6 +213,11 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   cliq = tree.cliques[1] # start at the root
   buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
+  # now update all factor graph vertices used for this tree
+  for v in vertices(fg.g) #fg.g.vertices
+    dlapi.updatevertex!(fg, v)
+  end
+
   return tree
 end
 
@@ -231,9 +236,9 @@ function resetData!(vdata::FunctionNodeData)
 end
 
 function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in fg.g.vertices
+  for v in vertices(fg.g) #fg.g.vertices
     resetData!(getData(v))
-    dlapi.updatevertex!(fg, v)
+    localapi.updatevertex!(fg, v)
   end
 
   # for v in fg.v
@@ -257,9 +262,9 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
   nothing
 end
 
-function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr)
+function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
   resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering);
+  return prepBatchTree!(fg, ordering=ordering, drawpdf=true);
 end
 
 function whichCliq(bt::BayesTree, frt::ASCIIString)
@@ -289,25 +294,25 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
     allids = [frtl;cond]
     alldimIDs = Int[]
     for fid in frtl
-      alldimIDs = [alldimIDs;dlapi.getvertex(fg,fid).attributes["data"].dimIDs] # ;fg.v[fid].
+      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,fid)).dimIDs] # ;fg.v[fid].
       # alldimIDs = [alldimIDs;fg.v[fid].attributes["dimIDs"]]
     end
     for cid in cond
-      alldimIDs = [alldimIDs;dlapi.getvertex(fg,cid).attributes["data"].dimIDs] # ;fg.v[cid].
+      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,cid)).dimIDs] # ;fg.v[cid].
       # alldimIDs = [alldimIDs;fg.v[cid].attributes["dimIDs"]]
     end
 
     for fid in frtl
         usefcts = []
-        for fct in dlapi.outneighbors(fg, dlapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
+        for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid)) #out_neighbors(dlapi.getvertex(fg,fid),fg.g) # (fg.v[fid],
             #println("Checking fct=$(fct.label)")
-            if fct.attributes["data"].potentialused!=true #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
-                loutn = dlapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
+            if getData(fct).potentialused!=true # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
+                loutn = localapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
                 if length(loutn)==1
                     appendUseFcts!(usefcts, fg.IDs[loutn[1].label], fct, fid) #out_neighbors(fct, fg.g)
                     # TODO -- make update vertex call
                     fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
-                    dlapi.updatevertex!(fg, fct)
+                    localapi.updatevertex!(fg, fct)
                 end
                 for sepSearch in loutn # out_neighbors(fct, fg.g)
                     if (fg.IDs[sepSearch.label] == fid)
@@ -318,7 +323,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                         appendUseFcts!(usefcts, fg.IDs[sepSearch.label], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sepSearch.label], fct, fid)]
                         fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
-                        dlapi.updatevertex!(fg, fct)
+                        localapi.updatevertex!(fg, fct)
                     end
                 end
             end
@@ -498,5 +503,5 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     compCliqAssocMatrices!(fg, bt, cliq);
     setCliqMCIDs!(cliq);
 
-    return Union{}
+    nothing #return Union{}
 end

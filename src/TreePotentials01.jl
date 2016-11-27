@@ -2,6 +2,7 @@
 
 # DX = [tx,ty]
 function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
+    # TODO -- this really needs to be cleaned up and optimized! Rather do separate Point2Point2 constraint.
     len = length(X)
     A = eye(3)
     #@show A[2,3] = X[2]
@@ -36,6 +37,7 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     # increases the number of particles based on the number of modes in the measurement Z
     for i in 1:(c*cz)
         ent = diag(odom.Cov).*randn(size(vec(Z[:,floor(Int,i/(c+1)+1)])))
+        # RES[:,i] = Xval[:,i] + ent+Z[:,floor(Int,i/(c+1)+1)]
         RES[:,i] = odoAdd(Xval[:,i], ent+Z[:,floor(Int,i/(c+1)+1)])
     end
     return RES
@@ -111,7 +113,7 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     r,c = size(Xval)
     cz = size(rang.Zij,1)
     RES = zeros(r,c*cz)
-    
+
     for i in 1:(c*cz) # for each mode in the measurement
         ent = rang.Cov[1]*randn(size(vec(Z[:,floor(Int,i/(c+1)+1)])))
         RES[:,i] = rangeAdd(Xval[:,i], ent+Z[floor(Int,i/(c+1)+1)])

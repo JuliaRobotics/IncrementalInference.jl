@@ -67,7 +67,6 @@ stdX2 = Base.std(getVal(fg,"x2"),2)
 @test sum(map(Int, 1.0 .< stdX2[1:3] .< 2.0)) == 3
 @test sum(map(Int, 0.05 .< stdX2[4:6] .< 0.25)) == 3
 
-
 # println("Plot marginals to see what is happening")
 # plotKDE(marginal(getVertKDE(fg,"x1"),[1]))
 # plotKDE(marginal(getVertKDE(fg,"x2"),[1]))

@@ -1,29 +1,33 @@
 # a basic create robot type node example
-
 using IncrementalInference, CloudGraphs
 
 # switch IncrementalInference to use CloudGraphs (Neo4j) data layer
-dbaddress = "localhost"
-dbusr = ""
-dbpwd = ""
-mongoaddress = "localhost"
-session = ""
+dbaddress = length(ARGS) > 0 ? ARGS[1] : "localhost"
+dbusr = length(ARGS) > 1 ? ARGS[2] : ""
+dbpwd = length(ARGS) > 2 ? ARGS[3] : ""
+
+mongoaddress = length(ARGS) > 3 ? ARGS[4] : "localhost"
+
+session = length(ARGS) > 4 ? utf8(ARGS[5]) : ""
 println("Attempting to solve session $(session)...")
+
 
 configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, dbusr, dbpwd, mongoaddress, 27017, false, "", "");
 cloudGraph = connect(configuration);
 # Connection to database
 conn = cloudGraph.neo4j.connection
 
+
 # register types of interest in CloudGraphs
 registerGeneralVariableTypes!(cloudGraph)
 
 IncrementalInference.setCloudDataLayerAPI!()
 
+
 # this is being replaced by cloudGraph, added here for development period
 fg = emptyFactorGraph()
 fg.cg = cloudGraph
-fg.sessionname = "SESSTEST"
+fg.sessionname = "SESSCLOUDTEST"
 
 # Robot navigation and inference type stuff
 N=200
@@ -46,6 +50,13 @@ f1 = addFactor!(fg,[v1;v2],Odo([50.0]',[2.0]',[1.0]))
 v3=addNode!(fg,"x3",4.0*randn(1,N)+getVal(v2)+50.0, N=N,labels=["POSE"])
 addFactor!(fg,[v2;v3],Odo([50.0]',[4.0]',[1.0]))
 f2 = addFactor!(fg,[v3], Obsv2(doors, cov', [1.0]))
+
+# set this part of graph to ready for solving
+setDBAllReady!(conn, fg.sessionname)
+
+println("Waiting for initial solve to occur")
+sleep(10)
+
 
 v4=addNode!(fg,"x4",2.0*randn(1,N)+getVal(v3)+50.0, N=N,labels=["POSE"])
 addFactor!(fg,[v3;v4],Odo([50.0]',[2.0]',[1.0]))
@@ -70,18 +81,9 @@ addFactor!(fg,[v6;v7],Odo([60.0]',[2.0]',[1.0]))
 
 f3 = addFactor!(fg,[v7], Obsv2(doors, cov', [1.0]))
 
+# release the rest
+setDBAllReady!(conn, fg.sessionname)
 
-# Now operate with the data in the DB
-
-tree = prepBatchTree!(fg,drawpdf=true)
-
-# recursive solving (single process, easy stack trace for debugging)
-inferOverTree!(fg, tree)
-
-
-# get vertex back from DB
-# x1neoID = fg.cgIDs[fg.IDs["x1"]]
-# cv1r = CloudGraphs.get_vertex(fg.cg, x1neoID, false)
 
 # Get neighbors
 # neighs = CloudGraphs.get_neighbors(fg.cg, cv1r)
@@ -95,18 +97,3 @@ gt["x5"]=([200.0; 1.77992 ]')' # 198.62
 gt["x6"]=([240.0; 2.20466 ]')' # 238.492
 gt["x7"]=([300.0; 2.14353 ]')' # 298.467
 gt["l1"]=([165.0; 1.17284 ]')' # 164.102
-
-
-
-# draw all beliefs
-using Gadfly
-
-DOYTICKS = false
-xx,ll = ls(fg)
-msgPlots = drawHorBeliefsList(fg, xx, gt=gt,nhor=2);
-evalstr = ""
-for i in 1:length(msgPlots)
-    evalstr = string(evalstr, ",msgPlots[$(i)]")
-end
-pl = eval(parse(string("vstack(",evalstr[2:end],")")));
-Gadfly.draw(PDF("cg4doors.pdf",15cm,20cm),pl) # can also do PNG

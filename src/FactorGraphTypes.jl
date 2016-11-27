@@ -6,6 +6,8 @@ abstract Singleton
 
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
+typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
+
 
 type FactorGraph
   g::FGG
@@ -15,13 +17,14 @@ type FactorGraph
   IDs::Dict{AbstractString,Int}
   fIDs::Dict{AbstractString,Int}
   id::Int64
-  nodeIDs::Array{Int,1} # TODO -- ordering seems brittle
+  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
   factorIDs::Array{Int,1}
   bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used
   dimID::Int64
   cg
   cgIDs::Dict{Int64,Int64}
+  sessionname::UTF8String
   FactorGraph() = new()
   FactorGraph(x...) = new(
     x[1],
@@ -37,7 +40,27 @@ type FactorGraph
     x[11],
     x[12],
     x[13],
-    x[14] )
+    x[14],
+    x[15] )
+end
+
+function emptyFactorGraph()
+    fg = FactorGraph(Graphs.inclist(Graphs.ExVertex,is_directed=false),
+                     Graphs.inclist(Graphs.ExVertex,is_directed=true),
+                     Dict{Int,Graphs.ExVertex}(),
+                     Dict{Int,Graphs.ExVertex}(),
+                     Dict{AbstractString,Int}(),
+                     Dict{AbstractString,Int}(),
+                     0,
+                     [],
+                     [],
+                     Dict{Int,Graphs.ExVertex}(),
+                     0,
+                     0,
+                     nothing,
+                     Dict{Int64,Int64}(),
+                     "" )
+    return fg
 end
 
 type VariableNodeData
@@ -141,7 +164,8 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return compare(a,b)
 end
 
-function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex)
+function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
+    labels=ASCIIString[])
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
@@ -169,22 +193,10 @@ end
 #   nothing
 # end
 
-# not currently used
-# function updateVertData!(fgl::FactorGraph,
-#     id::Int64,
-#     updlist::Dict{UTF8String,Any})
-#     #Array{ASCIIString,1}([string(fn) for fn in fieldnames(VariableNodeData)]))
-#
-#   vdata = getVertNode(fgl, id).attributes["data"]
-#   for item in updlist
-#     eval(:(vdata.$(parse(item[1]))=$(item[2])))
-#   end
-#   nothing
-# end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex)
+    nv::Graphs.ExVertex; updateMAPest=false)
 
   # not required, since we using reference -- placeholder function CloudGraphs interface
   # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
@@ -199,8 +211,11 @@ function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex
   edge
 end
 
-function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex)
+function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1)
   Graphs.out_neighbors(vert, fgl.g)
+end
+function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1)
+  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId))
 end
 
 function graphsGetEdge(fgl::FactorGraph, id::Int64)

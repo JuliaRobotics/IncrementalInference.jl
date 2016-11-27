@@ -77,51 +77,43 @@ end
 function evalPotential(odom::Pose2Pose2, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     rz,cz = size(odom.Zij)
     Xval = Array{Float64,2}()
+    XvalNull = Array{Float64,2}()
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
         #Z = (odom.Zij\eye(rz)) # this will be used for group operations
         Z = se2vee(SE2(vec(odom.Zij)) \ eye(3))
         Xval = getVal(Xi[2])
+        XvalNull = getVal(Xi[1])
     elseif Xid == Xi[2].index
         Z = odom.Zij
         Xval = getVal(Xi[1])
+        XvalNull = getVal(Xi[2])
     else
         error("Bad evalPairwise Pose2Pose2")
     end
 
     r,c = size(Xval)
     RES = zeros(r,c*cz)
-    # cov = diag(odom.Cov)
-
-    # increases the number of particles based on the number of modes in the measurement Z
-    # dd = c*cz
-    # ENT = randn(dd, 3) # this should be the covariate error from Distributions
-    # for d in 1:dd
-    #   ENT[:,d] = ENT[:,d].*cov[d]
-    # end
-    #di = 1.0/(c+1)
-    # for i in 1:dd
-    #     # ent = 1.0*[randn()*cov[1]; randn()*cov[2]; randn()*cov[3]] # TODO -- should be mvnormal, but more expensive
-    #     idx = floor(Int,i*di+1) #floor(Int,i/(c+1)+1)
-    #     RES[:,i] = addPose2Pose2(Xval[:,i], (Z[:,idx]+ENT[:,i]) )
-    # end
 
     # TODO -- this should be the covariate error from Distributions, only using diagonals here (approxmition for speed in first implementation)
     # dd = size(Z,1) == r
     ENT = randn(r,c)
+    HYP = rand(Categorical(odom.W),c) # TODO consolidate
+    HYP -= length(odom.W)>1 ? 1 : 0
     for d in 1:r
        @fastmath @inbounds ENT[d,:] = ENT[d,:].*odom.Cov[d,d]
     end
     # Repeat ENT values for new modes from meas
     for j in 1:cz
       for i in 1:c
+        if HYP[i]==1 # TODO consolidate hypotheses on Categorical
           z = Z[1:r,j].+ENT[1:r,i]
-          # addPose2Pose2!(RES[1:r,i*j], Xval[1:r,i], z ) # doesn't seem to work between modules
           RES[1:r,i*j] = addPose2Pose2(Xval[1:r,i], z )
-          #sum(abs(RES[1:r,i*j])) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- RET col is zero, z=$(z), X=$(Xval[1:r,i])") : nothing
+        else
+          RES[1:r,i*j] = XvalNull[1:r,i]
+        end
       end
     end
-    #sum(abs(RES)) < 1e-14 ? error("evalPotential(odom::Pose2Pose2..) -- an input is zero") : nothing
 
     return RES
 end
@@ -158,17 +150,54 @@ function pack3(xL1, xL2, p1, p2, p3, xF3)
     return X
 end
 
-function solveLandm(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
-    return (nlsolve(   (l, res) -> bearrang!(res, Zbr, par, l), init )).zero
+function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+	return (nlsolve(   (X, res) -> residFnc(res, measurement, parameters, X), x0 )).zero
 end
 
+
+function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
+		n = length(X)
+    Y = deepcopy(Alt)
+		for i in 1:d
+			Y[p[i]] = X[i]
+		end
+    return Y
+end
+
+# use residual function to approximate the convolution of conditional belief with existing
+# belief estimate from fixed to x. Conditional belief is described by Pairwise measurement
+# zDim == length(sample(measurement))
+function numericRootGenericRandomized(residFnc::Function, measurement::Vector{Float64},
+			fixed::Vector{Float64}, x0::Vector{Float64}, zDim::Int; perturb::Float64=0.01 )
+
+	# z = getSample(meas)
+  dims = length(x0)
+	if zDim < dims
+		p = collect(1:dims);
+		shuffle!(p);
+		# p1 = p.==1; p2 = p.==2; p3 = p.==3
+		r = nlsolve(    (x, res) -> residFnc(res, measurement,
+                    ( shuffleXAltD(x, x0, zDim, p), fixed) ),
+                    x0[p[1:zDim]] + perturb*randn(zDim)   )
+    return shuffleXAltD(r.zero, x0, zDim, p );
+	else
+    return (nlsolve(   (x, res) -> residFnc(res, measurement, (fixed, x) ), x0  )).zero
+	end
+end
+
+function solveLandm(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
+    return numericRoot(bearrang!, Zbr, par, init)
+    # return (nlsolve(   (l, res) -> bearrang!(res, Zbr, par, l), init )).zero
+end
+
+# old numeric residual function for pose 2 to pose 2 constraint function.
 function solvePose2(Zbr::Array{Float64,1}, par::Array{Float64,1}, init::Array{Float64,1})
+    # TODO -- rework to ominus oplus and residual type method
     p = collect(1:3);
     shuffle!(p);
     p1 = p.==1; p2 = p.==2; p3 = p.==3
     #@show init, par
-    r = nlsolve(    (x, res) -> bearrang!(res, Zbr,
-                    pack3(x[1], x[2], p1, p2, p3, init[p3]), par),
+    r = nlsolve(    (x, res) -> bearrang!(res, Zbr,  pack3(x[1], x[2], p1, p2, p3, init[p3]), par),
                     [init[p1];init[p2]] )
     return pack3(r.zero[1], r.zero[2], p1, p2, p3, init[p3]);
 end
@@ -313,7 +342,7 @@ function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xi
   if Xi[1].index == Xid
     fromX = getVal( Xi[2] )
     ret = deepcopy(getVal( Xi[1] )) # carry pose yaw row over if required
-    ret[3,:] = 2*pi*rand(c)-pi
+    ret[3,:] = 2*pi*rand(size(fromX,2))-pi
   elseif Xi[2].index == Xid
     fromX = getVal( Xi[1] )
     ret = deepcopy(getVal( Xi[2] )) # carry pose yaw row over if required
@@ -321,7 +350,6 @@ function evalPotential(rho::Pose2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, Xi
   r,c = size(fromX)
   theta = 2*pi*rand(c)
   noisy = rho.Cov*randn(c) + rho.Zij[1]
-
 
   for i in 1:c
     ret[1,i] = noisy[i]*cos(theta[i]) + fromX[1,i]
@@ -355,7 +383,6 @@ function evalPotential(rho::Point2DPoint2DRange, Xi::Array{Graphs.ExVertex,1}, X
     ret[1,i] = noisy[i]*cos(theta[i]) + fromX[1,i]
     ret[2,i] = noisy[i]*sin(theta[i]) + fromX[2,i]
   end
-
   return ret
 end
 

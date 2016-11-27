@@ -574,8 +574,11 @@ function ls(fgl::FactorGraph, lbl::ASCIIString)
     return ls
   end
   v = dlapi.getvertex(fgl,id) #fgl.v[id]
-  for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    push!(ls, outn.label)
+  # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+  for outn in getOutNeighbors(fgl, v) # out_neighbors(v, fgl.g)
+    # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
+      push!(ls, outn.label)
+    # end
   end
   return ls
 end

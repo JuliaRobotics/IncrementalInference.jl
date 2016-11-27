@@ -10,8 +10,8 @@ using
   NLsolve,
   Distributions,
   KernelDensityEstimate,
-  TransformUtils#,
-  #CloudGraphs
+  TransformUtils
+  # CloudGraphs, Neo4j
 
 export
   # actual CloudGraphs integration experimental code
@@ -29,6 +29,7 @@ export
   addNode!,
   addFactor!,
   resetData!,
+  getVert,
   getData,
   getVarNode,
   getVal,
@@ -36,7 +37,8 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
-  updateVertData!,
+  updateFullVert!,
+  getOutNeighbors,
   BayesTree,
   EasyMessage,
   NBPMessage,
@@ -45,6 +47,9 @@ export
   subgraphShortestPath,
   subgraphFromVerts,
   getEliminationOrder,
+  buildBayesNet!,
+  emptyBayesTree,
+  buildTree!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
@@ -70,6 +75,10 @@ export
     #development interface
     upMsgPassingRecursive,
 
+  Singleton,
+  Pairwise,
+  numericRoot,
+  numericRootGenericRandomized,
   GenericMarginal,
   #Robot stuff
   PriorPose2,
@@ -104,7 +113,31 @@ export
   projectParticles,
 
   # dev exports
-  addGraphsVert!
+  addGraphsVert!,
+  makeAddEdge!,
+
+  # CloudGraph stuff
+  registerGeneralVariableTypes!,
+  fullLocalGraphCopy!,
+  removeGenericMarginals!,
+  setBackendWorkingSet!,
+  setDBAllReady!,
+  getExVertFromCloud,
+  getAllExVertexNeoIDs,
+  getPoseExVertexNeoIDs,
+  copyAllNodes!,
+  copyAllEdges!,
+
+  # DIDSON sonar model
+LinearRangeBearingElevation,
+project!,
+project,
+backprojectRandomized!,
+residual!,
+ominus,
+evalPotential,
+getSample
+
 
 
 include("FactorGraphTypes.jl")
@@ -116,6 +149,7 @@ include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
 include("TreePotentials03.jl")
+include("SensorModels.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 

@@ -18,13 +18,19 @@ type PotProd
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
+    # PotProd() = new()
+    # PotProd(x...) = new(x[1],x[2],x[3])
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
+    # CliqGibbsMC() = new()
+    # CliqGibbsMC(x) = new(x)
 end
 type DebugCliqMCMC
-    mcmc::Array{CliqGibbsMC,1}
+    mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
+    # DebugCliqMCMC() = new()
+    # DebugCliqMCMC(x...) = new(x[1],x[2])
 end
 
 type UpReturnBPType
@@ -263,12 +269,12 @@ end
 
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     print("up w $(length(inp.sendmsgs)) msgs")
-    # Loval mcmc over belief functions
+    # Local mcmc over belief functions
     # this is so slow! TODO Can be ignored once we have partial working
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
-    d = Union{}
-    mcmcdbg = Union{}
+    d, mcmcdbg = nothing, nothing  #Union{} # mcmcdbg = [CliqGibbsMC()]
+
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3)
@@ -318,6 +324,9 @@ end
 
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, Array{Float64,2}})
     # pack all downcoming conditionals in a dictionary too.
+    if cliq.index != 1
+      println("Dwn msg keys $(keys(dwnMsgs[1].p))")
+    end # ignore root, now incoming dwn msg
     print("Outgoing msg density on: ")
     # cdwndict = Dict{Int64, BallTreeDensity}()
     # for cvid in cliq.attributes["conditIDs"] # root has no parent
@@ -347,6 +356,8 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
+        println("")
+        # println("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
 
@@ -374,12 +385,13 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
-        dlapi.updatevertex!(fg, updvert)
+        # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
+        dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
 end
 
+# TODO -- use Union{} for two types, rather than separate functions
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpReturnBPType)
     # if dlapi.cgEnabled
     #   return nothing
@@ -388,8 +400,11 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
+      # p = kde!(deepcopy(dat[2]))
+      # setValKDE!(updvert, p) # TODO -- not sure if deepcopy is required
+      # mv = getKDEMax(p)
+      # updvert.attributes["MAP_est"] = mv
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-      # fg.v[dat[1]].attributes["val"] = deepcopy(dat[2]) # inp.
       dlapi.updatevertex!(fg, updvert)
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
