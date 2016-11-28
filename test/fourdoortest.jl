@@ -60,7 +60,7 @@ gt["x7"]=([300.0; 2.14353 ]')' # 298.467
 gt["l1"]=([165.0; 1.17284 ]')' # 164.102
 
 
-tree = prepBatchTree!(fg);
+tree = prepBatchTree!(fg, drawpdf=true);
 
 # list vertices in fg
 @show xx,ll = ls(fg)

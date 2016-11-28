@@ -1,6 +1,6 @@
 module IncrementalInference
 
-blas_set_num_threads(2)
+BLAS.set_num_threads(2)
 
 using
   Graphs,

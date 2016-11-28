@@ -229,7 +229,7 @@ end
 #     print("Outgoing msg density on: ")
 #     len = length(IDs)
 #     m = NBPMessage(Dict{Int64,EasyMessage}()) #Int64[], BallTreeDensity[]
-#   rr = Array{RemoteRef,1}()
+#   rr = Array{Future,1}()
 #     i = 0
 #     for vid in IDs
 #         i+=1
@@ -305,10 +305,11 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     # @show getVal(inp.fg.v[1])
 
     mdbg = DebugCliqMCMC(mcmcdbg, m)
+    println("upGibbsCliqueDensity YOU ARE HERE")
     return UpReturnBPType(m, mdbg, d)
 end
 # else
-#   rr = Array{RemoteRef,1}(4)
+#   rr = Array{Future,1}(4)
 #   rr[1] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
 #   rr[2] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
 #   rr[3] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
@@ -419,7 +420,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200)
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter) #dwnMsg
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT)
 
-    # rr = Array{RemoteRef,1}()
+    # rr = Array{Future,1}()
     pcs = procs()
 
     ddt=Union{}
@@ -533,7 +534,7 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
     nothing
 end
 
-function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, stkcnt::Int64, refdict::Dict{Int64,RemoteRef}; N::Int=200)
+function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, stkcnt::Int64, refdict::Dict{Int64,Future}; N::Int=200)
   #ddt = visitNode(nodedata[2])
   #updateFG!(nodedata[2], ddt)
   cliq = parentStack[stkcnt]
@@ -565,7 +566,7 @@ function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{
   nothing
 end
 
-function processPreOrderStack!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, refdict::Dict{Int64,RemoteRef}; N::Int=200)
+function processPreOrderStack!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, refdict::Dict{Int64,Future}; N::Int=200)
     # dwn message passing function for iterative tree exploration
     # @show length(parentStack)
     stkcnt = 0
@@ -582,14 +583,15 @@ end
 function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200)
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
-  refdict = Dict{Int64,RemoteRef}()
+  refdict = Dict{Int64,Future}()
 
   # start at the given clique in the tree -- shouldn't have to be the root.
   # haskey(startett.cliq.attributes, "dwnremoteref") ? error("downMsgPassingIterative! -- why you already have dwnremoteref?") : nothing
   pett = partialExploreTreeType(startett.fg, startett.bt, startett.cliq,
                                         startett.prnt, startett.sendmsgs)
-  # startett.cliq.attributes["dwnremoteref"] = remotecall(upp2(), downGibbsCliqueDensity, pett, N) #startett)
-  refdict[startett.cliq.index] = remotecall(upp2(), downGibbsCliqueDensity, pett, N)
+  ## startett.cliq.attributes["dwnremoteref"] = remotecall(upp2(), downGibbsCliqueDensity, pett, N) #startett)
+  refdict[startett.cliq.index] = remotecall(downGibbsCliqueDensity, upp2(), pett, N)  # for Julia 0.5
+  # refdict[startett.cliq.index] = remotecall(upp2(), downGibbsCliqueDensity, pett, N)
 
   push!(parentStack, startett.cliq ) # r
 
@@ -620,21 +622,26 @@ function prepPostOrderUpPassStacks!(bt::BayesTree, parentStack::Array{Graphs.ExV
   nothing
 end
 
-function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Array{Graphs.ExVertex,1}, stkcnt::Int, refdict::Dict{Int64,RemoteRef};
-                                  N::Int=200)
+function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vector{Graphs.ExVertex}, stkcnt::Int, refdict::Dict{Int64,Future}, N::Int=200)
   # for up message passing
+  println("asyncProcessPostStacks! -- stkcnt=$(stkcnt), length=$(length(chldstk))")
+  if stkcnt == 0
+    println("asyncProcessPostStacks! ERROR stkcnt=0")
+    error("asyncProcessPostStacks! stkcnt=0")
+  end
   cliq = chldstk[stkcnt]
   gomulti = true
   println("Start Clique $(cliq.attributes["label"]) =============================")
   childMsgs = Array{NBPMessage,1}()
   # println("asyncProcessPostStacks -- new async at stkcnt=$(stkcnt), cliq=$(cliq.attributes["label"]) has $(length(out_neighbors(cliq, bt.bt))) children")
-  ur = Union{}
+  ur = nothing
   for child in out_neighbors(cliq, bt.bt) #nodedata.cliq, nodedata.bt.bt
       println("asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))")
 
         #while !haskey(child.attributes, "remoteref")
         while !haskey(refdict, child.index)
-          # println("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
+          println("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
+          @show child.index, keys(refdict)
           sleep(0.25)
         end
 
@@ -661,9 +668,11 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Array
 
   newprocid = upp2()
   #println("asyncProcessPostStacks -- making remote call to $(newprocid) for $(pett.cliq.attributes["label"]) with $(length(pett.sendmsgs))")
+  warn("asyncProcessPostStacks! -- adding cliq.index=$(cliq.index)")
   if gomulti
-    #cliq.attributes["remoteref"] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
-    refdict[cliq.index] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
+    refdict[cliq.index] = remotecall(upGibbsCliqueDensity, newprocid, pett, N ) # swap order for Julia 0.5
+    # refdict[cliq.index] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
+    ##cliq.attributes["remoteref"] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
   else
     # bad way to do non multi test
     cliq.attributes["remoteref"] = upGibbsCliqueDensity(pett, N)
@@ -691,14 +700,15 @@ end
 function processPostOrderStacks!(fg::FactorGraph, bt::BayesTree, childStack::Array{Graphs.ExVertex,1}, N::Int=200)
   # upward message passing function
 
-  refdict = Dict{Int64,RemoteRef}()
+  refdict = Dict{Int64,Future}()
 
-  stkcnt = length(childStack)
+  @show stkcnt = length(childStack)
   @sync begin
     while (stkcnt > 0) #length(childStack)
         #nodedata = childStack[end]
         #deleteat!(childStack, length(childStack))
-        @async asyncProcessPostStacks!(fg, bt, childStack, stkcnt, refdict, N=N)
+        @async asyncProcessPostStacks!(fg, bt, childStack, deepcopy(stkcnt), refdict, N)
+        sleep(1.0)
         stkcnt -= 1
     end
   end
@@ -785,7 +795,7 @@ end
 # end
 # print("Outgoing msg density on: ")
 # outDens = Array{BallTreeDensity,1}(length(allIDs))
-# rr = Array{RemoteRef,1}()
+# rr = Array{Future,1}()
 # # this can be in parallel
 # for vid in allIDs #IDs
 #     #pidx = upp(pidx, nprocs())
