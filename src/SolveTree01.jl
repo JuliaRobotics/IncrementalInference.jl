@@ -553,7 +553,7 @@ function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{
     updateFGBT!(fg, bt, cliq.index, rDDT)
   end
 
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{ASCIIString,Int64}());
+  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
 
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
       #haskey(child.attributes, "dwnremoteref") ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
@@ -663,7 +663,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
   end
   println("====================== Clique $(cliq.attributes["label"]) =============================")
   #sleep(2.0) # delay sometimes makes it work -- we might have a race condition
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{ASCIIString,Int64}());
+  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
   pett = partialExploreTreeType(fgl, emptr, cliq, Union{}, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
   if haskey(cliq.attributes, "remoteref")
@@ -672,7 +672,6 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
 
   newprocid = upp2()
   #println("asyncProcessPostStacks -- making remote call to $(newprocid) for $(pett.cliq.attributes["label"]) with $(length(pett.sendmsgs))")
-  warn("asyncProcessPostStacks! -- adding cliq.index=$(cliq.index)")
   if gomulti
     refdict[cliq.index] = remotecall(upGibbsCliqueDensity, newprocid, pett, N ) # swap order for Julia 0.5
     # refdict[cliq.index] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
@@ -706,7 +705,7 @@ function processPostOrderStacks!(fg::FactorGraph, bt::BayesTree, childStack::Arr
 
   refdict = Dict{Int64,Future}()
 
-  @show stkcnt = length(childStack)
+  stkcnt = length(childStack)
   @sync begin
     sendcnt = stkcnt:-1:1 # separate stable memory
     # while (stkcnt > 0) #length(childStack)

@@ -30,7 +30,7 @@ type BayesTree
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
   #edges
-  frontals::Dict{ASCIIString,Int64}
+  frontals::Dict{String,Int64}
 end
 
 function emptyBayesTree()
@@ -267,7 +267,7 @@ function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
   return prepBatchTree!(fg, ordering=ordering, drawpdf=true);
 end
 
-function whichCliq(bt::BayesTree, frt::ASCIIString)
+function whichCliq(bt::BayesTree, frt::String)
     bt.cliques[bt.frontals[frt]]
 end
 
@@ -488,7 +488,7 @@ end
 #   ro, co = size(cliqAssocMat)
 #   [@show fg.f[i].label for i in tree.cliques[1].attributes["potIDs"]];
 #
-#   showmat = Array{ASCIIString
+#   showmat = Array{String
 #
 # end
 

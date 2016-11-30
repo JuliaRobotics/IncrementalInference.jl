@@ -5,7 +5,7 @@ using KernelDensityEstimate, Gadfly # for vstack
 using Cairo, Fontconfig # for drawing PNG/PDF
 
 
-gt = Dict{ASCIIString, Array{Float64,2}}()
+gt = Dict{String, Array{Float64,2}}()
 # HMM computed ground truth for first 3 poses only
 gt["x1"]=[[-100.0; 1.96]';[0.0; 1.96]']'
 gt["x2"]=[[-50.0; 3.1]';[50.0; 3.1]']'
@@ -65,7 +65,7 @@ if true
 
 
     # HMM computed ground truth, extended for 7 poses with landmark
-    gt = Dict{ASCIIString, Array{Float64,2}}()
+    gt = Dict{String, Array{Float64,2}}()
     gt["x1"]=([0.0;1.97304 ]')' # -0.0342366
     gt["x2"]=([50.0; 2.83153 ]')' # 49.8797
     gt["x3"]=([100.0; 1.65557 ]')' # 99.8351

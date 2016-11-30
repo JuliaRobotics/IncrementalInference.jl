@@ -24,7 +24,7 @@ type FactorGraph
   dimID::Int64
   cg
   cgIDs::Dict{Int64,Int64}
-  sessionname::UTF8String
+  sessionname::String
   FactorGraph() = new()
   FactorGraph(x...) = new(
     x[1],
@@ -165,7 +165,7 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
 end
 
 function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
-    labels=ASCIIString[])
+    labels=String[])
   Graphs.add_vertex!(fgl.g, exvert)
 end
 

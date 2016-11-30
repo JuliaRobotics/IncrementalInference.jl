@@ -38,12 +38,10 @@ function evalPotential(odom::Pose3Pose3, Xi::Array{Graphs.ExVertex,1}, Xid::Int6
     # implicit equation portion -- bi-directional pairwise function made explicit here
     if Xid == Xi[1].index #odom.
         # reverse direction
-        println(" reverse direction")
         Z = inverse(odom.Zij)
         Xval = getVal(Xi[2])
     elseif Xid == Xi[2].index
         # forward direction
-        println(" forward direction")
         Z = odom.Zij
         Xval = getVal(Xi[1])
     else

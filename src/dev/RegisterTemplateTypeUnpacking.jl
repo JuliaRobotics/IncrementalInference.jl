@@ -8,7 +8,7 @@ module MyMod
   type MyType
     x::Array{Float64,1}
     val::Int64
-    str::ASCIIString
+    str::String
     MyType() = new()
     MyType(x...) = new(x[1],x[2],x[3])
   end
@@ -16,7 +16,7 @@ module MyMod
   type MyTemplType{T}
     x::Array{Float64,1}
     val::Int64
-    str::ASCIIString
+    str::String
     a::T
     MyTemplType() = new()
     MyTemplType(x...) = new(x[1],x[2],x[3],x[4])
@@ -33,7 +33,7 @@ module ProtoTest
   using ProtoBuf
   export protostring, nothingspecialprotoread, registerType, runOutsideFunction, specialprotoread
 
-  regTypes = Dict{ASCIIString, Type}()
+  regTypes = Dict{String, Type}()
 
   function protostring(datas)
     iob = PipeBuffer()
@@ -47,7 +47,7 @@ module ProtoTest
   end
 
   typeConterters = Dict{AbstractString,Function}()
-  function registerType(str::ASCIIString, spType::Type; converter::Union{Function,Union}=Union{})
+  function registerType(str::String, spType::Type; converter::Union{Function,Union}=Union{})
     ProtoTest.regTypes[str] = spType
     if converter!=Union{}
       typeConverters[str] = converter
@@ -55,7 +55,7 @@ module ProtoTest
     nothing
   end
 
-  function specialprotoread(iob, instanceType::Type, Tstr::ASCIIString)
+  function specialprotoread(iob, instanceType::Type, Tstr::String)
     it = instanceType{ ProtoTest.regTypes[Tstr] }()
     nothingspecialprotoread(iob, it)
   end

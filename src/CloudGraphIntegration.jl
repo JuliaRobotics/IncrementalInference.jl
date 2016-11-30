@@ -1,7 +1,7 @@
 # integration code for database usage via CloudGraphs.jl
 
 function addCloudVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
-    labels=ASCIIString[])
+    labels=String[])
   # if typeof(getData(exvert).fnc)==GenericMarginal
   #   error("Should not be here")
   # end
@@ -19,7 +19,7 @@ function getExVertFromCloud(fgl::FactorGraph, fgid::Int64; bigdata::Bool=false)
   CloudGraphs.cloudVertex2ExVertex(cvr)
 end
 
-function getExVertFromCloud(fgl::FactorGraph, lbl::ASCIIString; bigdata::Bool=false)
+function getExVertFromCloud(fgl::FactorGraph, lbl::String; bigdata::Bool=false)
   getExVertFromCloud(fgl, fgl.IDs[lbl],bigdata=bigdata)
 end
 

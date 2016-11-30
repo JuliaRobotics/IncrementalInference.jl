@@ -86,7 +86,7 @@ inferOverTree!(fg, tree)
 # Get neighbors
 # neighs = CloudGraphs.get_neighbors(fg.cg, cv1r)
 
-gt = Dict{ASCIIString, Array{Float64,2}}()
+gt = Dict{String, Array{Float64,2}}()
 gt["x1"]=([0.0;1.97304 ]')' # -0.0342366
 gt["x2"]=([50.0; 2.83153 ]')' # 49.8797
 gt["x3"]=([100.0; 1.65557 ]')' # 99.8351

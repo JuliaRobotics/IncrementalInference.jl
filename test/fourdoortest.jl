@@ -49,7 +49,7 @@ f3 = addFactor!(fg,[v7], Obsv2(doors, bws', [1.0]))
 
 
 # HMM computed ground truth, extended for 7 poses with landmark
-gt = Dict{ASCIIString, Array{Float64,2}}()
+gt = Dict{String, Array{Float64,2}}()
 gt["x1"]=([0.0;1.97304 ]')' # -0.0342366
 gt["x2"]=([50.0; 2.83153 ]')' # 49.8797
 gt["x3"]=([100.0; 1.65557 ]')' # 99.8351
