@@ -6,7 +6,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # end
 
 # get vertex from factor graph according to label symbol "x1"
-function getVert(fgl::FactorGraph, lbl::ASCIIString)
+function getVert(fgl::FactorGraph, lbl::String)
   # if haskey(fgl.IDs, lbl)
   #   return fgl.g.vertices[fgl.IDs[lbl]]
   # end
@@ -23,7 +23,7 @@ function getVal(v::Graphs.ExVertex)
 end
 
 # Convenience function to get values for given variable label
-function getVal(fgl::FactorGraph, lbl::ASCIIString)
+function getVal(fgl::FactorGraph, lbl::String)
   getVal(dlapi.getvertex(fgl, lbl))
 end
 function getVal(fgl::FactorGraph, exvertid::Int64)
@@ -110,8 +110,8 @@ end
 
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!(fg::FactorGraph, lbl::ASCIIString, initval=[0.0]', stdev=[1.0]';
-      N::Int=100, ready::Int=1, labels=ASCIIString[])
+function addNode!(fg::FactorGraph, lbl::String, initval=[0.0]', stdev=[1.0]';
+      N::Int=100, ready::Int=1, labels=String[])
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
   addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
@@ -211,7 +211,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 end
 
 function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels=ASCIIString[])
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[])
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -328,7 +328,7 @@ function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
 end
 
 function addChainRuleMarginal!(fg::FactorGraph, Si)
-  lbls = ASCIIString[]
+  lbls = String[]
   genmarg = GenericMarginal()
   Xi = Graphs.ExVertex[] #genmarg.Xi = Graphs.ExVertex[]
   for s in Si
@@ -434,7 +434,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
 end
 
 # some plotting functions on the factor graph
-function stackVertXY(fg::FactorGraph, lbl::ASCIIString)
+function stackVertXY(fg::FactorGraph, lbl::String)
     v = dlapi.getvertex(fg,lbl) # v = fg.v[fg.IDs[lbl]]
     vals = getVal(v)
     X=vec(vals[1,:])
@@ -453,7 +453,7 @@ function getVertKDE(fgl::FactorGraph, id::Int64)
   v = dlapi.getvertex(fgl,id)  # v = fgl.v[fgl.IDs[lbl]]
   return getKDE(v)
 end
-function getVertKDE(fgl::FactorGraph, lbl::ASCIIString)
+function getVertKDE(fgl::FactorGraph, lbl::String)
   v = dlapi.getvertex(fgl,lbl)  # v = fgl.v[fgl.IDs[lbl]]
   return getKDE(v)
 end
@@ -669,7 +669,7 @@ end
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 # Using unique index into graph data structure
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{ASCIIString,1};
+    verts::Array{String,1};
     neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()

@@ -1,9 +1,9 @@
 
 type MyType
    x::Array{Float64,1}
-   str::ASCIIString
+   str::String
    MyType() = new()
-   MyType(a::Array{Float64,1}, b::ASCIIString) = new(a,b)
+   MyType(a::Array{Float64,1}, b::String) = new(a,b)
 end
 
 mkexp(str,x...) = :($(parse(str))($(x...)))

@@ -57,6 +57,7 @@ function project(meas::LinearRangeBearingElevation, X::Vector{Float64}, Y::Vecto
 end
 
 function evalPotential(meas::LinearRangeBearingElevation, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+  warn("evalPotential(meas::LinearRangeBearingElevation")
   fromX, ret, ff = zeros(0,0), zeros(0,0), +
 
   if Xi[1].index == Xid

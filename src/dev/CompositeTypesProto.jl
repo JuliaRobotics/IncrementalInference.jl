@@ -10,15 +10,15 @@ end
 
 type CompType
   mt::MyType
-  str::ASCIIString
+  str::String
   CompType() = new()
-  CompType(a::MyType,s::ASCIIString) = new(a,s)
+  CompType(a::MyType,s::String) = new(a,s)
 end
 
 iob  = PipeBuffer()
 
 mt = MyType(rand(3),Dict{Int,Int}(1 => 10, 2 => 20))
-s = ASCIIString("Hello world.")
+s = String("Hello world.")
 ct = CompType(mt,s)
 
 writeproto(iob, ct)

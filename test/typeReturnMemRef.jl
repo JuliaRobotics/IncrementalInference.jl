@@ -4,7 +4,7 @@
 type MyType
    arr::Array{Float64,1}
    var::Int
-   str::ASCIIString
+   str::String
    MyType(x...) = new(x[1],x[2],x[3])
    MyType() = new()
 end

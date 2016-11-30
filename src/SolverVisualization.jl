@@ -68,7 +68,7 @@ function drawFrontalDens(fg::FactorGraph, bt::BayesTree;
         j=0
         #pvals = Array{Array{Float64,2},1}(lenfr)
         gtvals = Dict{Int,Array{Float64,2}}()
-        lbls = ASCIIString[]
+        lbls = String[]
 
         for frid in cliq[2].attributes["data"].frontalIDs
             j+=1
@@ -140,7 +140,7 @@ end
 # end
 #
 # # function lblsFromTo(from,to)
-# #   lbls=ASCIIString[]
+# #   lbls=String[]
 # #   [push!(lbls, "$(i)") for i in from:to]
 # #   return lbls
 # # end
@@ -149,7 +149,7 @@ end
 #                     meanmax=:max, lbls=true, drawhist=true)
 #     #Gadfly.set_default_plot_size(20cm, 30cm)
 #     Xp,Yp = get2DPoseSamples(fg, from=from, to=to)
-#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; LBLS=ASCIIString[];
+#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; LBLS=String[];
 #     if meanmax == :mean
 #       Xpp,Ypp, Thpp, LBLS = get2DPoseMeans(fg, from=from, to=to)
 #     elseif meanmax == :max
@@ -179,7 +179,7 @@ end
 #               meanmax=:max,lbls=true,showmm=false,drawhist=true,c="red",MM=Union{})
 #     #Gadfly.set_default_plot_size(20cm, 30cm)
 #     Xp,Yp = get2DLandmSamples(fg, from=from, to=to)
-#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; lblstags=ASCIIString[];
+#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; lblstags=String[];
 #     if meanmax==:mean
 #       Xpp,Ypp, t, lbltags = get2DLandmMeans(fg, from=from, to=to)
 #     elseif meanmax==:max
@@ -344,7 +344,7 @@ function whosWith(cliq::Graphs.ExVertex)
   nothing
 end
 
-function whosWith(bt::BayesTree, frt::ASCIIString)
+function whosWith(bt::BayesTree, frt::String)
     whosWith(whichCliq(bt,frt))
 end
 
@@ -359,7 +359,7 @@ function drawUpMsgAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
     vArrPotentials(potens)
 end
 
-function drawUpMsgAtCliq(fg::FactorGraph, bt::BayesTree, lbl::ASCIIString)
+function drawUpMsgAtCliq(fg::FactorGraph, bt::BayesTree, lbl::String)
     drawUpMsgAtCliq(fg, whichCliq(bt, lbl) )
 end
 
@@ -374,7 +374,7 @@ function dwnMsgsAtCliq(fg::FactorGraph, cliq::Graphs.ExVertex)
   potens
 end
 
-function dwnMsgsAtCliq(fg::FactorGraph, bt::BayesTree, lbl::ASCIIString)
+function dwnMsgsAtCliq(fg::FactorGraph, bt::BayesTree, lbl::String)
     dwnMsgsAtCliq(fg, whichCliq(bt, lbl) )
 end
 
@@ -402,7 +402,7 @@ function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs.
     mcmcPose2D!(plots, cliqDbg, iter)
 end
 
-function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
+function drawUpMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::String, iter::Int=1)
     drawUpMCMCPose2D!(plots, whichCliq(bt,frt), iter)
 end
 
@@ -413,11 +413,11 @@ function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, cliq::Graphs
     mcmcPose2D!(plots, cliqDbg, iter)
 end
 
-function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::ASCIIString, iter::Int=1)
+function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTree, frt::String, iter::Int=1)
     drawDwnMCMCPose2D!(plots, whichCliq(bt,frt), iter)
 end
 
-function drawLbl(fg::FactorGraph, lbl::ASCIIString)
+function drawLbl(fg::FactorGraph, lbl::String)
     # v = dlapi.getvertex(fg,lbl) # fg.v[fg.IDs[lbl]]
     # investigatePoseKDE(kde!(getVal(v)))
     investigatePoseKDE(getVertKDE(fg,lbl))
@@ -425,7 +425,7 @@ end
 
 function predCurrFactorBeliefs(fgl::FactorGraph, fc::Graphs.ExVertex)
   # TODO update to use ls and lsv functions
-  prjcurvals = Dict{ASCIIString, Array{BallTreeDensity,1}}()
+  prjcurvals = Dict{String, Array{BallTreeDensity,1}}()
   for v in dlapi.outneighbors(fgl, fc) #out_neighbors(fc, fgl.g)
     pred = kde!(evalFactor2(fgl, fc, v.index))
     curr = kde!(getVal(v))
@@ -437,7 +437,7 @@ end
 
 function drawHorDens(fgl::FactorGraph, pDens::Dict{Int,EasyMessage}, N=200)
   p = BallTreeDensity[]
-  lbls = ASCIIString[]
+  lbls = String[]
   for pd in pDens
     push!(p, kde!(pd[2].pts,pd[2].bws))
     push!(lbls, dlapi.getvertex(fgl,pd[1]).attributes["label"]) # fgl.v[pd[1]].
@@ -446,7 +446,7 @@ function drawHorDens(fgl::FactorGraph, pDens::Dict{Int,EasyMessage}, N=200)
   drawHorDens(p,N,lbls=lbls)
 end
 
-function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{ASCIIString,1};
+function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{String,1};
                         nhor::Int=-1,gt=Union{},N::Int=200, extend=0.1)
   len = length(lbls)
   pDens = BallTreeDensity[]
@@ -467,7 +467,7 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{ASCIIString,1};
   for i in 1:nhor:len
     pH = BallTreeDensity[]
     gtvals = Dict{Int,Array{Float64,2}}()
-    labels = ASCIIString[]
+    labels = String[]
     for j in 0:(nhor-1)
       if i+j <= len
         push!(pH, pDens[i+j])
@@ -485,7 +485,7 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{ASCIIString,1};
   vv
 end
 
-function drawFactorBeliefs(fgl::FactorGraph, flbl::ASCIIString)
+function drawFactorBeliefs(fgl::FactorGraph, flbl::String)
   if !haskey(fgl.fIDs, flbl)
     println("no key $(flbl)")
     return nothing
@@ -514,7 +514,7 @@ function drawFactorBeliefs(fgl::FactorGraph, flbl::ASCIIString)
   nothing
 end
 
-function localProduct(fgl::FactorGraph, lbl::ASCIIString;N=300)
+function localProduct(fgl::FactorGraph, lbl::String;N=300)
   arr = Array{BallTreeDensity,1}()
   cf = ls(fgl, lbl)
   pp = Union{}
@@ -531,7 +531,7 @@ function localProduct(fgl::FactorGraph, lbl::ASCIIString;N=300)
   return pp,arr
 end
 
-function drawLocalProduct(fgl::FactorGraph, lbl::ASCIIString;N=300)
+function drawLocalProduct(fgl::FactorGraph, lbl::String;N=300)
   arr = Array{BallTreeDensity,1}()
   push!(arr, getVertKDE(fgl, lbl)) #kde!(getVal(fgl.v[fgl.IDs[lbl]]))
   pp, parr = localProduct(fgl, lbl, N=N)
@@ -565,8 +565,8 @@ function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl;nw=false)
   nothing
 end
 
-function ls(fgl::FactorGraph, lbl::ASCIIString)
-  ls = ASCIIString[]
+function ls(fgl::FactorGraph, lbl::String)
+  ls = String[]
   v = Union{}
   if haskey(fgl.IDs, lbl)
     id = fgl.IDs[lbl]
@@ -597,8 +597,8 @@ function ls(fgl::FactorGraph)
   end
   l = sort(l)
   x = sort(x)
-  ll = Array{ASCIIString,1}(length(l))
-  xx = Array{ASCIIString,1}(length(x))
+  ll = Array{String,1}(length(l))
+  xx = Array{String,1}(length(x))
   for i in 1:length(l)
     ll[i] = string("l",l[i])
   end
@@ -608,8 +608,8 @@ function ls(fgl::FactorGraph)
   return xx,ll
 end
 
-function lsv(fgl::FactorGraph, lbl::ASCIIString)
-  ls = ASCIIString[]
+function lsv(fgl::FactorGraph, lbl::String)
+  ls = String[]
   v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
@@ -673,7 +673,7 @@ function unimodalCompare(FGL::Array{FactorGraph,1},isamdict::Dict{Int,Array{Floa
   return df,dfth
 end
 
-function asyncAnalyzeSolution(fgl::FactorGraph, lbl::ASCIIString)
+function asyncAnalyzeSolution(fgl::FactorGraph, lbl::String)
   pp, arr = localProduct(fgl, lbl)
   lpm = getKDEMax(pp)
   em = getKDEMax(getVertKDE(fgl,lbl))
