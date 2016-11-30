@@ -26,7 +26,8 @@ f1 = addFactor!(fg, [v1;l1], ppr)
 
 
 pts = evalFactor2(fg, f1, l1.index)
-@test sum(sqrt(sum(pts.^2, 1 )) .< 3.0) == 0
+@show sum(sqrt(sum(pts.^2, 1 )) .< 5.0)
+@test sum(sqrt(sum(pts.^2, 1 )) .< 5.0) == 0
 
 # range only does not allow single point -- in limit is uniform, not point
 # pts = evalFactor2(fg, f1, v1.index)

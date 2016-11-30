@@ -1,6 +1,6 @@
 using Base.Test
 
-# addprocs(3)
+addprocs(3)
 
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")

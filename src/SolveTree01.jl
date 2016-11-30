@@ -305,7 +305,6 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     # @show getVal(inp.fg.v[1])
 
     mdbg = DebugCliqMCMC(mcmcdbg, m)
-    println("upGibbsCliqueDensity YOU ARE HERE")
     return UpReturnBPType(m, mdbg, d)
 end
 # else
@@ -537,6 +536,7 @@ end
 function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, stkcnt::Int64, refdict::Dict{Int64,Future}; N::Int=200)
   #ddt = visitNode(nodedata[2])
   #updateFG!(nodedata[2], ddt)
+  # sleep(1.0) # testing Julia 0.5 conversion to Future problem
   cliq = parentStack[stkcnt]
   # while !haskey(cliq.attributes, "dwnremoteref") # nodedata.cliq
   while !haskey(refdict, cliq.index) # nodedata.cliq
@@ -558,10 +558,10 @@ function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
       #haskey(child.attributes, "dwnremoteref") ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
       haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
-
       ett = partialExploreTreeType(fg, emptr, child, cliq, [rDDT.dwnMsg]) # bt
-      #child.attributes["dwnremoteref"] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
-      refdict[child.index] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
+      refdict[child.index] = remotecall(downGibbsCliqueDensity, upp2() , ett, N) # Julia 0.5 swapped order
+      # refdict[child.index] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
+      ##child.attributes["dwnremoteref"] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
   end
   nothing
 end
@@ -572,9 +572,12 @@ function processPreOrderStack!(fg::FactorGraph, bt::BayesTree, parentStack::Arra
     stkcnt = 0
 
     @sync begin
-      while ( stkcnt < length(parentStack) ) # || nodedata != Union{}
-          stkcnt += 1
-          @async dispatchNewDwnProc!(fg, bt, parentStack, stkcnt, refdict, N=N) #pidxI,nodedata
+      sendcnt = 1:length(parentStack) # separate memory for remote calls
+      for i in 1:sendcnt[end]
+      # while ( stkcnt < length(parentStack) ) # || nodedata != Union{}
+          # stkcnt += 1
+          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N) # stkcnt ##pidxI,nodedata
+          # sleep(1.0)
       end
     end
     nothing
@@ -624,7 +627,8 @@ end
 
 function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vector{Graphs.ExVertex}, stkcnt::Int, refdict::Dict{Int64,Future}, N::Int=200)
   # for up message passing
-  println("asyncProcessPostStacks! -- stkcnt=$(stkcnt), length=$(length(chldstk))")
+  # println("asyncProcessPostStacks! -- stkcnt=$(stkcnt), length=$(length(chldstk))")
+  # sleep(1.0)
   if stkcnt == 0
     println("asyncProcessPostStacks! ERROR stkcnt=0")
     error("asyncProcessPostStacks! stkcnt=0")
@@ -704,12 +708,14 @@ function processPostOrderStacks!(fg::FactorGraph, bt::BayesTree, childStack::Arr
 
   @show stkcnt = length(childStack)
   @sync begin
-    while (stkcnt > 0) #length(childStack)
-        #nodedata = childStack[end]
-        #deleteat!(childStack, length(childStack))
-        @async asyncProcessPostStacks!(fg, bt, childStack, deepcopy(stkcnt), refdict, N)
-        sleep(1.0)
-        stkcnt -= 1
+    sendcnt = stkcnt:-1:1 # separate stable memory
+    # while (stkcnt > 0) #length(childStack)
+    for i in 1:stkcnt
+        ##nodedata = childStack[end]
+        ##deleteat!(childStack, length(childStack))
+        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N) # deepcopy(stkcnt)
+        # sleep(1.0) # testing Julia 0.5 to Future conversion
+        # stkcnt -= 1
     end
   end
   println("processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC")
