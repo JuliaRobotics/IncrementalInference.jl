@@ -161,7 +161,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
 end
 
 function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
-  return compare(a,b)
+  return IncrementalInference.compare(a,b)
 end
 
 function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;

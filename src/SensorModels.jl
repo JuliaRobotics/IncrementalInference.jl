@@ -39,13 +39,13 @@ end
 # Convolution of conditional to project landmark location from position X (dim6)
 # Y (dim3) are projected points
 function project!(meas::LinearRangeBearingElevation, pose::Array{Float64,2}, landmark::Array{Float64,2}, idx::Int)
-  landmark[1:3,idx] = numericRootGenericRandomized(residualLRBE!, getSample(meas), pose[1:6,idx][:], landmark[1:3,idx][:], 3) # ( bearrange3!,
+  landmark[1:3,idx] = numericRootGenericRandomized(residualLRBE!, 3, getSample(meas), pose[1:6,idx][:], landmark[1:3,idx][:]) # ( bearrange3!,
 	# x0[1:3,idx] = numericRoot(bearrange3!, getSample(meas), fixed[1:6,idx], x0[1:3,idx]+0.01*randn(3))
 	nothing
 end
 
 function backprojectRandomized!(meas::LinearRangeBearingElevation, landmark::Array{Float64,2}, pose::Array{Float64,2}, idx::Int)
-	pose[1:6,idx] = numericRootGenericRandomized(residualLRBE!, getSample(meas), landmark[1:3,idx][:], pose[1:6,idx][:], 3) # ( bearrange3!,
+	pose[1:6,idx] = numericRootGenericRandomized(residualLRBE!, 3, getSample(meas), landmark[1:3,idx][:], pose[1:6,idx][:]) # ( bearrange3!,
 	nothing
 end
 
@@ -127,35 +127,13 @@ end
 #     return Y
 # end
 #
-# # use residual function to approximate the convolution of conditional belief with existing
-# # belief estimate from fixed to x. Conditional belief is described by Pairwise measurement
-# # zDim == length(sample(measurement))
-# function numericRootGenericRandomized(residFnc::Function, measurement::IncrementalInference.Pairwise,
-# 			fixed::Vector{Float64}, x0::Vector{Float64}, zDim::Int; perturb::Float64=0.01 )
-#
-# 	z = sample(meas)
-# 	if zDim < length(x0)
-# 		p = collect(1:6);
-# 		shuffle!(p);
-# 		# p1 = p.==1; p2 = p.==2; p3 = p.==3
-# 		r = nlsolve(    (x, res) -> residFnc(res, Z,
-#                     shuffleXAltD(x, x0, zDim, p), fixed ),
-#                     x0[p[1:zDim]] + preturb*randn(zDim)   )
-#     return shuffleXAltD(r.zero, x0, zDim, p );
-# 	else
-#     return (nlsolve(   (X, residual) -> residFnc(residual, measurement, parameters, X), x0 )).zero
-# 	end
-#   nothing
-# end
+
 
 
 
 
 # residual function must have the form
 # bearrangDidson!(residual::Array{Float64,1}, Zbr::Array{Float64,1}, X::Array{Float64,1}, L::Array{Float64,1})
-# function numericRoot(residFnc::Function, measurment, parameters, x0::Vector{Float64})
-# 	return (nlsolve(   (X, residual) -> residFnc(residual, measurement, parameters, X), x0 )).zero
-# end
 # function solveLandmDidsonPt(measurement::Array{Float64,1}, param::Array{Float64,1}, x0::Array{Float64,1})
 # 	numericRoot(bearrangDidson!, measurement, param, x0)
 #   # return (nlsolve(   (X, residual) -> bearrangDidson!(residual, measurement, param, X), x0 )).zero
