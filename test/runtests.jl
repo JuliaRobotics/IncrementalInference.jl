@@ -1,12 +1,19 @@
 using Base.Test
 
+println("[TEST] out of module evalPotential...")
+include("TestModuleFunctions.jl")
+println("Success")
+
+
 addprocs(3)
+
+println("[TEST] generic root finding by numeric solve of residual functions...")
+include("testNumericRootGenericRandomized.jl")
+println("Success")
 
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
-@test true
-
 
 println("[TEST] plot functions...")
 using Gadfly
@@ -40,7 +47,7 @@ pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
 # pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
 unpckd = convert(VariableNodeData, pd)
 
-@test compare(IncrementalInference.dlapi.getvertex(fg,1).attributes["data"], unpckd)
+@test IncrementalInference.compare(IncrementalInference.dlapi.getvertex(fg,1).attributes["data"], unpckd)
 @test IncrementalInference.dlapi.getvertex(fg,1).attributes["data"] == unpckd
 println("Conversions and comparisons agree")
 

@@ -79,6 +79,7 @@ export
   Pairwise,
   numericRoot,
   numericRootGenericRandomized,
+  numericRootGenericRandomizedFnc,
   GenericMarginal,
   #Robot stuff
   PriorPose2,
