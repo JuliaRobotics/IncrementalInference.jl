@@ -59,11 +59,11 @@ function convert(::Type{PackedOdo}, d::Odo)
 end
 function convert(::Type{FunctionNodeData{PackedOdo}}, d::FunctionNodeData{Odo})
   return FunctionNodeData{PackedOdo}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedOdo, d.fnc))
+          string(d.frommodule), convert(PackedOdo, d.fnc))
 end
 function convert(::Type{FunctionNodeData{Odo}}, d::FunctionNodeData{PackedOdo})
   return FunctionNodeData{Odo}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(Odo, d.fnc))
+          Symbol(d.frommodule), convert(Odo, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{Odo})
   return convert(FunctionNodeData{PackedOdo}, d)
@@ -141,11 +141,11 @@ function convert(::Type{PackedObsv2}, d::Obsv2)
 end
 function convert(::Type{FunctionNodeData{PackedObsv2}}, d::FunctionNodeData{Obsv2})
   return FunctionNodeData{PackedObsv2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedObsv2, d.fnc))
+          string(d.frommodule), convert(PackedObsv2, d.fnc))
 end
 function convert(::Type{FunctionNodeData{Obsv2}}, d::FunctionNodeData{PackedObsv2})
   return FunctionNodeData{Obsv2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(Obsv2, d.fnc))
+          Symbol(d.frommodule), convert(Obsv2, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{Obsv2})
   return convert(FunctionNodeData{PackedObsv2}, d)
@@ -188,11 +188,11 @@ function convert(::Type{PackedPriorPose2}, d::PriorPose2)
 end
 function convert(::Type{FunctionNodeData{PackedPriorPose2}}, d::FunctionNodeData{PriorPose2})
   return FunctionNodeData{PackedPriorPose2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPriorPose2, d.fnc))
+          string(d.frommodule), convert(PackedPriorPose2, d.fnc))
 end
 function convert(::Type{FunctionNodeData{PriorPose2}}, d::FunctionNodeData{PackedPriorPose2})
   return FunctionNodeData{PriorPose2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PriorPose2, d.fnc))
+          Symbol(d.frommodule), convert(PriorPose2, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{PriorPose2})
   return convert(FunctionNodeData{PackedPriorPose2}, d)
@@ -234,11 +234,11 @@ function convert(::Type{PackedPose2Pose2}, d::Pose2Pose2)
 end
 function convert(::Type{FunctionNodeData{PackedPose2Pose2}}, d::FunctionNodeData{Pose2Pose2})
   return FunctionNodeData{PackedPose2Pose2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPose2Pose2, d.fnc))
+          string(d.frommodule), convert(PackedPose2Pose2, d.fnc))
 end
 function convert(::Type{FunctionNodeData{Pose2Pose2}}, d::FunctionNodeData{PackedPose2Pose2})
   return FunctionNodeData{Pose2Pose2}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(Pose2Pose2, d.fnc))
+          Symbol(d.frommodule), convert(Pose2Pose2, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{Pose2Pose2})
   return convert(FunctionNodeData{PackedPose2Pose2}, d)
@@ -282,11 +282,11 @@ function convert(::Type{PackedPose2DPoint2DBearingRange}, d::Pose2DPoint2DBearin
 end
 function convert(::Type{FunctionNodeData{PackedPose2DPoint2DBearingRange}}, d::FunctionNodeData{Pose2DPoint2DBearingRange})
   return FunctionNodeData{PackedPose2DPoint2DBearingRange}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPose2DPoint2DBearingRange, d.fnc))
+          string(d.frommodule), convert(PackedPose2DPoint2DBearingRange, d.fnc))
 end
 function convert(::Type{FunctionNodeData{Pose2DPoint2DBearingRange}}, d::FunctionNodeData{PackedPose2DPoint2DBearingRange})
   return FunctionNodeData{Pose2DPoint2DBearingRange}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(Pose2DPoint2DBearingRange, d.fnc))
+          Symbol(d.frommodule), convert(Pose2DPoint2DBearingRange, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{Pose2DPoint2DBearingRange})
   return convert(FunctionNodeData{PackedPose2DPoint2DBearingRange}, d)
@@ -346,11 +346,11 @@ end
 
 function convert(::Type{FunctionNodeData{PackedPriorPoint2D}}, d::FunctionNodeData{PriorPoint2D})
   return FunctionNodeData{PackedPriorPoint2D}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PackedPriorPoint2D, d.fnc))
+          string(d.frommodule), convert(PackedPriorPoint2D, d.fnc))
 end
 function convert(::Type{FunctionNodeData{PriorPoint2D}}, d::FunctionNodeData{PackedPriorPoint2D})
   return FunctionNodeData{PriorPoint2D}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          convert(PriorPoint2D, d.fnc))
+          Symbol(d.frommodule), convert(PriorPoint2D, d.fnc))
 end
 function FNDencode(d::FunctionNodeData{PriorPoint2D})
   return convert(FunctionNodeData{PackedPriorPoint2D}, d)

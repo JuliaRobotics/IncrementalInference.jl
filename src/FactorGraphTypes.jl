@@ -102,9 +102,10 @@ type FunctionNodeData{T}
   eliminated::Bool
   potentialused::Bool
   edgeIDs::Array{Int64,1}
+  frommodule::Union{Symbol, String}
   fnc::T
   FunctionNodeData() = new()
-  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5])
+  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
 end
 
 

@@ -183,7 +183,8 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   # fact.attributes["eliminated"] = false
   # fact.attributes["potentialused"] = false
 
-  data = FunctionNodeData{typeof(f)}(Int64[], false, false, Int64[], f)
+  m = Symbol(typeof(f).name.module)
+  data = FunctionNodeData{typeof(f)}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
   fact.attributes["data"] = data
 
   # for graphviz drawing
@@ -211,7 +212,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 end
 
 function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[])
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[] )
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
