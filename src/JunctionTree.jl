@@ -176,13 +176,13 @@ end
 
 ## Find batch belief propagation solution
 function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=false)
-  p = getEliminationOrder(fg, ordering=ordering)
+  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
   #@show p=[1, 3, 8, 10, 5]
   # for v in p
   #     print("$(fg.v[v].label),")
   # end
   println()
-  @show p
+  # @show p
   fge = deepcopy(fg)
   println("Building Bayes net...")
   buildBayesNet!(fge, p)
@@ -191,7 +191,7 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   buildTree!(tree, fge, p)
 
   println("Bayes Net")
-  sleep(0.1)
+  # sleep(0.1)
   #fid = open("bn.dot","w+")
   #write(fid,to_dot(fge.bn))
   #close(fid)
@@ -264,7 +264,7 @@ end
 
 function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
   resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=true);
+  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf);
 end
 
 function whichCliq(bt::BayesTree, frt::String)
