@@ -128,16 +128,17 @@ export
   getPoseExVertexNeoIDs,
   copyAllNodes!,
   copyAllEdges!,
+  registerCallback!
 
   # DIDSON sonar model
-LinearRangeBearingElevation,
-project!,
-project,
-backprojectRandomized!,
-residual!,
-ominus,
-evalPotential,
-getSample
+# LinearRangeBearingElevation,
+# project!,
+# project,
+# backprojectRandomized!,
+# residual!,
+# ominus,
+# evalPotential,
+# getSample
 
 
 
@@ -150,7 +151,7 @@ include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
 include("TreePotentials03.jl")
-include("SensorModels.jl")
+# include("SensorModels.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 
