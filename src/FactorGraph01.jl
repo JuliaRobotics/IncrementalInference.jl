@@ -164,17 +164,24 @@ end
 # function getDev(v)
 #   return v.attributes["stdev"]
 # end
+#
+# function evalFactor(fg::FactorGraph, evalstr::AbstractString)
+#   return eval(parse(evalstr))
+# end
+#
+# function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
+#   return evalFactor(fg, fct.attributes["evalstr"] )
+# end
+#
+#
 
-function evalFactor(fg::FactorGraph, evalstr::AbstractString)
-  return eval(parse(evalstr))
+function registerCallback!(fgl::FactorGraph, fnc::Function)
+  # get module
+  # Symbol(string(m))
+  m = Symbol(typeof(fnc).name.module)
+  fgl.registeredModuleFunctions[m] = fnc
+  nothing
 end
-
-function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
-  return evalFactor(fg, fct.attributes["evalstr"] )
-end
-
-
-
 
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
@@ -183,8 +190,9 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   # fact.attributes["eliminated"] = false
   # fact.attributes["potentialused"] = false
 
-  m = Symbol(typeof(f).name.module)
-  data = FunctionNodeData{typeof(f)}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
+  ftyp = typeof(f)
+  m = Symbol(ftyp.name.module)
+  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
   fact.attributes["data"] = data
 
   # for graphviz drawing
