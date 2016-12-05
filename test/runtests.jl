@@ -52,9 +52,9 @@ unpckd = convert(VariableNodeData, pd)
 println("Conversions and comparisons agree")
 
 
-println("[TEST] Pose3 evaluations...")
-include("threeDimLinearProductTest.jl")
-println("[SUCCESS]")
+# println("[TEST] Pose3 evaluations...")
+# include("threeDimLinearProductTest.jl")
+# println("[SUCCESS]")
 
 println("[TEST] Pose2 evaluations...")
 include("testConstraints.jl")

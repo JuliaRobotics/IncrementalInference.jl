@@ -108,10 +108,10 @@ export
   Obsv2,
   PackedObsv2,
   Ranged,
-
-  PriorPose3,
-  Pose3Pose3,
-  projectParticles,
+  #
+  # PriorPose3,
+  # Pose3Pose3,
+  # projectParticles,
 
   # dev exports
   addGraphsVert!,
@@ -150,7 +150,7 @@ include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
 include("TreePotentials02.jl")
-include("TreePotentials03.jl")
+# include("TreePotentials03.jl")
 # include("SensorModels.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
