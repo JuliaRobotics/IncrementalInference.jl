@@ -25,6 +25,7 @@ type FactorGraph
   cg
   cgIDs::Dict{Int64,Int64}
   sessionname::String
+  registeredModuleFunctions::Dict{Symbol, Function}
   FactorGraph() = new()
   FactorGraph(x...) = new(
     x[1],
@@ -41,7 +42,8 @@ type FactorGraph
     x[12],
     x[13],
     x[14],
-    x[15] )
+    x[15],
+    x[16] )
 end
 
 function emptyFactorGraph()
@@ -59,7 +61,8 @@ function emptyFactorGraph()
                      0,
                      nothing,
                      Dict{Int64,Int64}(),
-                     "" )
+                     "",
+                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.evalPotential) )
     return fg
 end
 
@@ -102,9 +105,10 @@ type FunctionNodeData{T}
   eliminated::Bool
   potentialused::Bool
   edgeIDs::Array{Int64,1}
+  frommodule::Union{Symbol, String}
   fnc::T
   FunctionNodeData() = new()
-  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5])
+  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
 end
 
 

@@ -26,7 +26,7 @@ for i in 1:length(msgPlots)
     evalstr = string(evalstr, ",msgPlots[$(i)]")
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
-@test true
+
 
 print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
@@ -52,13 +52,13 @@ unpckd = convert(VariableNodeData, pd)
 println("Conversions and comparisons agree")
 
 
-println("[TEST] Pose3 evaluations...")
-include("threeDimLinearProductTest.jl")
-println("[SUCCESS]")
+# println("[TEST] Pose3 evaluations...")
+# include("threeDimLinearProductTest.jl")
+# println("[SUCCESS]")
 
-println("[TEST] Pose2 evaluations...")
-include("testConstraints.jl")
-println("[SUCCESS]")
+# println("[TEST] Pose2 evaluations...")
+# include("testConstraints.jl")
+# println("[SUCCESS]")
 
 if false
   println("[TEST] with CloudGraphs data layer (multicore)...")

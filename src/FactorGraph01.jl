@@ -164,17 +164,24 @@ end
 # function getDev(v)
 #   return v.attributes["stdev"]
 # end
+#
+# function evalFactor(fg::FactorGraph, evalstr::AbstractString)
+#   return eval(parse(evalstr))
+# end
+#
+# function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
+#   return evalFactor(fg, fct.attributes["evalstr"] )
+# end
+#
+#
 
-function evalFactor(fg::FactorGraph, evalstr::AbstractString)
-  return eval(parse(evalstr))
+function registerCallback!(fgl::FactorGraph, fnc::Function)
+  # get module
+  # Symbol(string(m))
+  m = Symbol(typeof(fnc).name.module)
+  fgl.registeredModuleFunctions[m] = fnc
+  nothing
 end
-
-function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
-  return evalFactor(fg, fct.attributes["evalstr"] )
-end
-
-
-
 
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
@@ -183,7 +190,9 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   # fact.attributes["eliminated"] = false
   # fact.attributes["potentialused"] = false
 
-  data = FunctionNodeData{typeof(f)}(Int64[], false, false, Int64[], f)
+  ftyp = typeof(f)
+  m = Symbol(ftyp.name.module)
+  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
   fact.attributes["data"] = data
 
   # for graphviz drawing
@@ -211,7 +220,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
 end
 
 function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[])
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[] )
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])

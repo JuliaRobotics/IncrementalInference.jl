@@ -155,7 +155,7 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     if length(dens) > 1
         Ndims = dens[1].bt.dims
         dummy = kde!(rand(Ndims,N),[1.0]);
-        print("[$(length(dens)) prod. d$(Ndims),N$(N)],")
+        print("[$(length(dens))x,d$(Ndims),N$(N)],")
         pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
         #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
         # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing
@@ -166,7 +166,7 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
         pGM = Array{Float64,2}(0,1)
     end
     potprod.product = pGM
-    print(", ")
+    print(" ")
 
     return pGM, potprod
 end

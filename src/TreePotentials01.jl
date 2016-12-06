@@ -131,13 +131,15 @@ function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#,
 end
 
 
-function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
-  outpts = evalPotential(typ, Xi, N=N) # , solvefor
+function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
+  outpts = fnc(typ, Xi, N=N) # , solvefor
+  # outpts = evalPotential(typ, Xi, N=N) # , solvefor
   return outpts
 end
 
-function evalPotentialSpecific(Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
-  return evalPotential(typ, Xi, solvefor)
+function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
+  return fnc(typ, Xi, solvefor)
+  # return evalPotential(typ, Xi, solvefor)
 end
 
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
@@ -147,7 +149,9 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   for id in fct.attributes["data"].fncargvID
     push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
   end
-  return evalPotentialSpecific(Xi, fct.attributes["data"].fnc, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
+  modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
+  fnc = fct.attributes["data"].fnc
+  return evalPotentialSpecific(modulefnc, Xi, fnc, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert

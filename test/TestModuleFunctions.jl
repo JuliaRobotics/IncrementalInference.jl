@@ -10,19 +10,25 @@ export solve, InferenceType, Container
 abstract InferenceType
 
 type Container
-  col::Dict{Int, Function}
+  col::Dict{Symbol, Function}
+  Container(::Void) = new()
+  Container(;col=Dict{Symbol, Function}()) = new(col)
 end
 
-function registerCallback!(col::Container, id::Int, f::Function)
-  col.col[id] = f
+function registerCallback!(col::Container, fnc::Function)
+  # get module
+  # Symbol(string(m))
+  m = Symbol(typeof(fnc).name.module)
+  col.col[m] = fnc
 end
 
-function solve(ctl::Container, id::Int, val::InferenceType)
+function solve(ctl::Container, val::InferenceType) # m::Symbol,
+  m = Symbol(typeof(val).name.module)
   if false
     # doesnt work
     evalPotential(val)
   else
-    evalPotential = ctl.col[id]
+    evalPotential = ctl.col[m]
     evalPotential(val)
   end
 end
@@ -57,13 +63,19 @@ end
 
 end
 
+# get module
+# typeof(f).name.mt.name
 
 # Okay lets see
 using Second
 
-Col = Container(Dict{Int, Function}())
+Col = Container()
 
-First.registerCallback!(Col, 1, Second.evalPotential)
+
+
+First.registerCallback!(Col, Second.evalPotential)
+
+CCol = deepcopy(Col)
 
 stA = 1.0
 saA = 3.0
@@ -71,16 +83,16 @@ saA = 3.0
 st = SecondType(stA)
 sa = SecondAgain(saA)
 
-
-@test solve(Col, 1, st) == stA
-@test solve(Col, 1, sa) == saA
+# Symbol(typeof(st).name.module)
+@test solve(CCol, st) == stA
+@test solve(CCol, sa) == saA
 
 @elapsed evalPotential(st)
 t1 = @elapsed evalPotential(st)
-t2 = @elapsed solve(Col, 1, sa)
+t2 = @elapsed solve(Col, sa)
 
 println("Check the speed is reasonable")
-@test t2 <15.0*t1 # should actually be about equal, slack for threading uncertainty
+@test t2 < 15.0*t1 # should actually be about equal, slack for threading uncertainty
 
 
 
