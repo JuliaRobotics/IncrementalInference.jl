@@ -1,6 +1,5 @@
 # IncrementalInference.jl
 
-[![Travis CI Build Status](https://travis-ci.org/dehann/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/dehann/IncrementalInference.jl)
 [![Coveralls Status](https://coveralls.io/repos/dehann/StringEncodings.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/dehann/IncrementalInference.jl?branch=master)
 [![codecov.io](https://codecov.io/github/dehann/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/IncrementalInference.jl?branch=master)
 
