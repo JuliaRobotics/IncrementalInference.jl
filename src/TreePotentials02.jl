@@ -123,34 +123,35 @@ end
 # use residual function to approximate the convolution of conditional belief with existing
 # belief estimate from fixed to x. Conditional belief is described by Pairwise measurement
 # zDim == length(sample(measurement))
-function numericRootGenericRandomized(
-      residFnc::Function,
-      zDim::Int,
-      measurement::Vector{Float64},
-      fixed,
-      x0::Vector{Float64};
-      perturb::Float64=0.001  )
-
-	# z = getSample(meas)
-  dims = length(x0)
-	if zDim < dims
-		p = collect(1:dims);
-		shuffle!(p);
-		# p1 = p.==1; p2 = p.==2; p3 = p.==3
-		r = nlsolve(    (x, res) -> residFnc(res, measurement,
-                    ( shuffleXAltD(x, x0, zDim, p), fixed) ),
-                    x0[p[1:zDim]] + perturb*randn(zDim)
-               )
-
-    return shuffleXAltD(r.zero, x0, zDim, p );
-	else
-    return (nlsolve(   (x, res) -> residFnc(res, measurement, (fixed, x) ), x0 + perturb*randn(zDim) )).zero
-	end
-end
+# function numericRootGenericRandomized(
+#       residFnc::Function,
+#       zDim::Int,
+#       measurement::Vector{Float64},
+#       fixed,
+#       x0::Vector{Float64};
+#       perturb::Float64=0.001  )
+#
+#   warn("function handle definition inconsistent (x, res) vs (res, x) -- will be depricated.")
+# 	# z = getSample(meas)
+#   dims = length(x0)
+# 	if zDim < dims
+# 		p = collect(1:dims);
+# 		shuffle!(p);
+# 		# p1 = p.==1; p2 = p.==2; p3 = p.==3
+# 		r = nlsolve(    (x, res) -> residFnc(res, measurement,
+#                     ( shuffleXAltD(x, x0, zDim, p), fixed) ),
+#                     x0[p[1:zDim]] + perturb*randn(zDim)
+#                )
+#
+#     return shuffleXAltD(r.zero, x0, zDim, p );
+# 	else
+#     return (nlsolve(   (x, res) -> residFnc(res, measurement, (fixed, x) ), x0 + perturb*randn(zDim) )).zero
+# 	end
+# end
 
 # residual function must have the form residFnc!(res, x)
 function numericRootGenericRandomizedFnc(
-      residFnc!,
+      residFnc!::Function,
       zDim::Int,
       xDim::Int,
       x0::Vector{Float64},
@@ -161,7 +162,7 @@ function numericRootGenericRandomizedFnc(
 		p = collect(1:xDim);
 		shuffle!(p);
 		# p1 = p.==1; p2 = p.==2; p3 = p.==3
-		r = nlsolve(    (x, res) -> residFnc!(res, shuffleXAltD(x, x0, zDim, p) ),
+		r = nlsolve(    (x, res) -> residFnc!(shuffleXAltD(x, x0, zDim, p), res ),
                     x0[p[1:zDim]] + perturb*randn(zDim)
                )
 

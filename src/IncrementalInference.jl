@@ -131,7 +131,10 @@ export
   getPoseExVertexNeoIDs,
   copyAllNodes!,
   copyAllEdges!,
-  registerCallback!
+  registerCallback!,
+
+  # development
+  shuffleXAltD
 
   # DIDSON sonar model
 # LinearRangeBearingElevation,

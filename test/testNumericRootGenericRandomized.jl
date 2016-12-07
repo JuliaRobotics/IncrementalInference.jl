@@ -28,13 +28,20 @@ end
       # x0::Vector{Float64};
       # perturb::Float64=0.01  )
 
-y = numericRootGenericRandomized(lineResidual!, 1, [1.0], [2.0;3.0], randn(1))
+params = [2.0;3.0]
+gg = (x, res) -> lineResidual!(res, [1.0], (params, x))
+y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
+# y = numericRootGenericRandomized(lineResidual!, 1, [1.0], params, randn(1))
 @test abs(y[1] + 1.0) < 1e-10
 
-y = numericRootGenericRandomized(lineResidual!, 1, [3.0], [2.0;3.0], randn(1))
+gg = (x, res) -> lineResidual!(res, [3.0], (params, x))
+y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
+# y = numericRootGenericRandomized(lineResidual!, 1, [3.0], params, randn(1))
 @test abs(y[1] - 0.0) < 1e-10
 
-y = numericRootGenericRandomized(lineResidual!, 1, [5.0], [2.0;3.0], randn(1))
+gg = (x, res) -> lineResidual!(res, [5.0], (params, x))
+y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
+# y = numericRootGenericRandomized(lineResidual!, 1, [5.0], params, randn(1))
 @test abs(y[1] - 1.0) < 1e-10
 
 
@@ -43,7 +50,7 @@ y = numericRootGenericRandomized(lineResidual!, 1, [5.0], [2.0;3.0], randn(1))
 println("Increased dimension test")
 
 # 3 dimensional line, z = [a b][x y]' + c
-function rotationResidual!(res::Vector{Float64}, z::Vector{Float64}, var::Tuple)
+function rotationresidual!(res::Vector{Float64}, z::Vector{Float64}, var::Tuple)
   # fixed = var[1]
   # state = var[2]
   q1 = convert(Quaternion, Euler(z...))
@@ -54,17 +61,17 @@ function rotationResidual!(res::Vector{Float64}, z::Vector{Float64}, var::Tuple)
 end
 
 # 3 dimensional line, z - ([ax ay][x y]' + c)
-for i in 1:10
-  eul = 0.25*randn(3)
-  y = numericRootGenericRandomized(rotationResidual!, 3, eul, zeros(3), 0.1*randn(3))
-  # test the result
-  @test TransformUtils.compare(convert(Quaternion, Euler(eul...)),
-                              convert(Quaternion, so3(y)), tol=1e-8)
-end
+# for i in 1:10
+#   eul = 0.25*randn(3)
+#   y = numericRootGenericRandomized(rotationresidual!, 3, eul, zeros(3), 0.1*randn(3))
+#   # test the result
+#   @test TransformUtils.compare(convert(Quaternion, Euler(eul...)),
+#                               convert(Quaternion, so3(y)), tol=1e-8)
+# end
 
 for i in 1:10
   eul = 0.25*randn(3)
-  gg = (x, res) -> rotationResidual!(res, eul, (zeros(0),x))
+  gg = (x, res) -> rotationresidual!(res, eul, (zeros(0),x))
   y = numericRootGenericRandomizedFnc(
           gg,
           3, 3, 0.1*randn(3)    )
@@ -73,76 +80,39 @@ for i in 1:10
                               convert(Quaternion, so3(y)), tol=1e-8)
 end
 
-type CameraIntrinsic
-  K::Array{Float64,2}
-  CameraIntrinsic(::Void) = new()
-  CameraIntrinsic(;x0=320.0,y0=240.0,fx=510.0,fy=510.0,s=0.0) = new([[fx;s;x0]';[0.0;fy;y0]';[0.0;0;1]'])
-end
 
-# Camera extrinsic must be world in camera frame (cRw)
-type CameraExtrinsic
-  R::SO3
-  t::Vector{Float64}
-  CameraExtrinsic(::Void) = new()
-  CameraExtrinsic(;R=SO3(0),t=zeros(3)) = new(R, t)
-end
-type CameraModelFull
-  ci::CameraIntrinsic
-  ce::CameraExtrinsic
-  # cd::CameraDistortion
-  CameraModelFull(::Void) = new()
-  CameraModelFull(;ci=CameraIntrinsic(), ce=CameraExtrinsic()) = new(ci,ce)
-end
-function project!(ret::Vector{Float64}, ci::CameraIntrinsic, ce::CameraExtrinsic, pt::Vector{Float64})
-  res = ci.K*(ce.R.R*pt + ce.t)
-  ret[1:2] = res[1:2]./res[3]
-  nothing
-end
-project!(ret::Vector{Float64}, cm::CameraModelFull, pt::Vector{Float64}) = project!(ret, cm.ci, cm.ce, pt)
-function project(cm::CameraModelFull, pt::Vector{Float64})
-  res = Vector{Float64}(2)
-  project!(res, cm, pt)
-  return res
-end
-
-# pinhole camera model
-# (x, y)/f = (X, Y)/Z
-function cameraResidual!(
-      res::Vector{Float64},
-      z::Vector{Float64},
-      ci::CameraIntrinsic,
-      ce::CameraExtrinsic,
-      pt::Vector{Float64}  )
-  # in place memory operations
-  project!(res, ci, ce, pt)
-  res[1:2] .*= -1.0
-  res[1:2] += z[1:2]
+function testshuffle!(x, res)
+  res = zeros(2)
   nothing
 end
 
-ci = CameraIntrinsic()
-ce = CameraExtrinsic()
-pt = [1.0;0.0;5.0]
-
-
-gg = (x, res) -> cameraResidual!(res, x, ci, ce, pt)
-# res = zeros(2)
-# @time gg([0.0;0.0], res)
-
-# Profile.clear()
-# @profile
-y = numericRootGenericRandomizedFnc(
-        gg,
-        2, 2, randn(2)  )
-#
-@test abs((ci.K[1,3]+ci.K[1,1]*pt[1]/pt[3]) - y[1]) < 1e-8
-@test abs(y[2] - ci.K[2,3]) < 1e-8
-
-# using ProfileView
-# ProfileView.view()
+# test shuffling function
+x0 = collect(11:13)+0.0
+for i in 1:10
+  y = numericRootGenericRandomizedFnc(
+          testshuffle!,
+          2, 3, x0    )
+  yy = y.%10
+  @test norm(yy-collect(1:3)) < 0.01
+end
 
 
 
+# x is dimension 3, z dimension is 2
+function residualrandtest!(x, res)
+  val = norm(x[1:2])
+  res[1] = 10.0 - val
+  nothing
+end
+
+for i in 1:10
+  x0 = ones(2)
+  y = numericRootGenericRandomizedFnc(
+          residualrandtest!,
+          1, 2, x0   )
+  #
+  @test abs(norm(y) - 10.0) < 1e-4
+end
 
 # test convexity of rotation residual
 #
@@ -152,7 +122,7 @@ y = numericRootGenericRandomizedFnc(
 # # RES = zeros(3, N)
 # # for i in 1:N
 # #   res = zeros(3)
-# #   rotationResidual!(res, eul, (zeros(0), [X[i];0.0;0.0]) )
+# #   rotationresidual!(res, eul, (zeros(0), [X[i];0.0;0.0]) )
 # #   RES[:,i] = res
 # # end
 #
@@ -160,7 +130,7 @@ y = numericRootGenericRandomizedFnc(
 #
 # function easyplot(x,y, eul)
 #   res = zeros(3)
-#   rotationResidual!(res, eul, (zeros(0), [x;0.0;y]) )
+#   rotationresidual!(res, eul, (zeros(0), [x;0.0;y]) )
 #   return norm(res)
 # end
 #
