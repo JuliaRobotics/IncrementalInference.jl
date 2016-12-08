@@ -3,7 +3,6 @@
 [![Coveralls Status](http://coveralls.io/github/dehann/IncrementalInference.jl/badge.svg?branch=master&service=github)](http://coveralls.io/github/dehann/IncrementalInference.jl?branch=master)
 [![codecov.io](https://codecov.io/github/dehann/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/dehann/IncrementalInference.jl?branch=master)
 
-[![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.4.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.4)
 [![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.5.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.5)
 [![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.6.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.6)
 
@@ -36,7 +35,7 @@ This work is an extension of the iSAM2 [1] work towards hybrid non-parametric [2
 Basic example
 =============
 
-A multimodal 4 door robot example is available at:
+A multi-modal 4 door robot example is available at:
 
     examples/RobotfourDoor.jl
 
