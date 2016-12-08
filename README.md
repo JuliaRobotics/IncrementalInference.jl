@@ -9,11 +9,11 @@
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/).
 
-This code is still in development (and fixing bugs as we go along).
-
-[Peer reviewed publication](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relating to this work, and a video example:
+The peer reviewed publication on [Multi-modal iSAM](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) relates to this work [1]. Also see a video example link:
 
 <a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmisamvid01.gif" alt="IMAGE ALT TEXT HERE" width="480" border="10" /></a>
+
+Comments and questions welcome.
 
 Installation
 ------------
@@ -25,7 +25,7 @@ Pkg.add("IncrementalInference")
 Introduction
 ------------
 
-This package implements Multi-modal iSAM and is an extension of the iSAM2 [1]. The focus is towards hybrid non-parametric [2] and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
+This package implements Multi-modal iSAM and is an extension of the iSAM2 [2]. The focus is towards hybrid non-parametric [1] and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
 
 <a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" border="10" /></a>
 
@@ -71,5 +71,6 @@ to see current graph. You can delete the graph using the query
 References
 ==========
 
-    [1]  Kaess, Michael, et al. "iSAM2: Incremental smoothing and mapping using the Bayes tree." The International Journal of Robotics Research (2011): 0278364911430419.
-    [2]  Fourie, Dehann, et al. "[A Nonparametric Belief Solution to the Bayes Tree.](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf)" IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).
+
+[1]  Fourie, Dehann, et al. "A Nonparametric Belief Solution to the Bayes Tree." IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).
+[2]  Kaess, Michael, et al. "iSAM2: Incremental smoothing and mapping using the Bayes tree." The International Journal of Robotics Research (2011): 0278364911430419.
