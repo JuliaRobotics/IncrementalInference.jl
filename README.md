@@ -72,5 +72,5 @@ References
 ==========
 
 
-[1]  Fourie, Dehann, et al. "A Nonparametric Belief Solution to the Bayes Tree." IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).
-[2]  Kaess, Michael, et al. "iSAM2: Incremental smoothing and mapping using the Bayes tree." The International Journal of Robotics Research (2011): 0278364911430419.
+    [1]  Fourie, Dehann, et al. "A Nonparametric Belief Solution to the Bayes Tree." IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).
+    [2]  Kaess, Michael, et al. "iSAM2: Incremental smoothing and mapping using the Bayes tree." The International Journal of Robotics Research (2011): 0278364911430419.
