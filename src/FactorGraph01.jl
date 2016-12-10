@@ -95,7 +95,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString, ready::Int)
+function addNewVarVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
   fgl.IDs[lbl] = id # fg.id, to help find it
@@ -110,8 +110,8 @@ end
 
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!(fg::FactorGraph, lbl::String, initval=[0.0]', stdev=[1.0]';
-      N::Int=100, ready::Int=1, labels=String[])
+function addNode!{T <: AbstractString}(fg::FactorGraph, lbl::T, initval=[0.0]', stdev=[1.0]';
+      N::Int=100, ready::Int=1, labels::Vector{T}=String[])
   fg.id+=1
   vert = ExVertex(fg.id,lbl)
   addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
@@ -219,8 +219,8 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   nothing
 end
 
-function addFactor!(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels=String[] )
+function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[] )
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])

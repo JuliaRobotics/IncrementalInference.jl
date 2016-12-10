@@ -9,12 +9,8 @@ using
   Distributions,
   KernelDensityEstimate,
   TransformUtils
-  # CloudGraphs, Neo4j
 
 export
-  # actual CloudGraphs integration experimental code
-  setCloudDataLayerAPI!,
-
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
@@ -23,6 +19,7 @@ export
   FNDencode,
   FNDdecode,
   FunctionNodeData,
+  PackedFunctionNodeData,
   FactorGraph,
   addNode!,
   addFactor!,
@@ -73,12 +70,18 @@ export
     #development interface
     upMsgPassingRecursive,
 
+  # Inference types
+  InferenceType,
+  PackedInferenceType,
   Singleton,
   Pairwise,
+
+  # Solving utils
   numericRoot,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   GenericMarginal,
+  PackedGenericMarginal,
 
   #Robot stuff
   # PriorPose2,
@@ -109,6 +112,7 @@ export
   Obsv2,
   PackedObsv2,
   Ranged,
+  PackedRanged,
   #
   # PriorPose3,
   # Pose3Pose3,
@@ -118,18 +122,23 @@ export
   addGraphsVert!,
   makeAddEdge!,
 
-  # CloudGraph stuff
-  registerGeneralVariableTypes!,
-  fullLocalGraphCopy!,
-  removeGenericMarginals!,
-  setBackendWorkingSet!,
-  setDBAllReady!,
-  getExVertFromCloud,
-  getAllExVertexNeoIDs,
-  getPoseExVertexNeoIDs,
-  copyAllNodes!,
-  copyAllEdges!,
+  # define evalPotential functions outside IIF
   registerCallback!,
+
+  # CloudGraphs integration callback setting function
+  setdatalayerAPI!,
+
+  # # CloudGraph stuff
+  # registerGeneralVariableTypes!,
+  # fullLocalGraphCopy!,
+  # removeGenericMarginals!,
+  # setBackendWorkingSet!,
+  # setDBAllReady!,
+  # getExVertFromCloud,
+  # getAllExVertexNeoIDs,
+  # getPoseExVertexNeoIDs,
+  # copyAllNodes!,
+  # copyAllEdges!,
 
   # development
   shuffleXAltD
