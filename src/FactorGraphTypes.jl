@@ -1,8 +1,11 @@
 import Base.convert
 import Base.==
 
-abstract Pairwise
-abstract Singleton
+abstract InferenceType
+abstract PackedInferenceType
+
+abstract Pairwise <: InferenceType
+abstract Singleton <: InferenceType
 
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
@@ -24,7 +27,7 @@ type FactorGraph
   dimID::Int64
   cg
   cgIDs::Dict{Int64,Int64}
-  sessionname::String
+  sessionname::AbstractString
   registeredModuleFunctions::Dict{Symbol, Function}
   FactorGraph() = new()
   FactorGraph(x...) = new(
@@ -100,16 +103,24 @@ type PackedVariableNodeData
   PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
 
-type FunctionNodeData{T}
+type GenericFunctionNodeData{T, S}
   fncargvID::Array{Int64,1}
   eliminated::Bool
   potentialused::Bool
   edgeIDs::Array{Int64,1}
-  frommodule::Union{Symbol, String}
+  frommodule::S #Union{Symbol, AbstractString}
   fnc::T
-  FunctionNodeData() = new()
-  FunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
+  GenericFunctionNodeData() = new()
+  GenericFunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
 end
+
+typealias FunctionNodeData{T <: InferenceType} GenericFunctionNodeData{T, Symbol}
+FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
+FunctionNodeData(x...) = GenericFunctionNodeData{T, Symbol}(x[1],x[2],x[3],x[4],x[5],x[6])
+
+typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
+PackedFunctionNodeData() = GenericFunctionNodeData{T, AbstractString}()
+PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x[2],x[3],x[4],x[5],x[6])
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
@@ -141,11 +152,11 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator)
 end
-function VNDencoder(d::VariableNodeData)
-  return convert(PackedVariableNodeData, d)
+function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
+  return convert(P, d) #PackedVariableNodeData
 end
-function VNDdecoder(d::PackedVariableNodeData)
-  return convert(VariableNodeData, d)
+function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
+  return convert(T, d) #VariableNodeData
 end
 
 
@@ -168,8 +179,8 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return IncrementalInference.compare(a,b)
 end
 
-function addGraphsVert!(fgl::FactorGraph, exvert::Graphs.ExVertex;
-    labels=String[])
+function addGraphsVert!{T <: AbstractString}(fgl::FactorGraph, exvert::Graphs.ExVertex;
+    labels::Vector{T}=String[])
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
@@ -177,7 +188,7 @@ function getVertNode(fgl::FactorGraph, id::Int64, nt::Symbol=:var)
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
-function getVertNode(fgl::FactorGraph, lbl::AbstractString, nt::Symbol=:var)
+function getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T, nt::Symbol=:var)
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]) , nt)
 end
 

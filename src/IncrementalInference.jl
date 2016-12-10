@@ -20,6 +20,7 @@ export
   FNDencode,
   FNDdecode,
   FunctionNodeData,
+  PackedFunctionNodeData,
   FactorGraph,
   addNode!,
   addFactor!,
@@ -70,12 +71,18 @@ export
     #development interface
     upMsgPassingRecursive,
 
+  # Inference types
+  InferenceType,
+  PackedInferenceType,
   Singleton,
   Pairwise,
+
+  # Solving utils
   numericRoot,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   GenericMarginal,
+  PackedGenericMarginal,
 
   #Robot stuff
   # PriorPose2,
@@ -106,6 +113,7 @@ export
   Obsv2,
   PackedObsv2,
   Ranged,
+  PackedRanged,
   #
   # PriorPose3,
   # Pose3Pose3,
@@ -115,6 +123,8 @@ export
   addGraphsVert!,
   makeAddEdge!,
 
+  # define evalPotential functions outside IIF
+  registerCallback!,
 
   # CloudGraphs integration callback setting function
   setdatalayerAPI!,
@@ -130,7 +140,6 @@ export
   # getPoseExVertexNeoIDs,
   # copyAllNodes!,
   # copyAllEdges!,
-  # registerCallback!,
 
   # development
   shuffleXAltD

@@ -752,7 +752,7 @@ end
 
 
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200)
-    println("Do inference over tree")
+    println("Do multi-process inference over tree")
     # Profile.clear()
     cliq = bt.cliques[1]
     upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N);
@@ -762,7 +762,7 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200)
 end
 
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200)
-    println("Do inference over tree")
+    println("Do recursive inference over tree")
     # Profile.clear()
     cliq = bt.cliques[1]
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N);

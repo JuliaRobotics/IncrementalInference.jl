@@ -44,27 +44,26 @@ localapi = DataLayerAPI(addGraphsVert!,          # addvertex
 
 
 # setCloudDataLayerAPI!
-function setdatalayerAPI!(;
-      addvertex!::Function = addGraphsVert!,
+function setdatalayerAPI!(;addvertex::Function = addGraphsVert!,
       getvertex::Function = getVertNode,
-      makeaddedge!::Function = makeAddEdge!,
+      makeaddedge::Function = makeAddEdge!,
       getedge::Function = graphsGetEdge,
       outneighbors::Function = graphsOutNeighbors,
-      updatevertex!::Function = updateFullVertData!,
-      updateedge!::Function = +,
-      deletevertex!::Function = graphsDeleteVertex!,
-      deleteedge!::Function = +,
-      cgEnabled::Function = false  )
+      updatevertex::Function = updateFullVertData!,
+      updateedge::Function = +,
+      deletevertex::Function = graphsDeleteVertex!,
+      deleteedge::Function = +,
+      cgEnabled::Bool = false  )
 
-  dlapi.addvertex! = addvertex!
+  dlapi.addvertex! = addvertex
   dlapi.getvertex = getvertex
-  dlapi.makeaddedge! = makeaddedge!
+  dlapi.makeaddedge! = makeaddedge
   dlapi.getedge = getedge
   dlapi.outneighbors = outneighbors
-  dlapi.updatevertex! = updatevertex!
-  dlapi.updateedge! = updateedge!
-  dlapi.deletevertex! = deletevertex!
-  dlapi.deleteedge! = deleteedge!
+  dlapi.updatevertex! = updatevertex
+  dlapi.updateedge! = updateedge
+  dlapi.deletevertex! = deletevertex
+  dlapi.deleteedge! = deleteedge
   dlapi.cgEnabled = cgEnabled
 
   # dlapi.addvertex! = addCloudVert!
