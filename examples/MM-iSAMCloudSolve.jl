@@ -17,7 +17,7 @@ configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, dbusr, dbpw
 cloudGraph = connect(configuration);
 # register types of interest in CloudGraphs
 registerGeneralVariableTypes!(cloudGraph)
-IncrementalInference.setCloudDataLayerAPI!()
+IncrementalInference.setdatalayerAPI!()
 
 # Connect to database
 conn = cloudGraph.neo4j.connection

@@ -103,7 +103,7 @@ function deleteCloudEdge!(fgl::FactorGraph, edge::CloudEdge)
   CloudGraphs.delete_edge!(fgl.cg, edge)
 end
 
-function setCloudDataLayerAPI!()
+function setdatalayerAPI!()
   # cgapi = DataLayerAPI(addCloudVert!,            # addvertex
   #                      dlapi.getvertex,          # getvertex
   #                      makeAddCloudEdge!,        # makeaddedge

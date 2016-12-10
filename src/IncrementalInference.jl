@@ -12,9 +12,6 @@ using
   # CloudGraphs, Neo4j
 
 export
-  # actual CloudGraphs integration experimental code
-  setCloudDataLayerAPI!,
-
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
@@ -118,18 +115,22 @@ export
   addGraphsVert!,
   makeAddEdge!,
 
-  # CloudGraph stuff
-  registerGeneralVariableTypes!,
-  fullLocalGraphCopy!,
-  removeGenericMarginals!,
-  setBackendWorkingSet!,
-  setDBAllReady!,
-  getExVertFromCloud,
-  getAllExVertexNeoIDs,
-  getPoseExVertexNeoIDs,
-  copyAllNodes!,
-  copyAllEdges!,
-  registerCallback!,
+
+  # CloudGraphs integration callback setting function
+  setdatalayerAPI!,
+
+  # # CloudGraph stuff
+  # registerGeneralVariableTypes!,
+  # fullLocalGraphCopy!,
+  # removeGenericMarginals!,
+  # setBackendWorkingSet!,
+  # setDBAllReady!,
+  # getExVertFromCloud,
+  # getAllExVertexNeoIDs,
+  # getPoseExVertexNeoIDs,
+  # copyAllNodes!,
+  # copyAllEdges!,
+  # registerCallback!,
 
   # development
   shuffleXAltD
