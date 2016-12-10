@@ -9,7 +9,6 @@ using
   Distributions,
   KernelDensityEstimate,
   TransformUtils
-  # CloudGraphs, Neo4j
 
 export
   # using either dictionary or cloudgraphs
