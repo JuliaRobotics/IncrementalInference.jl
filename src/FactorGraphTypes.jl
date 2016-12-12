@@ -10,7 +10,7 @@ typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs
 
 
 type FactorGraph
-  g::FGG
+  g::FGGdict
   bn
   v::Dict{Int,Graphs.ExVertex} # TODO -- remove
   f::Dict{Int,Graphs.ExVertex} # TODO -- remove
@@ -47,8 +47,8 @@ type FactorGraph
 end
 
 function emptyFactorGraph()
-    fg = FactorGraph(Graphs.inclist(Graphs.ExVertex,is_directed=false),
-                     Graphs.inclist(Graphs.ExVertex,is_directed=true),
+    fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                     Graphs.incdict(Graphs.ExVertex,is_directed=true),
                      Dict{Int,Graphs.ExVertex}(),
                      Dict{Int,Graphs.ExVertex}(),
                      Dict{AbstractString,Int}(),
