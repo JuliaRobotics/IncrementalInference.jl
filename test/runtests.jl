@@ -36,7 +36,7 @@ println("Success")
 println("[TEST] packing converters work...")
 # using fourdoortest data
 topack = fg.f[4].attributes["data"]
-dd = convert(FunctionNodeData{PackedOdo},topack)
+dd = convert(PackedFunctionNodeData{PackedOdo},topack)
 upd = convert(FunctionNodeData{Odo}, dd)
 @test topack.fnc.Zij[1] == upd.fnc.Zij[1]
 
@@ -60,10 +60,11 @@ println("Conversions and comparisons agree")
 # include("testConstraints.jl")
 # println("[SUCCESS]")
 
-if false
-  println("[TEST] with CloudGraphs data layer (multicore)...")
-  include("fourdoortestcloudgraph.jl")
-  println("[SUCCESS]")
-else
-  warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
-end
+
+# if false
+#   println("[TEST] with CloudGraphs data layer (multicore)...")
+#   include("fourdoortestcloudgraph.jl")
+#   println("[SUCCESS]")
+# else
+#   warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
+# end

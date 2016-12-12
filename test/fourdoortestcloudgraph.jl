@@ -18,7 +18,7 @@ conn = cloudGraph.neo4j.connection
 # register types of interest in CloudGraphs
 registerGeneralVariableTypes!(cloudGraph)
 
-IncrementalInference.setCloudDataLayerAPI!()
+IncrementalInference.setdatalayerAPI!()
 
 # this is being replaced by cloudGraph, added here for development period
 fg = emptyFactorGraph()

@@ -10,7 +10,7 @@ println("Taking Neo4j database address as $(dbaddress)...")
 # switch IncrementalInference to use CloudGraphs (Neo4j) data layer
 configuration = CloudGraphs.CloudGraphConfiguration(dbaddress, 7474, "", "", dbaddress, 27017, false, "", "");
 cloudGraph = connect(configuration);
-IncrementalInference.setCloudDataLayerAPI!()
+IncrementalInference.setdatalayerAPI!()
 # Connection to database for additional queries
 conn = cloudGraph.neo4j.connection
 
