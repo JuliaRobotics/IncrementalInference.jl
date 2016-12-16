@@ -309,19 +309,20 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
             if getData(fct).potentialused!=true # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #fct.attributes["potentialused"]!=true ## USED TO HAVE == AND continue end here
                 loutn = localapi.outneighbors(fg, fct) #out_neighbors(fct, fg.g)
                 if length(loutn)==1
-                    appendUseFcts!(usefcts, fg.IDs[loutn[1].label], fct, fid) #out_neighbors(fct, fg.g)
+                    appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid) #out_neighbors(fct, fg.g)
                     # TODO -- make update vertex call
                     fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
                     localapi.updatevertex!(fg, fct)
                 end
                 for sepSearch in loutn # out_neighbors(fct, fg.g)
-                    if (fg.IDs[sepSearch.label] == fid)
+                    sslbl = Symbol(sepSearch.label)
+                    if (fg.IDs[sslbl] == fid)
                         continue # skip the fid itself
                     end
-                    sea = findmin(abs(allids-fg.IDs[sepSearch.label]))
+                    sea = findmin(abs(allids-fg.IDs[sslbl]))
                     if sea[1]==0.0
-                        appendUseFcts!(usefcts, fg.IDs[sepSearch.label], fct, fid)
-                        # usefcts = [usefcts;(fg.IDs[sepSearch.label], fct, fid)]
+                        appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
+                        # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
                         fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
                         localapi.updatevertex!(fg, fct)
                     end

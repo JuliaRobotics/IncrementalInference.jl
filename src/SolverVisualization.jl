@@ -417,11 +417,12 @@ function drawDwnMCMCPose2D!(plots::Array{Gadfly.Compose.Context,1}, bt::BayesTre
     drawDwnMCMCPose2D!(plots, whichCliq(bt,frt), iter)
 end
 
-function drawLbl(fg::FactorGraph, lbl::String)
-    # v = dlapi.getvertex(fg,lbl) # fg.v[fg.IDs[lbl]]
+function drawLbl(fgl::FactorGraph, lbl::Symbol)
+    # v = dlapi.getvertex(fgl,lbl)
     # investigatePoseKDE(kde!(getVal(v)))
-    investigatePoseKDE(getVertKDE(fg,lbl))
+    investigatePoseKDE(getVertKDE(fgl,lbl))
 end
+drawLbl{T <: AbstractString}(fgl::FactorGraph, lbl::T) = drawLbl(fgl, Symbol(lbl))
 
 function predCurrFactorBeliefs(fgl::FactorGraph, fc::Graphs.ExVertex)
   # TODO update to use ls and lsv functions
@@ -446,8 +447,8 @@ function drawHorDens(fgl::FactorGraph, pDens::Dict{Int,EasyMessage}, N=200)
   drawHorDens(p,N,lbls=lbls)
 end
 
-function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{String,1};
-                        nhor::Int=-1,gt=Union{},N::Int=200, extend=0.1)
+function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{Symbol,1};
+                        nhor::Int=-1,gt=nothing,N::Int=200, extend=0.1)
   len = length(lbls)
   pDens = BallTreeDensity[]
   for lb in lbls
@@ -471,12 +472,12 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{String,1};
     for j in 0:(nhor-1)
       if i+j <= len
         push!(pH, pDens[i+j])
-        push!(labels, lbls[i+j])
-        if gt != Union{} gtvals[j+1] = gt[lbls[i+j]]  end
+        push!(labels, string(lbls[i+j]))
+        if gt != nothing gtvals[j+1] = gt[lbls[i+j]]  end
       end
     end
     vidx+=1
-    if gt !=Union{}
+    if gt !=nothing
       vv[vidx] = KernelDensityEstimate.drawHorDens(pH, N=N, gt=gtvals, lbls=labels, extend=extend)
     else
       vv[vidx] = KernelDensityEstimate.drawHorDens(pH, N=N, lbls=labels, extend=extend)
@@ -485,14 +486,15 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{String,1};
   vv
 end
 
-function drawFactorBeliefs(fgl::FactorGraph, flbl::String)
+function drawFactorBeliefs(fgl::FactorGraph, flbl::Symbol)
   if !haskey(fgl.fIDs, flbl)
     println("no key $(flbl)")
     return nothing
   end
   # for fc in fgl.f
     # if fc[2].attributes["label"] == flbl
-    fc = fgl.f[fgl.fIDs[flbl]]
+
+    fc = fgl.g.vertices[fgl.fIDs[flbl]]  # fc = fgl.f[fgl.fIDs[flbl]]
       prjcurvals, lbls = predCurrFactorBeliefs(fgl, fc)
       if length(lbls) == 3
         return vstack(
@@ -513,13 +515,14 @@ function drawFactorBeliefs(fgl::FactorGraph, flbl::String)
   # end
   nothing
 end
+drawFactorBeliefs{T <: AbstractString}(fgl::FactorGraph, flbl::T) = drawFactorBeliefs(fgl, Symbol(flbl))
 
-function localProduct(fgl::FactorGraph, lbl::String;N=300)
+function localProduct(fgl::FactorGraph, lbl::Symbol; N::Int=300)
   arr = Array{BallTreeDensity,1}()
   cf = ls(fgl, lbl)
   pp = Union{}
   for f in cf
-    fgf = dlapi.getvertex(fgl,f,:fnc) #fgl.f[fgl.fIDs[f]]
+    fgf = dlapi.getvertex(fgl,f,:fnc)
     push!(arr, kde!(evalFactor2(fgl, fgf, fgl.IDs[lbl])))
   end
   if length(arr)>1
@@ -530,10 +533,11 @@ function localProduct(fgl::FactorGraph, lbl::String;N=300)
   end
   return pp,arr
 end
+localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=300) = localProduct(fgl, Symbol(lbl), N=N)
 
-function drawLocalProduct(fgl::FactorGraph, lbl::String;N=300)
+function drawLocalProduct(fgl::FactorGraph, lbl::String; N::Int=300)
   arr = Array{BallTreeDensity,1}()
-  push!(arr, getVertKDE(fgl, lbl)) #kde!(getVal(fgl.v[fgl.IDs[lbl]]))
+  push!(arr, getVertKDE(fgl, lbl))
   pp, parr = localProduct(fgl, lbl, N=N)
   if pp != Union{}
     push!(arr,pp)
@@ -543,6 +547,7 @@ function drawLocalProduct(fgl::FactorGraph, lbl::String;N=300)
   end
   return investigatePoseKDE(arr)
 end
+drawLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=300) = drawLocalProduct(fgl, Symbol(lbl), N=N)
 
 function saveplot(pl;name="pl",frt=:png,w=25cm,h=25cm,nw=false,fill=true)
   if frt==:png
@@ -565,63 +570,67 @@ function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl;nw=false)
   nothing
 end
 
-function ls(fgl::FactorGraph, lbl::String)
-  ls = String[]
-  v = Union{}
+function ls(fgl::FactorGraph, lbl::Symbol)
+  lsa = Symbol[]
+  v = nothing
   if haskey(fgl.IDs, lbl)
     id = fgl.IDs[lbl]
   else
-    return ls
+    return lsa
   end
   v = dlapi.getvertex(fgl,id) #fgl.v[id]
   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
   for outn in getOutNeighbors(fgl, v) # out_neighbors(v, fgl.g)
     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
-      push!(ls, outn.label)
+      push!(lsa, symbol(outn.label))
     # end
   end
-  return ls
+  return lsa
 end
+ls{T <: AbstractString}(fgl::FactorGraph, lbl::T) = ls(fgl, Symbol(lbl))
 
 function ls(fgl::FactorGraph)
   k = collect(keys(fgl.IDs))
   l = Int[]
   x = Int[]
   for kk in k
-    val = parse(Int,kk[2:end])
-    if kk[1] == 'l'
+    kstr = string(kk)
+    val = parse(Int,kstr[2:end]) # kk
+    if kstr[1] == 'l'
       push!(l,val)
-    elseif kk[1] == 'x'
+    elseif kstr[1] == 'x'
       push!(x,val)
     end
   end
   l = sort(l)
   x = sort(x)
-  ll = Array{String,1}(length(l))
-  xx = Array{String,1}(length(x))
+  ll = Array{Symbol,1}(length(l))
+  xx = Array{Symbol,1}(length(x))
   for i in 1:length(l)
-    ll[i] = string("l",l[i])
+    ll[i] = Symbol(string("l",l[i]))
   end
   for i in 1:length(x)
-    xx[i] = string("x",x[i])
+    xx[i] = Symbol(string("x",x[i]))
   end
   return xx,ll
 end
 
-function lsv(fgl::FactorGraph, lbl::String)
-  ls = String[]
+function lsv(fgl::FactorGraph, lbl::Symbol)
+  lsa = Symbol[]
   v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
   else
-    return ls
+    return lsa
   end
-  v = fgl.f[id]
+  v = fgl.g.vertices[id] #fgl.f[id]
   for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    push!(ls, outn.label)
+    push!(lsa, Symbol(outn.label))
   end
-  return ls
+  return lsa
 end
+lsv{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsv(fgl,Symbol(lbl))
+
 
 
 

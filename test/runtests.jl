@@ -35,7 +35,7 @@ println("Success")
 
 println("[TEST] packing converters work...")
 # using fourdoortest data
-topack = fg.f[4].attributes["data"]
+topack = getData(fg.g.vertices[4]) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedOdo},topack)
 upd = convert(FunctionNodeData{Odo}, dd)
 @test topack.fnc.Zij[1] == upd.fnc.Zij[1]

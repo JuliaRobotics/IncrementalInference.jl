@@ -15,10 +15,10 @@ typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs
 type FactorGraph
   g::FGGdict
   bn
-  v::Dict{Int,Graphs.ExVertex} # TODO -- remove
-  f::Dict{Int,Graphs.ExVertex} # TODO -- remove
-  IDs::Dict{AbstractString,Int}
-  fIDs::Dict{AbstractString,Int}
+  # v::Dict{Int,Graphs.ExVertex} #  -- remove
+  # f::Dict{Int,Graphs.ExVertex} #  -- remove
+  IDs::Dict{Symbol,Int}
+  fIDs::Dict{Symbol,Int}
   id::Int64
   nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
   factorIDs::Array{Int,1}
@@ -44,18 +44,18 @@ type FactorGraph
     x[11],
     x[12],
     x[13],
-    x[14],
-    x[15],
-    x[16] )
+    x[14] )
+    # x[3] )
+    # x[4] ) # removed fg.v
 end
 
 function emptyFactorGraph()
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
-                     Dict{Int,Graphs.ExVertex}(),
-                     Dict{Int,Graphs.ExVertex}(),
-                     Dict{AbstractString,Int}(),
-                     Dict{AbstractString,Int}(),
+                    #  Dict{Int,Graphs.ExVertex}(),
+                    #  Dict{Int,Graphs.ExVertex}(),
+                     Dict{Symbol,Int}(),
+                     Dict{Symbol,Int}(),
                      0,
                      [],
                      [],
@@ -188,25 +188,11 @@ function getVertNode(fgl::FactorGraph, id::Int64, nt::Symbol=:var)
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
-function getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T, nt::Symbol=:var)
+function getVertNode(fgl::FactorGraph, lbl::Symbol, nt::Symbol=:var)
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]) , nt)
 end
+getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T, nt::Symbol=:var) = getVertNode(fgl, Symbol(lbl), nt=nt)
 
-# function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
-#   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-#   vert.attributes["label"] = lbl #fg.v[fg.id]
-#   fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
-#   fgl.IDs[lbl] = id # fg.id, to help find it
-#   nothing
-# end
-
-# function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString)
-#   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-#   vert.attributes["label"] = lbl #fg.v[fg.id]
-#   fgl.f[id] = vert # TODO -- not sure if this is required
-#   fgl.fIDs[lbl] = id # fg.id
-#   nothing
-# end
 
 
 # excessive function, needs refactoring
