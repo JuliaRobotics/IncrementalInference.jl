@@ -122,20 +122,12 @@ end
 function packFromLocalPotentials!(fgl::FactorGraph, dens::Array{BallTreeDensity,1}, cliq::Graphs.ExVertex, vertid::Int64, N::Int64)
     for idfct in cliq.attributes["data"].potentials
         vert = getVertNode(fgl, idfct)
-        for vertidx in getData(vert).fncargvID #for vert in idfct[2].attributes["fnc"].Xi
-        # for vertidx in idfct[2].attributes["data"].fncargvID #for vert in idfct[2].attributes["fnc"].Xi
+        for vertidx in getData(vert).fncargvID
             if vertidx == vertid
               p = findRelatedFromPotential(fgl, vert, vertid, N)
-              # p = findRelatedFromPotential(fgl, idfct[2], vertid, N)
               push!(dens, p)
             end
         end
-        # for vert in idfct[2].attributes["data"].fnc.Xi #for vert in idfct[2].attributes["fnc"].Xi
-        #     if vert.index == vertid
-        #       p = findRelatedFromPotential(fgl, idfct[2], vertid, N)
-        #       push!(dens, p)
-        #     end
-        # end
     end
     nothing
 end
@@ -147,8 +139,6 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     dens = Array{BallTreeDensity,1}()
     packFromIncomingDensities!(dens, vertid, inmsgs)
     packFromLocalPotentials!(fg, dens, cliq, vertid, N)
-    # testing
-    # end testing
     potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens) # (fg.v[vertid])
 
     pGM = Array{Float64,2}()
@@ -157,8 +147,6 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
         dummy = kde!(rand(Ndims,N),[1.0]);
         print("[$(length(dens))x,d$(Ndims),N$(N)],")
         pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
-        #pGM, = remoteProdAppxMSGibbsS(dummy, dens, Union{}, Union{})
-        # sum(abs(pGM))<1e-14 ? error("cliqGibbs -- nothing in pGM") : nothing
     elseif length(dens) == 1
         print("[direct]")
         pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end], dens[1].bt.dims, Npts(dens[1]))  #N
@@ -210,48 +198,6 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
     return mcmcdbg, d
 end
 
-# function compOutMsgsProd(mpt::MsgPassType)
-#     # TODO -- very very expensive function since all fg data is copied on remotecall
-#     compIDVals = Array{Float64,2}()
-#     compIDVals, = cliqGibbs(mpt.fg, mpt.cliq, mpt.vid, mpt.msgs, mpt.N)
-#     if size(compIDVals,1) == 0
-#         compIDVals = getVal(mpt.fg.v[mpt.vid])
-#     end
-#     p = kde!(compIDVals, "lcv")
-#     bws = vec(getBW(p)[:,1])
-#     return EasyMessage(compIDVals, bws)
-# end
-#
-# # returns output NBPMessage, based on projection to IDs
-# function upPrepOutMsg!(fgl::FactorGraph, cliq::Graphs.ExVertex,
-#                   inMsgs::Array{NBPMessage,1}, IDs::Array{Int64,1}, N::Int)
-#
-#     print("Outgoing msg density on: ")
-#     len = length(IDs)
-#     m = NBPMessage(Dict{Int64,EasyMessage}()) #Int64[], BallTreeDensity[]
-#   rr = Array{Future,1}()
-#     i = 0
-#     for vid in IDs
-#         i+=1
-#         mpt = MsgPassType(fgl, cliq, vid, inMsgs, N) # TODO -- should this be copied??
-#         if true
-#           push!(rr,remotecall(upploc() , compOutMsgsProd, mpt) )
-#         else
-#           outp = compOutMsgsProd(mpt)
-#           m.p[vid] = outp
-#         end
-#     end
-#     i = 0
-#     for r in rr
-#         i +=1
-#         outp = fetch(r)
-#         m.p[IDs[i]] = outp
-#     end
-#     println()
-#
-#     return m
-# end
-
 function upPrepOutMsg!(d::Dict{Int64,Array{Float64,2}}, IDs::Array{Int64,1})
   print("Outgoing msg density on: ")
   len = length(IDs)
@@ -265,7 +211,6 @@ function upPrepOutMsg!(d::Dict{Int64,Array{Float64,2}}, IDs::Array{Int64,1})
   end
   return m
 end
-
 
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     print("up w $(length(inp.sendmsgs)) msgs")
@@ -328,21 +273,6 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
       println("Dwn msg keys $(keys(dwnMsgs[1].p))")
     end # ignore root, now incoming dwn msg
     print("Outgoing msg density on: ")
-    # cdwndict = Dict{Int64, BallTreeDensity}()
-    # for cvid in cliq.attributes["conditIDs"] # root has no parent
-    #     prtdwnmsg = dwnMsgs[1] # there is only one dwn incoming NBPMessage
-    #     Xi = keys(prtdwnmsg)
-    #     for i in 1:length(Xi) # prtdwnmsg.Xi
-    #         if Xi[i] == cvid
-    #             print("$(fg.v[cvid].attributes["label"]), ")
-    #             p = prtdwnmsg.p[cvid]
-    #             cdwndict[cvid] = kde!(p.pts, p.bws)
-    #         end
-    #     end
-    # end
-    # println()
-    # allIDs = [cliq.attributes["frontalIDs"]; cliq.attributes["conditIDs"] ]
-    # outDens = Array{BallTreeDensity,1}(length(allIDs))
     m = NBPMessage(Dict{Int64,EasyMessage}())
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
@@ -360,8 +290,6 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         # println("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
-
-    # NBPMessage(deepcopy(allIDs), deepcopy(outDens))
     return m
 end
 
@@ -426,25 +354,11 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200)
     for child in out_neighbors(inp.cliq, inp.bt.bt)
         ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
         ddt = downMsgPassingRecursive( ett , N=N )
-        # updateFG!(inp, ddt)
-        #r = remotecall(upp2() , downMsgPassingRecursive, ett) #pidx
-        #push!(rr, r)
-        ##push!(ETT, ett)
-        ##r = @spawn downMsgCliquePotentials( ett ) # loss of type information
     end
-    # for r in rr
-    #     rDDT = fetch(r)
-    #     # calling updateFG here is obsolete and probably wrong at this point
-    #     println("dwnMsgPR -- calling updateFGBT! on $(inp.cliq.attributes["label"])...")
-    #     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT) # this runs in the main thread (NBPMessage being passed back to proc1)
-    # end
 
     # return modifications to factorgraph to calling process
-    # TODO -- is this the right information to be passing down?
     return ddt
 end
-
-
 
 # post order tree traversal and build potential functions
 function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200) #upmsgdict = Dict{Int64, Array{Float64,2}}()
@@ -534,18 +448,11 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
 end
 
 function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, stkcnt::Int64, refdict::Dict{Int64,Future}; N::Int=200)
-  #ddt = visitNode(nodedata[2])
-  #updateFG!(nodedata[2], ddt)
-  # sleep(1.0) # testing Julia 0.5 conversion to Future problem
   cliq = parentStack[stkcnt]
-  # while !haskey(cliq.attributes, "dwnremoteref") # nodedata.cliq
   while !haskey(refdict, cliq.index) # nodedata.cliq
-    #println("Sleeping on lack of remoteref")
     sleep(0.25)
   end
 
-  # rDDT = fetch(cliq.attributes["dwnremoteref"]) #nodedata.cliq
-  # delete!(cliq.attributes, "dwnremoteref") # nodedata
   rDDT = fetch(refdict[cliq.index]) #nodedata.cliq
   delete!(refdict,cliq.index) # nodedata
 
@@ -556,28 +463,21 @@ function dispatchNewDwnProc!(fg::FactorGraph, bt::BayesTree, parentStack::Array{
   emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
 
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
-      #haskey(child.attributes, "dwnremoteref") ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
       haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
       ett = partialExploreTreeType(fg, emptr, child, cliq, [rDDT.dwnMsg]) # bt
       refdict[child.index] = remotecall(downGibbsCliqueDensity, upp2() , ett, N) # Julia 0.5 swapped order
-      # refdict[child.index] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
-      ##child.attributes["dwnremoteref"] = remotecall(upp2() , downGibbsCliqueDensity, ett, N) # pidxI[1]
   end
   nothing
 end
 
 function processPreOrderStack!(fg::FactorGraph, bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, refdict::Dict{Int64,Future}; N::Int=200)
     # dwn message passing function for iterative tree exploration
-    # @show length(parentStack)
     stkcnt = 0
 
     @sync begin
       sendcnt = 1:length(parentStack) # separate memory for remote calls
       for i in 1:sendcnt[end]
-      # while ( stkcnt < length(parentStack) ) # || nodedata != Union{}
-          # stkcnt += 1
           @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N) # stkcnt ##pidxI,nodedata
-          # sleep(1.0)
       end
     end
     nothing
@@ -589,12 +489,9 @@ function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200)
   refdict = Dict{Int64,Future}()
 
   # start at the given clique in the tree -- shouldn't have to be the root.
-  # haskey(startett.cliq.attributes, "dwnremoteref") ? error("downMsgPassingIterative! -- why you already have dwnremoteref?") : nothing
   pett = partialExploreTreeType(startett.fg, startett.bt, startett.cliq,
                                         startett.prnt, startett.sendmsgs)
-  ## startett.cliq.attributes["dwnremoteref"] = remotecall(upp2(), downGibbsCliqueDensity, pett, N) #startett)
   refdict[startett.cliq.index] = remotecall(downGibbsCliqueDensity, upp2(), pett, N)  # for Julia 0.5
-  # refdict[startett.cliq.index] = remotecall(upp2(), downGibbsCliqueDensity, pett, N)
 
   push!(parentStack, startett.cliq ) # r
 
@@ -602,7 +499,6 @@ function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200)
   processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N)
 
   println("dwnward leftovers, $(keys(refdict))")
-  # println("dwnStk counter at end is $(stkcnt), length(parentStack) = $(length(parentStack))")
   nothing
 end
 
@@ -627,8 +523,6 @@ end
 
 function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vector{Graphs.ExVertex}, stkcnt::Int, refdict::Dict{Int64,Future}, N::Int=200)
   # for up message passing
-  # println("asyncProcessPostStacks! -- stkcnt=$(stkcnt), length=$(length(chldstk))")
-  # sleep(1.0)
   if stkcnt == 0
     println("asyncProcessPostStacks! ERROR stkcnt=0")
     error("asyncProcessPostStacks! stkcnt=0")
@@ -637,20 +531,16 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
   gomulti = true
   println("Start Clique $(cliq.attributes["label"]) =============================")
   childMsgs = Array{NBPMessage,1}()
-  # println("asyncProcessPostStacks -- new async at stkcnt=$(stkcnt), cliq=$(cliq.attributes["label"]) has $(length(out_neighbors(cliq, bt.bt))) children")
   ur = nothing
-  for child in out_neighbors(cliq, bt.bt) #nodedata.cliq, nodedata.bt.bt
+  for child in out_neighbors(cliq, bt.bt)
       println("asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))")
-
-        #while !haskey(child.attributes, "remoteref")
         while !haskey(refdict, child.index)
           println("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
-          @show child.index, keys(refdict)
+          # @show child.index, keys(refdict)
           sleep(0.25)
         end
 
       if gomulti
-        #ur = fetch(child.attributes["remoteref"])
         ur = fetch(refdict[child.index])
       else
         ur = child.attributes["remoteref"]
@@ -662,7 +552,6 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
 
   end
   println("====================== Clique $(cliq.attributes["label"]) =============================")
-  #sleep(2.0) # delay sometimes makes it work -- we might have a race condition
   emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
   pett = partialExploreTreeType(fgl, emptr, cliq, Union{}, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
@@ -671,11 +560,8 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
   end
 
   newprocid = upp2()
-  #println("asyncProcessPostStacks -- making remote call to $(newprocid) for $(pett.cliq.attributes["label"]) with $(length(pett.sendmsgs))")
   if gomulti
     refdict[cliq.index] = remotecall(upGibbsCliqueDensity, newprocid, pett, N ) # swap order for Julia 0.5
-    # refdict[cliq.index] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
-    ##cliq.attributes["remoteref"] = remotecall(newprocid, upGibbsCliqueDensity, pett, N )
   else
     # bad way to do non multi test
     cliq.attributes["remoteref"] = upGibbsCliqueDensity(pett, N)
@@ -708,21 +594,13 @@ function processPostOrderStacks!(fg::FactorGraph, bt::BayesTree, childStack::Arr
   stkcnt = length(childStack)
   @sync begin
     sendcnt = stkcnt:-1:1 # separate stable memory
-    # while (stkcnt > 0) #length(childStack)
     for i in 1:stkcnt
-        ##nodedata = childStack[end]
-        ##deleteat!(childStack, length(childStack))
         @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N) # deepcopy(stkcnt)
-        # sleep(1.0) # testing Julia 0.5 to Future conversion
-        # stkcnt -= 1
     end
   end
   println("processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC")
   # we still need to fetch the root node computational output
-  # println("processPostOrderStacks! -- going to fetch remoteref")
-  # @show childStack[1].attributes["remoteref"]
   if true
-    # ur = fetch(childStack[1].attributes["remoteref"])
     ur = fetch(refdict[childStack[1].index])
   else
     ur = childStack[1].attributes["remoteref"]
@@ -745,7 +623,6 @@ function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200)
   push!(parentStack, startett.cliq )
   # Starting at the root means we have a top down view of the tree
   prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
-  # println("upMsgPassingIterative! -- okay lets work through the childStack")
   processPostOrderStacks!(startett.fg, startett.bt, childStack, N)
   nothing
 end
@@ -753,7 +630,6 @@ end
 
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200)
     println("Do multi-process inference over tree")
-    # Profile.clear()
     cliq = bt.cliques[1]
     upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N);
     cliq = bt.cliques[1]
@@ -763,60 +639,9 @@ end
 
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200)
     println("Do recursive inference over tree")
-    # Profile.clear()
     cliq = bt.cliques[1]
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N);
     cliq = bt.cliques[1]
     downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N);
     nothing
 end
-
-
-### was downGibbsCliqueDensity
-# if length(IDs) == 1
-#     MCMCIter=1
-# end
-#
-# mcmcdbg = Array{CliqGibbsMC,1}()
-# for iter in 1:MCMCIter
-#     dbg = CliqGibbsMC([])
-#     # iterate through each of the frontal variables in the clique, KL-divergence tolerence would be better
-#     print("#$(iter)\t -- ")
-#     for vertid in IDs
-#         densPts, potprod = cliqGibbs(fg, cliq, vertid, dwnMsgs, N)
-#         if size(densPts,1)>0
-#             fg.v[vertid].attributes["val"] = densPts
-#             push!(dbg.prods, potprod)
-#         end
-#     end
-#     push!(mcmcdbg, dbg)
-#     println("")
-# end
-
-# populate dictionary for return NBPMessage in multiple dispatch
-# d = Dict{Int64,Array{Float64,2}}()
-# for vertid in IDs
-#     d[vertid] = fg.v[vertid].attributes["val"]
-# end
-# print("Outgoing msg density on: ")
-# outDens = Array{BallTreeDensity,1}(length(allIDs))
-# rr = Array{Future,1}()
-# # this can be in parallel
-# for vid in allIDs #IDs
-#     #pidx = upp(pidx, nprocs())
-#     mpt = MsgPassType(fg, cliq, vid, dwnMsgs, N)
-#     if false
-#       push!(rr,remotecall(upp2() , compOutMsgsProd, mpt) )
-#     else
-#       outDens[i] = compOutMsgsProd(mpt)
-#     end
-# end
-# count=0
-# for r in rr
-#   count +=1
-#   outDens[count] = fetch(r)
-# end
-#
-# println()
-# #@show "outMsg",cliq.attributes["conditIDs"], size(outDens)
-# m=NBPMessage(deepcopy(allIDs), deepcopy(outDens))
