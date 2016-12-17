@@ -15,8 +15,6 @@ typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs
 type FactorGraph
   g::FGGdict
   bn
-  # v::Dict{Int,Graphs.ExVertex} #  -- remove
-  # f::Dict{Int,Graphs.ExVertex} #  -- remove
   IDs::Dict{Symbol,Int}
   fIDs::Dict{Symbol,Int}
   id::Int64

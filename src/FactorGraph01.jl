@@ -169,34 +169,14 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-# function getDev(v)
-#   return v.attributes["stdev"]
-# end
-#
-# function evalFactor(fg::FactorGraph, evalstr::AbstractString)
-#   return eval(parse(evalstr))
-# end
-#
-# function evalFactor(fg::FactorGraph, fct::Graphs.ExVertex)
-#   return evalFactor(fg, fct.attributes["evalstr"] )
-# end
-#
-#
-
 function registerCallback!(fgl::FactorGraph, fnc::Function)
-  # get module
-  # Symbol(string(m))
   m = Symbol(typeof(fnc).name.module)
   fgl.registeredModuleFunctions[m] = fnc
   nothing
 end
 
 
-function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleton})
-  # fact.attributes["fnc"] = f
-  # fact.attributes["fncargvID"] = Dict{Int,Int}()
-  # fact.attributes["eliminated"] = false
-  # fact.attributes["potentialused"] = false
+function setDefaultFactorNode!(fact::Graphs.ExVertex, f::InferenceType) #Union{Pairwise,Singleton}
 
   ftyp = typeof(f)
   m = Symbol(ftyp.name.module)
@@ -204,16 +184,11 @@ function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{Pairwise,Singleto
   fact.attributes["data"] = data
 
   # for graphviz drawing
-  fact.attributes["shape"] = "point"  # fg.f[fg.id]
-  fact.attributes["width"] = 0.2 #  fg.f[fg.id]
+  fact.attributes["shape"] = "point"
+  fact.attributes["width"] = 0.2
 
   nothing
 end
-# function setFncArgIDs!(fact::Graphs.ExVertex, idx::Int64, index::Int64)
-#   push!(fact.attributes["data"].fncargvID, index) #[idx]=index
-#   #fact.attributes["fncargvID"][idx] = index
-#   nothing
-# end
 
 function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
@@ -239,7 +214,7 @@ function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVer
 
   newvert = ExVertex(fg.id,namestring)
   addNewFncVertInGraph!(fg, newvert, fg.id, namestring, ready)
-  setDefaultFactorNode!(newvert, f) # fg.f[fg.id]
+  setDefaultFactorNode!(newvert, f)
   push!(fg.factorIDs,fg.id)
 
   for vert in Xi
@@ -251,19 +226,11 @@ function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVer
   push!(fnlbls, fg.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
   newvert = api.addvertex!(fg, newvert, labels=fnlbls)  # used to be two be three lines up ##fg.g
-  # idx=0
-  for vert in Xi #f.Xi
+  for vert in Xi
     api.makeaddedge!(fg, vert, newvert)
-    # edge = dlapi.makeedge(fg.g, vert, newvert)
-    # dlapi.addedge!(fg.g, edge)
-    ## addEdge!(fg.g, vert, newvert) #fg.f[fg.id]
-    ## idx+=1
-    ## setFncArgIDs!(newvert, idx, vert.index) #fg.f[fg.id]
-
-    #-- push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
-  return newvert # fg.f[fg.id]
+  return newvert
 end
 
 
@@ -320,12 +287,10 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
     vert = localapi.getvertex(fg, p)
     @show vert.label, getData(vert).BayesNetVertID
-    if getData(vert).BayesNetVertID == 0   #fg.v[p].
+    if getData(vert).BayesNetVertID == 0
       fg.bnid+=1
-      vert.attributes["data"].BayesNetVertID = p # fg.v[p] ##fg.bnverts[p]
+      vert.attributes["data"].BayesNetVertID = p
       localapi.updatevertex!(fg, vert)
-      # fg.bnverts[p] = Graphs.add_vertex!(fg.bn, ExVertex(fg.bnid,string("BayesNet",fg.bnid)))
-      # fg.bnverts[p].attributes["label"] = fg.v[p].attributes["label"]
     else
       println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
     end
@@ -336,11 +301,8 @@ function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
   bnv = localapi.getvertex(fg, vertID) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
-  # bnv.attributes["separator"] = Si # TODO -- remove
-  # bnvert = bnv.attributes["BayesNetVert"] # TODO -- remove
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
-    # addEdge!(fg.bn, fg.v[s].attributes["BayesNetVert"], bnvert) # TODO -- remove
   end
   localapi.updatevertex!(fg, bnv)
   nothing
@@ -349,14 +311,12 @@ end
 function addChainRuleMarginal!(fg::FactorGraph, Si)
   lbls = String[]
   genmarg = GenericMarginal()
-  Xi = Graphs.ExVertex[] #genmarg.Xi = Graphs.ExVertex[]
+  Xi = Graphs.ExVertex[]
   for s in Si
-    # push!(lbls,fg.v[s].attributes["label"])
-    push!(Xi, localapi.getvertex(fg, s))  # push!(Xi,fg.v[s])
+    push!(Xi, localapi.getvertex(fg, s))
   end
   println("adding marginal to")
   for x in Xi @show x.index end
-  # addFactor!(fg, marg, lbls)
   addFactor!(fg, Xi, genmarg, api=localapi)
   nothing
 end
@@ -369,10 +329,8 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
     for n in localapi.outneighbors(fgl, m)
       if n.index == fromvert.index
         alleids = m.attributes["data"].edgeIDs
-        # println("consider marginal, edge of interest between $(m.index) and $(n.index)")
         i = 0
         for id in alleids
-          # println("rmVarFromMarg -- at id=$(id)")
           i+=1
           edge = localapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
@@ -403,7 +361,6 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       println("===============")
       println()
       # which variable are we eliminating
-      #fg.v[v].attributes["label"]
 
       # all factors adjacent to this variable
       fi = Int64[]
@@ -411,15 +368,15 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       gm = ExVertex[]
       # TODO -- optimize outneighbor calls like this
       vert = localapi.getvertex(fg,v)
-      for fct in localapi.outneighbors(fg, vert) #out_neighbors(dlapi.getvertex(fg,v),fg.g) # (fg.v[v]
-        if (getData(fct).eliminated != true) # && fct.attributes["ready"]==1 && fct.attributes["backendset"]==1 #if (fct.attributes["eliminated"] != true)
+      for fct in localapi.outneighbors(fg, vert)
+        if (getData(fct).eliminated != true)
           push!(fi, fct.index)
-          for sepNode in localapi.outneighbors(fg, fct) #out_neighbors(fct,fg.g)
+          for sepNode in localapi.outneighbors(fg, fct)
             if sepNode.index != v && length(findin(sepNode.index,Si)) == 0
               push!(Si,sepNode.index)
             end
           end
-          fct.attributes["data"].eliminated = true #fct.attributes["eliminated"] = true
+          fct.attributes["data"].eliminated = true
           localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
@@ -436,9 +393,6 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
       tuv.attributes["data"].eliminated = true # fg.v[v].
       localapi.updatevertex!(fg, tuv)
-      # dlapi.getvertex(fg,v).attributes["data"].eliminated = true # fg.v[v].
-      ## fg.v[v].attributes["eliminated"] = true
-
 
       # TODO -- remove links from current vertex to any marginals
       rmVarFromMarg(fg, vert, gm)
@@ -447,7 +401,6 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # new function between all Si
       addChainRuleMarginal!(fg, Si)
 
-      # readline(STDIN)
     end
     nothing
 end
@@ -458,13 +411,10 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     vals = getVal(v)
     X=vec(vals[1,:])
     Y=vec(vals[2,:])
-    # X=vec(v.attributes["val"][1,:])
-    # Y=vec(v.attributes["val"][2,:])
     return X,Y
 end
 
 function getKDE(v::Graphs.ExVertex)
-  #return kde!(getVal(v), "lcv") # TODO - getBW(v)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
@@ -482,21 +432,9 @@ function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
   for v in fgd.v
     delete!(v[2].attributes,"data")
-    # delete!(v[2].attributes,"initstdev")
-    # delete!(v[2].attributes,"dimIDs")
-    # delete!(v[2].attributes,"eliminated")
-    # delete!(v[2].attributes,"val")
-    # delete!(v[2].attributes,"bw")
-    # delete!(v[2].attributes,"BayesNetVert")
-    # delete!(v[2].attributes,"initval")
-    # delete!(v[2].attributes,"dims")
   end
   for v in fgd.f
     delete!(v[2].attributes,"data")
-    # delete!(v[2].attributes,"fncargvID")
-    # delete!(v[2].attributes,"eliminated")
-    # delete!(v[2].attributes,"fnc")
-    # delete!(v[2].attributes,"potentialused")
   end
   return fgd
 end
@@ -562,7 +500,7 @@ function addVerticesSubgraph(fgl::FactorGraph,
     for vert in vertdict
       fgseg.g.vertices[vert[1]] = vert[2]
       if haskey(fgl.v,vert[1])
-        fgseg.g.vertices[vert[1]] = vert[2] # fgseg.v[vert[1]] = vert[2]
+        fgseg.g.vertices[vert[1]] = vert[2]
         fgseg.IDs[Symbol(vert[2].label)] = vert[1]
 
         # add edges going in opposite direction
@@ -632,7 +570,6 @@ function getShortestPathNeighbors(fgl::FactorGraph;
   edgedict = edgelist2edgedict(edgelist)
   expandVertexList!(fgl, edgedict, vertdict) # grow verts
   for i in 1:neighbors
-    # println("Expanding subgraph edge dict")
     expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
     expandVertexList!(fgl, edgedict, vertdict) # grow verts
   end
@@ -679,7 +616,7 @@ function subgraphFromVerts(fgl::FactorGraph,
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
-    vertdict[vert] = fgl.g.vertices[vert] #fgl.v[vert]
+    vertdict[vert] = fgl.g.vertices[vert]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
@@ -699,7 +636,7 @@ function subgraphFromVerts(fgl::FactorGraph,
     else
       error("FactorGraph01 only supports variable node subgraph search at this point")
     end
-    vertdict[id] = fgl.g.vertices[id] #fgl.v[id]
+    vertdict[id] = fgl.g.vertices[id]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)

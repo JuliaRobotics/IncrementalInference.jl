@@ -57,7 +57,6 @@ export
   ls,
   drawHorDens,
   drawHorBeliefsList,
-  # vstackedDensities, # global scope naming issue with msgPlots
 
   # Tree stuff
   spyCliqMat,
@@ -83,23 +82,6 @@ export
   GenericMarginal,
   PackedGenericMarginal,
 
-  #Robot stuff
-  # PriorPose2,
-  # PackedPriorPose2,
-  # Pose2Pose2,
-  # PackedPose2Pose2,
-  # addPose2Pose2,
-
-  # Pose2DPoint2DBearingRange,
-  # Pose2DPoint2DRange,
-  # Point2DPoint2DRange,
-  # PriorPoint2D,
-  # PackedPose2DPoint2DBearingRange,
-  # solveLandm,
-  # solvePose2,
-  # solveSetSeps,
-  # addPose2Pose2!,
-
   uppA,
   convert, # for protobuf stuff
   compare,
@@ -113,10 +95,6 @@ export
   PackedObsv2,
   Ranged,
   PackedRanged,
-  #
-  # PriorPose3,
-  # Pose3Pose3,
-  # projectParticles,
 
   # dev exports
   addGraphsVert!,
@@ -128,43 +106,19 @@ export
   # CloudGraphs integration callback setting function
   setdatalayerAPI!,
 
-  # # CloudGraph stuff
-  # registerGeneralVariableTypes!,
-  # fullLocalGraphCopy!,
-  # removeGenericMarginals!,
-  # setBackendWorkingSet!,
-  # setDBAllReady!,
-  # getExVertFromCloud,
-  # getAllExVertexNeoIDs,
-  # getPoseExVertexNeoIDs,
-  # copyAllNodes!,
-  # copyAllEdges!,
-
   # development
   shuffleXAltD
 
-  # DIDSON sonar model
-# LinearRangeBearingElevation,
-# project!,
-# project,
-# backprojectRandomized!,
-# residual!,
-# ominus,
-# evalPotential,
-# getSample
 
 
 
 include("FactorGraphTypes.jl")
-# include("CloudGraphIntegration.jl") # Work in progress code
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("TreePotentials01.jl")
-include("TreePotentials02.jl")
-# include("TreePotentials03.jl")
-# include("SensorModels.jl")
+include("SolverUtilities.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 

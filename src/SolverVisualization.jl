@@ -8,7 +8,7 @@ function drawOneMC!(cliqMC::CliqGibbsMC, minmax, mcmc=0; offs=2.0)
 
     i = 0.0
     for prod in cliqMC.prods
-        prodVal = kde!(prod.product,"lcv") #cliqMC.prods[1]
+        prodVal = kde!(prod.product,"lcv")
         plotKDEProd!([prodVal;prod.potentials],minmax, h=-i*offs, mcmc=mcmc)
         i += 1.0
     end
@@ -112,148 +112,7 @@ function vstackedDensities(msgPlots)
     end
     eval(parse(string("vstack(",evalstr[2:end],")")))
 end
-#
-# ## TODO -- you were here with port starboard lines
-# function stbPrtLineLayers!(pl, Xpp, Ypp, Thpp)
-#
-#     l = 5.0
-#     lnstpr = [0.0;l;0.0]
-#     lnstpg = [0.0;-l;0.0]
-#
-#     Rd  =SE2(lnstpr)
-#     Gr = SE2(lnstpg)
-#
-#     for i in 1:length(Xpp)
-#       lnstt = [Xpp[i];Ypp[i];Thpp[i]]
-#       Ps = SE2(lnstt)
-#       lnr = se2vee(Ps*Rd)
-#       lng = se2vee(Ps*Gr)
-#       xsr = [Xpp[i];lnr[1]]
-#       ysr = [Ypp[i];lnr[2]]
-#       xsg = [Xpp[i];lng[1]]
-#       ysg = [Ypp[i];lng[2]]
-#
-#       push!(pl.layers, layer(x=xsr, y=ysr, Geom.path(), Gadfly.Theme(default_color=colorant"red", line_width=1.5pt))[1] )
-#       push!(pl.layers, layer(x=xsg, y=ysg, Geom.path(), Gadfly.Theme(default_color=colorant"green", line_width=1.5pt))[1] )
-#     end
-#     nothing
-# end
-#
-# # function lblsFromTo(from,to)
-# #   lbls=String[]
-# #   [push!(lbls, "$(i)") for i in from:to]
-# #   return lbls
-# # end
-#
-# function drawPoses(fg::FactorGraph; from::Int64=0,to::Int64=99999999,
-#                     meanmax=:max, lbls=true, drawhist=true)
-#     #Gadfly.set_default_plot_size(20cm, 30cm)
-#     Xp,Yp = get2DPoseSamples(fg, from=from, to=to)
-#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; LBLS=String[];
-#     if meanmax == :mean
-#       Xpp,Ypp, Thpp, LBLS = get2DPoseMeans(fg, from=from, to=to)
-#     elseif meanmax == :max
-#       Xpp,Ypp, Thpp, LBLS = get2DPoseMax(fg, from=from, to=to)
-#     end
-#
-#     # lbls = lblsFromTo(1,length(Xpp))
-#     psplt = Union{}
-#     if lbls
-#       psplt = Gadfly.plot(
-#       Gadfly.layer(x=Xpp,y=Ypp,label=LBLS,Geom.path(), Theme(line_width=2pt), Geom.label)
-#       )
-#     else
-#       psplt = Gadfly.plot(
-#       Gadfly.layer(x=Xpp,y=Ypp,Geom.path(), Theme(line_width=2pt))
-#       )
-#     end
-#     stbPrtLineLayers!(psplt, Xpp, Ypp, Thpp)
-#     if drawhist
-#       push!(psplt.layers,  Gadfly.layer(x=Xp, y=Yp, Geom.histogram2d)[1] )#(xbincount=100, ybincount=100))
-#     end
-#     psplt
-# end
-#
-# function drawLandms(fg::FactorGraph;
-#               from::Int64=0, to::Int64=99999999, minnei::Int64=0,
-#               meanmax=:max,lbls=true,showmm=false,drawhist=true,c="red",MM=Union{})
-#     #Gadfly.set_default_plot_size(20cm, 30cm)
-#     Xp,Yp = get2DLandmSamples(fg, from=from, to=to)
-#     Xpp = Float64[]; Ypp=Float64[]; Thpp=Float64[]; lblstags=String[];
-#     if meanmax==:mean
-#       Xpp,Ypp, t, lbltags = get2DLandmMeans(fg, from=from, to=to)
-#     elseif meanmax==:max
-#       Xpp,Ypp, t, lbltags = get2DLandmMax(fg, from=from, to=to,showmm=showmm,MM=MM)
-#     end
-#
-#     if lbls
-#       psplt = Gadfly.plot(
-#       Gadfly.layer(x=Xpp,y=Ypp, label=lbltags, Geom.point, Theme(line_width=2pt, default_color=parse(Colorant,c)), Geom.label)
-#       # ,Gadfly.layer(x=Xp, y=Yp, Geom.histogram2d)#(xbincount=100, ybincount=100)
-#       )
-#     else
-#       psplt = Gadfly.plot(
-#       Gadfly.layer(x=Xpp,y=Ypp, Geom.point, Theme(line_width=2pt, default_color=parse(Colorant,c)))
-#       )
-#     end
-#
-#     if drawhist
-#       push!(psplt.layers, Gadfly.layer(x=Xp, y=Yp, Geom.histogram2d)[1])#(xbincount=100, ybincount=100)
-#     end
-#
-#     psplt
-# end
-#
-# function drawPosesLandms(fg::FactorGraph;
-#                     from::Int64=0, to::Int64=99999999, minnei::Int64=0,
-#                     meanmax=:max,lbls=true,drawhist=true, MM=Union{})
-#   p = drawPoses(fg, from=from,to=to,meanmax=meanmax,lbls=lbls,drawhist=drawhist)
-#   pl = drawLandms(fg, from=from, to=to, minnei=minnei,lbls=lbls,drawhist=drawhist, MM=MM)
-#   for l in pl.layers
-#     push!(p.layers, l)
-#   end
-#   return p
-# end
-#
-# function drawSubmaps(fgl::FactorGraph, fromto::Array{Int,2};
-#                     m1hist=false,m2hist=false,m3hist=false, showmm=false)
-#   p = drawLandms(fgl, from=fromto[1,1], to=fromto[1,2], drawhist=m1hist, showmm=showmm)
-#   if size(fromto,1) >1
-#     p2 = drawLandms(fgl, from=fromto[2,1], to=fromto[2,2], drawhist=m2hist,c="blue", showmm=showmm)
-#     for l in p2.layers
-#       push!(p.layers, l)
-#     end
-#   end
-#   if size(fromto,1) >2
-#     p3 = drawLandms(fgl, from=fromto[3,1], to=fromto[3,2], drawhist=m3hist,c="magenta", showmm=showmm)
-#     for l in p3.layers
-#       push!(p.layers, l)
-#     end
-#   end
-#   return p
-# end
-#
-# function drawSubmaps(fgl::FactorGraph, fromto::Array{Int,1}; spread::Int=25,
-#                     m1hist=false,m2hist=false,m3hist=false, showmm=false)
-#   ft = zeros(Int,length(fromto),2)
-#   for i in 1:length(fromto)
-#     ft[i,1] = fromto[i]-spread; ft[i,2] = fromto[i]+spread;
-#   end
-#   drawSubmaps(fgl, ft, m1hist=m1hist, m2hist=m2hist, m3hist=m3hist, showmm=showmm)
-# end
-#
-# # function getKDEMax(p::BallTreeDensity;N=200)
-# #   m = zeros(p.bt.dims)
-# #   for i in 1:p.bt.dims
-# #     mm = marginal(p,[i])
-# #     rangeV = getKDERange(mm)
-# #     X = linspace(rangeV[1],rangeV[2],N)
-# #     yV = evaluateDualTree(mm,X)
-# #     m[i] = X[findfirst(yV,maximum(yV))]
-# #   end
-# #   return m
-# # end
-#
+
 function investigateMultidimKDE(p::BallTreeDensity, p0::BallTreeDensity)
     co = ["black"; "blue"]
     h = Union{}
@@ -427,7 +286,7 @@ drawLbl{T <: AbstractString}(fgl::FactorGraph, lbl::T) = drawLbl(fgl, Symbol(lbl
 function predCurrFactorBeliefs(fgl::FactorGraph, fc::Graphs.ExVertex)
   # TODO update to use ls and lsv functions
   prjcurvals = Dict{String, Array{BallTreeDensity,1}}()
-  for v in dlapi.outneighbors(fgl, fc) #out_neighbors(fc, fgl.g)
+  for v in dlapi.outneighbors(fgl, fc)
     pred = kde!(evalFactor2(fgl, fc, v.index))
     curr = kde!(getVal(v))
     prjcurvals[v.attributes["label"]] = [curr; pred]
@@ -441,7 +300,7 @@ function drawHorDens(fgl::FactorGraph, pDens::Dict{Int,EasyMessage}, N=200)
   lbls = String[]
   for pd in pDens
     push!(p, kde!(pd[2].pts,pd[2].bws))
-    push!(lbls, dlapi.getvertex(fgl,pd[1]).attributes["label"]) # fgl.v[pd[1]].
+    push!(lbls, dlapi.getvertex(fgl,pd[1]).attributes["label"])
   end
   @show lbls
   drawHorDens(p,N,lbls=lbls)
@@ -454,8 +313,6 @@ function drawHorBeliefsList(fgl::FactorGraph, lbls::Array{Symbol,1};
   for lb in lbls
     ptkde = getVertKDE(fgl,lb)
     push!(pDens, ptkde )
-    # pt = getVal(fgl.v[fgl.IDs[lb]])
-    # push!(pDens, kde!(pt,"lcv"))
   end
 
   if nhor<1
@@ -737,12 +594,6 @@ function analyzeSolution(FGL::Array{FactorGraph,1},fggt=Union{})
   df4 = DataFrame(x=x, y=MAXth*180.0/pi, label="maxth")
   df = vcat(df1, df2)
   dfth = vcat(df3,df4)
-  # return Gadfly.plot(
-  # layer(,y=RMS,Geom.path(),Geom.point, Gadfly.Theme(default_color=parse(Colorant,"red"))),
-  # layer(x=1:len,y=MAX,Geom.path(),Geom.point, Gadfly.Theme(default_color=parse(Colorant,"black"))),
-  # layer(x=1:len,y=RMSth*180.0/pi,Geom.path(),Geom.point, Gadfly.Theme(default_color=parse(Colorant,"blue"))),
-  # layer(x=1:len,y=MAXth*180.0/pi,Geom.path(),Geom.point, Gadfly.Theme(default_color=parse(Colorant,"green")),
-  # )
   return df,dfth
 end
 # discrete_color_manual(colors...; levels=nothing,order=nothing) is deprecated, use color_discrete_manual(colors...; levels=levels,order=order) instead.
@@ -760,8 +611,6 @@ function getAllFGsKDEs(fgD::Array{FactorGraph,1}, vertid::Int64)
   ret = Array{BallTreeDensity,1}()
   for i in 1:length(fgD)
     push!(ret, getVertKDE(fgD[i],vertid) )
-    # V = dlapi.getvertex(fgD[i],vertid)# fgD[i].v[vertid]
-    # push!(ret, kde!(getVal(V)))
   end
   return ret
 end
@@ -770,17 +619,10 @@ function drawAllPose2DBeliefs(plots::Array{Gadfly.Compose.Context,1}, fgD::Array
     ids = sort(collect(keys(fgD[1].v)))
     co = ["black"; "blue"; "green"; "red"; "magenta"; "cyan"; "cyan1"; "cyan2"]
     println(co[1:length(fgD)])
-    # V = fg.v[7]
     for i in ids
-        # V = fgD[1].v[i]
         @show dlapi.getvertex(fgD[1],i).attributes["label"] #fgD[1].v[i].
-        # if length(fgD) >= 2
-            # V0 = fgD[2].v[i]
             kdes = getAllFGsKDEs(fgD, i)
             push!(plots, investigatePoseKDE(  kdes  )) # [kde!(getVal(V)); kde!(getVal(V0))]
-        # else
-        #     push!(plots, investigatePoseKDE(  [kde!(getVal(V))]  ))
-        # end
     end
     vstackedPlots(plots)
 end
@@ -804,20 +646,6 @@ function drawComicStripLM(fgD::Array{FactorGraph,1})
     end
     hstack(comicA)
 end
-
-# function drawComicStripLM(fgD::Array{FactorGraph,1})
-#   len = length(fgD)
-#   comicA = Array{Gadfly.Plot,1}(len)
-#   r = Array{RemoteRef,1}(len)
-#   # for fgd in fgD
-#   #     cv = drawPosesLandms(fgd)
-#   #     # cv = drawPoses(fgd)
-#   #     push!(comicA,cv)
-#   # end
-#   [r[i] = @spawn drawPosesLandms(fgD[i]) for i in 1:len]
-#   [comicA[i] = fetch(r[i]) for i in 1:len]
-#   hstack(comicA)
-# end
 
 function drawComicStrip(fgD::Array{FactorGraph,1})
     comicA = Array{Gadfly.Plot,1}()
