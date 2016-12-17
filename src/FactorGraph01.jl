@@ -6,12 +6,13 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # end
 
 # get vertex from factor graph according to label symbol "x1"
-function getVert(fgl::FactorGraph, lbl::String)
+function getVert(fgl::FactorGraph, lbl::Symbol)
   # if haskey(fgl.IDs, lbl)
   #   return fgl.g.vertices[fgl.IDs[lbl]]
   # end
   dlapi.getvertex(fgl, lbl)
 end
+getVert{T <: AbstractString}(fgl::FactorGraph, lbl::T) = getVert(fgl, Symbol(lbl))
 function getVert(fgl::FactorGraph, id::Int64)
   dlapi.getvertex(fgl, id)
 end
@@ -21,14 +22,18 @@ getData(v::Graphs.ExVertex) = v.attributes["data"]
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
 end
+function getVal(v::Graphs.ExVertex, idx::Int)
+  return getData(v).val[:,idx]
+end
 
 # Convenience function to get values for given variable label
-function getVal(fgl::FactorGraph, lbl::String)
+function getVal(fgl::FactorGraph, lbl::Symbol)
   getVal(dlapi.getvertex(fgl, lbl))
 end
 function getVal(fgl::FactorGraph, exvertid::Int64)
   getVal(dlapi.getvertex(fgl, exvertid))
 end
+getVal{T <: AbstractString}(fgl::FactorGraph, lbl::T) = getVal(fgl, Symbol(lbl))
 
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
@@ -79,6 +84,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
   pN = Union{}
   if size(initval,2) < N
+    warn("setDefaultNodeData! -- deprecated use of stdev.")
     p = kde!(initval,diag(stdev));
     pN = resample(p,N)
   else
@@ -89,31 +95,33 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   data = VariableNodeData(initval, stdev, getPoints(pN),
                           (getBW(pN)[:,1]')', Int64[], sp,
                           dims, false, 0, Int64[])
-
+  #
   v.attributes["data"] = data
 
   nothing
 end
 
-function addNewVarVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int)
+function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-  vert.attributes["label"] = lbl #fg.v[fg.id]
-  fgl.IDs[lbl] = id # fg.id, to help find it
+  vert.attributes["label"] = string(lbl) #fg.v[fg.id]
+  fgl.IDs[lbl] = id
 
   # used for cloudgraph solving
   vert.attributes["ready"] = ready
   vert.attributes["backendset"] = 0
 
-  fgl.v[id] = vert # TODO -- this is likely not required, but is used in subgraph methods
+  # fgl.g.vertices[id] = vert # will be inserted during addvertex! call
+  # fgl.v[id] = vert #  -- this is likely not required, but is used in subgraph methods
   nothing
 end
 
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!{T <: AbstractString}(fg::FactorGraph, lbl::T, initval=[0.0]', stdev=[1.0]';
+function addNode!{T <: AbstractString}(fg::FactorGraph, lbl::Symbol, initval=[0.0]', stdev=[1.0]';
       N::Int=100, ready::Int=1, labels::Vector{T}=String[])
   fg.id+=1
-  vert = ExVertex(fg.id,lbl)
+  lblstr = string(lbl)
+  vert = ExVertex(fg.id,lblstr)
   addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
   # dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
   dodims = fg.dimID+1
@@ -207,10 +215,10 @@ end
 #   nothing
 # end
 
-function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::AbstractString, ready::Int)
+function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
-  fgl.f[id] = vert # TODO -- not sure if this is required
+  # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
   fgl.fIDs[lbl] = id # fg.id
 
     # used for cloudgraph solving
@@ -218,6 +226,8 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
     vert.attributes["backendset"] = 0
   nothing
 end
+addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int) =
+    addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
                     ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[] )
@@ -444,7 +454,7 @@ end
 
 # some plotting functions on the factor graph
 function stackVertXY(fg::FactorGraph, lbl::String)
-    v = dlapi.getvertex(fg,lbl) # v = fg.v[fg.IDs[lbl]]
+    v = dlapi.getvertex(fg,lbl)
     vals = getVal(v)
     X=vec(vals[1,:])
     Y=vec(vals[2,:])
@@ -459,11 +469,11 @@ function getKDE(v::Graphs.ExVertex)
 end
 
 function getVertKDE(fgl::FactorGraph, id::Int64)
-  v = dlapi.getvertex(fgl,id)  # v = fgl.v[fgl.IDs[lbl]]
+  v = dlapi.getvertex(fgl,id)
   return getKDE(v)
 end
-function getVertKDE(fgl::FactorGraph, lbl::String)
-  v = dlapi.getvertex(fgl,lbl)  # v = fgl.v[fgl.IDs[lbl]]
+function getVertKDE(fgl::FactorGraph, lbl::Symbol)
+  v = dlapi.getvertex(fgl,lbl)
   return getKDE(v)
 end
 
@@ -552,8 +562,8 @@ function addVerticesSubgraph(fgl::FactorGraph,
     for vert in vertdict
       fgseg.g.vertices[vert[1]] = vert[2]
       if haskey(fgl.v,vert[1])
-        fgseg.v[vert[1]] = vert[2]
-        fgseg.IDs[vert[2].label] = vert[1]
+        fgseg.g.vertices[vert[1]] = vert[2] # fgseg.v[vert[1]] = vert[2]
+        fgseg.IDs[Symbol(vert[2].label)] = vert[1]
 
         # add edges going in opposite direction
         elr = Graphs.out_edges(vert[2], fgl.g)
@@ -572,7 +582,7 @@ function addVerticesSubgraph(fgl::FactorGraph,
         end
       elseif haskey(fgl.f, vert[1])
         fgseg.f[vert[1]] = vert[2] # adding element to subgraph
-        fgseg.fIDs[vert[2].label] = vert[1]
+        fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
         # get edges associated with function nodes and push edges onto incidence list
         el = Graphs.out_edges(vert[2], fgl.g)
         elidx = el[1].source.index
@@ -669,7 +679,7 @@ function subgraphFromVerts(fgl::FactorGraph,
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
-    vertdict[vert] = fgl.v[vert]
+    vertdict[vert] = fgl.g.vertices[vert] #fgl.v[vert]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
@@ -685,11 +695,11 @@ function subgraphFromVerts(fgl::FactorGraph,
   for vert in verts
     id = -1
     if haskey(fgl.IDs, vert)
-      id = fgl.IDs[vert]
+      id = fgl.IDs[Symbol(vert)]
     else
       error("FactorGraph01 only supports variable node subgraph search at this point")
     end
-    vertdict[id] = fgl.v[id]
+    vertdict[id] = fgl.g.vertices[id] #fgl.v[id]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)

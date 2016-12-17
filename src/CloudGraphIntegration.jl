@@ -19,9 +19,13 @@ function getExVertFromCloud(fgl::FactorGraph, fgid::Int64; bigdata::Bool=false)
   CloudGraphs.cloudVertex2ExVertex(cvr)
 end
 
-function getExVertFromCloud(fgl::FactorGraph, lbl::String; bigdata::Bool=false)
+function getExVertFromCloud(fgl::FactorGraph, lbl::Symbol; bigdata::Bool=false)
   getExVertFromCloud(fgl, fgl.IDs[lbl],bigdata=bigdata)
 end
+getExVertFromCloud{T <: AbstractString}(fgl::FactorGraph, lbl::T; bigdata::Bool=false) =
+  getExVertFromCloud(fgl, Symbol(lbl), bigdata=bigdata)
+
+
 
 function updateFullCloudVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex; updateMAPest=false)
@@ -242,11 +246,11 @@ function copyAllNodes!(fgl::FactorGraph, cverts::Dict{Int64, CloudVertex}, IDs::
     Graphs.add_vertex!(fgl.g, exvert)
     fgl.id < exvert.index ? fgl.id = exvert.index : nothing
     fgl.cgIDs[ids[1]] = ids[2]
-    if typeof(exvert.attributes["data"]) == VariableNodeData  # variable node
-      fgl.IDs[exvert.label] = ids[1]
+    if typeof(getData(exvert)) == VariableNodeData # exvert.attributes["data"] ## variable node
+      fgl.IDs[Symbol(exvert.label)] = ids[1]
       push!(fgl.nodeIDs, ids[1])
     else # function node
-      fgl.fIDs[exvert.label] = ids[1]
+      fgl.fIDs[Symbol(exvert.label)] = ids[1]
       push!(fgl.factorIDs, ids[1])
     end
   end

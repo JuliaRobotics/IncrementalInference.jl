@@ -80,7 +80,7 @@ inferOverTree!(fg, tree)
 
 
 # get vertex back from DB
-# x1neoID = fg.cgIDs[fg.IDs["x1"]]
+# x1neoID = fg.cgIDs[fg.IDs[:x1]]
 # cv1r = CloudGraphs.get_vertex(fg.cg, x1neoID, false)
 
 # Get neighbors
