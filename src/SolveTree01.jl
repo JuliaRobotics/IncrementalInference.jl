@@ -8,33 +8,23 @@ end
 type NBPMessage <: Singleton
   p::Dict{Int64,EasyMessage}
 end
-# type NBPMessage <: Singleton
-#     Xi::Array{Int64,1}
-#     p::Array{BallTreeDensity,1}
-# end
 
 type PotProd
     Xi::Int64
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
-    # PotProd() = new()
-    # PotProd(x...) = new(x[1],x[2],x[3])
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
-    # CliqGibbsMC() = new()
-    # CliqGibbsMC(x) = new(x)
 end
 type DebugCliqMCMC
     mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
-    # DebugCliqMCMC() = new()
-    # DebugCliqMCMC(x...) = new(x[1],x[2])
 end
 
 type UpReturnBPType
-    upMsgs::NBPMessage #Dict{Int64, Array{Float64,2}}#
+    upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int64, Array{Float64,2}}
 end
@@ -57,7 +47,7 @@ type MsgPassType
   fg::FactorGraph
   cliq::Graphs.ExVertex
   vid::Int
-  msgs::Array{NBPMessage,1} #dwnMsgs
+  msgs::Array{NBPMessage,1}
   N::Int
 end
 
