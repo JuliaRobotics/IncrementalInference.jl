@@ -92,7 +92,8 @@ for i in 1:10
   y = numericRootGenericRandomizedFnc(
           testshuffle!,
           2, 3, x0    )
-  yy = y.%10
+  @show y.%10
+  @show yy = y.%10.0
   @test norm(yy-collect(1:3)) < 0.01
 end
 
