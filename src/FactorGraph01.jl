@@ -27,12 +27,13 @@ function getVal(v::Graphs.ExVertex, idx::Int)
 end
 
 # Convenience function to get values for given variable label
-function getVal(fgl::FactorGraph, lbl::String)
+function getVal(fgl::FactorGraph, lbl::Symbol)
   getVal(dlapi.getvertex(fgl, lbl))
 end
 function getVal(fgl::FactorGraph, exvertid::Int64)
   getVal(dlapi.getvertex(fgl, exvertid))
 end
+getVal{T <: AbstractString}(fgl::FactorGraph, lbl::T) = getVal(fgl, Symbol(lbl))
 
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
@@ -83,6 +84,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               stdev::Array{Float64,2}, dodims::Int64, N::Int64)
   pN = Union{}
   if size(initval,2) < N
+    warn("setDefaultNodeData! -- deprecated use of stdev.")
     p = kde!(initval,diag(stdev));
     pN = resample(p,N)
   else
@@ -93,7 +95,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   data = VariableNodeData(initval, stdev, getPoints(pN),
                           (getBW(pN)[:,1]')', Int64[], sp,
                           dims, false, 0, Int64[])
-
+  #
   v.attributes["data"] = data
 
   nothing
