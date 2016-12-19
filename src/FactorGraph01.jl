@@ -175,6 +175,15 @@ function registerCallback!(fgl::FactorGraph, fnc::Function)
   nothing
 end
 
+# idea for registering, will likely be removed again
+# function createregistercallback!(fnc::Function)
+#   fgl = initfg()
+#   m = Symbol(typeof(fnc).name.module)
+#   fgl.registeredModuleFunctions[m] = fnc
+#   nothing
+# end
+#
+
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::InferenceType) #Union{Pairwise,Singleton}
 
