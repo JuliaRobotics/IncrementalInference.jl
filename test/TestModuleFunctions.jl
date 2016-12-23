@@ -101,17 +101,17 @@ println("Check the speed is reasonable")
 
 
 # expand tests to include multiprocessor
-println("Tesing call of function on separate process...")
-fr = remotecall(evalPotential,procs()[2], st)
-@test fetch(fr) == stA
-
-fr = remotecall(solve,procs()[2], CCol,sa)
-@test fetch(fr) == saA
-
-
-
-println("Stopping all but first process...")
+# println("Tesing call of function on separate process...")
+# fr = remotecall(evalPotential,procs()[2], st)
+# @test fetch(fr) == stA
+#
+# fr = remotecall(solve,procs()[2], CCol,sa)
+# @test fetch(fr) == saA
+#
+#
+#
+# println("Stopping all but first process...")
 rmprocs(procs()[2:end])
-@show procs()
+# @show procs()
 
 #

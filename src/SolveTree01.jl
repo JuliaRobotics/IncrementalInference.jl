@@ -525,7 +525,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
   for child in out_neighbors(cliq, bt.bt)
       println("asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))")
         while !haskey(refdict, child.index)
-          println("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
+          # println("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
           # @show child.index, keys(refdict)
           sleep(0.25)
         end
