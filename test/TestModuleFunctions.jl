@@ -111,7 +111,7 @@ println("Check the speed is reasonable")
 #
 #
 # println("Stopping all but first process...")
-rmprocs(procs()[2:end])
+# rmprocs(procs()[2:end])
 # @show procs()
 
 #
