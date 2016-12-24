@@ -19,7 +19,7 @@ function numericRootGenericRandomizedFncOld(
       zDim::Int,
       xDim::Int,
       x0::Vector{Float64};
-      perturb::Float64=0.00001  )
+      perturb::Float64=1e-5  )
 
 	# xDim = length(x0)
 	if zDim < xDim
@@ -40,20 +40,21 @@ function numericRootGenericRandomizedFncOld(
 	end
 end
 
-type FastGenericRoot <: Function
+# TODO -- part of speed and flexibility refactoring exercise
+type FastGenericRoot{T} <: Function
   p::Vector{Int}
   perturb::Vector{Float64}
-  x0::Vector{Float64}
+  X::Vector{Float64}
   Y::Vector{Float64}
   xDim::Int
   zDim::Int
-  usrfnc::Function
-  FastGenericRoot(xDim::Int, zDim::Int, residfnc::Function) =
-      new(collect(1:xDim), zeros(xDim), zeros(xDim), zeros(xDim), xDim, zDim, residfnc)
+  usrfnc::T
+  FastGenericRoot{T}(xDim::Int, zDim::Int, residfnc::T) =
+      new(collect(1:xDim), zeros(zDim), zeros(xDim), zeros(xDim), xDim, zDim, residfnc)
 end
 
 function shuffleXAltD!(fr::FastGenericRoot, X::Vector{Float64})
-  copy!(fr.Y, fr.x0)
+  copy!(fr.Y, fr.X)
   for i in 1:fr.zDim
     fr.Y[fr.p[i]] = X[i]
   end
@@ -64,7 +65,34 @@ end
 function (fr::FastGenericRoot)( x::Vector{Float64}, res::Vector{Float64} )
   #
   shuffleXAltD!(fr, x)  #(fr.Y, x, fr.x0, fr.zDim, fr.p)
-  fr.usrfnc( fr.Y, res)
+  fr.usrfnc( fr.Y, res )
+end
+
+function numericRootGenericRandomizedFnc!{T}( # residFnc!::Function, fgr.zDim::Int, xDim::Int, x0::Vector{Float64}, perturb::Float64=0.00001,
+      fgr::FastGenericRoot{T};
+      perturb::Float64=1e-5,
+      testshuffle::Bool=false )
+  #
+  fgr.perturb[1:fgr.zDim] = perturb*randn(fgr.zDim)
+	if fgr.zDim < fgr.xDim || testshuffle
+    shuffle!(fgr.p)
+    r = nlsolve(  fgr,
+                  fgr.X[fgr.p[1:fgr.zDim]] + fgr.perturb
+               )
+
+    # in combination with (fr::FastGenericRoot)(..)
+    # copy!(fgr.X, x0) # should need this line
+    shuffleXAltD!( fgr, r.zero )
+    # copy!(fgr.X, r.zero)
+    # return fgr.Y
+	else
+    y = ( nlsolve(  fgr.usrfnc, fgr.X + fgr.perturb ) ).zero
+    copy!( fgr.Y, y )
+    # copy!(fgr.X, y)
+
+    # return
+	end
+  nothing
 end
 
 function numericRootGenericRandomizedFnc(
@@ -72,34 +100,19 @@ function numericRootGenericRandomizedFnc(
       zDim::Int,
       xDim::Int,
       x0::Vector{Float64};
-      perturb::Float64=0.00001,
+      perturb::Float64=1e-5,
       testshuffle::Bool=false   )
+  #
+  # TODO -- this only start of refactoring for inplace, more to come
+  # xDim = length(x0)
+  fgr = FastGenericRoot{typeof(residFnc!)}(xDim, zDim, residFnc!)
+  shuffle!(fgr.p);
+  fgr.perturb[1:fgr.zDim] = perturb*randn(fgr.zDim)
+  copy!(fgr.X, x0)
 
-
-	# xDim = length(x0)
-	if zDim < xDim || testshuffle
-    # TODO -- this only start of refactoring for inplace, more to come
-    wrappedresid = FastGenericRoot(xDim, zDim, residFnc!)
-    shuffle!(wrappedresid.p);
-    wrappedresid.perturb = perturb*randn(zDim)
-    wrappedresid.x0 = x0
-    r = nlsolve(    wrappedresid,
-                    x0[wrappedresid.p[1:zDim]] + wrappedresid.perturb
-               )
-    # r = nlsolve(    (x, res) -> residFnc!(shuffleXAltD(x, x0, zDim, p), res ),
-    #                x0[wrappedresid.p[1:zDim]] + wrappedresid.perturb
-    #            )
-
-    return shuffleXAltD(r.zero, x0, zDim, wrappedresid.p );
-	else
-    # return (nlsolve(  (x, res) -> residFnc!(res, x),
-    #                   x0      )).zero
-    # @show x0
-    return ( nlsolve(  residFnc!, x0 + perturb*randn(zDim) ) ).zero
-	end
+  numericRootGenericRandomizedFnc!( fgr, perturb=perturb, testshuffle=testshuffle )
+  fgr.Y
 end
-
-
 
 
 

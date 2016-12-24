@@ -79,6 +79,10 @@ export
   numericRoot,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
+  numericRootGenericRandomizedFnc!,
+  FastGenericRoot,
+
+  # generic marginal used during elimitation game
   GenericMarginal,
   PackedGenericMarginal,
 
