@@ -20,9 +20,13 @@ Comments and questions welcome.
 Installation
 ------------
 
-Install the package with
+You can draw factor graph and Bayes tree easily if graphviz is installed (optional)
 
-Pkg.add("IncrementalInference")
+$ sudo apt-get install graphviz
+
+Install the package itself with
+
+julia> Pkg.add("IncrementalInference")
 
 Introduction
 ------------
