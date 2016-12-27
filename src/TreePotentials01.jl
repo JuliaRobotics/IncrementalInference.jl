@@ -18,7 +18,7 @@ function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return retval
 end
 
-function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
@@ -43,7 +43,7 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
     return RES
 end
 
-function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
@@ -99,7 +99,7 @@ function rangeAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return [(A*B)[1,2]]
 end
 
-function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
+function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     if Xid == Xi[1].index #rang.
         Z = -rang.Zij
         Xval = getVal(Xi[2])
@@ -122,7 +122,7 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64)
 end
 
 
-
+# TODO -- this may be obsolete, investigate further and remove
 function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
     # @show obs.bws, typeof(obs.bws)
     pd = kde!(obs.pts, obs.bws[:,1])
@@ -138,8 +138,12 @@ function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ:
 end
 
 function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
-  return fnc(typ, Xi, solvefor)
+  return fnc(typ, Xi, solvefor, N=N)
   # return evalPotential(typ, Xi, solvefor)
+end
+
+type PackArray{T}
+  arr::Array{T,1}
 end
 
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
@@ -149,9 +153,13 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   for id in fct.attributes["data"].fncargvID
     push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
   end
+  # TODO -- this lookup should be improved, drop lookup if possible
   modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
-  fnc = fct.attributes["data"].fnc
-  return evalPotentialSpecific(modulefnc, Xi, fnc, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
+  fnctype = fct.attributes["data"].fnc
+  return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
+  # convert to in place memory operations only, but working with copy for now
+  # fnctype.params = (getVal(fgl, ))
+  # fnctype()
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert

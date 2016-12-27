@@ -116,14 +116,14 @@ end
 
 # this will likely expand with more internal bells and whistles
 # to perform in place memory operations for array values in
-type GenericWrapParam <: Function
+type GenericWrapParam{T} <: Function
   usrfnc!::Function
-  params::Tuple
+  params::Array{T,1}
   varidx::Int
   particleidx::Int
   GenericWrapParam() = new()
-  GenericWrapParam(fnc::Function, t::Tuple) = new(fnc, t, 1,1)
-  GenericWrapParam(fnc::Function, t::Tuple, i, j) = new(fnc, t, i, j)
+  GenericWrapParam{T}(fnc::Function, t::Array{T,1}) = new(fnc, t, 1,1)
+  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int) = new(fnc, t, i, j)
 end
 
 # potential functor approach
