@@ -114,7 +114,37 @@ function numericRootGenericRandomizedFnc(
   fgr.Y
 end
 
+# this will likely expand with more internal bells and whistles
+# to perform in place memory operations for array values in
+type GenericWrapParam <: Function
+  usrfnc!::Function
+  params::Tuple
+  varidx::Int
+  particleidx::Int
+  GenericWrapParam() = new()
+  GenericWrapParam(fnc::Function, t::Tuple) = new(fnc, t, 1,1)
+  GenericWrapParam(fnc::Function, t::Tuple, i, j) = new(fnc, t, i, j)
+end
 
+# potential functor approach
+function (p::GenericWrapParam)(x, res)
+  # approximates by not considering cross indices among parameters
+  p.params[p.varidx][:, p.particleidx] = x
+  p.usrfnc!(res, p.particleidx, p.params...)
+end
+
+# function oneparams!(res::Array{Float64}, p::GenericWrapParam)
+#   p.usrfnc!(res, p.params[1][:,p.particleidx])
+# end
+# function twoparams!(res::Array{Float64}, p::GenericWrapParam)
+#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx])
+# end
+# function threeparams!(res::Array{Float64}, p::GenericWrapParam)
+#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx], p.params[3][:,p.particleidx])
+# end
+# function fourparams!(res::Array{Float64}, p::GenericWrapParam)
+#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx], p.params[3][:,p.particleidx], p.params[4][:,p.particleidx])
+# end
 
 
 #

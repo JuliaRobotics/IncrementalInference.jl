@@ -63,6 +63,9 @@ export
   evalPotential,
   evalFactor2,
 
+  # dev
+  GenericWrapParam,
+
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
