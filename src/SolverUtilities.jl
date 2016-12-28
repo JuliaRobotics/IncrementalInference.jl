@@ -116,21 +116,24 @@ end
 
 # this will likely expand with more internal bells and whistles
 # to perform in place memory operations for array values in
-type GenericWrapParam{T} <: Function
+type GenericWrapParam{T} <: FunctorPairwise
   usrfnc!::Function
   params::Array{T,1}
   varidx::Int
   particleidx::Int
+  measurement::Array{Float64,2}
+  samplerfnc::Function
   GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::Function, t::Array{T,1}) = new(fnc, t, 1,1)
-  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int) = new(fnc, t, i, j)
+  GenericWrapParam{T}(fnc::Function, t::Array{T,1}) = new(fnc, t, 1,1, zeros(0,1), +)
+  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int) = new(fnc, t, i, j, zeros(0,1), +)
+  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int, meas::Array{Float64,2}, smpl::Function) = new(fnc, t, i, j, meas, smpl)
 end
 
 # potential functor approach
 function (p::GenericWrapParam)(x, res)
   # approximates by not considering cross indices among parameters
   p.params[p.varidx][:, p.particleidx] = x
-  p.usrfnc!(res, p.particleidx, p.params...)
+  p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
 end
 
 # function oneparams!(res::Array{Float64}, p::GenericWrapParam)

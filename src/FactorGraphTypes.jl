@@ -7,6 +7,8 @@ abstract PackedInferenceType
 abstract Pairwise <: InferenceType
 abstract Singleton <: InferenceType
 
+abstract FunctorInferenceType <: Function
+abstract FunctorPairwise <: FunctorInferenceType
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
@@ -112,7 +114,7 @@ type GenericFunctionNodeData{T, S}
   GenericFunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
 end
 
-typealias FunctionNodeData{T <: InferenceType} GenericFunctionNodeData{T, Symbol}
+typealias FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} GenericFunctionNodeData{T, Symbol}
 FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
 FunctionNodeData(x...) = GenericFunctionNodeData{T, Symbol}(x[1],x[2],x[3],x[4],x[5],x[6])
 

@@ -142,24 +142,78 @@ function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ:
   # return evalPotential(typ, Xi, solvefor)
 end
 
-type PackArray{T}
-  arr::Array{T,1}
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
+  LEN = Int64[]
+  maxlen = N
+  count = 0
+  sfidx = 0
+  for xi in Xi
+    push!(ARR, getVal(xi))
+    len = size(ARR[end], 2)
+    push!(LEN, len)
+    if len > maxlen
+      maxlen = len
+    end
+    count += 1
+    if xi.index == solvefor
+      sfidx = xi.index
+    end
+  end
+  SAMP=LEN.<maxlen
+  for i in 1:count
+    if SAMP[i]
+      ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
+    end
+  end
+  # we are generating a proposal distribution, not direct replacement for existing
+  ARR[sfidx] = deepcopy(ARR[sfidx])
+  return maxlen, sfidx
 end
+
+function evalPotentialSpecific{T}( fnc::Function,
+      Xi::Vector{Graphs.ExVertex},
+      generalwrapper::GenericWrapParam{T},
+      solvefor::Int64;
+      N::Int64=100  )
+  #
+  println("evalPotentialSpecific for GenericWrapParam is running")
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+
+  generalwrapper.params = ARR
+  @show generalwrapper.varidx = sfidx
+  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
+  for generalwrapper.particleidx in 1:maxlen
+      # generalwrapper(x, res)
+    r = nlsolve( generalwrapper, ARR[sfidx][:,generalwrapper.particleidx] )
+    # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
+    # and not directly replacing the existing variable belief estimate
+    generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
+  end
+
+  return generalwrapper.params[generalwrapper.varidx]
+  # return evalPotential(typ, Xi, solvefor)
+end
+
+
+# type PackArray{T}
+#   arr::Array{T,1}
+# end
 
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
 function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N::Int64=100)
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
+
+  # TODO -- this build up of Xi is excessive and should be reduced
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
     push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
   end
-  # TODO -- this lookup should be improved, drop lookup if possible
+  # TODO -- this lookup should be improved, drop lookup if possible,
+  # already being avoided with new GenericWrapParam{T} interface
   modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
   fnctype = fct.attributes["data"].fnc
-  return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N) #evalPotential(fct.attributes["fnc"], solvefor)
-  # convert to in place memory operations only, but working with copy for now
-  # fnctype.params = (getVal(fgl, ))
-  # fnctype()
+  return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert
