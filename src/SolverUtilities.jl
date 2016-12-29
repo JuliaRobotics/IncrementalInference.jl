@@ -116,17 +116,18 @@ end
 
 # this will likely expand with more internal bells and whistles
 # to perform in place memory operations for array values in
+# TODO -- <: FunctorPairwise seems to be a problem here, abstraction feels a bit wrong
 type GenericWrapParam{T} <: FunctorPairwise
-  usrfnc!::Function
-  params::Array{T,1}
+  usrfnc!::T
+  params::Vector{Array{Float64,2}}
   varidx::Int
   particleidx::Int
   measurement::Array{Float64,2}
   samplerfnc::Function
   GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::Function, t::Array{T,1}) = new(fnc, t, 1,1, zeros(0,1), +)
-  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int) = new(fnc, t, i, j, zeros(0,1), +)
-  GenericWrapParam{T}(fnc::Function, t::Array{T,1}, i::Int, j::Int, meas::Array{Float64,2}, smpl::Function) = new(fnc, t, i, j, meas, smpl)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, zeros(0,1), +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, zeros(0,1), +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Array{Float64,2}, smpl::Function) = new(fnc, t, i, j, meas, smpl)
 end
 
 # potential functor approach

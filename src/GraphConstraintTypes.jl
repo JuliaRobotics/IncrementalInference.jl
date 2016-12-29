@@ -21,6 +21,26 @@ function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{Function
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
 
+# Functor version -- TODO, abstraction can be improved here
+function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  usrfnc = convert(T, d.fnc)
+  warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, +)
+  return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), gwpf) #{T}
+end
+function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc.usrfnc!))
+end
+
+function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
 # Active constraint types listed below
 # -------------
 
@@ -85,7 +105,7 @@ function getSample(odo::OdoMM, N::Int=1)
 end
 
 
-type Ranged <: Pairwise
+type Ranged <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -105,10 +125,19 @@ end
 function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
-function getSample(odo::Ranged, N::Int=1)
+function (ra::Ranged)(res::Vector{Float64},
+    idx::Int,
+    meas::Array{Float64,2},
+    p1::Array{Float64},
+    l1::Array{Float64})
+
+  res[1] = meas[1,idx] - abs(l1[1,idx] - p1[1,idx])
+  nothing
+end
+function getSample(ra::Ranged, N::Int=1)
   ret = zeros(1,N)
   for i in 1:N
-    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+    ret[1,i] = ra.Cov[1]*randn()+ra.Zij[1]
   end
   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
   return ret

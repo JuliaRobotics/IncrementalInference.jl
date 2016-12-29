@@ -197,7 +197,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
     end
     count += 1
     if xi.index == solvefor
-      sfidx = xi.index
+      sfidx = count #xi.index
     end
   end
   SAMP=LEN.<maxlen
@@ -211,17 +211,29 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
   return maxlen, sfidx
 end
 
-function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{InferenceType, FunctorInferenceType}) #Union{Pairwise,Singleton}
+function prepgenericwrapper{T <: FunctorInferenceType}(
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::T,
+      samplefnc::Function )
+  #
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, zeros(0,1), samplefnc)
+end
 
-  @show ftyp = typeof(f)
+function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
+      fgl::FactorGraph,
+      vert::Graphs.ExVertex,
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::T  )
+  #
+  ftyp = typeof(usrfnc) # maybe this can be T
   m = Symbol(ftyp.name.module)
-  # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
-  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f)
-  fact.attributes["data"] = data
+  samplefnc2 = fgl.registeredModuleFunctions[m]
+  gwpf = prepgenericwrapper(Xi, usrfnc, samplefnc2)
 
-  # for graphviz drawing
-  fact.attributes["shape"] = "point"
-  fact.attributes["width"] = 0.2
+  data = FunctionNodeData{GenericWrapParam{T}}(Int64[], false, false, Int64[], m, gwpf)
+  vert.attributes["data"] = data
 
   nothing
 end
@@ -232,33 +244,37 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
   fgl.fIDs[lbl] = id # fg.id
 
-    # used for cloudgraph solving
-    vert.attributes["ready"] = ready
-    vert.attributes["backendset"] = 0
+  # used for cloudgraph solving
+  vert.attributes["ready"] = ready
+  vert.attributes["backendset"] = 0
+
+  # for graphviz drawing
+  vert.attributes["shape"] = "point"
+  vert.attributes["width"] = 0.2
   nothing
 end
 addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
-function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{InferenceType, FunctorInferenceType}; #::Union{Pairwise,Singleton}
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[], samplefnc::Function=getSample )
+
+function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
+      Xi::Array{Graphs.ExVertex,1},
+      usrfnc::I;
+      ready::Int=1,
+      api::DataLayerAPI=dlapi,
+      labels::Vector{T}=String[] )
+  #
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
   end
-  fg.id+=1
+  fgl.id+=1
 
-  newvert = ExVertex(fg.id,namestring)
-  addNewFncVertInGraph!(fg, newvert, fg.id, namestring, ready)
+  newvert = ExVertex(fgl.id,namestring)
+  addNewFncVertInGraph!(fgl, newvert, fgl.id, namestring, ready)
+  setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
 
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  # N = size(getVal(Xi[1]),2)
-  gwpf = GenericWrapParam{Array{Float64,2}}(f, ARR, 1, 1, zeros(0,1), samplefnc)
-  setDefaultFactorNode!(newvert, gwpf)
-  # setDefaultFactorNode!(newvert, f)
-
-  push!(fg.factorIDs,fg.id)
+  push!(fgl.factorIDs,fgl.id)
 
   for vert in Xi
     push!(newvert.attributes["data"].fncargvID, vert.index)
@@ -266,11 +282,11 @@ function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVer
 
   fnlbls = deepcopy(labels)
   push!(fnlbls, "FACTOR")
-  push!(fnlbls, fg.sessionname)
+  push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
-  newvert = api.addvertex!(fg, newvert, labels=fnlbls)  # used to be two be three lines up ##fg.g
+  newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
   for vert in Xi
-    api.makeaddedge!(fg, vert, newvert)
+    api.makeaddedge!(fgl, vert, newvert)
   end
 
   return newvert

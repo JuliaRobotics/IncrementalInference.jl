@@ -66,7 +66,7 @@ function emptyFactorGraph()
                      nothing,
                      Dict{Int64,Int64}(),
                      "",
-                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.evalPotential) )
+                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample) ) #evalPotential
     return fg
 end
 

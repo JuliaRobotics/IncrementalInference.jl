@@ -58,32 +58,10 @@ fvar([0.0])
 @test At == A
 
 
-# this would be in SolverUtilities
-# this will likely expand with more internal bells and whistles
-# to perform in place memory operations for array values in
-# type GenericWrapParam <: Function
-#   usrfnc!::Function
-#   params::Tuple
-#   varidx::Int
-#   particleidx::Int
-# end
-
-# potential functor approach
-# function (p::GenericWrapParam)(x, res)
-#   # approximates by not considering cross indices among parameters
-#   p.params[p.varidx][:, p.particleidx] = x
-#   p.usrfnc!(res, p.particleidx, p.params...)
-# end
-
 
 
 println("GenericWrapParam test")
-# quick test
-# A = randn(2, 3)
-# B = randn(2, 3)
-# At = deepcopy(A)
 
-# this would get called
 
 function test2(res::Vector{Float64}, idx::Int, meas::Array{Float64,2}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
@@ -99,7 +77,7 @@ t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
 # @show typeof(t)
-generalwrapper = GenericWrapParam{Array{Float64,2}}(test2, t, 1, 1)
+generalwrapper = GenericWrapParam{typeof(test2)}(test2, t, 1, 1)
 # generalwrapper.measurement = rand(1,1)
 
 x, res = zeros(2), zeros(2)
@@ -145,7 +123,7 @@ push!(t,p1)
 push!(t,p2)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, getSample(odo, N), getSample)
+generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
 # generalwrapper.measurement = getSample(odo, N)
 x, res = zeros(1), zeros(1)
 @time for generalwrapper.particleidx in 1:N
@@ -184,16 +162,14 @@ push!(t,p1)
 push!(t,p2)
 
 fg = emptyFactorGraph()
-fg.registeredModuleFunctions[:Main] = + # obsolete usecase
+fg.registeredModuleFunctions[:Main] = getSample
 
 v1=addNode!(fg, :x1, p1, N=N)
 v2=addNode!(fg, :x2, p2, N=N)
-f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]), samplefnc=getSample)
+f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]))
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-# generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, zeros(1,N), getSample)
-# f2 = addFactor!(fg, [v1;v2], generalwrapper)
-f2 = addFactor!(fg, [v1;v2], odo, samplefnc=getSample)
+f2 = addFactor!(fg, [v1;v2], odo)
 
 tree = wipeBuildNewTree!(fg)
 

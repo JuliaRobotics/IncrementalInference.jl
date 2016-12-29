@@ -183,13 +183,13 @@ end
 #   return maxlen, sfidx
 # end
 
-function evalPotentialSpecific{T}( fnc::FunctorPairwise,
+function evalPotentialSpecific{T <: FunctorPairwise}(
+      fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int64;
       N::Int64=100  )
   #
-  println("evalPotentialSpecific for GenericWrapParam FunctorPairwise is running")
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
 
@@ -208,13 +208,13 @@ function evalPotentialSpecific{T}( fnc::FunctorPairwise,
   # return evalPotential(typ, Xi, solvefor)
 end
 
-function evalPotentialSpecific{T}( fnc::FunctorSingleton,
+function evalPotentialSpecific{T <: FunctorSingleton}(
+      fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int64;
       N::Int64=100  )
   #
-  println("evalPotentialSpecific for GenericWrapParam FunctorSingleton is running")
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
   return generalwrapper.measurement
 end
@@ -233,9 +233,8 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   for id in fct.attributes["data"].fncargvID
     push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
   end
-  # TODO -- this lookup should be improved, drop lookup if possible,
-  # already being avoided with new GenericWrapParam{T} interface
-  modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
+  # lookup now used for getSample
+  # modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
   fnctype = fct.attributes["data"].fnc
   return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
