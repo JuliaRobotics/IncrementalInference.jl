@@ -5,6 +5,7 @@ using NLsolve
 using KernelDensityEstimate
 using IncrementalInference
 
+import IncrementalInference: getSample
 
 println("FunctorWorks")
 type FunctorWorks
@@ -187,11 +188,12 @@ fg.registeredModuleFunctions[:Main] = + # obsolete usecase
 
 v1=addNode!(fg, :x1, p1, N=N)
 v2=addNode!(fg, :x2, p2, N=N)
-f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]))
+f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]), samplefnc=getSample)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, zeros(1,N), getSample)
-f2 = addFactor!(fg, [v1;v2], generalwrapper)
+# generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, zeros(1,N), getSample)
+# f2 = addFactor!(fg, [v1;v2], generalwrapper)
+f2 = addFactor!(fg, [v1;v2], odo, samplefnc=getSample)
 
 tree = wipeBuildNewTree!(fg)
 

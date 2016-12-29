@@ -183,13 +183,40 @@ end
 #   nothing
 # end
 #
-
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
+  LEN = Int64[]
+  maxlen = N
+  count = 0
+  sfidx = 0
+  for xi in Xi
+    push!(ARR, getVal(xi))
+    len = size(ARR[end], 2)
+    push!(LEN, len)
+    if len > maxlen
+      maxlen = len
+    end
+    count += 1
+    if xi.index == solvefor
+      sfidx = xi.index
+    end
+  end
+  SAMP=LEN.<maxlen
+  for i in 1:count
+    if SAMP[i]
+      ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
+    end
+  end
+  # we are generating a proposal distribution, not direct replacement for existing
+  if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
+  return maxlen, sfidx
+end
 
 function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{InferenceType, FunctorInferenceType}) #Union{Pairwise,Singleton}
 
-  ftyp = typeof(f)
+  @show ftyp = typeof(f)
   m = Symbol(ftyp.name.module)
-  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
+  # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
+  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f)
   fact.attributes["data"] = data
 
   # for graphviz drawing
@@ -214,7 +241,7 @@ addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVert
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{InferenceType, FunctorInferenceType}; #::Union{Pairwise,Singleton}
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[] )
+                    ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[], samplefnc::Function=getSample )
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
@@ -223,7 +250,14 @@ function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVer
 
   newvert = ExVertex(fg.id,namestring)
   addNewFncVertInGraph!(fg, newvert, fg.id, namestring, ready)
-  setDefaultFactorNode!(newvert, f)
+
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  # N = size(getVal(Xi[1]),2)
+  gwpf = GenericWrapParam{Array{Float64,2}}(f, ARR, 1, 1, zeros(0,1), samplefnc)
+  setDefaultFactorNode!(newvert, gwpf)
+  # setDefaultFactorNode!(newvert, f)
+
   push!(fg.factorIDs,fg.id)
 
   for vert in Xi

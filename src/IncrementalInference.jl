@@ -51,6 +51,9 @@ export
   getKDE,
   getVertKDE,
 
+  #functors need
+  getSample,
+
   #Visualization
   investigateMultidimKDE,
   writeGraphPdf,

@@ -54,13 +54,33 @@ function convert(::Type{PackedOdo}, d::Odo)
                     v2,length(v2),
                     d.W)
 end
-
-
+function getSample(odo::Odo, N::Int=1)
+  ret = zeros(1,N)
+  if size(odo.Zij,2) > 1
+    error("getSample(::Odo,::Int) can't handle multi-column at present")
+  end
+  for i in 1:N
+    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+  end
+  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+  return ret
+end
 
 type OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
+end
+function getSample(odo::OdoMM, N::Int=1)
+  ret = zeros(1,N)
+  if size(odo.Zij,2) > 1
+    error("getSample(::OdoMM,::Int) can't handle multi-column at present")
+  end
+  for i in 1:N
+    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+  end
+  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+  return ret
 end
 
 
@@ -84,10 +104,17 @@ end
 function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
+function getSample(odo::Ranged, N::Int=1)
+  ret = zeros(1,N)
+  for i in 1:N
+    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+  end
+  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+  return ret
+end
 
 
-
-type GenericMarginal <: Pairwise
+type GenericMarginal <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -111,7 +138,7 @@ end
 # ------------------------------------------------------------
 
 
-type Obsv2 <: Singleton
+type Obsv2 <: FunctorSingleton
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
@@ -138,4 +165,7 @@ function convert(::Type{PackedObsv2}, d::Obsv2)
   return PackedObsv2(v1,size(d.pts,1),
                     v2,size(d.bws,1),
                     d.W)
+end
+function getSample(z::Obsv2, N::Int=1)
+  return KernelDensityEstimate.sample(kde!(z.pts, z.bws), N)
 end
