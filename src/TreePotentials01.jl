@@ -43,11 +43,17 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::I
     end
     return RES
 end
-function (odo::Odo)(res::Vector{Float64}, idx::Int, meas::Array{Float64,2}, p1::Array{Float64}, p2::Array{Float64})
+function (odo::Odo)(res::Vector{Float64},
+    idx::Int,
+    meas::Array{Float64,2},
+    p1::Array{Float64},
+    p2::Array{Float64})
 
+  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+  nothing
 end
 function getSample(odo::Odo, N::Int=1)
-  rand(Distributions.MvNormal(zeros(size(odo.Zij,2)), odo.Cov), N )
+  rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
 end
 
 function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)

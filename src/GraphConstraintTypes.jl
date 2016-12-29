@@ -26,7 +26,7 @@ end
 
 
 # define the pose group
-type Odo <: Pairwise
+type Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -54,17 +54,18 @@ function convert(::Type{PackedOdo}, d::Odo)
                     v2,length(v2),
                     d.W)
 end
-function getSample(odo::Odo, N::Int=1)
-  ret = zeros(1,N)
-  if size(odo.Zij,2) > 1
-    error("getSample(::Odo,::Int) can't handle multi-column at present")
-  end
-  for i in 1:N
-    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
-  end
-  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-  return ret
-end
+# function getSample(odo::Odo, N::Int=1)
+#   ret = zeros(1,N)
+#   if size(odo.Zij,2) > 1
+#     error("getSample(::Odo,::Int) can't handle multi-column at present")
+#   end
+#   for i in 1:N
+#     ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+#   end
+#   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+#   return ret
+# end
+
 
 type OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
