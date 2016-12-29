@@ -1,9 +1,11 @@
 # test module wrapping
 
+
+addprocs(1)
+
 using Base.Test
 
-module First
-
+@everywhere module First
 
 export solve, InferenceType, Container
 
@@ -38,7 +40,7 @@ end
 
 
 
-module Second
+@everywhere module Second
 importall First
 export SecondType, SecondAgain, evalPotential, solve, registerCallback!, Container
 
@@ -63,16 +65,18 @@ end
 
 end
 
+
 # get module
 # typeof(f).name.mt.name
 
 # Okay lets see
 using Second
+@everywhere using Second
 
-Col = Container()
+Col = First.Container()
 
 
-
+# running on first process only
 First.registerCallback!(Col, Second.evalPotential)
 
 CCol = deepcopy(Col)
@@ -80,12 +84,13 @@ CCol = deepcopy(Col)
 stA = 1.0
 saA = 3.0
 
-st = SecondType(stA)
-sa = SecondAgain(saA)
+st = Second.SecondType(stA)
+sa = Second.SecondAgain(saA)
 
 # Symbol(typeof(st).name.module)
-@test solve(CCol, st) == stA
-@test solve(CCol, sa) == saA
+@test First.solve(CCol, st) == stA
+@test First.solve(CCol, sa) == saA
+
 
 @elapsed evalPotential(st)
 t1 = @elapsed evalPotential(st)
@@ -95,7 +100,18 @@ println("Check the speed is reasonable")
 @test t2 < 15.0*t1 # should actually be about equal, slack for threading uncertainty
 
 
-
-
+# expand tests to include multiprocessor
+# println("Tesing call of function on separate process...")
+# fr = remotecall(evalPotential,procs()[2], st)
+# @test fetch(fr) == stA
+#
+# fr = remotecall(solve,procs()[2], CCol,sa)
+# @test fetch(fr) == saA
+#
+#
+#
+# println("Stopping all but first process...")
+# rmprocs(procs()[2:end])
+# @show procs()
 
 #

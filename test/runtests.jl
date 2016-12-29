@@ -4,8 +4,15 @@ println("[TEST] out of module evalPotential...")
 include("TestModuleFunctions.jl")
 println("Success")
 
+print("[TEST] Ensure memory return is working properly...")
+include("typeReturnMemRef.jl")
+println("Success")
 
 addprocs(3)
+
+println("[TEST] GenericWrapParam functors...")
+include("testGenericWrapParam.jl")
+println("Success")
 
 println("[TEST] generic root finding by numeric solve of residual functions...")
 include("testNumericRootGenericRandomized.jl")
@@ -27,10 +34,6 @@ for i in 1:length(msgPlots)
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 
-
-print("[TEST] Ensure memory return is working properly...")
-include("typeReturnMemRef.jl")
-println("Success")
 
 
 println("[TEST] packing converters work...")

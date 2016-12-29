@@ -2,11 +2,13 @@
 using IncrementalInference, TransformUtils
 using Base.Test
 
+# TODO -- resid function definitions are changing
 # residual functions must have the form:
 # function residual!(
       # residual::Vector{Float64},
       # z::Vector{Float64},
       # variables::Tuple )
+
 
 
 # y = mx + c
@@ -69,21 +71,57 @@ for i in 1:10
                               convert(Quaternion, so3(y)), tol=1e-8)
 end
 
+println("Test shuffling function")
 
 function testshuffle!(x, res)
-  res = zeros(2)
+  # println("testshuffle!(x,res) gets x=$(x), and length(res)=$(length(res))")
+  nval = sum(abs(x-[11.0;12.0;13.0]))
+  # trick the solver so that f/f' = 0/1e10, and therefore < tol
+  # resulting in termination of solver
+  if nval < 1e-8
+    res[1:2] = [0.0;0.0] # fake at root evaluation
+  else
+    res[1:2] = 1e10*randn(2) # fake large gradient
+  end
   nothing
 end
 
 # test shuffling function
+ALLTESTS = Bool[]
 x0 = collect(11:13)+0.0
 for i in 1:10
   y = numericRootGenericRandomizedFnc(
           testshuffle!,
-          2, 3, x0    )
+          2, 3, x0,
+          perturb=0.0    )
+  @show y
   @show y.%10
   @show yy = y.%10.0
-  @test norm(yy-collect(1:3)) < 0.01
+  push!(ALLTESTS, norm(yy-collect(1:3)) < 0.1)
+end
+@test sum(ALLTESTS) > 9
+
+
+println("Test if shuffling results in correct mapping for solving")
+
+
+function testshuffle2!(x, res)
+  # println("testshuffle2!(x,res) gets x=$(x), and length(res)=$(length(res))")
+  res[1:2] = x - [1.0;2.0] # fake at root evaluation
+  nothing
+end
+
+# test shuffling function
+x0 = collect(11:12)+0.0
+for i in 1:10
+  println("starting with x0=$(x0)")
+  y = numericRootGenericRandomizedFnc(
+          testshuffle2!,
+          2, 2, x0,
+          perturb=0.0,
+          testshuffle=true    )
+  println("result y=$(y)")
+  @test norm(y-collect(1:2)) < 0.1
 end
 
 

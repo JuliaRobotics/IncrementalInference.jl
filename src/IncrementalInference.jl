@@ -63,6 +63,9 @@ export
   evalPotential,
   evalFactor2,
 
+  # dev
+  GenericWrapParam,
+
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
@@ -75,10 +78,18 @@ export
   Singleton,
   Pairwise,
 
+  # functor abstracts
+  FunctorInferenceType,
+  FunctorPairwise,
+
   # Solving utils
   numericRoot,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
+  numericRootGenericRandomizedFnc!,
+  FastGenericRoot,
+
+  # generic marginal used during elimitation game
   GenericMarginal,
   PackedGenericMarginal,
 
@@ -117,8 +128,8 @@ include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
-include("TreePotentials01.jl")
 include("SolverUtilities.jl")
+include("TreePotentials01.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 

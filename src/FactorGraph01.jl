@@ -175,8 +175,17 @@ function registerCallback!(fgl::FactorGraph, fnc::Function)
   nothing
 end
 
+# idea for registering, will likely be removed again
+# function createregistercallback!(fnc::Function)
+#   fgl = initfg()
+#   m = Symbol(typeof(fnc).name.module)
+#   fgl.registeredModuleFunctions[m] = fnc
+#   nothing
+# end
+#
 
-function setDefaultFactorNode!(fact::Graphs.ExVertex, f::InferenceType) #Union{Pairwise,Singleton}
+
+function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{InferenceType, FunctorInferenceType}) #Union{Pairwise,Singleton}
 
   ftyp = typeof(f)
   m = Symbol(ftyp.name.module)
@@ -204,7 +213,7 @@ end
 addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
-function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{Pairwise,Singleton};
+function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{InferenceType, FunctorInferenceType}; #::Union{Pairwise,Singleton}
                     ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[] )
   namestring = ""
   for vert in Xi #f.Xi
