@@ -151,6 +151,63 @@ end
 #
 # end
 
+println("Test with FastRootGenericWrapParam for un-permuted root finding...")
+
+N = 100
+p1 = rand(1,N)
+p2 = rand(1,N)
+t = Array{Array{Float64,2},1}()
+push!(t,p1)
+push!(t,p2)
+
+odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+# varidx=2 means we are solving for p2 relative to p1
+gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, zeros(0,1), getSample) #getSample(odo, N)
+
+# fgr = FastGenericRoot{GenericWrapParam{Pose1Pose1Test}}(1, 1, generalwrapper)
+# numericRootGenericRandomizedFnc!( fgr )
+# # but this only represents the last step, should happen internal -- TODO
+#
+# @show p2
+
+# ARR = Array{Array{Float64,2},1}()
+# maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+@show gwp.params
+@show gwp.varidx
+gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
+@show zDim = size(gwp.measurement,1)
+fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+# and return complete fr/gwp
+
+@time for gwp.particleidx in 1:100
+  # gwp(x, res)
+  numericRootGenericRandomizedFnc!( fr )
+end
+
+@test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
+@test -10.0 < Base.mean(gwp.params[1]) < 10.0
+
+println("and in the reverse direction...")
+
+@show gwp.varidx = 1
+gwp.params[1][:,:] = -100.0
+
+@time for gwp.particleidx in 1:100
+  # gwp(x, res)
+  numericRootGenericRandomizedFnc!( fr )
+end
+
+@test -10.0 < Base.mean(gwp.params[1]) < 10.0
+@test 90.0 < Base.mean(gwp.params[2]) < 110.0
+
+
+println("Test with FastRootGenericWrapParam for permuted root finding...")
+warn("not implemented yet")
+
+# use the range only example, should give a circle with nothing in the middle
+
+
+
 println("GenericWrapParam testing in factor graph context...")
 
 N=100

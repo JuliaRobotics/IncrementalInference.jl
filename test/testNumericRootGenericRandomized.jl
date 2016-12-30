@@ -142,6 +142,14 @@ for i in 1:10
   @test abs(norm(y) - 10.0) < 1e-4
 end
 
+
+
+warn("Test FastRootGenericWrapParam{T} not implemented yet")
+
+
+
+
+
 # test convexity of rotation residual
 #
 # N=100

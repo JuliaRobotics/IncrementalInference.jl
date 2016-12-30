@@ -53,6 +53,29 @@ type Odo <: FunctorPairwise
     Odo() = new()
     Odo(x...) = new(x[1], x[2], x[3])
 end
+function (odo::Odo)(res::Vector{Float64},
+    idx::Int,
+    meas::Array{Float64,2},
+    p1::Array{Float64},
+    p2::Array{Float64}  )
+
+  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+  nothing
+end
+function getSample(odo::Odo, N::Int=1)
+  rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
+end
+# function getSample(odo::Odo, N::Int=1)
+#   ret = zeros(1,N)
+#   if size(odo.Zij,2) > 1
+#     error("getSample(::Odo,::Int) can't handle multi-column at present")
+#   end
+#   for i in 1:N
+#     ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+#   end
+#   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+#   return ret
+# end
 type PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int64
@@ -74,17 +97,7 @@ function convert(::Type{PackedOdo}, d::Odo)
                     v2,length(v2),
                     d.W)
 end
-# function getSample(odo::Odo, N::Int=1)
-#   ret = zeros(1,N)
-#   if size(odo.Zij,2) > 1
-#     error("getSample(::Odo,::Int) can't handle multi-column at present")
-#   end
-#   for i in 1:N
-#     ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
-#   end
-#   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-#   return ret
-# end
+
 
 
 type OdoMM <: Pairwise

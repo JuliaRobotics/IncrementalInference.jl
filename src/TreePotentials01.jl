@@ -43,18 +43,18 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::I
     end
     return RES
 end
-function (odo::Odo)(res::Vector{Float64},
-    idx::Int,
-    meas::Array{Float64,2},
-    p1::Array{Float64},
-    p2::Array{Float64})
-
-  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
-  nothing
-end
-function getSample(odo::Odo, N::Int=1)
-  rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
-end
+# function (odo::Odo)(res::Vector{Float64},
+#     idx::Int,
+#     meas::Array{Float64,2},
+#     p1::Array{Float64},
+#     p2::Array{Float64})
+#
+#   res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+#   nothing
+# end
+# function getSample(odo::Odo, N::Int=1)
+#   rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
+# end
 
 function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     rz,cz = size(odom.Zij)
@@ -183,28 +183,40 @@ end
 #   return maxlen, sfidx
 # end
 
+
+# currently monster of a spaghetti code mess, multiple types interacting at the same
+# time. Safest at this point in development is to just get this code running and
+# will refactor once the dust has settled.
+# current code is the result of several unit tests between IIF and RoME.jl
+# a unified test to follow -- after which refactoring can start
 function evalPotentialSpecific{T <: FunctorPairwise}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
-      generalwrapper::GenericWrapParam{T},
+      gwp::GenericWrapParam{T},
       solvefor::Int64;
       N::Int64=100  )
   #
+
+  # TODO -- this part can be collapsed into common generic solver component
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
+  zDim = size(gwp.measurement,1)
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  # and return complete fr/gwp
 
-  generalwrapper.params = ARR
-  generalwrapper.varidx = sfidx
-  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-  for generalwrapper.particleidx in 1:maxlen
-      # generalwrapper(x, res)
-    r = nlsolve( generalwrapper, ARR[sfidx][:,generalwrapper.particleidx] )
-    # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
-    # and not directly replacing the existing variable belief estimate
-    generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
+  for gwp.particleidx in 1:maxlen
+    # gwp(x, res)
+    numericRootGenericRandomizedFnc!( fr )
+        # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
+        # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
+        # and not directly replacing the existing variable belief estimate
+        # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
   end
 
-  return generalwrapper.params[generalwrapper.varidx]
+  return gwp.params[gwp.varidx]
   # return evalPotential(typ, Xi, solvefor)
 end
 
