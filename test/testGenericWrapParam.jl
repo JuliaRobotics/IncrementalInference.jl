@@ -178,7 +178,7 @@ gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
 fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
 # and return complete fr/gwp
 
-@time for gwp.particleidx in 1:100
+@time for gwp.particleidx in 1:N
   # gwp(x, res)
   numericRootGenericRandomizedFnc!( fr )
 end
@@ -188,7 +188,7 @@ end
 @test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
 @test -10.0 < Base.mean(gwp.params[1]) < 10.0
 
-println("and in the reverse direction...")
+println("and in the reverse direction, achieved by simply changing GenericWrapParam.varidx to 1...")
 
 @show gwp.varidx = 1
 gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))

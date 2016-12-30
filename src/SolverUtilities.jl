@@ -58,6 +58,7 @@ type GenericWrapParam{T} <: FunctorPairwise
 end
 function (p::GenericWrapParam)(x, res)
   # approximates by not considering cross indices among parameters
+  # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
   p.params[p.varidx][:, p.particleidx] = x
   p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
 end
@@ -85,7 +86,7 @@ function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
 end
 function (fr::FastRootGenericWrapParam)( x::Vector{Float64}, res::Vector{Float64} )
   shuffleXAltD!(fr, x)
-  fr.usrfnc( fr.Y, res ) #function (p::GenericWrapParam)(x, res)
+  fr.gwp( fr.Y, res ) #function (p::GenericWrapParam)(x, res)
 end
 
 # Solve free variable x by root finding residual function fgr.usrfnc(x, res)
