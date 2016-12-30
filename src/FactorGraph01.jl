@@ -229,8 +229,8 @@ function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   m = Symbol(ftyp.name.module)
-  samplefnc2 = fgl.registeredModuleFunctions[m]
-  gwpf = prepgenericwrapper(Xi, usrfnc, samplefnc2)
+  # samplefnc2 = fgl.registeredModuleFunctions[m]
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample) #samplefnc2)
 
   data = FunctionNodeData{GenericWrapParam{T}}(Int64[], false, false, Int64[], m, gwpf)
   vert.attributes["data"] = data
