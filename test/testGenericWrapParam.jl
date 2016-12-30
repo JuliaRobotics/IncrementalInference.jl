@@ -172,7 +172,6 @@ gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, zeros(0,1), getSample) #get
 
 # ARR = Array{Array{Float64,2},1}()
 # maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
-@show gwp.params
 @show gwp.varidx
 gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
 @show zDim = size(gwp.measurement,1)
@@ -184,18 +183,26 @@ fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
   numericRootGenericRandomizedFnc!( fr )
 end
 
+# @show gwp.params
+
 @test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
 @test -10.0 < Base.mean(gwp.params[1]) < 10.0
 
 println("and in the reverse direction...")
 
 @show gwp.varidx = 1
-gwp.params[1][:,:] = -100.0
+gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))
+
+# @show gwp.params
+
+fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
 
 @time for gwp.particleidx in 1:100
   # gwp(x, res)
   numericRootGenericRandomizedFnc!( fr )
 end
+
+# @show gwp.params
 
 @test -10.0 < Base.mean(gwp.params[1]) < 10.0
 @test 90.0 < Base.mean(gwp.params[2]) < 110.0
