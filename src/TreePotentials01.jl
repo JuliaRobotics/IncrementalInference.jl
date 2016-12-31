@@ -43,18 +43,8 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::I
     end
     return RES
 end
-# function (odo::Odo)(res::Vector{Float64},
-#     idx::Int,
-#     meas::Array{Float64,2},
-#     p1::Array{Float64},
-#     p2::Array{Float64})
-#
-#   res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
-#   nothing
-# end
-# function getSample(odo::Odo, N::Int=1)
-#   rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
-# end
+
+
 
 function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     rz,cz = size(odom.Zij)
@@ -137,7 +127,7 @@ end
 
 function getSample(obs::Obsv2, N::Int=1)
   pd = kde!(obs.pts, obs.bws[:,1])
-  return KernelDensityEstimate.sample(pd,N)[1]
+  return (KernelDensityEstimate.sample(pd,N)[1],)
 end
 # TODO -- this may be obsolete, investigate further and remove
 function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
@@ -202,8 +192,8 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   gwp.params = ARR
   gwp.varidx = sfidx
-  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
-  zDim = size(gwp.measurement,1)
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  zDim = size(gwp.measurement[1],1)
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
 
@@ -228,7 +218,7 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
       N::Int64=100  )
   #
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-  return generalwrapper.measurement
+  return generalwrapper.measurement[1]
 end
 
 

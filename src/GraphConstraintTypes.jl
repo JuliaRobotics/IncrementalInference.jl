@@ -55,15 +55,15 @@ type Odo <: FunctorPairwise
 end
 function (odo::Odo)(res::Vector{Float64},
     idx::Int,
-    meas::Array{Float64,2},
+    meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
     p2::Array{Float64}  )
 
-  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+  res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing
 end
 function getSample(odo::Odo, N::Int=1)
-  rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )'
+  (rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )',)
 end
 # function getSample(odo::Odo, N::Int=1)
 #   ret = zeros(1,N)
@@ -114,7 +114,7 @@ function getSample(odo::OdoMM, N::Int=1)
     ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
   end
   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-  return ret
+  return (ret,)
 end
 
 
@@ -140,11 +140,11 @@ function convert(::Type{PackedRanged}, r::Ranged)
 end
 function (ra::Ranged)(res::Vector{Float64},
     idx::Int,
-    meas::Array{Float64,2},
+    meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
     l1::Array{Float64})
 
-  res[1] = meas[1,idx] - abs(l1[1,idx] - p1[1,idx])
+  res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
   nothing
 end
 function getSample(ra::Ranged, N::Int=1)
@@ -153,7 +153,7 @@ function getSample(ra::Ranged, N::Int=1)
     ret[1,i] = ra.Cov[1]*randn()+ra.Zij[1]
   end
   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-  return ret
+  return (ret,)
 end
 
 
@@ -210,5 +210,5 @@ function convert(::Type{PackedObsv2}, d::Obsv2)
                     d.W)
 end
 function getSample(z::Obsv2, N::Int=1)
-  return KernelDensityEstimate.sample(kde!(z.pts, z.bws), N)
+  return (KernelDensityEstimate.sample(kde!(z.pts, z.bws), N),)
 end

@@ -49,12 +49,12 @@ type GenericWrapParam{T} <: FunctorPairwise
   params::Vector{Array{Float64,2}}
   varidx::Int
   particleidx::Int
-  measurement::Array{Float64,2}
+  measurement::Tuple #Array{Float64,2}
   samplerfnc::Function
   GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, zeros(0,1), +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, zeros(0,1), +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Array{Float64,2}, smpl::Function) = new(fnc, t, i, j, meas, smpl)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl)
 end
 function (p::GenericWrapParam)(x, res)
   # approximates by not considering cross indices among parameters

@@ -218,7 +218,7 @@ function prepgenericwrapper{T <: FunctorInferenceType}(
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, zeros(0,1), samplefnc)
+  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc)
 end
 
 function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(

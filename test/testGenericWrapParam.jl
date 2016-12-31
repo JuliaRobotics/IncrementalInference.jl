@@ -63,7 +63,7 @@ fvar([0.0])
 println("GenericWrapParam test")
 
 
-function test2(res::Vector{Float64}, idx::Int, meas::Array{Float64,2}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+function test2(res::Vector{Float64}, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
   res[:] = 1.0
   nothing;
@@ -101,21 +101,21 @@ type Pose1Pose1Test{T} <: FunctorPairwise
   # Pose1Pose1Test{T}(::Int) = new(T())
   Pose1Pose1Test{T}(a::T) = new(a)
 end
-getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = rand(pp1t.Dx,N)'
+getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (rand(pp1t.Dx,N)',)
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
       idx::Int,
-      meas::Array{Float64,2},
+      meas::Tuple{Array{Float64,2}},
       p1::Array{Float64,2},
       p2::Array{Float64,2} )
   #
   # println("Dp::Pose1Pose1Test, in-place idx=$(idx)")
-  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+  res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing
 end
 
-N = 100
+N = 101
 p1 = rand(1,N)
 p2 = rand(1,N)
 t = Array{Array{Float64,2},1}()
@@ -153,7 +153,7 @@ end
 
 println("Test with FastRootGenericWrapParam for un-permuted root finding...")
 
-N = 100
+N = 110
 p1 = rand(1,N)
 p2 = rand(1,N)
 t = Array{Array{Float64,2},1}()
@@ -162,7 +162,7 @@ push!(t,p2)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 # varidx=2 means we are solving for p2 relative to p1
-gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, zeros(0,1), getSample) #getSample(odo, N)
+gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
 
 # fgr = FastGenericRoot{GenericWrapParam{Pose1Pose1Test}}(1, 1, generalwrapper)
 # numericRootGenericRandomizedFnc!( fgr )
@@ -217,7 +217,7 @@ warn("not implemented yet")
 
 println("GenericWrapParam testing in factor graph context...")
 
-N=100
+N=101
 p1 = randn(1,N)
 d1 = kde!(p1)
 p2 = randn(1,N)
@@ -226,7 +226,7 @@ push!(t,p1)
 push!(t,p2)
 
 fg = emptyFactorGraph()
-fg.registeredModuleFunctions[:Main] = getSample
+# fg.registeredModuleFunctions[:Main] = getSample
 
 v1=addNode!(fg, :x1, p1, N=N)
 v2=addNode!(fg, :x2, p2, N=N)
