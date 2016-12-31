@@ -41,7 +41,7 @@ println("[TEST] packing converters work...")
 topack = getData(fg.g.vertices[4]) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedOdo},topack)
 upd = convert(FunctionNodeData{Odo}, dd)
-@test topack.fnc.Zij[1] == upd.fnc.Zij[1]
+@test topack.fnc.usrfnc!.Zij[1] == upd.fnc.usrfnc!.Zij[1]
 
 # data structure conversion tests for protobuffing
 println("Testing conversion to packed data structure and back")

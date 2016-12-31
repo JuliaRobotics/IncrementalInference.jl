@@ -19,6 +19,7 @@ function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
 end
 
 function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
+    warn("evalPotential(::Odo..) deprecated, use functor instead")
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
@@ -42,6 +43,8 @@ function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::I
     end
     return RES
 end
+
+
 
 function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
     rz,cz = size(odom.Zij)
@@ -122,14 +125,14 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N
 end
 
 
+function getSample(obs::Obsv2, N::Int=1)
+  pd = kde!(obs.pts, obs.bws[:,1])
+  return (KernelDensityEstimate.sample(pd,N)[1],)
+end
 # TODO -- this may be obsolete, investigate further and remove
 function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
-    # @show obs.bws, typeof(obs.bws)
-    pd = kde!(obs.pts, obs.bws[:,1])
-    return KernelDensityEstimate.sample(pd,N)[1]
-    # return obs.Cov[1]*randn()+obs.Zi
+  return getSample(obs, N)
 end
-
 
 function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
   outpts = fnc(typ, Xi, N=N) # , solvefor
@@ -142,57 +145,80 @@ function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ:
   # return evalPotential(typ, Xi, solvefor)
 end
 
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
-  LEN = Int64[]
-  maxlen = N
-  count = 0
-  sfidx = 0
-  for xi in Xi
-    push!(ARR, getVal(xi))
-    len = size(ARR[end], 2)
-    push!(LEN, len)
-    if len > maxlen
-      maxlen = len
-    end
-    count += 1
-    if xi.index == solvefor
-      sfidx = xi.index
-    end
+# function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
+#   LEN = Int64[]
+#   maxlen = N
+#   count = 0
+#   sfidx = 0
+#   for xi in Xi
+#     push!(ARR, getVal(xi))
+#     len = size(ARR[end], 2)
+#     push!(LEN, len)
+#     if len > maxlen
+#       maxlen = len
+#     end
+#     count += 1
+#     if xi.index == solvefor
+#       sfidx = xi.index
+#     end
+#   end
+#   SAMP=LEN.<maxlen
+#   for i in 1:count
+#     if SAMP[i]
+#       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
+#     end
+#   end
+#   # we are generating a proposal distribution, not direct replacement for existing
+#   ARR[sfidx] = deepcopy(ARR[sfidx])
+#   return maxlen, sfidx
+# end
+
+
+# currently monster of a spaghetti code mess, multiple types interacting at the same
+# time. Safest at this point in development is to just get this code running and
+# will refactor once the dust has settled.
+# current code is the result of several unit tests between IIF and RoME.jl
+# a unified test to follow -- after which refactoring can start
+function evalPotentialSpecific{T <: FunctorPairwise}(
+      fnc::T,
+      Xi::Vector{Graphs.ExVertex},
+      gwp::GenericWrapParam{T},
+      solvefor::Int64;
+      N::Int64=100  )
+  #
+
+  # TODO -- this part can be collapsed into common generic solver component
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  zDim = size(gwp.measurement[1],1)
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  # and return complete fr/gwp
+
+  for gwp.particleidx in 1:maxlen
+    # gwp(x, res)
+    numericRootGenericRandomizedFnc!( fr )
+        # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
+        # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
+        # and not directly replacing the existing variable belief estimate
+        # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
   end
-  SAMP=LEN.<maxlen
-  for i in 1:count
-    if SAMP[i]
-      ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
-    end
-  end
-  # we are generating a proposal distribution, not direct replacement for existing
-  ARR[sfidx] = deepcopy(ARR[sfidx])
-  return maxlen, sfidx
+
+  return gwp.params[gwp.varidx]
+  # return evalPotential(typ, Xi, solvefor)
 end
 
-function evalPotentialSpecific{T}( fnc::Function,
+function evalPotentialSpecific{T <: FunctorSingleton}(
+      fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int64;
       N::Int64=100  )
   #
-  println("evalPotentialSpecific for GenericWrapParam is running")
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
-
-  generalwrapper.params = ARR
-  @show generalwrapper.varidx = sfidx
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-  for generalwrapper.particleidx in 1:maxlen
-      # generalwrapper(x, res)
-    r = nlsolve( generalwrapper, ARR[sfidx][:,generalwrapper.particleidx] )
-    # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
-    # and not directly replacing the existing variable belief estimate
-    generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
-  end
-
-  return generalwrapper.params[generalwrapper.varidx]
-  # return evalPotential(typ, Xi, solvefor)
+  return generalwrapper.measurement[1]
 end
 
 
@@ -207,13 +233,14 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   # TODO -- this build up of Xi is excessive and should be reduced
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
-    push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
+    # TODO -- should use local mem only for this part, update after ## fgl.v[id]
+    push!(Xi, dlapi.getvertex(fgl,id))
   end
-  # TODO -- this lookup should be improved, drop lookup if possible,
-  # already being avoided with new GenericWrapParam{T} interface
-  modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
+  # lookup now used for getSample
+  # modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
   fnctype = fct.attributes["data"].fnc
-  return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
+  return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
+  # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert

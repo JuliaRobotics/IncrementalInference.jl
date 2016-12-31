@@ -51,6 +51,9 @@ export
   getKDE,
   getVertKDE,
 
+  #functors need
+  getSample,
+
   #Visualization
   investigateMultidimKDE,
   writeGraphPdf,
@@ -88,6 +91,7 @@ export
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
   FastGenericRoot,
+  FastRootGenericWrapParam,
 
   # generic marginal used during elimitation game
   GenericMarginal,

@@ -5,6 +5,7 @@ using NLsolve
 using KernelDensityEstimate
 using IncrementalInference
 
+import IncrementalInference: getSample
 
 println("FunctorWorks")
 type FunctorWorks
@@ -57,34 +58,12 @@ fvar([0.0])
 @test At == A
 
 
-# this would be in SolverUtilities
-# this will likely expand with more internal bells and whistles
-# to perform in place memory operations for array values in
-# type GenericWrapParam <: Function
-#   usrfnc!::Function
-#   params::Tuple
-#   varidx::Int
-#   particleidx::Int
-# end
-
-# potential functor approach
-# function (p::GenericWrapParam)(x, res)
-#   # approximates by not considering cross indices among parameters
-#   p.params[p.varidx][:, p.particleidx] = x
-#   p.usrfnc!(res, p.particleidx, p.params...)
-# end
-
 
 
 println("GenericWrapParam test")
-# quick test
-# A = randn(2, 3)
-# B = randn(2, 3)
-# At = deepcopy(A)
 
-# this would get called
 
-function test2(res::Vector{Float64}, idx::Int, meas::Array{Float64,2}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+function test2(res::Vector{Float64}, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
   res[:] = 1.0
   nothing;
@@ -98,7 +77,7 @@ t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
 # @show typeof(t)
-generalwrapper = GenericWrapParam{Array{Float64,2}}(test2, t, 1, 1)
+generalwrapper = GenericWrapParam{typeof(test2)}(test2, t, 1, 1)
 # generalwrapper.measurement = rand(1,1)
 
 x, res = zeros(2), zeros(2)
@@ -122,21 +101,21 @@ type Pose1Pose1Test{T} <: FunctorPairwise
   # Pose1Pose1Test{T}(::Int) = new(T())
   Pose1Pose1Test{T}(a::T) = new(a)
 end
-getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = rand(pp1t.Dx,N)'
+getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (rand(pp1t.Dx,N)',)
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
       idx::Int,
-      meas::Array{Float64,2},
+      meas::Tuple{Array{Float64,2}},
       p1::Array{Float64,2},
       p2::Array{Float64,2} )
   #
   # println("Dp::Pose1Pose1Test, in-place idx=$(idx)")
-  res[1] = meas[1,idx] - (p2[1,idx] - p1[1,idx])
+  res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing
 end
 
-N = 100
+N = 101
 p1 = rand(1,N)
 p2 = rand(1,N)
 t = Array{Array{Float64,2},1}()
@@ -144,7 +123,7 @@ push!(t,p1)
 push!(t,p2)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, getSample(odo, N), getSample)
+generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
 # generalwrapper.measurement = getSample(odo, N)
 x, res = zeros(1), zeros(1)
 @time for generalwrapper.particleidx in 1:N
@@ -172,9 +151,73 @@ end
 #
 # end
 
+println("Test with FastRootGenericWrapParam for un-permuted root finding...")
+
+N = 110
+p1 = rand(1,N)
+p2 = rand(1,N)
+t = Array{Array{Float64,2},1}()
+push!(t,p1)
+push!(t,p2)
+
+odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+# varidx=2 means we are solving for p2 relative to p1
+gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
+
+# fgr = FastGenericRoot{GenericWrapParam{Pose1Pose1Test}}(1, 1, generalwrapper)
+# numericRootGenericRandomizedFnc!( fgr )
+# # but this only represents the last step, should happen internal -- TODO
+#
+# @show p2
+
+# ARR = Array{Array{Float64,2},1}()
+# maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+@show gwp.varidx
+gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
+@show zDim = size(gwp.measurement,1)
+fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+# and return complete fr/gwp
+
+@time for gwp.particleidx in 1:N
+  # gwp(x, res)
+  numericRootGenericRandomizedFnc!( fr )
+end
+
+# @show gwp.params
+
+@test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
+@test -10.0 < Base.mean(gwp.params[1]) < 10.0
+
+println("and in the reverse direction, achieved by simply changing GenericWrapParam.varidx to 1...")
+
+@show gwp.varidx = 1
+gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))
+
+# @show gwp.params
+
+fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+
+@time for gwp.particleidx in 1:100
+  # gwp(x, res)
+  numericRootGenericRandomizedFnc!( fr )
+end
+
+# @show gwp.params
+
+@test -10.0 < Base.mean(gwp.params[1]) < 10.0
+@test 90.0 < Base.mean(gwp.params[2]) < 110.0
+
+
+println("Test with FastRootGenericWrapParam for permuted root finding...")
+warn("not implemented yet")
+
+# use the range only example, should give a circle with nothing in the middle
+
+
+
 println("GenericWrapParam testing in factor graph context...")
 
-N=100
+N=101
 p1 = randn(1,N)
 d1 = kde!(p1)
 p2 = randn(1,N)
@@ -183,15 +226,14 @@ push!(t,p1)
 push!(t,p2)
 
 fg = emptyFactorGraph()
-fg.registeredModuleFunctions[:Main] = + # obsolete usecase
+# fg.registeredModuleFunctions[:Main] = getSample
 
 v1=addNode!(fg, :x1, p1, N=N)
 v2=addNode!(fg, :x2, p2, N=N)
 f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]))
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-generalwrapper = GenericWrapParam{Array{Float64,2}}(odo, t, 1, 1, zeros(1,N), getSample)
-f2 = addFactor!(fg, [v1;v2], generalwrapper)
+f2 = addFactor!(fg, [v1;v2], odo)
 
 tree = wipeBuildNewTree!(fg)
 

@@ -183,18 +183,57 @@ end
 #   nothing
 # end
 #
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
+  LEN = Int64[]
+  maxlen = N
+  count = 0
+  sfidx = 0
+  for xi in Xi
+    push!(ARR, getVal(xi))
+    len = size(ARR[end], 2)
+    push!(LEN, len)
+    if len > maxlen
+      maxlen = len
+    end
+    count += 1
+    if xi.index == solvefor
+      sfidx = count #xi.index
+    end
+  end
+  SAMP=LEN.<maxlen
+  for i in 1:count
+    if SAMP[i]
+      ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
+    end
+  end
+  # we are generating a proposal distribution, not direct replacement for existing
+  if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
+  return maxlen, sfidx
+end
 
+function prepgenericwrapper{T <: FunctorInferenceType}(
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::T,
+      samplefnc::Function )
+  #
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc)
+end
 
-function setDefaultFactorNode!(fact::Graphs.ExVertex, f::Union{InferenceType, FunctorInferenceType}) #Union{Pairwise,Singleton}
-
-  ftyp = typeof(f)
+function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
+      fgl::FactorGraph,
+      vert::Graphs.ExVertex,
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::T  )
+  #
+  ftyp = typeof(usrfnc) # maybe this can be T
   m = Symbol(ftyp.name.module)
-  data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, f) # Symbol(string(m))
-  fact.attributes["data"] = data
+  # samplefnc2 = fgl.registeredModuleFunctions[m]
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample) #samplefnc2)
 
-  # for graphviz drawing
-  fact.attributes["shape"] = "point"
-  fact.attributes["width"] = 0.2
+  data = FunctionNodeData{GenericWrapParam{T}}(Int64[], false, false, Int64[], m, gwpf)
+  vert.attributes["data"] = data
 
   nothing
 end
@@ -205,26 +244,37 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
   fgl.fIDs[lbl] = id # fg.id
 
-    # used for cloudgraph solving
-    vert.attributes["ready"] = ready
-    vert.attributes["backendset"] = 0
+  # used for cloudgraph solving
+  vert.attributes["ready"] = ready
+  vert.attributes["backendset"] = 0
+
+  # for graphviz drawing
+  vert.attributes["shape"] = "point"
+  vert.attributes["width"] = 0.2
   nothing
 end
 addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
-function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVertex,1},f::Union{InferenceType, FunctorInferenceType}; #::Union{Pairwise,Singleton}
-                    ready::Int=1, api::DataLayerAPI=dlapi, labels::Vector{T}=String[] )
+
+function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
+      Xi::Array{Graphs.ExVertex,1},
+      usrfnc::I;
+      ready::Int=1,
+      api::DataLayerAPI=dlapi,
+      labels::Vector{T}=String[] )
+  #
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
   end
-  fg.id+=1
+  fgl.id+=1
 
-  newvert = ExVertex(fg.id,namestring)
-  addNewFncVertInGraph!(fg, newvert, fg.id, namestring, ready)
-  setDefaultFactorNode!(newvert, f)
-  push!(fg.factorIDs,fg.id)
+  newvert = ExVertex(fgl.id,namestring)
+  addNewFncVertInGraph!(fgl, newvert, fgl.id, namestring, ready)
+  setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
+
+  push!(fgl.factorIDs,fgl.id)
 
   for vert in Xi
     push!(newvert.attributes["data"].fncargvID, vert.index)
@@ -232,11 +282,11 @@ function addFactor!{T <: AbstractString}(fg::FactorGraph, Xi::Array{Graphs.ExVer
 
   fnlbls = deepcopy(labels)
   push!(fnlbls, "FACTOR")
-  push!(fnlbls, fg.sessionname)
+  push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
-  newvert = api.addvertex!(fg, newvert, labels=fnlbls)  # used to be two be three lines up ##fg.g
+  newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
   for vert in Xi
-    api.makeaddedge!(fg, vert, newvert)
+    api.makeaddedge!(fgl, vert, newvert)
   end
 
   return newvert

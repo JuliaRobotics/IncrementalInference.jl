@@ -8,6 +8,7 @@ abstract Pairwise <: InferenceType
 abstract Singleton <: InferenceType
 
 abstract FunctorInferenceType <: Function
+abstract FunctorSingleton <: FunctorInferenceType
 abstract FunctorPairwise <: FunctorInferenceType
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
@@ -65,7 +66,7 @@ function emptyFactorGraph()
                      nothing,
                      Dict{Int64,Int64}(),
                      "",
-                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.evalPotential) )
+                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample) ) #evalPotential
     return fg
 end
 
