@@ -233,7 +233,8 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   # TODO -- this build up of Xi is excessive and should be reduced
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
-    push!(Xi, dlapi.getvertex(fgl,id)) # TODO -- should use local mem only for this part, update after ## fgl.v[id]
+    # TODO -- should use local mem only for this part, update after ## fgl.v[id]
+    push!(Xi, dlapi.getvertex(fgl,id))
   end
   # lookup now used for getSample
   # modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
