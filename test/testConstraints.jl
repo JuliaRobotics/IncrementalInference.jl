@@ -1,5 +1,7 @@
 # test Pose2DPoint2D constraint evaluation function
 
+error("obsolete, been moved to RoME.jl")
+
 using IncrementalInference
 using Base.Test
 

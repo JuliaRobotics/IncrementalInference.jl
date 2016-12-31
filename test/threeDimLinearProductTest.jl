@@ -1,3 +1,6 @@
+
+error("obsolete, been moved to RoME.jl")
+
 using IncrementalInference, TransformUtils
 using Base.Test
 

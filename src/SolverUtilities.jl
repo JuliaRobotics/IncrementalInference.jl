@@ -101,11 +101,23 @@ function numericRootGenericRandomizedFnc!{T}(
   #
   fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
 	if fr.zDim < fr.xDim || testshuffle
-    shuffle!(fr.p)
-    r = nlsolve(  fr,
-                  fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] + fr.perturb # this is x0
-               )
-    shuffleXAltD!( fr, r.zero )
+    for i in 1:10
+      shuffle!(fr.p)
+      r = nlsolve(  fr,
+                    fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] + fr.perturb # this is x0
+                 )
+      if r.f_converged
+        shuffleXAltD!( fr, r.zero )
+        break;
+      else
+        # TODO -- report on this being slow
+        if i == 10
+          warn("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
+          error("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
+        end
+      end
+    end
+    #shuffleXAltD!( fr, r.zero ) # moved up
 	else
     fr.Y = ( nlsolve(  fr.gwp, fr.X[:,fr.gwp.particleidx] + fr.perturb ) ).zero
 	end
