@@ -123,6 +123,9 @@ function numericRootGenericRandomizedFnc!{T}(
     end
     #shuffleXAltD!( fr, r.zero ) # moved up
 	else
+    # @show fr.xDim, fr.zDim
+    # @show fr.gwp.particleidx
+    # @show size(fr.perturb), size(fr.X)
     fr.Y = ( nlsolve(  fr.gwp, fr.X[:,fr.gwp.particleidx] + fr.perturb ) ).zero
 	end
   fr.X[:,fr.gwp.particleidx] = fr.Y
