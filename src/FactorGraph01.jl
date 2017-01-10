@@ -64,9 +64,13 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
   nothing
 end
+function setValKDE!(v::Graphs.ExVertex, em::EasyMessage)
+  setVal!(v, em.pts, em.bws ) # getBW(p)[:,1]
+  nothing
+end
 function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
   pts = getPoints(p)
-  setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
+  setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   nothing
 end
 

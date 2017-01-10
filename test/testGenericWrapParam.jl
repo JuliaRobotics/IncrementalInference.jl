@@ -136,7 +136,8 @@ end
 
 println("Test with NLsolve for root finding using generalwrapper functor.")
 generalwrapper.varidx = 2
-@time for generalwrapper.particleidx in 1:N
+@time for i in 1:N
+  generalwrapper.particleidx = i
     # generalwrapper(x, res)
   r = nlsolve( generalwrapper, generalwrapper.params[generalwrapper.varidx][:,generalwrapper.particleidx] )
   generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]

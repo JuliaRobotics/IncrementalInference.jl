@@ -383,6 +383,7 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
 end
 
 function directAssignmentIDs(cliq::Graphs.ExVertex)
+  # TODO -- some must be part of iter
   assocMat = cliq.attributes["data"].cliqAssocMat
   msgMat = cliq.attributes["data"].cliqMsgMat
   mat = [assocMat;msgMat];
@@ -423,6 +424,9 @@ function setCliqMCIDs!(cliq::Graphs.ExVertex)
   cliq.attributes["data"].msgskipIDs = skipThroughMsgsIDs(cliq)
   cliq.attributes["data"].directvarIDs = directAssignmentIDs(cliq)
   cliq.attributes["data"].directFrtlMsgIDs = directFrtlMsgIDs(cliq)
+
+  # TODO -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
+
   nothing
 end
 
