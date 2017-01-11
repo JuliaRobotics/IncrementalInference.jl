@@ -1,5 +1,5 @@
 
-# 
+#
 # type EasyMessage
 #   pts::Array{Float64,2}
 #   bws::Array{Float64,1}
@@ -225,16 +225,16 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].msgskipIDs, N, 1)
         for md in dd d[md[1]] = md[2]; end
       end
-      # TODO -- mistake here, see next
+      # previous mistake, must iterate over directsvarIDs also
       if length(inp.cliq.attributes["data"].itervarIDs) > 0
-        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].itervarIDs, N, 3)
+        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, union(inp.cliq.attributes["data"].itervarIDs,inp.cliq.attributes["data"].directvarIDs), N, 3)
         for md in ddd d[md[1]] = md[2]; end
       end
-      # TODO -- direct conditionals may influence iterated output, cases should be included into itervarIDs
-      if length(inp.cliq.attributes["data"].directvarIDs) > 0
-        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directvarIDs, N, 1)
-        for md in dddd d[md[1]] = md[2]; end
-      end
+      # direct conditionals may influence iterated output, cases should be included into itervarIDs
+      # if length(inp.cliq.attributes["data"].directvarIDs) > 0
+      #   dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directvarIDs, N, 1)
+      #   for md in dddd d[md[1]] = md[2]; end
+      # end
     end
 
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)

@@ -394,6 +394,7 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
   return cols[collect(mab)]
+  # also calculate how which are conditionals
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
@@ -408,6 +409,7 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
 end
 
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
+  # TODO -- maybe sort according to decreasing degree
   assocMat = cliq.attributes["data"].cliqAssocMat
   msgMat = cliq.attributes["data"].cliqMsgMat
   mat = [assocMat;msgMat];
