@@ -230,11 +230,10 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
         mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].itervarIDs, N, 3)
         for md in ddd d[md[1]] = md[2]; end
       end
-      # direct conditionals may influence iterated output, have been included into itervarIDs
-      # if length(inp.cliq.attributes["data"].directvarIDs) > 0
-      #   dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directvarIDs, N, 1)
-      #   for md in dddd d[md[1]] = md[2]; end
-      # end
+      if length(inp.cliq.attributes["data"].directPriorMsgIDs) > 0
+        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directPriorMsgIDs, N, 1)
+        for md in dddd d[md[1]] = md[2]; end
+      end
     end
 
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
