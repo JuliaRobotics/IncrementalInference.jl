@@ -1,9 +1,9 @@
 
-
-type EasyMessage
-  pts::Array{Float64,2}
-  bws::Array{Float64,1}
-end
+#
+# type EasyMessage
+#   pts::Array{Float64,2}
+#   bws::Array{Float64,1}
+# end
 
 type NBPMessage <: Singleton
   p::Dict{Int64,EasyMessage}
@@ -26,13 +26,13 @@ end
 type UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
-    IDvals::Dict{Int64, Array{Float64,2}}
+    IDvals::Dict{Int64, EasyMessage} #Array{Float64,2}
 end
 
 type DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Int64,Array{Float64,2}}
+    IDvals::Dict{Int64,EasyMessage} #Array{Float64,2}
 end
 
 type ExploreTreeType
@@ -139,7 +139,8 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
         pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
     elseif length(dens) == 1
         print("[direct]")
-        pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end], dens[1].bt.dims, Npts(dens[1]))  #N
+        pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end],
+                      dens[1].bt.dims, Npts(dens[1])  )  #N
     else
         pGM = Array{Float64,2}(0,1)
     end
@@ -167,7 +168,7 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
             if size(densPts,1)>0
                 updvert = dlapi.getvertex(fgl,vertid)
                 setValKDE!(updvert, densPts) # fgl.v[vertid]
-                # Go update the datalayer TODO -- excessive for general case
+                # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
                 dlapi.updatevertex!(fgl, updvert)
                 # fgl.v[vertid].attributes["val"] = densPts
                 push!(dbg.prods, potprod)
@@ -179,25 +180,30 @@ function fmcmc!(fgl::FactorGraph, cliq::Graphs.ExVertex, fmsgs::Array{NBPMessage
 
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
-    d = Dict{Int64,Array{Float64,2}}()
+    d = Dict{Int64,EasyMessage}() # Array{Float64,2}
     for vertid in IDs
-        d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
+      vert = dlapi.getvertex(fgl,vertid)
+      pden = getKDE(vert)
+      bws = vec(getBW(pden)[:,1])
+      d[vertid] = EasyMessage(getVal(vert), bws)
+      # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
     println("fmcmc! -- finished on $(cliq.attributes["label"])")
 
     return mcmcdbg, d
 end
 
-function upPrepOutMsg!(d::Dict{Int64,Array{Float64,2}}, IDs::Array{Int64,1})
+function upPrepOutMsg!(d::Dict{Int64,EasyMessage}, IDs::Array{Int64,1}) #Array{Float64,2}
   print("Outgoing msg density on: ")
   len = length(IDs)
   #outDens = Dict{Int64,BallTreeDensity}() # retired to new dictionary msg types
   m = NBPMessage(Dict{Int64,EasyMessage}()) #Int64[], BallTreeDensity[]
 
   for id in IDs
-    p = kde!(d[id], "lcv")
-    bws = vec(getBW(p)[:,1])
-    m.p[id] = EasyMessage(d[id], bws)
+    ## DID -- must bandwidth compute step happen here? no can be avoided by line 170
+    # p = kde!(d[id], "lcv")
+    # bws = vec(getBW(p)[:,1])
+    m.p[id] = d[id]# EasyMessage(d[id], bws)
   end
   return m
 end
@@ -208,7 +214,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
     # this is so slow! TODO Can be ignored once we have partial working
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
-    d, mcmcdbg = nothing, nothing  #Union{} # mcmcdbg = [CliqGibbsMC()]
+    d, mcmcdbg = d = Dict{Int64,EasyMessage}(), nothing  #Union{} # mcmcdbg = [CliqGibbsMC()]
 
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
@@ -219,13 +225,13 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200)
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].msgskipIDs, N, 1)
         for md in dd d[md[1]] = md[2]; end
       end
+      # NOTE -- previous mistake, must iterate over directsvarIDs also
       if length(inp.cliq.attributes["data"].itervarIDs) > 0
         mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].itervarIDs, N, 3)
         for md in ddd d[md[1]] = md[2]; end
       end
-      # TODO -- do direct conditionals from msg also, before transits and iterations are done.
-      if length(inp.cliq.attributes["data"].directvarIDs) > 0
-        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directvarIDs, N, 1)
+      if length(inp.cliq.attributes["data"].directPriorMsgIDs) > 0
+        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directPriorMsgIDs, N, 1)
         for md in dddd d[md[1]] = md[2]; end
       end
     end
@@ -257,7 +263,7 @@ end
 #   for md in ddd d[md[1]] = md[2]; end
 #   for md in dddd d[md[1]] = md[2]; end
 
-function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, Array{Float64,2}})
+function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, EasyMessage}) #Array{Float64,2}
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
       println("Dwn msg keys $(keys(dwnMsgs[1].p))")
@@ -266,11 +272,12 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     m = NBPMessage(Dict{Int64,EasyMessage}())
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
-        outp = kde!(d[vid], "lcv") # need to find new down msg bandwidths
-        # i+=1
-        # outDens[i] = outp
-        bws = vec((getBW(outp))[:,1])
-        m.p[vid] = EasyMessage(  deepcopy(d[vid]) , bws  )
+      m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+      # outp = kde!(d[vid], "lcv") # need to find new down msg bandwidths
+      # # i+=1
+      # # outDens[i] = outp
+      # bws = vec((getBW(outp))[:,1])
+      # m.p[vid] = EasyMessage(  deepcopy(d[vid]) , bws  )
     end
     for cvid in cliq.attributes["data"].conditIDs
         i+=1
@@ -318,10 +325,6 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     # cliq.attributes["debug"] = deepcopy(urt.dbgUp) #inp.
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
-      # p = kde!(deepcopy(dat[2]))
-      # setValKDE!(updvert, p) # TODO -- not sure if deepcopy is required
-      # mv = getKDEMax(p)
-      # updvert.attributes["MAP_est"] = mv
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
       dlapi.updatevertex!(fg, updvert)
     end
@@ -359,27 +362,16 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200) #upmsgdict = Di
     for child in out_neighbors(inp.cliq, inp.bt.bt)
         ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[]) # ,Union{})
         println("upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])")
-        # newmsgs = Dict{Int64, Array{Float64,2}}()
         newmsgs = upMsgPassingRecursive(  ett, N=N ) # newmsgs
         println("upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))")
-          # Xi = Array{Int64,1}()
-          # p = Array{BallTreeDensity,1}()
-          # for umsg in newmsgs
-          #     push!(Xi, umsg[1])
-          #     push!(p, kde!(umsg[2], "lcv"))
-          # end
-          # push!(  childMsgs, NBPMessage(Xi, p))
         push!(  childMsgs, newmsgs )
     end
 
     println("====================== Clique $(inp.cliq.attributes["label"]) =============================")
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
 
-    # @show "BEFORE", getVal(ett.fg.v[1])
-    # upmsg = Dict{Int64, Array{Float64,2}}()
     urt = upGibbsCliqueDensity(ett, N) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt)
-    # @show "AFTER", getVal(ett.fg.v[1])
     println("End Clique $(inp.cliq.attributes["label"]) =============================")
     urt.upMsgs
 end
@@ -566,14 +558,6 @@ function asyncProcessPostStacks!(fgl::FactorGraph, bt::BayesTree, chldstk::Vecto
   println("End Clique $(cliq.attributes["label"]) =============================")
   nothing
 end
-
-      # Xi = Array{Int64,1}()
-      # p = Array{BallTreeDensity,1}()
-      # for umsg in ur.upMsgs
-      #     push!(Xi, umsg[1])
-      #     push!(p, kde!(umsg[2], "lcv"))
-      # end
-      # push!(  childMsgs, NBPMessage(Xi, p))
 
 
 function processPostOrderStacks!(fg::FactorGraph, bt::BayesTree, childStack::Array{Graphs.ExVertex,1}, N::Int=200)

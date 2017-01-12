@@ -78,7 +78,8 @@ end
 # Shuffle incoming X into random permutation in fr.Y
 # shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
 function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
-  copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
+  fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
+  # copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
   for i in 1:fr.zDim
     fr.Y[fr.p[i]] = X[i]
   end
@@ -96,15 +97,16 @@ end
 # fr.X must be set to memory ref the param[varidx] being solved, at creation of fr
 function numericRootGenericRandomizedFnc!{T}(
       fr::FastRootGenericWrapParam{T};
-      perturb::Float64=1e-5,
+      perturb::Float64=1e-10,
       testshuffle::Bool=false )
   #
   fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
 	if fr.zDim < fr.xDim || testshuffle
     shuffle!(fr.p)
     for i in 1:fr.xDim
+      fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] += fr.perturb
       r = nlsolve(  fr,
-                    fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] + fr.perturb # this is x0
+                    fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
                  )
       if r.f_converged
         shuffleXAltD!( fr, r.zero )
@@ -126,7 +128,8 @@ function numericRootGenericRandomizedFnc!{T}(
     # @show fr.xDim, fr.zDim
     # @show fr.gwp.particleidx
     # @show size(fr.perturb), size(fr.X)
-    fr.Y = ( nlsolve(  fr.gwp, fr.X[:,fr.gwp.particleidx] + fr.perturb ) ).zero
+    fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim]
+    fr.Y[1:fr.xDim] = ( nlsolve(  fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] ) ).zero
 	end
   fr.X[:,fr.gwp.particleidx] = fr.Y
   nothing

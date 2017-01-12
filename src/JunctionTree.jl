@@ -11,17 +11,19 @@ type BayesTreeNodeData
   directFrtlMsgIDs::Vector{Int64}
   msgskipIDs::Vector{Int64}
   itervarIDs::Vector{Int64}
+  directPriorMsgIDs::Vector{Int64}
   debug
   debugDwn
   BayesTreeNodeData() = new()
-  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13])
+  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
 
 function emptyBTNodeData()
   BayesTreeNodeData(Int64[],Int64[],Int64[],
                     Int64[],Int64[],Array{Bool,2}(),
                     Array{Bool,2}(),Int64[],Int64[],
-                    Int64[],Int64[],nothing, nothing)
+                    Int64[],Int64[],Int64[],
+                    nothing, nothing)
 end
 
 # BayesTree declarations
@@ -120,7 +122,7 @@ end
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     firvert = localapi.getvertex(fg,var)
     if (length(getData(firvert).separator) == 0)
-      warn("newPotential -- sep length is 0")
+      # warn("newPotential -- sep length is 0")
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else
@@ -347,16 +349,39 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
   nothing
 end
 
+function getCliqAssocMat(cliq::Graphs.ExVertex)
+  cliq.attributes["data"].cliqAssocMat
+end
+function getCliqMsgMat(cliq::Graphs.ExVertex)
+  cliq.attributes["data"].cliqMsgMat
+end
 function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  assocMat = cliq.attributes["data"].cliqAssocMat
-  msgMat = cliq.attributes["data"].cliqMsgMat
+  assocMat = getCliqAssocMat(cliq)
+  msgMat = getCliqMsgMat(cliq)
   mat = showmsg ? [assocMat;msgMat] : assocMat
   return mat
 end
 
 function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  mat = getCliqMat(cliq, showmsg=showmsg)
-  Gadfly.spy(mat)
+  mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
+  # TODO -- add improved visualization here, iter vs skip
+  mat = map(Float64, mat)*2.0-1.0
+  numlcl = size(getCliqAssocMat(cliq),1)
+  mat[(numlcl+1):end,:] *= 0.9
+  mat[(numlcl+1):end,:] -= 0.1
+  numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
+  mat[:,numfrtl1:end] *= 0.9
+  mat[:,numfrtl1:end] -= 0.1
+  @show cliq.attributes["data"].itervarIDs
+  @show cliq.attributes["data"].directvarIDs
+  @show cliq.attributes["data"].msgskipIDs
+  @show cliq.attributes["data"].directFrtlMsgIDs
+  @show cliq.attributes["data"].directPriorMsgIDs
+  sp = Gadfly.spy(mat)
+  push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+  push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+  push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
+  return sp
 end
 
 function countSkips(bt::BayesTree)
@@ -382,17 +407,18 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   return msgidx
 end
 
-function directAssignmentIDs(cliq::Graphs.ExVertex)
-  assocMat = cliq.attributes["data"].cliqAssocMat
-  msgMat = cliq.attributes["data"].cliqMsgMat
-  mat = [assocMat;msgMat];
-  mab = sum(map(Int,mat),1) .== 1
-  mabA = sum(map(Int,assocMat),1) .== 1
-  mab = mab & mabA
+function directPriorMsgIDs(cliq::Graphs.ExVertex)
   frtl = cliq.attributes["data"].frontalIDs
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
-  return cols[collect(mab)]
+  mat = getCliqMat(cliq, showmsg=true)
+  singr = sum(map(Int,mat),2) .== 1
+  @show collect(singr)
+  rerows = collect(1:length(singr))[collect(singr)]
+  sumsrAc = sum(map(Int,mat[rerows,:]),1)
+  sumc = sum(map(Int,mat),1)
+  pmSkipCols = (sumsrAc - sumc) .== 0
+  return cols[collect(pmSkipCols)]
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
@@ -406,6 +432,21 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
   return cliq.attributes["data"].frontalIDs[collect(mab)]
 end
 
+function directAssignmentIDs(cliq::Graphs.ExVertex)
+  # NOTE -- old version been included in iterated variable stack
+  assocMat = cliq.attributes["data"].cliqAssocMat
+  msgMat = cliq.attributes["data"].cliqMsgMat
+  mat = [assocMat;msgMat];
+  mab = sum(map(Int,mat),1) .== 1
+  mabA = sum(map(Int,assocMat),1) .== 1
+  mab = mab & mabA
+  frtl = cliq.attributes["data"].frontalIDs
+  cond = cliq.attributes["data"].conditIDs
+  cols = [frtl;cond]
+  return cols[collect(mab)]
+  # also calculate how which are conditionals
+end
+
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
   assocMat = cliq.attributes["data"].cliqAssocMat
   msgMat = cliq.attributes["data"].cliqMsgMat
@@ -415,14 +456,33 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
   frtl = cliq.attributes["data"].frontalIDs
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
+  # dev code
+  # prioritize prior'ed variables, then high degree next
+  # get all prior type rows, should be prioritized
+  # TODO -- maybe sort according to decreasing degree
+  # singleperrows = 1 .== sum(map(Int,mat),2)
+  # singleperrows = collect(singleperrows)
+  # prioredvarsum = sum(map(Int,mat[singleperrows]),1)
+  # prioredperm = sortperm(prioredvarsum, rev=true) # decreasing count
+
+  #end dev code
+  # final output
   return cols[collect(mab)]
 end
 
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].itervarIDs = mcmcIterationIDs(cliq)
-  cliq.attributes["data"].msgskipIDs = skipThroughMsgsIDs(cliq)
+  cliq.attributes["data"].directPriorMsgIDs = directPriorMsgIDs(cliq)
+
+  # NOTE -- combined larger iter group
   cliq.attributes["data"].directvarIDs = directAssignmentIDs(cliq)
+  # cliq.attributes["data"].itervarIDs = mcmcIterationIDs(cliq)
+  # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
+  usset = union(mcmcIterationIDs(cliq), directAssignmentIDs(cliq))
+  cliq.attributes["data"].itervarIDs = setdiff(usset, cliq.attributes["data"].directPriorMsgIDs)
+  cliq.attributes["data"].msgskipIDs = skipThroughMsgsIDs(cliq)
   cliq.attributes["data"].directFrtlMsgIDs = directFrtlMsgIDs(cliq)
+
+
   nothing
 end
 

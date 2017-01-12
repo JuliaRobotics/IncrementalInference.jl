@@ -70,3 +70,10 @@ inferOverTreeR!(fg, tree)
 
 inferOverTree!(fg, tree)
 println("Inference finished")
+
+
+
+
+
+
+#
