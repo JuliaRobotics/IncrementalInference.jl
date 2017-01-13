@@ -121,8 +121,12 @@ end
 
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!{T <: AbstractString}(fg::FactorGraph, lbl::Symbol, initval=[0.0]', stdev=[1.0]';
-      N::Int=100, ready::Int=1, labels::Vector{T}=String[])
+function addNode!{T <: AbstractString}(fg::FactorGraph,
+      lbl::Symbol, initval=[0.0]', stdev=[1.0]';
+      N::Int=100,
+      ready::Int=1,
+      labels::Vector{T}=String[] )
+  #
   fg.id+=1
   lblstr = string(lbl)
   vert = ExVertex(fg.id,lblstr)
@@ -148,6 +152,7 @@ end
 #   # edge = Graphs.make_edge(g, n1, n2)
 #   # Graphs.add_edge!(g, edge)
 # end
+
 
 function getVal(vA::Array{Graphs.ExVertex,1})
   len = length(vA)
@@ -294,6 +299,23 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
   end
 
   return newvert
+end
+
+
+function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(
+      fgl::FactorGraph,
+      xisyms::Vector{Symbol},
+      usrfnc::I;
+      ready::Int=1,
+      api::DataLayerAPI=dlapi,
+      labels::Vector{T}=String[] )
+  #
+  verts = Vector{Graphs.ExVertex}()
+  for xi in xisyms
+    push!( verts, api.getvertex(fgl,xi) )
+  end
+  addFactor!(fgl, verts, usrfnc, ready=ready, api=dlapi, labels=labels)
+  nothing
 end
 
 
