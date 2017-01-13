@@ -14,6 +14,7 @@ abstract FunctorPairwise <: FunctorInferenceType
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
+typealias VoidUnion{T} Union{Void, T}
 
 type FactorGraph
   g::FGGdict
@@ -29,7 +30,7 @@ type FactorGraph
   cg
   cgIDs::Dict{Int64,Int64}
   sessionname::AbstractString
-  registeredModuleFunctions::Dict{Symbol, Function}
+  registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   FactorGraph() = new()
   FactorGraph(x...) = new(
     x[1],

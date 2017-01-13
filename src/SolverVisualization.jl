@@ -439,7 +439,7 @@ function ls(fgl::FactorGraph, lbl::Symbol)
   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
   for outn in getOutNeighbors(fgl, v) # out_neighbors(v, fgl.g)
     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
-      push!(lsa, symbol(outn.label))
+      push!(lsa, Symbol(outn.label))
     # end
   end
   return lsa
