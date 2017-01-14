@@ -186,8 +186,9 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
       solvefor::Int64;
       N::Int64=100  )
   #
+  # TODO -- enable partial constraints
 
-  # TODO -- this part can be collapsed into common generic solver component
+  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   gwp.params = ARR
@@ -197,6 +198,7 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
 
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967
   for gwp.particleidx in 1:maxlen
     # gwp(x, res)
     numericRootGenericRandomizedFnc!( fr )
@@ -221,20 +223,15 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
   return generalwrapper.measurement[1]
 end
 
-
-# type PackArray{T}
-#   arr::Array{T,1}
-# end
-
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
 function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N::Int64=100)
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
 
   # TODO -- this build up of Xi is excessive and should be reduced
+  # could happen at addFactor time
   Xi = Graphs.ExVertex[]
   for id in fct.attributes["data"].fncargvID
-    # TODO -- should use local mem only for this part, update after ## fgl.v[id]
-    push!(Xi, dlapi.getvertex(fgl,id))
+    push!(Xi, dlapi.getvertex(fgl,id)) # TODO localapi
   end
   # lookup now used for getSample
   # modulefnc = fgl.registeredModuleFunctions[fct.attributes["data"].frommodule]
@@ -244,18 +241,21 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
 end
 
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert
-    # if vert.index == vertid
-        ptsbw = evalFactor2(fg, idfct, vertid, N=N); # idfct[2] # assuming it is properly initialized TODO
-        sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing
+  # if vert.index == vertid
+  # assuming it is properly initialized TODO
+    ptsbw = evalFactor2(fg, idfct, vertid, N=N);
+    # NOTE -- disable this validation test
+    # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing
 
-        Ndim = size(ptsbw,1)
-        Npoints = size(ptsbw,2)
-        # Assume we only have large particle population sizes, thanks to addNode!
-        p = kde!(ptsbw, "lcv")
-        if Npoints != N # this is where we control the overall particle set size
-            p = resample(p,N)
-        end
-        return p
-    # end
-    # return Union{}
+    # TODO -- better to upsample before the projection
+    Ndim = size(ptsbw,1)
+    Npoints = size(ptsbw,2)
+    # Assume we only have large particle population sizes, thanks to addNode!
+    p = kde!(ptsbw, "lcv")
+    if Npoints != N # this is where we control the overall particle set size
+        p = resample(p,N)
+    end
+    return p
+  # end
+  # return Union{}
 end
