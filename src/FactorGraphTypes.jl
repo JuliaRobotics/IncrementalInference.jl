@@ -230,7 +230,7 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
   nothing
 end
 
-
+# Condensed representation of KernelDensityEstimate, by saving points and bandwidth
 type EasyMessage
   pts::Array{Float64,2}
   bws::Array{Float64,1}
