@@ -137,4 +137,6 @@ include("TreePotentials01.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 
+include("deprecated.jl")
+
 end
