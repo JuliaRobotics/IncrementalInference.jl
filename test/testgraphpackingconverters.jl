@@ -21,15 +21,22 @@ v2 = addNode!(fg,:x2, tem, N=N)
 addFactor!(fg, [:x1; :x2], Odo([50.0]',[2.0]',[1.0]))
 
 
-# using fourdoortest data
+println("Testing conversion to packed function node data structure and back")
+
+topack = getData(fg.g.vertices[2]) #fg.f[4].attributes["data"]
+dd = convert(PackedFunctionNodeData{PackedObsv2},topack)
+upd = convert(FunctionNodeData{Obsv2}, dd)
+
+@test compare(topack, upd)
+
 topack = getData(fg.g.vertices[4]) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedOdo},topack)
 upd = convert(FunctionNodeData{Odo}, dd)
 
-@test topack.fnc.usrfnc!.Zij[1] == upd.fnc.usrfnc!.Zij[1]
+@test compare(topack, upd)
 
 # data structure conversion tests for protobuffing
-println("Testing conversion to packed data structure and back")
+println("Testing conversion to packed variable node data structure and back")
 dat = getData(fg,1)
 pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
 # pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])

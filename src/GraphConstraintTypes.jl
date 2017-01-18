@@ -4,42 +4,7 @@
 # The Pose2D and Pose3D types will most likely be packaged with the RoME package in the future.
 
 
-# heavy use of multiple dispatch for converting between packed and original data types during DB usage
-function convert{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), convert(T, d.fnc))
-end
-function convert{P <: PackedInferenceType, T <: InferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc))
-end
 
-function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-end
-function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-end
-
-# Functor version -- TODO, abstraction can be improved here
-function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  usrfnc = convert(T, d.fnc)
-  warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, +)
-  return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), gwpf) #{T}
-end
-function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!))
-end
-
-function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-end
-function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-end
 
 # Active constraint types listed below
 # -------------
