@@ -321,7 +321,6 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
     push!( verts, api.getvertex(fgl,xi) )
   end
   addFactor!(fgl, verts, usrfnc, ready=ready, api=dlapi, labels=labels)
-  nothing
 end
 
 

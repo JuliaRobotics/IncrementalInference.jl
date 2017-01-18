@@ -192,12 +192,6 @@ function convert{P <: PackedInferenceType, T <: InferenceType}(::Type{PackedFunc
           string(d.frommodule), convert(P, d.fnc))
 end
 
-function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-end
-function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-end
 
 # Functor version -- TODO, abstraction can be improved here
 function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
@@ -218,6 +212,14 @@ end
 function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
+
+function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
 
 # Compare FunctionNodeData
 function compare{T,S}(a::GenericFunctionNodeData{T,S},b::GenericFunctionNodeData{T,S})

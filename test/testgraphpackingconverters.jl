@@ -2,6 +2,7 @@
 
 
 using IncrementalInference, KernelDensityEstimate
+
 using Base.Test
 
 fg = emptyFactorGraph()
@@ -18,22 +19,29 @@ f1  = addFactor!(fg,[v1],Obsv2( doors2, bws', [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, tem, N=N)
-addFactor!(fg, [:x1; :x2], Odo([50.0]',[2.0]',[1.0]))
+f2 = addFactor!(fg, [:x1; :x2], Odo([50.0]',[2.0]',[1.0]))
 
+f2
 
 println("Testing conversion to packed function node data structure and back")
 
-topack = getData(fg.g.vertices[2]) #fg.f[4].attributes["data"]
+topack = getData(f1) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedObsv2},topack)
 upd = convert(FunctionNodeData{Obsv2}, dd)
 
 @test compare(topack, upd)
 
-topack = getData(fg.g.vertices[4]) #fg.f[4].attributes["data"]
+topack = getData(f2) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedOdo},topack)
 upd = convert(FunctionNodeData{Odo}, dd)
 
 @test compare(topack, upd)
+
+
+packedv4data = FNDencode(IncrementalInference.PackedFunctionNodeData{PackedOdo}, getData(f2))
+upv4data = FNDdecode(IncrementalInference.FunctionNodeData{Odo}, packedv4data)
+
+@test compare(getData(f2), upv4data)
 
 # data structure conversion tests for protobuffing
 println("Testing conversion to packed variable node data structure and back")
