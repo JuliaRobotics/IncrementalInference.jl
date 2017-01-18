@@ -6,18 +6,23 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # end
 
 # get vertex from factor graph according to label symbol "x1"
-function getVert(fgl::FactorGraph, lbl::Symbol)
+function getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   # if haskey(fgl.IDs, lbl)
   #   return fgl.g.vertices[fgl.IDs[lbl]]
   # end
-  dlapi.getvertex(fgl, lbl)
+  api.getvertex(fgl, lbl)
 end
-getVert{T <: AbstractString}(fgl::FactorGraph, lbl::T) = getVert(fgl, Symbol(lbl))
-function getVert(fgl::FactorGraph, id::Int64)
-  dlapi.getvertex(fgl, id)
+function getVert(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi)
+  # dlapi.getvertex(fgl, id)
+  api.getvertex(fgl, id)
 end
 
+# TODO -- upgrade to dedicated memory location in Graphs.jl
+# see JuliaArchive/Graphs.jl#233
 getData(v::Graphs.ExVertex) = v.attributes["data"]
+# Convenience functions
+getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi) = getData(getVert(fgl, lbl, api=api))
+getData(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
 
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
@@ -27,13 +32,14 @@ function getVal(v::Graphs.ExVertex, idx::Int)
 end
 
 # Convenience function to get values for given variable label
-function getVal(fgl::FactorGraph, lbl::Symbol)
-  getVal(dlapi.getvertex(fgl, lbl))
+function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  #getVal(dlapi.getvertex(fgl, lbl))
+  getVal(getVert(fgl, lbl, api=api))
 end
-function getVal(fgl::FactorGraph, exvertid::Int64)
-  getVal(dlapi.getvertex(fgl, exvertid))
+function getVal(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
+  # getVal(dlapi.getvertex(fgl, exvertid))
+  getVal(getVert(fgl, lbl, api=api))
 end
-getVal{T <: AbstractString}(fgl::FactorGraph, lbl::T) = getVal(fgl, Symbol(lbl))
 
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
@@ -315,7 +321,6 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
     push!( verts, api.getvertex(fgl,xi) )
   end
   addFactor!(fgl, verts, usrfnc, ready=ready, api=dlapi, labels=labels)
-  nothing
 end
 
 

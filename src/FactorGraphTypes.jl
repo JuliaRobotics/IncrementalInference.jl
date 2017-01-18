@@ -181,6 +181,59 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return IncrementalInference.compare(a,b)
 end
 
+
+# heavy use of multiple dispatch for converting between packed and original data types during DB usage
+function convert{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), convert(T, d.fnc))
+end
+function convert{P <: PackedInferenceType, T <: InferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc))
+end
+
+
+# Functor version -- TODO, abstraction can be improved here
+function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  usrfnc = convert(T, d.fnc)
+  warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, +)
+  return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), gwpf) #{T}
+end
+function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc.usrfnc!))
+end
+
+function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
+function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
+
+# Compare FunctionNodeData
+function compare{T,S}(a::GenericFunctionNodeData{T,S},b::GenericFunctionNodeData{T,S})
+  TP = true
+  TP = TP && a.fncargvID == b.fncargvID
+  TP = TP && a.eliminated == b.eliminated
+  TP = TP && a.potentialused == b.potentialused
+  TP = TP && a.edgeIDs == b.edgeIDs
+  TP = TP && a.frommodule == b.frommodule
+  TP = TP && typeof(a.fnc) == typeof(b.fnc)
+  return TP
+end
+
+
 function addGraphsVert!{T <: AbstractString}(fgl::FactorGraph, exvert::Graphs.ExVertex;
     labels::Vector{T}=String[])
   Graphs.add_vertex!(fgl.g, exvert)

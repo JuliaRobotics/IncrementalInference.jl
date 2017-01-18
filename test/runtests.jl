@@ -10,17 +10,22 @@ println("Success")
 
 addprocs(3)
 
-println("[TEST] GenericWrapParam functors...")
-include("testGenericWrapParam.jl")
+println("[TEST] packing converters work...")
+include("testgraphpackingconverters.jl")
 println("Success")
 
 println("[TEST] generic root finding by numeric solve of residual functions...")
 include("testNumericRootGenericRandomized.jl")
 println("Success")
 
+println("[TEST] GenericWrapParam functors...")
+include("testGenericWrapParam.jl")
+println("Success")
+
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
+
 
 println("[TEST] plot functions...")
 using Gadfly
@@ -33,41 +38,21 @@ for i in 1:length(msgPlots)
     evalstr = string(evalstr, ",msgPlots[$(i)]")
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
+println("Success")
 
 
 
-println("[TEST] packing converters work...")
-# using fourdoortest data
-topack = getData(fg.g.vertices[4]) #fg.f[4].attributes["data"]
-dd = convert(PackedFunctionNodeData{PackedOdo},topack)
-upd = convert(FunctionNodeData{Odo}, dd)
-@test topack.fnc.usrfnc!.Zij[1] == upd.fnc.usrfnc!.Zij[1]
-
-# data structure conversion tests for protobuffing
-println("Testing conversion to packed data structure and back")
-dat = IncrementalInference.dlapi.getvertex(fg,1).attributes["data"]
-pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
-# pd = convert(PackedVariableNodeData,fg.v[1].attributes["data"])
-unpckd = convert(VariableNodeData, pd)
-
-@test IncrementalInference.compare(IncrementalInference.dlapi.getvertex(fg,1).attributes["data"], unpckd)
-@test IncrementalInference.dlapi.getvertex(fg,1).attributes["data"] == unpckd
-println("Conversions and comparisons agree")
 
 
-# println("[TEST] Pose3 evaluations...")
-# include("threeDimLinearProductTest.jl")
-# println("[SUCCESS]")
-
-# println("[TEST] Pose2 evaluations...")
-# include("testConstraints.jl")
-# println("[SUCCESS]")
 
 
-# if false
-#   println("[TEST] with CloudGraphs data layer (multicore)...")
-#   include("fourdoortestcloudgraph.jl")
-#   println("[SUCCESS]")
-# else
-#   warn("[NOT TESTING] CloudGraphs interface, which needs Neo4j installed")
-# end
+
+
+
+
+
+
+
+
+
+#
