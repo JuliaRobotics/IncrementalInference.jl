@@ -122,7 +122,8 @@ export
   setdatalayerAPI!,
 
   # development
-  shuffleXAltD
+  shuffleXAltD,
+  reshapeVec2Mat
 
 
 
