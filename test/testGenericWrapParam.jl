@@ -153,7 +153,7 @@ end
 # end
 
 println("Test with FastRootGenericWrapParam for un-permuted root finding...")
-
+function _tmp()
 N = 110
 p1 = rand(1,N)
 p2 = rand(1,N)
@@ -184,6 +184,29 @@ fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
   numericRootGenericRandomizedFnc!( fr )
 end
 
+function _fooSeq(fr)
+  for i in 1:N
+    fr.gwp.particleidx = i
+  # gwp(x, res)
+    numericRootGenericRandomizedFnc!( fr )
+  end
+end
+
+function _fooPar(fr)
+  Threads.@threads for i in 1:N
+  ccall(:jl_, Void, (Any,), i)
+  fr.gwp.particleidx = i
+  # gwp(x, res)
+    numericRootGenericRandomizedFnc!( fr )
+  end
+end
+
+_fooSeq(fr)
+@time _fooSeq(fr)
+_fooPar(fr)
+@time _fooPar(fr)
+
+end
 # @show gwp.params
 
 @test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
