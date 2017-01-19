@@ -21,25 +21,24 @@ tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, tem, N=N)
 f2 = addFactor!(fg, [:x1; :x2], Odo([50.0]',[2.0]',[1.0]))
 
-f2
 
 println("Testing conversion to packed function node data structure and back")
 
 topack = getData(f1) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedObsv2},topack)
-upd = convert(FunctionNodeData{Obsv2}, dd)
+upd = convert(FunctionNodeData{GenericWrapParam{Obsv2}}, dd)
 
 @test compare(topack, upd)
 
 topack = getData(f2) #fg.f[4].attributes["data"]
 dd = convert(PackedFunctionNodeData{PackedOdo},topack)
-upd = convert(FunctionNodeData{Odo}, dd)
+upd = convert(FunctionNodeData{GenericWrapParam{Odo}}, dd)
 
 @test compare(topack, upd)
 
 
 packedv4data = FNDencode(IncrementalInference.PackedFunctionNodeData{PackedOdo}, getData(f2))
-upv4data = FNDdecode(IncrementalInference.FunctionNodeData{Odo}, packedv4data)
+upv4data = FNDdecode(IncrementalInference.FunctionNodeData{GenericWrapParam{Odo}}, packedv4data)
 
 @test compare(getData(f2), upv4data)
 

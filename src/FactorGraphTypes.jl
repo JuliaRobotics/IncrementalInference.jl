@@ -86,6 +86,31 @@ type VariableNodeData
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
 end
 
+type GenericWrapParam{T} <: FunctorInferenceType
+  usrfnc!::T
+  params::Vector{Array{Float64,2}}
+  varidx::Int
+  particleidx::Int
+  measurement::Tuple #Array{Float64,2}
+  samplerfnc::Function
+  GenericWrapParam() = new()
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl)
+end
+type FastRootGenericWrapParam{T} <: Function
+  p::Vector{Int}
+  perturb::Vector{Float64}
+  X::Array{Float64,2}
+  Y::Vector{Float64}
+  xDim::Int
+  zDim::Int
+  gwp::GenericWrapParam{T}
+  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
+end
+
+
 type PackedVariableNodeData
   vecinitval::Array{Float64,1}
   diminitval::Int64
@@ -194,9 +219,9 @@ end
 
 
 # Functor version -- TODO, abstraction can be improved here
-function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
   usrfnc = convert(T, d.fnc)
-  warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
+  # warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, +)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}

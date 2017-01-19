@@ -43,36 +43,11 @@ end
 #-------------------------------------------------------------------------------
 # first in place attempt for generic wrap and root finding below
 
-# TODO -- <: FunctorPairwise seems to be a problem here, abstraction feels a bit wrong
-type GenericWrapParam{T} <: FunctorPairwise
-  usrfnc!::T
-  params::Vector{Array{Float64,2}}
-  varidx::Int
-  particleidx::Int
-  measurement::Tuple #Array{Float64,2}
-  samplerfnc::Function
-  GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl)
-end
 function (p::GenericWrapParam)(x, res)
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
   p.params[p.varidx][:, p.particleidx] = x
   p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
-end
-
-type FastRootGenericWrapParam{T} <: Function
-  p::Vector{Int}
-  perturb::Vector{Float64}
-  X::Array{Float64,2}
-  Y::Vector{Float64}
-  xDim::Int
-  zDim::Int
-  gwp::GenericWrapParam{T}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
 end
 
 # Shuffle incoming X into random permutation in fr.Y
