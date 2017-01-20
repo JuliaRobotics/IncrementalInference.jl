@@ -10,7 +10,8 @@
 # -------------
 
 
-# define the pose group
+# define the simple 1D odo
+# TODO -- rework to use Distributions rather than Z and Cov
 type Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
@@ -18,6 +19,7 @@ type Odo <: FunctorPairwise
     Odo() = new()
     Odo(x...) = new(x[1], x[2], x[3])
 end
+# TODO -- only computing first node
 function (odo::Odo)(res::Vector{Float64},
     idx::Int,
     meas::Tuple{Array{Float64,2}},
@@ -28,7 +30,7 @@ function (odo::Odo)(res::Vector{Float64},
   nothing
 end
 function getSample(odo::Odo, N::Int=1)
-  (rand(Distributions.Normal(0.0, odo.Cov[1,1]), N )',)
+  (rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N )',)
 end
 # function getSample(odo::Odo, N::Int=1)
 #   ret = zeros(1,N)
