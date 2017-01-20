@@ -24,13 +24,16 @@ f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
 
 
 
-
-
 # test evaluation of pose pose constraint
 pts = evalFactor2(fg, f2, v2.index)
 @test norm(Base.mean(pts,2)-[50.0]) < 10.0
 
 
+tree = wipeBuildNewTree!(fg, drawpdf=false)
+
+inferOverTree!(fg, tree)
+
+@test norm(Base.mean(getVal(fg, :x2),2)-[50.0]) < 10.0
 
 
 # plotKDE( getVertKDE(fg,:x2) )
