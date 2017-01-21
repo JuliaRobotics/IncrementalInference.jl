@@ -5,5 +5,4 @@ Gadfly
 Colors
 NLsolve
 Distributions
-KernelDensityEstimate
-TransformUtils
+KernelDensityEstimate 0.2.1

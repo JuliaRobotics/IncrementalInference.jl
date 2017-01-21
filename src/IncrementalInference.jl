@@ -7,8 +7,7 @@ using
   Colors,
   NLsolve,
   Distributions,
-  KernelDensityEstimate,
-  TransformUtils
+  KernelDensityEstimate
 
 export
   # using either dictionary or cloudgraphs
