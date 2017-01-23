@@ -194,11 +194,15 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  zDim = size(gwp.measurement[1],1)
+  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
+  if gwp.specialzDim
+    zDim = gwp.usrfnc!.zDim[sfidx]
+  end
+  # gwp.zDim[sfidx] ??
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
 
-  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
   for gwp.particleidx in 1:maxlen
     # gwp(x, res)
     numericRootGenericRandomizedFnc!( fr )

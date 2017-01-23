@@ -233,7 +233,10 @@ function prepgenericwrapper{T <: FunctorInferenceType}(
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc)
+  # test if specific zDim or partial constraint used
+  fldnms = fieldnames(usrfnc)
+  # sum(fldnms .== :zDim) >= 1
+  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1)
 end
 
 function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
