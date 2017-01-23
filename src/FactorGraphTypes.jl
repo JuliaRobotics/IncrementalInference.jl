@@ -92,11 +92,13 @@ type GenericWrapParam{T} <: FunctorInferenceType
   varidx::Int
   particleidx::Int
   measurement::Tuple #Array{Float64,2}
-  samplerfnc::Function
+  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
+  specialzDim::Bool
   GenericWrapParam() = new()
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd)
 end
 type FastRootGenericWrapParam{T} <: Function
   p::Vector{Int}
@@ -248,6 +250,7 @@ end
 
 # Compare FunctionNodeData
 function compare{T,S}(a::GenericFunctionNodeData{T,S},b::GenericFunctionNodeData{T,S})
+  # TODO -- beef up this comparison to include the gwp
   TP = true
   TP = TP && a.fncargvID == b.fncargvID
   TP = TP && a.eliminated == b.eliminated
