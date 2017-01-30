@@ -223,7 +223,6 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
       solvefor::Int64;
       N::Int64=100  )
   #
-  println("Doing FunctorPairwiseMinimize")
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
