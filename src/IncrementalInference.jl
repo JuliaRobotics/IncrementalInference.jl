@@ -6,6 +6,7 @@ using
   Gadfly,
   Colors,
   NLsolve,
+  Optim,
   Distributions,
   KernelDensityEstimate
 
