@@ -1,5 +1,7 @@
 module IncrementalInference
 
+import Base: convert
+
 using
   Graphs,
   GraphViz,
@@ -101,7 +103,6 @@ export
   convert, # for protobuf stuff
   compare,
 
-  # Going to move to RoME.jl in future
   # For 1D example
   Odo,
   odoAdd,
@@ -123,7 +124,28 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat
+  reshapeVec2Mat,
+
+  # analysis and some plotting
+  investigateMultidimKDE,
+  kde!,
+  draw,
+  whosWith,
+  drawUpMsgAtCliq,
+  dwnMsgsAtCliq,
+  drawPose2DMC!,
+  mcmcPose2D!,
+  # drawUpMCMCPose2D!,
+  # drawDwnMCMCPose2D!,
+  drawLbl,
+  predCurrFactorBeliefs,
+  drawHorDens,
+  drawHorBeliefsList,
+  drawFactorBeliefs,
+  localProduct,
+  drawLocalProduct,
+  saveplot,
+  animateVertexBelief
 
 
 

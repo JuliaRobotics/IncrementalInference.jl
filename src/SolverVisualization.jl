@@ -170,7 +170,7 @@ function vArrPotentials(potens::Dict{Int,EasyMessage})
       i+=1
       pb = kde!(p[2].pts, p[2].bws)
       if size(p[2].pts,1) > 3
-        # vv[i] = investigatePoseKDE(pb)
+        # vv[i] = plotKDE(pb)
         error("can't handle higher dimensional plots here yet")
       elseif size(p[2].pts,1) > 1
         vv[i] = investigateMultidimKDE(pb)
@@ -190,7 +190,7 @@ function draw(em::EasyMessage;xlbl="X")
   if size(em.pts,1) == 1
     p=plotKDE(kde!(em),xlbl=xlbl)
   else
-    p=investigatePoseKDE(kde!(em))
+    p=plotKDE(kde!(em))
   end
   return p
 end
@@ -241,7 +241,7 @@ function drawPose2DMC!(plots::Array{Gadfly.Compose.Context,1}, cliqMC::CliqGibbs
 
     for prod in cliqMC.prods
         prodVal = kde!(prod.product,"lcv") #cliqMC.prods[1]
-        push!(plots, investigatePoseKDE([prodVal;prod.potentials]) )
+        push!(plots, plotKDE([prodVal;prod.potentials]) )
     end
     vstackedPlots(plots)
 end
@@ -278,8 +278,8 @@ end
 
 function drawLbl(fgl::FactorGraph, lbl::Symbol)
     # v = dlapi.getvertex(fgl,lbl)
-    # investigatePoseKDE(kde!(getVal(v)))
-    investigatePoseKDE(getVertKDE(fgl,lbl))
+    # plotKDE(kde!(getVal(v)))
+    plotKDE(getVertKDE(fgl,lbl))
 end
 drawLbl{T <: AbstractString}(fgl::FactorGraph, lbl::T) = drawLbl(fgl, Symbol(lbl))
 
@@ -355,17 +355,17 @@ function drawFactorBeliefs(fgl::FactorGraph, flbl::Symbol)
       prjcurvals, lbls = predCurrFactorBeliefs(fgl, fc)
       if length(lbls) == 3
         return vstack(
-        investigatePoseKDE(prjcurvals[lbls[1]]),
-        investigatePoseKDE(prjcurvals[lbls[2]]),
-        investigatePoseKDE(prjcurvals[lbls[3]]),
+        plotKDE(prjcurvals[lbls[1]]),
+        plotKDE(prjcurvals[lbls[2]]),
+        plotKDE(prjcurvals[lbls[3]]),
         )
       elseif length(lbls) == 2
         return vstack(
-        investigatePoseKDE(prjcurvals[lbls[1]]),
-        investigatePoseKDE(prjcurvals[lbls[2]]),
+        plotKDE(prjcurvals[lbls[1]]),
+        plotKDE(prjcurvals[lbls[2]]),
         )
       elseif length(lbls) == 1
-        return investigatePoseKDE(prjcurvals[lbls[1]])
+        return plotKDE(prjcurvals[lbls[1]])
       end
 
     # end
@@ -402,7 +402,7 @@ function drawLocalProduct(fgl::FactorGraph, lbl::String; N::Int=300)
       push!(arr, a)
     end
   end
-  return investigatePoseKDE(arr)
+  return plotKDE(arr)
 end
 drawLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=300) = drawLocalProduct(fgl, Symbol(lbl), N=N)
 
@@ -622,7 +622,7 @@ function drawAllPose2DBeliefs(plots::Array{Gadfly.Compose.Context,1}, fgD::Array
     for i in ids
         @show dlapi.getvertex(fgD[1],i).attributes["label"] #fgD[1].v[i].
             kdes = getAllFGsKDEs(fgD, i)
-            push!(plots, investigatePoseKDE(  kdes  )) # [kde!(getVal(V)); kde!(getVal(V0))]
+            push!(plots, plotKDE(  kdes  )) # [kde!(getVal(V)); kde!(getVal(V0))]
     end
     vstackedPlots(plots)
 end
