@@ -1,4 +1,4 @@
 *.png
 *.dot
 *.pdf
-*.gif
+src/tmpimgs/*.gif
