@@ -45,6 +45,7 @@ pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 println("Success")
 
 
+plotMCMC(tree, :x1, show=false)
 
 
 

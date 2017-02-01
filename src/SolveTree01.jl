@@ -17,8 +17,9 @@ type PotProd
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
+    lbls::Vector{Symbol}
     CliqGibbsMC() = new()
-    CliqGibbsMC(a) = new(a)
+    CliqGibbsMC(a,b) = new(a,b)
 end
 type DebugCliqMCMC
     mcmc::Union{Void, Array{CliqGibbsMC,1}}
@@ -172,7 +173,7 @@ function fmcmc!(fgl::FactorGraph,
     for iter in 1:MCMCIter
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
       print("#$(iter)\t -- ")
-      dbg = !debugflag ? nothing : CliqGibbsMC([])
+      dbg = !debugflag ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
         # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
         densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
@@ -182,7 +183,10 @@ function fmcmc!(fgl::FactorGraph,
           # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
           dlapi.updatevertex!(fgl, updvert)
           # fgl.v[vertid].attributes["val"] = densPts
-          !debugflag ? nothing : push!(dbg.prods, potprod)
+          if debugflag
+            push!(dbg.prods, potprod)
+            push!(dbg.lbls, Symbol(updvert.label))
+          end
         end
       end
       !debugflag ? nothing : push!(mcmcdbg, dbg)
@@ -226,7 +230,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     # TODO -- some weirdness with: d,. = d = ., nothing
-    d, mcmcdbg = Dict{Int64,EasyMessage}(), nothing  #Union{} # mcmcdbg = [CliqGibbsMC()]
+    d, mcmcdbg = Dict{Int64,EasyMessage}(), nothing
 
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]

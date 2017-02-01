@@ -1,4 +1,55 @@
-import KernelDensityEstimate.kde!
+
+function plotMCMC(treel::BayesTree, lbll::Symbol;
+      delay::Int=200,
+      show::Bool=true,
+      w=20cm, h=15cm,
+      levels::Int=1  )
+  #
+  cliq = whichCliq(treel, string(lbll))
+  cliqdbg = cliq.attributes["debug"]
+
+  vidx = 1
+  for lb in cliqdbg.mcmc[1].lbls
+    if lb == lbll
+      break;
+    else
+      vidx += 1
+    end
+  end
+
+  tmpfilepath = joinpath(dirname(@__FILE__),"tmpimgs")
+  ARR = BallTreeDensity[]
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  for i in 1:length(cliqdbg.mcmc)
+    ppr = kde!(cliqdbg.mcmc[i].prods[vidx].prev)
+    ppp = kde!(cliqdbg.mcmc[i].prods[vidx].product)
+    ARR = [ARR;ppr;ppr;cliqdbg.mcmc[i].prods[vidx].potentials]
+  end
+  rangeV = getKDERange(ARR)
+  ppp = nothing
+  for i in 1:length(cliqdbg.mcmc)
+    ppr = kde!(cliqdbg.mcmc[i].prods[vidx].prev)
+    ppp = kde!(cliqdbg.mcmc[i].prods[vidx].product)
+    arr = [ppr;ppp;cliqdbg.mcmc[i].prods[vidx].potentials]
+    len = length(cliqdbg.mcmc[i].prods[vidx].potentials)
+    lg = String["p";"n";map(string, 1:len)]
+    cc = plotKDE(arr, c=COLORS[1:(len+2)], legend=lg, levels=levels, fill=true, axis=rangeV );
+    Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
+  end
+  # draw initial and final result
+  pp0 = kde!(cliqdbg.mcmc[1].prods[vidx].prev)
+  i = 0
+  cc = plotKDE([pp0], c=[COLORS[1]], legend=["0"], levels=levels, fill=true, axis=rangeV );
+  Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
+
+  i = length(cliqdbg.mcmc)+1
+  cc = plotKDE([pp0;ppp], c=COLORS[1:2], legend=["0";"n"], levels=levels, fill=true, axis=rangeV );
+  Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
+  # generate output
+  run(`convert -delay $(delay) $(tmpfilepath)/$(string(lbll))mcmc*.png $(tmpfilepath)/$(string(lbll))mcmc.gif`)
+  !show ? nothing : (@async run(`eog $(tmpfilepath)/$(string(lbll))mcmc.gif`) )
+  return "$(tmpfilepath)/$(string(lbll))mcmc.gif"
+end
 
 function drawOneMC!(cliqMC::CliqGibbsMC, minmax, mcmc=0; offs=2.0)
 
@@ -181,9 +232,6 @@ function vArrPotentials(potens::Dict{Int,EasyMessage})
   return vv
 end
 
-function kde!(em::EasyMessage)
-  return kde!(em.pts,em.bws)
-end
 
 function draw(em::EasyMessage;xlbl="X")
   p = Union{}
