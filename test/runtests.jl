@@ -45,7 +45,8 @@ pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 println("Success")
 
 
-plotMCMC(tree, :x1, show=false)
+warn("plotMCMC available with latest code from KernelDensityEstimate, not included in test at this time.")
+# plotMCMC(tree, :x1, show=false)
 
 
 
