@@ -4,5 +4,6 @@ GraphViz
 Gadfly
 Colors
 NLsolve
+Optim
 Distributions
 KernelDensityEstimate 0.2.1

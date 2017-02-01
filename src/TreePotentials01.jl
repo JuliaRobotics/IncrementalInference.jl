@@ -216,6 +216,42 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   # return evalPotential(typ, Xi, solvefor)
 end
 
+function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
+      fnc::T,
+      Xi::Vector{Graphs.ExVertex},
+      gwp::GenericWrapParam{T},
+      solvefor::Int64;
+      N::Int64=100  )
+  #
+  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
+  if gwp.specialzDim
+    zDim = gwp.usrfnc!.zDim[sfidx]
+  end
+
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  for gwp.particleidx in 1:maxlen
+    # gwp(x, res)
+    # implement minimization here
+    res = zeros(fr.xDim)
+    gg = (x) -> fr.gwp(x, res)
+    r = optimize(  gg, fr.X[1:fr.xDim,fr.gwp.particleidx] )
+    # TODO -- clearly lots of optmization to be done here
+    fr.Y[1:fr.xDim] = r.minimizer
+    fr.X[:,fr.gwp.particleidx] = fr.Y
+
+    # error("not implemented yet")
+  end
+  return gwp.params[gwp.varidx]
+end
+
 function evalPotentialSpecific{T <: FunctorSingleton}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},

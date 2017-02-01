@@ -81,6 +81,11 @@ function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
 end
 
 
+function kde!(em::EasyMessage)
+  return kde!(em.pts,em.bws)
+end
+
+
 # TODO -- there should be a better way, without retrieving full vertex
 getOutNeighbors(fgl::FactorGraph, v::ExVertex) = dlapi.outneighbors(fgl,v)
 getOutNeighbors(fgl::FactorGraph, vertid::Int64) = dlapi.outneighbors(fgl, dlapi.getvertex(fgl,vertid) )

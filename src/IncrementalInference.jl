@@ -1,15 +1,26 @@
 module IncrementalInference
 
+import Base: convert
+import KernelDensityEstimate: kde!
+
 using
   Graphs,
   GraphViz,
   Gadfly,
   Colors,
   NLsolve,
+  Optim,
   Distributions,
   KernelDensityEstimate
 
 export
+  # pass through functions commonly used lower down
+  kde!,
+  plotKDE,
+  Npoints,
+  Ndim,
+  getBW,
+
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
@@ -100,7 +111,6 @@ export
   convert, # for protobuf stuff
   compare,
 
-  # Going to move to RoME.jl in future
   # For 1D example
   Odo,
   odoAdd,
@@ -122,7 +132,29 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat
+  reshapeVec2Mat,
+
+  # analysis and some plotting
+  plotMCMC,
+  investigateMultidimKDE,
+  kde!,
+  draw,
+  whosWith,
+  drawUpMsgAtCliq,
+  dwnMsgsAtCliq,
+  drawPose2DMC!,
+  mcmcPose2D!,
+  # drawUpMCMCPose2D!,
+  # drawDwnMCMCPose2D!,
+  drawLbl,
+  predCurrFactorBeliefs,
+  drawHorDens,
+  drawHorBeliefsList,
+  drawFactorBeliefs,
+  localProduct,
+  drawLocalProduct,
+  saveplot,
+  animateVertexBelief
 
 
 
