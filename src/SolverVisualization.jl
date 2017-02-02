@@ -32,7 +32,7 @@ function plotMCMC(treel::BayesTree, lbll::Symbol;
     ppp = kde!(cliqdbg.mcmc[i].prods[vidx].product)
     arr = [ppr;ppp;cliqdbg.mcmc[i].prods[vidx].potentials]
     len = length(cliqdbg.mcmc[i].prods[vidx].potentials)
-    lg = String["p";"n";map(string, 1:len)]
+    lg = String["p";"n";cliqdbg.mcmc[i].prods[vidx].potentialfac] #map(string, 1:len)]
     cc = plotKDE(arr, c=COLORS[1:(len+2)], legend=lg, levels=levels, fill=true, axis=rangeV );
     Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
   end
