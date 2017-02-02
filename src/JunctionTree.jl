@@ -230,9 +230,10 @@ function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
   return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf);
 end
 
-function whichCliq(bt::BayesTree, frt::String)
+function whichCliq{T <: AbstractString}(bt::BayesTree, frt::T)
     bt.cliques[bt.frontals[frt]]
 end
+whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -382,6 +383,9 @@ function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
   push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
   push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
   return sp
+end
+function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
+  spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
 end
 
 function countSkips(bt::BayesTree)

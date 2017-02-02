@@ -14,6 +14,7 @@ type PotProd
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
+    potentialfac::Vector{AbstractString}
 end
 type CliqGibbsMC
     prods::Array{PotProd,1}
@@ -99,7 +100,7 @@ function uppA()
 end
 
 
-function packFromIncomingDensities!(dens::Array{BallTreeDensity,1}, vertid::Int64, inmsgs::Array{NBPMessage,1})
+function packFromIncomingDensities!(dens::Array{BallTreeDensity,1}, wfac::Vector{AbstractString}, vertid::Int64, inmsgs::Array{NBPMessage,1})
     for m in inmsgs
         #@show Xi = keys(m.p)
         for idx in keys(m.p) #1:length(Xi)
@@ -114,45 +115,53 @@ function packFromIncomingDensities!(dens::Array{BallTreeDensity,1}, vertid::Int6
 end
 
 # add all potentials associated with this clique and vertid to dens
-function packFromLocalPotentials!(fgl::FactorGraph, dens::Array{BallTreeDensity,1}, cliq::Graphs.ExVertex, vertid::Int64, N::Int64)
-    for idfct in cliq.attributes["data"].potentials
-        vert = getVertNode(fgl, idfct)
-        for vertidx in getData(vert).fncargvID
-            if vertidx == vertid
-              p = findRelatedFromPotential(fgl, vert, vertid, N)
-              push!(dens, p)
-            end
-        end
+function packFromLocalPotentials!(fgl::FactorGraph,
+      dens::Array{BallTreeDensity,1},
+      wfac::Vector{AbstractString},
+      cliq::Graphs.ExVertex,
+      vertid::Int64,
+      N::Int64  )
+  #
+  for idfct in cliq.attributes["data"].potentials
+    vert = getVertNode(fgl, idfct)
+    for vertidx in getData(vert).fncargvID
+      if vertidx == vertid
+        p = findRelatedFromPotential(fgl, vert, vertid, N)
+        push!(dens, p)
+        push!(wfac, vert.label)
+      end
     end
-    nothing
+  end
+  nothing
 end
 
 function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs::Array{NBPMessage,1}, N::Int=200)
-    # several optimizations can be performed in this function TODO
-    print("$(dlapi.getvertex(fg,vertid).attributes["label"]) ") # "$(fg.v[vertid].attributes["label"]) "
-    #consolidate NBPMessages and potentials
-    dens = Array{BallTreeDensity,1}()
-    packFromIncomingDensities!(dens, vertid, inmsgs)
-    packFromLocalPotentials!(fg, dens, cliq, vertid, N)
-    potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens) # (fg.v[vertid])
+  # several optimizations can be performed in this function TODO
+  print("$(dlapi.getvertex(fg,vertid).attributes["label"]) ") # "$(fg.v[vertid].attributes["label"]) "
+  #consolidate NBPMessages and potentials
+  dens = Array{BallTreeDensity,1}()
+  wfac = Vector{AbstractString}()
+  packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
+  packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
+  potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens, wfac) # (fg.v[vertid])
 
-    pGM = Array{Float64,2}()
-    if length(dens) > 1
-        Ndims = dens[1].bt.dims
-        dummy = kde!(rand(Ndims,N),[1.0]);
-        print("[$(length(dens))x,d$(Ndims),N$(N)],")
-        pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
-    elseif length(dens) == 1
-        print("[direct]")
-        pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end],
-                      dens[1].bt.dims, Npts(dens[1])  )  #N
-    else
-        pGM = Array{Float64,2}(0,1)
-    end
-    potprod.product = pGM
-    print(" ")
+  pGM = Array{Float64,2}()
+  if length(dens) > 1
+    Ndims = dens[1].bt.dims
+    dummy = kde!(rand(Ndims,N),[1.0]);
+    print("[$(length(dens))x,d$(Ndims),N$(N)],")
+    pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
+  elseif length(dens) == 1
+    print("[direct]")
+    pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end],
+                  dens[1].bt.dims, Npts(dens[1])  )  #N
+  else
+    pGM = Array{Float64,2}(0,1)
+  end
+  potprod.product = pGM
+  print(" ")
 
-    return pGM, potprod
+  return pGM, potprod
 end
 
 function fmcmc!(fgl::FactorGraph,
