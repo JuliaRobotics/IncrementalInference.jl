@@ -38,7 +38,7 @@ function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
 end
 function getVal(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
   # getVal(dlapi.getvertex(fgl, exvertid))
-  getVal(getVert(fgl, lbl, api=api))
+  getVal(getVert(fgl, exvertid, api=api))
 end
 
 
