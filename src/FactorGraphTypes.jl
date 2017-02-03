@@ -226,7 +226,7 @@ end
 function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
   usrfnc = convert(T, d.fnc)
   # warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, +)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
 end
