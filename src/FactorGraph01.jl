@@ -136,23 +136,33 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
       lbl::Symbol, initval=[0.0]', stdev=[1.0]';
       N::Int=100,
       ready::Int=1,
-      labels::Vector{T}=String[] )
+      labels::Vector{T}=String[],
+      api::DataLayerAPI=dlapi,
+      uid::Int=-1 )
   #
-  fg.id+=1
+  currid = fg.id+1
+  if uid==-1
+    fg.id=currid
+  else
+    currid = uid
+  end
+
   lblstr = string(lbl)
-  vert = ExVertex(fg.id,lblstr)
-  addNewVarVertInGraph!(fg, vert, fg.id, lbl, ready)
-  # dlapi.setupvertgraph!(fg, vert, fg.id, lbl) #fg.v[fg.id]
+  vert = ExVertex(currid,lblstr)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
   # TODO -- vert should not loose information here
-  setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[fg.id]
+  setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[currid]
 
   vnlbls = deepcopy(labels)
   push!(vnlbls, fg.sessionname)
-  dlapi.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
+  # addvert!(fg, vert, api=api)
+  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
   fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
-  push!(fg.nodeIDs,fg.id)
+  push!(fg.nodeIDs, currid)
+
   return vert #fg.v[fg.id]
 end
 
@@ -285,19 +295,27 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
-      labels::Vector{T}=String[] )
+      labels::Vector{T}=String[],
+      uid::Int=-1 )
   #
+  currid = fgl.id+1
+  if uid==-1
+    fgl.id=currid
+  else
+    currid = uid
+  end
+
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.attributes["label"])
   end
-  fgl.id+=1
+  # fgl.id+=1
 
-  newvert = ExVertex(fgl.id,namestring)
-  addNewFncVertInGraph!(fgl, newvert, fgl.id, namestring, ready)
+  newvert = ExVertex(currid,namestring)
+  addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
   setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
 
-  push!(fgl.factorIDs,fgl.id)
+  push!(fgl.factorIDs,currid)
 
   for vert in Xi
     push!(newvert.attributes["data"].fncargvID, vert.index)
@@ -322,13 +340,14 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
-      labels::Vector{T}=String[] )
+      labels::Vector{T}=String[],
+      uid::Int=-1 )
   #
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
     push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=dlapi, labels=labels)
+  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid)
 end
 
 
