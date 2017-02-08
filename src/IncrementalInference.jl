@@ -21,6 +21,10 @@ export
   Ndim,
   getBW,
 
+  # data layer variables
+  dlapi,
+  localapi,
+
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
