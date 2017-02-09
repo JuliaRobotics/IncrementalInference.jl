@@ -100,6 +100,7 @@ export
   FunctorPairwise,
 
   # Solving utils
+  shuffleXAltD!,
   numericRoot,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
