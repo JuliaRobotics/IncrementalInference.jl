@@ -356,7 +356,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpRetur
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-      dlapi.updatevertex!(fg, updvert)
+      dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     println("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
     nothing

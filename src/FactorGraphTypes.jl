@@ -282,8 +282,10 @@ getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T, nt::Symbol=:var) = ge
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex; updateMAPest=false)
-
+    nv::Graphs.ExVertex;
+    updateMAPest::Bool=false)
+  #
+  
   # not required, since we using reference -- placeholder function CloudGraphs interface
   # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
   nothing

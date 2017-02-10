@@ -92,7 +92,7 @@ function numericRootGenericRandomizedFnc!{T}(
         temp = fr.p[end]
         fr.p[2:end] = fr.p[1:(end-1)]
         fr.p[1] = temp
-        if i == 10
+        if i == fr.xDim
           warn("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
           error("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
         end
