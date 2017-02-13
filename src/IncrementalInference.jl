@@ -24,6 +24,9 @@ export
   # data layer variables
   dlapi,
   localapi,
+  showcurrentdlapi,
+  # and callback setting function
+  setdatalayerAPI!,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -131,9 +134,6 @@ export
 
   # define evalPotential functions outside IIF
   registerCallback!,
-
-  # CloudGraphs integration callback setting function
-  setdatalayerAPI!,
 
   # development
   shuffleXAltD,
