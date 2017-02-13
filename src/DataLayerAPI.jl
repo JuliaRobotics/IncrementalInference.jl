@@ -81,7 +81,9 @@ function setdatalayerAPI!(;addvertex::Function = addGraphsVert!,
 end
 
 
-
+function showcurrentdlapi()
+  @show dlapi
+end
 
 
 

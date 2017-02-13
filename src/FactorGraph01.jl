@@ -290,13 +290,40 @@ addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVert
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 
+"""
+    doautoinit!(fg, fc, Xi[,api=dlapi])
+
+initialize destination variable nodes based on this factor in factor graph, fg, generally called
+during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+"""
+function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi)
+  len = length(Xi)
+  # pts = Array{Float64,2}()
+  if length(Xi) == 1
+    pts = evalFactor2(fgl, fc, Xi[1].index)
+    setValKDE!(Xi[1], pts)
+    api.updatevertex!(fgl, Xi[1], updateMAPest=false)
+  elseif len == 2
+    pts = evalFactor2(fgl, fc, Xi[2].index)
+    setValKDE!(Xi[2], pts)
+    api.updatevertex!(fgl, Xi[2], updateMAPest=false)
+  else
+    # consider specifying an init order in the constraint type
+    # also consider taking product between all incoming densities which have been inited
+    error("don't know how to autoinit with pairwise dimension > 2")
+  end
+
+  nothing
+end
+
 function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
       Xi::Array{Graphs.ExVertex,1},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
-      uid::Int=-1 )
+      uid::Int=-1,
+      autoinit::Bool=false )
   #
   currid = fgl.id+1
   if uid==-1
@@ -328,6 +355,10 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
   newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
   for vert in Xi
     api.makeaddedge!(fgl, vert, newvert)
+  end
+
+  if autoinit
+    doautoinit!(fgl, newvert, Xi, api=api)
   end
 
   return newvert
