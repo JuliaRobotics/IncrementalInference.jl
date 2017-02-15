@@ -578,11 +578,11 @@ end
 
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
-  for v in fgd.v
-    delete!(v[2].attributes,"data")
+  for (sym,vid) in fgd.IDs
+    delete!(fgd.g.vertices[vid].attributes,"data")
   end
-  for v in fgd.f
-    delete!(v[2].attributes,"data")
+  for (sym,vid) in fgd.fIDs
+    delete!(fgd.g.vertices[vid].attributes,"data")
   end
   return fgd
 end
@@ -591,7 +591,7 @@ function writeGraphPdf(fgl::FactorGraph)
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
   fid = open("fg.dot","w+")
-  write(fid,to_dot(fgd.g))
+  write(fid,Graphs.to_dot(fgd.g))
   close(fid)
   run(`dot fg.dot -Tpdf -o fg.pdf`)
   nothing
