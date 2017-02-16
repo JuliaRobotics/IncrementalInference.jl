@@ -580,9 +580,11 @@ function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
   for (sym,vid) in fgd.IDs
     delete!(fgd.g.vertices[vid].attributes,"data")
+    !haskey(fgd.g.vertices[vid].attributes,"frtend") ? nothing : delete!(fgd.g.vertices[vid].attributes,"frtend")
   end
   for (sym,vid) in fgd.fIDs
     delete!(fgd.g.vertices[vid].attributes,"data")
+    !haskey(fgd.g.vertices[vid].attributes,"frtend") ? nothing : delete!(fgd.g.vertices[vid].attributes,"frtend")
   end
   return fgd
 end
