@@ -75,10 +75,10 @@ function numericRootGenericRandomizedFnc!{T}(
       perturb::Float64=1e-10,
       testshuffle::Bool=false )
   #
-  fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
 	if fr.zDim < fr.xDim || testshuffle
     shuffle!(fr.p)
     for i in 1:fr.xDim
+      fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
       fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] += fr.perturb
       r = nlsolve(  fr,
                     fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0

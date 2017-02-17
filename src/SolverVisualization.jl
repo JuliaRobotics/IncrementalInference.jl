@@ -86,7 +86,7 @@ function plotMCMC(treel::BayesTree, lbll::Symbol;
 
   tmpfilepath = joinpath(dirname(@__FILE__),"tmpimgs")
   ARR = BallTreeDensity[]
-  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue";"magenta"]
   for i in 1:length(cliqdbg.mcmc)
     ppr = kde!(cliqdbg.mcmc[i].prods[vidx].prev)
     ppp = kde!(cliqdbg.mcmc[i].prods[vidx].product)
