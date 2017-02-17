@@ -141,6 +141,8 @@ export
 
   # analysis and some plotting
   plotMCMC,
+  plotUpMsgsAtCliq,
+  plotPriorsAtCliq,
   investigateMultidimKDE,
   kde!,
   draw,

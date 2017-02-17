@@ -25,8 +25,10 @@ end
 type DebugCliqMCMC
     mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
+    outmsglbls::Dict{Symbol, Int}
+    priorprods::Vector{CliqGibbsMC} #Union{Void, Dict{Symbol, Vector{EasyMessage}}}
     DebugCliqMCMC() = new()
-    DebugCliqMCMC(a,b) = new(a,b)
+    DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
 type UpReturnBPType
@@ -100,18 +102,22 @@ function uppA()
 end
 
 
-function packFromIncomingDensities!(dens::Array{BallTreeDensity,1}, wfac::Vector{AbstractString}, vertid::Int64, inmsgs::Array{NBPMessage,1})
-    for m in inmsgs
-        #@show Xi = keys(m.p)
-        for idx in keys(m.p) #1:length(Xi)
-            if idx == vertid #Xi[idx]
-                pdi = m.p[vertid]
-                push!(dens, kde!(pdi.pts, pdi.bws) ) #m.p[idx]
-            end
-            # TODO -- we can inprove speed of search for inner loop
-        end
+function packFromIncomingDensities!(dens::Array{BallTreeDensity,1},
+      wfac::Vector{AbstractString},
+      vertid::Int64,
+      inmsgs::Array{NBPMessage,1} )
+  #
+  for m in inmsgs
+    for idx in keys(m.p)
+      if idx == vertid
+        pdi = m.p[vertid]
+        push!(dens, kde!(pdi) ) # kde!(pdi.pts, pdi.bws)
+        push!(wfac, "msg")
+      end
+      # TODO -- we can inprove speed of search for inner loop
     end
-    nothing
+  end
+  nothing
 end
 
 # add all potentials associated with this clique and vertid to dens
@@ -222,7 +228,6 @@ function upPrepOutMsg!(d::Dict{Int64,EasyMessage}, IDs::Array{Int64,1}) #Array{F
   len = length(IDs)
   #outDens = Dict{Int64,BallTreeDensity}() # retired to new dictionary msg types
   m = NBPMessage(Dict{Int64,EasyMessage}()) #Int64[], BallTreeDensity[]
-
   for id in IDs
     ## DID -- must bandwidth compute step happen here? no can be avoided by line 170
     # p = kde!(d[id], "lcv")
@@ -239,7 +244,9 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     # TODO -- some weirdness with: d,. = d = ., nothing
-    d, mcmcdbg = Dict{Int64,EasyMessage}(), nothing
+    mcmcdbg, d = Array{CliqGibbsMC,1}(), Dict{Int64,EasyMessage}()
+
+    priorprods = Vector{CliqGibbsMC}()
 
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
@@ -256,7 +263,8 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
         for md in ddd d[md[1]] = md[2]; end
       end
       if length(inp.cliq.attributes["data"].directPriorMsgIDs) > 0
-        dummy, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directPriorMsgIDs, N, 1)
+        doids = setdiff(inp.cliq.attributes["data"].directPriorMsgIDs, inp.cliq.attributes["data"].msgskipIDs) # based on RYPKEMA2 example
+        priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg)
         for md in dddd d[md[1]] = md[2]; end
       end
     end
@@ -264,13 +272,20 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
     m = upPrepOutMsg!(d, inp.cliq.attributes["data"].conditIDs)
 
+
+    outmsglbl = Dict{Symbol, Int}()
+    if dbg
+      for (ke, va) in m.p
+        outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
+      end
+    end
+
     # Copy frontal variables back
     # for id in inp.cliq.attributes["frontalIDs"]
     #     inp.fg.v[id].attributes["val"] = loclfg.v[id].attributes["val"] # inp.
     # end
     # @show getVal(inp.fg.v[1])
-
-    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m)
+    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
     return UpReturnBPType(m, mdbg, d)
 end
 # else
@@ -320,7 +335,14 @@ function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs:
     mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["data"].frontalIDs, N, MCMCIter, dbg)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
-    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m)
+    outmsglbl = Dict{Symbol, Int}()
+    if dbg
+      for (ke, va) in m.p
+        outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
+      end
+    end
+
+    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
     return DownReturnBPType(m, mdbg, d)
 end
 

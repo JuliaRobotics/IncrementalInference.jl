@@ -1,4 +1,71 @@
 
+
+"""
+    plotPriorsAtCliq(treel, lb, cllb)
+
+Plot the product of priors and incoming upward messages for variable in clique.
+
+plotPriorsAtCliq(tree, :x2, :x1[, marg=[1;2]])
+"""
+function plotPriorsAtCliq(tree::BayesTree, lb::Symbol, cllb::Symbol;
+        marg::Vector{Int}=Int[],
+        levels::Int=1,
+        fill::Bool=false  )
+  #
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+
+  cliq = whichCliq(tree, cllb)
+  cliqprs = cliq.attributes["debug"].priorprods[1]
+
+  vidx = 1
+  for lbel in cliqprs.lbls
+    if lbel == lb
+      break;
+    else
+      vidx += 1
+    end
+  end
+  marg = length(marg)>0 ? marg : collect(1:size(cliqprs.prods[vidx].prev,2))
+
+  arr = BallTreeDensity[]
+  push!(arr, marginal(kde!(cliqprs.prods[vidx].prev), marg)  )
+  push!(arr, marginal(kde!(cliqprs.prods[vidx].product), marg)  )
+  len = length(cliqprs.prods[vidx].potentials)
+  lg = String["p";"n"]
+  i=0
+  for pot in cliqprs.prods[vidx].potentials
+    push!(arr, marginal(pot, marg)  )
+    i+=1
+    push!(lg, cliqprs.prods[vidx].potentialfac[i])
+  end
+  cc = COLORS[1:(len+2)]
+  # @show length(arr), length(cc), length(lg)
+  plotKDE(arr, c=cc, legend=lg, levels=levels, fill=fill );
+end
+
+"""
+    plotUpMsgsAtCliq(treel, lb, cllb)
+
+Draw the up pass belief of lb from clique cllb.
+
+plotUpMsgsAtCliq(tree, :x2, :x1)
+"""
+function plotUpMsgsAtCliq(treel::BayesTree, lb::Symbol, cllb::Symbol;
+      show::Bool=true,
+      w=20cm, h=15cm,
+      levels::Int=1,
+      marg::Vector{Int}=Int[] )
+  #
+  cliq = whichCliq(treel, string(cllb))
+  cliqoutmsg = cliq.attributes["debug"].outmsg
+  lbls = cliq.attributes["debug"].outmsglbls
+
+  bel = kde!(cliqoutmsg.p[lbls[lb]])
+  bel = length(marg)==0 ? bel : marginal(bel, marg)
+
+  plotKDE(bel)
+end
+
 function plotMCMC(treel::BayesTree, lbll::Symbol;
       delay::Int=200,
       show::Bool=true,
