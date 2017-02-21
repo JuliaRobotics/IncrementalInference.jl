@@ -27,6 +27,7 @@ export
   showcurrentdlapi,
   # and callback setting function
   setdatalayerAPI!,
+  DataLayerAPI,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
