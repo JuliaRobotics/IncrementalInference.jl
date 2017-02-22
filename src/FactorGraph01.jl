@@ -87,8 +87,8 @@ end
 
 
 # TODO -- there should be a better way, without retrieving full vertex
-getOutNeighbors(fgl::FactorGraph, v::ExVertex) = dlapi.outneighbors(fgl,v)
-getOutNeighbors(fgl::FactorGraph, vertid::Int64) = dlapi.outneighbors(fgl, dlapi.getvertex(fgl,vertid) )
+getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
+getOutNeighbors(fgl::FactorGraph, vertid::Int64; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
 
 function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
   dlapi.updatevertex!(fgl, exvert)
@@ -566,12 +566,12 @@ function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
-function getVertKDE(fgl::FactorGraph, id::Int64)
-  v = dlapi.getvertex(fgl,id)
+function getVertKDE(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi)
+  v = api.getvertex(fgl,id)
   return getKDE(v)
 end
-function getVertKDE(fgl::FactorGraph, lbl::Symbol)
-  v = dlapi.getvertex(fgl,lbl)
+function getVertKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  v = api.getvertex(fgl,lbl)
   return getKDE(v)
 end
 

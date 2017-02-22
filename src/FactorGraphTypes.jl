@@ -285,7 +285,7 @@ function updateFullVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex;
     updateMAPest::Bool=false)
   #
-  
+
   # not required, since we using reference -- placeholder function CloudGraphs interface
   # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
   nothing
@@ -299,11 +299,11 @@ function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex
   edge
 end
 
-function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1)
+function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1, needdata::Bool=false)
   Graphs.out_neighbors(vert, fgl.g)
 end
-function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1)
-  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId))
+function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1, needdata::Bool=false)
+  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId), ready=ready, backendset=backendset, needdata=needdata)
 end
 
 function graphsGetEdge(fgl::FactorGraph, id::Int64)
