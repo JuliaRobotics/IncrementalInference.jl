@@ -87,8 +87,8 @@ end
 
 
 # TODO -- there should be a better way, without retrieving full vertex
-getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata=false) = api.outneighbors(fgl, v, needdata=needdata)
-getOutNeighbors(fgl::FactorGraph, vertid::Int64; api::DataLayerAPI=dlapi, needdata=false) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata )
+getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
+getOutNeighbors(fgl::FactorGraph, vertid::Int64; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
 
 function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
   dlapi.updatevertex!(fgl, exvert)

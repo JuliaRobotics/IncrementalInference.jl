@@ -303,7 +303,7 @@ function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=
   Graphs.out_neighbors(vert, fgl.g)
 end
 function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1, needdata::Bool=false)
-  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId))
+  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId), ready=ready, backendset=backendset, needdata=needdata)
 end
 
 function graphsGetEdge(fgl::FactorGraph, id::Int64)
