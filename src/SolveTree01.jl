@@ -129,7 +129,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
       N::Int64  )
   #
   for idfct in cliq.attributes["data"].potentials
-    vert = getVertNode(fgl, idfct)
+    vert = getVert(fgl, idfct, api=localapi)
     for vertidx in getData(vert).fncargvID
       if vertidx == vertid
         p = findRelatedFromPotential(fgl, vert, vertid, N)
@@ -158,7 +158,7 @@ function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs
     print("[$(length(dens))x,d$(Ndims),N$(N)],")
     pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
   elseif length(dens) == 1
-    print("[direct]")
+    print("[drct]")
     pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end],
                   dens[1].bt.dims, Npts(dens[1])  )  #N
   else
