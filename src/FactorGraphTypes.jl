@@ -89,6 +89,25 @@ type VariableNodeData
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
 end
 
+type PackedVariableNodeData
+  vecinitval::Array{Float64,1}
+  diminitval::Int64
+  vecinitstdev::Array{Float64,1}
+  diminitdev::Int64
+  vecval::Array{Float64,1}
+  dimval::Int64
+  vecbw::Array{Float64,1}
+  dimbw::Int64
+  BayesNetOutVertIDs::Array{Int64,1}
+  dimIDs::Array{Int64,1}
+  dims::Int64
+  eliminated::Bool
+  BayesNetVertID::Int64
+  separator::Array{Int64,1}
+  PackedVariableNodeData() = new()
+  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+end
+
 type GenericWrapParam{T} <: FunctorInferenceType
   usrfnc!::T
   params::Vector{Array{Float64,2}}
@@ -117,25 +136,6 @@ type FastRootGenericWrapParam{T} <: Function
       new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
 end
 
-
-type PackedVariableNodeData
-  vecinitval::Array{Float64,1}
-  diminitval::Int64
-  vecinitstdev::Array{Float64,1}
-  diminitdev::Int64
-  vecval::Array{Float64,1}
-  dimval::Int64
-  vecbw::Array{Float64,1}
-  dimbw::Int64
-  BayesNetOutVertIDs::Array{Int64,1}
-  dimIDs::Array{Int64,1}
-  dims::Int64
-  eliminated::Bool
-  BayesNetVertID::Int64
-  separator::Array{Int64,1}
-  PackedVariableNodeData() = new()
-  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
-end
 
 type GenericFunctionNodeData{T, S}
   fncargvID::Array{Int64,1}
