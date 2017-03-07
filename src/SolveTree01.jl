@@ -132,6 +132,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     for vertidx in getData(vert).fncargvID
       if vertidx == vertid
+        # TODO -- insert partial case here
         p = findRelatedFromPotential(fgl, vert, vertid, N)
         push!(dens, p)
         push!(wfac, vert.label)

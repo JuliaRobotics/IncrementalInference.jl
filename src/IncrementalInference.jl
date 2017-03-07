@@ -102,6 +102,8 @@ export
   # functor abstracts
   FunctorInferenceType,
   FunctorPairwise,
+  FunctorSingleton,
+  FunctorPartialSingleton,
 
   # Solving utils
   shuffleXAltD!,

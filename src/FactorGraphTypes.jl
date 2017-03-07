@@ -9,6 +9,7 @@ abstract Singleton <: InferenceType
 
 abstract FunctorInferenceType <: Function
 abstract FunctorSingleton <: FunctorInferenceType
+abstract FunctorPartialSingleton <: FunctorInferenceType
 abstract FunctorPairwise <: FunctorInferenceType
 
 abstract FunctorPairwiseMinimize <: FunctorInferenceType
@@ -96,11 +97,13 @@ type GenericWrapParam{T} <: FunctorInferenceType
   measurement::Tuple #Array{Float64,2}
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
+  partial::Bool
   GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) = new(fnc, t, i, j, meas, smpl, szd, partial)
 end
 type FastRootGenericWrapParam{T} <: Function
   p::Vector{Int}

@@ -88,6 +88,17 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
   return generalwrapper.measurement[1]
 end
 
+# function evalPotentialSpecific{T <: FunctorPartialSingleton}(
+#       fnc::T,
+#       Xi::Vector{Graphs.ExVertex},
+#       generalwrapper::GenericWrapParam{T},
+#       solvefor::Int64;
+#       N::Int64=100  )
+#   #
+#   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
+#   return generalwrapper.measurement[1]
+# end
+
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
 function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N::Int64=100)
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
