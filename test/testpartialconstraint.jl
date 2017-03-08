@@ -47,10 +47,20 @@ pts = evalFactor2(fg, f2, v1.index)
 tree = wipeBuildNewTree!(fg)
 
 inferOverTreeR!(fg,tree, N=N)
-# pts = getVal(fg, :x1)
-plotKDE(getVertKDE(fg, :x1))
+pts = getVal(fg, :x1)
+@test norm(Base.mean(pts,2)[1]-[1.0]) < 0.5
+@test norm(Base.mean(pts,2)[2]-[0.0]) < 0.3
 
-@test norm(Base.mean(pts,2)[1]-[1.0]) < 0.2
+# plotKDE(getVertKDE(fg, :x1),levels=3)
+
+
+
+
+
+
+
+
+
 
 
 #

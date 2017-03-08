@@ -189,19 +189,31 @@ function cliqGibbs(fg::FactorGraph,
 
   potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=dlapi), Array{Float64,2}(), dens, wfac)
   pGM = Array{Float64,2}()
-  @show lennonp = length(dens)
-  @show lenpart = length(partials)
-  if lennonp > 1 || lennonp == 1 && lenpart >= 1
+  lennonp = length(dens)
+  lenpart = length(partials)
+  if lennonp > 1
     Ndims = Ndim(dens[1])
     # Ndims = dens[1].bt.dims
     dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
-    print("[$(lennonp)x,d$(Ndims),N$(N)],")
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
     pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
     # now incoporate partials
     for (dimnum,pp) in partials
-      println("doing partial")
+      println("doing partial on $(dimnum)")
       push!(pp, kde!(pGM[dimnum,:]))
-      dummy = marginal(dummy, [dimnum])
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
+    end
+  elseif lennonp == 1 && lenpart >= 1
+    Ndims = Ndim(dens[1])
+    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    denspts = getPoints(dens[1])
+    pGM = deepcopy(denspts)
+    for (dimnum,pp) in partials
+      println("doing partial on $(dimnum)")
+      push!(pp, kde!(denspts[dimnum,:]))
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
       pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
     end
   elseif lennonp == 0 && lenpart == 1
