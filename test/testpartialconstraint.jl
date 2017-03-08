@@ -55,6 +55,21 @@ pts = getVal(fg, :x1)
 
 
 
+type DevelopPartialPairwise <: IncrementalInference.FunctorPairwise
+  x::Distribution
+  partial::Tuple
+end
+getSample(dpl::DevelopPartial, N::Int=1) = (rand(dpl.x, N)', )
+
+function (dp::DevelopPartial)(res::Vector{Float64},
+                              idx::Int,
+                              meas::Tuple{Array{Float64,2}},
+                              x1::Array{Float64},
+                              x2::Array{Float64}  )
+  #
+  res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
+  nothing
+end
 
 
 

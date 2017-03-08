@@ -123,24 +123,3 @@ function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N
     end
     return RES
 end
-
-
-function getSample(obs::Obsv2, N::Int=1)
-  pd = kde!(obs.pts, obs.bws[:,1])
-  return (KernelDensityEstimate.sample(pd,N)[1],)
-end
-# # TODO -- this may be obsolete, investigate further and remove
-# function evalPotential(obs::Obsv2, Xi::Array{Graphs.ExVertex,1}; N::Int64=100)#, from::Int64)
-#   return getSample(obs, N)
-# end
-#
-# function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Singleton, solvefor::Int64; N::Int64=100)
-#   outpts = fnc(typ, Xi, N=N) # , solvefor
-#   # outpts = evalPotential(typ, Xi, N=N) # , solvefor
-#   return outpts
-# end
-#
-# function evalPotentialSpecific(fnc::Function, Xi::Array{Graphs.ExVertex,1}, typ::Pairwise, solvefor::Int64; N::Int64=100)
-#   return fnc(typ, Xi, solvefor, N=N)
-#   # return evalPotential(typ, Xi, solvefor)
-# end
