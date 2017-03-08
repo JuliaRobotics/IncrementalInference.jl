@@ -210,7 +210,7 @@ end
 
 
 println("Test with FastRootGenericWrapParam for permuted root finding...")
-warn("not implemented yet")
+warn("test not implemented yet")
 
 # use the range only example, should give a circle with nothing in the middle
 

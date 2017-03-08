@@ -155,12 +155,11 @@ function packFromLocalPartials!(fgl::FactorGraph,
     if length( find(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
       p = findRelatedFromPotential(fgl, vert, vertid, N)
       pardims = data.fnc.usrfnc!.partial
-      for i in 1:length(pardims)
-        dimnum = pardims[i]
+      for dimnum in pardims
         if haskey(partials, dimnum)
-          push!(partials[dimnum], marginal(p,[i]))
+          push!(partials[dimnum], marginal(p,[dimnum]))
         else
-          partials[dimnum] = BallTreeDensity[marginal(p,[i])]
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
     end
@@ -187,7 +186,7 @@ function cliqGibbs(fg::FactorGraph,
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N)
 
-  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=dlapi), Array{Float64,2}(), dens, wfac)
+  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
   pGM = Array{Float64,2}()
   lennonp = length(dens)
   lenpart = length(partials)
@@ -211,19 +210,32 @@ function cliqGibbs(fg::FactorGraph,
     denspts = getPoints(dens[1])
     pGM = deepcopy(denspts)
     for (dimnum,pp) in partials
-      println("doing partial on $(dimnum)")
+      push!(pp, kde!(denspts[dimnum,:]))
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
+    end
+  elseif lennonp == 0 && lenpart > 1
+    denspts = getVal(fg,vertid,api=localapi)
+    Ndims = size(denspts,1)
+    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    pGM = deepcopy(denspts)
+    for (dimnum,pp) in partials
       push!(pp, kde!(denspts[dimnum,:]))
       dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
       pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
     end
   elseif lennonp == 0 && lenpart == 1
     print("[prtl]")
-    error("not implemented yet")
+    pGM = deepcopy(getVal(fg,vertid,api=localapi) )
+    for (dimnum,pp) in partials
+      pGM[dimnum,:] = getPoints(pp)
+    end
   elseif lennonp == 1 && lenpart == 0
     print("[drct]")
     pGM = getPoints(dens[1])
   else
-    warn("Unknown density product")
+    warn("Unknown density product, lennonp=$(lennonp), lenpart=$(lenpart)")
     pGM = Array{Float64,2}(0,1)
   end
   if debugflag  potprod.product = pGM  end
