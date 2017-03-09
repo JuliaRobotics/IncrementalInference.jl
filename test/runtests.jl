@@ -26,6 +26,10 @@ println("[TEST] with simple local constraint examples Odo, Obsv2...")
 include("testlocalconstraintexamples.jl")
 println("Success")
 
+println("[TEST] partial constraints...")
+include("testpartialconstraint.jl")
+println("Success")
+
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")

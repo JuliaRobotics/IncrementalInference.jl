@@ -9,6 +9,7 @@ abstract Singleton <: InferenceType
 
 abstract FunctorInferenceType <: Function
 abstract FunctorSingleton <: FunctorInferenceType
+abstract FunctorPartialSingleton <: FunctorInferenceType
 abstract FunctorPairwise <: FunctorInferenceType
 
 abstract FunctorPairwiseMinimize <: FunctorInferenceType
@@ -88,33 +89,6 @@ type VariableNodeData
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
 end
 
-type GenericWrapParam{T} <: FunctorInferenceType
-  usrfnc!::T
-  params::Vector{Array{Float64,2}}
-  varidx::Int
-  particleidx::Int
-  measurement::Tuple #Array{Float64,2}
-  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
-  specialzDim::Bool
-  GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd)
-end
-type FastRootGenericWrapParam{T} <: Function
-  p::Vector{Int}
-  perturb::Vector{Float64}
-  X::Array{Float64,2}
-  Y::Vector{Float64}
-  xDim::Int
-  zDim::Int
-  gwp::GenericWrapParam{T}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
-end
-
-
 type PackedVariableNodeData
   vecinitval::Array{Float64,1}
   diminitval::Int64
@@ -133,6 +107,35 @@ type PackedVariableNodeData
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
+
+type GenericWrapParam{T} <: FunctorInferenceType
+  usrfnc!::T
+  params::Vector{Array{Float64,2}}
+  varidx::Int
+  particleidx::Int
+  measurement::Tuple #Array{Float64,2}
+  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
+  specialzDim::Bool
+  partial::Bool
+  GenericWrapParam() = new()
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) = new(fnc, t, i, j, meas, smpl, szd, partial)
+end
+type FastRootGenericWrapParam{T} <: Function
+  p::Vector{Int}
+  perturb::Vector{Float64}
+  X::Array{Float64,2}
+  Y::Vector{Float64}
+  xDim::Int
+  zDim::Int
+  gwp::GenericWrapParam{T}
+  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
+end
+
 
 type GenericFunctionNodeData{T, S}
   fncargvID::Array{Int64,1}

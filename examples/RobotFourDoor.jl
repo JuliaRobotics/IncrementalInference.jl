@@ -118,15 +118,3 @@ Gadfly.draw(PNG("4doors.png",15cm,20cm),pl) # can also do PNG
 #   Gadfly.draw(PNG("results/testMsgs.png",17cm,15cm),vvMsgs)
 #   # vvMsgs
 # end
-
-
-#
-# using ProtoBuf
-#
-# iob = PipeBuffer()
-# dat = IncrementalInference.dlapi.getvertex(fg,1).attributes["data"]
-# pd = convert(PackedVariableNodeData, dat) #fg.v[1].attributes["data"]
-# writeproto(iob, pd)
-# dd = readproto(iob, PackedVariableNodeData());
-# unpckd = convert(VariableNodeData, dd)
-#

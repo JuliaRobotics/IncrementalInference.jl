@@ -251,7 +251,7 @@ function prepgenericwrapper{T <: FunctorInferenceType}(
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1)
+  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
 end
 
 function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
@@ -433,7 +433,7 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   for p in elimOrder
-    vert = localapi.getvertex(fg, p)
+    vert = getVert(fg, p, api=localapi)
     @show vert.label, getData(vert).BayesNetVertID
     if getData(vert).BayesNetVertID == 0
       fg.bnid+=1
@@ -446,7 +446,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
 end
 
 function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
-  bnv = localapi.getvertex(fg, vertID) #fg.v[vertID]
+  bnv = getVert(fg, vertID, api=localapi) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
   for s in Si
@@ -461,7 +461,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   genmarg = GenericMarginal()
   Xi = Graphs.ExVertex[]
   for s in Si
-    push!(Xi, localapi.getvertex(fg, s))
+    push!(Xi, getVert(fg, s, api=localapi))
   end
   println("adding marginal to")
   for x in Xi @show x.index end

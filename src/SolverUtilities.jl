@@ -75,7 +75,7 @@ function numericRootGenericRandomizedFnc!{T}(
       perturb::Float64=1e-10,
       testshuffle::Bool=false )
   #
-	if fr.zDim < fr.xDim || testshuffle
+	if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
     shuffle!(fr.p)
     for i in 1:fr.xDim
       fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
@@ -93,18 +93,22 @@ function numericRootGenericRandomizedFnc!{T}(
         fr.p[2:end] = fr.p[1:(end-1)]
         fr.p[1] = temp
         if i == fr.xDim
-          warn("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
           error("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
         end
       end
     end
     #shuffleXAltD!( fr, r.zero ) # moved up
-	else
-    # @show fr.xDim, fr.zDim
-    # @show fr.gwp.particleidx
-    # @show size(fr.perturb), size(fr.X)
-    fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim]
+  elseif fr.zDim >= fr.xDim && !fr.gwp.partial
+    fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
     fr.Y[1:fr.xDim] = ( nlsolve(  fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] ) ).zero
+  elseif fr.gwp.partial
+    fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int64[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    r = nlsolve(  fr,
+                  fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
+               )
+    shuffleXAltD!( fr, r.zero )
+  else
+    error("Unresolved numeric solve case")
 	end
   fr.X[:,fr.gwp.particleidx] = fr.Y
   nothing

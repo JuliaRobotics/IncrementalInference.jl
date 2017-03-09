@@ -335,7 +335,8 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
     for i in 1:length(potIDs)
       idfct = cliq.attributes["data"].potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
-        for vertidx in getData(getVertNode(fgl, idfct)).fncargvID
+        for vertidx in getData(getVert(fgl, idfct, api=localapi)).fncargvID
+        # for vertidx in getData(getVertNode(fgl, idfct)).fncargvID
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end

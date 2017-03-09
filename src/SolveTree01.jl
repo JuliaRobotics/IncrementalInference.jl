@@ -122,49 +122,123 @@ end
 
 # add all potentials associated with this clique and vertid to dens
 function packFromLocalPotentials!(fgl::FactorGraph,
-      dens::Array{BallTreeDensity,1},
+      dens::Vector{BallTreeDensity},
       wfac::Vector{AbstractString},
       cliq::Graphs.ExVertex,
       vertid::Int64,
       N::Int64  )
   #
   for idfct in cliq.attributes["data"].potentials
-    vert = getVertNode(fgl, idfct)
-    for vertidx in getData(vert).fncargvID
-      if vertidx == vertid
-        p = findRelatedFromPotential(fgl, vert, vertid, N)
-        push!(dens, p)
-        push!(wfac, vert.label)
+    vert = getVert(fgl, idfct, api=localapi)
+    data = getData(vert)
+    # skip partials here, will be caught in packFromLocalPartials!
+    if length( find(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
+      p = findRelatedFromPotential(fgl, vert, vertid, N)
+      push!(dens, p)
+      push!(wfac, vert.label)
+    end
+  end
+  nothing
+end
+
+
+function packFromLocalPartials!(fgl::FactorGraph,
+      partials::Dict{Int64, Vector{BallTreeDensity}},
+      cliq::Graphs.ExVertex,
+      vertid::Int64,
+      N::Int64  )
+  #
+
+  for idfct in cliq.attributes["data"].potentials
+    vert = getVert(fgl, idfct, api=localapi)
+    data = getData(vert)
+    if length( find(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
+      p = findRelatedFromPotential(fgl, vert, vertid, N)
+      pardims = data.fnc.usrfnc!.partial
+      for dimnum in pardims
+        if haskey(partials, dimnum)
+          push!(partials[dimnum], marginal(p,[dimnum]))
+        else
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+        end
       end
     end
   end
   nothing
 end
 
-function cliqGibbs(fg::FactorGraph, cliq::Graphs.ExVertex, vertid::Int64, inmsgs::Array{NBPMessage,1}, N::Int=200)
+
+function cliqGibbs(fg::FactorGraph,
+      cliq::Graphs.ExVertex,
+      vertid::Int64,
+      inmsgs::Array{NBPMessage,1},
+      N::Int,
+      debugflag::Bool )
+  #
   # several optimizations can be performed in this function TODO
-  print("$(dlapi.getvertex(fg,vertid).attributes["label"]) ") # "$(fg.v[vertid].attributes["label"]) "
+  # print("$(getVert(fg, vertid, api=localapi).attributes["label"]) ")
+
   #consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
   wfac = Vector{AbstractString}()
+  partials = Dict{Int64, Vector{BallTreeDensity}}()
   packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
-  potprod = PotProd(vertid, getVal(dlapi.getvertex(fg,vertid)), Array{Float64,2}(), dens, wfac) # (fg.v[vertid])
+  packFromLocalPartials!(fg, partials, cliq, vertid, N)
 
+  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
   pGM = Array{Float64,2}()
-  if length(dens) > 1
-    Ndims = dens[1].bt.dims
-    dummy = kde!(rand(Ndims,N),[1.0]);
-    print("[$(length(dens))x,d$(Ndims),N$(N)],")
+  lennonp = length(dens)
+  lenpart = length(partials)
+  if lennonp > 1
+    Ndims = Ndim(dens[1])
+    # Ndims = dens[1].bt.dims
+    dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
     pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
-  elseif length(dens) == 1
-    print("[direct]")
-    pGM = reshape(dens[1].bt.centers[(dens[1].bt.dims*Npts(dens[1])+1):end],
-                  dens[1].bt.dims, Npts(dens[1])  )  #N
+    # now incoporate partials
+    for (dimnum,pp) in partials
+      println("doing partial on $(dimnum)")
+      push!(pp, kde!(pGM[dimnum,:]))
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
+    end
+  elseif lennonp == 1 && lenpart >= 1
+    Ndims = Ndim(dens[1])
+    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    denspts = getPoints(dens[1])
+    pGM = deepcopy(denspts)
+    for (dimnum,pp) in partials
+      push!(pp, kde!(denspts[dimnum,:]))
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
+    end
+  elseif lennonp == 0 && lenpart > 1
+    denspts = getVal(fg,vertid,api=localapi)
+    Ndims = size(denspts,1)
+    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    pGM = deepcopy(denspts)
+    for (dimnum,pp) in partials
+      push!(pp, kde!(denspts[dimnum,:]))
+      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
+    end
+  elseif lennonp == 0 && lenpart == 1
+    print("[prtl]")
+    pGM = deepcopy(getVal(fg,vertid,api=localapi) )
+    for (dimnum,pp) in partials
+      pGM[dimnum,:] = getPoints(pp)
+    end
+  elseif lennonp == 1 && lenpart == 0
+    print("[drct]")
+    pGM = getPoints(dens[1])
   else
+    warn("Unknown density product, lennonp=$(lennonp), lenpart=$(lenpart)")
     pGM = Array{Float64,2}(0,1)
   end
-  potprod.product = pGM
+  if debugflag  potprod.product = pGM  end
   print(" ")
 
   return pGM, potprod
@@ -172,8 +246,8 @@ end
 
 function fmcmc!(fgl::FactorGraph,
       cliq::Graphs.ExVertex,
-      fmsgs::Array{NBPMessage,1},
-      IDs::Array{Int64,1},
+      fmsgs::Vector{NBPMessage},
+      IDs::Vector{Int64},
       N::Int64,
       MCMCIter::Int,
       debugflag::Bool=false  )
@@ -191,10 +265,10 @@ function fmcmc!(fgl::FactorGraph,
       dbg = !debugflag ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
         # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-        densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+        densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, debugflag) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
         if size(densPts,1)>0
-          updvert = dlapi.getvertex(fgl,vertid)
-          setValKDE!(updvert, densPts) # fgl.v[vertid]
+          updvert = getVert(fgl, vertid, api=dlapi)
+          setValKDE!(updvert, densPts)
           # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
           dlapi.updatevertex!(fgl, updvert)
           # fgl.v[vertid].attributes["val"] = densPts

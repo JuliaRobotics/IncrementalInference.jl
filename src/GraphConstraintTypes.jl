@@ -176,6 +176,7 @@ function convert(::Type{PackedObsv2}, d::Obsv2)
                     v2,size(d.bws,1),
                     d.W)
 end
-function getSample(z::Obsv2, N::Int=1)
-  return (KernelDensityEstimate.sample(kde!(z.pts, z.bws), N),)
+function getSample(obs::Obsv2, N::Int=1)
+  pd = kde!(obs.pts, obs.bws[:,1])
+  return (KernelDensityEstimate.sample(pd,N)[1],)
 end

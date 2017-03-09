@@ -102,6 +102,8 @@ export
   # functor abstracts
   FunctorInferenceType,
   FunctorPairwise,
+  FunctorSingleton,
+  FunctorPartialSingleton,
 
   # Solving utils
   shuffleXAltD!,
@@ -174,6 +176,7 @@ include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("TreePotentials01.jl")
+include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
 
