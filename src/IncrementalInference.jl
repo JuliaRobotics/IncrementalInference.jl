@@ -114,6 +114,9 @@ export
   FastGenericRoot,
   FastRootGenericWrapParam,
 
+  # user functions
+  predictbelief,
+
   # generic marginal used during elimitation game
   GenericMarginal,
   PackedGenericMarginal,
@@ -122,7 +125,7 @@ export
   convert, # for protobuf stuff
   compare,
 
-  # For 1D example
+  # For 1D example, should be refactored and renamed
   Odo,
   odoAdd,
   PackedOdo,

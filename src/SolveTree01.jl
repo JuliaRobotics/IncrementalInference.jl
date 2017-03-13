@@ -220,11 +220,8 @@ function productbelief(fg::FactorGraph,
       vertid::Int64,
       dens::Vector{BallTreeDensity},
       partials::Dict{Int64, Vector{BallTreeDensity}},
-      wfac::Vector{AbstractString},
-      N::Int,
-      debugflag::Bool  )
+      N::Int  )
   #
-  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
 
   pGM = Array{Float64,2}()
   lennonp, lenpart = length(dens), length(partials)
@@ -257,9 +254,38 @@ function productbelief(fg::FactorGraph,
     warn("Unknown density product, lennonp=$(lennonp), lenpart=$(lenpart)")
     pGM = Array{Float64,2}(0,1)
   end
-  if debugflag  potprod.product = pGM  end
 
-  return pGM, potprod
+  return pGM
+end
+
+function predictbelief(fgl::FactorGraph,
+      destvert::ExVertex,
+      factors::Vector{Graphs.ExVertex};
+      N::Int=100  )
+  #
+  destvertid = destvert.index
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  for fct in factors
+    data = getData(fct)
+    p = findRelatedFromPotential(fgl, fct, destvertid, N)
+    if data.fnc.partial   # partial density
+      pardims = data.fnc.usrfnc!.partial
+      for dimnum in pardims
+        if haskey(partials, dimnum)
+          push!(partials[dimnum], marginal(p,[dimnum]))
+        else
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+        end
+      end
+    else # full density
+      push!(dens, p)
+    end
+  end
+
+  pGM = productbelief(fgl, destvertid, dens, partials, N )
+
+  return pGM
 end
 
 function cliqGibbs(fg::FactorGraph,
@@ -273,13 +299,15 @@ function cliqGibbs(fg::FactorGraph,
 
   #consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
-  wfac = Vector{AbstractString}()
   partials = Dict{Int64, Vector{BallTreeDensity}}()
+  wfac = Vector{AbstractString}()
   packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N)
 
-  pGM, potprod = productbelief(fg, vertid, dens, partials, wfac, N, debugflag )
+  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
+  pGM = productbelief(fg, vertid, dens, partials, N )
+  if debugflag  potprod.product = pGM  end
 
   print(" ")
   return pGM, potprod
@@ -341,13 +369,9 @@ end
 function upPrepOutMsg!(d::Dict{Int64,EasyMessage}, IDs::Array{Int64,1}) #Array{Float64,2}
   print("Outgoing msg density on: ")
   len = length(IDs)
-  #outDens = Dict{Int64,BallTreeDensity}() # retired to new dictionary msg types
-  m = NBPMessage(Dict{Int64,EasyMessage}()) #Int64[], BallTreeDensity[]
+  m = NBPMessage(Dict{Int64,EasyMessage}())
   for id in IDs
-    ## DID -- must bandwidth compute step happen here? no can be avoided by line 170
-    # p = kde!(d[id], "lcv")
-    # bws = vec(getBW(p)[:,1])
-    m.p[id] = d[id]# EasyMessage(d[id], bws)
+    m.p[id] = d[id]
   end
   return m
 end
