@@ -168,63 +168,82 @@ function packFromLocalPartials!(fgl::FactorGraph,
 end
 
 
-function cliqGibbs(fg::FactorGraph,
-      cliq::Graphs.ExVertex,
-      vertid::Int64,
-      inmsgs::Array{NBPMessage,1},
-      N::Int,
-      debugflag::Bool )
+"""
+    productpartials!(pGM, dummy, partials)
+
+Multiply different dimensions from partial constraints individually.
+"""
+function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
+        partials::Dict{Int64, Vector{BallTreeDensity}}  )
+
   #
-  # several optimizations can be performed in this function TODO
-  # print("$(getVert(fg, vertid, api=localapi).attributes["label"]) ")
+  for (dimnum,pp) in partials
+    push!(pp, kde!(pGM[dimnum,:]))
+    dummy2 = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+    pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, Union{}, Union{}, 8)
+  end
+  nothing
+end
 
-  #consolidate NBPMessages and potentials
-  dens = Array{BallTreeDensity,1}()
-  wfac = Vector{AbstractString}()
-  partials = Dict{Int64, Vector{BallTreeDensity}}()
-  packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
-  packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
-  packFromLocalPartials!(fg, partials, cliq, vertid, N)
+"""
+    prodmultiplefullpartials( dens, partials, Ndims, N )
 
+Multiply various full and partial dimension constraints.
+"""
+function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
+      partials::Dict{Int64, Vector{BallTreeDensity}},
+      Ndims::Int, N::Int  )
+  #
+  dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
+  pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
+  productpartials!(pGM, dummy, partials)
+  return pGM
+end
+
+"""
+    prodmultipleonefullpartials( dens, partials, Ndims, N )
+
+Multiply a single full and severla partial dimension constraints.
+"""
+function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
+      partials::Dict{Int64, Vector{BallTreeDensity}},
+      Ndims::Int, N::Int  )
+  #
+  dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+  denspts = getPoints(dens[1])
+  pGM = deepcopy(denspts)
+  productpartials!(pGM, dummy, partials)
+  return pGM
+end
+
+function productbelief(fg::FactorGraph,
+      vertid::Int64,
+      dens::Vector{BallTreeDensity},
+      partials::Dict{Int64, Vector{BallTreeDensity}},
+      wfac::Vector{AbstractString},
+      N::Int,
+      debugflag::Bool  )
+  #
   potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
+
   pGM = Array{Float64,2}()
-  lennonp = length(dens)
-  lenpart = length(partials)
+  lennonp, lenpart = length(dens), length(partials)
+
   if lennonp > 1
     Ndims = Ndim(dens[1])
-    # Ndims = dens[1].bt.dims
-    dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
-    pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
-    # now incoporate partials
-    for (dimnum,pp) in partials
-      println("doing partial on $(dimnum)")
-      push!(pp, kde!(pGM[dimnum,:]))
-      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
-    end
+    pGM = prodmultiplefullpartials(dens, partials, Ndims, N)
   elseif lennonp == 1 && lenpart >= 1
     Ndims = Ndim(dens[1])
-    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
-    denspts = getPoints(dens[1])
-    pGM = deepcopy(denspts)
-    for (dimnum,pp) in partials
-      push!(pp, kde!(denspts[dimnum,:]))
-      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
-    end
+    pGM = prodmultipleonefullpartials(dens, partials, Ndims, N)
   elseif lennonp == 0 && lenpart > 1
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
-    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
-    for (dimnum,pp) in partials
-      push!(pp, kde!(denspts[dimnum,:]))
-      dummy = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy, pp, Union{}, Union{}, 8)
-    end
+    productpartials!(pGM, dummy, partials)
   elseif lennonp == 0 && lenpart == 1
     print("[prtl]")
     pGM = deepcopy(getVal(fg,vertid,api=localapi) )
@@ -239,8 +258,30 @@ function cliqGibbs(fg::FactorGraph,
     pGM = Array{Float64,2}(0,1)
   end
   if debugflag  potprod.product = pGM  end
-  print(" ")
 
+  return pGM, potprod
+end
+
+function cliqGibbs(fg::FactorGraph,
+      cliq::Graphs.ExVertex,
+      vertid::Int64,
+      inmsgs::Array{NBPMessage,1},
+      N::Int,
+      debugflag::Bool )
+  #
+  # several optimizations can be performed in this function TODO
+
+  #consolidate NBPMessages and potentials
+  dens = Array{BallTreeDensity,1}()
+  wfac = Vector{AbstractString}()
+  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
+  packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
+  packFromLocalPartials!(fg, partials, cliq, vertid, N)
+
+  pGM, potprod = productbelief(fg, vertid, dens, partials, wfac, N, debugflag )
+
+  print(" ")
   return pGM, potprod
 end
 
