@@ -98,6 +98,15 @@ pts = evalFactor2(fg, f4, v2.index)
 @test (Base.std(pts,2)[1]-1.0) < 0.3
 
 
+println("test belief prediction...")
+val = predictbelief(fg, v2, [f3;f4], N=N)
+# plotKDE(kde!(val),levels=3)
+@test norm(Base.mean(val,2)[1]-[-20.0]) < 2.0
+@test norm(Base.mean(val,2)[2]-[10.0]) < 2.0
+@test (Base.std(val,2)[1]-1.0) < 3.0
+@test (Base.std(val,2)[2]-1.0) < 3.0
+
+
 tree = wipeBuildNewTree!(fg )#, drawpdf=true)
 # run(`evince bt.pdf`)
 
