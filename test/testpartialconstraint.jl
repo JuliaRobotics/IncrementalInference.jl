@@ -34,14 +34,24 @@ f1  = addFactor!(fg,[:x1],pr)
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
 f2  = addFactor!(fg,[:x1],dp)
 
-
+println("test evaluation of full constraint prior")
 pts = evalFactor2(fg, f1, v1.index)
-# @show size(pts)
+@test size(pts,1) == 2
+@test size(pts,2) == N
 @test norm(Base.mean(pts,2)[1]-[0.0]) < 0.3
 
+println("test evaluation of partial constraint prior")
+X1pts = getVal(v1)
 pts = evalFactor2(fg, f2, v1.index)
-# @show size(pts)
+
+@test size(pts, 1) == 2
+@test size(pts,2) == N
 @test norm(Base.mean(pts,2)[1]-[2.0]) < 0.3
+# ensure the correct response from
+@test norm(X1pts[1,:] - pts[1,:]) > 2.0
+@test norm(X1pts[2,:] - pts[2,:]) < 1e-10
+memcheck = getVal(v1)
+@test norm(X1pts - memcheck) < 1e-10
 
 
 tree = wipeBuildNewTree!(fg)
@@ -73,6 +83,7 @@ function (dp::DevelopPartialPairwise)(res::Vector{Float64},
 end
 
 
+println("test evaluation of multiple simultaneous partial constraints")
 
 v2 = addNode!(fg,:x2,100*randn(2,N),N=N)
 
@@ -87,15 +98,48 @@ f4  = addFactor!(fg,[:x2],dp2)
 
 
 pts = evalFactor2(fg, f3, v2.index)
-plotKDE(kde!(pts))
+# plotKDE(kde!(pts))
 @test size(pts,1) == 2
 @test norm(Base.mean(pts,2)[2]-[10.0]) < 3.0
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
 pts = evalFactor2(fg, f4, v2.index)
-@test size(pts,1) == 1
+@test size(pts,1) == 2
 @test norm(Base.mean(pts,2)[1]-[-20.0]) < 0.3
 @test (Base.std(pts,2)[1]-1.0) < 0.3
+
+# keep previous values to ensure funciton evaluation is modifying correct data fields
+
+println("test findRelatedFromPotential...")
+
+# Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl", 129)
+
+X2pts = getVal(v2)
+p3 = findRelatedFromPotential(fg, f3, v2.index, N)
+@test Ndim(p3) == 2
+pts = KernelDensityEstimate.getPoints(p3)
+@test size(pts,2) == N
+
+# DevelopPartialPairwise must only modify the second dimension of proposal distribution on X2
+@test norm(X2pts[1,:] - pts[1,:]) < 1e-10
+@test norm(X2pts[2,:] - pts[2,:]) > 10*N*0.5
+memcheck = getVal(v2)
+@test norm(X2pts - memcheck) < 1e-10
+
+
+
+X2pts = getVal(v2)
+p4 = findRelatedFromPotential(fg, f4, v2.index, N)
+@test Ndim(p4) == 2
+pts = KernelDensityEstimate.getPoints(p3)
+@test size(pts,2) == N
+
+# DevelopPartialPairwise must only modify the second dimension of proposal distribution on X2
+@test norm(X2pts[1,:] - pts[1,:]) < 1e-10
+@test norm(X2pts[2,:] - pts[2,:]) > 10*N*0.5
+memcheck = getVal(v2)
+@test norm(X2pts - memcheck) < 1e-10
+
 
 
 println("test belief prediction...")

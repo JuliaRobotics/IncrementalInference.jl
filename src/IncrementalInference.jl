@@ -106,6 +106,7 @@ export
   FunctorPartialSingleton,
 
   # Solving utils
+  findRelatedFromPotential,
   shuffleXAltD!,
   numericRoot,
   numericRootGenericRandomized,

@@ -85,7 +85,17 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
       N::Int64=100  )
   #
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-  return generalwrapper.measurement[1]
+  if !generalwrapper.partial
+    return generalwrapper.measurement[1]
+  else
+    val = deepcopy(getVal(Xi[1]))
+    i = 0
+    for dimnum in fnc.partial
+      i += 1
+      val[dimnum,:] = generalwrapper.measurement[1][i,:]
+    end
+    return val
+  end
 end
 
 # function evalPotentialSpecific{T <: FunctorPartialSingleton}(
@@ -117,6 +127,13 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N:
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
 end
 
+"""
+    findRelatedFromPotential(fg, fctvert, varnodeid, N)
+
+Compute proposal belief on varnodeid through fctvert representing some constraint in factor graph.
+Always full dimension of variable node, where partial constraints will only influence directed
+subset of variable dimensions. Remaining dimensions will keep existing variable values.
+"""
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(fg, idfct, vertid, N=N);
