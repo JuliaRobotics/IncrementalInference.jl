@@ -178,9 +178,12 @@ function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
 
   #
   for (dimnum,pp) in partials
-    push!(pp, kde!(pGM[dimnum,:]))
     dummy2 = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
-    pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, Union{}, Union{}, 8)
+    if length(pp) > 1
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, Union{}, Union{}, 8)
+    else
+      pGM[dimnum,:] = getPoints(pp[1])
+    end
   end
   nothing
 end
@@ -196,6 +199,9 @@ function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
   #
   dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
   pGM, = prodAppxMSGibbsS(dummy, dens, Union{}, Union{}, 8) #10
+  for (dimnum,pp) in partials
+    push!(pp, kde!(pGM[dimnum,:]))
+  end
   productpartials!(pGM, dummy, partials)
   return pGM
 end
@@ -212,6 +218,9 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
+  for (dimnum,pp) in partials
+    push!(pp, kde!(pGM[dimnum,:]))
+  end
   productpartials!(pGM, dummy, partials)
   return pGM
 end
@@ -234,19 +243,19 @@ function productbelief(fg::FactorGraph,
     Ndims = Ndim(dens[1])
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N)
-  elseif lennonp == 0 && lenpart > 1
+  elseif lennonp == 0 && lenpart >= 1
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
     dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
     productpartials!(pGM, dummy, partials)
-  elseif lennonp == 0 && lenpart == 1
-    print("[prtl]")
-    pGM = deepcopy(getVal(fg,vertid,api=localapi) )
-    for (dimnum,pp) in partials
-      pGM[dimnum,:] = getPoints(pp)
-    end
+  # elseif lennonp == 0 && lenpart == 1
+  #   print("[prtl]")
+  #   pGM = deepcopy(getVal(fg,vertid,api=localapi) )
+  #   for (dimnum,pp) in partials
+  #     pGM[dimnum,:] = getPoints(pp)
+  #   end
   elseif lennonp == 1 && lenpart == 0
     print("[drct]")
     pGM = getPoints(dens[1])
