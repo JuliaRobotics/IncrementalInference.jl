@@ -288,6 +288,19 @@ function predictbelief(fgl::FactorGraph,
   return pGM
 end
 
+function predictbelief(fgl::FactorGraph,
+      destvertsym::Symbol,
+      factorsyms::Vector{Symbol};
+      N::Int=100,
+      api::DataLayerAPI=IncrementalInference.localapi  )
+  #
+  factors = Graphs.ExVertex[]
+  for fsym in factorsyms
+    push!(factors, getVert(fgl, fgl.fIDs[fsym], api=api))
+  end
+  predictbelief(fgl, getVert(fgl, destvertsym, api=api), factors, N=N)
+end
+
 function cliqGibbs(fg::FactorGraph,
       cliq::Graphs.ExVertex,
       vertid::Int64,
