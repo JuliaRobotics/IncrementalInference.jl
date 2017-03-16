@@ -343,7 +343,7 @@ function fmcmc!(fgl::FactorGraph,
       MCMCIter::Int,
       debugflag::Bool=false  )
   #
-    println("------------- functional mcmc ----------------$(cliq.attributes["label"])")
+    println("---------- successive fnc approx ------------$(cliq.attributes["label"])")
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
     if length(IDs) == 1
         MCMCIter=1
