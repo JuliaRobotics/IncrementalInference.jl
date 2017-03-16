@@ -567,7 +567,7 @@ end
 
 function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  v = nothing
+  # v = nothing
   if haskey(fgl.IDs, lbl)
     id = fgl.IDs[lbl]
   else
@@ -610,21 +610,21 @@ function ls(fgl::FactorGraph)
   return xx,ll
 end
 
-function lsv(fgl::FactorGraph, lbl::Symbol; api=dlapi)
+function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  v = Union{}
+  # v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
   else
     return lsa
   end
-  v = fgl.g.vertices[id] #fgl.f[id]
+  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
   for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     push!(lsa, Symbol(outn.label))
   end
   return lsa
 end
-lsv{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsv(fgl,Symbol(lbl))
+lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
 
 function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
       mt::Type{T};
@@ -638,6 +638,7 @@ function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
   end
   return syms
 end
+
 
 function fixRotWrapErr!(RT::Array{Float64,1})
 

@@ -78,7 +78,6 @@ export
   investigateMultidimKDE,
   writeGraphPdf,
   ls,
-  lsv,
   lsf,
   getfnctype,
   drawHorDens,
