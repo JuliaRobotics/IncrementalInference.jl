@@ -35,6 +35,57 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
 end
 
 """
+    plotKDEofnc(fg,fsym)
+
+plot absolute values of variables and measurement surrounding fsym factor.
+"""
+function plotKDEofnc(fgl::FactorGraph, fsym::Symbol;
+    marg=nothing,
+    N::Int=100  )
+  #
+  fnc = nothing
+  if haskey(fgl.fIDs, fsym)
+    fnc = getfnctype( fgl, fgl.fIDs[fsym] )
+  else
+    error("fIDs doesn't have $(fsym)")
+  end
+  p = kde!( getSample(fnc, N)[1]  )
+  # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+  plotKDE(fgl, lsf(fgl, fsym), addt=[p], marg=marg)
+end
+
+"""
+    plotKDEresiduals(fg,fsym)
+
+Trye plot relative values of variables and measurement surrounding fsym factor.
+"""
+function plotKDEresiduals(fgl::FactorGraph,
+      fsym::Symbol;
+      N::Int=100,
+      levels::Int=3,
+      marg=nothing  )
+  #
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  fnc = getfnctype( fg, fg.fIDs[fsym] )
+  @show sxi = lsf(fgl, fsym)[1]
+  @show sxj = lsf(fgl, fsym)[2]
+  xi = getVal(fg, sxi)
+  xj = getVal(fg, sxj)
+  measM = getSample(fnc, Nparticles)
+  meas = length(measM) == 1 ? (0*measM[1], ) : (0*measM[1], measM[2])
+  d = size(measM[1],1)
+  RES = zeros(d,N)
+  for i in 1:N
+    res = zeros(d)
+    fnc(res, i, meas, xi,xj)
+    RES[:,i] = -res # inverse, assumed to be in linear space at this point. not universal TODO
+  end
+  pR = kde!(RES)
+  pM = kde!(measM[1])
+  plotKDE([pR;pM], c=COLORS[1:2], dims=marg,levels=3, legend=["residual";"model"])
+end
+
+"""
     plotPriorsAtCliq(treel, lb, cllb)
 
 Plot the product of priors and incoming upward messages for variable in clique.

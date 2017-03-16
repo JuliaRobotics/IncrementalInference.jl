@@ -151,11 +151,12 @@ export
   reshapeVec2Mat,
 
   # analysis and some plotting
+  plotKDEofnc,
+  plotKDEresiduals,
   plotMCMC,
   plotUpMsgsAtCliq,
   plotPriorsAtCliq,
   investigateMultidimKDE,
-  kde!,
   draw,
   whosWith,
   drawUpMsgAtCliq,
