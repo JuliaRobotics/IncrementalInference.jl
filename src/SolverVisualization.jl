@@ -1,5 +1,28 @@
 
 
+
+function plotKDE(fgl::FactorGraph, sym::Symbol;
+      marg::Vector{Int}=Int[], levels=5  )
+  #
+  p = getVertKDE(fgl,sym)
+  mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+  mp = marginal(p,mmarg)
+  plotKDE(mp, levels=levels)
+end
+function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
+      marg::Vector{Int}=Int[], levels=3  )
+  #
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  MP = BallTreeDensity[]
+  for sym in syms
+    p = getVertKDE(fgl,sym)
+    mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+    mp = marginal(p,mmarg)
+    puse!(MP, mp)
+  end
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels)
+end
+
 """
     plotPriorsAtCliq(treel, lb, cllb)
 
