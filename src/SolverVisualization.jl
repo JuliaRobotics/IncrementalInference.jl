@@ -2,32 +2,36 @@
 
 
 function plotKDE(fgl::FactorGraph, sym::Symbol;
-      marg::Vector{Int}=Int[], levels=5  )
+      marg=nothing,
+      levels::Int=5  )
   #
   p = getVertKDE(fgl,sym)
-  mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
-  mp = marginal(p,mmarg)
-  plotKDE(mp, levels=levels)
+  # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+  # mp = marginal(p,mmarg)
+  plotKDE(mp, levels=levels, dims=marg)
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
-      marg::Vector{Int}=Int[],
+      marg=nothing,
       levels=3  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
   MP = BallTreeDensity[]
-  mmarg = Int[]
+  LEG = String[]
+  # mmarg = Int[]
   for sym in syms
     p = getVertKDE(fgl,sym)
-    mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
-    mp = marginal(p,mmarg)
-    push!(MP, mp)
+    # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+    # mp = marginal(p,mmarg)
+    push!(MP, p)
+    push!(LEG, string(sym))
   end
   for p in addt
-    mp = marginal(p,mmarg)
-    push!(MP, mp)
+    # mp = marginal(p,mmarg)
+    push!(MP, p)
+    push!(LEG, "add")
   end
-  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels)
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=marg, legend=LEG)
 end
 
 """
