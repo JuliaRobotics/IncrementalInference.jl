@@ -41,6 +41,11 @@ function getVal(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+function getfnctype(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
+  #
+  data = getData(fgl, exvertid, api=api)
+  data.fnc.usrfnc!
+end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})

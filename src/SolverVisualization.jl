@@ -565,7 +565,7 @@ function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl;nw=false)
   nothing
 end
 
-function ls(fgl::FactorGraph, lbl::Symbol)
+function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
   v = nothing
   if haskey(fgl.IDs, lbl)
@@ -573,9 +573,9 @@ function ls(fgl::FactorGraph, lbl::Symbol)
   else
     return lsa
   end
-  v = dlapi.getvertex(fgl,id) #fgl.v[id]
+  v = getVert(fgl,id, api=api) #fgl.v[id]
   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-  for outn in getOutNeighbors(fgl, v) # out_neighbors(v, fgl.g)
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
       push!(lsa, Symbol(outn.label))
     # end
@@ -610,7 +610,7 @@ function ls(fgl::FactorGraph)
   return xx,ll
 end
 
-function lsv(fgl::FactorGraph, lbl::Symbol)
+function lsv(fgl::FactorGraph, lbl::Symbol; api=dlapi)
   lsa = Symbol[]
   v = Union{}
   if haskey(fgl.fIDs, lbl)
@@ -619,15 +619,25 @@ function lsv(fgl::FactorGraph, lbl::Symbol)
     return lsa
   end
   v = fgl.g.vertices[id] #fgl.f[id]
-  for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     push!(lsa, Symbol(outn.label))
   end
   return lsa
 end
 lsv{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsv(fgl,Symbol(lbl))
 
-
-
+function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+      mt::Type{T};
+      api::DataLayerAPI=dlapi  )
+  #
+  syms = Symbol[]
+  for (fsym,fid) in fgl.fIDs
+    if typeof(getfnctype(fgl, fid, api=api))==T
+      push!(syms, fsym)
+    end
+  end
+  return syms
+end
 
 function fixRotWrapErr!(RT::Array{Float64,1})
 
