@@ -18,7 +18,7 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
     p = getVertKDE(fgl,sym)
     mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
     mp = marginal(p,mmarg)
-    puse!(MP, mp)
+    push!(MP, mp)
   end
   plotKDE(MP,c=COLORS[1:length(MP)], levels=levels)
 end
