@@ -71,7 +71,7 @@ function plotKDEresiduals(fgl::FactorGraph,
   @show sxj = lsf(fgl, fsym)[2]
   xi = getVal(fgl, sxi)
   xj = getVal(fgl, sxj)
-  measM = getSample(fnc, Nparticles)
+  measM = getSample(fnc, N)
   meas = length(measM) == 1 ? (0*measM[1], ) : (0*measM[1], measM[2])
   d = size(measM[1],1)
   RES = zeros(d,N)
