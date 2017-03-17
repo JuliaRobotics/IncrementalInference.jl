@@ -66,11 +66,11 @@ function plotKDEresiduals(fgl::FactorGraph,
       marg=nothing  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
-  fnc = getfnctype( fg, fg.fIDs[fsym] )
+  fnc = getfnctype( fgl, fgl.fIDs[fsym] )
   @show sxi = lsf(fgl, fsym)[1]
   @show sxj = lsf(fgl, fsym)[2]
-  xi = getVal(fg, sxi)
-  xj = getVal(fg, sxj)
+  xi = getVal(fgl, sxi)
+  xj = getVal(fgl, sxj)
   measM = getSample(fnc, Nparticles)
   meas = length(measM) == 1 ? (0*measM[1], ) : (0*measM[1], measM[2])
   d = size(measM[1],1)
