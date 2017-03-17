@@ -134,7 +134,7 @@ export
   compare,
 
   # factor graph operating system utils (fgos)
-  convertfunctionnode,
+  convert2packedfunctionnode,
   encodefg,
   savefgjld,
 

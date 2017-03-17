@@ -1,7 +1,15 @@
 # Factor Graph OS type utilities
 
+"""
+    convert2packedfunctionnode(fgl::FactorGraph, fsym::Symbol)
 
-function convertfunctionnode(fgl::FactorGraph, fsym::Symbol, api=localapi)
+Encode complicated function node type with assumed to exist, user supplied convert
+fucntion to related 'Packed<type>' format.
+"""
+function convert2packedfunctionnode(fgl::FactorGraph,
+      fsym::Symbol,
+      api::DataLayerAPI=localapi  )
+  #
   fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fid)
   tfn = typeof(fnc)
@@ -22,7 +30,9 @@ Make a full memory copy of the graph and encode all complicated function node
 types with assumed to exist convert to 'Packed<type>' formats. Same converters
 as used for database persistence storage with CloudGraphs.jl.
 """
-function encodefg(fgl::FactorGraph; api::DataLayerAPI=localapi)
+function encodefg(fgl::FactorGraph;
+      api::DataLayerAPI=localapi  )
+  #
   fgs = deepcopy(fgl)
   fgs.cg = nothing
   fgs.registeredModuleFunctions = nothing
@@ -33,7 +43,7 @@ function encodefg(fgl::FactorGraph; api::DataLayerAPI=localapi)
   end
 
   for (fsym,fid) in fgs.fIDs
-    data,ftyp = convertfunctionnode(fgl, fsym)
+    data,ftyp = convert2packedfunctionnode(fgl, fsym)
     # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgl,fid,api=api).attributes
@@ -59,6 +69,10 @@ function encodefg(fgl::FactorGraph; api::DataLayerAPI=localapi)
 end
 
 
+function decodefg(fgs::FactorGraph)
+  error("Not implemented yet")
+end
+
 """
     savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
 
@@ -74,7 +88,10 @@ end
 
 
 
-
+# function loadfgjld(;file::AbstractString="tempfg.jld")
+#   @load file
+#
+# end
 
 
 
