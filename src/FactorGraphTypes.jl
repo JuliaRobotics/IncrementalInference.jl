@@ -298,7 +298,7 @@ end
 function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex; saveedgeID::Bool=true)
   edge = Graphs.make_edge(fgl.g, v1, v2)
   Graphs.add_edge!(fgl.g, edge)
-  if saveedgeID push!(v2.attributes["data"].edgeIDs,edge.index) end
+  if saveedgeID push!(getData(v2).edgeIDs,edge.index) end #.attributes["data"]
   edge
 end
 

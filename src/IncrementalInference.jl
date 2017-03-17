@@ -11,7 +11,9 @@ using
   NLsolve,
   Optim,
   Distributions,
-  KernelDensityEstimate
+  KernelDensityEstimate,
+  HDF5,
+  JLD
 
 export
   # added methods to functions from KernelDensityEstimate
@@ -46,6 +48,7 @@ export
   resetData!,
   getVert,
   getData,
+  setData!,
   getVarNode,
   getVal,
   setVal!,
@@ -130,6 +133,11 @@ export
   convert, # for protobuf stuff
   compare,
 
+  # factor graph operating system utils (fgos)
+  convertfunctionnode,
+  encodefg,
+  savefgjld,
+
   # For 1D example, should be refactored and renamed
   Odo,
   odoAdd,
@@ -188,6 +196,7 @@ include("TreePotentials01.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("SolverVisualization.jl")
+include("FGOSUtils.jl")
 
 include("deprecated.jl")
 

@@ -24,6 +24,11 @@ getData(v::Graphs.ExVertex) = v.attributes["data"]
 getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi) = getData(getVert(fgl, lbl, api=api))
 getData(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
 
+function setData!(v::Graphs.ExVertex, data)
+  v.attributes["data"] = data
+  nothing
+end
+
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
 end
