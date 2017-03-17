@@ -1,5 +1,90 @@
 
 
+
+function plotKDE(fgl::FactorGraph, sym::Symbol;
+      marg=nothing,
+      levels::Int=5  )
+  #
+  p = getVertKDE(fgl,sym)
+  # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+  # mp = marginal(p,mmarg)
+  plotKDE(mp, levels=levels, dims=marg)
+end
+function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
+      addt::Vector{BallTreeDensity}=BallTreeDensity[],
+      marg=nothing,
+      levels=3  )
+  #
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  MP = BallTreeDensity[]
+  LEG = String[]
+  # mmarg = Int[]
+  for sym in syms
+    p = getVertKDE(fgl,sym)
+    # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+    # mp = marginal(p,mmarg)
+    push!(MP, p)
+    push!(LEG, string(sym))
+  end
+  for p in addt
+    # mp = marginal(p,mmarg)
+    push!(MP, p)
+    push!(LEG, "add")
+  end
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=marg, legend=LEG)
+end
+
+"""
+    plotKDEofnc(fg,fsym)
+
+plot absolute values of variables and measurement surrounding fsym factor.
+"""
+function plotKDEofnc(fgl::FactorGraph, fsym::Symbol;
+    marg=nothing,
+    N::Int=100  )
+  #
+  fnc = nothing
+  if haskey(fgl.fIDs, fsym)
+    fnc = getfnctype( fgl, fgl.fIDs[fsym] )
+  else
+    error("fIDs doesn't have $(fsym)")
+  end
+  p = kde!( getSample(fnc, N)[1]  )
+  # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
+  plotKDE(fgl, lsf(fgl, fsym), addt=[p], marg=marg)
+end
+
+"""
+    plotKDEresiduals(fg,fsym)
+
+Trye plot relative values of variables and measurement surrounding fsym factor.
+"""
+function plotKDEresiduals(fgl::FactorGraph,
+      fsym::Symbol;
+      N::Int=100,
+      levels::Int=3,
+      marg=nothing  )
+  #
+  COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
+  fnc = getfnctype( fg, fg.fIDs[fsym] )
+  @show sxi = lsf(fgl, fsym)[1]
+  @show sxj = lsf(fgl, fsym)[2]
+  xi = getVal(fg, sxi)
+  xj = getVal(fg, sxj)
+  measM = getSample(fnc, Nparticles)
+  meas = length(measM) == 1 ? (0*measM[1], ) : (0*measM[1], measM[2])
+  d = size(measM[1],1)
+  RES = zeros(d,N)
+  for i in 1:N
+    res = zeros(d)
+    fnc(res, i, meas, xi,xj)
+    RES[:,i] = -res # inverse, assumed to be in linear space at this point. not universal TODO
+  end
+  pR = kde!(RES)
+  pM = kde!(measM[1])
+  plotKDE([pR;pM], c=COLORS[1:2], dims=marg,levels=3, legend=["residual";"model"])
+end
+
 """
     plotPriorsAtCliq(treel, lb, cllb)
 
@@ -542,17 +627,17 @@ function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl;nw=false)
   nothing
 end
 
-function ls(fgl::FactorGraph, lbl::Symbol)
+function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  v = nothing
+  # v = nothing
   if haskey(fgl.IDs, lbl)
     id = fgl.IDs[lbl]
   else
     return lsa
   end
-  v = dlapi.getvertex(fgl,id) #fgl.v[id]
+  v = getVert(fgl,id, api=api) #fgl.v[id]
   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-  for outn in getOutNeighbors(fgl, v) # out_neighbors(v, fgl.g)
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
       push!(lsa, Symbol(outn.label))
     # end
@@ -587,23 +672,34 @@ function ls(fgl::FactorGraph)
   return xx,ll
 end
 
-function lsv(fgl::FactorGraph, lbl::Symbol)
+function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  v = Union{}
+  # v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
   else
     return lsa
   end
-  v = fgl.g.vertices[id] #fgl.f[id]
-  for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
     push!(lsa, Symbol(outn.label))
   end
   return lsa
 end
-lsv{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsv(fgl,Symbol(lbl))
+lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
 
-
+function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+      mt::Type{T};
+      api::DataLayerAPI=dlapi  )
+  #
+  syms = Symbol[]
+  for (fsym,fid) in fgl.fIDs
+    if typeof(getfnctype(fgl, fid, api=api))==T
+      push!(syms, fsym)
+    end
+  end
+  return syms
+end
 
 
 function fixRotWrapErr!(RT::Array{Float64,1})

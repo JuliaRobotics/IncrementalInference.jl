@@ -1,7 +1,7 @@
 module IncrementalInference
 
 import Base: convert
-import KernelDensityEstimate: kde!
+import KernelDensityEstimate: kde!, plotKDE
 
 using
   Graphs,
@@ -14,9 +14,11 @@ using
   KernelDensityEstimate
 
 export
-  # pass through functions commonly used lower down
+  # added methods to functions from KernelDensityEstimate
   kde!,
   plotKDE,
+
+  # pass through functions commonly used lower down
   Npoints,
   Ndim,
   getBW,
@@ -76,6 +78,8 @@ export
   investigateMultidimKDE,
   writeGraphPdf,
   ls,
+  lsf,
+  getfnctype,
   drawHorDens,
   drawHorBeliefsList,
 
@@ -147,11 +151,12 @@ export
   reshapeVec2Mat,
 
   # analysis and some plotting
+  plotKDEofnc,
+  plotKDEresiduals,
   plotMCMC,
   plotUpMsgsAtCliq,
   plotPriorsAtCliq,
   investigateMultidimKDE,
-  kde!,
   draw,
   whosWith,
   drawUpMsgAtCliq,

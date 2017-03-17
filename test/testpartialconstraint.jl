@@ -22,27 +22,27 @@ getSample(dpl::DevelopDim2, N::Int=1) = (rand(dpl.x, N), )
 
 
 
-N=100
+N=50
 fg = emptyFactorGraph()
 
 
 v1 = addNode!(fg,:x1,randn(2,N),N=N)
 
-pr = DevelopDim2(MvNormal([0.0;0.0],eye(2)))
+pr = DevelopDim2(MvNormal([0.0;0.0],0.01*eye(2)))
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
 f2  = addFactor!(fg,[:x1],dp)
 
 println("test evaluation of full constraint prior")
-pts = evalFactor2(fg, f1, v1.index)
+pts = evalFactor2(fg, f1, v1.index, N=N)
 @test size(pts,1) == 2
 @test size(pts,2) == N
 @test norm(Base.mean(pts,2)[1]-[0.0]) < 0.3
 
 println("test evaluation of partial constraint prior")
 X1pts = getVal(v1)
-pts = evalFactor2(fg, f2, v1.index)
+pts = evalFactor2(fg, f2, v1.index, N=N)
 
 @test size(pts, 1) == 2
 @test size(pts,2) == N
@@ -58,8 +58,8 @@ tree = wipeBuildNewTree!(fg)
 
 inferOverTreeR!(fg,tree, N=N)
 pts = getVal(fg, :x1)
-@test norm(Base.mean(pts,2)[1]-[1.0]) < 0.5
-@test norm(Base.mean(pts,2)[2]-[0.0]) < 0.3
+@test norm(Base.mean(pts,2)[1]-[0.0]) < 0.25
+@test norm(Base.mean(pts,2)[2]-[0.0]) < 0.25
 
 # plotKDE(getVertKDE(fg, :x1),levels=3)
 
@@ -97,15 +97,15 @@ dp2 = DevelopPartial( Normal(-20.0, 1.0), (1,) )
 f4  = addFactor!(fg,[:x2],dp2)
 
 
-pts = evalFactor2(fg, f3, v2.index)
+pts = evalFactor2(fg, f3, v2.index, N=N)
 # plotKDE(kde!(pts))
 @test size(pts,1) == 2
 @test norm(Base.mean(pts,2)[2]-[10.0]) < 3.0
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
-pts = evalFactor2(fg, f4, v2.index)
+pts = evalFactor2(fg, f4, v2.index, N=N)
 @test size(pts,1) == 2
-@test norm(Base.mean(pts,2)[1]-[-20.0]) < 0.3
+@test norm(Base.mean(pts,2)[1]-[-20.0]) < 0.75
 @test (Base.std(pts,2)[1]-1.0) < 0.3
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
@@ -143,6 +143,23 @@ memcheck = getVal(v2)
 
 
 println("test belief prediction...")
+# partial prior
+X2pts = getVal(v2)
+val = predictbelief(fg, v2, [f4], N=N)
+@test norm(X2pts[2,:] - val[2,:]) < 1e-10
+@test 0.0 < norm(X2pts[1,:] - val[1,:])
+@test norm(Base.mean(val[1,:])+20.0) < 0.75
+
+
+# partial pairwise
+X2pts = getVal(v2)
+val = predictbelief(fg, v2, [f3], N=N)
+@test norm(X2pts[1,:] - val[1,:]) < 1e-10
+@test 0.0 < norm(X2pts[2,:] - val[2,:])
+@test abs(Base.mean(val[2,:] - getVal(v1)[2,:])-10.0) < 0.3
+
+
+# combination of partials
 val = predictbelief(fg, v2, [f3;f4], N=N)
 # plotKDE(kde!(val),levels=3)
 @test norm(Base.mean(val,2)[1]-[-20.0]) < 2.0
@@ -157,7 +174,7 @@ tree = wipeBuildNewTree!(fg )#, drawpdf=true)
 inferOverTreeR!(fg,tree, N=N)
 
 pts = getVal(fg, :x1)
-@test norm(Base.mean(pts,2)[1]-[1.0]) < 0.5
+@test norm(Base.mean(pts,2)[1]-[0.0]) < 0.5
 @test norm(Base.mean(pts,2)[2]-[0.0]) < 0.5
 
 pts = getVal(fg, :x2)
