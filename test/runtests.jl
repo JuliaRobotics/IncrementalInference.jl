@@ -30,6 +30,10 @@ println("[TEST] partial constraints...")
 include("testpartialconstraint.jl")
 println("Success")
 
+println("[TEST] partial constraints...")
+include("testnullhypothesis.jl")
+println("Success")
+
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")

@@ -108,22 +108,22 @@ function evalPotentialSpecific{T <: FunctorSingletonNH}(
 
   # determine amount share of null hypothesis particles
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-
   # values of 0 imply null hypothesis
   # generalwrapper.usrfnc!.nullhypothesis::Distributions.Categorical
   nhc = rand(generalwrapper.usrfnc!.nullhypothesis, N) - 1
 
   val = getVal(Xi[1])
   d = size(val,1)
-  var = Base.var(val,2)
-  ENT = Distributions.MvNormal(zeros(d),10*diagm(var))
+  var = Base.var(val,2) + 1e-3
+  ENT = Distributions.MvNormal(zeros(d),10*diagm(var[:]))
 
   for i in 1:N
     if nhc[i] == 0
-      generalwrapper.measurement[:,i] = val[:,i] + rand(ENT)
+      generalwrapper.measurement[1][:,i] = val[:,i] + rand(ENT)
     end
   end
-  return generalwrapper.measurement
+  # TODO -- returning to memory location inside
+  return generalwrapper.measurement[1]
 end
 
 # function evalPotentialSpecific{T <: FunctorPartialSingleton}(
