@@ -242,6 +242,7 @@ function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{P
   return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
 end
 function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  println("Trying to convert")
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
 
@@ -251,6 +252,9 @@ end
 function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
+
+# loading jld seems to miss a direct converter. Lets try a harder method definition
+# function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{GenericFunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
 
 
 # Compare FunctionNodeData

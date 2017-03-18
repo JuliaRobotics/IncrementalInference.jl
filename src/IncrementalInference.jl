@@ -13,7 +13,8 @@ using
   Distributions,
   KernelDensityEstimate,
   HDF5,
-  JLD
+  JLD,
+  ProgressMeter
 
 export
   # added methods to functions from KernelDensityEstimate
@@ -136,7 +137,9 @@ export
   # factor graph operating system utils (fgos)
   convert2packedfunctionnode,
   encodefg,
-  savefgjld,
+  decodefg,
+  savejld,
+  loadjld,
 
   # For 1D example, should be refactored and renamed
   Odo,

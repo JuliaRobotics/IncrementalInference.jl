@@ -9,3 +9,4 @@ Distributions
 KernelDensityEstimate 0.2.1
 HDF5
 JLD
+ProgressMeter
