@@ -69,15 +69,12 @@ tree = prepBatchTree!(fg, drawpdf=false);
 
 # do belief propagation inference over tree once
 # using recursive single core approach (better stack trace for development)
-inferOverTreeR!(fg, tree)
+# inferOverTreeR!(fg, tree)
 inferOverTreeR!(fg, tree, N=N, dbg=true)
-
+#
 # test multi-processor solve (operational fast solving)
 inferOverTree!(fg, tree)
-inferOverTree!(fg, tree, dbg=true)
-
-println("Inference finished")
-
+# inferOverTree!(fg, tree, dbg=true)
 
 
 

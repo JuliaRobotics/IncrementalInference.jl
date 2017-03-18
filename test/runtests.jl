@@ -34,6 +34,10 @@ println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
 
+println("[TEST] saving to and loading from .jld file")
+savejld(fg) # file="tempfg.jld"
+fgu = loadjld() # file="tempfg.jld"
+println("Success")
 
 println("[TEST] plot functions...")
 using Gadfly
@@ -49,8 +53,9 @@ pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 println("Success")
 
 
-warn("plotMCMC available with latest code from KernelDensityEstimate, not included in test at this time.")
+warn("plotMCMC needs ImageMagick on osx, not running test yet.")
 # plotMCMC(tree, :x1, show=false)
+# println("Success")
 
 
 

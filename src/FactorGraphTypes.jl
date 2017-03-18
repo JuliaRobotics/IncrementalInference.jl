@@ -228,7 +228,6 @@ end
 # Functor version -- TODO, abstraction can be improved here
 function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
   usrfnc = convert(T, d.fnc)
-  # warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
@@ -298,7 +297,7 @@ end
 function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex; saveedgeID::Bool=true)
   edge = Graphs.make_edge(fgl.g, v1, v2)
   Graphs.add_edge!(fgl.g, edge)
-  if saveedgeID push!(v2.attributes["data"].edgeIDs,edge.index) end
+  if saveedgeID push!(getData(v2).edgeIDs,edge.index) end #.attributes["data"]
   edge
 end
 

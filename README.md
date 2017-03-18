@@ -16,7 +16,7 @@ This package furthermore forms a cardinal piece of the [Caesar.jl](https://githu
 Introduction
 ------------
 
-This package implements [Multi-modal iSAM](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) [1] and is an extension of the iSAM2 [2]. The focus is towards hybrid non-parametric and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm.
+This package implements [Multi-modal iSAM](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) [1], a descendant of the iSAM2 [2] algorithm. The main algorithm is focused towards hybrid non-parametric and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm. Immediate benefits such as branch recycling is carried over as well.
 
 Comments and questions welcome.
 
