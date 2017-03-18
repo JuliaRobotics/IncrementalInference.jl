@@ -228,7 +228,6 @@ end
 # Functor version -- TODO, abstraction can be improved here
 function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
   usrfnc = convert(T, d.fnc)
-  # warn("convert sampling function will be set to + and not the correct pointer as held in fgl.registeredModuleFunctions[:modulename]")
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
@@ -242,7 +241,6 @@ function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{P
   return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
 end
 function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  println("Trying to convert")
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
 
@@ -252,9 +250,6 @@ end
 function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
 end
-
-# loading jld seems to miss a direct converter. Lets try a harder method definition
-# function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{GenericFunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
 
 
 # Compare FunctionNodeData

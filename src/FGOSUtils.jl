@@ -127,7 +127,7 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   end
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
-    data,ftyp = RoME.convertfrompackedfunctionnode(fgs, fsym)
+    data,ftyp = convertfrompackedfunctionnode(fgs, fsym)
     # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
@@ -154,10 +154,10 @@ end
 
 
 function loadjld(;file::AbstractString="tempfg.jld")
-  fgs = jldopen("test.jld","r") do file
+  fgs = jldopen("tempfg.jld","r") do file
     read(file, "fgs")
   end
-  fgd = RoME.decodefg(fgs)
+  fgd = decodefg(fgs)
   return fgd
 end
 
