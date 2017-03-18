@@ -34,6 +34,10 @@ println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
 
+println("[TEST] saving to and loading from .jld file")
+savejld(fg) # file="tempfg.jld"
+fgu = loadjld() # file="tempfg.jld"
+println("Success")
 
 println("[TEST] plot functions...")
 using Gadfly

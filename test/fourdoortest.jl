@@ -76,11 +76,6 @@ inferOverTreeR!(fg, tree, N=N, dbg=true)
 inferOverTree!(fg, tree)
 # inferOverTree!(fg, tree, dbg=true)
 
-println("test saving and loading of file to and from jld")
-
-savejld(fg) # file="tempfg.jld"
-fgu = loadjld() # file="tempfg.jld"
-
 
 
 
