@@ -111,7 +111,8 @@ export
   FunctorInferenceType,
   FunctorPairwise,
   FunctorSingleton,
-  FunctorPartialSingleton,
+  # FunctorPartialSingleton,
+  FunctorSingletonNH,
 
   # Solving utils
   findRelatedFromPotential,

@@ -576,6 +576,10 @@ function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
+function getVertKDE(v::Graphs.ExVertex)
+  return getKDE(v)
+end
+
 function getVertKDE(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,id)
   return getKDE(v)
