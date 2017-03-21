@@ -28,7 +28,8 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   # and return complete fr/gwp
 
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for gwp.particleidx in 1:maxlen
+  for n in 1:maxlen
+    gwp.particleidx = n
     # gwp(x, res)
     numericRootGenericRandomizedFnc!( fr )
         # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
@@ -40,6 +41,53 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   return gwp.params[gwp.varidx]
   # return evalPotential(typ, Xi, solvefor)
 end
+
+
+function evalPotentialSpecific{T <: FunctorPairwiseNH}(
+      fnc::T,
+      Xi::Vector{Graphs.ExVertex},
+      gwp::GenericWrapParam{T},
+      solvefor::Int64;
+      N::Int64=100,
+      spreadfactor::Float64=10.0  )
+  #
+  # TODO -- enable partial constraints
+
+  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
+  if gwp.specialzDim
+    zDim = gwp.usrfnc!.zDim[sfidx]
+  end
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  # and return complete fr/gwp
+
+  # nullhypothesis
+  nhc = rand(gwp.usrfnc!.nullhypothesis, maxlen) - 1
+  val = gwp.params[gwp.varidx]
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+
+  # TODO --  Threads.@threads see area4 branch
+  for n in 1:maxlen
+    # gwp(x, res)
+    if nhc[n] != 0
+      gwp.particleidx = n
+      numericRootGenericRandomizedFnc!( fr )
+    else
+      gwp.params[gwp.varidx][:,n] += rand(ENT)
+    end
+  end
+
+  return gwp.params[gwp.varidx]
+  # return evalPotential(typ, Xi, solvefor)
+end
+
 
 function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
       fnc::T,
@@ -62,7 +110,8 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for gwp.particleidx in 1:maxlen
+  for n in 1:maxlen
+    gwp.particleidx = n
     # gwp(x, res)
     # implement minimization here
     res = zeros(fr.xDim)
@@ -103,7 +152,8 @@ function evalPotentialSpecific{T <: FunctorSingletonNH}(
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int64;
-      N::Int64=100  )
+      N::Int64=100,
+      spreadfactor::Float64=10.0  )
   #
 
   # determine amount share of null hypothesis particles
@@ -115,7 +165,7 @@ function evalPotentialSpecific{T <: FunctorSingletonNH}(
   val = getVal(Xi[1])
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
-  ENT = Distributions.MvNormal(zeros(d),10*diagm(var[:]))
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
 
   for i in 1:N
     if nhc[i] == 0

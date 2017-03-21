@@ -112,6 +112,7 @@ export
   FunctorPairwise,
   FunctorSingleton,
   # FunctorPartialSingleton,
+  FunctorPairwiseNH,
   FunctorSingletonNH,
 
   # Solving utils
