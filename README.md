@@ -34,31 +34,38 @@ Comments, questions and issues welcome.
 Installation
 ------------
 
-You can draw factor graph and Bayes tree easily if graphviz is installed (optional)
-
-$ sudo apt-get install graphviz
-
 Install the package itself with
 
 julia> Pkg.add("IncrementalInference")
 
+You can draw factor graph and Bayes tree easily if graphviz is installed (optional)
+
+$ sudo apt-get install graphviz
 
 Basic example
 =============
 
-A multi-modal 4 door robot example is available at:
+This library is built as solver back-end which can be easily modified and extended. Specific emphasis is placed on allowing outside user defined constraint definitions to be used. The current major use case is through [RoME.jl](http://github.com/dehann/RoME.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate.
+
+A few short examples, such as the multi-modal 4 door robot example, is available in the example folder:
 
     examples/RobotfourDoor.jl
 
-Which should produce maginal beliefs over all variables in the factor graphs as shown below
+Here 4 simultaneous modes are considered producing multi-modal posterior beliefs in the continuous domain, final consensus output and ground truth belief are show below.
 
-![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/4doors.png)
-
+<p align="center">
+<img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/4doors.png" alt="Four door final result" width="640"/></img>
+</p>
 
 DataBase interaction layer
 ==========================
 
-For using the solver on a DataBase layer see [Caesar.jl](http://www.github.com/dehann/Caesar.jl) and associated [CloudGraphs](http://github.com/GearsAD/CloudGraphs.jl) project.
+The data layer of the solver can be swapped away from the default Julia based [Graphs.jl](http://www.github.com/JuliaArchive/Graphs.jl). For using the solver on a DataBase layer please see [Caesar.jl](http://www.github.com/dehann/Caesar.jl) and associated [CloudGraphs](http://github.com/GearsAD/CloudGraphs.jl) project.
+
+Contributors
+============
+
+D. Fourie, M. Kaess
 
 References
 ==========
