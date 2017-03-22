@@ -1,4 +1,6 @@
 # Factor Graph OS type utilities
+# Hack for type conversion method discovery issue. IIF methods should direclty detect
+# overloaded types from user import of new types outside IIF.
 
 """
     convert2packedfunctionnode(fgl::FactorGraph, fsym::Symbol)
@@ -154,7 +156,7 @@ end
 
 
 function loadjld(;file::AbstractString="tempfg.jld")
-  fgs = jldopen("tempfg.jld","r") do file
+  fgs = jldopen(file,"r") do file
     read(file, "fgs")
   end
   fgd = decodefg(fgs)

@@ -8,7 +8,7 @@ function plotKDE(fgl::FactorGraph, sym::Symbol;
   p = getVertKDE(fgl,sym)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(mp, levels=levels, dims=marg)
+  plotKDE(p, levels=levels, dims=marg)
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
@@ -77,8 +77,13 @@ function plotKDEresiduals(fgl::FactorGraph,
   RES = zeros(d,N)
   for i in 1:N
     res = zeros(d)
-    fnc(res, i, meas, xi,xj)
-    RES[:,i] = -res # inverse, assumed to be in linear space at this point. not universal TODO
+    fnc(res, i, meas, xi, xj)
+    RES[:,i] = res
+    if length(measM) > 1
+      if measM[2][i] == 0
+        RES[:,i] = 0.5*randn(d)
+      end
+    end
   end
   pR = kde!(RES)
   pM = kde!(measM[1])
@@ -155,7 +160,8 @@ function plotMCMC(treel::BayesTree, lbll::Symbol;
       delay::Int=200,
       show::Bool=true,
       w=20cm, h=15cm,
-      levels::Int=1  )
+      levels::Int=1,
+      dims=nothing  )
   #
   cliq = whichCliq(treel, string(lbll))
   cliqdbg = cliq.attributes["debug"]
@@ -185,17 +191,17 @@ function plotMCMC(treel::BayesTree, lbll::Symbol;
     arr = [ppr;ppp;cliqdbg.mcmc[i].prods[vidx].potentials]
     len = length(cliqdbg.mcmc[i].prods[vidx].potentials)
     lg = String["p";"n";cliqdbg.mcmc[i].prods[vidx].potentialfac] #map(string, 1:len)]
-    cc = plotKDE(arr, c=COLORS[1:(len+2)], legend=lg, levels=levels, fill=true, axis=rangeV );
+    cc = plotKDE(arr, c=COLORS[1:(len+2)], legend=lg, levels=levels, fill=true, axis=rangeV, dims=dims );
     Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
   end
   # draw initial and final result
   pp0 = kde!(cliqdbg.mcmc[1].prods[vidx].prev)
   i = 0
-  cc = plotKDE([pp0], c=[COLORS[1]], legend=["0"], levels=levels, fill=true, axis=rangeV );
+  cc = plotKDE([pp0], c=[COLORS[1]], legend=["0"], levels=levels, fill=true, axis=rangeV, dims=dims );
   Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
 
   i = length(cliqdbg.mcmc)+1
-  cc = plotKDE([pp0;ppp], c=COLORS[1:2], legend=["0";"n"], levels=levels, fill=true, axis=rangeV );
+  cc = plotKDE([pp0;ppp], c=COLORS[1:2], legend=["0";"n"], levels=levels, fill=true, axis=rangeV, dims=dims );
   Gadfly.draw(PNG(joinpath(tmpfilepath,"$(string(lbll))mcmc$(i).png"),w,h),cc)
   # generate output
   run(`convert -delay $(delay) $(tmpfilepath)/$(string(lbll))mcmc*.png $(tmpfilepath)/$(string(lbll))mcmc.gif`)

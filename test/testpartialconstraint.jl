@@ -156,7 +156,7 @@ X2pts = getVal(v2)
 val = predictbelief(fg, v2, [f3], N=N)
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
-@test abs(Base.mean(val[2,:] - getVal(v1)[2,:])-10.0) < 0.3
+@test abs(Base.mean(val[2,:] - getVal(v1)[2,:])-10.0) < 0.75
 
 
 # combination of partials
