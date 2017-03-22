@@ -65,7 +65,7 @@ The data layer of the solver can be swapped away from the default Julia based [G
 Contributors
 ============
 
-D. Fourie, M. Kaess
+D. Fourie, M. Kaess, J. Leonard
 
 References
 ==========
