@@ -9,7 +9,7 @@
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/).
 
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" border="10" /></a>
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
 
 This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/dehann/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/dehann/RoME.jl) package is also available.
 
@@ -18,9 +18,14 @@ Introduction
 
 This package implements [Multi-modal iSAM](http://frc.ri.cmu.edu/~kaess/pub/Fourie16iros.pdf) [1], a descendant of the iSAM2 [2] algorithm. The main algorithm is focused towards hybrid non-parametric and parametric inference over large factor graphs. Inference is performed via the Bayes tree (similar to Junction tree) where non-parametric and parametric solutions are based on belief propagation -- also known as the sum-product algorithm. Immediate benefits such as branch recycling is carried over as well.
 
-Comments and questions welcome.
+
+The animation below shows 50% confidence lines of marginal beliefs relating to 6DOF robot poses. The approximate beliefs are being inferred through a process of successive approximation. The black trace shows the initial belief, and red the final output belief estimate. Notice the mode cycling during the process, brought about by information from elsewhere in the graph. This animation illustrates the sum-product (belief propagation) process, during the upward pass on  Bayes tree from a real data.
+
+![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/x60mcmc.gif)
 
 <!-- ![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png) -->
+
+Comments, questions and issues welcome.
 
 Installation
 ------------
@@ -49,26 +54,7 @@ Which should produce maginal beliefs over all variables in the factor graphs as 
 DataBase interaction layer
 ==========================
 
-For using the solver on a DataBase layer (work in progress on centralized architecture ) see [CloudGraphs](https://github.com/GearsAD/CloudGraphs.jl.git),
-
-Install [Neo4j](https://neo4j.com/) and add these packages to your Julia system
-
-    Pkg.clone("https://github.com/GearsAD/Neo4j.jl.git")
-    Pkg.clone("https://github.com/GearsAD/CloudGraphs.jl.git")
-
-And uncomment CloudGraphs related lines from IncrementalInference/REQUIRE and src/IncrementalInference.jl (Ln 14 & 108) and test/runtests.jl Ln 53 to true.
-
-You should be able to rerun the four door test on both internal dictionaries and repeated on Neo4j DB
-
-    Pkg.test("IncrementalInference")
-
-Go to your browser at localhost:7474 and run the Cypher query
-
-    match (n) return n
-
-to see current graph. You can delete the graph using the query
-
-    match (n) detach delete n
+For using the solver on a DataBase layer see [Caesar.jl](http://www.github.com/dehann/Caesar.jl) and associated [CloudGraphs](http://github.com/GearsAD/CloudGraphs.jl) project.
 
 References
 ==========
