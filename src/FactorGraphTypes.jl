@@ -24,6 +24,13 @@ typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs
 
 typealias VoidUnion{T} Union{Void, T}
 
+# Condensed representation of KernelDensityEstimate, by saving points and bandwidth
+type EasyMessage
+  pts::Array{Float64,2}
+  bws::Array{Float64,1}
+end
+
+
 type FactorGraph
   g::FGGdict
   bn
@@ -90,8 +97,9 @@ type VariableNodeData
   eliminated::Bool
   BayesNetVertID::Int64
   separator::Array{Int64,1}
+  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   VariableNodeData() = new()
-  VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10])
+  VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11])
 end
 
 type PackedVariableNodeData
@@ -189,7 +197,8 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
-    d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator)
+    d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
+    nothing)
 end
 function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
   return convert(P, d) #PackedVariableNodeData
@@ -322,10 +331,5 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
   nothing
 end
 
-# Condensed representation of KernelDensityEstimate, by saving points and bandwidth
-type EasyMessage
-  pts::Array{Float64,2}
-  bws::Array{Float64,1}
-end
 
 #
