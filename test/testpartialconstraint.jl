@@ -46,7 +46,7 @@ pts = evalFactor2(fg, f2, v1.index, N=N)
 
 @test size(pts, 1) == 2
 @test size(pts,2) == N
-@test norm(Base.mean(pts,2)[1]-[2.0]) < 0.3
+@test norm(Base.mean(pts,2)[1]-[2.0]) < 0.75
 # ensure the correct response from
 @test norm(X1pts[1,:] - pts[1,:]) > 2.0
 @test norm(X1pts[2,:] - pts[2,:]) < 1e-10

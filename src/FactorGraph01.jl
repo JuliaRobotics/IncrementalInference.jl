@@ -106,7 +106,8 @@ end
 
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                              stdev::Array{Float64,2}, dodims::Int64, N::Int64)
+                             stdev::Array{Float64,2}, dodims::Int64, N::Int64;
+                             gt=nothing)
   pN = Union{}
   if size(initval,2) < N
     warn("setDefaultNodeData! -- deprecated use of stdev.")
@@ -119,7 +120,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
   data = VariableNodeData(initval, stdev, getPoints(pN),
                           (getBW(pN)[:,1]')', Int64[], sp,
-                          dims, false, 0, Int64[])
+                          dims, false, 0, Int64[], gt)
   #
   v.attributes["data"] = data
 

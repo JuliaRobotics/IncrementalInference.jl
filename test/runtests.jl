@@ -8,6 +8,10 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+print("[TEST] Ensure converter types can be run from extending namespaces...")
+include("saveconvertertypes.jl")
+println("Success")
+
 addprocs(3)
 
 println("[TEST] packing converters work...")

@@ -2,6 +2,17 @@
 # Hack for type conversion method discovery issue. IIF methods should direclty detect
 # overloaded types from user import of new types outside IIF.
 
+
+function convert{PT <: PackedInferenceType, T <:FunctorInferenceType}(::Type{PT}, ::T)
+  eval(parse("$(T.name.module).Packed$(T.name.name)"))
+end
+function convert{T <: FunctorInferenceType, PT <: PackedInferenceType}(::Type{T}, ::PT)
+  @show string(PT.name.name)[7:end]
+  eval(parse("$(PT.name.module).$(string(PT.name.name)[7:end])"))
+end
+
+
+
 """
     convert2packedfunctionnode(fgl::FactorGraph, fsym::Symbol)
 
@@ -14,16 +25,13 @@ function convert2packedfunctionnode(fgl::FactorGraph,
   #
   fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fid)
-  tfn = typeof(fnc)
-  nms = split(string(tfn),'.')
-  typn = nms[end]
-  modu = nms[1] != typn ? nms[1] : nothing  # careful with the module name
-  pnm = string("Packed",typn)
-  usrtyp = eval(parse(pnm))
+  usrtyp = convert(PackedInferenceType, fnc)
   cfnd = convert(PackedFunctionNodeData{usrtyp},getData(fgl, fid, api=api) )
-  # pfnc = convert(usrtyp, fnc)
   return cfnd, usrtyp
 end
+
+
+
 
 """
     encodefg(fgl::FactorGraph)
@@ -99,17 +107,10 @@ function convertfrompackedfunctionnode(fgl::FactorGraph,
   #
   fid = fgl.fIDs[fsym]
   fnc = getData(fgl, fid).fnc #getfnctype(fgl, fid)
-  tfn = typeof(fnc)
-  nms = split(string(tfn),'.')
-  typn = nms[end]
-  modu = nms[1] != typn ? nms[1] : nothing  # careful with the module name
-  upnm = typn[7:end]
-  if typn[1:6] != "Packed"  error("cannot unpack $(typn)")  end
-  usrtyp = eval(parse(upnm))
+  usrtyp = convert(FunctorInferenceType, fnc)
   data = getData(fgl, fid, api=api)
   newtype = FunctionNodeData{GenericWrapParam{usrtyp}}
   cfnd = convert(newtype, data)
-  # pfnc = convert(usrtyp, fnc)
   return cfnd, usrtyp
 end
 
