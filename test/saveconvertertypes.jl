@@ -9,7 +9,7 @@ module  Dependency
   abstract pabst
 
   convert{P <: pabst, T <: abst}(::Type{P}, ::T) =
-          eval(parse("$(T.name.module).Packed$(T.name.name)"))
+          getfield(T.name.module, Symbol("Packed$(T.name.name)"))
   convertsave(t) = convert(pabst, t)
 end
 
@@ -23,7 +23,7 @@ module Extend
   type PackedT1 <: pabst  end
 
   convert{P <: pabst, T <: abst}(::Type{P}, ::T) =
-        eval(parse("$(T.name.module).Packed$(T.name.name)"))
+        getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
 
 
