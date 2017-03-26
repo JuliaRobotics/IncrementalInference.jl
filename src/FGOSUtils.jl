@@ -82,12 +82,18 @@ end
     savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
 
 Save mostly complete Factor Graph type by converting complicated FunctionNodeData
-types to 'Packed' types using user supplied converters.
+types to 'Packed' types using user supplied converters. Ground truth can also be
+saved and recovered by the associated loadjld(file="tempfg.jld") method.
 """
 function savejld(fgl::FactorGraph;
-      file::AbstractString="tempfg.jld")
+      file::AbstractString="tempfg.jld",
+      groundtruth=nothing)
   fgs = encodefg(fgl)
-  @save file fgs
+  if groundtruth == nothing
+    @save file fgs
+  else
+    @save file fgs groundtruth
+  end
   return file
 end
 
@@ -155,13 +161,29 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   return fgu
 end
 
+"""
+    loadjld(file="tempfg.jld")
 
+Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This function
+uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
+"""
 function loadjld(;file::AbstractString="tempfg.jld")
-  fgs = jldopen(file,"r") do file
-    read(file, "fgs")
+  dd = JLD.load(file)
+  # fgs = jldopen(file,"r") do file
+  #   read(file, "fgs")
+  # end
+  fgs, gt = nothing, nothing
+  if haskey(dd, "fgs")
+    fgs = dd["fgs"]
+  else
+    error("No factor graph (fgs) data found in this file, only found $(keys(dd))")
+  end
+  if haskey(dd, "groundtruth")
+    gt = dd["groundtruth"]
+    println("Also found ground truth data")
   end
   fgd = decodefg(fgs)
-  return fgd
+  return fgd, gt
 end
 
 
