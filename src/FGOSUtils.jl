@@ -89,7 +89,7 @@ function savejld(fgl::FactorGraph;
       file::AbstractString="tempfg.jld",
       groundtruth=nothing)
   fgs = encodefg(fgl)
-  if gt == nothing
+  if groundtruth == nothing
     @save file fgs
   else
     @save file fgs groundtruth
