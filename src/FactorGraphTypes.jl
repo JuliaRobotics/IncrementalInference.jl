@@ -43,7 +43,7 @@ type FactorGraph
   bnid::Int # TODO -- not sure if this is still used
   dimID::Int64
   cg
-  cgIDs::Dict{Int64,Int64}
+  cgIDs::Dict{Int64,Int64} # cgIDs[exvid] = neoid
   sessionname::AbstractString
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   FactorGraph() = new()
