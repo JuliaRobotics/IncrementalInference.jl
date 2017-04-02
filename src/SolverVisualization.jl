@@ -2,7 +2,7 @@
 
 
 function plotKDE(fgl::FactorGraph, sym::Symbol;
-      marg=nothing,
+      dims=nothing,
       levels::Int=5  )
   #
   p = getVertKDE(fgl,sym)
@@ -32,6 +32,21 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
     push!(LEG, "add")
   end
   plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=marg, legend=LEG)
+end
+function plotKDE(fgl::FactorGraph, sym::Symbol;
+      marg=nothing,
+      levels::Int=5  )
+  #
+  warn("Depricated call, use dims=Int[..] as keyword instead.")
+  plotKDE(fgl, sym, dims=marg, levels=levels  )
+end
+function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
+      addt::Vector{BallTreeDensity}=BallTreeDensity[],
+      marg=nothing,
+      levels=3  )
+  #
+  warn("Depricated call, use dims=Int[..] as keyword instead.")
+  plotKDE(fgl, syms, dims=marg, addt=addt, levels=levels  )
 end
 
 """
@@ -580,37 +595,39 @@ function drawFactorBeliefs(fgl::FactorGraph, flbl::Symbol)
 end
 drawFactorBeliefs{T <: AbstractString}(fgl::FactorGraph, flbl::T) = drawFactorBeliefs(fgl, Symbol(flbl))
 
-function localProduct(fgl::FactorGraph, lbl::Symbol; N::Int=300)
-  arr = Array{BallTreeDensity,1}()
-  cf = ls(fgl, lbl)
-  pp = Union{}
-  for f in cf
-    fgf = dlapi.getvertex(fgl,f,:fnc)
-    push!(arr, kde!(evalFactor2(fgl, fgf, fgl.IDs[lbl])))
-  end
-  if length(arr)>1
-    Ndims = arr[1].bt.dims
-    dummy = kde!(rand(Ndims,N),[1.0]);
-    pGM, = prodAppxMSGibbsS(dummy, arr, Union{}, Union{}, 15)
-    pp = kde!(pGM,"lcv")
-  end
-  return pp,arr
-end
-localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=300) = localProduct(fgl, Symbol(lbl), N=N)
+"""
+    plotLocalProduct(fgl::FactorGraph, lbl::Symbol; N::Int=100, dims::Vector{Int}=Int[])
 
-function drawLocalProduct(fgl::FactorGraph, lbl::String; N::Int=300)
+Plot the proposal belief from neighboring factors to `lbl` in the factor graph (ignoring Bayes tree representation),
+and show with new product approximation for reference.
+"""
+function plotLocalProduct(fgl::FactorGraph, lbl::Symbol; N::Int=100, dims::Vector{Int}=Int[], api::DataLayerAPI=dlapi, levels::Int=1)
+  warn("not showing partial constraints, but included in the product")
+  COLORS = ["black";"red";"green";"blue";"deepskyblue";"yellow";"magenta";"cyan";"cyan";"cyan";"cyan";"cyan";"cyan";"cyan"]
   arr = Array{BallTreeDensity,1}()
-  push!(arr, getVertKDE(fgl, lbl))
-  pp, parr = localProduct(fgl, lbl, N=N)
-  if pp != Union{}
+  lbls = String[]
+  push!(arr, getVertKDE(fgl, lbl, api=api))
+  push!(lbls, "curr")
+  pp, parr, partials, lb = localProduct(fgl, lbl, N=N, api=api)
+  if pp != parr[1]
     push!(arr,pp)
+    push!(lbls, "prod")
     for a in parr
       push!(arr, a)
     end
+    lbls = union(lbls, lb)
   end
-  return plotKDE(arr)
+  dims = length(dims) > 0 ? dims : collect(1:Ndim(pp))
+  return plotKDE(arr, dims=dims, levels=levels, c=COLORS[1:length(arr)], legend=lbls)
 end
-drawLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=300) = drawLocalProduct(fgl, Symbol(lbl), N=N)
+
+"""
+    plotLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100, dims::Vector{Int}=Int[])
+
+Plot the proposal belief from neighboring factors to `lbl` in the factor graph (ignoring Bayes tree representation),
+and show with new product approximation for reference. String version is obsolete and will be deprecated.
+"""
+plotLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100, dims::Vector{Int}=Int[]) = plotLocalProduct(fgl, Symbol(lbl), N=N, dims=dims)
 
 function saveplot(pl;name="pl",frt=:png,w=25cm,h=25cm,nw=false,fill=true)
   if frt==:png
@@ -625,9 +642,9 @@ function saveplot(pl;name="pl",frt=:png,w=25cm,h=25cm,nw=false,fill=true)
   nothing
 end
 
-function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl;nw=false)
+function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl; nw=false)
   len = length(FGL)
-  [saveplot(drawLocalProduct(FG[i],lbl),h=15cm,w=30cm,name="gifs/pl$(i)",nw=true) for i=1:len];
+  [saveplot(plotLocalProduct(FG[i],lbl),h=15cm,w=30cm,name="gifs/pl$(i)",nw=true) for i=1:len];
   run(`convert -delay 100 gifs/pl*.png result.gif`)
   if !nw run(`eog result.gif`) end
   nothing
@@ -756,8 +773,9 @@ function unimodalCompare(FGL::Array{FactorGraph,1},isamdict::Dict{Int,Array{Floa
   return df,dfth
 end
 
-function asyncAnalyzeSolution(fgl::FactorGraph, lbl::String)
-  pp, arr = localProduct(fgl, lbl)
+function asyncAnalyzeSolution(fgl::FactorGraph, sym::Symbol)
+  lbl = string(sym)
+  pp, arr, partials = localProduct(fgl, lbl)
   lpm = getKDEMax(pp)
   em = getKDEMax(getVertKDE(fgl,lbl))
   err1 = norm(lpm[1:2]-em[1:2])

@@ -6,16 +6,9 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # end
 
 # get vertex from factor graph according to label symbol "x1"
-function getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  # if haskey(fgl.IDs, lbl)
-  #   return fgl.g.vertices[fgl.IDs[lbl]]
-  # end
-  api.getvertex(fgl, lbl)
-end
-function getVert(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi)
-  # dlapi.getvertex(fgl, id)
-  api.getvertex(fgl, id)
-end
+getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var) = api.getvertex(fgl, lbl, nt=nt)
+getVert(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
+
 
 # TODO -- upgrade to dedicated memory location in Graphs.jl
 # see JuliaArchive/Graphs.jl#233
