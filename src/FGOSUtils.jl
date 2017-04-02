@@ -1,13 +1,12 @@
 # Factor Graph OS type utilities
-# Hack for type conversion method discovery issue. IIF methods should direclty detect
-# overloaded types from user import of new types outside IIF.
+#  IIF methods should direclty detect extended types from user import
+# of convert in their namespace
 
 
 function convert{PT <: PackedInferenceType, T <:FunctorInferenceType}(::Type{PT}, ::T)
   getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
 function convert{T <: FunctorInferenceType, PT <: PackedInferenceType}(::Type{T}, ::PT)
-  @show string(PT.name.name)[7:end]
   getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
 end
 

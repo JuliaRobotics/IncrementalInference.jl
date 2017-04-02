@@ -21,9 +21,6 @@ module Extend
 
   type T1 <: abst  end
   type PackedT1 <: pabst  end
-
-  convert{P <: pabst, T <: abst}(::Type{P}, ::T) =
-        getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
 
 
