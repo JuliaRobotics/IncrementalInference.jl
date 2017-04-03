@@ -3,16 +3,18 @@
 
 function plotKDE(fgl::FactorGraph, sym::Symbol;
       dims=nothing,
+      title=nothing,
       levels::Int=5  )
   #
   p = getVertKDE(fgl,sym)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(p, levels=levels, dims=dims)
+  plotKDE(p, levels=levels, dims=dims, title=title)
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
       dims=nothing,
+      title=nothing,
       levels=3  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
@@ -31,7 +33,7 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
     push!(MP, p)
     push!(LEG, "add")
   end
-  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=dims, legend=LEG)
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=dims, legend=LEG, title=title)
 end
 # function plotKDE(fgl::FactorGraph, sym::Symbol;
 #       marg=nothing,
@@ -632,7 +634,7 @@ plotLocalProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100, dims
 function saveplot(pl;name="pl",frt=:png,w=25cm,h=25cm,nw=false,fill=true)
   if frt==:png
     Gadfly.draw(PNG(string(name,".png"),w,h),pl)
-    if fill run(`composite $(name).png plB.png $(name).png`) end
+    # if fill run(`composite $(name).png plB.png $(name).png`) end
     if !nw run(`eog $(name).png`) end
   end
   if frt==:pdf
