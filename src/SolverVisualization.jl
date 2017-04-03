@@ -8,11 +8,11 @@ function plotKDE(fgl::FactorGraph, sym::Symbol;
   p = getVertKDE(fgl,sym)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(p, levels=levels, dims=marg)
+  plotKDE(p, levels=levels, dims=dims)
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
-      marg=nothing,
+      dims=nothing,
       levels=3  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
@@ -31,23 +31,23 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
     push!(MP, p)
     push!(LEG, "add")
   end
-  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=marg, legend=LEG)
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=dims, legend=LEG)
 end
-function plotKDE(fgl::FactorGraph, sym::Symbol;
-      marg=nothing,
-      levels::Int=5  )
-  #
-  warn("Depricated call, use dims=Int[..] as keyword instead.")
-  plotKDE(fgl, sym, dims=marg, levels=levels  )
-end
-function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
-      addt::Vector{BallTreeDensity}=BallTreeDensity[],
-      marg=nothing,
-      levels=3  )
-  #
-  warn("Depricated call, use dims=Int[..] as keyword instead.")
-  plotKDE(fgl, syms, dims=marg, addt=addt, levels=levels  )
-end
+# function plotKDE(fgl::FactorGraph, sym::Symbol;
+#       marg=nothing,
+#       levels::Int=5  )
+#   #
+#   warn("Depricated call, use dims=Int[..] as keyword instead.")
+#   plotKDE(fgl, sym, dims=marg, levels=levels  )
+# end
+# function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
+#       addt::Vector{BallTreeDensity}=BallTreeDensity[],
+#       marg=nothing,
+#       levels=3  )
+#   #
+#   warn("Depricated call, use dims=Int[..] as keyword instead.")
+#   plotKDE(fgl, syms, dims=marg, addt=addt, levels=levels  )
+# end
 
 """
     plotKDEofnc(fg,fsym)
