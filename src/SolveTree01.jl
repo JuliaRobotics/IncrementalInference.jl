@@ -209,7 +209,7 @@ end
 """
     prodmultipleonefullpartials( dens, partials, Ndims, N )
 
-Multiply a single full and severla partial dimension constraints.
+Multiply a single full and several partial dimension constraints.
 """
 function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
       partials::Dict{Int64, Vector{BallTreeDensity}},
@@ -260,21 +260,20 @@ function productbelief(fg::FactorGraph,
     print("[drct]")
     pGM = getPoints(dens[1])
   else
-    warn("Unknown density product, lennonp=$(lennonp), lenpart=$(lenpart)")
+    warn("Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)")
     pGM = Array{Float64,2}(0,1)
   end
 
   return pGM
 end
 
-function predictbelief(fgl::FactorGraph,
-      destvert::ExVertex,
-      factors::Vector{Graphs.ExVertex};
-      N::Int=100  )
+function proposalbeliefs!(fgl::FactorGraph,
+      destvertid::Int,
+      factors::Vector{Graphs.ExVertex},
+      dens::Vector{BallTreeDensity},
+      partials::Dict{Int64, Vector{BallTreeDensity}};
+      N::Int=100)
   #
-  destvertid = destvert.index
-  dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int64, Vector{BallTreeDensity}}()
   for fct in factors
     data = getData(fct)
     p = findRelatedFromPotential(fgl, fct, destvertid, N)
@@ -291,7 +290,22 @@ function predictbelief(fgl::FactorGraph,
       push!(dens, p)
     end
   end
+  nothing
+end
 
+function predictbelief(fgl::FactorGraph,
+      destvert::ExVertex,
+      factors::Vector{Graphs.ExVertex};
+      N::Int=100  )
+  #
+  destvertid = destvert.index
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int64, Vector{BallTreeDensity}}()
+
+  # get proposal beliefs
+  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=N)
+
+  # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N )
 
   return pGM
@@ -309,6 +323,37 @@ function predictbelief(fgl::FactorGraph,
   end
   predictbelief(fgl, getVert(fgl, destvertsym, api=api), factors, N=N)
 end
+
+
+function localProduct(fgl::FactorGraph,
+        sym::Symbol;
+        N::Int=100,
+        api::DataLayerAPI=IncrementalInference.dlapi  )
+  #
+  destvertid = fgl.IDs[sym] #destvert.index
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  lb = String[]
+
+  fcts = Vector{Graphs.ExVertex}()
+  cf = ls(fgl, sym)
+  for f in cf
+    vert = getVert(fgl,f, nt=:fnc, api=api)
+    push!(fcts, vert)
+    push!(lb, vert.label)
+  end
+
+  # get proposal beliefs
+  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N)
+
+  # take the product
+  pGM = productbelief(fgl, destvertid, dens, partials, N )
+  pp = kde!(pGM)
+
+  return pp, dens, partials, lb
+end
+localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100) = localProduct(fgl, Symbol(lbl), N=N)
+
 
 function cliqGibbs(fg::FactorGraph,
       cliq::Graphs.ExVertex,

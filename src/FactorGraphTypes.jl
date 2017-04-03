@@ -285,14 +285,14 @@ function addGraphsVert!{T <: AbstractString}(fgl::FactorGraph, exvert::Graphs.Ex
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
-function getVertNode(fgl::FactorGraph, id::Int64, nt::Symbol=:var)
+function getVertNode(fgl::FactorGraph, id::Int64; nt::Symbol=:var, bigData::Bool=false)
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
-function getVertNode(fgl::FactorGraph, lbl::Symbol, nt::Symbol=:var)
-  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]) , nt)
+function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
+  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt , bigData=bigData)
 end
-getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T, nt::Symbol=:var) = getVertNode(fgl, Symbol(lbl), nt=nt)
+getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
 
 

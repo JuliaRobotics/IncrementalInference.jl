@@ -126,6 +126,7 @@ export
   FastRootGenericWrapParam,
 
   # user functions
+  proposalbeliefs,
   predictbelief,
 
   # generic marginal used during elimitation game
@@ -184,7 +185,7 @@ export
   drawHorBeliefsList,
   drawFactorBeliefs,
   localProduct,
-  drawLocalProduct,
+  plotLocalProduct,
   saveplot,
   animateVertexBelief
 
