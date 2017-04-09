@@ -3,26 +3,28 @@
 
 function plotKDE(fgl::FactorGraph, sym::Symbol;
       dims=nothing,
-      title=nothing,
-      levels::Int=5  )
+      title="",
+      levels::Int=5,
+      api::DataLayerAPI=dlapi  )
   #
-  p = getVertKDE(fgl,sym)
+  p = getVertKDE(fgl,sym, api=api)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(p, levels=levels, dims=dims, title=title)
+  plotKDE(p, levels=levels, dims=dims, title=string(sym, "  ", title) )
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
       dims=nothing,
       title=nothing,
-      levels=3  )
+      levels=3,
+      api::DataLayerAPI=dlapi  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
   MP = BallTreeDensity[]
   LEG = String[]
   # mmarg = Int[]
   for sym in syms
-    p = getVertKDE(fgl,sym)
+    p = getVertKDE(fgl,sym, api=api)
     # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
     # mp = marginal(p,mmarg)
     push!(MP, p)
@@ -80,16 +82,21 @@ function plotKDEresiduals(fgl::FactorGraph,
       fsym::Symbol;
       N::Int=100,
       levels::Int=3,
-      marg=nothing  )
+      dims=nothing,
+      api::DataLayerAPI=localapi  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
   fnc = getfnctype( fgl, fgl.fIDs[fsym] )
-  @show sxi = lsf(fgl, fsym)[1]
-  @show sxj = lsf(fgl, fsym)[2]
-  xi = getVal(fgl, sxi)
-  xj = getVal(fgl, sxj)
+  # @show sxi = lsf(fgl, fsym)[1]
+  # @show sxj = lsf(fgl, fsym)[2]
+  fct = getVert(fgl, fsym, nt=:fnc, api=api)
+  @show sxi = getData(fct).fncargvID[1]
+  @show sxj = getData(fct).fncargvID[2]
+  xi = getVal(fgl, sxi, api=api)
+  xj = getVal(fgl, sxj, api=api)
   measM = getSample(fnc, N)
   meas = length(measM) == 1 ? (0*measM[1], ) : (0*measM[1], measM[2])
+  @show size(meas[1])
   d = size(measM[1],1)
   RES = zeros(d,N)
   for i in 1:N
@@ -104,7 +111,7 @@ function plotKDEresiduals(fgl::FactorGraph,
   end
   pR = kde!(RES)
   pM = kde!(measM[1])
-  plotKDE([pR;pM], c=COLORS[1:2], dims=marg,levels=3, legend=["residual";"model"])
+  plotKDE([pR;pM], c=COLORS[1:2], dims=dims,levels=3, legend=["residual";"model"])
 end
 
 """
@@ -652,79 +659,79 @@ function animateVertexBelief(FGL::Array{FactorGraph,1}, lbl; nw=false)
   nothing
 end
 
-function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  lsa = Symbol[]
-  # v = nothing
-  if haskey(fgl.IDs, lbl)
-    id = fgl.IDs[lbl]
-  else
-    return lsa
-  end
-  v = getVert(fgl,id, api=api) #fgl.v[id]
-  # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
-      push!(lsa, Symbol(outn.label))
-    # end
-  end
-  return lsa
-end
-ls{T <: AbstractString}(fgl::FactorGraph, lbl::T) = ls(fgl, Symbol(lbl))
-
-function ls(fgl::FactorGraph)
-  k = collect(keys(fgl.IDs))
-  l = Int[]
-  x = Int[]
-  for kk in k
-    kstr = string(kk)
-    val = parse(Int,kstr[2:end]) # kk
-    if kstr[1] == 'l'
-      push!(l,val)
-    elseif kstr[1] == 'x'
-      push!(x,val)
-    end
-  end
-  l = sort(l)
-  x = sort(x)
-  ll = Array{Symbol,1}(length(l))
-  xx = Array{Symbol,1}(length(x))
-  for i in 1:length(l)
-    ll[i] = Symbol(string("l",l[i]))
-  end
-  for i in 1:length(x)
-    xx[i] = Symbol(string("x",x[i]))
-  end
-  return xx,ll
-end
-
-function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  lsa = Symbol[]
-  # v = Union{}
-  if haskey(fgl.fIDs, lbl)
-    id = fgl.fIDs[lbl]
-  else
-    return lsa
-  end
-  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
-  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    push!(lsa, Symbol(outn.label))
-  end
-  return lsa
-end
-lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
-
-function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
-      mt::Type{T};
-      api::DataLayerAPI=dlapi  )
-  #
-  syms = Symbol[]
-  for (fsym,fid) in fgl.fIDs
-    if typeof(getfnctype(fgl, fid, api=api))==T
-      push!(syms, fsym)
-    end
-  end
-  return syms
-end
+# function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+#   lsa = Symbol[]
+#   # v = nothing
+#   if haskey(fgl.IDs, lbl)
+#     id = fgl.IDs[lbl]
+#   else
+#     return lsa
+#   end
+#   v = getVert(fgl,id, api=api) #fgl.v[id]
+#   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+#   for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+#     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
+#       push!(lsa, Symbol(outn.label))
+#     # end
+#   end
+#   return lsa
+# end
+# ls{T <: AbstractString}(fgl::FactorGraph, lbl::T) = ls(fgl, Symbol(lbl))
+#
+# function ls(fgl::FactorGraph)
+#   k = collect(keys(fgl.IDs))
+#   l = Int[]
+#   x = Int[]
+#   for kk in k
+#     kstr = string(kk)
+#     val = parse(Int,kstr[2:end]) # kk
+#     if kstr[1] == 'l'
+#       push!(l,val)
+#     elseif kstr[1] == 'x'
+#       push!(x,val)
+#     end
+#   end
+#   l = sort(l)
+#   x = sort(x)
+#   ll = Array{Symbol,1}(length(l))
+#   xx = Array{Symbol,1}(length(x))
+#   for i in 1:length(l)
+#     ll[i] = Symbol(string("l",l[i]))
+#   end
+#   for i in 1:length(x)
+#     xx[i] = Symbol(string("x",x[i]))
+#   end
+#   return xx,ll
+# end
+#
+# function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+#   lsa = Symbol[]
+#   # v = Union{}
+#   if haskey(fgl.fIDs, lbl)
+#     id = fgl.fIDs[lbl]
+#   else
+#     return lsa
+#   end
+#   v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
+#   for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+#     push!(lsa, Symbol(outn.label))
+#   end
+#   return lsa
+# end
+# lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
+#
+# function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+#       mt::Type{T};
+#       api::DataLayerAPI=dlapi  )
+#   #
+#   syms = Symbol[]
+#   for (fsym,fid) in fgl.fIDs
+#     if typeof(getfnctype(fgl, fid, api=api))==T
+#       push!(syms, fsym)
+#     end
+#   end
+#   return syms
+# end
 
 
 function fixRotWrapErr!(RT::Array{Float64,1})

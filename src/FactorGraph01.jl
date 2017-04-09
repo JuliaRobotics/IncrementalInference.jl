@@ -39,6 +39,11 @@ function getVal(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+function getfnctype(vertl::Graphs.ExVertex)
+  data = getData(vertl)
+  data.fnc.usrfnc!
+end
+
 function getfnctype(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
   #
   data = getData(fgl, exvertid, api=api)
