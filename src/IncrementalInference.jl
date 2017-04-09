@@ -83,6 +83,7 @@ export
   writeGraphPdf,
   ls,
   lsf,
+  ls2,
   getfnctype,
   drawHorDens,
   drawHorBeliefsList,

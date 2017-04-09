@@ -262,7 +262,16 @@ function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
   return syms
 end
 
-function ls2(fgl::FactorGraph, vsym::Symbol; nt::Symbol=:var)
+function ls2(fgl::FactorGraph, vsym::Symbol)
+  xxf = ls(fgl, vsym)
+  xlxl = Symbol[]
+  for xf in xxf
+    xx = lsf(fgl,xf)
+    xlxl = union(xlxl, xx)
+  end
+  xlxl = setdiff(xlxl, [vsym])
+  return xlxl
+end
 
 
 """

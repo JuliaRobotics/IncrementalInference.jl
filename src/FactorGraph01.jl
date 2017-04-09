@@ -46,14 +46,14 @@ end
 
 function getfnctype(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
   #
-  data = getData(fgl, exvertid, api=api)
-  data.fnc.usrfnc!
+  # data = getData(fgl, exvertid, api=api)
+  # data.fnc.usrfnc!
+  getfnctype(getVert(fgl, exvertid, api=api))
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
   v.attributes["data"].val = val
-  # v.attributes["val"] = val
   nothing
 end
 function getBWVal(v::Graphs.ExVertex)
@@ -61,7 +61,6 @@ function getBWVal(v::Graphs.ExVertex)
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
   v.attributes["data"].bw = bw
-  # v.attributes["bw"] = bw
   nothing
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
@@ -87,6 +86,8 @@ function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   nothing
 end
+setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
+setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
 
 function kde!(em::EasyMessage)
