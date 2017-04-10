@@ -16,7 +16,7 @@ end
     convert2packedfunctionnode(fgl::FactorGraph, fsym::Symbol)
 
 Encode complicated function node type with assumed to exist, user supplied convert
-fucntion to related 'Packed<type>' format.
+function to related 'Packed<type>' format.
 """
 function convert2packedfunctionnode(fgl::FactorGraph,
       fsym::Symbol,
@@ -186,6 +186,111 @@ function loadjld(;file::AbstractString="tempfg.jld")
 end
 
 
+
+
+function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  lsa = Symbol[]
+  # v = nothing
+  if haskey(fgl.IDs, lbl)
+    id = fgl.IDs[lbl]
+  else
+    return lsa
+  end
+  v = getVert(fgl,id, api=api) #fgl.v[id]
+  # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+    # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
+      push!(lsa, Symbol(outn.label))
+    # end
+  end
+  return lsa
+end
+ls{T <: AbstractString}(fgl::FactorGraph, lbl::T) = ls(fgl, Symbol(lbl))
+
+function ls(fgl::FactorGraph)
+  k = collect(keys(fgl.IDs))
+  l = Int[]
+  x = Int[]
+  for kk in k
+    kstr = string(kk)
+    val = parse(Int,kstr[2:end]) # kk
+    if kstr[1] == 'l'
+      push!(l,val)
+    elseif kstr[1] == 'x'
+      push!(x,val)
+    end
+  end
+  l = sort(l)
+  x = sort(x)
+  ll = Array{Symbol,1}(length(l))
+  xx = Array{Symbol,1}(length(x))
+  for i in 1:length(l)
+    ll[i] = Symbol(string("l",l[i]))
+  end
+  for i in 1:length(x)
+    xx[i] = Symbol(string("x",x[i]))
+  end
+  return xx,ll
+end
+
+function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  lsa = Symbol[]
+  # v = Union{}
+  if haskey(fgl.fIDs, lbl)
+    id = fgl.fIDs[lbl]
+  else
+    return lsa
+  end
+  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
+  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+    push!(lsa, Symbol(outn.label))
+  end
+  return lsa
+end
+lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
+
+function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+      mt::Type{T};
+      api::DataLayerAPI=dlapi  )
+  #
+  syms = Symbol[]
+  for (fsym,fid) in fgl.fIDs
+    if typeof(getfnctype(fgl, fid, api=api))==T
+      push!(syms, fsym)
+    end
+  end
+  return syms
+end
+
+function ls2(fgl::FactorGraph, vsym::Symbol)
+  xxf = ls(fgl, vsym)
+  xlxl = Symbol[]
+  for xf in xxf
+    xx = lsf(fgl,xf)
+    xlxl = union(xlxl, xx)
+  end
+  xlxl = setdiff(xlxl, [vsym])
+  return xlxl
+end
+
+
+"""
+    landmarks(fgl::FactorGraph, vsym::Symbol)
+
+Return Vector{Symbol} of landmarks attached to vertex vsym in fgl.
+"""
+function landmarks(fgl::FactorGraph, vsym::Symbol)
+  fsyms = ls(fgl, vsym)
+  lms = Symbol[]
+  for fs in fsyms
+    for varv = lsf(fgl, fs)
+      if string(varv)[1] == 'l'
+        push!(lms, varv)
+      end
+    end
+  end
+  lms
+end
 
 
 

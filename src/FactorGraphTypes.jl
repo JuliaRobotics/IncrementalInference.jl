@@ -28,6 +28,9 @@ typealias VoidUnion{T} Union{Void, T}
 type EasyMessage
   pts::Array{Float64,2}
   bws::Array{Float64,1}
+  EasyMessage() = new()
+  EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}) = new(a,b)
+  EasyMessage(p::BallTreeDensity) = new(getPoints(p), getBW(p)[:,1])
 end
 
 

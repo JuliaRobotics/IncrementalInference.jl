@@ -83,6 +83,7 @@ export
   writeGraphPdf,
   ls,
   lsf,
+  ls2,
   getfnctype,
   drawHorDens,
   drawHorBeliefsList,
@@ -143,6 +144,7 @@ export
   decodefg,
   savejld,
   loadjld,
+  landmarks,
 
   # For 1D example, should be refactored and renamed
   Odo,
