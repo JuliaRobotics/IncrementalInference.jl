@@ -330,13 +330,13 @@ function localProduct(fgl::FactorGraph,
         N::Int=100,
         api::DataLayerAPI=IncrementalInference.dlapi  )
   #
+  
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int64, Vector{BallTreeDensity}}()
   lb = String[]
-
   fcts = Vector{Graphs.ExVertex}()
-  cf = ls(fgl, sym)
+  cf = ls(fgl, sym, api=api)
   for f in cf
     vert = getVert(fgl,f, nt=:fnc, api=api)
     push!(fcts, vert)
@@ -353,6 +353,23 @@ function localProduct(fgl::FactorGraph,
   return pp, dens, partials, lb
 end
 localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100) = localProduct(fgl, Symbol(lbl), N=N)
+
+function initializeNode!(fgl::FactorGraph,
+        sym::Symbol;
+        N::Int=100,
+        api::DataLayerAPI=IncrementalInference.dlapi )
+  #
+
+  vert = getVert(fgl, sym, api=api)
+  # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
+  belief,b,c,d  = localProduct(fgl, sym, api=localapi)
+  pts = getPoints(belief)
+  @show "initializing", sym, size(pts)
+  setVal!(vert, pts)
+  api.updatevertex!(fgl, vert)
+
+  nothing
+end
 
 
 function cliqGibbs(fg::FactorGraph,

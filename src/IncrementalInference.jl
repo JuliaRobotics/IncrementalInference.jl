@@ -74,6 +74,7 @@ export
   whichCliq,
   getKDE,
   getVertKDE,
+  initializeNode!,
 
   #functors need
   getSample,
