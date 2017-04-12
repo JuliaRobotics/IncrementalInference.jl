@@ -105,17 +105,20 @@ end
 
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                             stdev::Array{Float64,2}, dodims::Int64, N::Int64;
+                             stdev::Array{Float64,2}, dodims::Int64, N::Int64, dims::Int64;
                              gt=nothing)
-  pN = Union{}
-  if size(initval,2) < N
+  pN = nothing
+  if size(initval,2) < N && size(initval, 1) == dims
     warn("setDefaultNodeData! -- deprecated use of stdev.")
     p = kde!(initval,diag(stdev));
     pN = resample(p,N)
+  elseif size(initval,2) < N && size(initval, 1) != dims
+    println("Node value memory allocated but not initialized")
+    pN = kde!(randn(dims, N));
   else
-    pN = kde!(initval, "lcv")
+    pN = kde!(initval)
   end
-  dims = size(initval,1) # rows indicate dimensions
+  # dims = size(initval,1) # rows indicate dimensions
   sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
   data = VariableNodeData(initval, stdev, getPoints(pN),
                           (getBW(pN)[:,1]')', Int64[], sp,
@@ -140,6 +143,7 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   nothing
 end
 
+# must set either dims or initval for proper initialization
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
 function addNode!{T <: AbstractString}(fg::FactorGraph,
@@ -148,7 +152,8 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
       ready::Int=1,
       labels::Vector{T}=String[],
       api::DataLayerAPI=dlapi,
-      uid::Int=-1 )
+      uid::Int=-1,
+      dims::Int=-1  )
   #
   currid = fg.id+1
   if uid==-1
@@ -156,6 +161,7 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
   else
     currid = uid
   end
+  dims = dims != -1 ? dims : size(initval,1)
 
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
@@ -163,14 +169,14 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
   # TODO -- vert should not loose information here
-  setDefaultNodeData!(vert, initval, stdev, dodims, N) #fg.v[currid]
+  setDefaultNodeData!(vert, initval, stdev, dodims, N, dims) #fg.v[currid]
 
   vnlbls = deepcopy(labels)
   push!(vnlbls, fg.sessionname)
   # addvert!(fg, vert, api=api)
   api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
-  fg.dimID+=size(initval,1) # rows indicate dimensions, move to last dimension
+  fg.dimID+=dims # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
 
   return vert #fg.v[fg.id]
