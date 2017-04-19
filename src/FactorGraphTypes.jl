@@ -17,7 +17,7 @@ abstract FunctorSingletonNH <: FunctorSingleton
 abstract FunctorPairwise <: FunctorInferenceType
 abstract FunctorPairwiseMinimize <: FunctorInferenceType
 abstract FunctorPairwiseNH <: FunctorPairwise
-
+# abstract FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize # TODO
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}

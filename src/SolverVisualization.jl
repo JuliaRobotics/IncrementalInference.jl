@@ -83,6 +83,7 @@ function plotKDEresiduals(fgl::FactorGraph,
       N::Int=100,
       levels::Int=3,
       dims=nothing,
+      fill=false,
       api::DataLayerAPI=localapi  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
@@ -111,7 +112,8 @@ function plotKDEresiduals(fgl::FactorGraph,
   end
   pR = kde!(RES)
   pM = kde!(measM[1])
-  plotKDE([pR;pM], c=COLORS[1:2], dims=dims,levels=3, legend=["residual";"model"])
+  fncvar = getfnctype(fct)
+  plotKDE([pR;pM], c=COLORS[1:2], dims=dims,levels=3, legend=["residual";"model"], fill=fill, title=string(fsym, ", ", fncvar))
 end
 
 """
@@ -122,7 +124,7 @@ Plot the product of priors and incoming upward messages for variable in clique.
 plotPriorsAtCliq(tree, :x2, :x1[, marg=[1;2]])
 """
 function plotPriorsAtCliq(tree::BayesTree, lb::Symbol, cllb::Symbol;
-        marg::Vector{Int}=Int[],
+        dims::Vector{Int}=Int[],
         levels::Int=1,
         fill::Bool=false  )
   #
@@ -139,16 +141,16 @@ function plotPriorsAtCliq(tree::BayesTree, lb::Symbol, cllb::Symbol;
       vidx += 1
     end
   end
-  marg = length(marg)>0 ? marg : collect(1:size(cliqprs.prods[vidx].prev,2))
+  dims = length(dims)>0 ? dims : collect(1:size(cliqprs.prods[vidx].prev,1))
 
   arr = BallTreeDensity[]
-  push!(arr, marginal(kde!(cliqprs.prods[vidx].prev), marg)  )
-  push!(arr, marginal(kde!(cliqprs.prods[vidx].product), marg)  )
+  push!(arr, marginal(kde!(cliqprs.prods[vidx].prev), dims)  )
+  push!(arr, marginal(kde!(cliqprs.prods[vidx].product), dims)  )
   len = length(cliqprs.prods[vidx].potentials)
   lg = String["p";"n"]
   i=0
   for pot in cliqprs.prods[vidx].potentials
-    push!(arr, marginal(pot, marg)  )
+    push!(arr, marginal(pot, dims)  )
     i+=1
     push!(lg, cliqprs.prods[vidx].potentialfac[i])
   end
@@ -156,6 +158,7 @@ function plotPriorsAtCliq(tree::BayesTree, lb::Symbol, cllb::Symbol;
   # @show length(arr), length(cc), length(lg)
   plotKDE(arr, c=cc, legend=lg, levels=levels, fill=fill );
 end
+
 
 """
     plotUpMsgsAtCliq(treel, lb, cllb)
@@ -604,6 +607,13 @@ function drawFactorBeliefs(fgl::FactorGraph, flbl::Symbol)
 end
 drawFactorBeliefs{T <: AbstractString}(fgl::FactorGraph, flbl::T) = drawFactorBeliefs(fgl, Symbol(flbl))
 
+function getColorsByLength(len::Int)
+  COLORS = ["black";"red";"green";"blue";"deepskyblue";"yellow";"magenta"]
+  morecyan = ["cyan" for i in (length(COLORS)+1):len]
+  retc = [COLORS; morecyan]
+  return retc[1:len]
+end
+
 """
     plotLocalProduct(fgl::FactorGraph, lbl::Symbol; N::Int=100, dims::Vector{Int}=Int[])
 
@@ -612,7 +622,6 @@ and show with new product approximation for reference.
 """
 function plotLocalProduct(fgl::FactorGraph, lbl::Symbol; N::Int=100, dims::Vector{Int}=Int[], api::DataLayerAPI=dlapi, levels::Int=1)
   warn("not showing partial constraints, but included in the product")
-  COLORS = ["black";"red";"green";"blue";"deepskyblue";"yellow";"magenta";"cyan";"cyan";"cyan";"cyan";"cyan";"cyan";"cyan"]
   arr = Array{BallTreeDensity,1}()
   lbls = String[]
   push!(arr, getVertKDE(fgl, lbl, api=api))
@@ -627,7 +636,8 @@ function plotLocalProduct(fgl::FactorGraph, lbl::Symbol; N::Int=100, dims::Vecto
     lbls = union(lbls, lb)
   end
   dims = length(dims) > 0 ? dims : collect(1:Ndim(pp))
-  return plotKDE(arr, dims=dims, levels=levels, c=COLORS[1:length(arr)], legend=lbls)
+  colors = getColorsByLength(length(arr))
+  return plotKDE(arr, dims=dims, levels=levels, c=colors, legend=lbls, title=string("Local product, ",lbl))
 end
 
 """

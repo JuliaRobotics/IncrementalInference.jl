@@ -190,7 +190,8 @@ export
   localProduct,
   plotLocalProduct,
   saveplot,
-  animateVertexBelief
+  animateVertexBelief,
+  getColorsByLength
 
 
 
