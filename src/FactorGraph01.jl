@@ -41,6 +41,9 @@ end
 
 function getfnctype(vertl::Graphs.ExVertex)
   data = getData(vertl)
+  if typeof(data).name.name == :VariableNodeData
+    return VariableNodeData
+  end
   data.fnc.usrfnc!
 end
 

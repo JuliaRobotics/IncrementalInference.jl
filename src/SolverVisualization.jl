@@ -5,12 +5,13 @@ function plotKDE(fgl::FactorGraph, sym::Symbol;
       dims=nothing,
       title="",
       levels::Int=5,
+      fill::Bool=false,
       api::DataLayerAPI=dlapi  )
   #
   p = getVertKDE(fgl,sym, api=api)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(p, levels=levels, dims=dims, title=string(sym, "  ", title) )
+  plotKDE(p, levels=levels, dims=dims, title=string(sym, "  ", title), fill=fill )
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
