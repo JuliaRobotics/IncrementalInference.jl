@@ -2,6 +2,8 @@ module IncrementalInference
 
 import Base: convert
 import KernelDensityEstimate: kde!, plotKDE
+import Gadfly: draw
+# import Graphs: plot
 
 using
   Graphs,
@@ -17,6 +19,9 @@ using
   ProgressMeter
 
 export
+  # pass through from Graphs.jl
+  plot,
+
   # added methods to functions from KernelDensityEstimate
   kde!,
   plotKDE,
@@ -190,8 +195,8 @@ export
   localProduct,
   plotLocalProduct,
   saveplot,
-  animateVertexBelief
-
+  animateVertexBelief,
+  getColorsByLength
 
 
 
@@ -208,5 +213,9 @@ include("SolverVisualization.jl")
 include("FGOSUtils.jl")
 
 include("deprecated.jl")
+
+function plot(fg::FactorGraph)
+  Graphs.plot(fg.g)
+end
 
 end

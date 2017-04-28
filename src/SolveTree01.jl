@@ -330,7 +330,7 @@ function localProduct(fgl::FactorGraph,
         N::Int=100,
         api::DataLayerAPI=IncrementalInference.dlapi  )
   #
-  
+
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int64, Vector{BallTreeDensity}}()
@@ -364,7 +364,7 @@ function initializeNode!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts)
+  @show "initializing", sym, size(pts), Base.mean(pts,2), Base.std(pts,2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
