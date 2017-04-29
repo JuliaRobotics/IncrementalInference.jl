@@ -335,8 +335,24 @@ function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.Ex
   nothing
 end
 
+function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxparallel::Int=50)
+  namestring = ""
+  for vert in Xi #f.Xi
+    namestring = string(namestring,vert.attributes["label"])
+  end
+  for i in 1:maxparallel
+    tempnm = string(namestring, "f$i")
+    if !haskey(fgl.fIDs, Symbol(tempnm))
+      namestring = tempnm
+      break
+    end
+    i != maxparallel ? nothing : error("Cannot currently add more than $(maxparallel) factors in parallel, please open an issue if this is too restrictive.")
+  end
+  return namestring
+end
+
 function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
-      Xi::Array{Graphs.ExVertex,1},
+      Xi::Vector{Graphs.ExVertex},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
@@ -351,12 +367,8 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
     currid = uid
   end
 
-  namestring = ""
-  for vert in Xi #f.Xi
-    namestring = string(namestring,vert.attributes["label"])
-  end
+  namestring = assembleFactorName(fgl, Xi)
   # fgl.id+=1
-
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
   setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
