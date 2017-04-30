@@ -9,12 +9,13 @@ pd = kde!(doors,[3.0])
 pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
-v1 = addNode!(fg,:x1,doors,N=N)
+
+v1 = addNode!(fg,:x0,doors,N=N)
 f1  = addFactor!(fg,[v1],Obsv2( doors2, bws', [1.0])) #, samplefnc=getSample
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, tem, N=N)
-addFactor!(fg, [:x1; :x2], Odo([50.0]',[2.0]',[1.0])) #, samplefnc=getSample
+addFactor!(fg, [:x0; :x2], Odo([50.0]',[2.0]',[1.0])) #, samplefnc=getSample
 # addFactor!(fg, [v1;v2], Odo([50.0]',[2.0]',[1.0])) #, samplefnc=getSample
 
 
@@ -52,7 +53,7 @@ f3 = addFactor!(fg,[v7], Obsv2(doors, bws', [1.0])) #, samplefnc=getSample
 
 # HMM computed ground truth, extended for 7 poses with landmark
 gt = Dict{Symbol, Array{Float64,2}}()
-gt[:x1]=([0.0;1.97304 ]')' # -0.0342366
+gt[:x0]=([0.0;1.97304 ]')' # -0.0342366
 gt[:x2]=([50.0; 2.83153 ]')' # 49.8797
 gt[:x3]=([100.0; 1.65557 ]')' # 99.8351
 gt[:x4]=([150.0; 1.64945 ]')' # 148.637
