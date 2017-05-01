@@ -70,7 +70,7 @@ type FactorGraph
     # x[4] ) # removed fg.v
 end
 
-function emptyFactorGraph()
+function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
                     #  Dict{Int,Graphs.ExVertex}(),
@@ -87,7 +87,7 @@ function emptyFactorGraph()
                      Dict{Int64,Int64}(),
                      "",
                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                    nothing  ) #evalPotential
+                     reference  ) #evalPotential
     return fg
 end
 
