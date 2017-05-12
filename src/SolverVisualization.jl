@@ -6,19 +6,21 @@ function plotKDE(fgl::FactorGraph, sym::Symbol;
       title="",
       levels::Int=5,
       fill::Bool=false,
-      api::DataLayerAPI=dlapi  )
+      api::DataLayerAPI=dlapi,
+      extend::Float64=0.1  )
   #
   p = getVertKDE(fgl,sym, api=api)
   # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
   # mp = marginal(p,mmarg)
-  plotKDE(p, levels=levels, dims=dims, title=string(sym, "  ", title), fill=fill )
+  plotKDE(p, levels=levels, dims=dims, title=string(sym, "  ", title), fill=fill, extend=extend )
 end
 function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
       addt::Vector{BallTreeDensity}=BallTreeDensity[],
       dims=nothing,
       title=nothing,
       levels=3,
-      api::DataLayerAPI=dlapi  )
+      api::DataLayerAPI=dlapi,
+      extend::Float64=0.1  )
   #
   COLORS = ["black";"red";"green";"blue";"cyan";"deepskyblue"]
   MP = BallTreeDensity[]
@@ -36,7 +38,7 @@ function plotKDE(fgl::FactorGraph, syms::Vector{Symbol};
     push!(MP, p)
     push!(LEG, "add")
   end
-  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=dims, legend=LEG, title=title)
+  plotKDE(MP,c=COLORS[1:length(MP)], levels=levels, dims=dims, legend=LEG, title=title, extend=extend)
 end
 # function plotKDE(fgl::FactorGraph, sym::Symbol;
 #       marg=nothing,
@@ -60,7 +62,7 @@ end
 plot absolute values of variables and measurement surrounding fsym factor.
 """
 function plotKDEofnc(fgl::FactorGraph, fsym::Symbol;
-    marg=nothing,
+    dims=nothing,
     N::Int=100  )
   #
   fnc = nothing
@@ -70,8 +72,8 @@ function plotKDEofnc(fgl::FactorGraph, fsym::Symbol;
     error("fIDs doesn't have $(fsym)")
   end
   p = kde!( getSample(fnc, N)[1]  )
-  # mmarg = length(marg) > 0 ? marg : collect(1:Ndim(p))
-  plotKDE(fgl, lsf(fgl, fsym), addt=[p], marg=marg)
+  # mdims = length(dims) > 0 ? dims : collect(1:Ndim(p))
+  plotKDE(fgl, lsf(fgl, fsym), addt=[p], dims=dims)
 end
 
 """

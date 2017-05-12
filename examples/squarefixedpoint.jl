@@ -3,7 +3,7 @@
 using Distributions
 using KernelDensityEstimate
 using IncrementalInference
-using Gadfly
+using Gadfly, DataFrames
 
 
 import IncrementalInference: getSample
@@ -71,113 +71,367 @@ getSample(s::NumbersPrior, N::Int=1) = (KernelDensityEstimate.sample(s.z,N)[1], 
 
 
 
-function approxHilbertInnerProd(p::BallTreeDensity, phi::Function; N::Int=1000)
-  ran = getKDERange(p)
-  intrv = (ran[2]-ran[1])/N
-  vec = linspace(ran..., N)
-  yval = phi.(vec)
-  intrv*sum(yval)
+function extractCycleProjections(FGl::Vector{FactorGraph}, FR; N::Int=1000)
+  itersl = length(FGl)
+  numfr = length(FR)
+  ALLXX = zeros(numfr, itersl, 2)
+  ALLXY = zeros(numfr, itersl, 2)
+  PL = Array{Any,2}(itersl,3)
+  p = Dict{Symbol, BallTreeDensity}()
+  PP = Dict{Symbol, Vector{BallTreeDensity}}()
+  DIV = Dict{Symbol, Vector{Float64}}()
+  DIVREF = Dict{Symbol, Vector{Float64}}()
+  PP[:x] = BallTreeDensity[]
+  PP[:xy] = BallTreeDensity[]
+  DIV[:x] = Float64[]
+  DIV[:xy] = Float64[]
+  DIVREF[:x] = Float64[]
+  DIVREF[:xy] = Float64[]
+
+  for i in 1:itersl
+    p[:x] = getVertKDE(FGl[i], :x)
+    p[:xy] = getVertKDE(FGl[i], :xy)
+
+    push!(PP[:x], deepcopy(p[:x]))
+    push!(PP[:xy], deepcopy(p[:xy]))
+
+    for j in 1:numfr
+      ALLXX[j,i,1] = approxHilbertInnerProd(p[:x], (x) -> phic(x, f=FR[j]), N=N)
+      ALLXX[j,i,2] = approxHilbertInnerProd(p[:x], (x) -> phis(x, f=FR[j]), N=N)
+      ALLXY[j,i,1] = approxHilbertInnerProd(p[:xy], (x) -> phic(x, f=FR[j]), N=N)
+      ALLXY[j,i,2] = approxHilbertInnerProd(p[:xy], (x) -> phis(x, f=FR[j]), N=N)
+    end
+
+    PL[i,1] = plotKDE(p[:x],N=N, extend=0.2)
+    PL[i,2] = plotKDE(p[:xy],N=N, extend=0.2)
+    PL[i,3] = plotKDE([p[:x],p[:xy]],c=["red","green"],N=N, extend=0.2)
+
+    if i > 1
+      # KL-divergence
+      mkl = minimum([kld(p[:x],getVertKDE(FGl[i-1],:x))[1]; kld(getVertKDE(FGl[i-1],:x),p[:x])[1]])
+      push!(DIV[:x], abs(mkl))
+      mklxy = minimum([kld(p[:xy],getVertKDE(FGl[i-1],:xy))[1]; kld(getVertKDE(FGl[i-1],:xy),p[:xy])[1]])
+      push!(DIV[:xy], abs(mklxy))
+    end
+
+    # reference KL-divergence
+    mkl = minimum([kld(p[:x],getVertKDE(FGl[end],:x))[1]; kld(getVertKDE(FGl[end],:x),p[:x])[1]])
+    push!(DIVREF[:x], abs(mkl))
+    mklxy = minimum([kld(p[:xy],getVertKDE(FGl[end],:xy))[1]; kld(getVertKDE(FGl[end],:xy),p[:xy])[1]])
+    push!(DIVREF[:xy], abs(mklxy))
+  end
+
+  cycle = Dict{Symbol, Any}()
+  # save everything
+  cycle[:N] = N
+  cycle[:iters] = itersl-1
+  cycle[:FR] = FR
+  cycle[:numfr] = numfr
+  cycle[:PP] = PP
+  cycle[:ALLXX] = ALLXX
+  cycle[:ALLXY] = ALLXY
+  cycle[:DIV] = DIV
+  cycle[:DIVREF] = DIVREF
+  return cycle
+end
+
+
+
+function runFullBatchIterations(;N=100, iters=50)
+  fg = emptyFactorGraph()
+
+  x0 = 0.5-rand(1,N)  #[1.0+0.1*randn(N);10+0.1*randn(N)]'
+  addNode!(fg, :x, x0, N=N)
+  # addNode!(fg, :y, x0,N=N)
+
+  pts = rand(Distributions.Normal(4.0,0.05),N)   #;rand(Distributions.Normal(144.0,0.05),N)]
+  md = kde!(pts)
+  npx = NumbersPrior(md)
+  pts0 = getSample(npx,N)[1]
+  addNode!(fg, :xy, pts0, N=N)
+
+  addFactor!(fg, [getVert(fg, :xy)], npx)
+  #
+  # xey = AreEqual(Distributions.Normal(0.0,0.01))
+  # addFactor!(fg, [getVert(fg, :x);getVert(fg, :y)], xey)
+
+  # xty = ProductNumbers(Distributions.Normal(0.0,0.01))
+  # addFactor!(fg, [getVert(fg, :x);getVert(fg, :y);getVert(fg, :xy)], xty)
+
+  xty = Square(Distributions.Normal(0.0,0.01))
+  addFactor!(fg, [:x,:xy], xty)
+  # Graphs.plot(fg.g)
+  tree = wipeBuildNewTree!(fg)
+  # spyCliqMat(tree.cliques[1])
+
+  FG = Vector{FactorGraph}(iters+1)
+
+  FG[1] = deepcopy(fg)
+  for i in 1:iters
+    inferOverTree!(fg, tree, N=N)
+    FG[i+1] = deepcopy(fg)
+  end
+  return FG
+end
+
+
+# Do all the runs
+# frequencies of interest
+FR = linspace(0.5/(2pi),3.0/(2pi), 8)
+
+mc = 3
+
+# data containers
+FG = Vector{Vector{FactorGraph}}(mc)
+CYCLE = Vector{Dict}(mc)
+
+
+for i in 1:mc
+  FG[i] = runFullBatchIterations(;N=100, iters=50)
+  CYCLE[i] = extractCycleProjections(FG[i], FR, N=2000)
 end
 
 
 
 
-N=100
-fg = emptyFactorGraph()
-p = Dict{Symbol, BallTreeDensity}()
+
+# Analyse the data
+
+function plotXandXYFreq(CYCLE, FR, fridx)
+  XXfrs = DataFrame[]
+  for i in 1:mc
+    push!(XXfrs, DataFrame(
+      x=CYCLE[i][:ALLXX][fridx,:,1],
+      y=CYCLE[i][:ALLXX][fridx,:,2],
+      MC="$(i)"
+    ))
+  end
+
+  XXrepeat = vcat(XXfrs...)
+
+  plxrep = Gadfly.plot(XXrepeat,
+    Geom.path(),
+    Guide.title("X"),
+    Guide.title("μ=0, frequency=$(round(FR[fridx],3))"),
+    Guide.ylabel("p ⋅ ϕs"),
+    Guide.xlabel("p ⋅ ϕc"),
+    x=:x,
+    y=:y,
+    color=:MC
+  )
+
+  XYfrs = DataFrame[]
+  for i in 1:mc
+    push!(XYfrs, DataFrame(
+      x=CYCLE[i][:ALLXY][fridx,:,1],
+      y=CYCLE[i][:ALLXY][fridx,:,2],
+      MC="$(i)"
+    ))
+  end
+
+  XYrepeat = vcat(XYfrs...)
+
+  plxyrep = Gadfly.plot(XYrepeat,
+    Geom.path(),
+    Guide.title("X^2"),
+    Guide.title("μ=0, frequency=$(round(FR[fridx],3))"),
+    Guide.ylabel("p ⋅ ϕs"),
+    Guide.xlabel("p ⋅ ϕc"),
+    x=:x,
+    y=:y,
+    color=:MC
+  )
+  return plxyrep,plxrep
+end
 
 
-x0 = 0.5-rand(1,100)  #[1.0+0.1*randn(100);10+0.1*randn(100)]'
-addNode!(fg, :x, x0, N=N)
-# addNode!(fg, :y, x0,N=N)
+for i in 1:length(FR)
+  plxyrep,plxrep = plotXandXYFreq(CYCLE, FR, i)
+  Gadfly.draw(PDF("sqrtexamplexxtrajFR$(i).pdf",15cm,7cm),hstack(plxyrep,plxrep))
+end
+# @async run(`evince sqrtexamplexxtrajFR2.pdf`)
 
-pts = rand(Distributions.Normal(4.0,0.05),100)   #;rand(Distributions.Normal(144.0,0.05),100)]
-md = kde!(pts)
-npx = NumbersPrior(md)
-pts0 = getSample(npx,N)[1]
-addNode!(fg, :xy, pts0, N=N)
 
-addFactor!(fg, [getVert(fg, :xy)], npx)
+
+0
+
+
 #
-# xey = AreEqual(Distributions.Normal(0.0,0.01))
-# addFactor!(fg, [getVert(fg, :x);getVert(fg, :y)], xey)
-
-# xty = ProductNumbers(Distributions.Normal(0.0,0.01))
-# addFactor!(fg, [getVert(fg, :x);getVert(fg, :y);getVert(fg, :xy)], xty)
-
-
-xty = Square(Distributions.Normal(0.0,0.01))
-addFactor!(fg, [:x,:xy], xty)
-
-# Graphs.plot(fg.g)
-
-tree = wipeBuildNewTree!(fg)
-# spyCliqMat(tree.cliques[1])
-
-iters = 100
-
-XXh = zeros(iters, 2)
-XYh = zeros(iters, 2)
-XX = zeros(iters, 2)
-XY = zeros(iters, 2)
-XX2 = zeros(iters, 2)
-XY2 = zeros(iters, 2)
-
-coshalf = (x) -> cos(0.5*x)
-sinhalf = (x) -> sin(0.5*x)
-cos2 = (x) -> cos(2*x)
-sin2 = (x) -> sin(2*x)
+#
+# plotKDE(
+# [CYCLE[1][:PP][:x][1];
+# CYCLE[1][:PP][:x][2];
+# CYCLE[1][:PP][:x][3]],
+# c=["black","red","green"]
+# )
 
 
-for i in 1:iters
-  inferOverTree!(fg,tree, N=N)
 
-  p[:x] = getVertKDE(fg, :x)
-  p[:xy] = getVertKDE(fg, :xy)
 
-  XXh[i,1] = approxHilbertInnerProd(p[:x], coshalf)
-  XXh[i,2] = approxHilbertInnerProd(p[:x], sinhalf)
-  XYh[i,1] = approxHilbertInnerProd(p[:xy], coshalf)
-  XYh[i,2] = approxHilbertInnerProd(p[:xy], sinhalf)
 
-  XX[i,1] = approxHilbertInnerProd(p[:x], cos)
-  XX[i,2] = approxHilbertInnerProd(p[:x], sin)
-  XY[i,1] = approxHilbertInnerProd(p[:xy], cos)
-  XY[i,2] = approxHilbertInnerProd(p[:xy], sin)
+DFs = DataFrame[]
 
-  XX2[i,1] = approxHilbertInnerProd(p[:x], cos2)
-  XX2[i,2] = approxHilbertInnerProd(p[:x], sin2)
-  XY2[i,1] = approxHilbertInnerProd(p[:xy], cos2)
-  XY2[i,2] = approxHilbertInnerProd(p[:xy], sin2)
+for i in [1,2,3,5,13]
+  p = CYCLE[1][:PP][:x][i]
+  mxmx = getKDERange(p)
+  x = [linspace(mxmx..., 2000);]
+  push!(DFs, DataFrame(
+    x = x,
+    y = clamp(evaluateDualTree(p,x),0,4),
+    Iteration="$(i-1)"
+  ))
+end
 
-  # plotKDE(p[:x],N=1000)
-  # plotKDE(p[:xy],N=1000)
+plx = Gadfly.plot(vcat(DFs...) , x=:x, y=:y, color=:Iteration,
+  Geom.line,
+  Guide.xlabel("X"),
+  Guide.ylabel("pdf")
+)
+
+
+DFs = DataFrame[]
+
+for i in [1,2,3,5,13]
+  p = CYCLE[1][:PP][:xy][i]
+  mxmx = getKDERange(p, extend=0.4)
+  x = [linspace(mxmx..., 2000);]
+  push!(DFs, DataFrame(
+    x = x,
+    y = clamp(evaluateDualTree(p,x),0,6),
+    Iteration="$(i-1)"
+  ))
 end
 
 
-Gadfly.plot(x=XXh[:,1],y=XX[:,2], Geom.path())
-Gadfly.plot(x=XYh[:,1],y=XY[:,2], Geom.path())
-
-Gadfly.plot(x=XX[:,1],y=XX[:,2], Geom.path())
-Gadfly.plot(x=XY[:,1],y=XY[:,2], Geom.path())
-
-Gadfly.plot(x=XX2[:,1],y=XX[:,2], Geom.path())
-Gadfly.plot(x=XY2[:,1],y=XY[:,2], Geom.path())
+plxy = Gadfly.plot(vcat(DFs...) , x=:x, y=:y, color=:Iteration,
+  Geom.line,
+  Guide.xlabel("X^2"),
+  Guide.ylabel("pdf")
+)
 
 
-plotKDE(p[:x],N=1000)
-plotKDE(p[:xy],N=1000)
+plh = vstack(plxy, plx)
 
-# plotKDE(getVertKDE(fg,:y))
+Gadfly.draw(PDF("sqrtexamplebeliefs.pdf",12cm,9cm),plh)
+
+@async run(`evince sqrtexamplebeliefs.pdf`)
+
+
+0
+
+
+
+# Also plot the KL divergences
+
+
+
+DFs = DataFrame[]
+
+for i in 1:mc
+  push!(DFs, DataFrame(
+    x = 1:length(CYCLE[i][:DIV][:xy]),
+    y = CYCLE[i][:DIV][:xy],
+    MC="$(i), X^2"
+  ))
+end
+
+for i in 1:mc
+  push!(DFs, DataFrame(
+    x = 1:length(CYCLE[i][:DIV][:x]),
+    y = CYCLE[i][:DIV][:x],
+    MC="$(i), X"
+  ))
+end
+
+pldiv = Gadfly.plot(vcat(DFs...) , x=:x, y=:y, color=:MC,
+  Geom.line,
+  Guide.title("Relative between iterations"),
+  Guide.xlabel("Iterations"),
+  Guide.ylabel("KL-Divergence")
+)
+
+
+Gadfly.draw(PDF("sqrtexamplekldrelative.pdf",10cm,6cm),pldiv)
+# @async run(`evince sqrtexamplekldrelative.pdf`)
+
+
+
+
+DFs = DataFrame[]
+
+for i in 1:mc
+  push!(DFs, DataFrame(
+    x = 1:length(CYCLE[i][:DIVREF][:xy]),
+    y = CYCLE[i][:DIVREF][:xy],
+    MC="$(i), X^2"
+  ))
+end
+
+for i in 1:mc
+  push!(DFs, DataFrame(
+    x = 1:length(CYCLE[i][:DIVREF][:x]),
+    y = CYCLE[i][:DIVREF][:x],
+    MC="$(i), X"
+  ))
+end
+
+pldivref = Gadfly.plot(vcat(DFs...) , x=:x, y=:y, color=:MC,
+  Geom.line,
+  Guide.title("Referenced to final belief"),
+  Guide.xlabel("Iterations"),
+  Guide.ylabel("KL-Divergence")
+)
+
+Gadfly.draw(PDF("sqrtexamplekldreferenced.pdf",10cm,6cm),pldivref)
+@async run(`evince sqrtexamplekldreferenced.pdf`)
+
+
+
+
+0
+
+
+#
+# Gadfly.plot(x=cycle1[:ALLXX][1,:,1],y=cycle1[:ALLXX][1,:,2],
+# Geom.path(), Guide.title("μ=0, frequency=$(round(FR[1],3))"))
+# Gadfly.plot(x=ALLXY[1,:,1],y=ALLXY[1,:,2],
+# Geom.path(), Guide.title("μ=0, frequency=$(round(FR[1],3))"))
+#
+# Gadfly.plot(x=ALLXX[2,:,1],y=ALLXX[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[2],3))"))
+# Gadfly.plot(x=ALLXY[2,:,1],y=ALLXY[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[2],3))"))
+#
+# Gadfly.plot(x=ALLXX[3,:,1],y=ALLXX[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[3],3))"))
+# Gadfly.plot(x=ALLXY[3,:,1],y=ALLXY[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[3],3))"))
+#
+# Gadfly.plot(x=ALLXX[4,:,1],y=ALLXX[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[4],3))"))
+# Gadfly.plot(x=ALLXY[4,:,1],y=ALLXY[2,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[4],3))"))
+#
+# Gadfly.plot(x=ALLXX[end,:,1],y=ALLXX[3,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[5],3))"))
+# Gadfly.plot(x=ALLXY[end,:,1],y=ALLXY[3,:,2], Geom.path(), Guide.title("μ=0, frequency=$(round(FR[5],3))"))
+#
+#
+#
+# # plotKDE(getVertKDE(fg,:y))
+#
+# PL[1,3]
+# PL[2,3]
+# PL[3,3]
+# PL[4,3]
+# PL[6,3]
+#
+# PL[8,3]
+#
+# PL[10,3]
+#
+# PL[12,3]
+#
+# PL[20,3]
+#
+
 
 
 
 # Now evaluate the value function for studing the Bellman equation
-
-
-
-
-
 
 
 
