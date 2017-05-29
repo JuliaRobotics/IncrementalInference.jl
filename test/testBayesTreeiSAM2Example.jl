@@ -10,14 +10,14 @@ cov = [3.0]
 
 
 v1 = addNode!(fg,:x1,doors,N=N)
-f1  = addFactor!(fg,[v1], Obsv2(doors, cov', [1.0]))
+f1  = addFactor!(fg,[:x1], Obsv2(doors, cov', [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, tem, N=N)
-addFactor!(fg,[v1;v2],Odo([50.0]',[2.0]',[1.0]))
+addFactor!(fg,[:x1, :x2],Odo([50.0]',[2.0]',[1.0]))
 
 v3=addNode!(fg,:x3,4.0*randn(1,N)+getVal(v2)+50.0, N=N)
-addFactor!(fg,[v2;v3],Odo([50.0]',[4.0]',[1.0]))
+addFactor!(fg,[:x2,:x3],Odo([50.0]',[4.0]',[1.0]))
 
 
 l1=addNode!(fg, :l1, 0.5*randn(1,N)+getVal(v3)+64.0, N=N)
@@ -27,13 +27,22 @@ addFactor!(fg, [:x2,:l1], Ranged([16.0],[0.5],[1.0]))
 l2=addNode!(fg, :l2, 0.5*randn(1,N)+getVal(v3)+64.0, N=N)
 addFactor!(fg, [:x3,:l2], Ranged([16.0],[0.5],[1.0]))
 
+
+
+# for thesis
+# v4=addNode!(fg,:x4,4.0*randn(1,N)+getVal(v2)+50.0, N=N)
+# addFactor!(fg,[:x4,:l2],Odo([50.0]',[4.0]',[1.0]))
+
+
+
+
 # Graphs.plot(fg.g)
 # writeGraphPdf(fg);
 # run(`evince fg.pdf`)
 
 
 # p = IncrementalInference.getEliminationOrder(fg, ordering=:qr)
-p = [7,10,1,3,5];
+p = [7,10,1,3,5,12];
 
 println()
 fge = deepcopy(fg)
@@ -51,7 +60,7 @@ buildTree!(tree, fge, p)
 
 # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
 println("Bayes Tree")
-if false
+if true
   fid = open("bt.dot","w+")
   write(fid,Graphs.to_dot(tree.bt))
   close(fid)
