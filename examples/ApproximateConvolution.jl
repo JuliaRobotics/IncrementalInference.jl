@@ -6,6 +6,8 @@ using Base.Test
 
 import IncrementalInference: getSample
 
+# switch off y ticks
+toggleYTicks()
 
 
 type MultiModalConditional <: IncrementalInference.FunctorPairwise
@@ -67,7 +69,6 @@ q2 = kde!(getSample(mmc,2000)[1])
 h1 = plotKDE([getVertKDE(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")
 
-toggleYTicks()
 
 
 draw(PDF("approxconv.pdf",14cm,10cm),vstack(h1,h2))
