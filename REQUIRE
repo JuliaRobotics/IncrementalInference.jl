@@ -6,7 +6,8 @@ Colors
 NLsolve
 Optim
 Distributions
-KernelDensityEstimate 0.2.3
-HDF5
+KernelDensityEstimate 0.2.5
+HDF5 0.8.5
 JLD
 ProgressMeter
+Compat 0.18

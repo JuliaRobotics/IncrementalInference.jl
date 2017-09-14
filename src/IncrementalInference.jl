@@ -16,7 +16,8 @@ using
   KernelDensityEstimate,
   HDF5,
   JLD,
-  ProgressMeter
+  ProgressMeter,
+  Compat
 
 export
   # pass through from Graphs.jl
