@@ -10,6 +10,10 @@ notifications:
 matrix:
   allow_failures:
     - julia: nightly
+addons:
+  apt:
+    packages:
+    - hdf5-tools
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.test("IncrementalInference"; coverage=true)'
