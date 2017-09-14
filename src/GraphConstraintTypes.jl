@@ -30,7 +30,7 @@ function (odo::Odo)(res::Vector{Float64},
   nothing
 end
 function getSample(odo::Odo, N::Int=1)
-  (rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N )',)
+  (reshape(rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N ),1,N),)
 end
 # function getSample(odo::Odo, N::Int=1)
 #   ret = zeros(1,N)

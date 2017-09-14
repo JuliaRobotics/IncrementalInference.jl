@@ -418,9 +418,10 @@ function directPriorMsgIDs(cliq::Graphs.ExVertex)
   cols = [frtl;cond]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),2) .== 1
-  @show collect(singr)
-  rerows = collect(1:length(singr))[collect(singr)]
-  sumsrAc = sum(map(Int,mat[rerows,:]),1)
+  rerows = collect(1:length(singr))
+  b = collect(singr)
+  rerows2 = rerows[b]
+  sumsrAc = sum(map(Int,mat[rerows2,:]),1)
   sumc = sum(map(Int,mat),1)
   pmSkipCols = (sumsrAc - sumc) .== 0
   return cols[collect(pmSkipCols)]
