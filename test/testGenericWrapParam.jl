@@ -244,7 +244,7 @@ pts = getVal(getVert(fg,:x1))
 pts = getVal(getVert(fg,:x2))
 @test abs(Base.mean(pts)-0.0) < 10.0
 
-@time [inferOverTreeR!(fg, tree) for i in 1:3]
+@time [inferOverTreeR!(fg, tree) for i in 1:3];
 
 
 # using Gadfly

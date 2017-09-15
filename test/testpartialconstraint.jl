@@ -74,7 +74,7 @@ getSample(dpl::DevelopPartialPairwise, N::Int=1) = (rand(dpl.x, N)', )
 
 function (dp::DevelopPartialPairwise)(res::Vector{Float64},
                               idx::Int,
-                              meas::Tuple{Array{Float64,2}},
+                              meas::Tuple, #{RowVector{Float64,Array{Float64,1}}}, #Tuple{Array{Float64,2}},
                               x1::Array{Float64},
                               x2::Array{Float64}  )
   #

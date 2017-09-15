@@ -34,13 +34,16 @@ Comments, questions and issues welcome.
 Installation
 ------------
 
-Install the package itself with
+Pre-install the following packages system wide packages[, and easily draw factor graph and Bayes tree]:
+```bash
+sudo apt-get install hdf5-tools
+sudo apt-get install graphviz  # optional
+```
 
-julia> Pkg.add("IncrementalInference")
-
-You can draw factor graph and Bayes tree easily if graphviz is installed (optional)
-
-$ sudo apt-get install graphviz
+Install the package from inside Julia
+```julia
+Pkg.add("IncrementalInference")
+```
 
 Basic example
 =============

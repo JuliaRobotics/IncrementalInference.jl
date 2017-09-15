@@ -693,7 +693,7 @@ function unimodalCompare(FGL::Array{FactorGraph,1},isamdict::Dict{Int,Array{Floa
   RMSth = Float64[]
   MAXth = Float64[]
 
-  rr = RemoteRef[]
+  rr = Future[] #RemoteRef[]
 
   for fgl in FGL
     push!(rr, remotecall(uppA(),asyncUniComp, fgl, isamdict))
@@ -742,7 +742,7 @@ function analyzeSolution(FGL::Array{FactorGraph,1},fggt=Union{})
     ERR = Float64[]
     ERRth = Float64[]
     ALB = [xLB;lLB]
-    rr = RemoteRef[]
+    rr = Future[] #RemoteRef[]
     for lbl in ALB
       push!(rr, remotecall(uppA(),asyncAnalyzeSolution, fgl, lbl))
       # err
