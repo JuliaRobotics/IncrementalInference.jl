@@ -1,5 +1,5 @@
 julia 0.5
-Graphs 0.7.2
+Graphs 0.8.0
 GraphViz
 Gadfly
 Colors
