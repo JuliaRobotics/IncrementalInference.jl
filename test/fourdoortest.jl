@@ -4,14 +4,14 @@ fg = emptyFactorGraph()
 
 N=100
 
-doors = reshape(Float64[-100.0;0.0;100.0;300.0],1,:)
+doors = reshape(Float64[-100.0;0.0;100.0;300.0],1,4)
 pd = kde!(doors,[3.0])
 pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
 
 v1 = addNode!(fg,:x0,doors,N=N)
-f1  = addFactor!(fg,[v1],Obsv2( doors2, reshape(bws,1,:), [1.0])) #, samplefnc=getSample
+f1  = addFactor!(fg,[v1],Obsv2( doors2, reshape(bws,1,1), [1.0])) #, samplefnc=getSample
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, tem, N=N)
@@ -48,7 +48,7 @@ addFactor!(fg,[v5;v6],Odo(40.0*ones(1,1),1.20*ones(1,1),[1.0])) #, samplefnc=get
 v7=addNode!(fg,:x7,2.0*randn(1,N)+getVal(v6) +60.0, N=N)
 addFactor!(fg,[v6;v7],Odo(60.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
 
-f3 = addFactor!(fg,[v7], Obsv2(doors, reshape(bws,1,:), [1.0])) #, samplefnc=getSample
+f3 = addFactor!(fg,[v7], Obsv2(doors, reshape(bws,1,1), [1.0])) #, samplefnc=getSample
 
 
 # HMM computed ground truth, extended for 7 poses with landmark

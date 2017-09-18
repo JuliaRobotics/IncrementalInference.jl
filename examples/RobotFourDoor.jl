@@ -15,7 +15,7 @@ fg = emptyFactorGraph()
 
 N=100
 
-doors = Reshape([-100.0;0.0;100.0;300.0],1,:)
+doors = Reshape([-100.0;0.0;100.0;300.0],1,4)
 cov = 3.0*ones(1,1)
 # pd = kde!(doors,cov)
 # pd = resample(pd,N);
