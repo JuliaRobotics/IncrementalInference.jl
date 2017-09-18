@@ -71,8 +71,8 @@ function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2}
   setBW!(v,bw)
   nothing
 end
-function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,1})
-  setVal!(v,val,reshape(bw,:,1)) #(bw')')
+function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
+  setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
   nothing
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})

@@ -53,14 +53,14 @@ f3 = addFactor!(fg,[v7], Obsv2(doors, reshape(bws,1,:), [1.0])) #, samplefnc=get
 
 # HMM computed ground truth, extended for 7 poses with landmark
 gt = Dict{Symbol, Array{Float64,2}}()
-gt[:x0]=reshape(Float64[0.0;1.97304 ],:,1) # -0.0342366
-gt[:x2]=reshape(Float64[50.0; 2.83153 ],:,1) # 49.8797
-gt[:x3]=reshape(Float64[100.0; 1.65557 ],:,1) # 99.8351
-gt[:x4]=reshape(Float64[150.0; 1.64945 ],:,1) # 148.637
-gt[:x5]=reshape(Float64[200.0; 1.77992 ],:,1) # 198.62
-gt[:x6]=reshape(Float64[240.0; 2.20466 ],:,1) # 238.492
-gt[:x7]=reshape(Float64[300.0; 2.14353 ],:,1) # 298.467
-gt[:l1]=reshape(Float64[165.0; 1.17284 ],:,1) # 164.102
+gt[:x0]=reshape(Float64[0.0;1.97304 ],2,1) # -0.0342366
+gt[:x2]=reshape(Float64[50.0; 2.83153 ],2,1) # 49.8797
+gt[:x3]=reshape(Float64[100.0; 1.65557 ],2,1) # 99.8351
+gt[:x4]=reshape(Float64[150.0; 1.64945 ],2,1) # 148.637
+gt[:x5]=reshape(Float64[200.0; 1.77992 ],2,1) # 198.62
+gt[:x6]=reshape(Float64[240.0; 2.20466 ],2,1) # 238.492
+gt[:x7]=reshape(Float64[300.0; 2.14353 ],2,1) # 298.467
+gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 
 
 tree = prepBatchTree!(fg, drawpdf=false);
