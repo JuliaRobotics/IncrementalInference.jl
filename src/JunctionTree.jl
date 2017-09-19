@@ -408,7 +408,7 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   mabM = sum(map(Int,condMsgMat),1) .== 1
   mab = mab & mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliq.attributes["data"].conditIDs[collect(mab)]
+  msgidx = cliq.attributes["data"].conditIDs[vec(collect(mab))]
   return msgidx
 end
 
@@ -418,12 +418,13 @@ function directPriorMsgIDs(cliq::Graphs.ExVertex)
   cols = [frtl;cond]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),2) .== 1
-  @show collect(singr)
-  rerows = collect(1:length(singr))[collect(singr)]
-  sumsrAc = sum(map(Int,mat[rerows,:]),1)
+  rerows = collect(1:length(singr))
+  b = vec(collect(singr))
+  rerows2 = rerows[b]
+  sumsrAc = sum(map(Int,mat[rerows2,:]),1)
   sumc = sum(map(Int,mat),1)
   pmSkipCols = (sumsrAc - sumc) .== 0
-  return cols[collect(pmSkipCols)]
+  return cols[vec(collect(pmSkipCols))]
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
@@ -434,7 +435,7 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,frtlMsgMat),1) .== 1
   mab = mab & mabM
-  return cliq.attributes["data"].frontalIDs[collect(mab)]
+  return cliq.attributes["data"].frontalIDs[vec(collect(mab))]
 end
 
 function directAssignmentIDs(cliq::Graphs.ExVertex)
@@ -448,7 +449,7 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   frtl = cliq.attributes["data"].frontalIDs
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
-  return cols[collect(mab)]
+  return cols[vec(collect(mab))]
   # also calculate how which are conditionals
 end
 
@@ -472,7 +473,7 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
 
   #end dev code
   # final output
-  return cols[collect(mab)]
+  return cols[vec(collect(mab))]
 end
 
 function setCliqMCIDs!(cliq::Graphs.ExVertex)

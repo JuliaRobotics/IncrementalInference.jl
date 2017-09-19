@@ -101,7 +101,7 @@ type Pose1Pose1Test{T} <: FunctorPairwise
   # Pose1Pose1Test{T}(::Int) = new(T())
   Pose1Pose1Test{T}(a::T) = new(a)
 end
-getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (rand(pp1t.Dx,N)',)
+getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
@@ -231,7 +231,8 @@ fg = emptyFactorGraph()
 
 v1=addNode!(fg, :x1, p1, N=N)
 v2=addNode!(fg, :x2, p2, N=N)
-f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]))
+bws = getBW(d1)[:,1]
+f1 = addFactor!(fg, [v1], Obsv2(p1, reshape(bws, 1, length(bws)), [1.0]))
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
@@ -243,7 +244,7 @@ pts = getVal(getVert(fg,:x1))
 pts = getVal(getVert(fg,:x2))
 @test abs(Base.mean(pts)-0.0) < 10.0
 
-@time [inferOverTreeR!(fg, tree) for i in 1:3]
+@time [inferOverTreeR!(fg, tree) for i in 1:3];
 
 
 # using Gadfly

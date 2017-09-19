@@ -71,8 +71,8 @@ function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2}
   setBW!(v,bw)
   nothing
 end
-function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,1})
-  setVal!(v,val,(bw')')
+function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
+  setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
   nothing
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
@@ -123,8 +123,11 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   end
   # dims = size(initval,1) # rows indicate dimensions
   sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
+  gbw = getBW(pN)[:,1]
+  gbw2 = Array{Float64}(length(gbw),1)
+  gbw2[:,1] = gbw[:]
   data = VariableNodeData(initval, stdev, getPoints(pN),
-                          (getBW(pN)[:,1]')', Int64[], sp,
+                          gbw2, Int64[], sp,
                           dims, false, 0, Int64[], gt)
   #
   v.attributes["data"] = data
@@ -150,7 +153,7 @@ end
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
 function addNode!{T <: AbstractString}(fg::FactorGraph,
-      lbl::Symbol, initval=[0.0]', stdev=[1.0]';
+      lbl::Symbol, initval=zeros(1,1), stdev=ones(1,1);
       N::Int=100,
       ready::Int=1,
       labels::Vector{T}=String[],
