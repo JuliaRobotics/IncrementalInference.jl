@@ -1,7 +1,8 @@
 # packing and unpacking of Graph related types
 
 
-using IncrementalInference, KernelDensityEstimate
+using KernelDensityEstimate
+using IncrementalInference
 
 using Base.Test
 
