@@ -1,4 +1,5 @@
 using Base.Test
+using Compat
 
 println("[TEST] out of module evalPotential...")
 include("TestModuleFunctions.jl")

@@ -1,23 +1,23 @@
 import Base.convert
 import Base.==
 
-abstract InferenceType
-abstract PackedInferenceType
+@compat abstract type InferenceType end
+@compat abstract type PackedInferenceType end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
-abstract Pairwise <: InferenceType
-abstract Singleton <: InferenceType
+@compat abstract type Pairwise <: InferenceType end
+@compat abstract type Singleton <: InferenceType end
 
-abstract FunctorInferenceType <: Function
+@compat abstract type FunctorInferenceType <: Function end
 
-abstract FunctorSingleton <: FunctorInferenceType
-# abstract FunctorPartialSingleton <: FunctorInferenceType
-abstract FunctorSingletonNH <: FunctorSingleton
+@compat abstract type FunctorSingleton <: FunctorInferenceType end
+# @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
+@compat abstract type FunctorSingletonNH <: FunctorSingleton end
 
-abstract FunctorPairwise <: FunctorInferenceType
-abstract FunctorPairwiseMinimize <: FunctorInferenceType
-abstract FunctorPairwiseNH <: FunctorPairwise
-# abstract FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize # TODO
+@compat abstract type FunctorPairwise <: FunctorInferenceType end
+@compat abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
+@compat abstract type FunctorPairwiseNH <: FunctorPairwise end
+# @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
 typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}

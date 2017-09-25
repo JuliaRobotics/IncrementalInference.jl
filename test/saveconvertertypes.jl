@@ -2,11 +2,12 @@ using Base: Test
 
 
 module  Dependency
+  using Compat
   import Base: convert
   export abst, pabst, convert, convertsave
 
-  abstract abst
-  abstract pabst
+  @compat abstract type abst end
+  @compat abstract type pabst end
 
   convert{P <: pabst, T <: abst}(::Type{P}, ::T) =
           getfield(T.name.module, Symbol("Packed$(T.name.name)"))
