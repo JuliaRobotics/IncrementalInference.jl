@@ -10,6 +10,7 @@ notifications:
   email: false
 matrix:
   allow_failures:
+    - os: osx
     - julia: nightly
 addons:
   apt:
