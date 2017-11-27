@@ -364,30 +364,30 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
   return mat
 end
 
-function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
-  # TODO -- add improved visualization here, iter vs skip
-  mat = map(Float64, mat)*2.0-1.0
-  numlcl = size(getCliqAssocMat(cliq),1)
-  mat[(numlcl+1):end,:] *= 0.9
-  mat[(numlcl+1):end,:] -= 0.1
-  numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
-  mat[:,numfrtl1:end] *= 0.9
-  mat[:,numfrtl1:end] -= 0.1
-  @show cliq.attributes["data"].itervarIDs
-  @show cliq.attributes["data"].directvarIDs
-  @show cliq.attributes["data"].msgskipIDs
-  @show cliq.attributes["data"].directFrtlMsgIDs
-  @show cliq.attributes["data"].directPriorMsgIDs
-  sp = Gadfly.spy(mat)
-  push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
-  push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
-  push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
-  return sp
-end
-function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
-  spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
-end
+# function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
+#   mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
+#   # TODO -- add improved visualization here, iter vs skip
+#   mat = map(Float64, mat)*2.0-1.0
+#   numlcl = size(getCliqAssocMat(cliq),1)
+#   mat[(numlcl+1):end,:] *= 0.9
+#   mat[(numlcl+1):end,:] -= 0.1
+#   numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
+#   mat[:,numfrtl1:end] *= 0.9
+#   mat[:,numfrtl1:end] -= 0.1
+#   @show cliq.attributes["data"].itervarIDs
+#   @show cliq.attributes["data"].directvarIDs
+#   @show cliq.attributes["data"].msgskipIDs
+#   @show cliq.attributes["data"].directFrtlMsgIDs
+#   @show cliq.attributes["data"].directPriorMsgIDs
+#   sp = Gadfly.spy(mat)
+#   push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+#   push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+#   push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
+#   return sp
+# end
+# function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
+#   spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
+# end
 
 function countSkips(bt::BayesTree)
   skps = 0

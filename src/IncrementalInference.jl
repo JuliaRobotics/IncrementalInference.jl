@@ -8,8 +8,8 @@ import Gadfly: draw
 using
   Graphs,
   GraphViz,
-  Gadfly,
-  Colors,
+  # Gadfly,
+  # Colors,
   NLsolve,
   Optim,
   Distributions,
@@ -86,17 +86,17 @@ export
   getSample,
 
   #Visualization
-  investigateMultidimKDE,
   writeGraphPdf,
   ls,
   lsf,
   ls2,
   getfnctype,
-  drawHorDens,
-  drawHorBeliefsList,
+  # investigateMultidimKDE,
+  # drawHorDens,
+  # drawHorBeliefsList,
 
   # Tree stuff
-  spyCliqMat,
+  # spyCliqMat,
   evalPotential,
   evalFactor2,
 
@@ -171,33 +171,33 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat,
+  reshapeVec2Mat
 
   # analysis and some plotting
-  plotKDEofnc,
-  plotKDEresiduals,
-  plotMCMC,
-  plotUpMsgsAtCliq,
-  plotPriorsAtCliq,
-  investigateMultidimKDE,
-  draw,
-  whosWith,
-  drawUpMsgAtCliq,
-  dwnMsgsAtCliq,
-  drawPose2DMC!,
-  mcmcPose2D!,
-  # drawUpMCMCPose2D!,
-  # drawDwnMCMCPose2D!,
-  drawLbl,
-  predCurrFactorBeliefs,
-  drawHorDens,
-  drawHorBeliefsList,
-  drawFactorBeliefs,
-  localProduct,
-  plotLocalProduct,
-  saveplot,
-  animateVertexBelief,
-  getColorsByLength
+  # plotKDEofnc,
+  # plotKDEresiduals,
+  # plotMCMC,
+  # plotUpMsgsAtCliq,
+  # plotPriorsAtCliq,
+  # investigateMultidimKDE,
+  # draw,
+  # whosWith,
+  # drawUpMsgAtCliq,
+  # dwnMsgsAtCliq,
+  # drawPose2DMC!,
+  # mcmcPose2D!,
+  # # drawUpMCMCPose2D!,
+  # # drawDwnMCMCPose2D!,
+  # drawLbl,
+  # predCurrFactorBeliefs,
+  # drawHorDens,
+  # drawHorBeliefsList,
+  # drawFactorBeliefs,
+  # localProduct,
+  # plotLocalProduct,
+  # saveplot,
+  # animateVertexBelief,
+  # getColorsByLength
 
 
 
@@ -210,7 +210,7 @@ include("SolverUtilities.jl")
 include("TreePotentials01.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
-include("SolverVisualization.jl")
+#include("SolverVisualization.jl")
 include("FGOSUtils.jl")
 
 include("deprecated.jl")
