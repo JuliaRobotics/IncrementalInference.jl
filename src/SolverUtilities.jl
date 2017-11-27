@@ -132,7 +132,7 @@ type FastGenericRoot{T} <: Function
   xDim::Int
   zDim::Int
   usrfnc::T
-  FastGenericRoot{T}(xDim::Int, zDim::Int, residfnc::T) =
+  FastGenericRoot{T}(xDim::Int, zDim::Int, residfnc::T) where {T} =
       new(collect(1:xDim), zeros(zDim), zeros(xDim), zeros(xDim), xDim, zDim, residfnc)
 end
 function shuffleXAltD!(fr::FastGenericRoot, X::Vector{Float64})

@@ -1,7 +1,8 @@
 module IncrementalInference
 
 import Base: convert
-import KernelDensityEstimate: kde!, plotKDE
+import KernelDensityEstimate: kde!
+import KernelDensityEstimatePlotting: plotKDE
 import Gadfly: draw
 # import Graphs: plot
 
@@ -199,6 +200,8 @@ export
   # animateVertexBelief,
   # getColorsByLength
 
+
+const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")

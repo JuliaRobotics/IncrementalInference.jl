@@ -26,8 +26,8 @@ f1 = addFactor!(fg,[:x1],pr)
 
 pts = evalFactor2(fg, f1, v1.index, N=N)
 
-@test sum(abs(pts - 1.0) .< 5) > 30
-@test sum(abs(pts - 10.0) .< 5) > 30
+@test sum(abs.(pts - 1.0) .< 5) > 30
+@test sum(abs.(pts - 10.0) .< 5) > 30
 
 
 

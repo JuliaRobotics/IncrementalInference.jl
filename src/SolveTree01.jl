@@ -232,7 +232,7 @@ function productbelief(fg::FactorGraph,
       N::Int  )
   #
 
-  pGM = Array{Float64,2}()
+  pGM = Array{Float64}(0,0)
   lennonp, lenpart = length(dens), length(partials)
 
   if lennonp > 1
@@ -389,7 +389,7 @@ function cliqGibbs(fg::FactorGraph,
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N)
 
-  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
+  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
   pGM = productbelief(fg, vertid, dens, partials, N )
   if debugflag  potprod.product = pGM  end
 

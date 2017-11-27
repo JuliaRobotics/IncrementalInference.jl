@@ -18,10 +18,11 @@ type BayesTreeNodeData
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
 
+# TODO -- this should be a constructor
 function emptyBTNodeData()
   BayesTreeNodeData(Int64[],Int64[],Int64[],
-                    Int64[],Int64[],Array{Bool,2}(),
-                    Array{Bool,2}(),Int64[],Int64[],
+                    Int64[],Int64[],Array{Bool}(0,0),
+                    Array{Bool}(0,0),Int64[],Int64[],
                     Int64[],Int64[],Int64[],
                     nothing, nothing)
 end
@@ -277,7 +278,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                     if (fg.IDs[sslbl] == fid)
                         continue # skip the fid itself
                     end
-                    sea = findmin(abs(allids-fg.IDs[sslbl]))
+                    sea = findmin(abs.(allids-fg.IDs[sslbl]))
                     if sea[1]==0.0
                         appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
@@ -406,7 +407,7 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   mat = [condAssocMat;condMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,condMsgMat),1) .== 1
-  mab = mab & mabM
+  mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
   msgidx = cliq.attributes["data"].conditIDs[vec(collect(mab))]
   return msgidx
@@ -434,7 +435,7 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
   mat = [frntAssocMat; frtlMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,frtlMsgMat),1) .== 1
-  mab = mab & mabM
+  mab = mab .& mabM
   return cliq.attributes["data"].frontalIDs[vec(collect(mab))]
 end
 
@@ -445,7 +446,7 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   mat = [assocMat;msgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabA = sum(map(Int,assocMat),1) .== 1
-  mab = mab & mabA
+  mab = mab .& mabA
   frtl = cliq.attributes["data"].frontalIDs
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]

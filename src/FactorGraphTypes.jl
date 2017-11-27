@@ -19,13 +19,11 @@ import Base.==
 @compat abstract type FunctorPairwiseNH <: FunctorPairwise end
 # @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
-typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
-typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
-
-typealias VoidUnion{T} Union{Void, T}
+const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
+const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
 # Condensed representation of KernelDensityEstimate, by saving points and bandwidth
-type EasyMessage
+mutable struct EasyMessage
   pts::Array{Float64,2}
   bws::Array{Float64,1}
   EasyMessage() = new()
@@ -34,7 +32,7 @@ type EasyMessage
 end
 
 
-type FactorGraph
+mutable struct FactorGraph
   g::FGGdict
   bn
   IDs::Dict{Symbol,Int}
@@ -91,7 +89,7 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
     return fg
 end
 
-type VariableNodeData
+mutable struct VariableNodeData
   initval::Array{Float64,2}
   initstdev::Array{Float64,2}
   val::Array{Float64,2}
@@ -107,7 +105,7 @@ type VariableNodeData
   VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11])
 end
 
-type PackedVariableNodeData
+mutable struct PackedVariableNodeData
   vecinitval::Array{Float64,1}
   diminitval::Int64
   vecinitstdev::Array{Float64,1}
@@ -126,7 +124,7 @@ type PackedVariableNodeData
   PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
 
-type GenericWrapParam{T} <: FunctorInferenceType
+mutable struct GenericWrapParam{T} <: FunctorInferenceType
   usrfnc!::T
   params::Vector{Array{Float64,2}}
   varidx::Int
@@ -135,14 +133,15 @@ type GenericWrapParam{T} <: FunctorInferenceType
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
   partial::Bool
-  GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) = new(fnc, t, i, j, meas, smpl, szd, partial)
+  GenericWrapParam{T}() where {T} = new()
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial)
 end
-type FastRootGenericWrapParam{T} <: Function
+
+mutable struct FastRootGenericWrapParam{T} <: Function
   p::Vector{Int}
   perturb::Vector{Float64}
   X::Array{Float64,2}
@@ -150,27 +149,27 @@ type FastRootGenericWrapParam{T} <: Function
   xDim::Int
   zDim::Int
   gwp::GenericWrapParam{T}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
+  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
       new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
 end
 
-
-type GenericFunctionNodeData{T, S}
+mutable struct GenericFunctionNodeData{T, S}
   fncargvID::Array{Int64,1}
   eliminated::Bool
   potentialused::Bool
   edgeIDs::Array{Int64,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
-  GenericFunctionNodeData() = new()
-  GenericFunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
+  GenericFunctionNodeData{T, S}() where {T, S} = new()
+  GenericFunctionNodeData{T, S}(x...) where {T, S} = new(x[1],x[2],x[3],x[4],x[5],x[6])
 end
 
-typealias FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} GenericFunctionNodeData{T, Symbol}
+FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
 FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
 FunctionNodeData(x...) = GenericFunctionNodeData{T, Symbol}(x[1],x[2],x[3],x[4],x[5],x[6])
 
-typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
+# typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
+PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, AbstractString}
 PackedFunctionNodeData() = GenericFunctionNodeData{T, AbstractString}()
 PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x[2],x[3],x[4],x[5],x[6])
 
@@ -285,8 +284,10 @@ function compare{T,S}(a::GenericFunctionNodeData{T,S},b::GenericFunctionNodeData
 end
 
 
-function addGraphsVert!{T <: AbstractString}(fgl::FactorGraph, exvert::Graphs.ExVertex;
-    labels::Vector{T}=String[])
+function addGraphsVert!(fgl::FactorGraph,
+            exvert::Graphs.ExVertex;
+            labels::Vector{<:AbstractString}=String[])
+  #
   Graphs.add_vertex!(fgl.g, exvert)
 end
 

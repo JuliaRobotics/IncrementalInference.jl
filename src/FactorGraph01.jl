@@ -122,7 +122,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
     pN = kde!(initval)
   end
   # dims = size(initval,1) # rows indicate dimensions
-  sp = round(Int64,linspace(dodims,dodims+dims-1,dims))
+  sp = round.(Int64,linspace(dodims,dodims+dims-1,dims))
   gbw = getBW(pN)[:,1]
   gbw2 = Array{Float64}(length(gbw),1)
   gbw2[:,1] = gbw[:]
