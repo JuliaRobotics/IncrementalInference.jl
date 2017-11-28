@@ -147,7 +147,7 @@ end
 @test abs(Base.mean(p2)-100.0) < 3.0
 
 
-# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int64; N:Int=100)
+# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
 #
 #
 # end

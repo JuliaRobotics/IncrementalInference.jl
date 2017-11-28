@@ -7,7 +7,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 
 # get vertex from factor graph according to label symbol "x1"
 getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var) = api.getvertex(fgl, lbl, nt=nt)
-getVert(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
+getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
 
 
 # TODO -- upgrade to dedicated memory location in Graphs.jl
@@ -15,7 +15,7 @@ getVert(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = api.getvertex(fg
 getData(v::Graphs.ExVertex) = v.attributes["data"]
 # Convenience functions
 getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi) = getData(getVert(fgl, lbl, api=api))
-getData(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
+getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
 
 function setData!(v::Graphs.ExVertex, data)
   v.attributes["data"] = data
@@ -34,7 +34,7 @@ function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
   getVal(getVert(fgl, lbl, api=api))
 end
-function getVal(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
+function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   # getVal(dlapi.getvertex(fgl, exvertid))
   getVal(getVert(fgl, exvertid, api=api))
 end
@@ -47,7 +47,7 @@ function getfnctype(vertl::Graphs.ExVertex)
   data.fnc.usrfnc!
 end
 
-function getfnctype(fgl::FactorGraph, exvertid::Int64; api::DataLayerAPI=dlapi)
+function getfnctype(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   #
   # data = getData(fgl, exvertid, api=api)
   # data.fnc.usrfnc!
@@ -100,7 +100,7 @@ end
 
 # TODO -- there should be a better way, without retrieving full vertex
 getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
-getOutNeighbors(fgl::FactorGraph, vertid::Int64; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
+getOutNeighbors(fgl::FactorGraph, vertid::Int; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
 
 function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
   dlapi.updatevertex!(fgl, exvert)
@@ -108,7 +108,7 @@ end
 
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                             stdev::Array{Float64,2}, dodims::Int64, N::Int64, dims::Int64;
+                             stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
                              gt=nothing)
   pN = nothing
   if size(initval,2) < N && size(initval, 1) == dims
@@ -122,20 +122,20 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
     pN = kde!(initval)
   end
   # dims = size(initval,1) # rows indicate dimensions
-  sp = round.(Int64,linspace(dodims,dodims+dims-1,dims))
+  sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
   gbw = getBW(pN)[:,1]
   gbw2 = Array{Float64}(length(gbw),1)
   gbw2[:,1] = gbw[:]
   data = VariableNodeData(initval, stdev, getPoints(pN),
-                          gbw2, Int64[], sp,
-                          dims, false, 0, Int64[], gt)
+                          gbw2, Int[], sp,
+                          dims, false, 0, Int[], gt)
   #
   v.attributes["data"] = data
 
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::Symbol, ready::Int)
+function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = string(lbl) #fg.v[fg.id]
   fgl.IDs[lbl] = id
@@ -200,19 +200,19 @@ end
 function getVal(vA::Array{Graphs.ExVertex,1})
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
-  cols = Array{Int64,1}()
+  cols = Array{Int,1}()
   push!(cols,0)
-  rows = Array{Int64,1}()
+  rows = Array{Int,1}()
   for v in vA
       push!(vals, getVal(v))
       c = size(vals[end],2)
       r = size(vals[end],1)
-      push!(cols, floor(Int64,c))
-      push!(rows, floor(Int64,r))
+      push!(cols, floor(Int,c))
+      push!(rows, floor(Int,r))
   end
   cols = cumsum(cols)
   sc = cols[end]
-  rw = floor(Int64,rows[1])
+  rw = floor(Int,rows[1])
   val = Array{Float64,2}(rw, sc)
   for i in 1:(len-1)
       val[:,(cols[i]+1):cols[i+1]] = vals[i]
@@ -235,8 +235,8 @@ end
 #   nothing
 # end
 #
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int64)
-  LEN = Int64[]
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int)
+  LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
@@ -287,13 +287,13 @@ function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
   # samplefnc2 = fgl.registeredModuleFunctions[m]
   gwpf = prepgenericwrapper(Xi, usrfnc, getSample) #samplefnc2)
 
-  data = FunctionNodeData{GenericWrapParam{T}}(Int64[], false, false, Int64[], m, gwpf)
+  data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
   vert.attributes["data"] = data
 
   nothing
 end
 
-function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::Symbol, ready::Int)
+function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
@@ -308,7 +308,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int6
   vert.attributes["width"] = 0.2
   nothing
 end
-addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int64, lbl::T, ready::Int) =
+addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 
@@ -429,8 +429,8 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     sf = fg.factorIDs
     lensf = length(sf)
     adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
-    permuteds = Vector{Int64}(lens)
-    permutedsf = Vector{Int64}(lensf)
+    permuteds = Vector{Int}(lens)
+    permutedsf = Vector{Int}(lensf)
     for j in 1:length(dictpermu)
       semap = 0
       for i in 1:lens
@@ -465,7 +465,7 @@ end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
+function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
   for p in elimOrder
     vert = getVert(fg, p, api=localapi)
     @show vert.label, getData(vert).BayesNetVertID
@@ -479,7 +479,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int64,1})
   end
 end
 
-function addConditional!(fg::FactorGraph, vertID::Int64, lbl, Si)
+function addConditional!(fg::FactorGraph, vertID::Int, lbl, Si)
   bnv = getVert(fg, vertID, api=localapi) #fg.v[vertID]
   bnvd = bnv.attributes["data"]
   bnvd.separator = Si
@@ -545,8 +545,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # which variable are we eliminating
 
       # all factors adjacent to this variable
-      fi = Int64[]
-      Si = Int64[]
+      fi = Int[]
+      Si = Int[]
       gm = ExVertex[]
       # TODO -- optimize outneighbor calls like this
       vert = localapi.getvertex(fg,v)
@@ -604,7 +604,7 @@ function getVertKDE(v::Graphs.ExVertex)
   return getKDE(v)
 end
 
-function getVertKDE(fgl::FactorGraph, id::Int64; api::DataLayerAPI=dlapi)
+function getVertKDE(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,id)
   return getKDE(v)
 end
@@ -641,8 +641,8 @@ end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int64,Graphs.ExVertex},
-                              edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}})
+                              vertdict::Dict{Int,Graphs.ExVertex},
+                              edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}})
   #asfd
   for vert in vertdict
     for newedge in out_edges(vert[2],fgl.g)
@@ -657,8 +657,8 @@ end
 
 # dictionary of unique vertices from edgelist
 function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
-  vertdict::Dict{Int64,Graphs.ExVertex})
+  edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
+  vertdict::Dict{Int,Graphs.ExVertex})
 
   # go through all source and target nodes
   for edge in edgedict
@@ -673,7 +673,7 @@ function expandVertexList!(fgl::FactorGraph,
 end
 
 function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
-  edgedict = Dict{Int64,Graphs.Edge{Graphs.ExVertex}}()
+  edgedict = Dict{Int,Graphs.Edge{Graphs.ExVertex}}()
   for edge in edgelist
     edgedict[edge.index] = edge
   end
@@ -683,7 +683,7 @@ end
 # TODO -- convert to use add_vertex! instead, since edges type must be made also
 function addVerticesSubgraph(fgl::FactorGraph,
     fgseg::FactorGraph,
-    vertdict::Dict{Int64,Graphs.ExVertex})
+    vertdict::Dict{Int,Graphs.ExVertex})
 
     for vert in vertdict
       fgseg.g.vertices[vert[1]] = vert[2]
@@ -724,8 +724,8 @@ end
 # NOTICE, nodeIDs and factorIDs are not brough over by this method yet
 # must sort out for incremental updates
 function genSubgraph(fgl::FactorGraph,
-    vertdict::Dict{Int64,Graphs.ExVertex})
-    # edgedict::Dict{Int64,Graphs.Edge{Graphs.ExVertex}},
+    vertdict::Dict{Int,Graphs.ExVertex})
+    # edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
 
   fgseg = FactorGraph() # new handle for just a segment of the graph
   fgseg.g = Graphs.inclist(Graphs.ExVertex,is_directed=false)
@@ -754,7 +754,7 @@ function getShortestPathNeighbors(fgl::FactorGraph;
     neighbors::Int=0 )
 
   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
-  vertdict = Dict{Int64,Graphs.ExVertex}()
+  vertdict = Dict{Int,Graphs.ExVertex}()
   edgedict = edgelist2edgedict(edgelist)
   expandVertexList!(fgl, edgedict, vertdict) # grow verts
   for i in 1:neighbors
@@ -775,10 +775,10 @@ end
 
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Dict{Int64,Graphs.ExVertex};
+    verts::Dict{Int,Graphs.ExVertex};
     neighbors::Int=0  )
 
-    allverts = Dict{Int64,Graphs.ExVertex}()
+    allverts = Dict{Int,Graphs.ExVertex}()
     allkeys = collect(keys(verts))
     len = length(allkeys)
     # union all shortest path combinations in a vertdict
@@ -799,7 +799,7 @@ end
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 # Using unique index into graph data structure
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{Int64,1};
+    verts::Array{Int,1};
     neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()

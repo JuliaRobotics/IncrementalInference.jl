@@ -787,7 +787,7 @@ function drawAnalysis(df,dfth)
         )
 end
 
-function getAllFGsKDEs(fgD::Array{FactorGraph,1}, vertid::Int64)
+function getAllFGsKDEs(fgD::Array{FactorGraph,1}, vertid::Int)
   ret = Array{BallTreeDensity,1}()
   for i in 1:length(fgD)
     push!(ret, getVertKDE(fgD[i],vertid) )

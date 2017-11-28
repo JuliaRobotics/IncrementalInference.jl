@@ -1,17 +1,17 @@
 
 type BayesTreeNodeData
-  frontalIDs::Vector{Int64}
-  conditIDs::Vector{Int64}
-  inmsgIDs::Vector{Int64}
-  potIDs::Vector{Int64} # this is likely redundant TODO -- remove
-  potentials::Vector{Int64}
+  frontalIDs::Vector{Int}
+  conditIDs::Vector{Int}
+  inmsgIDs::Vector{Int}
+  potIDs::Vector{Int} # this is likely redundant TODO -- remove
+  potentials::Vector{Int}
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Int64}
-  directFrtlMsgIDs::Vector{Int64}
-  msgskipIDs::Vector{Int64}
-  itervarIDs::Vector{Int64}
-  directPriorMsgIDs::Vector{Int64}
+  directvarIDs::Vector{Int}
+  directFrtlMsgIDs::Vector{Int}
+  msgskipIDs::Vector{Int}
+  itervarIDs::Vector{Int}
+  directPriorMsgIDs::Vector{Int}
   debug
   debugDwn
   BayesTreeNodeData() = new()
@@ -20,10 +20,10 @@ end
 
 # TODO -- this should be a constructor
 function emptyBTNodeData()
-  BayesTreeNodeData(Int64[],Int64[],Int64[],
-                    Int64[],Int64[],Array{Bool}(0,0),
-                    Array{Bool}(0,0),Int64[],Int64[],
-                    Int64[],Int64[],Int64[],
+  BayesTreeNodeData(Int[],Int[],Int[],
+                    Int[],Int[],Array{Bool}(0,0),
+                    Array{Bool}(0,0),Int[],Int[],
+                    Int[],Int[],Int[],
                     nothing, nothing)
 end
 
@@ -32,7 +32,7 @@ type BayesTree
   bt
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
-  frontals::Dict{String,Int64}
+  frontals::Dict{String,Int}
 end
 
 function emptyBayesTree()
@@ -205,9 +205,9 @@ end
 
 function resetData!(vdata::VariableNodeData)
   vdata.eliminated = false
-  vdata.BayesNetOutVertIDs = Int64[]
+  vdata.BayesNetOutVertIDs = Int[]
   vdata.BayesNetVertID = 0
-  vdata.separator = Int64[]
+  vdata.separator = Int[]
   nothing
 end
 
@@ -293,7 +293,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
     return nothing
 end
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int64)
+function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
     getCliquePotentials!(fg, bt.cliques[chkcliq])
 end
 

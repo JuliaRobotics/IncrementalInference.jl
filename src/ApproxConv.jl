@@ -8,8 +8,8 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
-      solvefor::Int64;
-      N::Int64=100  )
+      solvefor::Int;
+      N::Int=100  )
   #
   # TODO -- enable partial constraints
 
@@ -47,8 +47,8 @@ function evalPotentialSpecific{T <: FunctorPairwiseNH}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
-      solvefor::Int64;
-      N::Int64=100,
+      solvefor::Int;
+      N::Int=100,
       spreadfactor::Float64=10.0  )
   #
   # TODO -- enable partial constraints
@@ -93,8 +93,8 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
-      solvefor::Int64;
-      N::Int64=100  )
+      solvefor::Int;
+      N::Int=100  )
   #
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
@@ -130,8 +130,8 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
-      solvefor::Int64;
-      N::Int64=100  )
+      solvefor::Int;
+      N::Int=100  )
   #
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
   if !generalwrapper.partial
@@ -151,8 +151,8 @@ function evalPotentialSpecific{T <: FunctorSingletonNH}(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
-      solvefor::Int64;
-      N::Int64=100,
+      solvefor::Int;
+      N::Int=100,
       spreadfactor::Float64=10.0  )
   #
 
@@ -180,15 +180,15 @@ end
 #       fnc::T,
 #       Xi::Vector{Graphs.ExVertex},
 #       generalwrapper::GenericWrapParam{T},
-#       solvefor::Int64;
-#       N::Int64=100  )
+#       solvefor::Int;
+#       N::Int=100  )
 #   #
 #   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
 #   return generalwrapper.measurement[1]
 # end
 
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
-function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int64; N::Int64=100)
+function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::Int=100)
   # return evalPotential(fct.attributes["data"].fnc, solvefor) #evalPotential(fct.attributes["fnc"], solvefor)
 
   # TODO -- this build up of Xi is excessive and should be reduced
@@ -212,7 +212,7 @@ Compute proposal belief on varnodeid through fctvert representing some constrain
 Always full dimension of variable node, where partial constraints will only influence directed
 subset of variable dimensions. Remaining dimensions will keep existing variable values.
 """
-function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int64, N::Int64) # vert
+function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int) # vert
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(fg, idfct, vertid, N=N);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
