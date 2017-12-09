@@ -8,7 +8,7 @@ import Gadfly: draw
 
 using
   Graphs,
-  GraphViz,
+  # GraphViz,
   # Gadfly,
   # Colors,
   NLsolve,
@@ -22,7 +22,7 @@ using
 
 export
   # pass through from Graphs.jl
-  plot,
+  # plot,
 
   # added methods to functions from KernelDensityEstimate
   kde!,
@@ -87,7 +87,7 @@ export
   getSample,
 
   #Visualization
-  writeGraphPdf,
+  # writeGraphPdf,
   ls,
   lsf,
   ls2,
@@ -218,8 +218,8 @@ include("FGOSUtils.jl")
 
 include("deprecated.jl")
 
-function plot(fg::FactorGraph)
-  Graphs.plot(fg.g)
-end
+# function plot(fg::FactorGraph)
+#   Graphs.plot(fg.g)
+# end
 
 end

@@ -76,7 +76,7 @@ if true
     gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 end
 
-writeGraphPdf(fg);
+# writeGraphPdf(fg);
 tree = prepBatchTree!(fg,drawpdf=true);
 
 # spyCliqMat(tree.cliques[1])
