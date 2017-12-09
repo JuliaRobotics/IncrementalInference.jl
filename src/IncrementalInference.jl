@@ -2,7 +2,6 @@ module IncrementalInference
 
 import Base: convert
 import KernelDensityEstimate: kde!
-import KernelDensityEstimatePlotting: plotKDE
 import Gadfly: draw
 # import Graphs: plot
 
@@ -26,7 +25,7 @@ export
 
   # added methods to functions from KernelDensityEstimate
   kde!,
-  plotKDE,
+  # plotKDE,
 
   # pass through functions commonly used lower down
   Npoints,

@@ -1,7 +1,7 @@
 # sqrt example
 
 using Distributions
-using KernelDensityEstimate
+using KernelDensityEstimate, KernelDensityEstimatePlotting
 using IncrementalInference
 
 import IncrementalInference: getSample
@@ -100,15 +100,15 @@ tree = wipeBuildNewTree!(fg)
 
 @time inferOverTreeR!(fg,tree, N=N)
 
-plotKDE(getVertKDE(fg,:xy),N=2000)
+plot(getVertKDE(fg,:xy),N=2000)
 
-plotKDE(getVertKDE(fg,:x),N=2000)
+plot(getVertKDE(fg,:x),N=2000)
 
-# plotKDE(getVertKDE(fg,:y))
+# plot(getVertKDE(fg,:y))
 
 spyCliqMat(tree.cliques[1])
 
 
-plotKDE(md)
+plot(md)
 
 #

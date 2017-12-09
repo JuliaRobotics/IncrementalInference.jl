@@ -627,15 +627,15 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
-function writeGraphPdf(fgl::FactorGraph)
-  fgd = drawCopyFG(fgl)
-  println("Writing factor graph file")
-  fid = open("fg.dot","w+")
-  write(fid,Graphs.to_dot(fgd.g))
-  close(fid)
-  run(`dot fg.dot -Tpdf -o fg.pdf`)
-  nothing
-end
+# function writeGraphPdf(fgl::FactorGraph)
+#   fgd = drawCopyFG(fgl)
+#   println("Writing factor graph file")
+#   fid = open("fg.dot","w+")
+#   write(fid,Graphs.to_dot(fgd.g))
+#   close(fid)
+#   run(`dot fg.dot -Tpdf -o fg.pdf`)
+#   nothing
+# end
 
 
 
