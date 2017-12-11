@@ -2,14 +2,11 @@ module IncrementalInference
 
 import Base: convert
 import KernelDensityEstimate: kde!
-import Gadfly: draw
 # import Graphs: plot
 
 using
   Graphs,
   # GraphViz,
-  # Gadfly,
-  # Colors,
   NLsolve,
   Optim,
   Distributions,
@@ -25,7 +22,6 @@ export
 
   # added methods to functions from KernelDensityEstimate
   kde!,
-  # plotKDE,
 
   # pass through functions commonly used lower down
   Npoints,
