@@ -1,15 +1,12 @@
 module IncrementalInference
 
 import Base: convert
-import KernelDensityEstimate: kde!, plotKDE
-import Gadfly: draw
+import KernelDensityEstimate: kde!
 # import Graphs: plot
 
 using
   Graphs,
-  GraphViz,
-  Gadfly,
-  Colors,
+  # GraphViz,
   NLsolve,
   Optim,
   Distributions,
@@ -21,11 +18,10 @@ using
 
 export
   # pass through from Graphs.jl
-  plot,
+  # plot,
 
   # added methods to functions from KernelDensityEstimate
   kde!,
-  plotKDE,
 
   # pass through functions commonly used lower down
   Npoints,
@@ -86,17 +82,17 @@ export
   getSample,
 
   #Visualization
-  investigateMultidimKDE,
-  writeGraphPdf,
+  # writeGraphPdf,
   ls,
   lsf,
   ls2,
   getfnctype,
-  drawHorDens,
-  drawHorBeliefsList,
+  # investigateMultidimKDE,
+  # drawHorDens,
+  # drawHorBeliefsList,
 
   # Tree stuff
-  spyCliqMat,
+  # spyCliqMat,
   evalPotential,
   evalFactor2,
 
@@ -171,34 +167,36 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat,
+  reshapeVec2Mat
 
   # analysis and some plotting
-  plotKDEofnc,
-  plotKDEresiduals,
-  plotMCMC,
-  plotUpMsgsAtCliq,
-  plotPriorsAtCliq,
-  investigateMultidimKDE,
-  draw,
-  whosWith,
-  drawUpMsgAtCliq,
-  dwnMsgsAtCliq,
-  drawPose2DMC!,
-  mcmcPose2D!,
-  # drawUpMCMCPose2D!,
-  # drawDwnMCMCPose2D!,
-  drawLbl,
-  predCurrFactorBeliefs,
-  drawHorDens,
-  drawHorBeliefsList,
-  drawFactorBeliefs,
-  localProduct,
-  plotLocalProduct,
-  saveplot,
-  animateVertexBelief,
-  getColorsByLength
+  # plotKDEofnc,
+  # plotKDEresiduals,
+  # plotMCMC,
+  # plotUpMsgsAtCliq,
+  # plotPriorsAtCliq,
+  # investigateMultidimKDE,
+  # draw,
+  # whosWith,
+  # drawUpMsgAtCliq,
+  # dwnMsgsAtCliq,
+  # drawPose2DMC!,
+  # mcmcPose2D!,
+  # # drawUpMCMCPose2D!,
+  # # drawDwnMCMCPose2D!,
+  # drawLbl,
+  # predCurrFactorBeliefs,
+  # drawHorDens,
+  # drawHorBeliefsList,
+  # drawFactorBeliefs,
+  # localProduct,
+  # plotLocalProduct,
+  # saveplot,
+  # animateVertexBelief,
+  # getColorsByLength
 
+
+const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")
@@ -210,13 +208,13 @@ include("SolverUtilities.jl")
 include("TreePotentials01.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
-include("SolverVisualization.jl")
+#include("SolverVisualization.jl")
 include("FGOSUtils.jl")
 
 include("deprecated.jl")
 
-function plot(fg::FactorGraph)
-  Graphs.plot(fg.g)
-end
+# function plot(fg::FactorGraph)
+#   Graphs.plot(fg.g)
+# end
 
 end

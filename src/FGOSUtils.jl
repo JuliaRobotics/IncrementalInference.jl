@@ -53,7 +53,7 @@ function encodefg(fgl::FactorGraph;
 
   @showprogress 1 "Encoding factors..." for (fsym,fid) in fgs.fIDs
     data,ftyp = convert2packedfunctionnode(fgl, fsym)
-    # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
+    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgl,fid,api=api).attributes
       newvert.attributes[key] = val
@@ -136,7 +136,7 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
     data,ftyp = convertfrompackedfunctionnode(fgs, fsym)
-    # data = FunctionNodeData{ftyp}(Int64[], false, false, Int64[], m, gwpf)
+    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
       newvert.attributes[key] = val

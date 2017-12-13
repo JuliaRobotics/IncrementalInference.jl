@@ -76,7 +76,7 @@ if true
     gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 end
 
-writeGraphPdf(fg);
+# writeGraphPdf(fg);
 tree = prepBatchTree!(fg,drawpdf=true);
 
 # spyCliqMat(tree.cliques[1])
@@ -95,6 +95,9 @@ tree = prepBatchTree!(fg,drawpdf=true);
 [inferOverTree!(fg, tree, N=100) for i in 1:1];
 
 # draw all beliefs
+# TODO -- Update this part of the example
+using RoMEPlotting,
+
 DOYTICKS = false
 xx,ll = ls(fg)
 msgPlots = drawHorBeliefsList(fg, xx, gt=gt,nhor=2);
@@ -104,8 +107,7 @@ for i in 1:length(msgPlots)
 end
 pl = eval(parse(string("vstack(",evalstr[2:end],")")));
 Gadfly.draw(PNG("4doors.png",15cm,20cm),pl) # can also do PNG
-# Gadfly.set_default_plot_size(15cm, 20cm)
-# pl
+
 
 
 # if false

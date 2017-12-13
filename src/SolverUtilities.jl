@@ -102,7 +102,7 @@ function numericRootGenericRandomizedFnc!{T}(
     fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
     fr.Y[1:fr.xDim] = ( nlsolve(  fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] ) ).zero
   elseif fr.gwp.partial
-    fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int64[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
     r = nlsolve(  fr,
                   fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
                )
@@ -132,7 +132,7 @@ type FastGenericRoot{T} <: Function
   xDim::Int
   zDim::Int
   usrfnc::T
-  FastGenericRoot{T}(xDim::Int, zDim::Int, residfnc::T) =
+  FastGenericRoot{T}(xDim::Int, zDim::Int, residfnc::T) where {T} =
       new(collect(1:xDim), zeros(zDim), zeros(xDim), zeros(xDim), xDim, zDim, residfnc)
 end
 function shuffleXAltD!(fr::FastGenericRoot, X::Vector{Float64})

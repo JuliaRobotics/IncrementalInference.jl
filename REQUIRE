@@ -1,12 +1,9 @@
-julia 0.5
+julia 0.6
 Graphs 0.8.0
-GraphViz
-Gadfly
-Colors
 NLsolve
 Optim
 Distributions
-KernelDensityEstimate 0.2.6
+KernelDensityEstimate 0.3.0
 HDF5 0.8.5
 JLD
 ProgressMeter

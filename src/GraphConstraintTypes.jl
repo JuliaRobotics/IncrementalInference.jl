@@ -45,9 +45,9 @@ end
 # end
 type PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int64
+    dimz::Int
     vecCov::Array{Float64,1}
-    dimc::Int64
+    dimc::Int
     W::Array{Float64,1}
     PackedOdo() = new()
     PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
@@ -157,9 +157,9 @@ type Obsv2 <: FunctorSingleton
 end
 type PackedObsv2 <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int64
+    dimz::Int
     vecCov::Array{Float64,1}
-    dimc::Int64
+    dimc::Int
     W::Array{Float64,1}
     PackedObsv2() = new()
     PackedObsv2(x...) = new(x[1],x[2],x[3],x[4],x[5])

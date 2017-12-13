@@ -6,11 +6,11 @@
 # end
 
 type NBPMessage <: Singleton
-  p::Dict{Int64,EasyMessage}
+  p::Dict{Int,EasyMessage}
 end
 
 type PotProd
-    Xi::Int64
+    Xi::Int
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
@@ -34,13 +34,13 @@ end
 type UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
-    IDvals::Dict{Int64, EasyMessage} #Array{Float64,2}
+    IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
 end
 
 type DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Int64,EasyMessage} #Array{Float64,2}
+    IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
 end
 
 type ExploreTreeType
@@ -104,7 +104,7 @@ end
 
 function packFromIncomingDensities!(dens::Array{BallTreeDensity,1},
       wfac::Vector{AbstractString},
-      vertid::Int64,
+      vertid::Int,
       inmsgs::Array{NBPMessage,1} )
   #
   for m in inmsgs
@@ -125,8 +125,8 @@ function packFromLocalPotentials!(fgl::FactorGraph,
       dens::Vector{BallTreeDensity},
       wfac::Vector{AbstractString},
       cliq::Graphs.ExVertex,
-      vertid::Int64,
-      N::Int64  )
+      vertid::Int,
+      N::Int  )
   #
   for idfct in cliq.attributes["data"].potentials
     vert = getVert(fgl, idfct, api=localapi)
@@ -143,10 +143,10 @@ end
 
 
 function packFromLocalPartials!(fgl::FactorGraph,
-      partials::Dict{Int64, Vector{BallTreeDensity}},
+      partials::Dict{Int, Vector{BallTreeDensity}},
       cliq::Graphs.ExVertex,
-      vertid::Int64,
-      N::Int64  )
+      vertid::Int,
+      N::Int  )
   #
 
   for idfct in cliq.attributes["data"].potentials
@@ -174,7 +174,7 @@ end
 Multiply different dimensions from partial constraints individually.
 """
 function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
-        partials::Dict{Int64, Vector{BallTreeDensity}}  )
+        partials::Dict{Int, Vector{BallTreeDensity}}  )
 
   #
   for (dimnum,pp) in partials
@@ -194,7 +194,7 @@ end
 Multiply various full and partial dimension constraints.
 """
 function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
-      partials::Dict{Int64, Vector{BallTreeDensity}},
+      partials::Dict{Int, Vector{BallTreeDensity}},
       Ndims::Int, N::Int  )
   #
   dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
@@ -212,7 +212,7 @@ end
 Multiply a single full and several partial dimension constraints.
 """
 function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
-      partials::Dict{Int64, Vector{BallTreeDensity}},
+      partials::Dict{Int, Vector{BallTreeDensity}},
       Ndims::Int, N::Int  )
   #
   dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
@@ -226,13 +226,13 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
 end
 
 function productbelief(fg::FactorGraph,
-      vertid::Int64,
+      vertid::Int,
       dens::Vector{BallTreeDensity},
-      partials::Dict{Int64, Vector{BallTreeDensity}},
+      partials::Dict{Int, Vector{BallTreeDensity}},
       N::Int  )
   #
 
-  pGM = Array{Float64,2}()
+  pGM = Array{Float64}(0,0)
   lennonp, lenpart = length(dens), length(partials)
 
   if lennonp > 1
@@ -271,7 +271,7 @@ function proposalbeliefs!(fgl::FactorGraph,
       destvertid::Int,
       factors::Vector{Graphs.ExVertex},
       dens::Vector{BallTreeDensity},
-      partials::Dict{Int64, Vector{BallTreeDensity}};
+      partials::Dict{Int, Vector{BallTreeDensity}};
       N::Int=100)
   #
   for fct in factors
@@ -300,7 +300,7 @@ function predictbelief(fgl::FactorGraph,
   #
   destvertid = destvert.index
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
 
   # get proposal beliefs
   proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=N)
@@ -333,7 +333,7 @@ function localProduct(fgl::FactorGraph,
 
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
   lb = String[]
   fcts = Vector{Graphs.ExVertex}()
   cf = ls(fgl, sym, api=api)
@@ -374,7 +374,7 @@ end
 
 function cliqGibbs(fg::FactorGraph,
       cliq::Graphs.ExVertex,
-      vertid::Int64,
+      vertid::Int,
       inmsgs::Array{NBPMessage,1},
       N::Int,
       debugflag::Bool )
@@ -383,13 +383,13 @@ function cliqGibbs(fg::FactorGraph,
 
   #consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int64, Vector{BallTreeDensity}}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{AbstractString}()
   packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N)
 
-  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64,2}(), dens, wfac)
+  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
   pGM = productbelief(fg, vertid, dens, partials, N )
   if debugflag  potprod.product = pGM  end
 
@@ -400,8 +400,8 @@ end
 function fmcmc!(fgl::FactorGraph,
       cliq::Graphs.ExVertex,
       fmsgs::Vector{NBPMessage},
-      IDs::Vector{Int64},
-      N::Int64,
+      IDs::Vector{Int},
+      N::Int,
       MCMCIter::Int,
       debugflag::Bool=false  )
   #
@@ -437,7 +437,7 @@ function fmcmc!(fgl::FactorGraph,
 
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
-    d = Dict{Int64,EasyMessage}() # Array{Float64,2}
+    d = Dict{Int,EasyMessage}() # Array{Float64,2}
     for vertid in IDs
       vert = dlapi.getvertex(fgl,vertid)
       pden = getKDE(vert)
@@ -450,10 +450,10 @@ function fmcmc!(fgl::FactorGraph,
     return mcmcdbg, d
 end
 
-function upPrepOutMsg!(d::Dict{Int64,EasyMessage}, IDs::Array{Int64,1}) #Array{Float64,2}
+function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float64,2}
   print("Outgoing msg density on: ")
   len = length(IDs)
-  m = NBPMessage(Dict{Int64,EasyMessage}())
+  m = NBPMessage(Dict{Int,EasyMessage}())
   for id in IDs
     m.p[id] = d[id]
   end
@@ -467,7 +467,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
     # TODO -- some weirdness with: d,. = d = ., nothing
-    mcmcdbg, d = Array{CliqGibbsMC,1}(), Dict{Int64,EasyMessage}()
+    mcmcdbg, d = Array{CliqGibbsMC,1}(), Dict{Int,EasyMessage}()
 
     priorprods = Vector{CliqGibbsMC}()
 
@@ -526,13 +526,13 @@ end
 #   for md in ddd d[md[1]] = md[2]; end
 #   for md in dddd d[md[1]] = md[2]; end
 
-function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int64, EasyMessage}) #Array{Float64,2}
+function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
       println("Dwn msg keys $(keys(dwnMsgs[1].p))")
     end # ignore root, now incoming dwn msg
     print("Outgoing msg density on: ")
-    m = NBPMessage(Dict{Int64,EasyMessage}())
+    m = NBPMessage(Dict{Int,EasyMessage}())
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
@@ -570,7 +570,7 @@ function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs:
 end
 
 
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false)
     # if dlapi.cgEnabled
     #   return nothing
     # end
@@ -589,7 +589,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, ddt::DownRet
 end
 
 # TODO -- use Union{} for two types, rather than separate functions
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int64, urt::UpReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false)
     # if dlapi.cgEnabled
     #   return nothing
     # end
@@ -629,7 +629,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=fal
 end
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false) #upmsgdict = Dict{Int64, Array{Float64,2}}()
+function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
     println("Start Clique $(inp.cliq.attributes["label"]) =============================")
     childMsgs = Array{NBPMessage,1}()
 
@@ -707,8 +707,8 @@ end
 function dispatchNewDwnProc!(fg::FactorGraph,
       bt::BayesTree,
       parentStack::Array{Graphs.ExVertex,1},
-      stkcnt::Int64,
-      refdict::Dict{Int64,Future};
+      stkcnt::Int,
+      refdict::Dict{Int,Future};
       N::Int=200,
       dbg::Bool=false  )
   #
@@ -724,7 +724,7 @@ function dispatchNewDwnProc!(fg::FactorGraph,
     updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg)
   end
 
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
+  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
 
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
       haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
@@ -737,7 +737,7 @@ end
 function processPreOrderStack!(fg::FactorGraph,
       bt::BayesTree,
       parentStack::Array{Graphs.ExVertex,1},
-      refdict::Dict{Int64,Future};
+      refdict::Dict{Int,Future};
       N::Int=200,
       dbg::Bool=false  )
   #
@@ -756,7 +756,7 @@ end
 function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false)
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
-  refdict = Dict{Int64,Future}()
+  refdict = Dict{Int,Future}()
 
   # start at the given clique in the tree -- shouldn't have to be the root.
   pett = partialExploreTreeType(startett.fg, startett.bt, startett.cliq,
@@ -796,7 +796,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       bt::BayesTree,
       chldstk::Vector{Graphs.ExVertex},
       stkcnt::Int,
-      refdict::Dict{Int64,Future};
+      refdict::Dict{Int,Future};
       N::Int=200,
       dbg::Bool=false  )
   #
@@ -829,7 +829,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
 
   end
   println("====================== Clique $(cliq.attributes["label"]) =============================")
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int64}());
+  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
   pett = partialExploreTreeType(fgl, emptr, cliq, Union{}, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
   if haskey(cliq.attributes, "remoteref")
@@ -863,7 +863,7 @@ function processPostOrderStacks!(fg::FactorGraph,
       dbg::Bool=false  )
   #
 
-  refdict = Dict{Int64,Future}()
+  refdict = Dict{Int,Future}()
 
   stkcnt = length(childStack)
   @sync begin

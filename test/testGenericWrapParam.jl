@@ -147,7 +147,7 @@ end
 @test abs(Base.mean(p2)-100.0) < 3.0
 
 
-# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int64; N:Int=100)
+# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
 #
 #
 # end
@@ -177,8 +177,8 @@ gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) 
 gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
 @show zDim = size(gwp.measurement,1)
 fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-# and return complete fr/gwp
 
+# and return complete fr/gwp
 @time for gwp.particleidx in 1:N
   # gwp(x, res)
   numericRootGenericRandomizedFnc!( fr )
