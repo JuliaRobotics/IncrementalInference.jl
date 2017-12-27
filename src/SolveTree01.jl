@@ -329,8 +329,10 @@ function localProduct(fgl::FactorGraph,
         sym::Symbol;
         N::Int=100,
         api::DataLayerAPI=IncrementalInference.dlapi  )
-  #
+  # TODO -- converge this function with predictbelief for this node
 
+
+  # TODO -- update to use getVertId
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
@@ -354,6 +356,12 @@ function localProduct(fgl::FactorGraph,
 end
 localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100) = localProduct(fgl, Symbol(lbl), N=N)
 
+
+"""
+    initializeNode!(::FactorGraph, ::Symbol; N::Int=100, api::DataLayerAPI=dlapi)
+
+Initialize the belief of a variable node in the factor graph struct.
+"""
 function initializeNode!(fgl::FactorGraph,
         sym::Symbol;
         N::Int=100,

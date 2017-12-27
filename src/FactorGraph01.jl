@@ -391,6 +391,7 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
     api.makeaddedge!(fgl, vert, newvert)
   end
 
+  # TODO change this operation to update a conditioning variable
   if autoinit
     doautoinit!(fgl, newvert, Xi, api=api)
   end
