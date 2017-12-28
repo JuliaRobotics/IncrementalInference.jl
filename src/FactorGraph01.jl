@@ -109,26 +109,36 @@ end
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                              stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
-                             gt=nothing)
-  pN = nothing
-  if size(initval,2) < N && size(initval, 1) == dims
-    warn("setDefaultNodeData! -- deprecated use of stdev.")
-    p = kde!(initval,diag(stdev));
-    pN = resample(p,N)
-  elseif size(initval,2) < N && size(initval, 1) != dims
-    println("Node value memory allocated but not initialized")
-    pN = kde!(randn(dims, N));
+                             gt=nothing, initialized::Bool=true)
+  # TODO review and refactor this function, exists as legacy from pre-v0.3.0
+  # this should be the only function allocating memory for the node points (unless number of points are changed)
+  data = nothing
+  if initialized
+    if size(initval,2) < N && size(initval, 1) == dims
+      warn("setDefaultNodeData! -- deprecated use of stdev.")
+      p = kde!(initval,diag(stdev));
+      pN = resample(p,N)
+    elseif size(initval,2) < N && size(initval, 1) != dims
+      println("Node value memory allocated but not initialized")
+      pN = kde!(randn(dims, N));
+    else
+      pN = kde!(initval)
+    end
+    # dims = size(initval,1) # rows indicate dimensions
+    sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+    gbw = getBW(pN)[:,1]
+    gbw2 = Array{Float64}(length(gbw),1)
+    gbw2[:,1] = gbw[:]
+    pNpts = getPoints(pN)
+    data = VariableNodeData(initval, stdev, pNpts,
+                            gbw2, Int[], sp,
+                            dims, false, 0, Int[], gt, true) #initialized
   else
-    pN = kde!(initval)
+      sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+      data = VariableNodeData(initval, stdev, zeros(dims, N),
+                              zeros(dims,1), Int[], sp,
+                              dims, false, 0, Int[], gt, false) #initialized
   end
-  # dims = size(initval,1) # rows indicate dimensions
-  sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
-  gbw = getBW(pN)[:,1]
-  gbw2 = Array{Float64}(length(gbw),1)
-  gbw2[:,1] = gbw[:]
-  data = VariableNodeData(initval, stdev, getPoints(pN),
-                          gbw2, Int[], sp,
-                          dims, false, 0, Int[], gt)
   #
   v.attributes["data"] = data
 
@@ -152,14 +162,16 @@ end
 # must set either dims or initval for proper initialization
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!{T <: AbstractString}(fg::FactorGraph,
-      lbl::Symbol, initval=zeros(1,1), stdev=ones(1,1);
+function addNode!(fg::FactorGraph,
+      lbl::Symbol,
+      initval::Array{Float64}=zeros(1,1),
+      stdev::Array{Float64}=ones(1,1);
       N::Int=100,
       ready::Int=1,
       labels::Vector{T}=String[],
       api::DataLayerAPI=dlapi,
       uid::Int=-1,
-      dims::Int=-1  )
+      dims::Int=-1  ) where {T <: AbstractString}
   #
   currid = fg.id+1
   if uid==-1
@@ -186,6 +198,44 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
   push!(fg.nodeIDs, currid)
 
   return vert #fg.v[fg.id]
+end
+
+function addNode!(fg::FactorGraph,
+      lbl::Symbol,
+      softtype::Type{T};
+      N::Int=100,
+      autoinit=true,
+      ready::Int=1,
+      labels::Vector{S}=Symbol[],
+      api::DataLayerAPI=dlapi,
+      uid::Int=-1,
+      dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+  #
+  currid = fg.id+1
+  if uid==-1
+    fg.id=currid
+  else
+    currid = uid
+  end
+  dims = dims != -1 ? dims : size(softtype().dims,1)
+
+  lblstr = string(lbl)
+  vert = ExVertex(currid,lblstr)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
+  dodims = fg.dimID+1
+  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit) #fg.v[currid]
+
+  vnlbls = string.(labels)
+  push!(vnlbls, fg.sessionname)
+  # addvert!(fg, vert, api=api)
+  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
+
+  fg.dimID+=dims # rows indicate dimensions, move to last dimension
+  push!(fg.nodeIDs, currid)
+
+
+  nothing
 end
 
 # rethink abstraction, maybe closer to CloudGraph use case a better solution
@@ -334,6 +384,21 @@ function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.Ex
     # also consider taking product between all incoming densities which have been inited
     error("don't know how to autoinit with pairwise dimension > 2")
   end
+
+  return nothing
+
+  # do double depth search for variable nodes
+  # for xi in Xi
+  #   # find number of neighbors to xi
+  #   xineibors = ls(fgl, xi, api=api)
+  #   xinei = collect(xineibors...)
+  #   lenxl = length(xinei)
+  #   for nxi in xinei
+  #     if nxi != xi
+  #       println("do auto initialization of ")
+  #     end
+  #   end
+  # end
 
   nothing
 end

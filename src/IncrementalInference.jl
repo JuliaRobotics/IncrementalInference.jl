@@ -36,6 +36,10 @@ export
   setdatalayerAPI!,
   DataLayerAPI,
 
+  # general types for softtyping of variable nodes
+  InferenceVariable,
+  ContinuousScalar,
+
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
