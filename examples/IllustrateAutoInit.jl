@@ -25,10 +25,10 @@ getSample(s::LinearOffset, N::Int=1) = (reshape(rand(s.z,N),1,N), )
 function (s::LinearOffset)(res::Array{Float64},
       idx::Int,
       meas::Tuple{Array{Float64,2}},
-      X::Array{Float64,2},
-      XX::Array{Float64,2}  )
+      X1::Array{Float64,2},
+      X2::Array{Float64,2}  )
   #
-  res[1] = (XX[1,idx] - X[1,idx]) - meas[1][1,idx]
+  res[1] = (X2[1,idx] - X1[1,idx]) - meas[1][1,idx]
   nothing
 end
 
@@ -37,9 +37,6 @@ end
 fg = emptyFactorGraph()
 
 v0 = addNode!(fg, :x0, ContinuousScalar, labels=["POSE"])
-
-ls(fg)
-fg.g.vertices[1].attributes["data"]
 
 # this is unary (prior) factor and should not immediately trigger autoinit.
 f1  = addFactor!(fg, [:x0], Prior(Normal())) # autoinit true throws RowVector error at setValKDE in doautoinit
@@ -53,52 +50,46 @@ lo = LinearOffset(Normal(10.0,1))
 getVal(fg, :x0)
 
 # This should call the autoinitialization procedure for :x0 and skip autoinit for :x1 given just one Pairwise factor
-f1  = addFactor!(fg, [:x0, :x1], lo, autoinit=true)
+f1  = addFactor!(fg, [:x0, :x1], lo)
 
 
 getVal(fg, :x0)
-
-
 getVal(fg, :x1)
 
+isInitialized(fg, :x0)
+isInitialized(fg, :x1)
 
 
-
-
+ensureAllInitialized!(fg)
 
 
 using RoMEPlotting
-
-# import KernelDensityEstimatePlotting: plot
-# import Gadfly: plot
-# import Graphs: plot
-# import RoMEPlotting: plot
-
-# function plot(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=IncrementalInference.dlapi)
-#   PX = getKDE(getVert(fgl, sym, api=api))
-#   plot(PX)
-# end
 
 plotKDE(fg, :x0)
 
 
 
+isInitialized(fg, :x0)
+isInitialized(fg, :x1)
 
 
+plotKDE(fg, :x1)
 
 
 
 0
 
-# lsf(fg, :x0x1f1)
+## should complete and add to RoMEPlotting
+# import KernelDensityEstimatePlotting: plot
+# import Gadfly: plot
+# import Graphs: plot
+# import RoMEPlotting: plot
+# function plot(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=IncrementalInference.dlapi)
+#   PX = getKDE(getVert(fgl, sym, api=api))
+#   plot(PX)
+# end
 
 
-# ls(fg)
-# ls2(fg, :x0)
-
-
-# 88 us is very slow for this, must investigate why
-# @btime getVertKDE(fg, :x1)
 
 
 # using Graphs

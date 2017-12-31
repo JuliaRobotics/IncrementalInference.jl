@@ -66,6 +66,8 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  isInitialized,
+  ensureAllInitialized!,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
