@@ -102,8 +102,12 @@ end
 getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
 getOutNeighbors(fgl::FactorGraph, vertid::Int; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
 
-function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
-  dlapi.updatevertex!(fgl, exvert)
+function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
+            api::DataLayerAPI=IncrementalInference.dlapi,
+            updateMAPest::Bool=false  )
+  #
+  warn("use of updateFullVert! should be clarified for local or remote operations.")
+  api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
 end
 
 
@@ -398,6 +402,7 @@ function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.Ex
         end
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         setValKDE!(xi, pts)
+        getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
@@ -571,7 +576,7 @@ end
 
 function addConditional!(fg::FactorGraph, vertID::Int, lbl, Si)
   bnv = getVert(fg, vertID, api=localapi) #fg.v[vertID]
-  bnvd = bnv.attributes["data"]
+  bnvd = getData(bnv) # bnv.attributes["data"]
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -648,7 +653,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
               push!(Si,sepNode.index)
             end
           end
-          fct.attributes["data"].eliminated = true
+          getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
           localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 

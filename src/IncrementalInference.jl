@@ -1,6 +1,10 @@
 module IncrementalInference
 
 import Base: convert
+import HDF5: root
+# import KernelDensityEstimate: root
+import Distributions: sample
+# import KernelDensityEstimate: sample
 import KernelDensityEstimate: kde!
 # import Graphs: plot
 

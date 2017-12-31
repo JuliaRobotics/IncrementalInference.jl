@@ -1,7 +1,7 @@
 # example to illustate how autoinit functions work, and used as a development script towards a standard unit test.
 
-using IncrementalInference
 using Distributions
+using IncrementalInference
 
 import IncrementalInference: getSample
 
@@ -60,6 +60,10 @@ getVal(fg, :x0)
 
 
 getVal(fg, :x1)
+
+
+
+
 
 
 
