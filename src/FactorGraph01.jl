@@ -361,6 +361,9 @@ end
 addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
+function isInitialized(vert::Graphs.ExVertex)::Bool
+  return getData(vert).initialized
+end
 
 """
     doautoinit!(fg, fc, Xi[,api=dlapi])
@@ -369,35 +372,51 @@ initialize destination variable nodes based on this factor in factor graph, fg, 
 during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
 function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi)
-  len = length(Xi)
-  # pts = Array{Float64,2}()
-  if length(Xi) == 1
-    pts = evalFactor2(fgl, fc, Xi[1].index)
-    setValKDE!(Xi[1], pts)
-    api.updatevertex!(fgl, Xi[1], updateMAPest=false)
-  elseif len == 2
-    pts = evalFactor2(fgl, fc, Xi[2].index)
-    setValKDE!(Xi[2], pts)
-    api.updatevertex!(fgl, Xi[2], updateMAPest=false)
-  else
-    # consider specifying an init order in the constraint type
-    # also consider taking product between all incoming densities which have been inited
-    error("don't know how to autoinit with pairwise dimension > 2")
+  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
+  # do double depth search for variable nodes
+  # TODO this should maybe stay localapi only...
+  for xi in Xi
+    vsym = Symbol(xi.label)
+    neinodes = ls(fgl, vsym)
+    if length(neinodes) > 1 && !isInitialized(xi)
+      # println("Check for auto initialize $vsym (now or later...)")
+      potntlfcts = ls(fgl, vsym)
+      # avoid single connected variables
+      if length(potntlfcts)> 1
+        # println("$vsym has multiple factors...")
+        # now find which of the factors can be used for initialization
+        useinitfct = Symbol[]
+        for xifct in potntlfcts
+          xfneivarnodes = lsf(fgl, xifct)
+          for vsym2 in xfneivarnodes
+            # find all variables that are initialized
+            if (isInitialized(getVert(fgl, vsym2)) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+              println("adding $xifct to init factors list")
+              push!(useinitfct, xifct)
+            end
+          end
+        end
+        pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        setValKDE!(xi, pts)
+        api.updatevertex!(fgl, xi, updateMAPest=false)
+      end
+    end
   end
 
-  return nothing
-
-  # do double depth search for variable nodes
-  # for xi in Xi
-  #   # find number of neighbors to xi
-  #   xineibors = ls(fgl, xi, api=api)
-  #   xinei = collect(xineibors...)
-  #   lenxl = length(xinei)
-  #   for nxi in xinei
-  #     if nxi != xi
-  #       println("do auto initialization of ")
-  #     end
-  #   end
+  # len = length(Xi)
+  # # pts = Array{Float64,2}()
+  # if length(Xi) == 1
+  #   pts = evalFactor2(fgl, fc, Xi[1].index)
+  #   setValKDE!(Xi[1], pts)
+  #   api.updatevertex!(fgl, Xi[1], updateMAPest=false)
+  # elseif len == 2
+  #   pts = evalFactor2(fgl, fc, Xi[2].index)
+  #   setValKDE!(Xi[2], pts)
+  #   api.updatevertex!(fgl, Xi[2], updateMAPest=false)
+  # else
+  #   # consider specifying an init order in the constraint type
+  #   # also consider taking product between all incoming densities which have been inited
+  #   error("don't know how to autoinit with pairwise dimension > 2")
   # end
 
   nothing
@@ -419,14 +438,16 @@ function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxpa
   return namestring
 end
 
-function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
+function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=false )
+      autoinit::Bool=false ) where
+        {I <: Union{FunctorInferenceType, InferenceType},
+         T <: AbstractString}
   #
   currid = fgl.id+1
   if uid==-1
@@ -439,7 +460,7 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
 
   push!(fgl.factorIDs,currid)
 
@@ -465,20 +486,23 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
 end
 
 
-function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(
+function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
-      uid::Int=-1 )
+      uid::Int=-1,
+      autoinit::Bool=false ) where
+        {I <: Union{FunctorInferenceType, InferenceType},
+         T <: AbstractString}
   #
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
     push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid)
+  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
 

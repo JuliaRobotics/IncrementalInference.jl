@@ -4,13 +4,13 @@ import Base.==
 @compat abstract type InferenceType end
 @compat abstract type PackedInferenceType end
 
+@compat abstract type FunctorInferenceType <: Function end
+
 abstract type InferenceVariable end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
 @compat abstract type Pairwise <: InferenceType end
 @compat abstract type Singleton <: InferenceType end
-
-@compat abstract type FunctorInferenceType <: Function end
 
 @compat abstract type FunctorSingleton <: FunctorInferenceType end
 # @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
@@ -305,7 +305,7 @@ function getVertNode(fgl::FactorGraph, id::Int; nt::Symbol=:var, bigData::Bool=f
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
 function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
-  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt , bigData=bigData)
+  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
 getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 

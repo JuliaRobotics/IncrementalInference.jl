@@ -331,7 +331,6 @@ function localProduct(fgl::FactorGraph,
         api::DataLayerAPI=IncrementalInference.dlapi  )
   # TODO -- converge this function with predictbelief for this node
 
-
   # TODO -- update to use getVertId
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
