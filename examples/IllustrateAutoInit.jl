@@ -36,7 +36,7 @@ function (s::MultiModalOffset)(res::Array{Float64},
       X1::Array{Float64,2},
       X2::Array{Float64,2}  )
   #
-  res[1] = meas[meas[3][idx]][idx] - (X2[1,idx] - X1[1,idx])
+  res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
   nothing
 end
 ## Define a model with these user defined functions ===============================================
