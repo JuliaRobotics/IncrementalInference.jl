@@ -106,7 +106,7 @@ pts = evalFactor2(fg, f3, v2.index, N=N)
 pts = evalFactor2(fg, f4, v2.index, N=N)
 @test size(pts,1) == 2
 @test norm(Base.mean(pts,2)[1]-[-20.0]) < 0.75
-@test (Base.std(pts,2)[1]-1.0) < 0.3
+@test (Base.std(pts,2)[1]-1.0) < 0.4
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
