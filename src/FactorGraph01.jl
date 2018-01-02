@@ -210,7 +210,7 @@ function addNode!(fg::FactorGraph,
       N::Int=100,
       autoinit=true,
       ready::Int=1,
-      labels::Vector{S}=Symbol[],
+      labels::Vector{S}=String[],
       api::DataLayerAPI=dlapi,
       uid::Int=-1,
       dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}

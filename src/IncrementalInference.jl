@@ -97,6 +97,7 @@ export
   lsf,
   ls2,
   getfnctype,
+  drawCopyFG,
   # investigateMultidimKDE,
   # drawHorDens,
   # drawHorBeliefsList,
