@@ -4,11 +4,13 @@ import Base.==
 @compat abstract type InferenceType end
 @compat abstract type PackedInferenceType end
 
+@compat abstract type FunctorInferenceType <: Function end
+
+abstract type InferenceVariable end
+
 # been replaced by Functor types, but may be reused for non-numerical cases
 @compat abstract type Pairwise <: InferenceType end
 @compat abstract type Singleton <: InferenceType end
-
-@compat abstract type FunctorInferenceType <: Function end
 
 @compat abstract type FunctorSingleton <: FunctorInferenceType end
 # @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
@@ -18,6 +20,11 @@ import Base.==
 @compat abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 @compat abstract type FunctorPairwiseNH <: FunctorPairwise end
 # @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+
+struct ContinuousScalar <: InferenceVariable
+  dims::Int
+  ContinuousScalar() = new(1)
+end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
@@ -101,8 +108,10 @@ mutable struct VariableNodeData
   BayesNetVertID::Int
   separator::Array{Int,1}
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  initialized::Bool
   VariableNodeData() = new()
-  VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11])
+  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, true) # TODO ensure this is initialized true is working for most cases
+  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12)
 end
 
 mutable struct PackedVariableNodeData
@@ -296,7 +305,7 @@ function getVertNode(fgl::FactorGraph, id::Int; nt::Symbol=:var, bigData::Bool=f
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
 function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
-  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt , bigData=bigData)
+  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
 getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
@@ -305,7 +314,7 @@ getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigD
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex;
-    updateMAPest::Bool=false)
+    updateMAPest::Bool=false )
   #
 
   # not required, since we using reference -- placeholder function CloudGraphs interface

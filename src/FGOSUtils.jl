@@ -188,7 +188,8 @@ end
 
 
 
-function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
+  # TODO ring functionality must still be implemented
   lsa = Symbol[]
   # v = nothing
   if haskey(fgl.IDs, lbl)
@@ -196,6 +197,7 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   else
     return lsa
   end
+  # this is unnecessary
   v = getVert(fgl,id, api=api) #fgl.v[id]
   # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
   for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
@@ -205,7 +207,7 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   end
   return lsa
 end
-ls{T <: AbstractString}(fgl::FactorGraph, lbl::T) = ls(fgl, Symbol(lbl))
+ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
 
 function ls(fgl::FactorGraph)
   k = collect(keys(fgl.IDs))

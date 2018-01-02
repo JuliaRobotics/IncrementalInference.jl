@@ -102,33 +102,47 @@ end
 getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
 getOutNeighbors(fgl::FactorGraph, vertid::Int; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
 
-function updateFullVert!(fgl::FactorGraph, exvert::ExVertex)
-  dlapi.updatevertex!(fgl, exvert)
+function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
+            api::DataLayerAPI=IncrementalInference.dlapi,
+            updateMAPest::Bool=false  )
+  #
+  warn("use of updateFullVert! should be clarified for local or remote operations.")
+  api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
 end
 
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                              stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
-                             gt=nothing)
-  pN = nothing
-  if size(initval,2) < N && size(initval, 1) == dims
-    warn("setDefaultNodeData! -- deprecated use of stdev.")
-    p = kde!(initval,diag(stdev));
-    pN = resample(p,N)
-  elseif size(initval,2) < N && size(initval, 1) != dims
-    println("Node value memory allocated but not initialized")
-    pN = kde!(randn(dims, N));
+                             gt=nothing, initialized::Bool=true)
+  # TODO review and refactor this function, exists as legacy from pre-v0.3.0
+  # this should be the only function allocating memory for the node points (unless number of points are changed)
+  data = nothing
+  if initialized
+    if size(initval,2) < N && size(initval, 1) == dims
+      warn("setDefaultNodeData! -- deprecated use of stdev.")
+      p = kde!(initval,diag(stdev));
+      pN = resample(p,N)
+    elseif size(initval,2) < N && size(initval, 1) != dims
+      println("Node value memory allocated but not initialized")
+      pN = kde!(randn(dims, N));
+    else
+      pN = kde!(initval)
+    end
+    # dims = size(initval,1) # rows indicate dimensions
+    sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+    gbw = getBW(pN)[:,1]
+    gbw2 = Array{Float64}(length(gbw),1)
+    gbw2[:,1] = gbw[:]
+    pNpts = getPoints(pN)
+    data = VariableNodeData(initval, stdev, pNpts,
+                            gbw2, Int[], sp,
+                            dims, false, 0, Int[], gt, true) #initialized
   else
-    pN = kde!(initval)
+      sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+      data = VariableNodeData(initval, stdev, zeros(dims, N),
+                              zeros(dims,1), Int[], sp,
+                              dims, false, 0, Int[], gt, false) #initialized
   end
-  # dims = size(initval,1) # rows indicate dimensions
-  sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
-  gbw = getBW(pN)[:,1]
-  gbw2 = Array{Float64}(length(gbw),1)
-  gbw2[:,1] = gbw[:]
-  data = VariableNodeData(initval, stdev, getPoints(pN),
-                          gbw2, Int[], sp,
-                          dims, false, 0, Int[], gt)
   #
   v.attributes["data"] = data
 
@@ -152,14 +166,16 @@ end
 # must set either dims or initval for proper initialization
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
-function addNode!{T <: AbstractString}(fg::FactorGraph,
-      lbl::Symbol, initval=zeros(1,1), stdev=ones(1,1);
+function addNode!(fg::FactorGraph,
+      lbl::Symbol,
+      initval::Array{Float64}=zeros(1,1),
+      stdev::Array{Float64}=ones(1,1);
       N::Int=100,
       ready::Int=1,
       labels::Vector{T}=String[],
       api::DataLayerAPI=dlapi,
       uid::Int=-1,
-      dims::Int=-1  )
+      dims::Int=-1  ) where {T <: AbstractString}
   #
   currid = fg.id+1
   if uid==-1
@@ -186,6 +202,44 @@ function addNode!{T <: AbstractString}(fg::FactorGraph,
   push!(fg.nodeIDs, currid)
 
   return vert #fg.v[fg.id]
+end
+
+function addNode!(fg::FactorGraph,
+      lbl::Symbol,
+      softtype::Type{T};
+      N::Int=100,
+      autoinit=true,
+      ready::Int=1,
+      labels::Vector{S}=String[],
+      api::DataLayerAPI=dlapi,
+      uid::Int=-1,
+      dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+  #
+  currid = fg.id+1
+  if uid==-1
+    fg.id=currid
+  else
+    currid = uid
+  end
+  dims = dims != -1 ? dims : size(softtype().dims,1)
+
+  lblstr = string(lbl)
+  vert = ExVertex(currid,lblstr)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
+  dodims = fg.dimID+1
+  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit) #fg.v[currid]
+
+  vnlbls = string.(labels)
+  push!(vnlbls, fg.sessionname)
+  # addvert!(fg, vert, api=api)
+  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
+
+  fg.dimID+=dims # rows indicate dimensions, move to last dimension
+  push!(fg.nodeIDs, currid)
+
+
+  nothing
 end
 
 # rethink abstraction, maybe closer to CloudGraph use case a better solution
@@ -311,30 +365,81 @@ end
 addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
+function isInitialized(vert::Graphs.ExVertex)::Bool
+  return getData(vert).initialized
+end
+function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
+  # TODO, make cloudgraphs work and make faster by avoiding all the getVerts
+  isInitialized(getVert(fgl, vsym))
+end
 
 """
-    doautoinit!(fg, fc, Xi[,api=dlapi])
+    doautoinit!(fg, Xi[,api=dlapi])
 
 initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
-function doautoinit!(fgl::FactorGraph, fc::Graphs.ExVertex, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi)
-  len = length(Xi)
-  # pts = Array{Float64,2}()
-  if length(Xi) == 1
-    pts = evalFactor2(fgl, fc, Xi[1].index)
-    setValKDE!(Xi[1], pts)
-    api.updatevertex!(fgl, Xi[1], updateMAPest=false)
-  elseif len == 2
-    pts = evalFactor2(fgl, fc, Xi[2].index)
-    setValKDE!(Xi[2], pts)
-    api.updatevertex!(fgl, Xi[2], updateMAPest=false)
-  else
-    # consider specifying an init order in the constraint type
-    # also consider taking product between all incoming densities which have been inited
-    error("don't know how to autoinit with pairwise dimension > 2")
+function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi, singles::Bool=true)
+  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
+  # do double depth search for variable nodes
+  # TODO this should maybe stay localapi only...
+  for xi in Xi
+    vsym = Symbol(xi.label)
+    neinodes = ls(fgl, vsym)
+    if (length(neinodes) > 1 || singles) && !isInitialized(xi)
+      # println("Check for auto initialize $vsym (now or later...)")
+      potntlfcts = ls(fgl, vsym)
+      # avoid single connected variables
+      # if length(potntlfcts) > 1
+        # println("$vsym has multiple factors...")
+        # now find which of the factors can be used for initialization
+        useinitfct = Symbol[]
+        for xifct in neinodes #potntlfcts
+          xfneivarnodes = lsf(fgl, xifct)
+          for vsym2 in xfneivarnodes
+            # find all variables that are initialized
+            if (isInitialized(getVert(fgl, vsym2)) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+              println("adding $xifct to init factors list")
+              push!(useinitfct, xifct)
+            end
+          end
+        end
+        pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        setValKDE!(xi, pts)
+        getData(xi).initialized = true
+        api.updatevertex!(fgl, xi, updateMAPest=false)
+      # end
+    end
   end
 
+  # len = length(Xi)
+  # # pts = Array{Float64,2}()
+  # if length(Xi) == 1
+  #   pts = evalFactor2(fgl, fc, Xi[1].index)
+  #   setValKDE!(Xi[1], pts)
+  #   api.updatevertex!(fgl, Xi[1], updateMAPest=false)
+  # elseif len == 2
+  #   pts = evalFactor2(fgl, fc, Xi[2].index)
+  #   setValKDE!(Xi[2], pts)
+  #   api.updatevertex!(fgl, Xi[2], updateMAPest=false)
+  # else
+  #   # consider specifying an init order in the constraint type
+  #   # also consider taking product between all incoming densities which have been inited
+  #   error("don't know how to autoinit with pairwise dimension > 2")
+  # end
+
+  nothing
+end
+
+function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
+  xx, xl = ls(fgl)
+  allvarnodes = union(xx, xl)
+  for vsym in allvarnodes
+    if !isInitialized(fgl, vsym)
+      println("$vsym is not initialized, and will do so now...")
+      doautoinit!(fgl, Graphs.ExVertex[getVert(fgl, vsym, api=api);], api=api, singles=true)
+    end
+  end
   nothing
 end
 
@@ -354,14 +459,16 @@ function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxpa
   return namestring
 end
 
-function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(fgl::FactorGraph,
+function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=false )
+      autoinit::Bool=true ) where
+        {I <: Union{FunctorInferenceType, InferenceType},
+         T <: AbstractString}
   #
   currid = fgl.id+1
   if uid==-1
@@ -374,7 +481,7 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, usrfnc)
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
 
   push!(fgl.factorIDs,currid)
 
@@ -391,28 +498,32 @@ function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: Abstra
     api.makeaddedge!(fgl, vert, newvert)
   end
 
+  # TODO change this operation to update a conditioning variable
   if autoinit
-    doautoinit!(fgl, newvert, Xi, api=api)
+    doautoinit!(fgl, Xi, api=api, singles=false)
   end
 
   return newvert
 end
 
 
-function addFactor!{I <: Union{FunctorInferenceType, InferenceType}, T <: AbstractString}(
+function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::I;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
-      uid::Int=-1 )
+      uid::Int=-1,
+      autoinit::Bool=true ) where
+        {I <: Union{FunctorInferenceType, InferenceType},
+         T <: AbstractString}
   #
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
     push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid)
+  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
 
@@ -481,7 +592,7 @@ end
 
 function addConditional!(fg::FactorGraph, vertID::Int, lbl, Si)
   bnv = getVert(fg, vertID, api=localapi) #fg.v[vertID]
-  bnvd = bnv.attributes["data"]
+  bnvd = getData(bnv) # bnv.attributes["data"]
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -558,7 +669,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
               push!(Si,sepNode.index)
             end
           end
-          fct.attributes["data"].eliminated = true
+          getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
           localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 

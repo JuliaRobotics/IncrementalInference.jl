@@ -1,6 +1,10 @@
 module IncrementalInference
 
 import Base: convert
+import HDF5: root
+# import KernelDensityEstimate: root
+import Distributions: sample
+# import KernelDensityEstimate: sample
 import KernelDensityEstimate: kde!
 # import Graphs: plot
 
@@ -36,6 +40,10 @@ export
   setdatalayerAPI!,
   DataLayerAPI,
 
+  # general types for softtyping of variable nodes
+  InferenceVariable,
+  ContinuousScalar,
+
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
@@ -58,6 +66,8 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  isInitialized,
+  ensureAllInitialized!,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
@@ -87,6 +97,7 @@ export
   lsf,
   ls2,
   getfnctype,
+  drawCopyFG,
   # investigateMultidimKDE,
   # drawHorDens,
   # drawHorBeliefsList,
