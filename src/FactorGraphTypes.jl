@@ -25,6 +25,11 @@ struct ContinuousScalar <: InferenceVariable
   dims::Int
   ContinuousScalar() = new(1)
 end
+struct ContinuousMultivariate <:InferenceVariable
+  dims::Int
+  ContinuousMultivariate() = new()
+  ContinuousMultivariate(x) = new(x)
+end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
@@ -108,10 +113,14 @@ mutable struct VariableNodeData
   BayesNetVertID::Int
   separator::Array{Int,1}
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  softtype::Union{Void, <:InferenceVariable}
   initialized::Bool
   VariableNodeData() = new()
-  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, true) # TODO ensure this is initialized true is working for most cases
-  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12)
+  function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
+    warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, true, nothing) # TODO ensure this is initialized true is working for most cases
+  end
+  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
 mutable struct PackedVariableNodeData

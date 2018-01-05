@@ -113,7 +113,8 @@ end
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                              stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
-                             gt=nothing, initialized::Bool=true)
+                             gt=nothing, initialized::Bool=true,
+                             softtype=nothing)
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -136,12 +137,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, true) #initialized
+                            dims, false, 0, Int[], gt, softtype, true) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false) #initialized
   end
   #
   v.attributes["data"] = data
@@ -221,14 +222,15 @@ function addNode!(fg::FactorGraph,
   else
     currid = uid
   end
-  dims = dims != -1 ? dims : size(softtype().dims,1)
+  st = softtype()
+  dims = dims != -1 ? dims : st.dims
 
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
   addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit) #fg.v[currid]
+  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
   vnlbls = string.(labels)
   push!(vnlbls, fg.sessionname)

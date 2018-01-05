@@ -43,6 +43,7 @@ export
   # general types for softtyping of variable nodes
   InferenceVariable,
   ContinuousScalar,
+  ContinuousMultivariate,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,

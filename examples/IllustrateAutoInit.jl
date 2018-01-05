@@ -10,7 +10,7 @@ import IncrementalInference: getSample
 struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: Distribution
   z::T
 end
-getSample(s::Prior, N::Int=1) = (reshape(rand(s.z,N),1,N), )
+getSample(s::Prior, N::Int=1) = (rand(s.z,N), )
 struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distribution
   z::T
 end
@@ -34,8 +34,8 @@ function (s::MultiModalOffset)(res::Array{Float64},
       idx::Int,
       meas::Tuple,
       X1::Array{Float64,2},
-      X2::Array{Float64,2}  )
-  #
+      X2::Array{Float64,2}
+  )
   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
   nothing
 end
