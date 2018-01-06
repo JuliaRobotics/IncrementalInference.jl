@@ -118,7 +118,7 @@ mutable struct VariableNodeData
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
     warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, true, nothing) # TODO ensure this is initialized true is working for most cases
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end

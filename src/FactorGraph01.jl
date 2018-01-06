@@ -170,7 +170,7 @@ end
 function addNode!(fg::FactorGraph,
       lbl::Symbol,
       initval::Array{Float64}=zeros(1,1),
-      stdev::Array{Float64}=ones(1,1);
+      stdev::Array{Float64}=ones(1,1); # this is bad and should be removed TODO
       N::Int=100,
       ready::Int=1,
       labels::Vector{T}=String[],
@@ -209,7 +209,7 @@ function addNode!(fg::FactorGraph,
       lbl::Symbol,
       softtype::Type{T};
       N::Int=100,
-      autoinit=true,
+      autoinit=true,  # does init need to be separate from ready? TODO
       ready::Int=1,
       labels::Vector{S}=String[],
       api::DataLayerAPI=dlapi,
@@ -239,7 +239,6 @@ function addNode!(fg::FactorGraph,
 
   fg.dimID+=dims # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
-
 
   nothing
 end
@@ -390,7 +389,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
     neinodes = ls(fgl, vsym)
     if (length(neinodes) > 1 || singles) && !isInitialized(xi)
       # println("Check for auto initialize $vsym (now or later...)")
-      potntlfcts = ls(fgl, vsym)
+      # potntlfcts = ls(fgl, vsym)
       # avoid single connected variables
       # if length(potntlfcts) > 1
         # println("$vsym has multiple factors...")
@@ -468,7 +467,7 @@ function addFactor!(fgl::FactorGraph,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true ) where
+      autoinit::Bool=true  ) where
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
