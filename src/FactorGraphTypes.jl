@@ -211,10 +211,12 @@ PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+  @show size(d.val,1)
+  @show size(d.bw,1)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                               d.initstdev[:],size(d.initstdev,1),
                               d.val[:],size(d.val,1),
-                              d.bw[:],size(d.bw,1),
+                              d.bw[:], size(d.bw,1),
                               d.BayesNetOutVertIDs,
                               d.dimIDs, d.dims, d.eliminated,
                               d.BayesNetVertID, d.separator,
@@ -230,12 +232,13 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   c2 = length(d.vecinitstdev) > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
   M2 = length(d.vecinitstdev) > 0 ? reshape(d.vecinitstdev,r2,c2) : zeros(r2,c2)
 
-  r3 = d.dimval
-  c3 = floor(Int,length(d.vecval)/r3)
-  M3 = reshape(d.vecval,r3,c3)
+  @show r3 = d.dimval
+  @show length(d.vecval)
+  c3 = length(d.vecval) > 0 ? floor(Int,length(d.vecval)/r3) : 0
+  M3 = length(d.vecval) > 0 ? reshape(d.vecval,r3,c3) : zeros(r3,c3)
 
   r4 = d.dimbw
-  c4 = floor(Int,length(d.vecbw)/r4)
+  c4 = length(d.vecbw) > 0 ? floor(Int,length(d.vecbw)/r4) : 0
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)

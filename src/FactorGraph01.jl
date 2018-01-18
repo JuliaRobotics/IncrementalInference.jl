@@ -385,31 +385,34 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
   for xi in Xi
-    vsym = Symbol(xi.label)
-    neinodes = ls(fgl, vsym)
-    if (length(neinodes) > 1 || singles) && !isInitialized(xi)
-      # println("Check for auto initialize $vsym (now or later...)")
-      # potntlfcts = ls(fgl, vsym)
-      # avoid single connected variables
-      # if length(potntlfcts) > 1
-        # println("$vsym has multiple factors...")
-        # now find which of the factors can be used for initialization
+    if !isInitialized(xi)
+      @show "doautoinit!", size(getVal(xi))
+      @show vsym = Symbol(xi.label)
+      @show neinodes = ls(fgl, vsym)
+      if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+        # Which of the factors can be used for initialization
         useinitfct = Symbol[]
+        println("Consider all pairwise factors connected to $vsym...")
         for xifct in neinodes #potntlfcts
           xfneivarnodes = lsf(fgl, xifct)
           for vsym2 in xfneivarnodes
-            # find all variables that are initialized
-            if (isInitialized(getVert(fgl, vsym2)) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+            println("find all variables that are initialized")
+            vert2 = getVert(fgl, vsym2)
+            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
               println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
           end
         end
+        # println("Consider all singleton (unary) factors to $vsym...")
+
+        # calculate the predicted belief over $vsym
+        @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         setValKDE!(xi, pts)
         getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
-      # end
+      end
     end
   end
 

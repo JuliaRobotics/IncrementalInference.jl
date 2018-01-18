@@ -233,8 +233,8 @@ function productbelief(fg::FactorGraph,
   #
 
   pGM = Array{Float64}(0,0)
-  lennonp, lenpart = length(dens), length(partials)
-
+  @show lennonp, lenpart = length(dens), length(partials)
+  # error("LENGTHS ARE ZERO")
   if lennonp > 1
     Ndims = Ndim(dens[1])
     print("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
