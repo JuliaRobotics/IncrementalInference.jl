@@ -198,9 +198,8 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
     return lsa
   end
   # this is unnecessary
-  v = getVert(fgl,id, api=api) #fgl.v[id]
-  # for outn in dlapi.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+  v = getVert(fgl,id, api=api)
+  for outn in api.outneighbors(fgl, v)
     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
       push!(lsa, Symbol(outn.label))
     # end
