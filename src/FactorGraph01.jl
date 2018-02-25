@@ -178,6 +178,7 @@ function addNode!(fg::FactorGraph,
       uid::Int=-1,
       dims::Int=-1  ) where {T <: AbstractString}
   #
+  warn("this addNode! will be deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}).")
   currid = fg.id+1
   if uid==-1
     fg.id=currid
