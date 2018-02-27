@@ -115,7 +115,7 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
     # gwp(x, res)
     # implement minimization here
     res = zeros(fr.xDim)
-    gg = (x) -> fr.gwp(x, res)
+    gg = (x) -> fr.gwp(res, x)
     r = optimize(  gg, fr.X[1:fr.xDim,fr.gwp.particleidx] )
     # TODO -- clearly lots of optmization to be done here
     fr.Y[1:fr.xDim] = r.minimizer
