@@ -21,27 +21,24 @@ function lineResidual!(res::Vector{Float64}, y::Vector{Float64}, var::Tuple)
   nothing
 end
 
-# and calling
-# function numericRootGenericRandomized(
-      # residFnc::Function,
-      # zDim::Int,
-      # measurement::Vector{Float64},
-      # fixed::Vector{Float64},
-      # x0::Vector{Float64};
-      # perturb::Float64=0.01  )
+
+
+# TODO -- expand testing to include subcomponent tests from numericRootGenericRandomizedFnc
+params = [2.0;3.0]
+gg = (res, x) -> lineResidual!(res, [1.0], (params, x))
 
 params = [2.0;3.0]
-gg = (x, res) -> lineResidual!(res, [1.0], (params, x))
+gg = (res, x) -> lineResidual!(res, [1.0], (params, x))
 y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
 # y = numericRootGenericRandomized(lineResidual!, 1, [1.0], params, randn(1))
 @test abs(y[1] + 1.0) < 1e-10
 
-gg = (x, res) -> lineResidual!(res, [3.0], (params, x))
+gg = (res, x) -> lineResidual!(res, [3.0], (params, x))
 y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
 # y = numericRootGenericRandomized(lineResidual!, 1, [3.0], params, randn(1))
 @test abs(y[1] - 0.0) < 1e-10
 
-gg = (x, res) -> lineResidual!(res, [5.0], (params, x))
+gg = (res, x) -> lineResidual!(res, [5.0], (params, x))
 y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
 # y = numericRootGenericRandomized(lineResidual!, 1, [5.0], params, randn(1))
 @test abs(y[1] - 1.0) < 1e-10
@@ -49,33 +46,13 @@ y = numericRootGenericRandomizedFnc(gg, 1, 1, randn(1))
 
 
 
-# println("Increased dimension test")
-#
-# # 3 dimensional line, z = [a b][x y]' + c
-# function rotationresidual!(res::Vector{Float64}, z::Vector{Float64}, var::Tuple)
-#   q1 = convert(Quaternion, Euler(z...))
-#   q2 = convert(Quaternion, so3(var[2]))
-#   qq = q1*q_conj(q2)
-#   res[1:3] = vee(convert(so3, qq))
-#   nothing
-# end
-#
-# for i in 1:10
-#   eul = 0.25*randn(3)
-#   gg = (x, res) -> rotationresidual!(res, eul, (zeros(0),x))
-#   y = numericRootGenericRandomizedFnc(
-#           gg,
-#           3, 3, 0.1*randn(3)    )
-#   # test the result
-#   @test TransformUtils.compare(convert(Quaternion, Euler(eul...)),
-#                               convert(Quaternion, so3(y)), tol=1e-8)
-# end
-
 println("Test shuffling function")
 
-function testshuffle!(x, res)
+function testshuffle!(res, x)
   # println("testshuffle!(x,res) gets x=$(x), and length(res)=$(length(res))")
-  nval = sum(abs(x-[11.0;12.0;13.0]))
+  @show res
+  @show x
+  nval = sum(abs.(x-[11.0;12.0;13.0]))
   # trick the solver so that f/f' = 0/1e10, and therefore < tol
   # resulting in termination of solver
   if nval < 1e-8
@@ -88,7 +65,7 @@ end
 
 # test shuffling function
 ALLTESTS = Bool[]
-x0 = collect(11:13)+0.0
+@show x0 = collect(11:13)+0.0
 for i in 1:10
   y = numericRootGenericRandomizedFnc(
           testshuffle!,
@@ -105,7 +82,7 @@ end
 println("Test if shuffling results in correct mapping for solving")
 
 
-function testshuffle2!(x, res)
+function testshuffle2!(res, x)
   # println("testshuffle2!(x,res) gets x=$(x), and length(res)=$(length(res))")
   res[1:2] = x - [1.0;2.0] # fake at root evaluation
   nothing
@@ -127,7 +104,7 @@ end
 
 
 # x is dimension 3, z dimension is 2
-function residualrandtest!(x, res)
+function residualrandtest!(res, x)
   val = norm(x[1:2])
   res[1] = 10.0 - val
   nothing

@@ -128,7 +128,7 @@ generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N
 x, res = zeros(1), zeros(1)
 @time for generalwrapper.particleidx in 1:N
     # nlsolve( generalwrapper, x0? .. )
-  generalwrapper(x, res)
+  generalwrapper(res, x)
   # each point should be near 100.0
   @test res[1] > 50.0
 end
