@@ -25,6 +25,11 @@ struct ContinuousScalar <: InferenceVariable
   dims::Int
   ContinuousScalar() = new(1)
 end
+struct ContinuousMultivariate <:InferenceVariable
+  dims::Int
+  ContinuousMultivariate() = new()
+  ContinuousMultivariate(x) = new(x)
+end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
@@ -52,27 +57,42 @@ mutable struct FactorGraph
   dimID::Int
   cg
   cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
-  sessionname::AbstractString
+  sessionname::String
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   FactorGraph() = new()
-  FactorGraph(x...) = new(
-    x[1],
-    x[2],
-    x[3],
-    x[4],
-    x[5],
-    x[6],
-    x[7],
-    x[8],
-    x[9],
-    x[10],
-    x[11],
-    x[12],
-    x[13],
-    x[14],
-    x[15] )
-    # x[4] ) # removed fg.v
+  FactorGraph(
+    x1,
+    x2,
+    x3,
+    x4,
+    x5,
+    x6,
+    x7,
+    x8,
+    x9,
+    x10,
+    x11,
+    x12,
+    x13,
+    x14,
+    x15
+   ) = new(
+    x1,
+    x2,
+    x3,
+    x4,
+    x5,
+    x6,
+    x7,
+    x8,
+    x9,
+    x10,
+    x11,
+    x12,
+    x13,
+    x14,
+    x15 )
 end
 
 function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
@@ -107,11 +127,15 @@ mutable struct VariableNodeData
   eliminated::Bool
   BayesNetVertID::Int
   separator::Array{Int,1}
-  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
+  softtype
   initialized::Bool
   VariableNodeData() = new()
-  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, true) # TODO ensure this is initialized true is working for most cases
-  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12)
+  function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
+    warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
+  end
+  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
 mutable struct PackedVariableNodeData
@@ -129,8 +153,11 @@ mutable struct PackedVariableNodeData
   eliminated::Bool
   BayesNetVertID::Int
   separator::Array{Int,1}
+  # groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  softtype::String
+  initialized::Bool
   PackedVariableNodeData() = new()
-  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14], x[15], x[16])
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
@@ -184,34 +211,42 @@ PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+  @show size(d.val,1)
+  @show size(d.bw,1)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                               d.initstdev[:],size(d.initstdev,1),
                               d.val[:],size(d.val,1),
-                              d.bw[:],size(d.bw,1),
+                              d.bw[:], size(d.bw,1),
                               d.BayesNetOutVertIDs,
                               d.dimIDs, d.dims, d.eliminated,
-                              d.BayesNetVertID, d.separator)
+                              d.BayesNetVertID, d.separator,
+                              string(d.softtype), d.initialized)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   r1 = d.diminitval
-  c1 = floor(Int,length(d.vecinitval)/r1)
-  M1 = reshape(d.vecinitval,r1,c1)
+  d.vecinitval
+  c1 = length(d.vecinitval) > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
+  M1 = length(d.vecinitval) > 0 ? reshape(d.vecinitval,r1,c1) : zeros(r1,c1)
 
   r2 = d.diminitdev
-  c2 = floor(Int,length(d.vecinitstdev)/r2)
-  M2 = reshape(d.vecinitstdev,r2,c2)
+  c2 = length(d.vecinitstdev) > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
+  M2 = length(d.vecinitstdev) > 0 ? reshape(d.vecinitstdev,r2,c2) : zeros(r2,c2)
 
-  r3 = d.dimval
-  c3 = floor(Int,length(d.vecval)/r3)
-  M3 = reshape(d.vecval,r3,c3)
+  @show r3 = d.dimval
+  @show length(d.vecval)
+  c3 = length(d.vecval) > 0 ? floor(Int,length(d.vecval)/r3) : 0
+  M3 = length(d.vecval) > 0 ? reshape(d.vecval,r3,c3) : zeros(r3,c3)
 
   r4 = d.dimbw
-  c4 = floor(Int,length(d.vecbw)/r4)
+  c4 = length(d.vecbw) > 0 ? floor(Int,length(d.vecbw)/r4) : 0
   M4 = reshape(d.vecbw,r4,c4)
+
+  # TODO -- allow out of module type allocation (future feature, not currently in use)
+  st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing)
+    nothing, st, d.initialized )
 end
 function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
   return convert(P, d) #PackedVariableNodeData
