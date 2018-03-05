@@ -113,7 +113,8 @@ end
 
 function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                              stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
-                             gt=nothing, initialized::Bool=true)
+                             gt=nothing, initialized::Bool=true,
+                             softtype=nothing)
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -136,12 +137,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, true) #initialized
+                            dims, false, 0, Int[], gt, softtype, true) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false) #initialized
   end
   #
   v.attributes["data"] = data
@@ -169,7 +170,7 @@ end
 function addNode!(fg::FactorGraph,
       lbl::Symbol,
       initval::Array{Float64}=zeros(1,1),
-      stdev::Array{Float64}=ones(1,1);
+      stdev::Array{Float64}=ones(1,1); # this is bad and should be removed TODO
       N::Int=100,
       ready::Int=1,
       labels::Vector{T}=String[],
@@ -177,6 +178,7 @@ function addNode!(fg::FactorGraph,
       uid::Int=-1,
       dims::Int=-1  ) where {T <: AbstractString}
   #
+  warn("this addNode! will be deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}).")
   currid = fg.id+1
   if uid==-1
     fg.id=currid
@@ -208,7 +210,7 @@ function addNode!(fg::FactorGraph,
       lbl::Symbol,
       softtype::Type{T};
       N::Int=100,
-      autoinit=true,
+      autoinit=true,  # does init need to be separate from ready? TODO
       ready::Int=1,
       labels::Vector{S}=String[],
       api::DataLayerAPI=dlapi,
@@ -221,14 +223,15 @@ function addNode!(fg::FactorGraph,
   else
     currid = uid
   end
-  dims = dims != -1 ? dims : size(softtype().dims,1)
+  st = softtype()
+  dims = dims != -1 ? dims : st.dims
 
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
   addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit) #fg.v[currid]
+  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
   vnlbls = string.(labels)
   push!(vnlbls, fg.sessionname)
@@ -237,7 +240,6 @@ function addNode!(fg::FactorGraph,
 
   fg.dimID+=dims # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
-
 
   nothing
 end
@@ -384,31 +386,34 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
   for xi in Xi
-    vsym = Symbol(xi.label)
-    neinodes = ls(fgl, vsym)
-    if (length(neinodes) > 1 || singles) && !isInitialized(xi)
-      # println("Check for auto initialize $vsym (now or later...)")
-      potntlfcts = ls(fgl, vsym)
-      # avoid single connected variables
-      # if length(potntlfcts) > 1
-        # println("$vsym has multiple factors...")
-        # now find which of the factors can be used for initialization
+    if !isInitialized(xi)
+      @show "doautoinit!", size(getVal(xi))
+      @show vsym = Symbol(xi.label)
+      @show neinodes = ls(fgl, vsym)
+      if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+        # Which of the factors can be used for initialization
         useinitfct = Symbol[]
+        println("Consider all pairwise factors connected to $vsym...")
         for xifct in neinodes #potntlfcts
           xfneivarnodes = lsf(fgl, xifct)
           for vsym2 in xfneivarnodes
-            # find all variables that are initialized
-            if (isInitialized(getVert(fgl, vsym2)) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+            println("find all variables that are initialized")
+            vert2 = getVert(fgl, vsym2)
+            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
               println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
           end
         end
+        # println("Consider all singleton (unary) factors to $vsym...")
+
+        # calculate the predicted belief over $vsym
+        @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         setValKDE!(xi, pts)
         getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
-      # end
+      end
     end
   end
 
@@ -466,7 +471,7 @@ function addFactor!(fgl::FactorGraph,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true ) where
+      autoinit::Bool=true  ) where
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
