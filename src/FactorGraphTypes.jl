@@ -193,20 +193,21 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                               d.BayesNetVertID, d.separator)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
+
   r1 = d.diminitval
-  c1 = floor(Int,length(d.vecinitval)/r1)
+  c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
   M1 = reshape(d.vecinitval,r1,c1)
 
   r2 = d.diminitdev
-  c2 = floor(Int,length(d.vecinitstdev)/r2)
+  c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
   M2 = reshape(d.vecinitstdev,r2,c2)
 
   r3 = d.dimval
-  c3 = floor(Int,length(d.vecval)/r3)
+  c3 = r3 > 0 ? floor(Int,length(d.vecval)/r3) : 0
   M3 = reshape(d.vecval,r3,c3)
 
   r4 = d.dimbw
-  c4 = floor(Int,length(d.vecbw)/r4)
+  c4 = r4 > 0 ? floor(Int,length(d.vecbw)/r4) : 0
   M4 = reshape(d.vecbw,r4,c4)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
