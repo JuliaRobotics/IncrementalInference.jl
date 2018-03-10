@@ -211,8 +211,6 @@ PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
-  @show size(d.val,1)
-  @show size(d.bw,1)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                               d.initstdev[:],size(d.initstdev,1),
                               d.val[:],size(d.val,1),
