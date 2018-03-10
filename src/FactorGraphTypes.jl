@@ -223,22 +223,21 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                               string(d.softtype), d.initialized)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
+
   r1 = d.diminitval
-  d.vecinitval
-  c1 = length(d.vecinitval) > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
-  M1 = length(d.vecinitval) > 0 ? reshape(d.vecinitval,r1,c1) : zeros(r1,c1)
+  c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
+  M1 = reshape(d.vecinitval,r1,c1)
 
   r2 = d.diminitdev
-  c2 = length(d.vecinitstdev) > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
-  M2 = length(d.vecinitstdev) > 0 ? reshape(d.vecinitstdev,r2,c2) : zeros(r2,c2)
+  c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
+  M2 = reshape(d.vecinitstdev,r2,c2)
 
-  @show r3 = d.dimval
-  @show length(d.vecval)
-  c3 = length(d.vecval) > 0 ? floor(Int,length(d.vecval)/r3) : 0
-  M3 = length(d.vecval) > 0 ? reshape(d.vecval,r3,c3) : zeros(r3,c3)
+  r3 = d.dimval
+  c3 = r3 > 0 ? floor(Int,length(d.vecval)/r3) : 0
+  M3 = reshape(d.vecval,r3,c3)
 
   r4 = d.dimbw
-  c4 = length(d.vecbw) > 0 ? floor(Int,length(d.vecbw)/r4) : 0
+  c4 = r4 > 0 ? floor(Int,length(d.vecbw)/r4) : 0
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)

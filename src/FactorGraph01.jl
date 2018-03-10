@@ -524,10 +524,12 @@ function addFactor!(
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
+  println("addFactor: Adding factor");
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
     push!( verts, api.getvertex(fgl,xi) )
   end
+  println("Adding factor internal");
   addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
