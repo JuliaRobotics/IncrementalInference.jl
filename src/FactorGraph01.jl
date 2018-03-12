@@ -206,6 +206,19 @@ function addNode!(fg::FactorGraph,
   return vert #fg.v[fg.id]
 end
 
+"""
+    function addNode!(fg::FactorGraph,
+          lbl::Symbol,
+          softtype::Type{T};
+          N::Int=100,
+          autoinit=true,  # does init need to be separate from ready? TODO
+          ready::Int=1,
+          labels::Vector{S}=String[],
+          api::DataLayerAPI=dlapi,
+          uid::Int=-1,
+          dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+Add a node (variable) to a graph. Use this over the other dispatches.
+"""
 function addNode!(fg::FactorGraph,
       lbl::Symbol,
       softtype::Type{T};
@@ -387,20 +400,20 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # TODO this should maybe stay localapi only...
   for xi in Xi
     if !isInitialized(xi)
-      @show "doautoinit!", size(getVal(xi))
-      @show vsym = Symbol(xi.label)
-      @show neinodes = ls(fgl, vsym)
+       # @show "doautoinit!", size(getVal(xi))
+      vsym = Symbol(xi.label)
+      neinodes = ls(fgl, vsym)
       if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
         # Which of the factors can be used for initialization
         useinitfct = Symbol[]
-        println("Consider all pairwise factors connected to $vsym...")
+        # println("Consider all pairwise factors connected to $vsym...")
         for xifct in neinodes #potntlfcts
           xfneivarnodes = lsf(fgl, xifct)
           for vsym2 in xfneivarnodes
-            println("find all variables that are initialized")
+            # println("find all variables that are initialized for $vsym2")
             vert2 = getVert(fgl, vsym2)
             if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
-              println("adding $xifct to init factors list")
+              # println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
           end
@@ -408,10 +421,12 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
         # println("Consider all singleton (unary) factors to $vsym...")
 
         # calculate the predicted belief over $vsym
-        @show useinitfct
+        # @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
         getData(xi).initialized = true
+        # println("doautoinit! just before update vertex...")
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
@@ -432,7 +447,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   #   # also consider taking product between all incoming densities which have been inited
   #   error("don't know how to autoinit with pairwise dimension > 2")
   # end
-
+  # println("doautoinit! Done in autoinit!")
   nothing
 end
 
@@ -471,7 +486,7 @@ function addFactor!(fgl::FactorGraph,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true  ) where
+      autoinit::Bool=true) where
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -481,13 +496,11 @@ function addFactor!(fgl::FactorGraph,
   else
     currid = uid
   end
-
   namestring = assembleFactorName(fgl, Xi)
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
   setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
-
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
@@ -511,7 +524,6 @@ function addFactor!(fgl::FactorGraph,
   return newvert
 end
 
-
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
@@ -524,12 +536,10 @@ function addFactor!(
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
-  println("addFactor: Adding factor");
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
-    push!( verts, api.getvertex(fgl,xi) )
+      push!( verts, api.getvertex(fgl,xi) )
   end
-  println("Adding factor internal");
   addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
