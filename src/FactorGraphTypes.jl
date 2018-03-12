@@ -60,6 +60,7 @@ mutable struct FactorGraph
   sessionname::String
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  stateless::Bool
   FactorGraph() = new()
   FactorGraph(
     x1,
@@ -92,7 +93,8 @@ mutable struct FactorGraph
     x12,
     x13,
     x14,
-    x15 )
+    x15,
+    false )
 end
 
 function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)

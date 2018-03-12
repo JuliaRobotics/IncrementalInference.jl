@@ -206,6 +206,19 @@ function addNode!(fg::FactorGraph,
   return vert #fg.v[fg.id]
 end
 
+"""
+    function addNode!(fg::FactorGraph,
+          lbl::Symbol,
+          softtype::Type{T};
+          N::Int=100,
+          autoinit=true,  # does init need to be separate from ready? TODO
+          ready::Int=1,
+          labels::Vector{S}=String[],
+          api::DataLayerAPI=dlapi,
+          uid::Int=-1,
+          dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+Add a node (variable) to a graph. Use this over the other dispatches.
+"""
 function addNode!(fg::FactorGraph,
       lbl::Symbol,
       softtype::Type{T};
@@ -311,6 +324,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
   SAMP=LEN.<maxlen
   for i in 1:count
     if SAMP[i]
+      @show Xi[i].label
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
@@ -385,6 +399,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
+  println("doautoinit! In autoinit...")
   for xi in Xi
     if !isInitialized(xi)
       @show "doautoinit!", size(getVal(xi))
@@ -397,7 +412,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
         for xifct in neinodes #potntlfcts
           xfneivarnodes = lsf(fgl, xifct)
           for vsym2 in xfneivarnodes
-            println("find all variables that are initialized")
+            println("find all variables that are initialized for $vsym2")
             vert2 = getVert(fgl, vsym2)
             if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
               println("adding $xifct to init factors list")
@@ -406,12 +421,15 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
           end
         end
         # println("Consider all singleton (unary) factors to $vsym...")
+        println("doautoinit! Nearly done in autoinit...")
 
         # calculate the predicted belief over $vsym
         @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
         getData(xi).initialized = true
+        println("doautoinit! just before update vertex...")
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
@@ -432,7 +450,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   #   # also consider taking product between all incoming densities which have been inited
   #   error("don't know how to autoinit with pairwise dimension > 2")
   # end
-
+  println("doautoinit! Done in autoinit!")
   nothing
 end
 
@@ -471,7 +489,7 @@ function addFactor!(fgl::FactorGraph,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true  ) where
+      autoinit::Bool=true) where
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -481,13 +499,13 @@ function addFactor!(fgl::FactorGraph,
   else
     currid = uid
   end
-
+  println("addFactor!: Adding in factor with currid = $currid...")
   namestring = assembleFactorName(fgl, Xi)
+  println("addFactor!: Namestring = $namestring...YES WE CAN")
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
   setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
-
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
@@ -498,8 +516,11 @@ function addFactor!(fgl::FactorGraph,
   push!(fnlbls, "FACTOR")
   push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
+  info("addFactor!: about to add vertex $namestring")
   newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
+  info("addFactor!: dont hold your breath...")
   for vert in Xi
+    println("addFactor!: Adding edge for $Xi...")
     api.makeaddedge!(fgl, vert, newvert)
   end
 
@@ -511,7 +532,7 @@ function addFactor!(fgl::FactorGraph,
   return newvert
 end
 
-
+# USING THIS!!!!!
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
@@ -524,12 +545,13 @@ function addFactor!(
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
-  println("addFactor: Adding factor");
+  println("addFactor: Adding with currid = $uid")
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
-    push!( verts, api.getvertex(fgl,xi) )
+      println("addFactor: Getting $xi...")
+      push!( verts, api.getvertex(fgl,xi) )
   end
-  println("Adding factor internal");
+  println("addFactor: Adding the factors now...")
   addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
