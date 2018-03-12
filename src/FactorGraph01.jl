@@ -324,7 +324,6 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
   SAMP=LEN.<maxlen
   for i in 1:count
     if SAMP[i]
-      @show Xi[i].label
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
@@ -399,37 +398,35 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
-  println("doautoinit! In autoinit...")
   for xi in Xi
     if !isInitialized(xi)
-      @show "doautoinit!", size(getVal(xi))
-      @show vsym = Symbol(xi.label)
-      @show neinodes = ls(fgl, vsym)
+       # @show "doautoinit!", size(getVal(xi))
+      vsym = Symbol(xi.label)
+      neinodes = ls(fgl, vsym)
       if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
         # Which of the factors can be used for initialization
         useinitfct = Symbol[]
-        println("Consider all pairwise factors connected to $vsym...")
+        # println("Consider all pairwise factors connected to $vsym...")
         for xifct in neinodes #potntlfcts
           xfneivarnodes = lsf(fgl, xifct)
           for vsym2 in xfneivarnodes
-            println("find all variables that are initialized for $vsym2")
+            # println("find all variables that are initialized for $vsym2")
             vert2 = getVert(fgl, vsym2)
             if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
-              println("adding $xifct to init factors list")
+              # println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
           end
         end
         # println("Consider all singleton (unary) factors to $vsym...")
-        println("doautoinit! Nearly done in autoinit...")
 
         # calculate the predicted belief over $vsym
-        @show useinitfct
+        # @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        println("doautoinit! Past predictbelief...")
+        # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
         getData(xi).initialized = true
-        println("doautoinit! just before update vertex...")
+        # println("doautoinit! just before update vertex...")
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
@@ -450,7 +447,7 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   #   # also consider taking product between all incoming densities which have been inited
   #   error("don't know how to autoinit with pairwise dimension > 2")
   # end
-  println("doautoinit! Done in autoinit!")
+  # println("doautoinit! Done in autoinit!")
   nothing
 end
 
@@ -499,9 +496,7 @@ function addFactor!(fgl::FactorGraph,
   else
     currid = uid
   end
-  println("addFactor!: Adding in factor with currid = $currid...")
   namestring = assembleFactorName(fgl, Xi)
-  println("addFactor!: Namestring = $namestring...YES WE CAN")
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
@@ -516,11 +511,8 @@ function addFactor!(fgl::FactorGraph,
   push!(fnlbls, "FACTOR")
   push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
-  info("addFactor!: about to add vertex $namestring")
   newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
-  info("addFactor!: dont hold your breath...")
   for vert in Xi
-    println("addFactor!: Adding edge for $Xi...")
     api.makeaddedge!(fgl, vert, newvert)
   end
 
@@ -532,7 +524,6 @@ function addFactor!(fgl::FactorGraph,
   return newvert
 end
 
-# USING THIS!!!!!
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
@@ -545,13 +536,10 @@ function addFactor!(
         {I <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
-  println("addFactor: Adding with currid = $uid")
   verts = Vector{Graphs.ExVertex}()
   for xi in xisyms
-      println("addFactor: Getting $xi...")
       push!( verts, api.getvertex(fgl,xi) )
   end
-  println("addFactor: Adding the factors now...")
   addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
