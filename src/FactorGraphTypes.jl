@@ -137,7 +137,20 @@ mutable struct VariableNodeData
     warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
     new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
   end
-  VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
+  VariableNodeData(x1::Array{Float64,2},
+                   x2::Array{Float64,2},
+                   x3::Array{Float64,2},
+                   x4::Array{Float64,2},
+                   x5::Vector{Int},
+                   x6::Vector{Int},
+                   x7::Int,
+                   x8::Bool,
+                   x9::Int,
+                   x10::Vector{Int},
+                   x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
+                   x12,
+                   x13::Bool) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
 mutable struct PackedVariableNodeData
@@ -159,7 +172,23 @@ mutable struct PackedVariableNodeData
   softtype::String
   initialized::Bool
   PackedVariableNodeData() = new()
-  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14], x[15], x[16])
+  PackedVariableNodeData(x1::Vector{Float64},
+                         x2::Int,
+                         x3::Vector{Float64},
+                         x4::Int,
+                         x5::Vector{Float64},
+                         x6::Int,
+                         x7::Vector{Float64},
+                         x8::Int,
+                         x9::Vector{Int},
+                         x10::Vector{Int},
+                         x11::Int,
+                         x12::Bool,
+                         x13::Int,
+                         x14::Vector{Int},
+                         x15::A,
+                         x16::Bool) where {A <: AbstractString}
+    = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16)
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
@@ -199,17 +228,17 @@ mutable struct GenericFunctionNodeData{T, S}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
   GenericFunctionNodeData{T, S}() where {T, S} = new()
-  GenericFunctionNodeData{T, S}(x...) where {T, S} = new(x[1],x[2],x[3],x[4],x[5],x[6])
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5, x6) where {T, S} = new(x1, x2, x3, x4, x5, x6)
 end
 
 FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
 FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x...) = GenericFunctionNodeData{T, Symbol}(x[1],x[2],x[3],x[4],x[5],x[6])
+FunctionNodeData(x1, x2, x3, x4, x5, x6) = GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6)
 
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
 PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, AbstractString}
 PackedFunctionNodeData() = GenericFunctionNodeData{T, AbstractString}()
-PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x[2],x[3],x[4],x[5],x[6])
+PackedFunctionNodeData(x1, x2, x3, x4, x5, x6) = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
