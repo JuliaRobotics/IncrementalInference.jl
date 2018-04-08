@@ -1,5 +1,8 @@
+# addprocs(3)
+
 using Base.Test
 using Compat
+# using IncrementalInference
 
 println("[TEST] out of module evalPotential...")
 include("TestModuleFunctions.jl")
@@ -12,8 +15,6 @@ println("Success")
 print("[TEST] Ensure converter types can be run from extending namespaces...")
 include("saveconvertertypes.jl")
 println("Success")
-
-addprocs(3)
 
 println("[TEST] packing converters work...")
 include("testgraphpackingconverters.jl")
