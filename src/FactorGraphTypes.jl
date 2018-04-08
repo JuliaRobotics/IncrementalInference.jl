@@ -186,9 +186,8 @@ mutable struct PackedVariableNodeData
                          x12::Bool,
                          x13::Int,
                          x14::Vector{Int},
-                         x15::A,
-                         x16::Bool) where {A <: AbstractString}
-    = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16)
+                         x15::String,
+                         x16::Bool) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16)
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
