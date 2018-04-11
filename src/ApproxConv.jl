@@ -4,12 +4,12 @@
 # will refactor once the dust has settled.
 # current code is the result of several unit tests between IIF and RoME.jl
 # a unified test to follow -- after which refactoring can start
-function evalPotentialSpecific{T <: FunctorPairwise}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorPairwise}
   #
   # TODO -- enable partial constraints
 
@@ -26,12 +26,15 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   # gwp.zDim[sfidx] ??
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
-
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
   for n in 1:maxlen
     gwp.particleidx = n
     # gwp(x, res)
+    @show fr.Y
+    @show fr.X[:,gwp.particleidx]
     numericRootGenericRandomizedFnc!( fr )
+    @show fr.Y
+    @show fr.X[:,gwp.particleidx]
         # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
         # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
         # and not directly replacing the existing variable belief estimate
@@ -43,13 +46,13 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
 end
 
 
-function evalPotentialSpecific{T <: FunctorPairwiseNH}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
       N::Int=100,
-      spreadfactor::Float64=10.0  )
+      spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
   #
   # TODO -- enable partial constraints
 
@@ -89,12 +92,12 @@ function evalPotentialSpecific{T <: FunctorPairwiseNH}(
 end
 
 
-function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorPairwiseMinimize}
   #
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
@@ -126,12 +129,12 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
   return gwp.params[gwp.varidx]
 end
 
-function evalPotentialSpecific{T <: FunctorSingleton}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorSingleton}
   #
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
   if !generalwrapper.partial
@@ -147,13 +150,13 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
   end
 end
 
-function evalPotentialSpecific{T <: FunctorSingletonNH}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int;
       N::Int=100,
-      spreadfactor::Float64=10.0  )
+      spreadfactor::Float64=10.0  ) where {T <: FunctorSingletonNH}
   #
 
   # determine amount share of null hypothesis particles
@@ -196,10 +199,12 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   Xi = Graphs.ExVertex[]
   for id in getData(fct).fncargvID
   # for id in fct.attributes["data"].fncargvID
-    push!(Xi, getVert(fgl,id) ) # TODO localapi
+    vert = getVert(fgl,id)
+    @show id, vert.label, getVal(vert)
+    push!(Xi, vert ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
   end
-  fnctype = getData(fct).fnc
+  @show fnctype = getData(fct).fnc
   # fnctype = fct.attributes["data"].fnc
   return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
@@ -214,6 +219,7 @@ subset of variable dimensions. Remaining dimensions will keep existing variable 
 """
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int) # vert
   # assuming it is properly initialized TODO
+  @show idfct, vertid, N
   ptsbw = evalFactor2(fg, idfct, vertid, N=N);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
 

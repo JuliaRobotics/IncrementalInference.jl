@@ -274,6 +274,7 @@ function proposalbeliefs!(fgl::FactorGraph,
       N::Int=100)
   #
   for fct in factors
+    @show fct
     data = getData(fct)
     p = findRelatedFromPotential(fgl, fct, destvertid, N)
     if data.fnc.partial   # partial density
@@ -297,7 +298,7 @@ function predictbelief(fgl::FactorGraph,
       factors::Vector{Graphs.ExVertex};
       N::Int=100  )
   #
-  destvertid = destvert.index
+  @show destvertid = destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
 
