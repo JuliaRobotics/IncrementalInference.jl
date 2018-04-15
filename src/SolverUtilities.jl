@@ -71,10 +71,10 @@ end
 # small random perturbation used to prevent trivial solver cases, div by 0 etc.
 # result stored in fgr.Y
 # fr.X must be set to memory ref the param[varidx] being solved, at creation of fr
-function numericRootGenericRandomizedFnc!{T}(
+function numericRootGenericRandomizedFnc!(
       fr::FastRootGenericWrapParam{T};
       perturb::Float64=1e-10,
-      testshuffle::Bool=false )
+      testshuffle::Bool=false ) where {T}
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{T}")
   if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
@@ -101,9 +101,20 @@ function numericRootGenericRandomizedFnc!{T}(
     end
     #shuffleXAltD!( fr, r.zero ) # moved up
   elseif fr.zDim >= fr.xDim && !fr.gwp.partial
+    fr.perturb[1:fr.xDim] = perturb*randn(fr.xDim)
     fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
-    fr.Y[1:fr.xDim] = ( nlsolve(  fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] ) ).zero
+    r = nlsolve( fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] )
+    if sum(isnan.(( r ).zero)) == 0
+      fr.Y[1:fr.xDim] = ( r ).zero
+    else
+      warn("got NaN, fr.gwp.particleidx = $(fr.gwp.particleidx), r")
+      @show fr.gwp.usrfnc!
+      for thatlen in 1:length(fr.gwp.params)
+        @show thatlen, fr.gwp.params[thatlen][:, fr.gwp.particleidx]
+      end
+    end
   elseif fr.gwp.partial
+    # improve memory management in this function
     fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
     r = nlsolve(  fr,
                   fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
@@ -152,10 +163,10 @@ end
 # randomly shuffle x dimensions if underconstrained by measurement z dimensions
 # small random perturbation used to prevent trivial solver cases, div by 0 etc.
 # result stored in fgr.Y
-function numericRootGenericRandomizedFnc!{T}(
+function numericRootGenericRandomizedFnc!(
       fgr::FastGenericRoot{T};
       perturb::Float64=1e-5,
-      testshuffle::Bool=false )
+      testshuffle::Bool=false ) where {T}
   #
   # info("numericRootGenericRandomizedFnc!(fgr::FastGenericRoot{T}...)  ")
   fgr.perturb[1:fgr.zDim] = perturb*randn(fgr.zDim)

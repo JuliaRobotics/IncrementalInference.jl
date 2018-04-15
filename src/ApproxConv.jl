@@ -4,12 +4,12 @@
 # will refactor once the dust has settled.
 # current code is the result of several unit tests between IIF and RoME.jl
 # a unified test to follow -- after which refactoring can start
-function evalPotentialSpecific{T <: FunctorPairwise}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorPairwise}
   #
   # TODO -- enable partial constraints
 
@@ -26,7 +26,6 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
   # gwp.zDim[sfidx] ??
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
-
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
   for n in 1:maxlen
     gwp.particleidx = n
@@ -43,13 +42,13 @@ function evalPotentialSpecific{T <: FunctorPairwise}(
 end
 
 
-function evalPotentialSpecific{T <: FunctorPairwiseNH}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
       N::Int=100,
-      spreadfactor::Float64=10.0  )
+      spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
   #
   # TODO -- enable partial constraints
 
@@ -89,12 +88,12 @@ function evalPotentialSpecific{T <: FunctorPairwiseNH}(
 end
 
 
-function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorPairwiseMinimize}
   #
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
@@ -126,12 +125,12 @@ function evalPotentialSpecific{T <: FunctorPairwiseMinimize}(
   return gwp.params[gwp.varidx]
 end
 
-function evalPotentialSpecific{T <: FunctorSingleton}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  )
+      N::Int=100  ) where {T <: FunctorSingleton}
   #
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
   if !generalwrapper.partial
@@ -147,13 +146,13 @@ function evalPotentialSpecific{T <: FunctorSingleton}(
   end
 end
 
-function evalPotentialSpecific{T <: FunctorSingletonNH}(
+function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int;
       N::Int=100,
-      spreadfactor::Float64=10.0  )
+      spreadfactor::Float64=10.0  ) where {T <: FunctorSingletonNH}
   #
 
   # determine amount share of null hypothesis particles

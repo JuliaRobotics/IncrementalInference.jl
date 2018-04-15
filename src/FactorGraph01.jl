@@ -421,7 +421,6 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
         # println("Consider all singleton (unary) factors to $vsym...")
 
         # calculate the predicted belief over $vsym
-        # @show useinitfct
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
