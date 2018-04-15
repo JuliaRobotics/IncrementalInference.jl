@@ -195,8 +195,7 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   Xi = Graphs.ExVertex[]
   for id in getData(fct).fncargvID
   # for id in fct.attributes["data"].fncargvID
-    vert = getVert(fgl,id)
-    push!(Xi, vert ) # TODO localapi
+    push!(Xi, getVert(fgl,id) ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
   end
   fnctype = getData(fct).fnc

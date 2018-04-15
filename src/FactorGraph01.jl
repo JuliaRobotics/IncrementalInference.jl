@@ -399,7 +399,6 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
   for xi in Xi
-    @show xi
     if !isInitialized(xi)
        # @show "doautoinit!", size(getVal(xi))
       vsym = Symbol(xi.label)
@@ -422,8 +421,6 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
         # println("Consider all singleton (unary) factors to $vsym...")
 
         # calculate the predicted belief over $vsym
-        @show vsym, useinitfct
-        @show ls(fgl)
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
