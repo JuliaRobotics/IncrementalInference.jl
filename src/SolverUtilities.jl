@@ -47,8 +47,6 @@ function (p::GenericWrapParam)(res, x)
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
   p.params[p.varidx][:, p.particleidx] = x
-  @show size(p.params), p.particleidx
-  @show p.measurement[1][:,p.particleidx], p.params[1][:,p.particleidx], p.params[2][:,p.particleidx]
   p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
 end
 
@@ -104,12 +102,17 @@ function numericRootGenericRandomizedFnc!(
     #shuffleXAltD!( fr, r.zero ) # moved up
   elseif fr.zDim >= fr.xDim && !fr.gwp.partial
     fr.perturb[1:fr.xDim] = perturb*randn(fr.xDim)
-    @show fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
-    @show fr.gwp, fr.gwp.particleidx
-    @show fr.gwp.usrfnc!
-    @show fr.gwp.particleidx
-    @show r = nlsolve( fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] )
-    fr.Y[1:fr.xDim] = ( r ).zero
+    fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
+    r = nlsolve( fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] )
+    if sum(isnan.(( r ).zero)) == 0
+      fr.Y[1:fr.xDim] = ( r ).zero
+    else
+      warn("got NaN, fr.gwp.particleidx = $(fr.gwp.particleidx), r")
+      @show fr.gwp.usrfnc!
+      for thatlen in 1:length(fr.gwp.params)
+        @show thatlen, fr.gwp.params[thatlen][:, fr.gwp.particleidx]
+      end
+    end
   elseif fr.gwp.partial
     # improve memory management in this function
     fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop

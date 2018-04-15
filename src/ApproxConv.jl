@@ -30,11 +30,7 @@ function evalPotentialSpecific(
   for n in 1:maxlen
     gwp.particleidx = n
     # gwp(x, res)
-    @show fr.Y
-    @show fr.X[:,gwp.particleidx]
     numericRootGenericRandomizedFnc!( fr )
-    @show fr.Y
-    @show fr.X[:,gwp.particleidx]
         # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
         # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
         # and not directly replacing the existing variable belief estimate
@@ -200,11 +196,10 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   for id in getData(fct).fncargvID
   # for id in fct.attributes["data"].fncargvID
     vert = getVert(fgl,id)
-    @show id, vert.label, getVal(vert)
     push!(Xi, vert ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
   end
-  @show fnctype = getData(fct).fnc
+  fnctype = getData(fct).fnc
   # fnctype = fct.attributes["data"].fnc
   return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
@@ -219,7 +214,6 @@ subset of variable dimensions. Remaining dimensions will keep existing variable 
 """
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int) # vert
   # assuming it is properly initialized TODO
-  @show idfct, vertid, N
   ptsbw = evalFactor2(fg, idfct, vertid, N=N);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
 
