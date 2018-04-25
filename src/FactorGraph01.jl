@@ -480,13 +480,13 @@ end
 
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::I;
+      usrfnc::R;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
       autoinit::Bool=true) where
-        {I <: Union{FunctorInferenceType, InferenceType},
+        {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
   currid = fgl.id+1
@@ -526,13 +526,13 @@ end
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
-      usrfnc::I;
+      usrfnc::R;
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
       autoinit::Bool=true ) where
-        {I <: Union{FunctorInferenceType, InferenceType},
+        {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
   verts = Vector{Graphs.ExVertex}()
