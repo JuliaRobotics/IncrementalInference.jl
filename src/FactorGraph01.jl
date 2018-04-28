@@ -254,7 +254,7 @@ function addNode!(fg::FactorGraph,
   fg.dimID+=dims # rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
 
-  nothing
+  vert
 end
 
 # rethink abstraction, maybe closer to CloudGraph use case a better solution
