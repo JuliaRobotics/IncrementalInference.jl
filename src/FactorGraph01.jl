@@ -207,28 +207,20 @@ function addNode!(fg::FactorGraph,
 end
 
 """
-    function addNode!(fg::FactorGraph,
-          lbl::Symbol,
-          softtype::Type{T};
-          N::Int=100,
-          autoinit=true,  # does init need to be separate from ready? TODO
-          ready::Int=1,
-          labels::Vector{S}=String[],
-          api::DataLayerAPI=dlapi,
-          uid::Int=-1,
-          dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+$(SIGNATURES)
+
 Add a node (variable) to a graph. Use this over the other dispatches.
 """
 function addNode!(fg::FactorGraph,
       lbl::Symbol,
-      softtype::Type{T};
+      softtype::Type{<:InferenceVariable};
       N::Int=100,
       autoinit=true,  # does init need to be separate from ready? TODO
       ready::Int=1,
-      labels::Vector{S}=String[],
+      labels::Vector{<:AbstractString}=String[],
       api::DataLayerAPI=dlapi,
       uid::Int=-1,
-      dims::Int=-1  ) where {T <: InferenceVariable, S <: AbstractString}
+      dims::Int=-1  ) # where {T , S }
   #
   currid = fg.id+1
   if uid==-1
@@ -244,9 +236,9 @@ function addNode!(fg::FactorGraph,
   addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(0,0), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
+  setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
-  vnlbls = string.(labels)
+  vnlbls = union(string.(labels), st.labels)
   push!(vnlbls, fg.sessionname)
   # addvert!(fg, vert, api=api)
   api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
