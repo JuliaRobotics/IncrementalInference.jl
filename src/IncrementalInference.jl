@@ -18,6 +18,7 @@ using
   HDF5,
   JLD,
   ProgressMeter,
+  DocStringExtensions,
   Compat
 
 export
