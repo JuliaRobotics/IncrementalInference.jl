@@ -74,6 +74,6 @@ References
 ==========
 
 
-    [[1]  Fourie, Dehann, et al. "A Nonparametric Belief Solution to the Bayes Tree" IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).](http://www.ri.cmu.edu/pub_files/2016/10/Fourie16iros.pdf)
-    [[2]   Fourie, Dehann, "Multi-modal and Inertial Sensor Solutions for Navigation-type Factor Graphs", Joint Program with Massachusetts Institute of Technology and Woods Hole Oceanographic Institution, Cambridge, MA, USA, August 2017.]((https://darchive.mblwhoilibrary.org/bitstream/handle/1912/9305/Fourie_thesis.pdf?sequence=1))
-    [3]  Kaess, Michael, et al. "iSAM2: Incremental smoothing and mapping using the Bayes tree" The International Journal of Robotics Research (2011): 0278364911430419.
+    [1]  Fourie, Dehann, et al. ["A Nonparametric Belief Solution to the Bayes Tree"](http://www.ri.cmu.edu/pub_files/2016/10/Fourie16iros.pdf) IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), (2016).
+    [2]   Fourie, Dehann, ["Multi-modal and Inertial Sensor Solutions for Navigation-type Factor Graphs"](https://darchive.mblwhoilibrary.org/bitstream/handle/1912/9305/Fourie_thesis.pdf?sequence=1), Joint Program with Massachusetts Institute of Technology and Woods Hole Oceanographic Institution, Cambridge, MA, USA, August 2017.
+    [3]  Kaess, Michael, et al. ["iSAM2: Incremental smoothing and mapping using the Bayes tree"](http://journals.sagepub.com/doi/abs/10.1177/0278364911430419) The International Journal of Robotics Research (2011): 0278364911430419.
