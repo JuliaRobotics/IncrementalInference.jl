@@ -1,5 +1,5 @@
-import Base.convert
-import Base.==
+import Base: convert
+import Base: ==
 
 @compat abstract type InferenceType end
 @compat abstract type PackedInferenceType end
@@ -58,6 +58,7 @@ mutable struct FactorGraph
   cg
   cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
   sessionname::String
+  robotname::String
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
@@ -77,7 +78,8 @@ mutable struct FactorGraph
     x12,
     x13,
     x14,
-    x15
+    x15,
+    x16
    ) = new(
     x1,
     x2,
@@ -94,9 +96,15 @@ mutable struct FactorGraph
     x13,
     x14,
     x15,
+    x16,
     false )
 end
 
+"""
+    $(SIGNATURES)
+
+Construct an empty FactorGraph object with the minimum amount of information / memory populated.
+"""
 function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
@@ -112,6 +120,7 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
                      0,
                      nothing,
                      Dict{Int,Int}(),
+                     "",
                      "",
                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
                      reference  ) #evalPotential
