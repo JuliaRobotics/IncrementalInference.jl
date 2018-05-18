@@ -12,11 +12,48 @@ end
 
 
 
-"""
-    convert2packedfunctionnode(fgl::FactorGraph, fsym::Symbol)
+# function encodePackedType(topackdata::T) where T
+#   println("IncrementalInference.encodePackedType(data) new dispatch conversion to packed type development:")
+#   @show fnc = getfield(T.name.module, Symbol("Packed$(T.name.name)"))
+#   return convert(fnc, topackdata)
+#   # error("IncrementalInference.encodePackedType(::$(fnc)) unknown format")
+#   # data = nothing
+#   # if fnc == PackedFunctionNodeData
+#   #   @show usrtyp = convert(PackedInferenceType, fnc)
+#   #   @show data = convert(IncrementalInference.PackedFunctionNodeData{usrtyp}, topackdata )
+#   # else
+#   #
+#   # end
+#   # return data
+# end
 
-Encode complicated function node type with assumed to exist, user supplied convert
-function to related 'Packed<type>' format.
+# function encodePackedType(topackdata::GenericWrapParam{T}) where {T}
+#   @show T
+#   error("encodePackedType")
+# end
+function getmodule(t::T) where T
+  T.name.module
+end
+function getname(t::T) where T
+  T.name.name
+end
+function encodePackedType(topackdata::VariableNodeData)
+  # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
+  convert(IncrementalInference.PackedVariableNodeData, topackdata)
+end
+function encodePackedType(topackdata::FunctionNodeData{T}) where {T}
+  println("IncrementalInference.encodePackedType(::PackedFunctionNodeData{T}): Unknown packed type encoding T=$(T) of $(topackdata)")
+  # @show T, typeof(topackdata)
+  fnctype = getfnctype(topackdata)
+  # @show sfnctype = split(string(fnctype),'.')
+  @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
+  convert(PackedFunctionNodeData{fnc}, topackdata)
+end
+
+"""
+    $(SIGNATURES)
+
+Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
 """
 function convert2packedfunctionnode(fgl::FactorGraph,
       fsym::Symbol,
@@ -29,11 +66,45 @@ function convert2packedfunctionnode(fgl::FactorGraph,
   return cfnd, usrtyp
 end
 
+# function encodePackedType(topackdata::T) where {T <: FunctorInferenceType}
+#   error("IncrementalInference.encodePackedType(<: FunctorInferenceType): Unknown packed type encoding of $(fnc)")
+# end
 
 
+#
+
+
+function getpackedtype(typestring::AS) where {AS <: AbstractString}
+  println("IncrementalInference.getpackedtype($(typestring))")
+  @show packedtype = eval(parse(typestring)) # consider caching
+  # error("getpackedtype(::AbstractString) not implemented yet")
+end
+# function decodePackedType(packeddata::PT, typestring::String) where {PT}
+#   @show typeof(packeddata), PT
+#   @show tse = split(typestring,'.')[end]  # TODO -- make more robust by checking the modules as well
+#   @show fulltype = getfield(PT.name.module, Symbol(tse[7:end]))
+#   # @show packedtype = eval(parse(typestring))
+#   return convert(fulltype, packeddata)
+#
+#   # if packedtype == PackedVariableNodeData
+#   #   return convert(VariableNodeData, packeddata)
+#   # else
+#   #   error("IncrementalInference.decodePackedType doesnt know how to handle $(packedtype) yet")
+#   # end
+# end
+function decodePackedType(packeddata::PackedVariableNodeData, typestring::String)
+  # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
+  convert(IncrementalInference.VariableNodeData, packeddata)
+end
+function decodePackedType(packeddata::GenericFunctionNodeData{PT,S}, typestring::String) where {PT, S <: AbstractString}
+  @show typeof(packeddata), PT
+  @show functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
+  @show fulltype = FunctionNodeData{GenericWrapParam{functype}}
+  convert(fulltype, packeddata)
+end
 
 """
-    encodefg(fgl::FactorGraph)
+    $(SIGNATURES)
 
 Make a full memory copy of the graph and encode all complicated function node
 types with assumed to exist convert to 'Packed<type>' formats. Same converters

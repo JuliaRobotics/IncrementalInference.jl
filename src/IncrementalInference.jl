@@ -53,6 +53,7 @@ export
   VNDdecoder,
   FNDencode,
   FNDdecode,
+  encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,
   FactorGraph,

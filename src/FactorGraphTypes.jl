@@ -324,7 +324,9 @@ end
 
 
 # Functor version -- TODO, abstraction can be improved here
-function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
+function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
+            d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
+  #
   usrfnc = convert(T, d.fnc)
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,

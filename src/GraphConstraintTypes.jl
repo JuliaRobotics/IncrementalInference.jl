@@ -1,18 +1,18 @@
 # this file setup is less than ideal. We will refactor this with packing macros
-# to automatically generate the converters and packed data types.
+# to automatically generate the converters and packed data structs.
 # The eval functions are also currently spread out, they should be concentrated here as well.
-# The Pose2D and Pose3D types will most likely be packaged with the RoME package in the future.
+# The Pose2D and Pose3D structs will most likely be packaged with the RoME package in the future.
 
 
 
 
-# Active constraint types listed below
+# Active constraint structs listed below
 # -------------
 
 
 # define the simple 1D odo
 # TODO -- rework to use Distributions rather than Z and Cov
-type Odo <: FunctorPairwise
+struct Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -43,7 +43,7 @@ end
 #   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
 #   return ret
 # end
-type PackedOdo <: PackedInferenceType
+struct PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int
     vecCov::Array{Float64,1}
@@ -67,7 +67,7 @@ end
 
 
 
-type OdoMM <: Pairwise
+struct OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -85,14 +85,14 @@ function getSample(odo::OdoMM, N::Int=1)
 end
 
 
-type Ranged <: FunctorPairwise
+struct Ranged <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     Ranged() = new()
     Ranged(x...) = new(x[1], x[2], x[3])
 end
-type PackedRanged <: PackedInferenceType
+struct PackedRanged <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -124,14 +124,14 @@ function getSample(ra::Ranged, N::Int=1)
 end
 
 
-type GenericMarginal <: FunctorPairwise
+struct GenericMarginal <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     GenericMarginal() = new()
     GenericMarginal(a,b,c) = new(a,b,c)
 end
-type PackedGenericMarginal <: PackedInferenceType
+struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -148,14 +148,14 @@ end
 # ------------------------------------------------------------
 
 
-type Obsv2 <: FunctorSingleton
+struct Obsv2 <: FunctorSingleton
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
     Obsv2() = new()
     Obsv2(x...) = new(x[1], x[2], x[3])
 end
-type PackedObsv2 <: PackedInferenceType
+struct PackedObsv2 <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int
     vecCov::Array{Float64,1}
