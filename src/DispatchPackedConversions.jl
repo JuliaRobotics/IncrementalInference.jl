@@ -110,6 +110,7 @@ end
 
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 function convert{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  warn("P2P2BR should not be calling here")
   return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), convert(T, d.fnc))
 end
@@ -123,8 +124,12 @@ end
 function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
             d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  usrfnc = convert(T, d.fnc)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
+  @show "convert", T, P
+  @show typeof(d.fnc)
+  info("calling convert($(T), $(d.fnc))")
+  @show usrfnc = convert(T, d.fnc)
+  @show typeof(usrfnc)
+  @show gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
   return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
 end
@@ -206,7 +211,7 @@ function encodePackedType(topackdata::FunctionNodeData{T}) where {T}
   # @show T, typeof(topackdata)
   fnctype = getfnctype(topackdata)
   # @show sfnctype = split(string(fnctype),'.')
-  @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
+  fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
   convert(PackedFunctionNodeData{fnc}, topackdata)
 end
 

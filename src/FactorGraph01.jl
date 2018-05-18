@@ -328,10 +328,18 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
   return maxlen, sfidx
 end
 
-function prepgenericwrapper{T <: FunctorInferenceType}(
+function prepgenericwrapper(
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::UnionAll,
+      samplefnc::Function )
+  #
+  error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
+end
+
+function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T,
-      samplefnc::Function )
+      samplefnc::Function ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
@@ -341,17 +349,17 @@ function prepgenericwrapper{T <: FunctorInferenceType}(
   return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
 end
 
-function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
+function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::T  )
+      usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
-  m = Symbol(ftyp.name.module)
-  # samplefnc2 = fgl.registeredModuleFunctions[m]
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample) #samplefnc2)
+  @show "setDefaultFactorNode!", usrfnc, ftyp, T
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
 
+  m = Symbol(ftyp.name.module)
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
   vert.attributes["data"] = data
 
