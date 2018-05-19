@@ -257,10 +257,10 @@ function decodePackedType(packeddata::PackedVariableNodeData, typestring::String
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,S}, typestring::String) where {PT, S <: AbstractString}
-  @show typestring
-  @show typeof(packeddata), PT
-  @show functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-  @show fulltype = FunctionNodeData{GenericWrapParam{functype}}
+  # @show typestring
+  # @show typeof(packeddata), PT
+  functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
+  fulltype = FunctionNodeData{GenericWrapParam{functype}}
   convert(fulltype, packeddata)
 end
 
