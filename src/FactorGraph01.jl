@@ -356,7 +356,7 @@ function setDefaultFactorNode!(
       usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
-  @show "setDefaultFactorNode!", usrfnc, ftyp, T
+  # @show "setDefaultFactorNode!", usrfnc, ftyp, T
   gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
 
   m = Symbol(ftyp.name.module)
