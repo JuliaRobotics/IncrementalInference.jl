@@ -124,13 +124,13 @@ end
 function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
             d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  @show "convert", T, P
-  @show typeof(d.fnc)
-  info("calling convert($(T), $(d.fnc))")
-  @show usrfnc = convert(T, d.fnc)
-  @show typeof(usrfnc)
-  @show gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
-  return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+  # @show "convert", T, P
+  # @show typeof(d.fnc)
+  # info("calling convert($(T), $(d.fnc))")
+  usrfnc = convert(T, d.fnc)
+  # @show typeof(usrfnc)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
+  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
 end
 function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
@@ -257,6 +257,7 @@ function decodePackedType(packeddata::PackedVariableNodeData, typestring::String
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,S}, typestring::String) where {PT, S <: AbstractString}
+  @show typestring
   @show typeof(packeddata), PT
   @show functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
   @show fulltype = FunctionNodeData{GenericWrapParam{functype}}
