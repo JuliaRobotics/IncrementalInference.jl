@@ -242,7 +242,7 @@ function addNode!(fg::FactorGraph,
   dodims = fg.dimID+1
   setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
-  vnlbls = union(string.(labels), st.labels)
+  vnlbls = union(string.(labels), st.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
   # addvert!(fg, vert, api=api)
   api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
@@ -252,6 +252,7 @@ function addNode!(fg::FactorGraph,
 
   vert
 end
+
 
 # rethink abstraction, maybe closer to CloudGraph use case a better solution
 # function addEdge!(g::FGG,n1,n2)
@@ -511,7 +512,7 @@ function addFactor!(fgl::FactorGraph,
   end
 
   fnlbls = deepcopy(labels)
-  push!(fnlbls, "FACTOR")
+  fnlbls = union(fnlbls, String["FACTOR";])
   push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
   newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
