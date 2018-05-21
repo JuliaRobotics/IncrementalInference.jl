@@ -200,14 +200,10 @@ mutable struct GenericFunctionNodeData{T, S}
   edgeIDs::Array{Int,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
-  GenericFunctionNodeData{T, S}() where {T, S} = new()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5, x6) where {T, S} = new(x1, x2, x3, x4, x5, x6)
+  GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
 end
-
-FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
-FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x1, x2, x3, x4, x5, x6) = GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6)
-
 
 
 ###

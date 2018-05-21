@@ -188,6 +188,9 @@ const VoidUnion{T} = Union{Void, T}
 include("FactorGraphTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("DispatchPackedConversions.jl")
+include("FGOSUtils.jl")
+
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
@@ -195,8 +198,6 @@ include("TreePotentials01.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
-include("DispatchPackedConversions.jl")
-include("FGOSUtils.jl")
 
 include("deprecated.jl")
 

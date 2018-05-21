@@ -39,10 +39,16 @@ mutable struct PackedVariableNodeData
 end
 
 
+
+const FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
+# FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T) where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6)
+
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, AbstractString}
-PackedFunctionNodeData() = GenericFunctionNodeData{T, AbstractString}()
-PackedFunctionNodeData(x1, x2, x3, x4, x5, x6) = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
+const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, AbstractString}
+# PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6)
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
@@ -109,8 +115,8 @@ end
 
 
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
-function convert{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  warn("P2P2BR should not be calling here")
+function convert(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P}) where {T <: InferenceType, P <: PackedInferenceType}
+  warn("Old unpacking converter from DB to Graphs.jl")
   return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), convert(T, d.fnc))
 end
@@ -124,6 +130,7 @@ end
 function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
             d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
   #
+  # warn("Is this even happening?")
   # @show "convert", T, P
   # @show typeof(d.fnc)
   # info("calling convert($(T), $(d.fnc))")
@@ -133,9 +140,31 @@ function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf) #{T}
 end
-function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+function convert(
+            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
+            fo::IncrementalInference.GenericFunctionNodeData{P,String} )  where {F <: FunctorInferenceType, P <: PackedInferenceType}
+  #
+  # warn("Why are we here, F=$(F), P=$(P)")
+  usrfnc = convert(F, fo.fnc)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
+  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(fo.fncargvID, fo.eliminated, fo.potentialused, fo.edgeIDs,
+          Symbol(fo.frommodule), gwpf)
+end
+
+
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
+  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  # @show P, typeof(P), T
+  # @show d.fnc.usrfnc!
+  # @show convert(P, d.fnc.usrfnc!)
+  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!))
+end
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P, T <: PackedInferenceType}
+  # TODO weird to have functions call this converter, but okay for now...
+  println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), d.fnc.usrfnc!)
 end
 
 # function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
@@ -206,13 +235,20 @@ function encodePackedType(topackdata::VariableNodeData)
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
   convert(IncrementalInference.PackedVariableNodeData, topackdata)
 end
-function encodePackedType(topackdata::FunctionNodeData{T}) where {T}
-  println("IncrementalInference.encodePackedType(::PackedFunctionNodeData{T}): Unknown packed type encoding T=$(T) of $(topackdata)")
-  # @show T, typeof(topackdata)
+function encodePackedType(topackdata::GenericFunctionNodeData{T, Symbol}) where {T <: FunctorInferenceType}
+  # println("IncrementalInference.encodePackedType(::GenericFunctionNodeData{T,Symbol}): Unknown packed type encoding T=$(T) of $(topackdata)")
   fnctype = getfnctype(topackdata)
-  # @show sfnctype = split(string(fnctype),'.')
   fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
   convert(PackedFunctionNodeData{fnc}, topackdata)
+end
+function encodePackedType(topackdata::GenericFunctionNodeData{T, <:AbstractString}) where {T <: PackedInferenceType}
+  error("IncrementalInference.encodePackedType(::FunctionNodeData{T, <:AbstractString}): Unknown packed type encoding T=$(T) of $(topackdata)")
+  # @show T, typeof(topackdata)
+  # warn("Yes, its packed!")
+  # fnctype = getfnctype(topackdata)
+  # @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
+  # convert(PackedFunctionNodeData{T}, topackdata)
+  topackdata
 end
 
 """
@@ -256,9 +292,8 @@ function decodePackedType(packeddata::PackedVariableNodeData, typestring::String
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
-function decodePackedType(packeddata::GenericFunctionNodeData{PT,S}, typestring::String) where {PT, S <: AbstractString}
-  # @show typestring
-  # @show typeof(packeddata), PT
+function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
+  # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
   functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
   fulltype = FunctionNodeData{GenericWrapParam{functype}}
   convert(fulltype, packeddata)
@@ -372,3 +407,49 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
 
   return fgu
 end
+
+
+
+
+
+# MethodError: Cannot `convert` an object of type
+#
+# IncrementalInference.GenericFunctionNodeData{RoME.PackedPriorPose2,String} to an object of type
+# IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{RoME.PriorPose2},Symbol}
+#
+# This may have arisen from a call to the constructor
+# IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{RoME.PriorPose2},Symbol}(...),
+# since type constructors fall back to convert methods.
+# decodePackedType(::IncrementalInference.GenericFunctionNodeData{RoME.PackedPriorPose2,String}, ::String) at DispatchPackedConversions.jl:269
+# unpackNeoNodeData2UsrType(::CloudGraphs.CloudGraph, ::Neo4j.Node) at CloudGraphs.jl:160
+# neoNode2CloudVertex(::CloudGraphs.CloudGraph, ::Neo4j.Node) at CloudGraphs.jl:171
+# get_vertex(::CloudGraphs.CloudGraph, ::Int64, ::Bool) at CloudGraphs.jl:242
+# makeAddCloudEdge!(::IncrementalInference.FactorGraph, ::Graphs.ExVertex, ::Graphs.ExVertex) at CloudGraphIntegration.jl:231
+# #addFactor!#27(::Int64, ::IncrementalInference.DataLayerAPI, ::Array{String,1}, ::Int64, ::Bool, ::Function, ::IncrementalInference.FactorGraph, ::Array{Graphs.ExVertex,1}, ::RoME.PriorPose2) at FactorGraph01.jl:519
+# (::IncrementalInference.#kw##addFactor!)(::Array{Any,1}, ::IncrementalInference.#addFactor!, ::IncrementalInference.FactorGraph, ::Array{Graphs.ExVertex,1}, ::RoME.PriorPose2) at <missing>:0
+# #addFactor!#28(::Int64, ::IncrementalInference.DataLayerAPI, ::Array{String,1}, ::Int64, ::Bool, ::Function, ::IncrementalInference.FactorGraph, ::Array{Symbol,1}, ::RoME.PriorPose2) at FactorGraph01.jl:546
+# addFactor!(::IncrementalInference.FactorGraph, ::Array{Symbol,1}, ::RoME.PriorPose2) at FactorGraph01.jl:542
+# include_string(::String, ::String) at loading.jl:522
+# include_string(::String, ::String, ::Int64) at eval.jl:30
+# include_string(::Module, ::String, ::String, ::Int64, ::Vararg{Int64,N} where N) at eval.jl:34
+# (::Atom.##102#107{String,Int64,String})() at eval.jl:82
+# withpath(::Atom.##102#107{String,Int64,String}, ::String) at utils.jl:30
+# withpath(::Function, ::String) at eval.jl:38
+# hideprompt(::Atom.##101#106{String,Int64,String}) at repl.jl:67
+# macro expansion at eval.jl:80 [inlined]
+# (::Atom.##100#105{Dict{String,Any}})() at task.jl:80
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
