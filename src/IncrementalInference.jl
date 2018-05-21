@@ -10,7 +10,6 @@ import KernelDensityEstimate: kde!
 
 using
   Graphs,
-  # GraphViz,
   NLsolve,
   Optim,
   Distributions,
@@ -53,6 +52,7 @@ export
   VNDdecoder,
   FNDencode,
   FNDdecode,
+  encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,
   FactorGraph,
@@ -100,9 +100,6 @@ export
   ls2,
   getfnctype,
   drawCopyFG,
-  # investigateMultidimKDE,
-  # drawHorDens,
-  # drawHorBeliefsList,
 
   # Tree stuff
   # spyCliqMat,
@@ -182,31 +179,7 @@ export
   shuffleXAltD,
   reshapeVec2Mat
 
-  # analysis and some plotting
-  # plotKDEofnc,
-  # plotKDEresiduals,
-  # plotMCMC,
-  # plotUpMsgsAtCliq,
-  # plotPriorsAtCliq,
-  # investigateMultidimKDE,
-  # draw,
-  # whosWith,
-  # drawUpMsgAtCliq,
-  # dwnMsgsAtCliq,
-  # drawPose2DMC!,
-  # mcmcPose2D!,
-  # # drawUpMCMCPose2D!,
-  # # drawDwnMCMCPose2D!,
-  # drawLbl,
-  # predCurrFactorBeliefs,
-  # drawHorDens,
-  # drawHorBeliefsList,
-  # drawFactorBeliefs,
-  # localProduct,
-  # plotLocalProduct,
-  # saveplot,
-  # animateVertexBelief,
-  # getColorsByLength
+
 
 
 const VoidUnion{T} = Union{Void, T}
@@ -215,14 +188,16 @@ const VoidUnion{T} = Union{Void, T}
 include("FactorGraphTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("DispatchPackedConversions.jl")
+include("FGOSUtils.jl")
+
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("TreePotentials01.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
-#include("SolverVisualization.jl")
-include("FGOSUtils.jl")
+
 
 include("deprecated.jl")
 

@@ -39,12 +39,16 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
-function getfnctype(vertl::Graphs.ExVertex)
-  data = getData(vertl)
+function getfnctype(data)
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData
   end
   data.fnc.usrfnc!
+end
+
+function getfnctype(vertl::Graphs.ExVertex)
+  data = getData(vertl)
+  getfnctype(data)
 end
 
 function getfnctype(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
@@ -238,7 +242,7 @@ function addNode!(fg::FactorGraph,
   dodims = fg.dimID+1
   setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
-  vnlbls = union(string.(labels), st.labels)
+  vnlbls = union(string.(labels), st.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
   # addvert!(fg, vert, api=api)
   api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
@@ -248,6 +252,7 @@ function addNode!(fg::FactorGraph,
 
   vert
 end
+
 
 # rethink abstraction, maybe closer to CloudGraph use case a better solution
 # function addEdge!(g::FGG,n1,n2)
@@ -324,10 +329,18 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
   return maxlen, sfidx
 end
 
-function prepgenericwrapper{T <: FunctorInferenceType}(
+function prepgenericwrapper(
+      Xi::Vector{Graphs.ExVertex},
+      usrfnc::UnionAll,
+      samplefnc::Function )
+  #
+  error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
+end
+
+function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T,
-      samplefnc::Function )
+      samplefnc::Function ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
@@ -337,17 +350,17 @@ function prepgenericwrapper{T <: FunctorInferenceType}(
   return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
 end
 
-function setDefaultFactorNode!{T <: Union{FunctorInferenceType, InferenceType}}(
+function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::T  )
+      usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
-  m = Symbol(ftyp.name.module)
-  # samplefnc2 = fgl.registeredModuleFunctions[m]
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample) #samplefnc2)
+  # @show "setDefaultFactorNode!", usrfnc, ftyp, T
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
 
+  m = Symbol(ftyp.name.module)
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
   vert.attributes["data"] = data
 
@@ -499,7 +512,7 @@ function addFactor!(fgl::FactorGraph,
   end
 
   fnlbls = deepcopy(labels)
-  push!(fnlbls, "FACTOR")
+  fnlbls = union(fnlbls, String["FACTOR";])
   push!(fnlbls, fgl.sessionname)
   # TODO -- multiple accesses to DB with this method, must refactor!
   newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
