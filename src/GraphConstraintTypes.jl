@@ -12,7 +12,7 @@
 
 # define the simple 1D odo
 # TODO -- rework to use Distributions rather than Z and Cov
-struct Odo <: FunctorPairwise
+mutable struct Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -43,7 +43,7 @@ end
 #   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
 #   return ret
 # end
-struct PackedOdo <: PackedInferenceType
+mutable struct PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int
     vecCov::Array{Float64,1}
@@ -67,7 +67,7 @@ end
 
 
 
-struct OdoMM <: Pairwise
+mutable struct OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -85,14 +85,14 @@ function getSample(odo::OdoMM, N::Int=1)
 end
 
 
-struct Ranged <: FunctorPairwise
+mutable struct Ranged <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     Ranged() = new()
     Ranged(x...) = new(x[1], x[2], x[3])
 end
-struct PackedRanged <: PackedInferenceType
+mutable struct PackedRanged <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -124,14 +124,14 @@ function getSample(ra::Ranged, N::Int=1)
 end
 
 
-struct GenericMarginal <: FunctorPairwise
+mutable struct GenericMarginal <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     GenericMarginal() = new()
     GenericMarginal(a,b,c) = new(a,b,c)
 end
-struct PackedGenericMarginal <: PackedInferenceType
+mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -148,14 +148,14 @@ end
 # ------------------------------------------------------------
 
 
-struct Obsv2 <: FunctorSingleton
+mutable struct Obsv2 <: FunctorSingleton
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
     Obsv2() = new()
     Obsv2(x...) = new(x[1], x[2], x[3])
 end
-struct PackedObsv2 <: PackedInferenceType
+mutable struct PackedObsv2 <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int
     vecCov::Array{Float64,1}
