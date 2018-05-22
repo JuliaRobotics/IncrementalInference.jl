@@ -483,9 +483,15 @@ function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxpa
   return namestring
 end
 
+"""
+    $(SIGNATURES)
+
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
+"""
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
+      multihypo::Vector{Symbol}=Symbol[],
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -531,12 +537,13 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
 """
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
+      multihypo::Vector{Symbol}=Symbol[],
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -549,7 +556,7 @@ function addFactor!(
   for xi in xisyms
       push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
+  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
 
