@@ -528,6 +528,11 @@ function addFactor!(fgl::FactorGraph,
   return newvert
 end
 
+"""
+    $(SIGNATURES)
+
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.
+"""
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
@@ -631,7 +636,7 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   end
   println("adding marginal to")
   for x in Xi @show x.index end
-  addFactor!(fg, Xi, genmarg, api=localapi)
+  addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
 
