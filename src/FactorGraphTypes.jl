@@ -173,12 +173,16 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType  #TODO: <: FunctorIT 
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
   partial::Bool
+  hypoverts::Vector{Symbol}
+  hypotheses::Union{Void, Distributions.Categorical}
   GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, Symbol[], nothing)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, Symbol[], nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, Symbol[], nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Symbol[], nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Categorical) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, mhcat)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Vector{Float64}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, Categorical(mhcat))
 end
 
 mutable struct FastRootGenericWrapParam{T} <: Function
@@ -189,9 +193,8 @@ mutable struct FastRootGenericWrapParam{T} <: Function
   xDim::Int
   zDim::Int
   gwp::GenericWrapParam{T}
-  hypotheses::Distributions.Categorical
   FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, Categorical([1.0]))
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
 end
 
 mutable struct GenericFunctionNodeData{T, S}
@@ -201,9 +204,11 @@ mutable struct GenericFunctionNodeData{T, S}
   edgeIDs::Array{Int,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
+  multihypo::String # likely to moved when GenericWrapParam is refactored
   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
-  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
 
 

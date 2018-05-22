@@ -332,7 +332,8 @@ end
 function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::UnionAll,
-      samplefnc::Function )
+      samplefnc::Function;
+      multihypo::Vector{Symbol}=Symbol[])
   #
   error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
 end
@@ -340,25 +341,51 @@ end
 function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T,
-      samplefnc::Function ) where {T <: FunctorInferenceType}
+      samplefnc::Function;
+      multihypo::Array=[]) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
+  if length(multihypo) == 0
+      return GenericWrapParam{T}(
+                usrfnc,
+                ARR,
+                1,
+                1,
+                (zeros(0,1),),
+                samplefnc,
+                sum(fldnms .== :zDim) >= 1,
+                sum(fldnms .== :partial) >= 1
+             )
+  else
+      return GenericWrapParam{T}(
+                usrfnc,
+                ARR,
+                1,
+                1,
+                (zeros(0,1),),
+                samplefnc,
+                sum(fldnms .== :zDim) >= 1,
+                sum(fldnms .== :partial) >= 1,
+                Symbol.(multihypo[1,:]),
+                Categorical(Float64.(multihypo[2,:]))
+             )
+  end
 end
 
 function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      usrfnc::T;
+      multihypo::Vector{Symbol}=Symbol[]  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=multihypo)
 
   m = Symbol(ftyp.name.module)
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
@@ -491,7 +518,7 @@ Add factor with user defined type <: FunctorInferenceType to the factor graph ob
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
-      multihypo::Vector{Symbol}=Symbol[],
+      multihypo::Array=[],
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -510,11 +537,12 @@ function addFactor!(fgl::FactorGraph,
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc)) # TODO
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
-    push!(newvert.attributes["data"].fncargvID, vert.index)
+    push!(getData(newvert).fncargvID, vert.index)
+    # push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
   fnlbls = deepcopy(labels)
@@ -543,7 +571,7 @@ function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
-      multihypo::Vector{Symbol}=Symbol[],
+      multihypo::Array=[],
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
