@@ -164,7 +164,7 @@ end
 
 
 
-mutable struct GenericWrapParam{T} <: FunctorInferenceType
+mutable struct GenericWrapParam{T} <: FunctorInferenceType  #TODO: <: FunctorIT cannot be right here???
   usrfnc!::T
   params::Vector{Array{Float64,2}}
   varidx::Int
@@ -189,8 +189,9 @@ mutable struct FastRootGenericWrapParam{T} <: Function
   xDim::Int
   zDim::Int
   gwp::GenericWrapParam{T}
+  hypotheses::Distributions.Categorical
   FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, Categorical([1.0]))
 end
 
 mutable struct GenericFunctionNodeData{T, S}
