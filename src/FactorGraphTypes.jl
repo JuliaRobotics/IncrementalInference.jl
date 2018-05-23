@@ -23,7 +23,8 @@ abstract type InferenceVariable end
 
 struct ContinuousScalar <: InferenceVariable
   dims::Int
-  ContinuousScalar() = new(1)
+  labels::Vector{String}
+  ContinuousScalar() = new(1, String["";])
 end
 struct ContinuousMultivariate <:InferenceVariable
   dims::Int
@@ -181,7 +182,7 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType  #TODO: <: FunctorIT 
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, Symbol[], nothing)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, Symbol[], nothing)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Symbol[], nothing)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Categorical) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, mhcat)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, mhcat)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Vector{Float64}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, Categorical(mhcat))
 end
 

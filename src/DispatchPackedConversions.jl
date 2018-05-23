@@ -51,6 +51,37 @@ const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData
 PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
+
+function normalfromstring(str::AS) where {AS <: AbstractString}
+  meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
+  mean = split(meanstr, '=')[2]
+  sigmastr = match(r"σ=[+-]?([0-9]*[.])?[0-9]+", str).match
+  sigma = split(sigmastr, '=')[2]
+  Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
+end
+
+function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: AbstractString}
+  # pstr = match(r"p=\[", str).match
+  psubs = split(str, '=')[end]
+  psubs = split(psubs, '[')[end]
+  psubsub = split(psubs, ']')[1]
+  pw = split(psubsub, ',')
+  return Categorical(parse.(Float64, pw))
+end
+
+function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
+  if str == ""
+    return nothing
+  elseif ismatch(r"Normal", str)
+    return normalfromstring(str)
+  elseif ismatch(r"Categorical", str)
+    return categoricalfromstring(str)
+  else
+    error("Don't know how to extract distrubtion from str=$(str)")
+  end
+end
+
+
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                               d.initstdev[:],size(d.initstdev,1),
@@ -116,6 +147,18 @@ end
 function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
   fnc.hypotheses != nothing ? "$(fnc.hypoverts);$(fnc.hypotheses.p)" : ""
 end
+function parsemultihypostr(str::AS) where {AS <: AbstractString}
+  mhverts = Symbol[]
+  mhcat=nothing
+  if length(str) > 0
+    ss = split(str, ';')
+    s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
+    s2 = strip.(split(split(split(ss[2],']')[1],'[')[end], ','))
+    mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
+    mhcat = Distributions.Categorical(parse.(Float64, s2))
+  end
+  return mhverts, mhcat
+end
 
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
@@ -169,7 +212,9 @@ function convert(
   #
   # warn("Unpacking Option 2, F=$(F), P=$(P)")
   usrfnc = convert(F, d.fnc)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
+  @show d.multihypo
+  mhverts, mhcat = parsemultihypostr(d.multihypo)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multiverts=mhverts, multihypotheses=mhcat)
   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf)
 end
