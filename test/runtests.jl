@@ -36,8 +36,12 @@ println("[TEST] partial constraints...")
 include("testpartialconstraint.jl")
 println("Success")
 
-println("[TEST] partial constraints...")
+println("[TEST] null hypothesis...")
 include("testnullhypothesis.jl")
+println("Success")
+
+println("[TEST] standardized multihypothesis...")
+include("testmultihypothesisapi.jl")
 println("Success")
 
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
