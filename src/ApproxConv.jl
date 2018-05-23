@@ -2,8 +2,7 @@
 # currently monster of a spaghetti code mess, multiple types interacting at the same
 # time. Safest at this point in development is to just get this code running and
 # will refactor once the dust has settled.
-# current code is the result of several unit tests between IIF and RoME.jl
-# a unified test to follow -- after which refactoring can start
+# current code is the result of several unit tests between IIF and RoME.jl.
 function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
@@ -15,7 +14,7 @@ function evalPotentialSpecific(
 
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
@@ -26,8 +25,17 @@ function evalPotentialSpecific(
   # gwp.zDim[sfidx] ??
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   # and return complete fr/gwp
+
+  # TODO -- introduce special case for multihypothesis
+  allelements = 1:maxlen
+  if gwp.hypotheses != nothing
+
+    mhs = rand(gwp.hypotheses, maxlen) # selection of which hypothesis is correct
+  end
+
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for n in 1:maxlen
+  # TODO -- improve handling of n and particleidx, especially considering multithreading support
+  for n in allelements
     gwp.particleidx = n
     # gwp(x, res)
     numericRootGenericRandomizedFnc!( fr )
@@ -54,7 +62,7 @@ function evalPotentialSpecific(
 
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
@@ -72,8 +80,10 @@ function evalPotentialSpecific(
   var = Base.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
 
+  allelements = 1:maxlen
+
   # TODO --  Threads.@threads see area4 branch
-  for n in 1:maxlen
+  for n in allelements
     # gwp(x, res)
     if nhc[n] != 0
       gwp.particleidx = n
@@ -97,7 +107,7 @@ function evalPotentialSpecific(
   #
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
@@ -108,8 +118,10 @@ function evalPotentialSpecific(
 
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
+  allelements = 1:maxlen
+
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for n in 1:maxlen
+  for n in allelements
     gwp.particleidx = n
     # gwp(x, res)
     # implement minimization here
@@ -175,16 +187,6 @@ function evalPotentialSpecific(
   return generalwrapper.measurement[1]
 end
 
-# function evalPotentialSpecific{T <: FunctorPartialSingleton}(
-#       fnc::T,
-#       Xi::Vector{Graphs.ExVertex},
-#       generalwrapper::GenericWrapParam{T},
-#       solvefor::Int;
-#       N::Int=100  )
-#   #
-#   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
-#   return generalwrapper.measurement[1]
-# end
 
 # Multiple dispatch occurs internally, resulting in factor graph potential evaluations
 function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::Int=100)
@@ -205,7 +207,7 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
 end
 
 """
-    findRelatedFromPotential(fg, fctvert, varnodeid, N)
+    $(SIGNATURES)
 
 Compute proposal belief on varnodeid through fctvert representing some constraint in factor graph.
 Always full dimension of variable node, where partial constraints will only influence directed

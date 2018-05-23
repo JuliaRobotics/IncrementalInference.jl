@@ -293,19 +293,17 @@ function registerCallback!(fgl::FactorGraph, fnc::Function)
   nothing
 end
 
-# idea for registering, will likely be removed again
-# function createregistercallback!(fnc::Function)
-#   fgl = initfg()
-#   m = Symbol(typeof(fnc).name.module)
-#   fgl.registeredModuleFunctions[m] = fnc
-#   nothing
-# end
-#
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int)
+"""
+    $(SIGNATURES)
+
+Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.
+"""
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1}, Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int, multihypo::Vector{Symbol})
   LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
+  mhidx = Int[]
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -317,6 +315,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
     if xi.index == solvefor
       sfidx = count #xi.index
     end
+    if Symbol(xi.label) in multihypo
+      push!(mhidx, count)
+    end
   end
   SAMP=LEN.<maxlen
   for i in 1:count
@@ -324,9 +325,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
-  # we are generating a proposal distribution, not direct replacement for existing
+  # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
-  return maxlen, sfidx
+  return maxlen, sfidx, mhidx
 end
 
 function parseusermultihypo(multihypo::Array)
@@ -357,7 +358,7 @@ function prepgenericwrapper(
       multiverts::Vector{Symbol}=Symbol[]) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multiverts)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
