@@ -61,11 +61,12 @@ v3 = addNode!(fg, :x3, ContinuousScalar, N=N)
 v4 = addNode!(fg, :x4, ContinuousScalar, N=N)
 
 ppMH = DevelopLikelihood(Normal(90.0,1.0))
-f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[:x3 :x4; 0.5 0.5], autoinit=true)
+f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(0.0,0.5,0.5), autoinit=true)
 
 
-@test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(getData(f3).fnc.hypotheses.p .- 0.5)) < 0.1
+# @test getData(f3).fnc.hypoverts == [:x3, :x4]
+@test sum(abs.(getData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1
+@test sum(abs.(getData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
 
@@ -110,8 +111,9 @@ topack = getData(f3)
 dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
 unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopLikelihood}},dd)
 
-@test unpacked.fnc.hypoverts == Symbol[:x3; :x4]
-@test sum(abs.(unpacked.fnc.hypotheses.p .- 0.5)) < 0.1
+# @test unpacked.fnc.hypoverts == Symbol[:x3; :x4]
+@test sum(abs.(unpacked.fnc.hypotheses.p[1] .- 0.0)) < 0.1
+@test sum(abs.(unpacked.fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 # str = "Symbol[:x3, :x4];[0.5, 0.5]"
 # IncrementalInference.parsemultihypostr(str)
 

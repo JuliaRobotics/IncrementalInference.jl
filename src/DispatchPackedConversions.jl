@@ -145,19 +145,19 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
 end
 
 function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
-  fnc.hypotheses != nothing ? "$(fnc.hypoverts);$(fnc.hypotheses.p)" : ""
+  fnc.hypotheses != nothing ? "$(fnc.hypotheses.p)" : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
-  mhverts = Symbol[]
+  # mhverts = Symbol[]
   mhcat=nothing
   if length(str) > 0
-    ss = split(str, ';')
-    s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
-    s2 = strip.(split(split(split(ss[2],']')[1],'[')[end], ','))
-    mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
+    # ss = split(str, ';')
+    # s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
+    s2 = strip.(split(split(split(str,']')[1],'[')[end], ','))
+    # mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
     mhcat = Distributions.Categorical(parse.(Float64, s2))
   end
-  return mhverts, mhcat
+  return mhcat
 end
 
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
@@ -208,13 +208,14 @@ end
 # end
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
-            d::IncrementalInference.GenericFunctionNodeData{P,String} )  where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
   # warn("Unpacking Option 2, F=$(F), P=$(P)")
   usrfnc = convert(F, d.fnc)
   @show d.multihypo
-  mhverts, mhcat = parsemultihypostr(d.multihypo)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multiverts=mhverts, multihypotheses=mhcat)
+  @show mhcat = parsemultihypostr(d.multihypo)
+  @show typeof(mhcat)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf)
 end

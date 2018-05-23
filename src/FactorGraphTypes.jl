@@ -174,16 +174,16 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType  #TODO: <: FunctorIT 
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
   partial::Bool
-  hypoverts::Vector{Symbol}
+  # hypoverts::Vector{Symbol}
   hypotheses::Union{Void, Distributions.Categorical}
   GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, Symbol[], nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing)
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, Symbol[], nothing)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, Symbol[], nothing)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Symbol[], nothing)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, mhcat)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhsyms::Vector{Symbol}, mhcat::Vector{Float64}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhsyms, Categorical(mhcat))
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat)
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat))
 end
 
 mutable struct FastRootGenericWrapParam{T} <: Function

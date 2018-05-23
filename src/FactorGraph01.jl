@@ -296,9 +296,14 @@ end
 """
     $(SIGNATURES)
 
-Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.
+Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.  Note `Xi` is order sensitive.
 """
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1}, Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int, multihypo::Vector{Symbol})
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
+            Xi::Vector{Graphs.ExVertex},
+            N::Int,
+            solvefor::Int,
+            multihypo::Union{Void, Distributions.Categorical} )
+  #
   LEN = Int[]
   maxlen = N
   count = 0
@@ -315,9 +320,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1}, Xi::Vector{Graphs.E
     if xi.index == solvefor
       sfidx = count #xi.index
     end
-    if Symbol(xi.label) in multihypo
-      push!(mhidx, count)
-    end
+    # if Symbol(xi.label) in hypoverts
+    #   push!(mhidx, count)
+    # end
   end
   SAMP=LEN.<maxlen
   for i in 1:count
@@ -325,27 +330,37 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1}, Xi::Vector{Graphs.E
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
+  mhhyper = Int[]
+  if multihypo != nothing
+    # If present, prep mutlihypothesis selection values
+    mhhyper = rand(multihypo, maxlen) # selection of which hypothesis is correct
+  end
+
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
   return maxlen, sfidx, mhidx
 end
 
-function parseusermultihypo(multihypo::Array)
-    verts = Symbol[]
-    mh = nothing
-    if length(multihypo) > 0 && length(multihypo)%2 == 0
-        verts = Symbol.(multihypo[1,:])
-        mh = Categorical(Float64.(multihypo[2,:]))
-    end
-    return verts, mh
+function parseusermultihypo(multihypo::Void)
+  verts = Symbol[]
+  mh = nothing
+  return mh
+end
+function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
+  mh = nothing
+  if multihypo != nothing
+    # verts = Symbol.(multihypo[1,:])
+    mh = Categorical(Float64[multihypo...] )
+  end
+  return mh
 end
 
 function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::UnionAll,
       samplefnc::Function;
-      multihypotheses::Union{Void, Distributions.Categorical}=nothing,
-      multiverts::Vector{Symbol}=Symbol[] )
+      multihypo::Union{Void, Distributions.Categorical}=nothing )
+      # multiverts::Vector{Symbol}=Symbol[]
   #
   error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
 end
@@ -354,11 +369,11 @@ function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T,
       samplefnc::Function;
-      multihypotheses::Union{Void, Distributions.Categorical}=nothing,
-      multiverts::Vector{Symbol}=Symbol[]) where {T <: FunctorInferenceType}
+      multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+      # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multiverts)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multihypo)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
@@ -371,8 +386,7 @@ function prepgenericwrapper(
             samplefnc,
             sum(fldnms .== :zDim) >= 1,
             sum(fldnms .== :partial) >= 1,
-            multiverts,
-            multihypotheses
+            multihypo
          )
 
 end
@@ -382,12 +396,12 @@ function setDefaultFactorNode!(
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T;
-      multihypo::Array=[]  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
-  mhverts, mhcat = parseusermultihypo(multihypo)
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multiverts=mhverts, multihypotheses=mhcat)
+  mhcat = parseusermultihypo(multihypo)
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
 
   m = Symbol(ftyp.name.module)
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
@@ -520,7 +534,7 @@ Add factor with user defined type <: FunctorInferenceType to the factor graph ob
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
-      multihypo::Array=[],
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -573,7 +587,7 @@ function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
-      multihypo::Array=[],
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],

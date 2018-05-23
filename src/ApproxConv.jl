@@ -1,8 +1,39 @@
 
-# currently monster of a spaghetti code mess, multiple types interacting at the same
-# time. Safest at this point in development is to just get this code running and
-# will refactor once the dust has settled.
-# current code is the result of several unit tests between IIF and RoME.jl.
+"""
+    $(SIGNATURES)
+
+Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.
+"""
+function approxConvOnElements!(frl::FastRootGenericWrapParam, elements::Union{Vector{Int}, UnitRange{Int}})
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  # TODO -- improve handling of n and particleidx, especially considering future multithreading support
+  for n in elements
+    frl.gwp.particleidx = n
+    numericRootGenericRandomizedFnc!( frl )
+  end
+  # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
+  # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
+  # and not directly replacing the existing variable belief estimate
+  # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
+  nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+
+```
+# MH example BearingRange [:x1, 0.5:l1a, 0.5:l1b]
+# sfidx = (1=:x1,2=:l1a,3=:l1b)
+if solvefor :x1, then allelem = [mhidx.==:l1a; mhidx.==l1b]
+if solvefor :l1a, then allelem = [mhidx.==:l1a] and ARR[solvefor][:,mhidx.==:l1b]=ARR[:l1b][:,mhidx.==:l1b]
+if solvefor :l1b, then allelem = [mhidx.==:l1b] and ARR[solvefor][:,mhidx.==:l1a]=ARR[:l1a][:,mhidx.==:l1a]
+if solvefor 1, then allelem = [mhidx.==2; mhidx.==3]
+if solvefor 2, then allelem = [mhidx.==2] and ARR[solvefor][:,mhidx.==3]=ARR[3][:,mhidx.==3]
+if solvefor 3, then allelem = [mhidx.==3] and ARR[solvefor][:,mhidx.==2]=ARR[2][:,mhidx.==2]
+```
+"""
 function evalPotentialSpecific(
       fnc::T,
       Xi::Vector{Graphs.ExVertex},
@@ -10,11 +41,14 @@ function evalPotentialSpecific(
       solvefor::Int;
       N::Int=100  ) where {T <: FunctorPairwise}
   #
-  # TODO -- enable partial constraints
+  # currently monster of a spaghetti code mess (WIP) with multiple types interacting at the same
+  # time.  Safest is to ensure code is producing correct results and refactor with unit tests in place.
 
-  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
+  # TODO/DONE -- enable partial constraints
+  # TODO -- this part can be collapsed into common generic solver component
+  # TODO -- create FastRootGenericWrapParam at addFactor time only
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
@@ -22,31 +56,25 @@ function evalPotentialSpecific(
   if gwp.specialzDim
     zDim = gwp.usrfnc!.zDim[sfidx]
   end
-  # gwp.zDim[sfidx] ??
+  # Construct complete fr (with fr.gwp) object
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
-  # and return complete fr/gwp
 
   # TODO -- introduce special case for multihypothesis
-  allelements = 1:maxlen
-  if gwp.hypotheses != nothing
+  allelements = []
+  if gwp.hypotheses == nothing
+    push!(allelements, 1:maxlen)
+  # else
+  #   ?? work in progress
+  #   gwp.hypoverts
 
-    mhs = rand(gwp.hypotheses, maxlen) # selection of which hypothesis is correct
   end
 
-  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  # TODO -- improve handling of n and particleidx, especially considering multithreading support
-  for n in allelements
-    gwp.particleidx = n
-    # gwp(x, res)
-    numericRootGenericRandomizedFnc!( fr )
-        # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
-        # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
-        # and not directly replacing the existing variable belief estimate
-        # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
+  for elements in allelements
+    # perform the numeric solutions on the indicated elements
+    approxConvOnElements!(fr, elements)
   end
 
   return gwp.params[gwp.varidx]
-  # return evalPotential(typ, Xi, solvefor)
 end
 
 
@@ -62,7 +90,7 @@ function evalPotentialSpecific(
 
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
@@ -107,7 +135,7 @@ function evalPotentialSpecific(
   #
   # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypoverts)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
