@@ -309,6 +309,14 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   count = 0
   sfidx = 0
   mhidx = Int[]
+  mhwhoszero = 0
+  if multihypo != nothing
+    # If present, prep mutlihypothesis selection values
+    mhidx = rand(multihypo, maxlen) # selection of which hypothesis is correct
+    mhwhoszero = findfirst(multihypo.p .< 1e-10)
+  end
+
+  mhidxmap = Dict{Int,Int}()
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -329,11 +337,6 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     if SAMP[i]
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
-  end
-  mhhyper = Int[]
-  if multihypo != nothing
-    # If present, prep mutlihypothesis selection values
-    mhhyper = rand(multihypo, maxlen) # selection of which hypothesis is correct
   end
 
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.

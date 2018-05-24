@@ -144,18 +144,21 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return IncrementalInference.compare(a,b)
 end
 
+# TODO change to rather use the extractdistribution functions that already exists
 function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
-  fnc.hypotheses != nothing ? "$(fnc.hypotheses.p)" : ""
+  # fnc.hypotheses != nothing ? "$(fnc.hypotheses.p)" : ""
+  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
   # mhverts = Symbol[]
   mhcat=nothing
   if length(str) > 0
-    # ss = split(str, ';')
-    # s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
-    s2 = strip.(split(split(split(str,']')[1],'[')[end], ','))
-    # mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
-    mhcat = Distributions.Categorical(parse.(Float64, s2))
+    mhcat = extractdistribution(str)
+    # # ss = split(str, ';')
+    # # s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
+    # s2 = strip.(split(split(split(str,']')[1],'[')[end], ','))
+    # # mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
+    # mhcat = Distributions.Categorical(parse.(Float64, s2))
   end
   return mhcat
 end

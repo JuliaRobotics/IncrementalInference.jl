@@ -118,4 +118,12 @@ unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopLikelihood}},dd)
 # IncrementalInference.parsemultihypostr(str)
 
 
+
+pts = evalFactor2(fg, f3, v2.index, N=N)
+
+
+pts = evalFactor2(fg, f3, v3.index, N=N)
+
+
+
 #

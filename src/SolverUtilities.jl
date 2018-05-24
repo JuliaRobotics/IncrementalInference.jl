@@ -15,10 +15,13 @@ end
 
 
 function (p::GenericWrapParam)(res, x)
+  # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
   p.params[p.varidx][:, p.particleidx] = x
-  p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
+  # p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
+  # who are active hypotheses?  p.params[p.activehypo]...
+  p.usrfnc!(res, p.particleidx, p.measurement, p.params[p.activehypo]...)
 end
 
 # Shuffle incoming X into random permutation in fr.Y
@@ -33,8 +36,9 @@ function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
 end
 function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64} )
   shuffleXAltD!(fr, x)
-  fr.gwp( res, fr.Y ) #function (p::GenericWrapParam)(res, x)
+  fr.gwp( res, fr.Y )
 end
+
 
 ## TODO desperately needs cleaning up and refactoring
 # Solve free variable x by root finding residual function fgr.usrfnc(x, res)
@@ -93,7 +97,7 @@ function numericRootGenericRandomizedFnc!(
     shuffleXAltD!( fr, r.zero )
   else
     error("Unresolved numeric solve case")
-	end
+  end
   fr.X[:,fr.gwp.particleidx] = fr.Y
   nothing
 end
