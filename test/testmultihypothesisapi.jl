@@ -121,9 +121,9 @@ unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopLikelihood}},dd)
 
 pts = evalFactor2(fg, f3, v2.index, N=N)
 
-
 pts = evalFactor2(fg, f3, v3.index, N=N)
 
+pts = evalFactor2(fg, f3, v4.index, N=N)
 
 
 #

@@ -339,6 +339,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     end
   end
 
+
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
   return maxlen, sfidx, mhidx

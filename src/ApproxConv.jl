@@ -56,6 +56,9 @@ function assembleHypothesesElements!(allelements::Array,
   #
   # @show mhidx
   allidx = 1:maxlen
+  allmhp = 1:length(mh.p)
+  @show mh.p
+  @show certainidx = allmhp[mh.p .< 1e-10]
 
   # this is not going to work? sfidx could be anything
   if mh.p[sfidx] < 1e-10
@@ -66,32 +69,39 @@ function assembleHypothesesElements!(allelements::Array,
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
         iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-        push!(activehypo, iterah)
+        push!(activehypo, (pidx, iterah))
       end
     end
   elseif mh.p[sfidx] > 1e-10
     pidx = 0
     for pval in mh.p
       pidx += 1
-      if pval > 1e-10 && sfidx == pidx
+      # must still include cases where sfidx != pidx
+      if pval < 1e-10
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
         iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-        push!(activehypo, iterah)
+        push!(activehypo, (pidx, iterah))
+      elseif pval > 1e-10 && sfidx == pidx
+        iterarr = allidx[mhidx .== pidx]
+        push!(allelements, iterarr)
+        iterah = allmhp[mh.p .> 1e-10]
+        push!(activehypo, (pidx,iterah))
       end
     end
-    # must still include cases where sfidx != pidx
   else
     error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p)")
   end
 
-  nothing
+  return certainidx
 end
 function assembleHypothesesElements!(allelements::Array, activehypo::Array, mh::Void, maxlen::Int, sfidx::Int, mhidx, lenXi::Int)
   # error("assembleHypothesesElements!(..) -- Error in code design, refactor of general multihypothesis situations required if you arrived here.")
-  push!(allelements, 1:maxlen)
-  push!(activehypo, 1:lenXi)
-  nothing
+  allidx = 1:maxlen
+  allhp = 1:lenXi
+  push!(allelements, allidx)
+  push!(activehypo, (1,allhp))
+  return allhp # certainidx =
 end
 
 """
@@ -116,7 +126,7 @@ function evalPotentialSpecific(
   maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   gwp.params = ARR
-  gwp.varidx = sfidx
+  @show gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
   zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
   if gwp.specialzDim
@@ -124,29 +134,37 @@ function evalPotentialSpecific(
   end
 
   # TODO -- introduce special case for multihypothesis
-  assembleHypothesesElements!(allelements, activehypo, gwp.hypotheses, maxlen, sfidx, mhidx, length(Xi))
-  @show size(allelements), size(activehypo)
-  # if gwp.hypotheses == nothing
-  #   push!(allelements, 1:maxlen)
-  # else
-  #   # consider merging with prepareparamsarray
-  # end
-
+  certainidx = assembleHypothesesElements!(allelements, activehypo, gwp.hypotheses, maxlen, sfidx, mhidx, length(Xi))
+  @show size(allelements), size(activehypo), activehypo
 
   # Construct complete fr (with fr.gwp) object
   # TODO -- create FastRootGenericWrapParam at addFactor time only
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
-  # gwp.activehypo = 1:length(Xi)# for regular n-ary operation
-  # different hypotheses require
-
-   ##if have .p# mhwhoszero = findfirst(gwp.hypotheses.p .< 1e-10)
   # perform the numeric solutions on the indicated elements
-  for idx in 1:length(allelements)
-    @show gwp.activehypo = activehypo[idx]
-    approxConvOnElements!(fr, allelements[idx])
+  @show certainidx
+  @show activehypo
+  mhiters = gwp.hypotheses == nothing ? length(allelements) : length(gwp.hypotheses.p)
+  normalidx = 1
+  # TODO -- refactor to always use n-number of Discrete Categoricals depending on how many the user wants to incorporate
+  # currently marginalizing only one generalized discrete variable under multihypo interface (simplification for agnostic user)
+  for idx in 1:mhiters
+    @show idx, activehypo, activehypo[normalidx][2]
+    @show certainidx[1] in activehypo[normalidx][2]
+    if !(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
+      @show normalidx
+      @show gwp.activehypo = activehypo[normalidx][2]
+      approxConvOnElements!(fr, allelements[normalidx])
+      @show normalidx += 1
+    else
+      # deal with multihypothesis cases
+      @show sfidx, idx, activehypo[idx], size(mhidx)
+      error("deal with mh case")
+    # else
+    #   error("Unknown multihypothesis case")
+    end
   end
-    # if !(mhwhoszero in activehypo[idx])
+  # if !(mhwhoszero in activehypo[idx])
 
   return gwp.params[gwp.varidx]
 end
