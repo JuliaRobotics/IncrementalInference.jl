@@ -45,7 +45,7 @@ const FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = Generi
 FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T) where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6)
 
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, AbstractString}
+const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, <: AbstractString}
 # PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
 PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
 PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6)
@@ -86,12 +86,14 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
     nothing, st, d.initialized )
 end
-# function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
-#   return convert(P, d) #PackedVariableNodeData
-# end
-# function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
-#   return convert(T, d) #VariableNodeData
-# end
+function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
+  warn("VNDencoder deprecated, use the convert functions through dispatch instead, P=$(P).")
+  return convert(P, d) #PackedVariableNodeData
+end
+function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
+  warn("VNDdecoder deprecated, use the convert functions through dispatch instead, T=$(T).")
+  return convert(T, d) #VariableNodeData
+end
 
 
 function compare(a::VariableNodeData,b::VariableNodeData)
@@ -167,19 +169,23 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
           string(d.frommodule), d.fnc.usrfnc!)
 end
 
-# function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-#   return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-# end
-# function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-#   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-# end
-#
-# function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-#   return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-# end
-# function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-#   return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-# end
+function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  warn("FNDencode deprecated, use the convert functions through dispatch instead, PackedFunctionNodeData{P=$(P)}.")
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  warn("FNDdecode deprecated, use the convert functions through dispatch instead, FunctionNodeData{T=$(T)}.")
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
+function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  warn("FNDencode deprecated, use the convert functions through dispatch instead, PackedFunctionNodeData{P=$(P)}.")
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  warn("FNDdecode deprecated, use the convert functions through dispatch instead, FunctionNodeData{T=$(T)}.")
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
 
 
 # Compare FunctionNodeData
