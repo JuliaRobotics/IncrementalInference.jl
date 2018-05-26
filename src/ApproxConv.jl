@@ -99,8 +99,17 @@ function assembleHypothesesElements!(allelements::Array, activehypo::Array, mh::
   # error("assembleHypothesesElements!(..) -- Error in code design, refactor of general multihypothesis situations required if you arrived here.")
   allidx = 1:maxlen
   allhp = 1:lenXi
-  push!(allelements, allidx)
-  push!(activehypo, (1,allhp))
+  doneall = false
+  for i in allhp
+    if !doneall
+      push!(allelements, allidx)
+      push!(activehypo, (i,allhp))
+      doneall = true
+    else
+      push!(allelements, Int[;])
+      push!(activehypo, (i,Int[;]]))
+    end
+  end
   return allhp # certainidx =
 end
 
@@ -151,7 +160,9 @@ function evalPotentialSpecific(
   for idx in 1:mhiters
     @show idx, activehypo, activehypo[normalidx][2]
     @show certainidx[1] in activehypo[normalidx][2]
-    if !(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
+    if idx == activehypo[normalidx][1] && certainidx[1] in activehypo[normalidx][2]
+      # general case
+      #!(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
       @show normalidx
       @show gwp.activehypo = activehypo[normalidx][2]
       approxConvOnElements!(fr, allelements[normalidx])
