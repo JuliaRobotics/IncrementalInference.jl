@@ -150,6 +150,8 @@ export
   uppA,
   convert, # for protobuf stuff
   compare,
+  extractdistribution,
+
 
   # factor graph operating system utils (fgos)
   convert2packedfunctionnode,
