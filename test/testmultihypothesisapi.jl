@@ -79,6 +79,17 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(0.0,0.5,0.5))
 
 
 
+pts = evalFactor2(fg, f3, v2.index, N=N)
+
+pts = evalFactor2(fg, f3, v3.index, N=N)
+
+pts = evalFactor2(fg, f3, v4.index, N=N)
+
+
+
+
+
+
 println("test packing converters")
 
 
@@ -127,21 +138,11 @@ unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopLikelihood}},dd)
 # IncrementalInference.parsemultihypostr(str)
 
 
-
-pts = evalFactor2(fg, f3, v2.index, N=N)
-
-pts = evalFactor2(fg, f3, v3.index, N=N)
-
-pts = evalFactor2(fg, f3, v4.index, N=N)
-
-
-
-
-using KernelDensityEstimatePlotting
-
-
-
-plot(kde!(pts))
+# using KernelDensityEstimatePlotting
+#
+#
+#
+# plot(kde!(pts))
 
 
 

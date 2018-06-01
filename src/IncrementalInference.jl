@@ -200,6 +200,7 @@ include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("TreePotentials01.jl")
+include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
