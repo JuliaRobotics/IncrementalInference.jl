@@ -61,11 +61,12 @@ function evalPotentialSpecific(
 
   count = 0
   for (mhidx, vars) in activehypo
-    # @show count += 1
+    count += 1
     # @show sfidx, mhidx, vars, certainidx, count
     # @show length(allelements[count])
     if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
-      @show gwp.activehypo = vars
+      # info("multihypo, standard case mhidx, sfidx = $mhidx, $sfidx")
+      gwp.activehypo = vars
       approxConvOnElements!(fr, allelements[count])
     elseif mhidx == sfidx
       # info("multihypo, do conv case, mhidx == sfidx")

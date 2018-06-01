@@ -215,9 +215,9 @@ function convert(
   #
   # warn("Unpacking Option 2, F=$(F), P=$(P)")
   usrfnc = convert(F, d.fnc)
-  @show d.multihypo
-  @show mhcat = parsemultihypostr(d.multihypo)
-  @show typeof(mhcat)
+  # @show d.multihypo
+  mhcat = parsemultihypostr(d.multihypo)
+  # @show typeof(mhcat)
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf)
