@@ -77,14 +77,23 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(0.0,0.5,0.5))
 
 
 
+setVal!(v2,1*ones(1,100))
+setVal!(v3,2*ones(1,100))
+setVal!(v4,3*ones(1,100))
+
 
 
 pts = evalFactor2(fg, f3, v2.index, N=N)
 
+@test 99 < sum(pts .<= -70.0)
+
 pts = evalFactor2(fg, f3, v3.index, N=N)
+
+@test 25 < sum(pts .== 3.0) < 75
 
 pts = evalFactor2(fg, f3, v4.index, N=N)
 
+@test 25 < sum(pts .== 2.0) < 75
 
 
 

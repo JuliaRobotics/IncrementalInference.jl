@@ -1,5 +1,13 @@
-# second iteration of explicitly exloring the marginalization of discrete variables onto the continuous state space
-
+# Second iteration of explicitly exloring the marginalization of discrete variables onto the continuous state space.
+# Although this code is still excessive and messy, this is a significant feature expansion; and future versions will
+# generalize the marginalization process to allow for implicit hypothesis exploration.  The messy explicit version of code is
+# intended to help develop the required generalistic unit tests.  The unit tests will then be validated, frozen and uesd to
+# confirm future "algebraic" marginalization (implicit) versions operate correctly.
+# FYI, the complexity of general multihypothesis convolutions can be deceiving, however, note that the coding
+# complexity is contained for each indivual factor at a time.  Global Bayes tree inference then creates the symphony
+# of non-Gaussian (multimodal) posterior beliefs from the entire factor graph.
+# 
+# 2018/6/01 @dehann
 
 
 """
@@ -62,7 +70,7 @@ function assembleHypothesesElements!(allelements::Array,
   elseif mh.p[sfidx] >= 1e-10
     pidx = 0
     for pval in mh.p
-      pidx += 1
+      @show pidx += 1
       # must still include cases where sfidx != pidx
       ## TODO -- Maybe a mistake with iterah variables in these cases?
       if pval < 1e-10
@@ -76,8 +84,13 @@ function assembleHypothesesElements!(allelements::Array,
         @show iterah = allmhp[mh.p .> 1e-10]
         # @show iterah = sort(union([pidx;], allmhp[mh.p .< 1e-10]))
         push!(activehypo, (pidx,iterah))
+      elseif pval > 1e-10 && sfidx != pidx
+        iterarr = allidx[mhidx .== pidx]
+        push!(allelements, iterarr)
+        @show iterah = allmhp[mh.p .> 1e-10]
+        push!(activehypo, (pidx,iterah))
       else
-        info("assembleHypothesesElements! mh.p[sfidx=$(sfidx)] >= 1e-10 is missing a case: pval=$pval")
+        error("assembleHypothesesElements! mh.p[sfidx=$(sfidx)] >= 1e-10 is missing a case: pval=$pval")
       end
     end
   else

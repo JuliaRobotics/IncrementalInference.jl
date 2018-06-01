@@ -74,14 +74,15 @@ function evalPotentialSpecific(
       @show gwp.activehypo = vars
       approxConvOnElements!(fr, allelements[count])
     elseif mhidx == sfidx
-      # nothing to be done
-      @show mvars = sort(union([sfidx;], certainidx))
-      @show gwp.activehypo = mvars
+      @show gwp.activehypo = sort(union([sfidx;], certainidx))
       approxConvOnElements!(fr, allelements[count])
-      info("multihypo, do conv case")
-    # elseif length(allelements[count]) > 0
-    #   @show gwp.activehypo = vars
-    #   approxConvOnElements!(fr, allelements[count])
+      info("multihypo, do conv case, mhidx == sfidx")
+    elseif mhidx != sfidx
+      # taking values from one other hypothesis option
+      info("multihypo, take other value case")
+      # sfidx=2, mhidx=3:  2 should take a value from 3
+      # sfidx=3, mhidx=2:  3 should take a value from 2
+      gwp.params[sfidx][:,allelements[count]] = gwp.params[mhidx][:,allelements[count]]
     else
       error("deal with mh case")
     end
