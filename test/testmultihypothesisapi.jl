@@ -32,7 +32,7 @@ fg = emptyFactorGraph()
 v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
 
 pr = DevelopPrior(Normal(10.0,1.0))
-f1 = addFactor!(fg,[:x1],pr, autoinit=true)
+f1 = addFactor!(fg,[:x1],pr)
 
 
 ensureAllInitialized!(fg)
@@ -48,7 +48,7 @@ pts = evalFactor2(fg, f1, v1.index, N=N)
 
 v2 = addNode!(fg, :x2, ContinuousScalar, N=N)
 pp = DevelopLikelihood(Normal(100.0,1.0))
-f2 = addFactor!(fg, [:x1;:x2], pp, autoinit=true)
+f2 = addFactor!(fg, [:x1;:x2], pp)
 
 
 ensureAllInitialized!(fg)
@@ -57,16 +57,25 @@ ensureAllInitialized!(fg)
 @test abs(Base.mean(getVal(fg, :x2))-110.0) < 10.0
 
 
+
+
+
+
+
+
+
 v3 = addNode!(fg, :x3, ContinuousScalar, N=N)
 v4 = addNode!(fg, :x4, ContinuousScalar, N=N)
 
 ppMH = DevelopLikelihood(Normal(90.0,1.0))
-f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(0.0,0.5,0.5), autoinit=true)
+f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(0.0,0.5,0.5))
 
 
 # @test getData(f3).fnc.hypoverts == [:x3, :x4]
 @test sum(abs.(getData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1
 @test sum(abs.(getData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
+
+
 
 
 
@@ -124,6 +133,16 @@ pts = evalFactor2(fg, f3, v2.index, N=N)
 pts = evalFactor2(fg, f3, v3.index, N=N)
 
 pts = evalFactor2(fg, f3, v4.index, N=N)
+
+
+
+
+using KernelDensityEstimatePlotting
+
+
+
+plot(kde!(pts))
+
 
 
 #

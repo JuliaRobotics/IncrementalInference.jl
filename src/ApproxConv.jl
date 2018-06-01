@@ -21,6 +21,8 @@ end
 """
     $(SIGNATURES)
 
+This function explicitly codes that marginalization of a discrete categorical selection variable for ambiguous data association situations.  Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.  This function populates `allelements` with particle indices associated with particular multihypothesis selection while `activehypo` simultaneously contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
+
 ```
 # `allelements` example BearingRange [:x1, 0.5:l1a, 0.5:l1b]
 # sfidx = (1=:x1,2=:l1a,3=:l1b)
@@ -35,8 +37,8 @@ if solvefor 3, then allelem = [mhidx.==3] and ARR[solvefor][:,mhidx.==2]=ARR[2][
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=2, mhidx=2:  ah = [1;2]
-sfidx=2, mhidx=3:  ah = # 2 should take a value from 3
-sfidx=3, mhidx=2:  ah = # 3 should take a value from 2
+sfidx=2, mhidx=3:  2 should take a value from 3
+sfidx=3, mhidx=2:  3 should take a value from 2
 sfidx=3, mhidx=3:  ah = [1;3]
 
 # `activehypo` in example mh=[0;0.33;0.33;0.34]
@@ -44,6 +46,7 @@ sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=1, mhidx=4:  ah = [1;4]
 ...
+sfidx=2, mhidx=3:  2 should take a value from 3
 ```
 """
 function assembleHypothesesElements!(allelements::Array,
@@ -72,20 +75,21 @@ function assembleHypothesesElements!(allelements::Array,
         push!(activehypo, (pidx, iterah))
       end
     end
-  elseif mh.p[sfidx] > 1e-10
+  elseif mh.p[sfidx] >= 1e-10
     pidx = 0
     for pval in mh.p
       pidx += 1
       # must still include cases where sfidx != pidx
+      ## TODO -- Maybe a Mistake with list of variables in these cases?
       if pval < 1e-10
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
-        iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
+        @show iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
         push!(activehypo, (pidx, iterah))
       elseif pval > 1e-10 && sfidx == pidx
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
-        iterah = allmhp[mh.p .> 1e-10]
+        @show iterah = allmhp[mh.p .> 1e-10]
         push!(activehypo, (pidx,iterah))
       end
     end
@@ -106,8 +110,8 @@ function assembleHypothesesElements!(allelements::Array, activehypo::Array, mh::
       push!(activehypo, (i,allhp))
       doneall = true
     else
-      push!(allelements, Int[;])
-      push!(activehypo, (i,Int[;]]))
+      push!(allelements, Int[])
+      push!(activehypo, (i,Int[]))
     end
   end
   return allhp # certainidx =
@@ -144,37 +148,57 @@ function evalPotentialSpecific(
 
   # TODO -- introduce special case for multihypothesis
   certainidx = assembleHypothesesElements!(allelements, activehypo, gwp.hypotheses, maxlen, sfidx, mhidx, length(Xi))
-  @show size(allelements), size(activehypo), activehypo
+  # @show size(allelements), size(activehypo), activehypo
 
   # Construct complete fr (with fr.gwp) object
   # TODO -- create FastRootGenericWrapParam at addFactor time only
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
   # perform the numeric solutions on the indicated elements
-  @show certainidx
-  @show activehypo
-  mhiters = gwp.hypotheses == nothing ? length(allelements) : length(gwp.hypotheses.p)
-  normalidx = 1
-  # TODO -- refactor to always use n-number of Discrete Categoricals depending on how many the user wants to incorporate
-  # currently marginalizing only one generalized discrete variable under multihypo interface (simplification for agnostic user)
-  for idx in 1:mhiters
-    @show idx, activehypo, activehypo[normalidx][2]
-    @show certainidx[1] in activehypo[normalidx][2]
-    if idx == activehypo[normalidx][1] && certainidx[1] in activehypo[normalidx][2]
-      # general case
-      #!(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
-      @show normalidx
-      @show gwp.activehypo = activehypo[normalidx][2]
-      approxConvOnElements!(fr, allelements[normalidx])
-      @show normalidx += 1
+  # @show sfidx
+  # @show certainidx
+  # @show activehypo
+  @show allelements
+  # mhiters = gwp.hypotheses == nothing ? length(allelements) : length(gwp.hypotheses.p)
+  # normalidx = 1
+
+  count = 0
+  for (mhidx, vars) in activehypo
+    # @show mhidx, vars
+    @show count += 1
+    if mhidx in certainidx || sfidx in certainidx # certainidx[count] in vars
+      @show gwp.activehypo = vars
+      approxConvOnElements!(fr, allelements[count])
+    # elseif length(vars) == 0
+    #   # nothing to be done
+    #   info("nothing to solve in this mh ApproxConv scenario")
     else
-      # deal with multihypothesis cases
-      @show sfidx, idx, activehypo[idx], size(mhidx)
+      @show sfidx, mhidx, vars, certainidx, count
+      @show length(allelements[count])
       error("deal with mh case")
-    # else
-    #   error("Unknown multihypothesis case")
     end
   end
+
+  # TODO -- refactor to always use n-number of Discrete Categoricals depending on how many the user wants to incorporate
+  # currently marginalizing only one generalized discrete variable under multihypo interface (simplification for agnostic user)
+  # for idx in 1:mhiters
+  #   @show idx, activehypo, activehypo[normalidx][2]
+  #   @show certainidx[1] in activehypo[normalidx][2]
+  #   if idx == activehypo[normalidx][1] && certainidx[1] in activehypo[normalidx][2]
+  #     # general case
+  #     #!(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
+  #     @show normalidx
+  #     @show gwp.activehypo = activehypo[normalidx][2]
+  #     approxConvOnElements!(fr, allelements[normalidx])
+  #     @show normalidx += 1
+  #   else
+  #     # deal with multihypothesis cases
+  #     @show sfidx, idx, activehypo[idx], size(mhidx)
+  #     error("deal with mh case")
+  #   # else
+  #   #   error("Unknown multihypothesis case")
+  #   end
+  # end
   # if !(mhwhoszero in activehypo[idx])
 
   return gwp.params[gwp.varidx]
