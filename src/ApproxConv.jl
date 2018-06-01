@@ -41,7 +41,7 @@ function evalPotentialSpecific(
   maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   gwp.params = ARR
-  @show gwp.varidx = sfidx
+  gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
   zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
   if gwp.specialzDim
@@ -57,58 +57,29 @@ function evalPotentialSpecific(
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
   # perform the numeric solutions on the indicated elements
-  # @show sfidx
-  # @show certainidx
-  # @show activehypo
-  @show allelements
-  # mhiters = gwp.hypotheses == nothing ? length(allelements) : length(gwp.hypotheses.p)
-  # normalidx = 1
+  # @show sfidx, certainidx, activehypo, allelements
 
   count = 0
   for (mhidx, vars) in activehypo
-    # @show mhidx, vars
-    @show count += 1
-    @show sfidx, mhidx, vars, certainidx, count
-    @show length(allelements[count])
+    # @show count += 1
+    # @show sfidx, mhidx, vars, certainidx, count
+    # @show length(allelements[count])
     if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
       @show gwp.activehypo = vars
       approxConvOnElements!(fr, allelements[count])
     elseif mhidx == sfidx
-      @show gwp.activehypo = sort(union([sfidx;], certainidx))
+      # info("multihypo, do conv case, mhidx == sfidx")
+      gwp.activehypo = sort(union([sfidx;], certainidx))
       approxConvOnElements!(fr, allelements[count])
-      info("multihypo, do conv case, mhidx == sfidx")
     elseif mhidx != sfidx
-      # taking values from one other hypothesis option
-      info("multihypo, take other value case")
+      # info("multihypo, take other value case")
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
       gwp.params[sfidx][:,allelements[count]] = gwp.params[mhidx][:,allelements[count]]
     else
-      error("deal with mh case")
+      error("evalPotentialSpecific -- not dealing with multi-hypothesis case correctly")
     end
   end
-
-  # TODO -- refactor to always use n-number of Discrete Categoricals depending on how many the user wants to incorporate
-  # currently marginalizing only one generalized discrete variable under multihypo interface (simplification for agnostic user)
-  # for idx in 1:mhiters
-  #   @show idx, activehypo, activehypo[normalidx][2]
-  #   @show certainidx[1] in activehypo[normalidx][2]
-  #   if idx == activehypo[normalidx][1] && certainidx[1] in activehypo[normalidx][2]
-  #     # general case
-  #     #!(idx in certainidx) && certainidx[1] in activehypo[normalidx][2]
-  #     @show normalidx
-  #     @show gwp.activehypo = activehypo[normalidx][2]
-  #     approxConvOnElements!(fr, allelements[normalidx])
-  #     @show normalidx += 1
-  #   else
-  #     # deal with multihypothesis cases
-  #     @show sfidx, idx, activehypo[idx], size(mhidx)
-  #     error("deal with mh case")
-  #   # else
-  #   #   error("Unknown multihypothesis case")
-  #   end
-  # end
-  # if !(mhwhoszero in activehypo[idx])
 
   return gwp.params[gwp.varidx]
 end

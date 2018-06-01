@@ -6,7 +6,7 @@
 # FYI, the complexity of general multihypothesis convolutions can be deceiving, however, note that the coding
 # complexity is contained for each indivual factor at a time.  Global Bayes tree inference then creates the symphony
 # of non-Gaussian (multimodal) posterior beliefs from the entire factor graph.
-# 
+#
 # 2018/6/01 @dehann
 
 
@@ -52,8 +52,8 @@ function assembleHypothesesElements!(allelements::Array,
   # @show mhidx
   allidx = 1:maxlen
   allmhp = 1:length(mh.p)
-  @show mh.p
-  @show certainidx = allmhp[mh.p .< 1e-10]
+  # @show mh.p
+  certainidx = allmhp[mh.p .< 1e-10]
 
   # this is not going to work? sfidx could be anything
   if mh.p[sfidx] < 1e-10
@@ -70,24 +70,24 @@ function assembleHypothesesElements!(allelements::Array,
   elseif mh.p[sfidx] >= 1e-10
     pidx = 0
     for pval in mh.p
-      @show pidx += 1
+      pidx += 1
       # must still include cases where sfidx != pidx
       ## TODO -- Maybe a mistake with iterah variables in these cases?
       if pval < 1e-10
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
-        @show iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
+        iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
         push!(activehypo, (pidx, iterah))
       elseif pval > 1e-10 && sfidx == pidx
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
-        @show iterah = allmhp[mh.p .> 1e-10]
+        iterah = allmhp[mh.p .> 1e-10]
         # @show iterah = sort(union([pidx;], allmhp[mh.p .< 1e-10]))
         push!(activehypo, (pidx,iterah))
       elseif pval > 1e-10 && sfidx != pidx
         iterarr = allidx[mhidx .== pidx]
         push!(allelements, iterarr)
-        @show iterah = allmhp[mh.p .> 1e-10]
+        iterah = allmhp[mh.p .> 1e-10]
         push!(activehypo, (pidx,iterah))
       else
         error("assembleHypothesesElements! mh.p[sfidx=$(sfidx)] >= 1e-10 is missing a case: pval=$pval")
