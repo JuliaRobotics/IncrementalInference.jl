@@ -63,7 +63,7 @@ fvar([0.0])
 println("GenericWrapParam test")
 
 
-function test2(res::Vector{Float64}, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+function test2(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
   res[:] = 1.0
   nothing;
@@ -95,16 +95,17 @@ println("Test in factor graph setting...")
 
 # abstract Nonparametric <: Function
 # This is what the internmediate user would be contributing
-type Pose1Pose1Test{T} <: FunctorPairwise
+mutable struct Pose1Pose1Test{T} <: FunctorPairwise
   Dx::T
   Pose1Pose1Test() = new()
-  # Pose1Pose1Test{T}(::Int) = new(T())
   Pose1Pose1Test{T}(a::T) = new(a)
+  # Pose1Pose1Test(a::T) where T = new(a)
 end
 getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       p1::Array{Float64,2},

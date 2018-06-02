@@ -14,6 +14,7 @@ end
 getSample(s::ProductNumbers, N::Int=1) = (rand(s.z,N)', )
 
 function (s::ProductNumbers)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},
@@ -32,6 +33,7 @@ end
 getSample(s::Square, N::Int=1) = (rand(s.z,N)', )
 
 function (s::Square)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},
@@ -51,6 +53,7 @@ function getSample(s::AreEqual, N::Int=1)
 end
 
 function (s::AreEqual)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},

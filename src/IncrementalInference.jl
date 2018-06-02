@@ -48,10 +48,7 @@ export
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
-  VNDencoder,
-  VNDdecoder,
-  FNDencode,
-  FNDdecode,
+  FactorMetadata,
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,
@@ -179,7 +176,13 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat
+  reshapeVec2Mat,
+
+  # deprecated
+  VNDencoder,
+  VNDdecoder,
+  FNDencode,
+  FNDdecode
 
 
 

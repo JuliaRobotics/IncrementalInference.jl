@@ -16,6 +16,7 @@ struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distri
 end
 getSample(s::LinearOffset, N::Int=1) = (rand(s.z,N), )
 function (s::LinearOffset)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64, 1}},
       X1::Array{Float64,2},
@@ -31,6 +32,7 @@ struct MultiModalOffset <: IncrementalInference.FunctorPairwise
 end
 getSample(s::MultiModalOffset, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
 function (s::MultiModalOffset)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple,
       X1::Array{Float64,2},
