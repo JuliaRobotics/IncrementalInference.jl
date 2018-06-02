@@ -154,7 +154,18 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
+"""
+    $(SIGNATURES)
+
+Initialize a new Graphs.ExVertex which will be added to some factor graph.
+"""
+function addNewVarVertInGraph!(fgl::FactorGraph,
+            vert::Graphs.ExVertex,
+            id::Int,
+            lbl::Symbol,
+            ready::Int,
+            smalldata  )
+  #
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = string(lbl) #fg.v[fg.id]
   fgl.IDs[lbl] = id
@@ -163,8 +174,8 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes["ready"] = ready
   vert.attributes["backendset"] = 0
 
-  # fgl.g.vertices[id] = vert # will be inserted during addvertex! call
-  # fgl.v[id] = vert #  -- this is likely not required, but is used in subgraph methods
+  # store user metadata
+  vert.attributes["smalldata"] = smalldata
   nothing
 end
 
@@ -193,7 +204,7 @@ function addNode!(fg::FactorGraph,
 
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready, nothing)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
   # TODO -- vert should not loose information here
@@ -219,12 +230,13 @@ function addNode!(fg::FactorGraph,
       lbl::Symbol,
       softtype::Type{<:InferenceVariable};
       N::Int=100,
-      autoinit=true,  # does init need to be separate from ready? TODO
+      autoinit::Bool=true,  # does init need to be separate from ready? TODO
       ready::Int=1,
       labels::Vector{<:AbstractString}=String[],
       api::DataLayerAPI=dlapi,
       uid::Int=-1,
-      dims::Int=-1  ) # where {T , S }
+      # dims::Int=-1,
+      smalldata=nothing  )
   #
   currid = fg.id+1
   if uid==-1
@@ -237,33 +249,25 @@ function addNode!(fg::FactorGraph,
 
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   dodims = fg.dimID+1
   setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
 
   vnlbls = union(string.(labels), st.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
-  # addvert!(fg, vert, api=api)
-  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
-  fg.dimID+=dims # rows indicate dimensions, move to last dimension
+  api.addvertex!(fg, vert, labels=vnlbls)
+
+  fg.dimID+=dims # TODO -- drop this, rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
 
   vert
 end
 
 
-# rethink abstraction, maybe closer to CloudGraph use case a better solution
-# function addEdge!(g::FGG,n1,n2)
-#   edge = dlapi.makeedge(g, n1, n2)
-#   dlapi.addedge!(g, edge)
-#   # edge = Graphs.make_edge(g, n1, n2)
-#   # Graphs.add_edge!(g, edge)
-# end
-
-
 function getVal(vA::Array{Graphs.ExVertex,1})
+  warn("getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead.")
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
@@ -287,21 +291,18 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-function registerCallback!(fgl::FactorGraph, fnc::Function)
-  m = Symbol(typeof(fnc).name.module)
-  fgl.registeredModuleFunctions[m] = fnc
-  nothing
-end
-
-# idea for registering, will likely be removed again
-# function createregistercallback!(fnc::Function)
-#   fgl = initfg()
+# function registerCallback!(fgl::FactorGraph, fnc::Function)
 #   m = Symbol(typeof(fnc).name.module)
 #   fgl.registeredModuleFunctions[m] = fnc
 #   nothing
 # end
-#
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int)
+
+
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
+            Xi::Vector{Graphs.ExVertex},
+            N::Int,
+            solvefor::Int  )
+  #
   LEN = Int[]
   maxlen = N
   count = 0
