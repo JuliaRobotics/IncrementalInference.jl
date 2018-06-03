@@ -8,7 +8,7 @@ import IncrementalInference: getSample
 
 
 
-type ProductNumbers <: IncrementalInference.FunctorPairwise
+mutable struct ProductNumbers <: IncrementalInference.FunctorPairwise
   z::Distributions.Normal
 end
 getSample(s::ProductNumbers, N::Int=1) = (rand(s.z,N)', )
