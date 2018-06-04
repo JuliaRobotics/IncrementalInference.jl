@@ -339,7 +339,20 @@ function prepgenericwrapper(
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
+  gwp = GenericWrapParam{T}(
+            usrfnc,
+            ARR,
+            1,
+            1,
+            (zeros(0,1),),
+            samplefnc,
+            sum(fldnms .== :zDim) >= 1,
+            sum(fldnms .== :partial) >= 1  )
+  gwp.factormetadata.variableuserdata = []
+  for xi in Xi
+    push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
+  end
+  return gwp
 end
 
 function setDefaultFactorNode!(

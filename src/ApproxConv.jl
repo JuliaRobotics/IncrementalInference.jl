@@ -201,7 +201,7 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
 end
 
 """
-    findRelatedFromPotential(fg, fctvert, varnodeid, N)
+    $(SIGNATURES)
 
 Compute proposal belief on varnodeid through fctvert representing some constraint in factor graph.
 Always full dimension of variable node, where partial constraints will only influence directed
