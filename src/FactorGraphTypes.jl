@@ -183,16 +183,16 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType
   partial::Bool
   # hypoverts::Vector{Symbol}
   hypotheses::Union{Void, Distributions.Categorical}
-  # activehypo::Union{UnitRange{Int},Vector{Int}}
+  activehypo::Union{UnitRange{Int},Vector{Int}}
   factormetadata::FactorMetadata
   GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false, nothing, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
 end
 
 mutable struct FastRootGenericWrapParam{T} <: Function
