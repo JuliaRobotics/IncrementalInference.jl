@@ -84,7 +84,6 @@ function evalPotentialSpecific(
   end
 
   return gwp.params[gwp.varidx]
-  # return evalPotential(typ, Xi, solvefor)
 end
 
 
@@ -111,8 +110,6 @@ function evalPotentialSpecific(
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
   for n in 1:maxlen
     gwp.particleidx = n
-    # gwp(x, res)
-    # implement minimization here
     res = zeros(fr.xDim)
     gg = (x) -> fr.gwp(res, x)
     r = optimize(  gg, fr.X[1:fr.xDim,fr.gwp.particleidx] )
@@ -120,7 +117,6 @@ function evalPotentialSpecific(
     fr.Y[1:fr.xDim] = r.minimizer
     fr.X[:,fr.gwp.particleidx] = fr.Y
 
-    # error("not implemented yet")
   end
   return gwp.params[gwp.varidx]
 end
@@ -205,7 +201,7 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
 end
 
 """
-    findRelatedFromPotential(fg, fctvert, varnodeid, N)
+    $(SIGNATURES)
 
 Compute proposal belief on varnodeid through fctvert representing some constraint in factor graph.
 Always full dimension of variable node, where partial constraints will only influence directed

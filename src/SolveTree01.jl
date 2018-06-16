@@ -5,24 +5,24 @@
 #   bws::Array{Float64,1}
 # end
 
-type NBPMessage <: Singleton
+mutable struct NBPMessage <: Singleton
   p::Dict{Int,EasyMessage}
 end
 
-type PotProd
+mutable struct PotProd
     Xi::Int
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
     potentialfac::Vector{AbstractString}
 end
-type CliqGibbsMC
+mutable struct CliqGibbsMC
     prods::Array{PotProd,1}
     lbls::Vector{Symbol}
     CliqGibbsMC() = new()
     CliqGibbsMC(a,b) = new(a,b)
 end
-type DebugCliqMCMC
+mutable struct DebugCliqMCMC
     mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
     outmsglbls::Dict{Symbol, Int}
@@ -31,19 +31,19 @@ type DebugCliqMCMC
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
-type UpReturnBPType
+mutable struct UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
 end
 
-type DownReturnBPType
+mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
     IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
 end
 
-type ExploreTreeType
+mutable struct ExploreTreeType
   fg::FactorGraph
   bt::BayesTree
   cliq::Graphs.ExVertex
@@ -51,7 +51,7 @@ type ExploreTreeType
   sendmsgs::Array{NBPMessage,1}
 end
 
-type MsgPassType
+mutable struct MsgPassType
   fg::FactorGraph
   cliq::Graphs.ExVertex
   vid::Int

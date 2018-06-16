@@ -21,6 +21,7 @@ mutable struct Odo <: FunctorPairwise
 end
 # TODO -- only computing first node
 function (odo::Odo)(res::Vector{Float64},
+    userdata::FactorMetadata,
     idx::Int,
     meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
@@ -106,6 +107,7 @@ function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
 function (ra::Ranged)(res::Vector{Float64},
+    userdata::FactorMetadata,
     idx::Int,
     meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
