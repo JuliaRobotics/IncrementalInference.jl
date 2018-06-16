@@ -15,15 +15,15 @@ mutable struct DevelopLikelihood <: FunctorPairwise
 end
 getSample(dpl::DevelopLikelihood, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
 function (vv::DevelopLikelihood)(res::Array{Float64},
-      idx::Int,
-      meas::Tuple,
-      wXi::Array{Float64,2},
-      wXj::Array{Float64,2}  )::Void
+            userdata,
+            idx::Int,
+            meas::Tuple,
+            wXi::Array{Float64,2},
+            wXj::Array{Float64,2}  )::Void
   #
   res[1] = meas[1][idx] - (wXj[1,idx] - wXi[1,idx])
   nothing
 end
-
 
 
 N  = 100
