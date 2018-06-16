@@ -182,7 +182,7 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat,
+  reshapeVec2Mat
 
   # deprecated
   # VNDencoder,
