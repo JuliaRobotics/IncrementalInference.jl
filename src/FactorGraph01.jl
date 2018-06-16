@@ -134,7 +134,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
       pN = kde!(initval)
     end
     # dims = size(initval,1) # rows indicate dimensions
-    sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+    sp = Int[0;] #round.(Int,linspace(dodims,dodims+dims-1,dims))
     gbw = getBW(pN)[:,1]
     gbw2 = Array{Float64}(length(gbw),1)
     gbw2[:,1] = gbw[:]
@@ -149,12 +149,27 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
                               dims, false, 0, Int[], gt, softtype, false) #initialized
   end
   #
-  v.attributes["data"] = data
+  setData!(v, data)
+  # v.attributes["data"] = data
+
+  # what about dedicated user variable metadata
+  # p.factormetadata
 
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
+"""
+    $(SIGNATURES)
+
+Initialize a new Graphs.ExVertex which will be added to some factor graph.
+"""
+function addNewVarVertInGraph!(fgl::FactorGraph,
+            vert::Graphs.ExVertex,
+            id::Int,
+            lbl::Symbol,
+            ready::Int,
+            smalldata  )
+  #
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = string(lbl) #fg.v[fg.id]
   fgl.IDs[lbl] = id
@@ -163,51 +178,52 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes["ready"] = ready
   vert.attributes["backendset"] = 0
 
-  # fgl.g.vertices[id] = vert # will be inserted during addvertex! call
-  # fgl.v[id] = vert #  -- this is likely not required, but is used in subgraph methods
+  # store user metadata
+  vert.attributes["smalldata"] = smalldata
   nothing
 end
 
-# must set either dims or initval for proper initialization
-# Add node to graph, given graph struct, labal, init values,
-# std dev [TODO -- generalize], particle size and ready flag for concurrency
+
+
+"""
+$(SIGNATURES)
+
+Add a node (variable) to a graph. Use this over the other dispatches.
+"""
 function addNode!(fg::FactorGraph,
-      lbl::Symbol,
-      initval::Array{Float64}=zeros(1,1),
-      stdev::Array{Float64}=ones(1,1); # this is bad and should be removed TODO
-      N::Int=100,
-      ready::Int=1,
-      labels::Vector{T}=String[],
-      api::DataLayerAPI=dlapi,
-      uid::Int=-1,
-      dims::Int=-1  ) where {T <: AbstractString}
+                  lbl::Symbol,
+                  softtype::T;
+                  N::Int=100,
+                  autoinit::Bool=true,  # does init need to be separate from ready? TODO
+                  ready::Int=1,
+                  labels::Vector{<:AbstractString}=String[],
+                  api::DataLayerAPI=dlapi,
+                  uid::Int=-1,
+                  smalldata=nothing  ) where {T <:InferenceVariable}
   #
-  warn("this addNode! will be deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}).")
   currid = fg.id+1
   if uid==-1
     fg.id=currid
   else
     currid = uid
   end
-  dims = dims != -1 ? dims : size(initval,1)
-
+  # dims = dims != -1 ? dims : st.dims
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
-  dodims = fg.dimID+1
-  # TODO -- vert should not loose information here
-  setDefaultNodeData!(vert, initval, stdev, dodims, N, dims) #fg.v[currid]
+  # dodims = fg.dimID+1
+  setDefaultNodeData!(vert, zeros(softtype.dims,N), zeros(0,0), 0, N, softtype.dims, initialized=!autoinit, softtype=softtype) # dodims
 
-  vnlbls = deepcopy(labels)
+  vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
-  # addvert!(fg, vert, api=api)
-  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
-  fg.dimID+=dims # rows indicate dimensions, move to last dimension
+  api.addvertex!(fg, vert, labels=vnlbls)
+
+  # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
 
-  return vert #fg.v[fg.id]
+  vert
 end
 
 """
@@ -216,54 +232,33 @@ $(SIGNATURES)
 Add a node (variable) to a graph. Use this over the other dispatches.
 """
 function addNode!(fg::FactorGraph,
-      lbl::Symbol,
-      softtype::Type{<:InferenceVariable};
-      N::Int=100,
-      autoinit=true,  # does init need to be separate from ready? TODO
-      ready::Int=1,
-      labels::Vector{<:AbstractString}=String[],
-      api::DataLayerAPI=dlapi,
-      uid::Int=-1,
-      dims::Int=-1  ) # where {T , S }
+                  lbl::Symbol,
+                  softtype::Type{<:InferenceVariable};
+                  N::Int=100,
+                  autoinit::Bool=true,
+                  ready::Int=1,
+                  labels::Vector{<:AbstractString}=String[],
+                  api::DataLayerAPI=dlapi,
+                  uid::Int=-1,
+                  # dims::Int=-1,
+                  smalldata=nothing  )
   #
-  currid = fg.id+1
-  if uid==-1
-    fg.id=currid
-  else
-    currid = uid
-  end
-  st = softtype()
-  dims = dims != -1 ? dims : st.dims
-
-  lblstr = string(lbl)
-  vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
-  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
-  dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
-
-  vnlbls = union(string.(labels), st.labels, String["VARIABLE";])
-  push!(vnlbls, fg.sessionname)
-  # addvert!(fg, vert, api=api)
-  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
-
-  fg.dimID+=dims # rows indicate dimensions, move to last dimension
-  push!(fg.nodeIDs, currid)
-
-  vert
+  addNode!(fg,
+           lbl,
+           softtype();
+           N=N,
+           autoinit=autoinit,
+           ready=ready,
+           labels=labels,
+           api=api,
+           uid=uid,
+           smalldata=smalldata  )
 end
 
 
-# rethink abstraction, maybe closer to CloudGraph use case a better solution
-# function addEdge!(g::FGG,n1,n2)
-#   edge = dlapi.makeedge(g, n1, n2)
-#   dlapi.addedge!(g, edge)
-#   # edge = Graphs.make_edge(g, n1, n2)
-#   # Graphs.add_edge!(g, edge)
-# end
-
 
 function getVal(vA::Array{Graphs.ExVertex,1})
+  warn("getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead.")
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
@@ -287,11 +282,6 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-function registerCallback!(fgl::FactorGraph, fnc::Function)
-  m = Symbol(typeof(fnc).name.module)
-  fgl.registeredModuleFunctions[m] = fnc
-  nothing
-end
 
 """
     $(SIGNATURES)
@@ -381,7 +371,7 @@ function prepgenericwrapper(
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
-  return GenericWrapParam{T}(
+  gwp = GenericWrapParam{T}(
             usrfnc,
             ARR,
             1,
@@ -391,8 +381,12 @@ function prepgenericwrapper(
             sum(fldnms .== :zDim) >= 1,
             sum(fldnms .== :partial) >= 1,
             multihypo
-         )
-
+        )
+    gwp.factormetadata.variableuserdata = []
+    for xi in Xi
+      push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
+    end
+    return gwp
 end
 
 function setDefaultFactorNode!(

@@ -18,10 +18,10 @@ function (p::GenericWrapParam)(res, x)
   # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
-  p.params[p.varidx][:, p.particleidx] = x
+  p.params[p.varidx][:, p.particleidx] = x[:]
   # p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
   # who are active hypotheses?  p.params[p.activehypo]...
-  p.usrfnc!(res, p.particleidx, p.measurement, p.params[p.activehypo]...)
+  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
 end
 
 # Shuffle incoming X into random permutation in fr.Y

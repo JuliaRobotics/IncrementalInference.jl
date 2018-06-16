@@ -20,8 +20,8 @@ module Extend
 
   export T1, PackedT1, convertsave
 
-  type T1 <: abst  end
-  type PackedT1 <: pabst  end
+  mutable struct T1 <: abst  end
+  mutable struct PackedT1 <: pabst  end
 end
 
 
