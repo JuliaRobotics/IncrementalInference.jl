@@ -137,14 +137,14 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
     nothing, st, d.initialized )
 end
-function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
-  warn("VNDencoder deprecated, use the convert functions through dispatch instead, P=$(P).")
-  return convert(P, d) #PackedVariableNodeData
-end
-function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
-  warn("VNDdecoder deprecated, use the convert functions through dispatch instead, T=$(T).")
-  return convert(T, d) #VariableNodeData
-end
+# function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
+#   warn("VNDencoder deprecated, use the convert functions through dispatch instead, P=$(P).")
+#   return convert(P, d) #PackedVariableNodeData
+# end
+# function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
+#   warn("VNDdecoder deprecated, use the convert functions through dispatch instead, T=$(T).")
+#   return convert(T, d) #VariableNodeData
+# end
 
 
 function compare(a::VariableNodeData,b::VariableNodeData)
