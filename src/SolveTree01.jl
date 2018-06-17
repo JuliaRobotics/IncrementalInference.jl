@@ -169,7 +169,7 @@ end
 
 
 """
-    productpartials!(pGM, dummy, partials)
+    $(SIGNATURES)
 
 Multiply different dimensions from partial constraints individually.
 """
@@ -189,7 +189,7 @@ function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
 end
 
 """
-    prodmultiplefullpartials( dens, partials, Ndims, N )
+    $(SIGNATURES)
 
 Multiply various full and partial dimension constraints.
 """
@@ -207,7 +207,7 @@ function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
 end
 
 """
-    prodmultipleonefullpartials( dens, partials, Ndims, N )
+    $(SIGNATURES)
 
 Multiply a single full and several partial dimension constraints.
 """
@@ -293,43 +293,51 @@ function proposalbeliefs!(fgl::FactorGraph,
 end
 
 function predictbelief(fgl::FactorGraph,
-      destvert::ExVertex,
-      factors::Vector{Graphs.ExVertex};
-      N::Int=100  )
+                       destvert::ExVertex,
+                       factors::Vector{Graphs.ExVertex};
+                       N::Int=0  )
   #
   destvertid = destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
 
+  # determine number of particles to draw from the marginal
+  nn = N != 0 ? N : size(getVal(destvert),2)
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=N)
+  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=nn)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N )
+  pGM = productbelief(fgl, destvertid, dens, partials, nn )
 
   return pGM
 end
 
 function predictbelief(fgl::FactorGraph,
-      destvertsym::Symbol,
-      factorsyms::Vector{Symbol};
-      N::Int=100,
-      api::DataLayerAPI=IncrementalInference.localapi  )
+                       destvertsym::Symbol,
+                       factorsyms::Vector{Symbol};
+                       N::Int=0,
+                       api::DataLayerAPI=IncrementalInference.localapi  )
   #
   factors = Graphs.ExVertex[]
   for fsym in factorsyms
     push!(factors, getVert(fgl, fgl.fIDs[fsym], api=api))
   end
-  predictbelief(fgl, getVert(fgl, destvertsym, api=api), factors, N=N)
+  vert = getVert(fgl, destvertsym, api=api)
+
+  # determine the number of particles to draw from the marginal
+  nn = N != 0 ? N : size(getVal(vert),2)
+
+  # do the belief prediction
+  predictbelief(fgl, vert, factors, N=nn)
 end
 
 
 function localProduct(fgl::FactorGraph,
-        sym::Symbol;
-        N::Int=100,
-        api::DataLayerAPI=IncrementalInference.dlapi  )
+                      sym::Symbol;
+                      N::Int=100,
+                      api::DataLayerAPI=IncrementalInference.dlapi  )
   # TODO -- converge this function with predictbelief for this node
-
   # TODO -- update to use getVertId
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()

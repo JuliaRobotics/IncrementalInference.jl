@@ -28,8 +28,9 @@ struct ContinuousScalar <: InferenceVariable
 end
 struct ContinuousMultivariate <:InferenceVariable
   dims::Int
+  labels::Vector{String}
   ContinuousMultivariate() = new()
-  ContinuousMultivariate(x) = new(x)
+  ContinuousMultivariate(x) = new(x, String["";])
 end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}

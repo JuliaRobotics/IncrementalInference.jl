@@ -18,11 +18,11 @@ bws = getBW(pd)[:,1]
 bws2 = Array{Float64}(length(bws),1)
 bws2[:,1] = bws[:]
 doors2 = getPoints(pd);
-v1 = addNode!(fg,:x1,doors,N=N)
+v1 = addNode!(fg,:x1, ContinuousScalar,N=N)
 f1  = addFactor!(fg,[v1],Obsv2( doors2, bws2, [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
-v2 = addNode!(fg,:x2, tem, N=N)
+v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
 f2 = addFactor!(fg, [:x1, :x2], Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
 
 
