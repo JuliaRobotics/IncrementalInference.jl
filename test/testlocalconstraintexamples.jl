@@ -32,8 +32,8 @@ f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
   tree = wipeBuildNewTree!(fg, drawpdf=false)
 
   inferOverTree!(fg, tree)
-  
-  @test norm(Base.mean(getVal(fg, :x2),2)-[50.0]) < 10.0
+
+  @test norm(Base.mean(getVal(fg, :x2),2)-[50.0]) < 15.0
 end
 
 # plotKDE( getVertKDE(fg,:x2) )
