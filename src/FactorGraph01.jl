@@ -343,8 +343,14 @@ end
 function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
   mh = nothing
   if multihypo != nothing
+    multihypo2 = Float64[multihypo...]
     # verts = Symbol.(multihypo[1,:])
-    mh = Categorical(Float64[multihypo...] )
+    for i in 1:length(multihypo)
+      if multihypo[i] > 0.999999
+        multihypo2[i] = 0.0
+      end
+    end
+    mh = Categorical(Float64[multihypo2...] )
   end
   return mh
 end
