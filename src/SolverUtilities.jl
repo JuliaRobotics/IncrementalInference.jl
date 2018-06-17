@@ -13,41 +13,15 @@ function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vecto
     return Y
 end
 
-# residual function must have the form residFnc!(res, x)
-# function numericRootGenericRandomizedFncOld(
-#       residFnc!::Function,
-#       zDim::Int,
-#       xDim::Int,
-#       x0::Vector{Float64};
-#       perturb::Float64=1e-5  )
-#
-# 	# xDim = length(x0)
-# 	if zDim < xDim
-# 		p = collect(1:xDim);
-# 		shuffle!(p);
-# 		# p1 = p.==1; p2 = p.==2; p3 = p.==3
-#     # TODO -- refactor to use functors instead
-# 		r = nlsolve(    (res, x) -> residFnc!(shuffleXAltD(x, x0, zDim, p), res ),
-#                     x0[p[1:zDim]] + perturb*randn(zDim)
-#                )
-#
-#     return shuffleXAltD(r.zero, x0, zDim, p );
-# 	else
-#     # return (nlsolve(  (res, x) -> residFnc!(res, x),
-#     #                   x0      )).zero
-#     # @show x0
-#     return ( nlsolve(  residFnc!, x0 + perturb*randn(zDim) ) ).zero
-# 	end
-# end
-
-#-------------------------------------------------------------------------------
-# first in place attempt for generic wrap and root finding below
 
 function (p::GenericWrapParam)(res, x)
+  # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
-  p.params[p.varidx][:, p.particleidx] = x
-  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params...)
+  p.params[p.varidx][:, p.particleidx] = x[:]
+  # p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
+  # who are active hypotheses?  p.params[p.activehypo]...
+  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
 end
 
 # Shuffle incoming X into random permutation in fr.Y
@@ -62,8 +36,9 @@ function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
 end
 function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64} )
   shuffleXAltD!(fr, x)
-  fr.gwp( res, fr.Y ) #function (p::GenericWrapParam)(res, x)
+  fr.gwp( res, fr.Y )
 end
+
 
 ## TODO desperately needs cleaning up and refactoring
 # Solve free variable x by root finding residual function fgr.usrfnc(x, res)
@@ -74,7 +49,7 @@ end
 function numericRootGenericRandomizedFnc!(
       fr::FastRootGenericWrapParam{T};
       perturb::Float64=1e-10,
-      testshuffle::Bool=false ) where {T}
+      testshuffle::Bool=false ) where {T <: FunctorInferenceType}
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{T}")
   if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
@@ -107,7 +82,7 @@ function numericRootGenericRandomizedFnc!(
     if sum(isnan.(( r ).zero)) == 0
       fr.Y[1:fr.xDim] = ( r ).zero
     else
-      warn("got NaN, fr.gwp.particleidx = $(fr.gwp.particleidx), r")
+      warn("got NaN, fr.gwp.particleidx = $(fr.gwp.particleidx), r=$(r)")
       @show fr.gwp.usrfnc!
       for thatlen in 1:length(fr.gwp.params)
         @show thatlen, fr.gwp.params[thatlen][:, fr.gwp.particleidx]
@@ -122,7 +97,7 @@ function numericRootGenericRandomizedFnc!(
     shuffleXAltD!( fr, r.zero )
   else
     error("Unresolved numeric solve case")
-	end
+  end
   fr.X[:,fr.gwp.particleidx] = fr.Y
   nothing
 end
@@ -137,7 +112,7 @@ end
 # see FastRootGenericWrapParam{T}
 
 # TODO -- part of speed and flexibility refactoring exercise
-type FastGenericRoot{T} <: Function
+mutable struct FastGenericRoot{T} <: Function
   p::Vector{Int}
   perturb::Vector{Float64}
   X::Vector{Float64}
@@ -159,16 +134,21 @@ function (fr::FastGenericRoot)( res::Vector{Float64}, x::Vector{Float64} )
   shuffleXAltD!(fr, x)  #(fr.Y, x, fr.x0, fr.zDim, fr.p)
   fr.usrfnc( res, fr.Y )
 end
-# Solve free variable x by root finding residual function fgr.usrfnc(x, res)
-# randomly shuffle x dimensions if underconstrained by measurement z dimensions
-# small random perturbation used to prevent trivial solver cases, div by 0 etc.
-# result stored in fgr.Y
+
+"""
+    $(SIGNATURES)
+
+Solve free variable x by root finding residual function fgr.usrfnc(x, res)
+randomly shuffle x dimensions if underconstrained by measurement z dimensions
+small random perturbation used to prevent trivial solver cases, div by 0 etc.
+result stored in fgr.Y
+"""
 function numericRootGenericRandomizedFnc!(
       fgr::FastGenericRoot{T};
       perturb::Float64=1e-5,
       testshuffle::Bool=false ) where {T}
   #
-  # info("numericRootGenericRandomizedFnc!(fgr::FastGenericRoot{T}...)  ")
+  warn("numericRootGenericRandomizedFnc!(fgr::FastGenericRoot{T}...) deprecated, use numericRootGenericRandomizedFnc!(fgr::FastRootGenericWrapRoot{T}...) instead.")
   fgr.perturb[1:fgr.zDim] = perturb*randn(fgr.zDim)
   if fgr.zDim < fgr.xDim || testshuffle
     shuffle!(fgr.p)
@@ -207,18 +187,7 @@ function numericRootGenericRandomizedFnc(
 end
 
 
-# function oneparams!(res::Array{Float64}, p::GenericWrapParam)
-#   p.usrfnc!(res, p.params[1][:,p.particleidx])
-# end
-# function twoparams!(res::Array{Float64}, p::GenericWrapParam)
-#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx])
-# end
-# function threeparams!(res::Array{Float64}, p::GenericWrapParam)
-#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx], p.params[3][:,p.particleidx])
-# end
-# function fourparams!(res::Array{Float64}, p::GenericWrapParam)
-#   p.usrfnc!(res, p.params[1][:,p.particleidx], p.params[2][:,p.particleidx], p.params[3][:,p.particleidx], p.params[4][:,p.particleidx])
-# end
+
 
 
 #

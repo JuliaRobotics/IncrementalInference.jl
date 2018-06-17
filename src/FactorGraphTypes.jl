@@ -23,7 +23,8 @@ abstract type InferenceVariable end
 
 struct ContinuousScalar <: InferenceVariable
   dims::Int
-  ContinuousScalar() = new(1)
+  labels::Vector{String}
+  ContinuousScalar() = new(1, String["";])
 end
 struct ContinuousMultivariate <:InferenceVariable
   dims::Int
@@ -171,6 +172,7 @@ mutable struct FactorMetadata
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
+  #TODO: <: FunctorIT cannot be right here -- Used in one of the unpacking converters
   usrfnc!::T
   params::Vector{Array{Float64,2}}
   varidx::Int
@@ -179,13 +181,18 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
   partial::Bool
+  # hypoverts::Vector{Symbol}
+  hypotheses::Union{Void, Distributions.Categorical}
+  activehypo::Union{UnitRange{Int},Vector{Int}}
   factormetadata::FactorMetadata
   GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
 end
 
 mutable struct FastRootGenericWrapParam{T} <: Function
@@ -207,9 +214,11 @@ mutable struct GenericFunctionNodeData{T, S}
   edgeIDs::Array{Int,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
+  multihypo::String # likely to moved when GenericWrapParam is refactored
   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
-  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
 
 

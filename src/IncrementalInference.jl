@@ -52,6 +52,12 @@ export
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,
+  encodePackedType,
+  decodePackedType,
+  normalfromstring,
+  categoricalfromstring,
+  extractdistribution,
+
   FactorGraph,
   addNode!,
   addFactor!,
@@ -176,13 +182,13 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat,
+  reshapeVec2Mat
 
   # deprecated
-  VNDencoder,
-  VNDdecoder,
-  FNDencode,
-  FNDdecode
+  # VNDencoder,
+  # VNDdecoder,
+  # FNDencode,
+  # FNDdecode
 
 
 
@@ -200,6 +206,7 @@ include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("TreePotentials01.jl")
+include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 

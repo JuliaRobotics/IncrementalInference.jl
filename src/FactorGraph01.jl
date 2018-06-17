@@ -282,22 +282,31 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-# function registerCallback!(fgl::FactorGraph, fnc::Function)
-#   m = Symbol(typeof(fnc).name.module)
-#   fgl.registeredModuleFunctions[m] = fnc
-#   nothing
-# end
 
+"""
+    $(SIGNATURES)
 
+Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.  Note `Xi` is order sensitive.
+"""
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
             Xi::Vector{Graphs.ExVertex},
             N::Int,
-            solvefor::Int  )
+            solvefor::Int,
+            multihypo::Union{Void, Distributions.Categorical} )
   #
   LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
+  mhidx = Int[]
+  mhwhoszero = 0
+  if multihypo != nothing
+    # If present, prep mutlihypothesis selection values
+    mhidx = rand(multihypo, maxlen) # selection of which hypothesis is correct
+    mhwhoszero = findfirst(multihypo.p .< 1e-10)
+  end
+
+  mhidxmap = Dict{Int,Int}()
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -309,6 +318,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     if xi.index == solvefor
       sfidx = count #xi.index
     end
+    # if Symbol(xi.label) in hypoverts
+    #   push!(mhidx, count)
+    # end
   end
   SAMP=LEN.<maxlen
   for i in 1:count
@@ -316,15 +328,33 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
-  # we are generating a proposal distribution, not direct replacement for existing
+
+
+  # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
-  return maxlen, sfidx
+  return maxlen, sfidx, mhidx
+end
+
+function parseusermultihypo(multihypo::Void)
+  verts = Symbol[]
+  mh = nothing
+  return mh
+end
+function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
+  mh = nothing
+  if multihypo != nothing
+    # verts = Symbol.(multihypo[1,:])
+    mh = Categorical(Float64[multihypo...] )
+  end
+  return mh
 end
 
 function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::UnionAll,
-      samplefnc::Function )
+      samplefnc::Function;
+      multihypo::Union{Void, Distributions.Categorical}=nothing )
+      # multiverts::Vector{Symbol}=Symbol[]
   #
   error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
 end
@@ -332,10 +362,12 @@ end
 function prepgenericwrapper(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T,
-      samplefnc::Function ) where {T <: FunctorInferenceType}
+      samplefnc::Function;
+      multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+      # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multihypo)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
@@ -347,23 +379,27 @@ function prepgenericwrapper(
             (zeros(0,1),),
             samplefnc,
             sum(fldnms .== :zDim) >= 1,
-            sum(fldnms .== :partial) >= 1  )
-  gwp.factormetadata.variableuserdata = []
-  for xi in Xi
-    push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
-  end
-  return gwp
+            sum(fldnms .== :partial) >= 1,
+            multihypo
+        )
+    gwp.factormetadata.variableuserdata = []
+    for xi in Xi
+      push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
+    end
+    return gwp
 end
 
 function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      usrfnc::T;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
+  mhcat = parseusermultihypo(multihypo)
+  gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
 
   m = Symbol(ftyp.name.module)
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
@@ -488,9 +524,15 @@ function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxpa
   return namestring
 end
 
+"""
+    $(SIGNATURES)
+
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
+"""
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -509,11 +551,12 @@ function addFactor!(fgl::FactorGraph,
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo)
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
-    push!(newvert.attributes["data"].fncargvID, vert.index)
+    push!(getData(newvert).fncargvID, vert.index)
+    # push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
   fnlbls = deepcopy(labels)
@@ -536,12 +579,13 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
 """
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -554,7 +598,7 @@ function addFactor!(
   for xi in xisyms
       push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
+  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
 end
 
 

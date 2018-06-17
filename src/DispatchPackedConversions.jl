@@ -42,13 +42,13 @@ end
 
 const FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
 # FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T) where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6)
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
 
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
 const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, <: AbstractString}
 # PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6)
+# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
 
@@ -166,59 +166,89 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
   return IncrementalInference.compare(a,b)
 end
 
+# TODO change to rather use the extractdistribution functions that already exists
+function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
+  # fnc.hypotheses != nothing ? "$(fnc.hypotheses.p)" : ""
+  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
+end
+function parsemultihypostr(str::AS) where {AS <: AbstractString}
+  # mhverts = Symbol[]
+  mhcat=nothing
+  if length(str) > 0
+    mhcat = extractdistribution(str)
+    # # ss = split(str, ';')
+    # # s1 = strip.(split(split(split(ss[1],']')[1],'[')[end], ','))
+    # s2 = strip.(split(split(split(str,']')[1],'[')[end], ','))
+    # # mhverts = Symbol.(String[s1[i][1]==':'? s1[i][2:end] : s1[i] for i in 1:length(s1)])
+    # mhcat = Distributions.Categorical(parse.(Float64, s2))
+  end
+  return mhcat
+end
 
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
+
+
+# TODO simplify and reduce to single pack and unpack converter
+## packing converters-----------------------------------------------------------
+
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: InferenceType}
+    # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  error("convert(::Type{PackedFunctionNodeData{P}} : this convert function should probably not be used. Use FunctorInferenceType instead of InferenceType.")
+  mhstr = packmultihypo(d.fnc)
+  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc), mhstr) # TODO -- should use convert(P, d.fnc.usrfnc!) instead
+end
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
+  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  mhstr = packmultihypo(d.fnc)
+  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+end
+# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P, T <: PackedInferenceType}
+#   # TODO weird to have functions call this converter, but okay for now...
+#   println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+#   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           string(d.frommodule), d.fnc.usrfnc!)
+# end
+
+
+
+
+## unpack converters------------------------------------------------------------
+
+# Functor version -- TODO, abstraction can be improved here
 function convert(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P}) where {T <: InferenceType, P <: PackedInferenceType}
-  warn("Old unpacking converter from DB to Graphs.jl")
+  error("Old unpacking converter from DB to Graphs.jl")
   return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), convert(T, d.fnc))
 end
-function convert{P <: PackedInferenceType, T <: InferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc))
-end
-
-
-# Functor version -- TODO, abstraction can be improved here
-function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
-            d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
-  #
-  # warn("Is this even happening?")
-  # @show "convert", T, P
-  # @show typeof(d.fnc)
-  # info("calling convert($(T), $(d.fnc))")
-  usrfnc = convert(T, d.fnc)
-  # @show typeof(usrfnc)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
-  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), gwpf) #{T}
-end
+# function convert(::Type{FunctionNodeData{GenericWrapParam{T}}},
+#             d::PackedFunctionNodeData{P} ) where {T <: FunctorInferenceType, P <: PackedInferenceType}
+#   #
+#   warn("Unpacking Option 1, F=$(F), P=$(P)")
+#   usrfnc = convert(T, d.fnc)
+#   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
+#   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           Symbol(d.frommodule), gwpf) #{T}
+# end
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
-            fo::IncrementalInference.GenericFunctionNodeData{P,String} )  where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  # warn("Why are we here, F=$(F), P=$(P)")
-  usrfnc = convert(F, fo.fnc)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
-  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(fo.fncargvID, fo.eliminated, fo.potentialused, fo.edgeIDs,
-          Symbol(fo.frommodule), gwpf)
+  # warn("Unpacking Option 2, F=$(F), P=$(P)")
+  usrfnc = convert(F, d.fnc)
+  # @show d.multihypo
+  mhcat = parsemultihypostr(d.multihypo)
+  # @show typeof(mhcat)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
+  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), gwpf)
 end
 
 
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  # @show P, typeof(P), T
-  # @show d.fnc.usrfnc!
-  # @show convert(P, d.fnc.usrfnc!)
-  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!))
-end
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P, T <: PackedInferenceType}
-  # TODO weird to have functions call this converter, but okay for now...
-  println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), d.fnc.usrfnc!)
-end
+
+
+
 
 function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
   warn("FNDencode deprecated, use the convert functions through dispatch instead, PackedFunctionNodeData{P=$(P)}.")
