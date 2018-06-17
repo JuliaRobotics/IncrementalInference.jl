@@ -14,7 +14,7 @@ function addNode!(fg::FactorGraph,
       uid::Int=-1,
       dims::Int=-1  )
   #
-  error("this addNode! is deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}) instead.")
+  warn("this addNode! is deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}) instead.")
   currid = fg.id+1
   if uid==-1
     fg.id=currid
