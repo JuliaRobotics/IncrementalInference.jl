@@ -238,6 +238,14 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
 end
 
+function approxConv(fgl::FactorGraph, fct::Symbol, towards::Symbol; api::DataLayerAPI=localapi, N=-1)
+  fc = getVert(fgl, fct, nt=:fct, api=api)
+  v1 = getVert(fgl, towards, api=api)
+  N = N == -1 ? N : getNumPts(v1)
+  return evalFactor2(fgl, fc, v1.index, N=N)
+end
+
+
 """
     $(SIGNATURES)
 

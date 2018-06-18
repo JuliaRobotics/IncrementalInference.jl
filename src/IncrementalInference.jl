@@ -68,6 +68,7 @@ export
   getVarNode,
   getVal,
   setVal!,
+  getNumPts,
   getBWVal,
   setBW!,
   setValKDE!,
@@ -108,6 +109,7 @@ export
   # spyCliqMat,
   evalPotential,
   evalFactor2,
+  approxConv,
 
   # dev
   GenericWrapParam,

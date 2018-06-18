@@ -12,6 +12,10 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+println("[TEST] basic Bayes tree construction")
+include("testBayesTreeiSAM2Example.jl")
+println("Success")
+
 print("[TEST] Ensure converter types can be run from extending namespaces...")
 include("saveconvertertypes.jl")
 println("Success")

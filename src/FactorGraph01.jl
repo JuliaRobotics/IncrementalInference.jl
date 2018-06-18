@@ -39,6 +39,10 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+function getNumPts(v::Graphs.ExVertex)
+  return size(getData(v).val,2)
+end
+
 function getfnctype(data)
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData

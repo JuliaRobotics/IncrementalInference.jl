@@ -12,7 +12,7 @@ cov = [3.0]
 v1 = addNode!(fg,:x1,ContinuousScalar,N=N)
 f1  = addFactor!(fg,[v1], Obsv2(doors, cov', [1.0]))
 
-tem = 2.0*randn(1,N)+getVal(v1)+50.0
+# tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[v1;v2],Odo([50.0]',[2.0]',[1.0]))
 
@@ -39,7 +39,7 @@ addFactor!(fg, [v5,l3], Ranged([16.0],[0.5],[1.0]))
 # writeGraphPdf(fg);
 
 tree = prepBatchTree!(fg,drawpdf=true);
-
+# run(`evince bt.pdf`)
 
 # do belief propagation inference over tree once
 # inferOverTreeR!(fg, tree, N=100)
