@@ -52,6 +52,7 @@ function numericRootGenericRandomizedFnc!(
       testshuffle::Bool=false ) where {T <: FunctorInferenceType}
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{T}")
+  # @show fr.zDim, fr.xDim, fr.gwp.partial, fr.gwp.particleidx
   if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
     shuffle!(fr.p)
     for i in 1:fr.xDim

@@ -75,14 +75,13 @@ N=300
 fg = emptyFactorGraph()
 
 x0 = [1.0+0.1*randn(100);10+0.1*randn(100)]'
-addNode!(fg, :x, x0,N=N)
-# addNode!(fg, :y, x0,N=N)
+addNode!(fg, :x, ContinuousScalar, N=N)
 
 pts = [rand(Distributions.Normal(4.0,0.05),100);rand(Distributions.Normal(144.0,0.05),100)]
 md = kde!(pts)
 npx = NumbersPrior(md)
 pts0 = getSample(npx,N)[1]
-addNode!(fg, :xy, pts0, N=N)
+addNode!(fg, :xy, ContinuousScalar, N=N)
 
 addFactor!(fg, [getVert(fg, :xy)], npx)
 #
