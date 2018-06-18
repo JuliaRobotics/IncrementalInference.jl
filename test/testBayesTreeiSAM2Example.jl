@@ -1,5 +1,8 @@
 using IncrementalInference
+using Graphs
 # using KernelDensityEstimate, Gadfly # for vstack
+
+using Base: Test
 
 fg = emptyFactorGraph()
 
@@ -9,22 +12,22 @@ doors = [-100.0;0.0;100.0;300.0]'
 cov = [3.0]
 
 
-v1 = addNode!(fg,:x1,doors,N=N)
-f1  = addFactor!(fg,[:x1], Obsv2(doors, cov', [1.0]))
+v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
+f1  = addFactor!(fg, [:x1;], Obsv2(doors, cov', [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
-v2 = addNode!(fg,:x2, tem, N=N)
+v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[:x1, :x2],Odo([50.0]',[2.0]',[1.0]))
 
-v3=addNode!(fg,:x3,4.0*randn(1,N)+getVal(v2)+50.0, N=N)
+v3=addNode!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
 addFactor!(fg,[:x2,:x3],Odo([50.0]',[4.0]',[1.0]))
 
 
-l1=addNode!(fg, :l1, 0.5*randn(1,N)+getVal(v3)+64.0, N=N)
+l1=addNode!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x1,:l1], Ranged([64.0],[0.5],[1.0]))
 addFactor!(fg, [:x2,:l1], Ranged([16.0],[0.5],[1.0]))
 
-l2=addNode!(fg, :l2, 0.5*randn(1,N)+getVal(v3)+64.0, N=N)
+l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x3,:l2], Ranged([16.0],[0.5],[1.0]))
 
 
@@ -35,7 +38,6 @@ addFactor!(fg, [:x3,:l2], Ranged([16.0],[0.5],[1.0]))
 
 
 
-
 # Graphs.plot(fg.g)
 # writeGraphPdf(fg);
 # run(`evince fg.pdf`)
@@ -43,6 +45,7 @@ addFactor!(fg, [:x3,:l2], Ranged([16.0],[0.5],[1.0]))
 
 # p = IncrementalInference.getEliminationOrder(fg, ordering=:qr)
 p = [7,10,1,3,5,12];
+p = [7,10,1,3,5];
 
 println()
 fge = deepcopy(fg)
@@ -58,9 +61,14 @@ buildTree!(tree, fge, p)
 #write(fid,to_dot(fge.bn))
 #close(fid)
 
+
+@test num_vertices(tree.bt) == 3
+
+
 # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
-println("Bayes Tree")
-if true
+if false
+  println("Bayes Tree")
+  # Graphs.plot(tree.bt)
   fid = open("bt.dot","w+")
   write(fid,Graphs.to_dot(tree.bt))
   close(fid)
