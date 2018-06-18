@@ -229,7 +229,6 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   # could happen at addFactor time
   Xi = Graphs.ExVertex[]
   for id in getData(fct).fncargvID
-  # for id in fct.attributes["data"].fncargvID
     push!(Xi, getVert(fgl,id) ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
   end
