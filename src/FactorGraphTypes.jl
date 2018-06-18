@@ -1,31 +1,43 @@
-import Base.convert
-import Base.==
+import Base: convert
+import Base: ==
 
-abstract InferenceType
-abstract PackedInferenceType
+@compat abstract type InferenceType end
+@compat abstract type PackedInferenceType end
+
+@compat abstract type FunctorInferenceType <: Function end
+
+abstract type InferenceVariable end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
-abstract Pairwise <: InferenceType
-abstract Singleton <: InferenceType
+@compat abstract type Pairwise <: InferenceType end
+@compat abstract type Singleton <: InferenceType end
 
-abstract FunctorInferenceType <: Function
+@compat abstract type FunctorSingleton <: FunctorInferenceType end
+# @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
+@compat abstract type FunctorSingletonNH <: FunctorSingleton end
 
-abstract FunctorSingleton <: FunctorInferenceType
-# abstract FunctorPartialSingleton <: FunctorInferenceType
-abstract FunctorSingletonNH <: FunctorSingleton
+@compat abstract type FunctorPairwise <: FunctorInferenceType end
+@compat abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
+@compat abstract type FunctorPairwiseNH <: FunctorPairwise end
+# @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
-abstract FunctorPairwise <: FunctorInferenceType
-abstract FunctorPairwiseMinimize <: FunctorInferenceType
-abstract FunctorPairwiseNH <: FunctorPairwise
-# abstract FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize # TODO
+struct ContinuousScalar <: InferenceVariable
+  dims::Int
+  labels::Vector{String}
+  ContinuousScalar() = new(1, String["";])
+end
+struct ContinuousMultivariate <:InferenceVariable
+  dims::Int
+  labels::Vector{String}
+  ContinuousMultivariate() = new()
+  ContinuousMultivariate(x) = new(x, String["";])
+end
 
-typealias FGG Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
-typealias FGGdict Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
-
-typealias VoidUnion{T} Union{Void, T}
+const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
+const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
 # Condensed representation of KernelDensityEstimate, by saving points and bandwidth
-type EasyMessage
+mutable struct EasyMessage
   pts::Array{Float64,2}
   bws::Array{Float64,1}
   EasyMessage() = new()
@@ -34,42 +46,67 @@ type EasyMessage
 end
 
 
-type FactorGraph
+mutable struct FactorGraph
   g::FGGdict
   bn
   IDs::Dict{Symbol,Int}
   fIDs::Dict{Symbol,Int}
-  id::Int64
+  id::Int
   nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
   factorIDs::Array{Int,1}
   bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used
-  dimID::Int64
+  dimID::Int
   cg
-  cgIDs::Dict{Int64,Int64} # cgIDs[exvid] = neoid
-  sessionname::AbstractString
+  cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
+  sessionname::String
+  robotname::String
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  stateless::Bool
   FactorGraph() = new()
-  FactorGraph(x...) = new(
-    x[1],
-    x[2],
-    x[3],
-    x[4],
-    x[5],
-    x[6],
-    x[7],
-    x[8],
-    x[9],
-    x[10],
-    x[11],
-    x[12],
-    x[13],
-    x[14],
-    x[15] )
-    # x[4] ) # removed fg.v
+  FactorGraph(
+    x1,
+    x2,
+    x3,
+    x4,
+    x5,
+    x6,
+    x7,
+    x8,
+    x9,
+    x10,
+    x11,
+    x12,
+    x13,
+    x14,
+    x15,
+    x16
+   ) = new(
+    x1,
+    x2,
+    x3,
+    x4,
+    x5,
+    x6,
+    x7,
+    x8,
+    x9,
+    x10,
+    x11,
+    x12,
+    x13,
+    x14,
+    x15,
+    x16,
+    false )
 end
 
+"""
+    $(SIGNATURES)
+
+Construct an empty FactorGraph object with the minimum amount of information / memory populated.
+"""
 function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
@@ -84,49 +121,59 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
                      0,
                      0,
                      nothing,
-                     Dict{Int64,Int64}(),
+                     Dict{Int,Int}(),
+                     "",
                      "",
                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
                      reference  ) #evalPotential
     return fg
 end
 
-type VariableNodeData
+mutable struct VariableNodeData
   initval::Array{Float64,2}
   initstdev::Array{Float64,2}
   val::Array{Float64,2}
   bw::Array{Float64,2}
-  BayesNetOutVertIDs::Array{Int64,1}
-  dimIDs::Array{Int64,1}
-  dims::Int64
+  BayesNetOutVertIDs::Array{Int,1}
+  dimIDs::Array{Int,1}
+  dims::Int
   eliminated::Bool
-  BayesNetVertID::Int64
-  separator::Array{Int64,1}
-  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  BayesNetVertID::Int
+  separator::Array{Int,1}
+  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
+  softtype
+  initialized::Bool
   VariableNodeData() = new()
-  VariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11])
+  function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
+    warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
+  end
+  VariableNodeData(x1::Array{Float64,2},
+                   x2::Array{Float64,2},
+                   x3::Array{Float64,2},
+                   x4::Array{Float64,2},
+                   x5::Vector{Int},
+                   x6::Vector{Int},
+                   x7::Int,
+                   x8::Bool,
+                   x9::Int,
+                   x10::Vector{Int},
+                   x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
+                   x12,
+                   x13::Bool) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
-type PackedVariableNodeData
-  vecinitval::Array{Float64,1}
-  diminitval::Int64
-  vecinitstdev::Array{Float64,1}
-  diminitdev::Int64
-  vecval::Array{Float64,1}
-  dimval::Int64
-  vecbw::Array{Float64,1}
-  dimbw::Int64
-  BayesNetOutVertIDs::Array{Int64,1}
-  dimIDs::Array{Int64,1}
-  dims::Int64
-  eliminated::Bool
-  BayesNetVertID::Int64
-  separator::Array{Int64,1}
-  PackedVariableNodeData() = new()
-  PackedVariableNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+mutable struct FactorMetadata
+  factoruserdata
+  variableuserdata::Union{Vector, Tuple}
+  variablesmalldata::Union{Vector, Tuple}
+  FactorMetadata() = new([], [])
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3)
 end
 
-type GenericWrapParam{T} <: FunctorInferenceType
+mutable struct GenericWrapParam{T} <: FunctorInferenceType
+  #TODO: <: FunctorIT cannot be right here -- Used in one of the unpacking converters
   usrfnc!::T
   params::Vector{Array{Float64,2}}
   varidx::Int
@@ -135,14 +182,21 @@ type GenericWrapParam{T} <: FunctorInferenceType
   samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
   specialzDim::Bool
   partial::Bool
-  GenericWrapParam() = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) = new(fnc, t, i, j, meas, smpl, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) = new(fnc, t, i, j, meas, smpl, szd, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) = new(fnc, t, i, j, meas, smpl, szd, partial)
+  # hypoverts::Vector{Symbol}
+  hypotheses::Union{Void, Distributions.Categorical}
+  activehypo::Union{UnitRange{Int},Vector{Int}}
+  factormetadata::FactorMetadata
+  GenericWrapParam{T}() where {T} = new()
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
 end
-type FastRootGenericWrapParam{T} <: Function
+
+mutable struct FastRootGenericWrapParam{T} <: Function
   p::Vector{Int}
   perturb::Vector{Float64}
   X::Array{Float64,2}
@@ -150,152 +204,40 @@ type FastRootGenericWrapParam{T} <: Function
   xDim::Int
   zDim::Int
   gwp::GenericWrapParam{T}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::T) =
+  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
       new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
 end
 
-
-type GenericFunctionNodeData{T, S}
-  fncargvID::Array{Int64,1}
+mutable struct GenericFunctionNodeData{T, S}
+  fncargvID::Array{Int,1}
   eliminated::Bool
   potentialused::Bool
-  edgeIDs::Array{Int64,1}
+  edgeIDs::Array{Int,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
-  GenericFunctionNodeData() = new()
-  GenericFunctionNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6])
-end
-
-typealias FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} GenericFunctionNodeData{T, Symbol}
-FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x...) = GenericFunctionNodeData{T, Symbol}(x[1],x[2],x[3],x[4],x[5],x[6])
-
-typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-PackedFunctionNodeData() = GenericFunctionNodeData{T, AbstractString}()
-PackedFunctionNodeData(x...) = GenericFunctionNodeData{T, AbstractString}(x[1],x[2],x[3],x[4],x[5],x[6])
-
-
-function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
-  return PackedVariableNodeData(d.initval[:],size(d.initval,1),
-                              d.initstdev[:],size(d.initstdev,1),
-                              d.val[:],size(d.val,1),
-                              d.bw[:],size(d.bw,1),
-                              d.BayesNetOutVertIDs,
-                              d.dimIDs, d.dims, d.eliminated,
-                              d.BayesNetVertID, d.separator)
-end
-function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
-  r1 = d.diminitval
-  c1 = floor(Int,length(d.vecinitval)/r1)
-  M1 = reshape(d.vecinitval,r1,c1)
-
-  r2 = d.diminitdev
-  c2 = floor(Int,length(d.vecinitstdev)/r2)
-  M2 = reshape(d.vecinitstdev,r2,c2)
-
-  r3 = d.dimval
-  c3 = floor(Int,length(d.vecval)/r3)
-  M3 = reshape(d.vecval,r3,c3)
-
-  r4 = d.dimbw
-  c4 = floor(Int,length(d.vecbw)/r4)
-  M4 = reshape(d.vecbw,r4,c4)
-
-  return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
-    d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing)
-end
-function VNDencoder(P::Type{PackedVariableNodeData}, d::VariableNodeData)
-  return convert(P, d) #PackedVariableNodeData
-end
-function VNDdecoder(T::Type{VariableNodeData}, d::PackedVariableNodeData)
-  return convert(T, d) #VariableNodeData
+  multihypo::String # likely to moved when GenericWrapParam is refactored
+  GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
 
 
-function compare(a::VariableNodeData,b::VariableNodeData)
-    TP = true
-    TP = TP && a.initval == b.initval
-    TP = TP && a.initstdev == b.initstdev
-    TP = TP && a.val == b.val
-    TP = TP && a.bw == b.bw
-    TP = TP && a.BayesNetOutVertIDs == b.BayesNetOutVertIDs
-    TP = TP && a.dimIDs == b.dimIDs
-    TP = TP && a.dims == b.dims
-    TP = TP && a.eliminated == b.eliminated
-    TP = TP && a.BayesNetVertID == b.BayesNetVertID
-    TP = TP && a.separator == b.separator
-    return TP
-end
+###
 
-function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
-  return IncrementalInference.compare(a,b)
-end
-
-
-# heavy use of multiple dispatch for converting between packed and original data types during DB usage
-function convert{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), convert(T, d.fnc))
-end
-function convert{P <: PackedInferenceType, T <: InferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc))
-end
-
-
-# Functor version -- TODO, abstraction can be improved here
-function convert{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{GenericWrapParam{T}}}, d::PackedFunctionNodeData{P})
-  usrfnc = convert(T, d.fnc)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample)
-  return FunctionNodeData{GenericWrapParam{T}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), gwpf) #{T}
-end
-function convert{P <: PackedInferenceType, T <: FunctorInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!))
-end
-
-function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-end
-function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-end
-
-function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
-  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
-end
-function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
-  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
-end
-
-
-# Compare FunctionNodeData
-function compare{T,S}(a::GenericFunctionNodeData{T,S},b::GenericFunctionNodeData{T,S})
-  # TODO -- beef up this comparison to include the gwp
-  TP = true
-  TP = TP && a.fncargvID == b.fncargvID
-  TP = TP && a.eliminated == b.eliminated
-  TP = TP && a.potentialused == b.potentialused
-  TP = TP && a.edgeIDs == b.edgeIDs
-  TP = TP && a.frommodule == b.frommodule
-  TP = TP && typeof(a.fnc) == typeof(b.fnc)
-  return TP
-end
-
-
-function addGraphsVert!{T <: AbstractString}(fgl::FactorGraph, exvert::Graphs.ExVertex;
-    labels::Vector{T}=String[])
+function addGraphsVert!(fgl::FactorGraph,
+            exvert::Graphs.ExVertex;
+            labels::Vector{<:AbstractString}=String[])
+  #
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
-function getVertNode(fgl::FactorGraph, id::Int64; nt::Symbol=:var, bigData::Bool=false)
+function getVertNode(fgl::FactorGraph, id::Int; nt::Symbol=:var, bigData::Bool=false)
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
 function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
-  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt , bigData=bigData)
+  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
 getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
@@ -304,7 +246,7 @@ getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigD
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
     nv::Graphs.ExVertex;
-    updateMAPest::Bool=false)
+    updateMAPest::Bool=false )
   #
 
   # not required, since we using reference -- placeholder function CloudGraphs interface
@@ -323,11 +265,11 @@ end
 function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1, needdata::Bool=false)
   Graphs.out_neighbors(vert, fgl.g)
 end
-function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int64; ready::Int=1,backendset::Int=1, needdata::Bool=false)
+function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int; ready::Int=1,backendset::Int=1, needdata::Bool=false)
   graphsOutNeighbors(fgl.g, getVert(fgl,exVertId), ready=ready, backendset=backendset, needdata=needdata)
 end
 
-function graphsGetEdge(fgl::FactorGraph, id::Int64)
+function graphsGetEdge(fgl::FactorGraph, id::Int)
   nothing
 end
 

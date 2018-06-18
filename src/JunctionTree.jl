@@ -1,28 +1,29 @@
 
 type BayesTreeNodeData
-  frontalIDs::Vector{Int64}
-  conditIDs::Vector{Int64}
-  inmsgIDs::Vector{Int64}
-  potIDs::Vector{Int64} # this is likely redundant TODO -- remove
-  potentials::Vector{Int64}
+  frontalIDs::Vector{Int}
+  conditIDs::Vector{Int}
+  inmsgIDs::Vector{Int}
+  potIDs::Vector{Int} # this is likely redundant TODO -- remove
+  potentials::Vector{Int}
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Int64}
-  directFrtlMsgIDs::Vector{Int64}
-  msgskipIDs::Vector{Int64}
-  itervarIDs::Vector{Int64}
-  directPriorMsgIDs::Vector{Int64}
+  directvarIDs::Vector{Int}
+  directFrtlMsgIDs::Vector{Int}
+  msgskipIDs::Vector{Int}
+  itervarIDs::Vector{Int}
+  directPriorMsgIDs::Vector{Int}
   debug
   debugDwn
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
 end
 
+# TODO -- this should be a constructor
 function emptyBTNodeData()
-  BayesTreeNodeData(Int64[],Int64[],Int64[],
-                    Int64[],Int64[],Array{Bool,2}(),
-                    Array{Bool,2}(),Int64[],Int64[],
-                    Int64[],Int64[],Int64[],
+  BayesTreeNodeData(Int[],Int[],Int[],
+                    Int[],Int[],Array{Bool}(0,0),
+                    Array{Bool}(0,0),Int[],Int[],
+                    Int[],Int[],Int[],
                     nothing, nothing)
 end
 
@@ -31,7 +32,7 @@ type BayesTree
   bt
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
-  frontals::Dict{String,Int64}
+  frontals::Dict{String,Int}
 end
 
 function emptyBayesTree()
@@ -204,9 +205,9 @@ end
 
 function resetData!(vdata::VariableNodeData)
   vdata.eliminated = false
-  vdata.BayesNetOutVertIDs = Int64[]
+  vdata.BayesNetOutVertIDs = Int[]
   vdata.BayesNetVertID = 0
-  vdata.separator = Int64[]
+  vdata.separator = Int[]
   nothing
 end
 
@@ -277,7 +278,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                     if (fg.IDs[sslbl] == fid)
                         continue # skip the fid itself
                     end
-                    sea = findmin(abs(allids-fg.IDs[sslbl]))
+                    sea = findmin(abs.(allids-fg.IDs[sslbl]))
                     if sea[1]==0.0
                         appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
@@ -292,7 +293,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
     return nothing
 end
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int64)
+function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
     getCliquePotentials!(fg, bt.cliques[chkcliq])
 end
 
@@ -364,30 +365,30 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
   return mat
 end
 
-function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
-  # TODO -- add improved visualization here, iter vs skip
-  mat = map(Float64, mat)*2.0-1.0
-  numlcl = size(getCliqAssocMat(cliq),1)
-  mat[(numlcl+1):end,:] *= 0.9
-  mat[(numlcl+1):end,:] -= 0.1
-  numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
-  mat[:,numfrtl1:end] *= 0.9
-  mat[:,numfrtl1:end] -= 0.1
-  @show cliq.attributes["data"].itervarIDs
-  @show cliq.attributes["data"].directvarIDs
-  @show cliq.attributes["data"].msgskipIDs
-  @show cliq.attributes["data"].directFrtlMsgIDs
-  @show cliq.attributes["data"].directPriorMsgIDs
-  sp = Gadfly.spy(mat)
-  push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
-  push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
-  push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
-  return sp
-end
-function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
-  spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
-end
+# function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
+#   mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
+#   # TODO -- add improved visualization here, iter vs skip
+#   mat = map(Float64, mat)*2.0-1.0
+#   numlcl = size(getCliqAssocMat(cliq),1)
+#   mat[(numlcl+1):end,:] *= 0.9
+#   mat[(numlcl+1):end,:] -= 0.1
+#   numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
+#   mat[:,numfrtl1:end] *= 0.9
+#   mat[:,numfrtl1:end] -= 0.1
+#   @show cliq.attributes["data"].itervarIDs
+#   @show cliq.attributes["data"].directvarIDs
+#   @show cliq.attributes["data"].msgskipIDs
+#   @show cliq.attributes["data"].directFrtlMsgIDs
+#   @show cliq.attributes["data"].directPriorMsgIDs
+#   sp = Gadfly.spy(mat)
+#   push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+#   push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+#   push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
+#   return sp
+# end
+# function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
+#   spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
+# end
 
 function countSkips(bt::BayesTree)
   skps = 0
@@ -406,9 +407,9 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   mat = [condAssocMat;condMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,condMsgMat),1) .== 1
-  mab = mab & mabM
+  mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliq.attributes["data"].conditIDs[collect(mab)]
+  msgidx = cliq.attributes["data"].conditIDs[vec(collect(mab))]
   return msgidx
 end
 
@@ -418,12 +419,13 @@ function directPriorMsgIDs(cliq::Graphs.ExVertex)
   cols = [frtl;cond]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),2) .== 1
-  @show collect(singr)
-  rerows = collect(1:length(singr))[collect(singr)]
-  sumsrAc = sum(map(Int,mat[rerows,:]),1)
+  rerows = collect(1:length(singr))
+  b = vec(collect(singr))
+  rerows2 = rerows[b]
+  sumsrAc = sum(map(Int,mat[rerows2,:]),1)
   sumc = sum(map(Int,mat),1)
   pmSkipCols = (sumsrAc - sumc) .== 0
-  return cols[collect(pmSkipCols)]
+  return cols[vec(collect(pmSkipCols))]
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
@@ -433,8 +435,8 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
   mat = [frntAssocMat; frtlMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,frtlMsgMat),1) .== 1
-  mab = mab & mabM
-  return cliq.attributes["data"].frontalIDs[collect(mab)]
+  mab = mab .& mabM
+  return cliq.attributes["data"].frontalIDs[vec(collect(mab))]
 end
 
 function directAssignmentIDs(cliq::Graphs.ExVertex)
@@ -444,11 +446,11 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   mat = [assocMat;msgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabA = sum(map(Int,assocMat),1) .== 1
-  mab = mab & mabA
+  mab = mab .& mabA
   frtl = cliq.attributes["data"].frontalIDs
   cond = cliq.attributes["data"].conditIDs
   cols = [frtl;cond]
-  return cols[collect(mab)]
+  return cols[vec(collect(mab))]
   # also calculate how which are conditionals
 end
 
@@ -472,7 +474,7 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
 
   #end dev code
   # final output
-  return cols[collect(mab)]
+  return cols[vec(collect(mab))]
 end
 
 function setCliqMCIDs!(cliq::Graphs.ExVertex)

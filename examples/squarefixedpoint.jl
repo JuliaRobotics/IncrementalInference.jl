@@ -1,7 +1,7 @@
 # sqrt example
 
 using Distributions
-using KernelDensityEstimate
+using KernelDensityEstimate, KernelDensityEstimatePlotting
 using IncrementalInference
 using Gadfly, DataFrames
 
@@ -10,12 +10,13 @@ import IncrementalInference: getSample
 
 
 
-type ProductNumbers <: IncrementalInference.FunctorPairwise
+mutable struct ProductNumbers <: IncrementalInference.FunctorPairwise
   z::Distributions.Normal
 end
 getSample(s::ProductNumbers, N::Int=1) = (rand(s.z,N)', )
 
 function (s::ProductNumbers)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},
@@ -35,7 +36,8 @@ function getSample(s::AreEqual, N::Int=1)
   return (rand(s.z,N)', )
 end
 
-function (s::AreEqual)(res::Array{Float64},
+function (s::Square)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},
@@ -52,7 +54,8 @@ type Square <: IncrementalInference.FunctorPairwise
 end
 getSample(s::Square, N::Int=1) = (rand(s.z,N)', )
 
-function (s::Square)(res::Array{Float64},
+function (s::AreEqual)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       X::Array{Float64,2},
@@ -358,6 +361,15 @@ Gadfly.draw(PDF("sqrtexamplekldrelative.pdf",10cm,6cm),pldiv)
 
 
 DFs = DataFrame[]
+# x0 = [1.0+0.1*randn(100);10+0.1*randn(100)]'
+# addNode!(fg, :x, ContinuousScalar, N=N)
+#
+# pts = [rand(Distributions.Normal(4.0,0.05),100);rand(Distributions.Normal(144.0,0.05),100)]
+# md = kde!(pts)
+# npx = NumbersPrior(md)
+# pts0 = getSample(npx,N)[1]
+# addNode!(fg, :xy, ContinuousScalar, N=N)
+
 
 for i in 1:mc
   push!(DFs, DataFrame(
@@ -441,13 +453,17 @@ Gadfly.draw(PDF("sqrtexamplekldreferenced.pdf",10cm,6cm),pldivref)
 
 
 
+using KernelDensityEstimatePlotting
+
+
+plot(getVertKDE(fg,:xy),N=2000)
+
+plot(getVertKDE(fg,:x),N=2000)
+
+# plot(getVertKDE(fg,:y))
 
 
 
-
-
-
-
-
+plot(md)
 
 #

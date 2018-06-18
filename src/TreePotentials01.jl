@@ -18,7 +18,7 @@ function odoAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return retval
 end
 
-function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
+function evalPotential(odom::Odo, Xi::Array{Graphs.ExVertex,1}, Xid::Int; N::Int=100)
     warn("evalPotential(::Odo..) deprecated, use functor instead")
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
@@ -46,7 +46,7 @@ end
 
 
 
-function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
+function evalPotential(odom::OdoMM, Xi::Array{Graphs.ExVertex,1}, Xid::Int; N::Int=100)
     rz,cz = size(odom.Zij)
     # implicit equation portion -- bi-directional pairwise function
     if Xid == Xi[1].index #odom.
@@ -102,7 +102,7 @@ function rangeAdd(X::Array{Float64,1}, DX::Array{Float64,1})
     return [(A*B)[1,2]]
 end
 
-function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int64; N::Int=100)
+function evalPotential(rang::Ranged, Xi::Array{Graphs.ExVertex,1}, Xid::Int; N::Int=100)
     if Xid == Xi[1].index #rang.
         Z = -rang.Zij
         Xval = getVal(Xi[2])

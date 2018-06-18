@@ -3,13 +3,15 @@
 
 addprocs(1)
 
-using Base.Test
+@everywhere using Base.Test
 
 @everywhere module First
 
+using Compat
+
 export solve, InferenceType, Container
 
-abstract InferenceType
+@compat abstract type InferenceType end
 
 type Container
   col::Dict{Symbol, Function}

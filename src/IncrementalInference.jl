@@ -1,30 +1,31 @@
 module IncrementalInference
 
 import Base: convert
-import KernelDensityEstimate: kde!, plotKDE
-import Gadfly: draw
+import HDF5: root
+# import KernelDensityEstimate: root
+import Distributions: sample
+# import KernelDensityEstimate: sample
+import KernelDensityEstimate: kde!
 # import Graphs: plot
 
 using
   Graphs,
-  GraphViz,
-  Gadfly,
-  Colors,
   NLsolve,
   Optim,
   Distributions,
   KernelDensityEstimate,
   HDF5,
   JLD,
-  ProgressMeter
+  ProgressMeter,
+  DocStringExtensions,
+  Compat
 
 export
   # pass through from Graphs.jl
-  plot,
+  # plot,
 
   # added methods to functions from KernelDensityEstimate
   kde!,
-  plotKDE,
 
   # pass through functions commonly used lower down
   Npoints,
@@ -39,15 +40,24 @@ export
   setdatalayerAPI!,
   DataLayerAPI,
 
+  # general types for softtyping of variable nodes
+  InferenceVariable,
+  ContinuousScalar,
+  ContinuousMultivariate,
+
   # using either dictionary or cloudgraphs
   VariableNodeData,
   PackedVariableNodeData,
-  VNDencoder,
-  VNDdecoder,
-  FNDencode,
-  FNDdecode,
+  FactorMetadata,
+  encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,
+  encodePackedType,
+  decodePackedType,
+  normalfromstring,
+  categoricalfromstring,
+  extractdistribution,
+
   FactorGraph,
   addNode!,
   addFactor!,
@@ -62,6 +72,8 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  isInitialized,
+  ensureAllInitialized!,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
@@ -86,17 +98,15 @@ export
   getSample,
 
   #Visualization
-  investigateMultidimKDE,
-  writeGraphPdf,
+  # writeGraphPdf,
   ls,
   lsf,
   ls2,
   getfnctype,
-  drawHorDens,
-  drawHorBeliefsList,
+  drawCopyFG,
 
   # Tree stuff
-  spyCliqMat,
+  # spyCliqMat,
   evalPotential,
   evalFactor2,
   approxConv,
@@ -145,6 +155,8 @@ export
   uppA,
   convert, # for protobuf stuff
   compare,
+  extractdistribution,
+
 
   # factor graph operating system utils (fgos)
   convert2packedfunctionnode,
@@ -172,52 +184,39 @@ export
 
   # development
   shuffleXAltD,
-  reshapeVec2Mat,
+  reshapeVec2Mat
 
-  # analysis and some plotting
-  plotKDEofnc,
-  plotKDEresiduals,
-  plotMCMC,
-  plotUpMsgsAtCliq,
-  plotPriorsAtCliq,
-  investigateMultidimKDE,
-  draw,
-  whosWith,
-  drawUpMsgAtCliq,
-  dwnMsgsAtCliq,
-  drawPose2DMC!,
-  mcmcPose2D!,
-  # drawUpMCMCPose2D!,
-  # drawDwnMCMCPose2D!,
-  drawLbl,
-  predCurrFactorBeliefs,
-  drawHorDens,
-  drawHorBeliefsList,
-  drawFactorBeliefs,
-  localProduct,
-  plotLocalProduct,
-  saveplot,
-  animateVertexBelief,
-  getColorsByLength
+  # deprecated
+  # VNDencoder,
+  # VNDdecoder,
+  # FNDencode,
+  # FNDdecode
 
+
+
+
+const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("DispatchPackedConversions.jl")
+include("FGOSUtils.jl")
+
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("TreePotentials01.jl")
+include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
-include("SolverVisualization.jl")
-include("FGOSUtils.jl")
+
 
 include("deprecated.jl")
 
-function plot(fg::FactorGraph)
-  Graphs.plot(fg.g)
-end
+# function plot(fg::FactorGraph)
+#   Graphs.plot(fg.g)
+# end
 
 end

@@ -1,18 +1,18 @@
 # this file setup is less than ideal. We will refactor this with packing macros
-# to automatically generate the converters and packed data types.
+# to automatically generate the converters and packed data structs.
 # The eval functions are also currently spread out, they should be concentrated here as well.
-# The Pose2D and Pose3D types will most likely be packaged with the RoME package in the future.
+# The Pose2D and Pose3D structs will most likely be packaged with the RoME package in the future.
 
 
 
 
-# Active constraint types listed below
+# Active constraint structs listed below
 # -------------
 
 
 # define the simple 1D odo
 # TODO -- rework to use Distributions rather than Z and Cov
-type Odo <: FunctorPairwise
+mutable struct Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -21,6 +21,7 @@ type Odo <: FunctorPairwise
 end
 # TODO -- only computing first node
 function (odo::Odo)(res::Vector{Float64},
+    userdata::FactorMetadata,
     idx::Int,
     meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
@@ -30,7 +31,7 @@ function (odo::Odo)(res::Vector{Float64},
   nothing
 end
 function getSample(odo::Odo, N::Int=1)
-  (rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N )',)
+  (reshape(rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N ),1,N),)
 end
 # function getSample(odo::Odo, N::Int=1)
 #   ret = zeros(1,N)
@@ -43,11 +44,11 @@ end
 #   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
 #   return ret
 # end
-type PackedOdo <: PackedInferenceType
+mutable struct PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int64
+    dimz::Int
     vecCov::Array{Float64,1}
-    dimc::Int64
+    dimc::Int
     W::Array{Float64,1}
     PackedOdo() = new()
     PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
@@ -67,7 +68,7 @@ end
 
 
 
-type OdoMM <: Pairwise
+mutable struct OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
     W::Array{Float64,1}
@@ -85,14 +86,14 @@ function getSample(odo::OdoMM, N::Int=1)
 end
 
 
-type Ranged <: FunctorPairwise
+mutable struct Ranged <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     Ranged() = new()
     Ranged(x...) = new(x[1], x[2], x[3])
 end
-type PackedRanged <: PackedInferenceType
+mutable struct PackedRanged <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -106,6 +107,7 @@ function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
 function (ra::Ranged)(res::Vector{Float64},
+    userdata::FactorMetadata,
     idx::Int,
     meas::Tuple{Array{Float64,2}},
     p1::Array{Float64},
@@ -124,14 +126,14 @@ function getSample(ra::Ranged, N::Int=1)
 end
 
 
-type GenericMarginal <: FunctorPairwise
+mutable struct GenericMarginal <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
     GenericMarginal() = new()
     GenericMarginal(a,b,c) = new(a,b,c)
 end
-type PackedGenericMarginal <: PackedInferenceType
+mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -148,18 +150,18 @@ end
 # ------------------------------------------------------------
 
 
-type Obsv2 <: FunctorSingleton
+mutable struct Obsv2 <: FunctorSingleton
     pts::Array{Float64,2}
     bws::Array{Float64,2}
     W::Array{Float64,1}
     Obsv2() = new()
     Obsv2(x...) = new(x[1], x[2], x[3])
 end
-type PackedObsv2 <: PackedInferenceType
+mutable struct PackedObsv2 <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int64
+    dimz::Int
     vecCov::Array{Float64,1}
-    dimc::Int64
+    dimc::Int
     W::Array{Float64,1}
     PackedObsv2() = new()
     PackedObsv2(x...) = new(x[1],x[2],x[3],x[4],x[5])

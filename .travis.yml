@@ -3,16 +3,20 @@ os:
   - linux
   - osx
 julia:
-  - 0.5
+  - 0.6
   - nightly
 notifications:
   email: false
 matrix:
   allow_failures:
+    - os: osx
     - julia: nightly
+addons:
+  apt:
+    packages:
+    - hdf5-tools
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.test("IncrementalInference"; coverage=true)'
-
 after_success:
   - julia -e 'cd(Pkg.dir("IncrementalInference")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

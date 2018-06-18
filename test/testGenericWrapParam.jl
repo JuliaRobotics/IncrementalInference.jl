@@ -63,7 +63,7 @@ fvar([0.0])
 println("GenericWrapParam test")
 
 
-function test2(res::Vector{Float64}, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+function test2(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
   res[:] = 1.0
   nothing;
@@ -95,16 +95,17 @@ println("Test in factor graph setting...")
 
 # abstract Nonparametric <: Function
 # This is what the internmediate user would be contributing
-type Pose1Pose1Test{T} <: FunctorPairwise
+mutable struct Pose1Pose1Test{T} <: FunctorPairwise
   Dx::T
   Pose1Pose1Test() = new()
-  # Pose1Pose1Test{T}(::Int) = new(T())
   Pose1Pose1Test{T}(a::T) = new(a)
+  # Pose1Pose1Test(a::T) where T = new(a)
 end
-getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (rand(pp1t.Dx,N)',)
+getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64,2}},
       p1::Array{Float64,2},
@@ -128,7 +129,7 @@ generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N
 x, res = zeros(1), zeros(1)
 @time for generalwrapper.particleidx in 1:N
     # nlsolve( generalwrapper, x0? .. )
-  generalwrapper(x, res)
+  generalwrapper(res, x)
   # each point should be near 100.0
   @test res[1] > 50.0
 end
@@ -147,7 +148,7 @@ end
 @test abs(Base.mean(p2)-100.0) < 3.0
 
 
-# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int64; N:Int=100)
+# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
 #
 #
 # end
@@ -172,13 +173,13 @@ gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) 
 # @show p2
 
 # ARR = Array{Array{Float64,2},1}()
-# maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+# maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, multihypo)
 @show gwp.varidx
 gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
 @show zDim = size(gwp.measurement,1)
 fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-# and return complete fr/gwp
 
+# and return complete fr/gwp
 @time for gwp.particleidx in 1:N
   # gwp(x, res)
   numericRootGenericRandomizedFnc!( fr )
@@ -229,9 +230,10 @@ push!(t,p2)
 fg = emptyFactorGraph()
 # fg.registeredModuleFunctions[:Main] = getSample
 
-v1=addNode!(fg, :x1, p1, N=N)
-v2=addNode!(fg, :x2, p2, N=N)
-f1 = addFactor!(fg, [v1], Obsv2(p1, getBW(d1)[:,1]', [1.0]))
+v1=addNode!(fg, :x1, ContinuousScalar, N=N)
+v2=addNode!(fg, :x2, ContinuousScalar, N=N)
+bws = getBW(d1)[:,1]
+f1 = addFactor!(fg, [v1], Obsv2(p1, reshape(bws, 1, length(bws)), [1.0]))
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
@@ -243,7 +245,7 @@ pts = getVal(getVert(fg,:x1))
 pts = getVal(getVert(fg,:x2))
 @test abs(Base.mean(pts)-0.0) < 10.0
 
-@time [inferOverTreeR!(fg, tree) for i in 1:3]
+@time [inferOverTreeR!(fg, tree) for i in 1:3];
 
 
 # using Gadfly
