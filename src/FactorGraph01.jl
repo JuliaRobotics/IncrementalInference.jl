@@ -301,9 +301,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   mhidx = Int[]
   mhwhoszero = 0
   if multihypo != nothing
-    # If present, prep mutlihypothesis selection values
+    # If present, prep multihypothesis selection values
     mhidx = rand(multihypo, maxlen) # selection of which hypothesis is correct
-    mhwhoszero = findfirst(multihypo.p .< 1e-10)
+    # mhwhoszero = findfirst(multihypo.p .< 1e-10)
   end
 
   mhidxmap = Dict{Int,Int}()

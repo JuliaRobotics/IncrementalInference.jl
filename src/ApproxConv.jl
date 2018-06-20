@@ -34,8 +34,6 @@ function evalPotentialSpecific(
   # currently monster of a spaghetti code mess (WIP) with multiple types interacting at the same
   # time.  Safest is to ensure code is producing correct results and refactor with unit tests in place.
 
-  allelements = []
-  activehypo = []
   # TODO -- this part can be collapsed into common generic solver component
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
@@ -48,12 +46,12 @@ function evalPotentialSpecific(
     zDim = gwp.usrfnc!.zDim[sfidx]
   end
 
-  # TODO -- introduce special case for multihypothesis
+  allelements = []
+  activehypo = []
   certainidx = assembleHypothesesElements!(allelements, activehypo, gwp.hypotheses, maxlen, sfidx, mhidx, length(Xi))
-  # @show size(allelements), size(activehypo), activehypo
 
   # Construct complete fr (with fr.gwp) object
-  # TODO -- create FastRootGenericWrapParam at addFactor time only
+  # TODO -- create FastRootGenericWrapParam at addFactor time only?
   fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
 
   # perform the numeric solutions on the indicated elements
