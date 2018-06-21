@@ -291,22 +291,13 @@ Prepare the particle arrays `ARR` to be used for approximate convolution.  This 
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
             Xi::Vector{Graphs.ExVertex},
             N::Int,
-            solvefor::Int,
-            multihypo::Union{Void, Distributions.Categorical} )
+            solvefor::Int  )
   #
   LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
-  mhidx = Int[]
-  mhwhoszero = 0
-  if multihypo != nothing
-    # If present, prep multihypothesis selection values
-    mhidx = rand(multihypo, maxlen) # selection of which hypothesis is correct
-    # mhwhoszero = findfirst(multihypo.p .< 1e-10)
-  end
 
-  mhidxmap = Dict{Int,Int}()
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -318,9 +309,6 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     if xi.index == solvefor
       sfidx = count #xi.index
     end
-    # if Symbol(xi.label) in hypoverts
-    #   push!(mhidx, count)
-    # end
   end
   SAMP=LEN.<maxlen
   for i in 1:count
@@ -332,7 +320,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
 
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
-  return maxlen, sfidx, mhidx
+  return maxlen, sfidx
 end
 
 function parseusermultihypo(multihypo::Void)
@@ -373,7 +361,7 @@ function prepgenericwrapper(
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multihypo)
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1

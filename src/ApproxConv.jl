@@ -18,6 +18,23 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam, elements::Union{Ve
   nothing
 end
 
+function prepareFastRootGWP(T::Type, gwp, Xi::Vector{Graphs.ExVertex}, solvefor::Int, N::Int)
+  # TODO -- this part can be collapsed into common generic solver component
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  size(gwp.measurement[1])
+  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
+  if gwp.specialzDim
+    zDim = gwp.usrfnc!.zDim[sfidx]
+  end
+  # Construct complete fr (with fr.gwp) object
+  # TODO -- create FastRootGenericWrapParam at addFactor time only?
+  FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
+end
 
 """
     $(SIGNATURES)
@@ -34,29 +51,12 @@ function evalPotentialSpecific(
   # currently monster of a spaghetti code mess (WIP) with multiple types interacting at the same
   # time.  Safest is to ensure code is producing correct results and refactor with unit tests in place.
 
-  # TODO -- this part can be collapsed into common generic solver component
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
-  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
-  gwp.params = ARR
-  gwp.varidx = sfidx
-  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
-  if gwp.specialzDim
-    zDim = gwp.usrfnc!.zDim[sfidx]
-  end
+  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
 
-  allelements = []
-  activehypo = []
-  certainidx = assembleHypothesesElements!(allelements, activehypo, gwp.hypotheses, maxlen, sfidx, mhidx, length(Xi))
-
-  # Construct complete fr (with fr.gwp) object
-  # TODO -- create FastRootGenericWrapParam at addFactor time only?
-  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(gwp.hypotheses, maxlen, sfidx, length(Xi))
 
   # perform the numeric solutions on the indicated elements
   # @show sfidx, certainidx, activehypo, allelements
-
   count = 0
   for (mhidx, vars) in activehypo
     count += 1
@@ -93,18 +93,8 @@ function evalPotentialSpecific(
       spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
   #
 
-  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
-  gwp.params = ARR
-  gwp.varidx = sfidx
-  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
-  if gwp.specialzDim
-    zDim = gwp.usrfnc!.zDim[sfidx]
-  end
-  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
-  # and return complete fr/gwp
+  # TODO -- could be constructed and maintained at addFactor! time
+  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
 
   # nullhypothesis
   nhc = rand(gwp.usrfnc!.nullhypothesis, maxlen) - 1
@@ -137,18 +127,8 @@ function evalPotentialSpecific(
       solvefor::Int;
       N::Int=100  ) where {T <: FunctorPairwiseMinimize}
   #
-  # TODO -- this part can be collapsed into common generic solver component, could be constructed and maintained at addFactor! time
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, gwp.hypotheses)
-  gwp.params = ARR
-  gwp.varidx = sfidx
-  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
-  if gwp.specialzDim
-    zDim = gwp.usrfnc!.zDim[sfidx]
-  end
-
-  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  # TODO -- could be constructed and maintained at addFactor! time
+  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
 
   allelements = 1:maxlen
 

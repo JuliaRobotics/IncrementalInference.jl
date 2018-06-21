@@ -172,8 +172,6 @@ gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) 
 #
 # @show p2
 
-# ARR = Array{Array{Float64,2},1}()
-# maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, N, solvefor, multihypo)
 @show gwp.varidx
 gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
 @show zDim = size(gwp.measurement,1)

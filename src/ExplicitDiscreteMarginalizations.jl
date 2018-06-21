@@ -41,19 +41,28 @@ sfidx=1, mhidx=4:  ah = [1;4]
 sfidx=2, mhidx=3:  2 should take a value from 3
 ```
 """
-function assembleHypothesesElements!(allelements::Array,
-            activehypo::Array,
+function assembleHypothesesElements!(
+            # allelements::Array,
+            # activehypo::Array,
             mh::Categorical,
             maxlen::Int,
             sfidx::Int,
-            mhidx,
+            # mhidx::Vector{<:Int},
             lenXi::Int  )
   #
-  # @show mhidx
+  allelements = []
+  activehypo = []
+  mhidx = Int[]
+
+  mh.p
   allidx = 1:maxlen
   allmhp = 1:length(mh.p)
-  # @show mh.p
   certainidx = allmhp[mh.p .< 1e-10]
+
+  if mh != nothing
+    # If present, prep mmultihypothesis selection values
+    mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
+  end
 
   # this is not going to work? sfidx could be anything
   if mh.p[sfidx] < 1e-10
@@ -97,22 +106,34 @@ function assembleHypothesesElements!(allelements::Array,
     error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p)")
   end
 
-  return certainidx
+  return certainidx, allelements, activehypo, mhidx
 end
-function assembleHypothesesElements!(allelements::Array, activehypo::Array, mh::Void, maxlen::Int, sfidx::Int, mhidx, lenXi::Int)
+function assembleHypothesesElements!(
+            # allelements::Array,
+            # activehypo::Array,
+            mh::Void,
+            maxlen::Int,
+            sfidx::Int,
+            # mhidx,
+            lenXi::Int  )
+  #
+  allelements = []
+  activehypo = []
+  mhidx = Int[]
+
   # error("assembleHypothesesElements!(..) -- Error in code design, refactor of general multihypothesis situations required if you arrived here.")
   allidx = 1:maxlen
-  allhp = 1:lenXi
+  certainidx = 1:lenXi
   doneall = false
-  for i in allhp
+  for i in certainidx
     if !doneall
       push!(allelements, allidx)
-      push!(activehypo, (i,allhp))
+      push!(activehypo, (i,certainidx))
       doneall = true
     else
       push!(allelements, Int[])
       push!(activehypo, (i,Int[]))
     end
   end
-  return allhp # certainidx =
+  return certainidx, allelements, activehypo, mhidx # certainidx = allhp
 end
