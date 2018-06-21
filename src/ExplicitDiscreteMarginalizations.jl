@@ -55,35 +55,28 @@ function assembleHypothesesElements!(
   allmhp = 1:length(mh.p)
   certainidx = allmhp[mh.p .< 1e-10]
 
-  if mh != nothing
-    # If present, prep mmultihypothesis selection values
-    mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
-  end
+  # prep mmultihypothesis selection values
+  mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
 
   pidx = 0
   for pval in mh.p
     pidx += 1
+    iterarr = allidx[mhidx .== pidx]
+    iterah = Int[]
     if pval >= 1e-10 && mh.p[sfidx] < 1e-10
-      iterarr = allidx[mhidx .== pidx]
-      push!(allelements, iterarr)
       iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-      push!(activehypo, (pidx, iterah))
     elseif pval < 1e-10 && mh.p[sfidx] < 1e-10
+      iterarr = Int[]
       # info("assembleHypothesesElements! -- not processing pval < 1e-10 && mh.p[sfidx] < 1e-10")
-      ## TODO -- Maybe a mistake with iterah variables in these cases?
     elseif pval < 1e-10 && mh.p[sfidx] >= 1e-10
-      iterarr = allidx[mhidx .== pidx]
-      push!(allelements, iterarr)
       iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-      push!(activehypo, (pidx, iterah))
     elseif pval >= 1e-10 && mh.p[sfidx] >= 1e-10
-      iterarr = allidx[mhidx .== pidx]
-      push!(allelements, iterarr)
       iterah = allmhp[mh.p .> 1e-10]
-      push!(activehypo, (pidx,iterah))
     else
       error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
     end
+    push!(allelements, iterarr)
+    push!(activehypo, (pidx,iterah))
   end
 
   return certainidx, allelements, activehypo, mhidx
