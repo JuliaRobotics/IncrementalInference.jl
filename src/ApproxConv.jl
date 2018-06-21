@@ -151,9 +151,10 @@ function evalPotentialSpecific(
       Xi::Vector{Graphs.ExVertex},
       generalwrapper::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  ) where {T <: FunctorSingleton}
+      N::Int=0  ) where {T <: FunctorSingleton}
   #
-  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
+  nn = N != 0 ? N : size(getVal(Xi[1]),2)
+  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, nn)
   if !generalwrapper.partial
     return generalwrapper.measurement[1]
   else
@@ -175,6 +176,9 @@ function evalPotentialSpecific(
       N::Int=100,
       spreadfactor::Float64=10.0  ) where {T <: FunctorSingletonNH}
   #
+  val = getVal(Xi[1])
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
 
   # determine amount share of null hypothesis particles
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
@@ -182,9 +186,7 @@ function evalPotentialSpecific(
   # generalwrapper.usrfnc!.nullhypothesis::Distributions.Categorical
   nhc = rand(generalwrapper.usrfnc!.nullhypothesis, N) - 1
 
-  val = getVal(Xi[1])
-  d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  # TODO -- not valid for manifold
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
 
   for i in 1:N
@@ -205,7 +207,6 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   # could happen at addFactor time
   Xi = Graphs.ExVertex[]
   for id in getData(fct).fncargvID
-  # for id in fct.attributes["data"].fncargvID
     push!(Xi, getVert(fgl,id) ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
   end
@@ -214,6 +215,14 @@ function evalFactor2(fgl::FactorGraph, fct::Graphs.ExVertex, solvefor::Int; N::I
   return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
   # return evalPotentialSpecific(modulefnc, Xi, fnctype, solvefor, N=N)
 end
+
+function approxConv(fgl::FactorGraph, fct::Symbol, towards::Symbol; api::DataLayerAPI=localapi, N=-1)
+  fc = getVert(fgl, fct, nt=:fct, api=api)
+  v1 = getVert(fgl, towards, api=api)
+  N = N == -1 ? N : getNumPts(v1)
+  return evalFactor2(fgl, fc, v1.index, N=N)
+end
+
 
 """
     $(SIGNATURES)

@@ -39,6 +39,10 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+function getNumPts(v::Graphs.ExVertex)
+  return size(getData(v).val,2)
+end
+
 function getfnctype(data)
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData
@@ -115,8 +119,12 @@ function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
 end
 
 
-function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                             stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
+function setDefaultNodeData!(v::Graphs.ExVertex,
+                             initval::Array{Float64,2},
+                             stdev::Array{Float64,2},
+                             dodims::Int,
+                             N::Int,
+                             dims::Int;
                              gt=nothing, initialized::Bool=true,
                              softtype=nothing)
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
@@ -429,18 +437,21 @@ function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
 end
 
 """
-    doautoinit!(fg, Xi[,api=dlapi])
+    $(SIGNATURES)
 
 initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
-function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi, singles::Bool=true)
+function doautoinit!(fgl::FactorGraph,
+                     Xi::Vector{Graphs.ExVertex};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
   for xi in Xi
     if !isInitialized(xi)
-       # @show "doautoinit!", size(getVal(xi))
       vsym = Symbol(xi.label)
       neinodes = ls(fgl, vsym)
       if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
@@ -452,7 +463,8 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
           for vsym2 in xfneivarnodes
             # println("find all variables that are initialized for $vsym2")
             vert2 = getVert(fgl, vsym2)
-            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
+              # OR singleton  TODO get faster version of isInitialized for database version
               # println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
@@ -462,31 +474,14 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
 
         # calculate the predicted belief over $vsym
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
         getData(xi).initialized = true
-        # println("doautoinit! just before update vertex...")
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
   end
 
-  # len = length(Xi)
-  # # pts = Array{Float64,2}()
-  # if length(Xi) == 1
-  #   pts = evalFactor2(fgl, fc, Xi[1].index)
-  #   setValKDE!(Xi[1], pts)
-  #   api.updatevertex!(fgl, Xi[1], updateMAPest=false)
-  # elseif len == 2
-  #   pts = evalFactor2(fgl, fc, Xi[2].index)
-  #   setValKDE!(Xi[2], pts)
-  #   api.updatevertex!(fgl, Xi[2], updateMAPest=false)
-  # else
-  #   # consider specifying an init order in the constraint type
-  #   # also consider taking product between all incoming densities which have been inited
-  #   error("don't know how to autoinit with pairwise dimension > 2")
-  # end
-  # println("doautoinit! Done in autoinit!")
+
   nothing
 end
 

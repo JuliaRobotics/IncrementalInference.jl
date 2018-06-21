@@ -17,7 +17,6 @@ getSample(dpl::DevelopPriorNH, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
 N  = 100
 fg = emptyFactorGraph()
 
-# v1 = addNode!(fg,:x1,ones(1,N),N=N)
 v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
 
 pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))

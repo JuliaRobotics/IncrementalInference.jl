@@ -228,8 +228,8 @@ push!(t,p2)
 fg = emptyFactorGraph()
 # fg.registeredModuleFunctions[:Main] = getSample
 
-v1=addNode!(fg, :x1, p1, N=N)
-v2=addNode!(fg, :x2, p2, N=N)
+v1=addNode!(fg, :x1, ContinuousScalar, N=N)
+v2=addNode!(fg, :x2, ContinuousScalar, N=N)
 bws = getBW(d1)[:,1]
 f1 = addFactor!(fg, [v1], Obsv2(p1, reshape(bws, 1, length(bws)), [1.0]))
 
