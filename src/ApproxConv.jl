@@ -36,6 +36,16 @@ function prepareFastRootGWP(T::Type, gwp, Xi::Vector{Graphs.ExVertex}, solvefor:
   FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
 end
 
+function assembleNullHypothesis(fr, maxlen)
+  nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
+  val = fr.gwp.params[fr.gwp.varidx]
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  allelements = 1:maxlen
+  return allelements, ENT
+end
+
 function computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
   count = 0
   for (mhidx, vars) in activehypo
@@ -58,6 +68,35 @@ function computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
     end
   end
   nothing
+end
+
+
+function evalPotentialSpecific(
+      fnc::T,
+      Xi::Vector{Graphs.ExVertex},
+      gwp::GenericWrapParam{T},
+      solvefor::Int;
+      N::Int=100,
+      spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
+  #
+
+  # TODO -- could be constructed and maintained at addFactor! time
+  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
+  # prepare nullhypothesis
+  allelements, ENT = assembleNullHypothesis(fr, maxlen)
+
+  # TODO --  Threads.@threads see area4 branch
+  for n in allelements
+    # fr.gwp(x, res)
+    if nhc[n] != 0
+      fr.gwp.particleidx = n
+      numericRootGenericRandomizedFnc!( fr )
+    else
+      fr.gwp.params[fr.gwp.varidx][:,n] += rand(ENT)
+    end
+  end
+
+  return fr.gwp.params[gwp.varidx]
 end
 
 """
@@ -83,41 +122,6 @@ function evalPotentialSpecific(
   return fr.gwp.params[gwp.varidx]
 end
 
-
-function evalPotentialSpecific(
-      fnc::T,
-      Xi::Vector{Graphs.ExVertex},
-      gwp::GenericWrapParam{T},
-      solvefor::Int;
-      N::Int=100,
-      spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
-  #
-
-  # TODO -- could be constructed and maintained at addFactor! time
-  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
-
-  # nullhypothesis
-  nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
-  val = fr.gwp.params[fr.gwp.varidx]
-  d = size(val,1)
-  var = Base.var(val,2) + 1e-3
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
-
-  allelements = 1:maxlen
-
-  # TODO --  Threads.@threads see area4 branch
-  for n in allelements
-    # fr.gwp(x, res)
-    if nhc[n] != 0
-      fr.gwp.particleidx = n
-      numericRootGenericRandomizedFnc!( fr )
-    else
-      fr.gwp.params[fr.gwp.varidx][:,n] += rand(ENT)
-    end
-  end
-
-  return fr.gwp.params[gwp.varidx]
-end
 
 
 function evalPotentialSpecific(
