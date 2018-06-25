@@ -4,8 +4,11 @@
 
 Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.
 """
-function approxConvOnElements!(frl::FastRootGenericWrapParam, elements::Union{Vector{Int}, UnitRange{Int}})
+function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  @show "solve on", T
+
   # TODO -- improve handling of n and particleidx, especially considering future multithreading support
   for n in elements
     frl.gwp.particleidx = n
@@ -15,6 +18,24 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam, elements::Union{Ve
   # remember this is a deepcopy of original sfidx, since we are generating a proposal distribution
   # and not directly replacing the existing variable belief estimate
   # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
+  nothing
+end
+
+function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  @show "optim on", T
+
+  res = zeros(frl.xDim)
+  gg = (x) -> frl.gwp(res, x)
+  for n in elements
+    frl.gwp.particleidx = n
+    res[:] = 0.0
+    r = optimize( gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
+    # TODO -- clearly lots of optmization to be done here
+    frl.Y[1:frl.xDim] = r.minimizer
+    frl.X[:,frl.gwp.particleidx] = frl.Y
+  end
   nothing
 end
 
@@ -36,17 +57,18 @@ function prepareFastRootGWP(T::Type, gwp, Xi::Vector{Graphs.ExVertex}, solvefor:
   FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
 end
 
-function assembleNullHypothesis(fr, maxlen)
+function assembleNullHypothesis(fr, maxlen, spreadfactor)
   nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
   val = fr.gwp.params[fr.gwp.varidx]
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
   allelements = 1:maxlen
-  return allelements, ENT
+  return allelements, nhc, ENT
 end
 
-function computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
+
+function computeAcrossHypothesis(T::Type{<:Union{FunctorPairwise, FunctorPairwiseMinimize}}, fr, allelements, activehypo, certainidx, sfidx)
   count = 0
   for (mhidx, vars) in activehypo
     count += 1
@@ -64,11 +86,39 @@ function computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
       # sfidx=3, mhidx=2:  3 should take a value from 2
       fr.gwp.params[sfidx][:,allelements[count]] = fr.gwp.params[mhidx][:,allelements[count]]
     else
-      error("evalPotentialSpecific -- not dealing with multi-hypothesis case correctly")
+      error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
   end
   nothing
 end
+
+# function computeAcrossHypothesis(T::Type{<:FunctorPairwiseMinimize}, fr, allelements, activehypo, certainidx, sfidx)
+#   count = 0
+#   for (mhidx, vars) in activehypo
+#     count += 1
+#     # if length(allelements[count]) > 0
+#     #   fr.gwp.activehypo = vars
+#     #   approxConvMinimizeOnElements!(fr, allelements[count])
+#     # end
+#     if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
+#       # standard case mhidx, sfidx = $mhidx, $sfidx
+#       fr.gwp.activehypo = vars
+#       approxConvOnElements!(fr, allelements[count])
+#     elseif mhidx == sfidx
+#       # multihypo, do conv case, mhidx == sfidx
+#       fr.gwp.activehypo = sort(union([sfidx;], certainidx))
+#       approxConvOnElements!(fr, allelements[count])
+#     elseif mhidx != sfidx
+#       # multihypo, take other value case
+#       # sfidx=2, mhidx=3:  2 should take a value from 3
+#       # sfidx=3, mhidx=2:  3 should take a value from 2
+#       fr.gwp.params[sfidx][:,allelements[count]] = fr.gwp.params[mhidx][:,allelements[count]]
+#     else
+#       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
+#     end
+#   end
+#   nothing
+# end
 
 
 function evalPotentialSpecific(
@@ -83,7 +133,7 @@ function evalPotentialSpecific(
   # TODO -- could be constructed and maintained at addFactor! time
   fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
   # prepare nullhypothesis
-  allelements, ENT = assembleNullHypothesis(fr, maxlen)
+  allelements, nhc, ENT = assembleNullHypothesis(fr, maxlen, spreadfactor)
 
   # TODO --  Threads.@threads see area4 branch
   for n in allelements
@@ -109,7 +159,7 @@ function evalPotentialSpecific(
       Xi::Vector{Graphs.ExVertex},
       gwp::GenericWrapParam{T},
       solvefor::Int;
-      N::Int=100  ) where {T <: FunctorPairwise}
+      N::Int=100  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
@@ -117,37 +167,28 @@ function evalPotentialSpecific(
   certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(fr.gwp.hypotheses, maxlen, sfidx, length(Xi))
 
   # perform the numeric solutions on the indicated elements
-  computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
+  computeAcrossHypothesis(T, fr, allelements, activehypo, certainidx, sfidx)
 
   return fr.gwp.params[gwp.varidx]
 end
 
 
-
-function evalPotentialSpecific(
-      fnc::T,
-      Xi::Vector{Graphs.ExVertex},
-      gwp::GenericWrapParam{T},
-      solvefor::Int;
-      N::Int=100  ) where {T <: FunctorPairwiseMinimize}
-  #
-  # TODO -- could be constructed and maintained at addFactor! time
-  fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
-
-  allelements = 1:maxlen
-
-  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for n in allelements
-    fr.gwp.particleidx = n
-    res = zeros(fr.xDim)
-    gg = (x) -> fr.gwp(res, x)
-    r = optimize( gg, fr.X[1:fr.xDim, fr.gwp.particleidx] )
-    # TODO -- clearly lots of optmization to be done here
-    fr.Y[1:fr.xDim] = r.minimizer
-    fr.X[:,fr.gwp.particleidx] = fr.Y
-  end
-  return fr.gwp.params[gwp.varidx]
-end
+# function evalPotentialSpecific(
+#       fnc::T,
+#       Xi::Vector{Graphs.ExVertex},
+#       gwp::GenericWrapParam{T},
+#       solvefor::Int;
+#       N::Int=100  ) where {T <: FunctorPairwiseMinimize}
+#   #
+#   # TODO -- could be constructed and maintained at addFactor! time
+#   fr, sfidx, maxlen = prepareFastRootGWP(T, gwp, Xi, solvefor, N)
+#   certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(fr.gwp.hypotheses, maxlen, sfidx, length(Xi))
+#
+#   # perform the numeric solutions on the indicated elements
+#   computeAcrossHypothesis(T, fr, allelements, activehypo, certainidx, sfidx)
+#
+#   return fr.gwp.params[gwp.varidx]
+# end
 
 
 #  Singletons ==================================================================
