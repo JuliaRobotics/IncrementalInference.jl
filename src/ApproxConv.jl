@@ -264,13 +264,19 @@ function evalFactor2(fgl::FactorGraph,
                      N::Int=100 )
   #
 
+  gwp = getData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
+  count = 0
   for id in getData(fct).fncargvID
-    push!(Xi, getVert(fgl,id) ) # TODO localapi
+    xi = getVert(fgl,id)
+    push!(Xi, xi ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
+    count += 1
+    if count == solvefor
+      gwp.factormetadata.solvefor = Symbol(xi.label)
+    end
   end
-  gwp = getData(fct).fnc
   return evalPotentialSpecific(Xi, gwp, solvefor, N=N)
 end
 

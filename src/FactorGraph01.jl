@@ -390,11 +390,9 @@ function prepgenericwrapper(
             multihypo
         )
     gwp.factormetadata.variableuserdata = []
-    count = 0
+    gwp.factormetadata.solvefor = :null
     for xi in Xi
-      count += 1
       push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
-      count == sfidx ? (gwp.factormetadata.solvefor = xi.label) : nothing
     end
     return gwp
 end
