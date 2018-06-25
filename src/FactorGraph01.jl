@@ -64,14 +64,16 @@ end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
-  v.attributes["data"].val = val
+  getData(v).val = val
+  # v.attributes["data"].val = val
   nothing
 end
 function getBWVal(v::Graphs.ExVertex)
   return getData(v).bw
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
-  v.attributes["data"].bw = bw
+  getData(v).bw = bw
+  # v.attributes["data"].bw = bw
   nothing
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
@@ -82,6 +84,9 @@ end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
   setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
   nothing
+end
+function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataLayerAPI=localapi)
+  setVal!(api.getvertex(fg, sym), val)
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   p = kde!(val)
@@ -299,22 +304,13 @@ Prepare the particle arrays `ARR` to be used for approximate convolution.  This 
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
             Xi::Vector{Graphs.ExVertex},
             N::Int,
-            solvefor::Int,
-            multihypo::Union{Void, Distributions.Categorical} )
+            solvefor::Int  )
   #
   LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
-  mhidx = Int[]
-  mhwhoszero = 0
-  if multihypo != nothing
-    # If present, prep mutlihypothesis selection values
-    mhidx = rand(multihypo, maxlen) # selection of which hypothesis is correct
-    mhwhoszero = findfirst(multihypo.p .< 1e-10)
-  end
 
-  mhidxmap = Dict{Int,Int}()
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -326,9 +322,6 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     if xi.index == solvefor
       sfidx = count #xi.index
     end
-    # if Symbol(xi.label) in hypoverts
-    #   push!(mhidx, count)
-    # end
   end
   SAMP=LEN.<maxlen
   for i in 1:count
@@ -340,7 +333,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
 
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
-  return maxlen, sfidx, mhidx
+  return maxlen, sfidx
 end
 
 function parseusermultihypo(multihypo::Void)
@@ -381,7 +374,7 @@ function prepgenericwrapper(
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, mhidx = prepareparamsarray!(ARR, Xi, 0, 0, multihypo)
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
   # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
   # sum(fldnms .== :zDim) >= 1
@@ -814,17 +807,16 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
-# function writeGraphPdf(fgl::FactorGraph)
-#   fgd = drawCopyFG(fgl)
-#   println("Writing factor graph file")
-#   fid = open("fg.dot","w+")
-#   write(fid,Graphs.to_dot(fgd.g))
-#   close(fid)
-#   run(`dot fg.dot -Tpdf -o fg.pdf`)
-#   nothing
-# end
-
-
+function writeGraphPdf(fgl::FactorGraph, evince::Bool=true)
+  fgd = drawCopyFG(fgl)
+  println("Writing factor graph file")
+  fid = open("/tmp/fg.dot","w+")
+  write(fid,Graphs.to_dot(fgd.g))
+  close(fid)
+  run(`dot /tmp/fg.dot -Tpdf -o /tmp/fg.pdf`)
+  evince ? (@async run(`evince /tmp/fg.pdf`)) : nothing
+  nothing
+end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,

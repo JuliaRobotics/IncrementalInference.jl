@@ -28,16 +28,17 @@ f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
   pts = evalFactor2(fg, f2, v2.index)
   @test norm(Base.mean(pts,2)-[50.0]) < 15.0
 
-
+  ensureAllInitialized!(fg)
   tree = wipeBuildNewTree!(fg, drawpdf=false)
-
   inferOverTree!(fg, tree)
 
   @test norm(Base.mean(getVal(fg, :x2),2)-[50.0]) < 15.0
 end
 
+# using RoMEPlotting
+#
 # plotKDE( getVertKDE(fg,:x2) )
-
+# plotKDE(kde!(pts))
 
 
 

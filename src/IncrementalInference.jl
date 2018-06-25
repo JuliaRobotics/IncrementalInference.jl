@@ -26,6 +26,7 @@ export
 
   # added methods to functions from KernelDensityEstimate
   kde!,
+  getPoints,
 
   # pass through functions commonly used lower down
   Npoints,
@@ -98,7 +99,7 @@ export
   getSample,
 
   #Visualization
-  # writeGraphPdf,
+  writeGraphPdf,
   ls,
   lsf,
   ls2,
