@@ -390,6 +390,7 @@ function prepgenericwrapper(
             multihypo
         )
     gwp.factormetadata.variableuserdata = []
+    gwp.factormetadata.solvefor = :null
     for xi in Xi
       push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
     end

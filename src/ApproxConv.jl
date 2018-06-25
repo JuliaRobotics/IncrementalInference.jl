@@ -147,8 +147,7 @@ function computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T},
 end
 
 
-function evalPotentialSpecific(fnc::T,
-                               Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                gwp::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=100,
@@ -171,12 +170,12 @@ end
 
 Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 """
-function evalPotentialSpecific(fnc::T,
-                               Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                gwp::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=100  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
+  fnc = gwp.usrfnc!
 
   # Prep computation variables
   fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
@@ -196,12 +195,13 @@ end
 
 Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingleton}` types.
 """
-function evalPotentialSpecific(fnc::T,
-                               Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                generalwrapper::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=0 ) where {T <: FunctorSingleton}
   #
+  fnc = generalwrapper.usrfnc!
+
   nn = N != 0 ? N : size(getVal(Xi[1]),2)
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, nn)
   if !generalwrapper.partial
@@ -217,13 +217,20 @@ function evalPotentialSpecific(fnc::T,
   end
 end
 
-function evalPotentialSpecific(fnc::T,
-                               Xi::Vector{Graphs.ExVertex},
+"""
+    $(SIGNATURES)
+
+Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingletonNH}` types.
+Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
+"""
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                generalwrapper::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=100,
                                spreadfactor::Float64=10.0 ) where {T <: FunctorSingletonNH}
   #
+  fnc = generalwrapper.usrfnc!
+
   val = getVal(Xi[1])
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
@@ -246,22 +253,31 @@ function evalPotentialSpecific(fnc::T,
   return generalwrapper.measurement[1]
 end
 
+"""
+    $(SIGNATURES)
 
-# Multiple dispatch occurs internally, resulting in factor graph potential evaluations
+Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
+"""
 function evalFactor2(fgl::FactorGraph,
                      fct::Graphs.ExVertex,
                      solvefor::Int;
                      N::Int=100 )
   #
 
+  gwp = getData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
+  count = 0
   for id in getData(fct).fncargvID
-    push!(Xi, getVert(fgl,id) ) # TODO localapi
+    xi = getVert(fgl,id)
+    push!(Xi, xi ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
+    count += 1
+    if count == solvefor
+      gwp.factormetadata.solvefor = Symbol(xi.label)
+    end
   end
-  fnctype = getData(fct).fnc
-  return evalPotentialSpecific(fnctype.usrfnc!, Xi, fnctype, solvefor, N=N)
+  return evalPotentialSpecific(Xi, gwp, solvefor, N=N)
 end
 
 """
