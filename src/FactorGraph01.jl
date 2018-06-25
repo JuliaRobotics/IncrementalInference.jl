@@ -64,14 +64,16 @@ end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
-  v.attributes["data"].val = val
+  getData(v).val = val
+  # v.attributes["data"].val = val
   nothing
 end
 function getBWVal(v::Graphs.ExVertex)
   return getData(v).bw
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
-  v.attributes["data"].bw = bw
+  getData(v).bw = bw
+  # v.attributes["data"].bw = bw
   nothing
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
@@ -82,6 +84,9 @@ end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
   setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
   nothing
+end
+function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataLayerAPI=localapi)
+  setVal!(api.getvertex(fg, sym), val)
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   p = kde!(val)
@@ -802,17 +807,16 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
-# function writeGraphPdf(fgl::FactorGraph)
-#   fgd = drawCopyFG(fgl)
-#   println("Writing factor graph file")
-#   fid = open("fg.dot","w+")
-#   write(fid,Graphs.to_dot(fgd.g))
-#   close(fid)
-#   run(`dot fg.dot -Tpdf -o fg.pdf`)
-#   nothing
-# end
-
-
+function writeGraphPdf(fgl::FactorGraph, evince::Bool=true)
+  fgd = drawCopyFG(fgl)
+  println("Writing factor graph file")
+  fid = open("/tmp/fg.dot","w+")
+  write(fid,Graphs.to_dot(fgd.g))
+  close(fid)
+  run(`dot /tmp/fg.dot -Tpdf -o /tmp/fg.pdf`)
+  evince ? (@async run(`evince /tmp/fg.pdf`)) : nothing
+  nothing
+end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
