@@ -161,7 +161,7 @@ function evalPotentialSpecific(fnc::T,
   allelements, nhc, ENT = assembleNullHypothesis(fr, maxlen, spreadfactor)
 
   # Compute across the true or null hypothesis
-  computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T}, allelements, nhc, ENT )
+  computeAcrossNullHypothesis!(fr, allelements, nhc, ENT )
 
   return fr.gwp.params[gwp.varidx]
 end
