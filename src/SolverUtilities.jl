@@ -1,16 +1,16 @@
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
-	return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
 end
 
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
-		# n = length(X)
-    Y = deepcopy(Alt)
-    for i in 1:d
-			Y[p[i]] = X[i]
-		end
-    return Y
+  # n = length(X)
+  Y = deepcopy(Alt)
+  for i in 1:d
+    Y[p[i]] = X[i]
+  end
+  return Y
 end
 
 
@@ -18,16 +18,18 @@ function (p::GenericWrapParam)(res, x)
   # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
-  p.params[p.varidx][:, p.particleidx] = x[:]
+  p.params[p.varidx][:, p.particleidx] = x
   # p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
   # who are active hypotheses?  p.params[p.activehypo]...
-  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
+  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, view(p.params,p.activehypo)...)
+  # p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
 end
 
 # Shuffle incoming X into random permutation in fr.Y
 # shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
 function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
-  fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
+  fr.Y[1:fr.xDim] = view(fr.X, 1:fr.xDim, fr.gwp.particleidx)
+  # fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
   # copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
   for i in 1:fr.zDim
     fr.Y[fr.p[i]] = X[i]
@@ -139,6 +141,7 @@ end
 """
     $(SIGNATURES)
 
+DEPRECATED!
 Solve free variable x by root finding residual function fgr.usrfnc(x, res)
 randomly shuffle x dimensions if underconstrained by measurement z dimensions
 small random perturbation used to prevent trivial solver cases, div by 0 etc.

@@ -81,7 +81,7 @@ generalwrapper = GenericWrapParam{typeof(test2)}(test2, t, 1, 1)
 # generalwrapper.measurement = rand(1,1)
 
 x, res = zeros(2), zeros(2)
-@time generalwrapper(x,res)
+@time generalwrapper(res, x)
 
 At[1,1] = -2.0
 At[2,1] = 0.0
