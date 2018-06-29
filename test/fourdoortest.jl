@@ -13,7 +13,7 @@ doors2 = getPoints(pd);
 v1 = addNode!(fg,:x0,ContinuousScalar,N=N)
 f1  = addFactor!(fg,[v1],Obsv2( doors2, reshape(bws,1,1), [1.0])) #, samplefnc=getSample
 
-tem = 2.0*randn(1,N)+getVal(v1)+50.0
+# tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg, [:x0; :x2], Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
 # addFactor!(fg, [v1;v2], Odo(50.0*ones(1,1),[2.0]',[1.0])) #, samplefnc=getSample
@@ -31,9 +31,9 @@ v4=addNode!(fg,:x4,ContinuousScalar, N=N)
 addFactor!(fg,[v3;v4],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
 
 
-    l1=addNode!(fg, :l1, ContinuousScalar, N=N)
-    addFactor!(fg, [v3,l1], Ranged([64.0],[0.5],[1.0])) #, samplefnc=getSample
-    addFactor!(fg, [v4,l1], Ranged([16.0],[0.5],[1.0])) #, samplefnc=getSample
+l1=addNode!(fg, :l1, ContinuousScalar, N=N)
+addFactor!(fg, [v3,l1], Ranged([64.0],[0.5],[1.0])) #, samplefnc=getSample
+addFactor!(fg, [v4,l1], Ranged([16.0],[0.5],[1.0])) #, samplefnc=getSample
 
 
 

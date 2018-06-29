@@ -97,7 +97,8 @@ function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
-      frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
+      frl.gwp.params[sfidx][:,allelements[count]] = view(frl.gwp.params[mhidx],:,allelements[count])
+      # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -246,7 +247,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   for i in 1:N
     if nhc[i] == 0
-      generalwrapper.measurement[1][:,i] = val[:,i] + rand(ENT)
+      generalwrapper.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
     end
   end
   # TODO -- returning to memory location inside
