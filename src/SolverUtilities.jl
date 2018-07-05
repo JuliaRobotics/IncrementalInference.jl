@@ -106,11 +106,24 @@ function numericRootGenericRandomizedFnc!(
 end
 
 
+"""
+    $(SIGNATURES)
+
+Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
+"""
+function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
+  tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
+  inferOverTree!(fg, tree)
+  tree
+end
+
+
+
 #-------------------------------------------------------------------------------
 
-mutable struct TestSolver <: FunctorPairwise
-  testfnc::Function
-end
+# mutable struct TestSolver <: FunctorPairwise
+#   testfnc::Function
+# end
 
 
 # function numericRootGenericRandomizedFnc(
