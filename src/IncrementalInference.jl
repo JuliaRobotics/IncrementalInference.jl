@@ -94,6 +94,7 @@ export
   getKDE,
   getVertKDE,
   initializeNode!,
+  batchSolve!,
 
   #functors need
   getSample,
