@@ -270,11 +270,13 @@ function evalFactor2(fgl::FactorGraph,
   Xi = Graphs.ExVertex[]
   count = 0
   for id in getData(fct).fncargvID
+    count += 1
     xi = getVert(fgl,id)
     push!(Xi, xi ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
-    count += 1
-    if count == solvefor
+
+    # TODO bad way to search for `solvefor`
+    if xi.index == solvefor
       gwp.factormetadata.solvefor = Symbol(xi.label)
     end
   end
