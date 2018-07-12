@@ -161,6 +161,20 @@ end
 
 
 
+function evalLikelihood(fg::FactorGraph, sym::Symbol, point::Vector{Float64})
+  p = getVertKDE(fg, sym)
+  Ndim(p) == length(point) ? nothing : error("point (dim=$(length(point))) must have same dimension as belief (dim=$(Ndim(p)))")
+  evaluateDualTree(p, reshape(point,:,1))[1]
+end
+
+# Evaluate the likelihood of an Array{2} of points on the marginal belief of some variable
+# note the dimensions must match
+function evalLikelihood(fg::FactorGraph, sym::Symbol, points::Array{Float64,2})
+  p = getVertKDE(fg, sym)
+  Ndim(p) == size(points,1) ? nothing : error("points (dim=$(size(points,1))) must have same dimension as belief (dim=$(Ndim(p)))")
+  evaluateDualTree(p, (points))
+end
+
 
 
 

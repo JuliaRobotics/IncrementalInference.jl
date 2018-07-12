@@ -97,7 +97,7 @@ function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} w
   elseif ismatch(r"Categorical", str)
     return categoricalfromstring(str)
   else
-    error("Don't know how to extract distrubtion from str=$(str)")
+    error("Don't know how to extract distribution from str=$(str)")
   end
 end
 

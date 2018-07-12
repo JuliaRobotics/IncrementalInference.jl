@@ -33,6 +33,8 @@ export
   Ndim,
   getBW,
 
+  evalLikelihood,
+
   # data layer variables
   dlapi,
   localapi,
@@ -119,8 +121,9 @@ export
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
-    #development interface
-    upMsgPassingRecursive,
+
+  #development interface
+  upMsgPassingRecursive,
 
   # Inference types
   InferenceType,
@@ -158,7 +161,6 @@ export
   convert, # for protobuf stuff
   compare,
   extractdistribution,
-
 
   # factor graph operating system utils (fgos)
   convert2packedfunctionnode,
