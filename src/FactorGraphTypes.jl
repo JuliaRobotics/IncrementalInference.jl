@@ -169,9 +169,11 @@ mutable struct FactorMetadata
   variableuserdata::Union{Vector, Tuple}
   variablesmalldata::Union{Vector, Tuple}
   solvefor::Union{Symbol, Void}
+  variablelist::Union{Void, Vector{Symbol}}
   FactorMetadata() = new() # [], []
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing)
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4, nothing)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol}) = new(x1, x2, x3, x4, x5)
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
