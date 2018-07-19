@@ -269,11 +269,15 @@ function evalFactor2(fgl::FactorGraph,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
+  gwp.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)
     push!(Xi, xi ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
+
+    # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
+    gwp.factormetadata.variablelist[count] = Symbol(xi.label)
 
     # TODO bad way to search for `solvefor`
     if xi.index == solvefor
