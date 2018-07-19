@@ -96,6 +96,8 @@ function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} w
     return mvnormalfromstring(str)
   elseif ismatch(r"Categorical", str)
     return categoricalfromstring(str)
+  elseif ismatch(r"KDE:", str)
+    return convert(KernelDensityEstimate.BallTreeDensity, str)
   else
     error("Don't know how to extract distribution from str=$(str)")
   end

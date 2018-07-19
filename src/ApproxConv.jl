@@ -62,7 +62,6 @@ function prepareFastRootGWP(gwp::GenericWrapParam{T},
   gwp.params = ARR
   gwp.varidx = sfidx
   gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  size(gwp.measurement[1])
   zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
   if gwp.specialzDim
     zDim = gwp.usrfnc!.zDim[sfidx]
