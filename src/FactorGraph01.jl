@@ -212,7 +212,7 @@ function addNode!(fg::FactorGraph,
                   labels::Vector{<:AbstractString}=String[],
                   api::DataLayerAPI=dlapi,
                   uid::Int=-1,
-                  smalldata=nothing  ) where {T <:InferenceVariable}
+                  smalldata=""  ) where {T <:InferenceVariable}
   #
   currid = fg.id+1
   if uid==-1
@@ -254,7 +254,7 @@ function addNode!(fg::FactorGraph,
                   api::DataLayerAPI=dlapi,
                   uid::Int=-1,
                   # dims::Int=-1,
-                  smalldata=nothing  )
+                  smalldata=""  )
   #
   addNode!(fg,
            lbl,
