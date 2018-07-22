@@ -332,6 +332,14 @@ function predictbelief(fgl::FactorGraph,
   predictbelief(fgl, vert, factors, N=nn)
 end
 
+function predictbelief(fgl::FactorGraph,
+                       destvertsym::Symbol,
+                       factorsyms::Colon;
+                       N::Int=0,
+                       api::DataLayerAPI=IncrementalInference.localapi  )
+  #
+  predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api )
+end
 
 function localProduct(fgl::FactorGraph,
                       sym::Symbol;
