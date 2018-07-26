@@ -151,7 +151,8 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                gwp::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=100,
-                               spreadfactor::Float64=10.0  ) where {T <: FunctorPairwiseNH}
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
 
   # TODO -- could be constructed and maintained at addFactor! time
@@ -173,7 +174,8 @@ Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute 
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                gwp::GenericWrapParam{T},
                                solvefor::Int;
-                               N::Int=100  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               N::Int=100,
+                               dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
   fnc = gwp.usrfnc!
 
@@ -198,11 +200,12 @@ Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                generalwrapper::GenericWrapParam{T},
                                solvefor::Int;
-                               N::Int=0 ) where {T <: FunctorSingleton}
+                               N::Int=0,
+                               dbg::Bool=false ) where {T <: FunctorSingleton}
   #
   fnc = generalwrapper.usrfnc!
 
-  nn = N != 0 ? N : size(getVal(Xi[1]),2)
+  nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, nn)
   if !generalwrapper.partial
     return generalwrapper.measurement[1]
@@ -227,7 +230,8 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                generalwrapper::GenericWrapParam{T},
                                solvefor::Int;
                                N::Int=100,
-                               spreadfactor::Float64=10.0 ) where {T <: FunctorSingletonNH}
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorSingletonNH}
   #
   fnc = generalwrapper.usrfnc!
 
@@ -261,7 +265,8 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 function evalFactor2(fgl::FactorGraph,
                      fct::Graphs.ExVertex,
                      solvefor::Int;
-                     N::Int=100 )
+                     N::Int=100,
+                     dbg::Bool=false )
   #
 
   gwp = getData(fct).fnc
@@ -283,7 +288,7 @@ function evalFactor2(fgl::FactorGraph,
       gwp.factormetadata.solvefor = Symbol(xi.label)
     end
   end
-  return evalPotentialSpecific(Xi, gwp, solvefor, N=N)
+  return evalPotentialSpecific(Xi, gwp, solvefor, N=N, dbg=dbg)
 end
 
 """
@@ -311,9 +316,9 @@ Compute proposal belief on varnodeid through fctvert representing some constrain
 Always full dimension of variable node, where partial constraints will only influence directed
 subset of variable dimensions. Remaining dimensions will keep existing variable values.
 """
-function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int) # vert
+function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int, dbg::Bool=false) # vert
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(fg, idfct, vertid, N=N);
+  ptsbw = evalFactor2(fg, idfct, vertid, N=N, dbg=dbg);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
 
   # TODO -- better to upsample before the projection

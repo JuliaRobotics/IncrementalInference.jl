@@ -64,6 +64,7 @@ export
   FactorGraph,
   addNode!,
   addFactor!,
+  doautoinit!,
   resetData!,
   getVert,
   getData,

@@ -491,6 +491,30 @@ function doautoinit!(fgl::FactorGraph,
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+initialize destination variable nodes based on this factor in factor graph, fg, generally called
+during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+"""
+function doautoinit!(fgl::FactorGraph,
+                     xsyms::Vector{Symbol};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
+  #
+  verts = getVert.(fgl, xsyms, api=api)
+  doautoinit!(fgl, verts, api=api, singles=singles, N=N)
+end
+function doautoinit!(fgl::FactorGraph,
+                     xsym::Symbol;
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
+  #
+  doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
+end
+
 function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
   xx, xl = ls(fgl)
   allvarnodes = union(xx, xl)
