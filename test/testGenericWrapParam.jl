@@ -7,10 +7,11 @@ using IncrementalInference
 
 import IncrementalInference: getSample
 
-println("FunctorWorks")
-type FunctorWorks
+mutable struct FunctorWorks
   a::Array{Float64,2}
 end
+
+@testset "FunctorWorks" begin
 
 function (fw::FunctorWorks)(x)
   fw.a[1,1] = -1.0
@@ -25,15 +26,17 @@ fvar = FunctorWorks(A)
 fvar(0.0)
 @test At == A
 
+end
 
 
-println("FunctorArray")
 
-type FunctorArray{T}
+mutable struct FunctorArray{T}
   # This was a tuple, but array will like work better in the long term
   fnc!::Function
   a::Array{T, 1}
 end
+
+@testset "FunctorArray" begin
 
 function testarray!(a1::Array{Float64, 2}, a2::Array{Float64,2})
   a1[1,1] = -1.0
@@ -57,11 +60,11 @@ fvar = FunctorArray(testarray!, t)
 fvar([0.0])
 @test At == A
 
+end
 
 
 
-println("GenericWrapParam test")
-
+@testset "GenericWrapParam test" begin
 
 function test2(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
@@ -87,21 +90,24 @@ At[1,1] = -2.0
 At[2,1] = 0.0
 @test A == At
 
+end
 
-
-
-
-println("Test in factor graph setting...")
 
 # abstract Nonparametric <: Function
 # This is what the internmediate user would be contributing
 mutable struct Pose1Pose1Test{T} <: FunctorPairwise
   Dx::T
-  Pose1Pose1Test() = new()
-  Pose1Pose1Test{T}(a::T) = new(a)
+  Pose1Pose1Test{T}() where T = new()
+  Pose1Pose1Test{T}(a::T) where T = new(a)
   # Pose1Pose1Test(a::T) where T = new(a)
 end
+Pose1Pose1Test(a::T) where T = Pose1Pose1Test{T}(a)
+
 getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
+
+
+@testset "Test in factor graph setting..." begin
+
 
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
@@ -134,8 +140,8 @@ x, res = zeros(1), zeros(1)
   @test res[1] > 50.0
 end
 
-
 println("Test with NLsolve for root finding using generalwrapper functor.")
+
 generalwrapper.varidx = 2
 @time for i in 1:N
   generalwrapper.particleidx = i
@@ -147,13 +153,14 @@ end
 @test abs(Base.mean(p1)-0.0) < 3.0
 @test abs(Base.mean(p2)-100.0) < 3.0
 
+end
 
 # function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
 #
 #
 # end
 
-println("Test with FastRootGenericWrapParam for un-permuted root finding...")
+@testset "Test with FastRootGenericWrapParam for un-permuted root finding..." begin
 
 N = 110
 p1 = rand(1,N)
@@ -207,9 +214,14 @@ end
 @test -10.0 < Base.mean(gwp.params[1]) < 10.0
 @test 90.0 < Base.mean(gwp.params[2]) < 110.0
 
+end
 
-println("Test with FastRootGenericWrapParam for permuted root finding...")
+
+@testset "Test with FastRootGenericWrapParam for permuted root finding..." begin
+
 warn("test not implemented yet")
+
+end
 
 # use the range only example, should give a circle with nothing in the middle
 
@@ -243,7 +255,9 @@ pts = getVal(getVert(fg,:x1))
 pts = getVal(getVert(fg,:x2))
 @test abs(Base.mean(pts)-0.0) < 10.0
 
-@time [inferOverTreeR!(fg, tree) for i in 1:3];
+inferOverTreeR!(fg, tree, N=N)
+inferOverTreeR!(fg, tree)
+# @time [inferOverTreeR!(fg, tree, N=N) for i in 1:3];
 
 
 # using Gadfly

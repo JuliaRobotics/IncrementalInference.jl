@@ -61,6 +61,7 @@ mutable struct FactorGraph
   cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
   sessionname::String
   robotname::String
+  username::String
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
@@ -81,7 +82,8 @@ mutable struct FactorGraph
     x13,
     x14,
     x15,
-    x16
+    x16,
+    x17
    ) = new(
     x1,
     x2,
@@ -99,6 +101,7 @@ mutable struct FactorGraph
     x14,
     x15,
     x16,
+    x17,
     false )
 end
 
@@ -122,6 +125,7 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
                      0,
                      nothing,
                      Dict{Int,Int}(),
+                     "",
                      "",
                      "",
                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
@@ -170,10 +174,11 @@ mutable struct FactorMetadata
   variablesmalldata::Union{Vector, Tuple}
   solvefor::Union{Symbol, Void}
   variablelist::Union{Void, Vector{Symbol}}
+  dbg::Bool
   FactorMetadata() = new() # [], []
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing)
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4, nothing)
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol}) = new(x1, x2, x3, x4, x5)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4, nothing, false)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
 mutable struct GenericWrapParam{T} <: FunctorInferenceType
