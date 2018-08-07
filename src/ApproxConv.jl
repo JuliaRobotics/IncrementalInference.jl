@@ -34,7 +34,7 @@ Notes:
 function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  res = zeros(frl.xDim)
+  res = zeros(frl.xDim) # TODO should not be claiming new memory every single time....
   gg = (x) -> frl.gwp(res, x)
   for n in elements
     frl.gwp.particleidx = n
