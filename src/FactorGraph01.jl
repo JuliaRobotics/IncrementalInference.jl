@@ -846,7 +846,7 @@ function writeGraphPdf(fgl::FactorGraph;
   try
     pdfreader != nothing ? (@async run(`$(pdfreader) $(filename)`)) : nothing
   catch e
-    warn("not able to show $(filename) with pdfreader=$(pdfreader).")
+    warn("not able to show $(filename) with pdfreader=$(pdfreader). Exception e=$(e)")
   end
   nothing
 end
