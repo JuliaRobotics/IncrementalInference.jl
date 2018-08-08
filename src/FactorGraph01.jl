@@ -838,10 +838,10 @@ function writeGraphPdf(fgl::FactorGraph;
   #
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
-  fid = open("/tmp/fg.dot","w+")
+  dotfile = split(filename, ".pdf")[1]*".dot"
+  fid = open(dotfile,"w")
   write(fid,Graphs.to_dot(fgd.g))
   close(fid)
-  dotfile = split(filename, ".pdf")[1]*".dot"
   run(`dot $(dotfile) -Tpdf -o $(filename)`)
   try
     pdfreader != nothing ? (@async run(`$(pdfreader) $(filename)`)) : nothing
