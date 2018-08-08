@@ -56,6 +56,26 @@ end
 
 
 
+function FNDencode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  warn("FNDencode deprecated, use the convert functions through dispatch instead, PackedFunctionNodeData{P=$(P)}.")
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: FunctorInferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  warn("FNDdecode deprecated, use the convert functions through dispatch instead, FunctionNodeData{T=$(T)}.")
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
+function FNDencode{T <: InferenceType, P <: PackedInferenceType}(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T})
+  warn("FNDencode deprecated, use the convert functions through dispatch instead, PackedFunctionNodeData{P=$(P)}.")
+  return convert(PackedFunctionNodeData{P}, d) #PackedFunctionNodeData{P}
+end
+function FNDdecode{T <: InferenceType, P <: PackedInferenceType}(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P})
+  warn("FNDdecode deprecated, use the convert functions through dispatch instead, FunctionNodeData{T=$(T)}.")
+  return convert(FunctionNodeData{T}, d) #FunctionNodeData{T}
+end
+
+
+
 
 # this will likely expand with more internal bells and whistles
 # to perform in place memory operations for array values in
