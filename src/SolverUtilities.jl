@@ -48,7 +48,6 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   # warn("still in development")
-  frl.gwp.particleidx = n
   frl.res[1:frl.xDim] = 0.0
   r = optimize( frl.gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
   # TODO -- clearly lots of optmization to be done here
