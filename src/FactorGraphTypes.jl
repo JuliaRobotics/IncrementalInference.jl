@@ -213,8 +213,10 @@ mutable struct FastRootGenericWrapParam{T} <: Function
   xDim::Int
   zDim::Int
   gwp::GenericWrapParam{T}
+  gg::Function
+  res::Vector{Float64}
   FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, +, zeros(0))
 end
 
 mutable struct GenericFunctionNodeData{T, S}

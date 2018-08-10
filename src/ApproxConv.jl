@@ -23,6 +23,15 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
   nothing
 end
 
+# mutable struct MinimizeFnc <: Function
+#   res
+#
+# end
+#
+# function (mmf::MinimizeFnc)(x::Vector{Float64})
+#
+# end
+
 """
     $(SIGNATURES)
 
@@ -33,16 +42,20 @@ Notes:
 """
 function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
+
+  # TODO should not be claiming new memory every single time....
+  # frl.res = zeros(frl.xDim)
+  # frl.gg = (x) -> frl.gwp(frl.res, x) # TODO standardize this function into frl
+
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  res = zeros(frl.xDim) # TODO should not be claiming new memory every single time....
-  gg = (x) -> frl.gwp(res, x)
   for n in elements
     frl.gwp.particleidx = n
-    res[:] = 0.0
-    r = optimize( gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
-    # TODO -- clearly lots of optmization to be done here
-    frl.Y[1:frl.xDim] = r.minimizer
-    frl.X[:,frl.gwp.particleidx] = frl.Y
+    numericRootGenericRandomizedFnc!( frl )
+    # frl.res[1:frl.xDim] = 0.0
+    # r = optimize( frl.gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
+    # # TODO -- clearly lots of optmization to be done here
+    # frl.Y[1:frl.xDim] = r.minimizer
+    # frl.X[1:frl.xDim,frl.gwp.particleidx] = frl.Y
   end
   nothing
 end
@@ -68,7 +81,11 @@ function prepareFastRootGWP(gwp::GenericWrapParam{T},
   end
   # Construct complete fr (with fr.gwp) object
   # TODO -- create FastRootGenericWrapParam at addFactor time only?
-  FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
+  frall = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
+  fr = frall[1]
+  fr.res = zeros(fr.xDim)
+  fr.gg = (x) -> fr.gwp(fr.res, x)
+  return frall
 end
 
 """

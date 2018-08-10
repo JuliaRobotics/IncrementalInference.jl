@@ -42,6 +42,21 @@ function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64
 end
 
 
+function numericRootGenericRandomizedFnc!(
+            frl::FastRootGenericWrapParam{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
+  #
+  # warn("still in development")
+  frl.gwp.particleidx = n
+  frl.res[1:frl.xDim] = 0.0
+  r = optimize( frl.gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
+  # TODO -- clearly lots of optmization to be done here
+  frl.Y[1:frl.xDim] = r.minimizer
+  frl.X[1:frl.xDim,frl.gwp.particleidx] = frl.Y
+  nothing
+end
+
 ## TODO desperately needs cleaning up and refactoring
 # Solve free variable x by root finding residual function fgr.usrfnc(x, res)
 # randomly shuffle x dimensions if underconstrained by measurement z dimensions
@@ -49,9 +64,9 @@ end
 # result stored in fgr.Y
 # fr.X must be set to memory ref the param[varidx] being solved, at creation of fr
 function numericRootGenericRandomizedFnc!(
-      fr::FastRootGenericWrapParam{T};
-      perturb::Float64=1e-10,
-      testshuffle::Bool=false ) where {T <: FunctorInferenceType}
+            fr::FastRootGenericWrapParam{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwise}
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
   # @show fr.zDim, fr.xDim, fr.gwp.partial, fr.gwp.particleidx
