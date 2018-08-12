@@ -147,8 +147,9 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
-  FastGenericRoot,
-  FastRootGenericWrapParam,
+  FastGenericRoot, # will be deprecated
+  FastRootGenericWrapParam, # may be deprecated
+  CommonConvWrapper, # new wrapper (experimental) -- not ready for use
 
   # user functions
   proposalbeliefs,

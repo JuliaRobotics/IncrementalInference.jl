@@ -357,20 +357,20 @@ function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
 end
 
 function prepgenericwrapper(
-      Xi::Vector{Graphs.ExVertex},
-      usrfnc::UnionAll,
-      samplefnc::Function;
-      multihypo::Union{Void, Distributions.Categorical}=nothing )
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::UnionAll,
+            samplefnc::Function;
+            multihypo::Union{Void, Distributions.Categorical}=nothing )
       # multiverts::Vector{Symbol}=Symbol[]
   #
   error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
 end
 
 function prepgenericwrapper(
-      Xi::Vector{Graphs.ExVertex},
-      usrfnc::T,
-      samplefnc::Function;
-      multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::T,
+            samplefnc::Function;
+            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
@@ -397,6 +397,34 @@ function prepgenericwrapper(
     return gwp
 end
 
+function prepgenericconvolution(
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::T;
+            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+      # multiverts::Vector{Symbol}=Symbol[]
+  #
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  fldnms = fieldnames(usrfnc)
+  zdim = typeof(usrfnc) != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  ccw = CommonConvWrapper(
+          usrfnc,
+          zeros(1,0),
+          zdim,
+          ARR,
+          specialzDim = sum(fldnms .== :zDim) >= 1,
+          partial = sum(fldnms .== :partial) >= 1,
+          hypotheses=multihypo
+      )
+  #
+  ccw.factormetadata.variableuserdata = []
+  ccw.factormetadata.solvefor = :null
+  for xi in Xi
+    push!(ccw.factormetadata.variableuserdata, getData(xi).softtype)
+  end
+  return ccw
+end
+
 function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
@@ -408,8 +436,14 @@ function setDefaultFactorNode!(
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
   mhcat = parseusermultihypo(multihypo)
   gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat)
 
   m = Symbol(ftyp.name.module)
+
+  # experimental wip
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], m, ccw)
+
+  # existing interface
   data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
   vert.attributes["data"] = data
 

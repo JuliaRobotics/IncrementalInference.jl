@@ -40,18 +40,14 @@ end
 
 
 
-const FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
+# Obsolete
 # FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
-
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, <: AbstractString}
 # PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
 # PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
-
+# TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
 function normalfromstring(str::AS) where {AS <: AbstractString}
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
   mean = split(meanstr, '=')[2]
@@ -192,7 +188,12 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
-
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
+  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  mhstr = packmultihypo(d.fnc)
+  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+end
 
 
 
@@ -215,6 +216,8 @@ function convert(
   mhcat = parsemultihypostr(d.multihypo)
   # @show typeof(mhcat)
   gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
+
+  ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
   return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), gwpf)
 end

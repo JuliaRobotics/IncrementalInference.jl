@@ -18,8 +18,14 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
     frl.gwp.particleidx = n
     numericRootGenericRandomizedFnc!( frl )
   end
-  # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
-  # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
+  nothing
+end
+function approxConvOnElements!(ccwl::CommonConvWrapper{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
+  for n in elements
+    ccwl.particleidx = n
+    numericRootGenericRandomizedFnc!( ccwl )
+  end
   nothing
 end
 
@@ -59,6 +65,16 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
   end
   nothing
 end
+function approxConvOnElements!(ccwl::CommonConvWrapper{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
+
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  for n in elements
+    ccwl.particleidx = n
+    numericRootGenericRandomizedFnc!( ccwl )
+  end
+  nothing
+end
 
 """
     $(SIGNATURES)
@@ -81,11 +97,39 @@ function prepareFastRootGWP(gwp::GenericWrapParam{T},
   end
   # Construct complete fr (with fr.gwp) object
   # TODO -- create FastRootGenericWrapParam at addFactor time only?
-  frall = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
-  fr = frall[1]
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
   fr.res = zeros(fr.xDim)
   fr.gg = (x) -> fr.gwp(fr.res, x)
-  return frall
+  return fr, sfidx, maxlen
+end
+
+"""
+    $(SIGNATURES)
+
+Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
+"""
+function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
+                                   Xi::Vector{Graphs.ExVertex},
+                                   solvefor::Int,
+                                   N::Int  ) where {T <: FunctorInferenceType}
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
+  ccw.params = ARR
+  ccw.varidx = sfidx
+  ccw.measurement = getSample(ccw.usrfnc!, maxlen) # ccw.samplerfnc
+  if ccw.specialzDim
+    ccw.zDim = ccw.zDim[sfidx]
+  else
+    ccw.zDim = size(ccw.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
+  end
+  ccw.X = ccw.params[sfidx]
+  ccw.p = collect(1:size(ccw.X,1))
+  ccw.xDim = size(ccw.X,1)
+  ccw.Y = zeros(ccw.xDim)
+  ccw.res = zeros(ccw.xDim)
+  ccw.gg = (x) -> ccw.gwp(ccw.res, x)
+  return sfidx, maxlen
 end
 
 """
@@ -114,6 +158,34 @@ function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
       frl.gwp.params[sfidx][:,allelements[count]] = view(frl.gwp.params[mhidx],:,allelements[count])
+      # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
+    else
+      error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
+    end
+  end
+  nothing
+end
+function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
+                                 allelements,
+                                 activehypo,
+                                 certainidx,
+                                 sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  count = 0
+  for (mhidx, vars) in activehypo
+    count += 1
+    if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
+      # standard case mhidx, sfidx = $mhidx, $sfidx
+      ccwl.activehypo = vars
+      approxConvOnElements!(ccwl, allelements[count])
+    elseif mhidx == sfidx
+      # multihypo, do conv case, mhidx == sfidx
+      ccwl.activehypo = sort(union([sfidx;], certainidx))
+      approxConvOnElements!(ccwl, allelements[count])
+    elseif mhidx != sfidx
+      # multihypo, take other value case
+      # sfidx=2, mhidx=3:  2 should take a value from 3
+      # sfidx=3, mhidx=2:  3 should take a value from 2
+      ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
       # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
@@ -206,6 +278,23 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return fr.gwp.params[gwp.varidx]
 end
 
+# work in progress to replace equivalent GenericWrapParam{} version
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               ccw::CommonConvWrapper{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  #
+
+  # Prep computation variables
+  sfidx, maxlen = prepareCommonConvWrapper!(ccw, Xi, solvefor, N)
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccw.hypotheses, maxlen, sfidx, length(Xi))
+
+  # perform the numeric solutions on the indicated elements
+  computeAcrossHypothesis!(ccw, allelements, activehypo, certainidx, sfidx)
+
+  return ccw.params[gwp.varidx]
+end
 
 #  Singletons ==================================================================
 
@@ -321,7 +410,7 @@ function approxConv(fgl::FactorGraph,
   #
   fc = getVert(fgl, fct, nt=:fct, api=api)
   v1 = getVert(fgl, towards, api=api)
-  N = N == -1 ? N : getNumPts(v1)
+  N = N == -1 ? getNumPts(v1) : N
   return evalFactor2(fgl, fc, v1.index, N=N)
 end
 

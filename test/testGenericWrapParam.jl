@@ -66,13 +66,16 @@ end
 
 @testset "GenericWrapParam test" begin
 
-function test2(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+struct Test2 <: FunctorInferenceType
+end
+
+function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
   res[:] = 1.0
   nothing;
 end
 
-
+tst2 = Test2()
 A = rand(2,3)
 B = rand(2,3)
 At = deepcopy(A)
@@ -80,11 +83,19 @@ t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
 # @show typeof(t)
-generalwrapper = GenericWrapParam{typeof(test2)}(test2, t, 1, 1)
+generalwrapper = GenericWrapParam{Test2}(tst2, t, 1, 1)
+ccw = CommonConvWrapper(tst2, t[1], 1, t)
 # generalwrapper.measurement = rand(1,1)
 
 x, res = zeros(2), zeros(2)
 @time generalwrapper(res, x)
+
+At[1,1] = -2.0
+At[2,1] = 0.0
+@test A == At
+
+x, res = zeros(2), zeros(2)
+@time ccw(res, x)
 
 At[1,1] = -2.0
 At[2,1] = 0.0

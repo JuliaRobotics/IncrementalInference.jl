@@ -14,7 +14,7 @@ function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vecto
 end
 
 
-function (p::GenericWrapParam)(res, x)
+function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
   # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
@@ -41,6 +41,40 @@ function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64
   fr.gwp( res, fr.Y )
 end
 
+# THIS FUNCTION DOES NOT WORK ON ITS OWN
+# for Optim.jl usage (drop gg requirement)
+function (fr::FastRootGenericWrapParam{T})( x::Vector{Float64} ) where {T <: FunctorPairwiseMinimize}
+  shuffleXAltD!(fr, x)
+  ret = fr.gwp( fr.res, fr.Y )
+  return ret
+end
+
+
+# Shuffle incoming X into random permutation in fr.Y
+# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
+function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
+  ccwl.Y[1:ccwl.xDim] = view(ccwl.X, 1:ccwl.xDim, ccwl.particleidx)
+  for i in 1:ccwl.zDim
+    ccwl.Y[ccwl.p[i]] = X[i]
+  end
+  nothing
+end
+function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
+  shuffleXAltD!(ccw, x)
+  # fr.gwp( res, fr.Y )
+  ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
+  ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, ccw.params[ccw.activehypo]...) # optmize the view here, re-use the same memory
+end
+
+# UNTESTED AND PROBABLY HAS THE SAME GG ISSUE AS FastRootGenericWrapParam DOES -- TODO, switch, solve, use
+# function (ccw::CommonConvWrapper)(x::Vector{Float64})
+#   info("CommonConvWrapper is still experimental")
+#   shuffleXAltD!(ccw, x)
+#   # fr.gwp( fr.res, fr.Y )
+#   ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
+#   ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, view(ccw.params,ccw.activehypo)...)
+# end
+
 
 function numericRootGenericRandomizedFnc!(
             frl::FastRootGenericWrapParam{T};
@@ -48,11 +82,24 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   # warn("still in development")
-  frl.res[1:frl.xDim] = 0.0
-  r = optimize( frl.gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
+  fill!(frl.res, 0.0) # 1:frl.xDim
+  r = optimize( frl.gg, frl.X[:, frl.gwp.particleidx] ) # frl.gg
   # TODO -- clearly lots of optmization to be done here
-  frl.Y[1:frl.xDim] = r.minimizer
-  frl.X[1:frl.xDim,frl.gwp.particleidx] = frl.Y
+  frl.Y[:] = r.minimizer
+  frl.X[:,frl.gwp.particleidx] = frl.Y
+  nothing
+end
+function numericRootGenericRandomizedFnc!(
+            ccwl::CommonConvWrapper{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
+  #
+  # warn("still in development")
+  fill!(ccwl.res, 0.0) # 1:frl.xDim
+  r = optimize( ccwl.gg, ccwl.X[:, ccwl.particleidx] ) # frl.gg
+  # TODO -- clearly lots of optmization to be done here
+  ccwl.Y[:] = r.minimizer
+  ccwl.X[:,ccwl.particleidx] = ccwl.Y
   nothing
 end
 

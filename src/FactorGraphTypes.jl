@@ -7,6 +7,7 @@ import Base: ==
 @compat abstract type FunctorInferenceType <: Function end
 
 abstract type InferenceVariable end
+abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
 @compat abstract type Pairwise <: InferenceType end
@@ -219,6 +220,82 @@ mutable struct FastRootGenericWrapParam{T} <: Function
       new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, +, zeros(0))
 end
 
+
+mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+    # no longer used
+    # gwp::GenericWrapParam{T}
+    # samplerfnc::Function # removed, since no required. Direct multiple dispatch at solve -- user zDim = size(meas[1],1)
+  usrfnc!::T # user factor
+  factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
+  # special case settings
+  specialzDim::Bool # is there a special zDim requirement -- defined by user
+  partial::Bool # is this a partial constraint -- defined by user
+  # multi hypothesis settings
+  hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
+
+  # values specific to one complete convolution operation
+  params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
+  varidx::Int # which index is being solved for in params?
+
+  # particular convolution computation values per particle idx
+  measurement::Tuple # user defined measurement values for each approxConv operation
+  particleidx::Int # the actual particle being solved at this moment
+  p::Vector{Int} # a numerical slight permutation vector in case degenerate case is incountered by solver
+  perturb::Vector{Float64}
+  X::Array{Float64,2}
+  Y::Vector{Float64}
+  xDim::Int
+  zDim::Int
+  gg::Function
+  res::Vector{Float64}
+  CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
+end
+
+
+function CommonConvWrapper(fnc::T,
+                           X::Array{Float64,2},
+                           zDim::Int,
+                           params::Vector{Array{Float64,2}};
+                           factormetadata::FactorMetadata=FactorMetadata(),
+                           specialzDim::Bool=false,
+                           partial::Bool=false,
+                           hypotheses=nothing,
+                           activehypo= 1:length(params),
+                           varidx::Int=1,
+                           measurement::Tuple=(zeros(0,1),),
+                           particleidx::Int=1,
+                           p=collect(1:size(X,1)),
+                           perturb=zeros(zDim),
+                           Y=zeros(size(X,1)),
+                           xDim=size(X,1),
+                           gg::Function=()->error("Must define function gg in CommonConvWrapper"),
+                           res=zeros(0) ) where {T<:FunctorInferenceType}
+  #
+  ccw = CommonConvWrapper{T}()
+
+  ccw.usrfnc! = fnc
+  ccw.factormetadata = factormetadata
+  ccw.specialzDim = specialzDim
+  ccw.partial = partial
+  ccw.hypotheses = hypotheses
+  ccw.activehypo = activehypo
+  ccw.params = params
+  ccw.varidx = varidx
+  ccw.measurement = measurement
+  ccw.particleidx = particleidx
+  ccw.p = p
+  ccw.perturb = perturb
+  ccw.X = X
+  ccw.Y = Y
+  ccw.xDim = xDim
+  ccw.zDim = zDim
+  ccw.gg = gg
+  ccw.res = res
+
+  return ccw
+end
+
 mutable struct GenericFunctionNodeData{T, S}
   fncargvID::Array{Int,1}
   eliminated::Bool
@@ -232,6 +309,15 @@ mutable struct GenericFunctionNodeData{T, S}
   GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
   # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
+
+
+# where {T <: Union{InferenceType, FunctorInferenceType}}
+const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
+
+# where {T <: PackedInferenceType}
+const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
 ###
