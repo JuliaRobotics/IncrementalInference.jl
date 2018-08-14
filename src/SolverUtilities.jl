@@ -12,6 +12,34 @@ function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vecto
   end
   return Y
 end
+# Shuffle incoming X into random permutation in fr.Y
+# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
+function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
+  # populate defaults
+  for i in 1:fr.xDim
+    fr.Y[i] = fr.X[i, fr.gwp.particleidx]
+  end
+  # fr.Y[1:fr.xDim] = view(fr.X, 1:fr.xDim, fr.gwp.particleidx)
+  # fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
+  # copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
+  for i in 1:fr.zDim
+    fr.Y[fr.p[i]] = X[i]
+  end
+  nothing
+end
+# Shuffle incoming X into random permutation in fr.Y
+# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
+function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
+  # populate defaults
+  for i in 1:ccwl.xDim
+    ccwl.Y[i] = ccwl.X[i, ccwl.particleidx]
+  end
+  # populate as many measurment dimensions randomly for calculation
+  for i in 1:ccwl.zDim
+    ccwl.Y[ccwl.p[i]] = X[i]
+  end
+  nothing
+end
 
 
 function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
@@ -25,45 +53,25 @@ function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
   # p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
 end
 
-# Shuffle incoming X into random permutation in fr.Y
-# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
-function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
-  fr.Y[1:fr.xDim] = view(fr.X, 1:fr.xDim, fr.gwp.particleidx)
-  # fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
-  # copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
-  for i in 1:fr.zDim
-    fr.Y[fr.p[i]] = X[i]
-  end
-  nothing
-end
 function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64} )
   shuffleXAltD!(fr, x)
   fr.gwp( res, fr.Y )
 end
 
-# THIS FUNCTION DOES NOT WORK ON ITS OWN
-# for Optim.jl usage (drop gg requirement)
-function (fr::FastRootGenericWrapParam{T})( x::Vector{Float64} ) where {T <: FunctorPairwiseMinimize}
-  shuffleXAltD!(fr, x)
-  ret = fr.gwp( fr.res, fr.Y )
-  return ret
-end
+# # THIS FUNCTION DOES NOT WORK ON ITS OWN
+# # for Optim.jl usage (drop gg requirement)
+# function (fr::FastRootGenericWrapParam{T})( x::Vector{Float64} ) where {T <: FunctorPairwiseMinimize}
+#   shuffleXAltD!(fr, x)
+#   ret = fr.gwp( fr.res, fr.Y )
+#   return ret
+# end
 
-
-# Shuffle incoming X into random permutation in fr.Y
-# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
-function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
-  ccwl.Y[1:ccwl.xDim] = view(ccwl.X, 1:ccwl.xDim, ccwl.particleidx)
-  for i in 1:ccwl.zDim
-    ccwl.Y[ccwl.p[i]] = X[i]
-  end
-  nothing
-end
 function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
   shuffleXAltD!(ccw, x)
   # fr.gwp( res, fr.Y )
   ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
-  ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, ccw.params[ccw.activehypo]...) # optmize the view here, re-use the same memory
+  ret = ccw.usrfnc!(res, ccw.factormetadata, ccw.particleidx, ccw.measurement, ccw.params[ccw.activehypo]...) # optmize the view here, re-use the same memory
+  return ret
 end
 
 # UNTESTED AND PROBABLY HAS THE SAME GG ISSUE AS FastRootGenericWrapParam DOES -- TODO, switch, solve, use
@@ -117,6 +125,7 @@ function numericRootGenericRandomizedFnc!(
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
   # @show fr.zDim, fr.xDim, fr.gwp.partial, fr.gwp.particleidx
   if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
+    # less measurement dimensions than variable dimensions -- i.e. shuffle
     shuffle!(fr.p)
     for i in 1:fr.xDim
       fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
@@ -140,6 +149,7 @@ function numericRootGenericRandomizedFnc!(
     end
     #shuffleXAltD!( fr, r.zero ) # moved up
   elseif fr.zDim >= fr.xDim && !fr.gwp.partial
+    # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
     fr.perturb[1:fr.xDim] = perturb*randn(fr.xDim)
     fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
     r = nlsolve( fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] )

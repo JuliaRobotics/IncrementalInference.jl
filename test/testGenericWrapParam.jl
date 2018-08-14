@@ -63,11 +63,11 @@ fvar([0.0])
 end
 
 
+struct Test2 <: FunctorInferenceType
+end
 
 @testset "GenericWrapParam test" begin
 
-struct Test2 <: FunctorInferenceType
-end
 
 function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
@@ -82,24 +82,36 @@ At = deepcopy(A)
 t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
+t[1][1,1] = -10.0
+@test A[1,1] == -10
 # @show typeof(t)
 generalwrapper = GenericWrapParam{Test2}(tst2, t, 1, 1)
-ccw = CommonConvWrapper(tst2, t[1], 1, t)
-# generalwrapper.measurement = rand(1,1)
+ccw = CommonConvWrapper(tst2, t[1], 2, t) # generalwrapper.measurement = rand(1,1)
+
 
 x, res = zeros(2), zeros(2)
+@show t[1][:,1]
 @time generalwrapper(res, x)
 
 At[1,1] = -2.0
 At[2,1] = 0.0
 @test A == At
 
+
 x, res = zeros(2), zeros(2)
 @time ccw(res, x)
+
 
 At[1,1] = -2.0
 At[2,1] = 0.0
 @test A == At
+
+# resource requirements
+
+# fm = FactorMetadata()
+# meas = (randn(2,3), )
+#
+# @time tst2(res, fm, 1, meas, A, B)
 
 end
 
@@ -117,21 +129,21 @@ Pose1Pose1Test(a::T) where T = Pose1Pose1Test{T}(a)
 getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
 
 
-@testset "Test in factor graph setting..." begin
-
-
 #proposed standardized parameter list, does not have to be functor
 function (Dp::Pose1Pose1Test)(res::Array{Float64},
-      userdata::FactorMetadata,
-      idx::Int,
-      meas::Tuple{Array{Float64,2}},
-      p1::Array{Float64,2},
-      p2::Array{Float64,2} )
+            userdata::FactorMetadata,
+            idx::Int,
+            meas::Tuple{Array{Float64,2}},
+            p1::Array{Float64,2},
+            p2::Array{Float64,2} )
   #
-  # println("Dp::Pose1Pose1Test, in-place idx=$(idx)")
   res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing
 end
+
+
+@testset "Test in factor graph setting..." begin
+
 
 N = 101
 p1 = rand(1,N)
@@ -143,6 +155,7 @@ push!(t,p2)
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
 # generalwrapper.measurement = getSample(odo, N)
+
 x, res = zeros(1), zeros(1)
 @time for generalwrapper.particleidx in 1:N
     # nlsolve( generalwrapper, x0? .. )
@@ -150,6 +163,7 @@ x, res = zeros(1), zeros(1)
   # each point should be near 100.0
   @test res[1] > 50.0
 end
+
 
 println("Test with NLsolve for root finding using generalwrapper functor.")
 
@@ -164,7 +178,42 @@ end
 @test abs(Base.mean(p1)-0.0) < 3.0
 @test abs(Base.mean(p2)-100.0) < 3.0
 
+
+
+## Repeat for new CommonConvWrapper
+
+N = 101
+p1 = rand(1,N)
+p2 = rand(1,N)
+t = Array{Array{Float64,2},1}()
+push!(t,p1)
+push!(t,p2)
+
+odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+ccw = CommonConvWrapper(odo, t[1], 1, t, measurement=getSample(odo, N))
+
+x, res = zeros(1), zeros(1)
+
+@time for ccw.particleidx in 1:N
+    # nlsolve( generalwrapper, x0? .. )
+  ccw(res, x)
+  # each point should be near 100.0
+  @test res[1] > 50.0
 end
+
+ccw.varidx = 2
+@time for i in 4:N
+  ccw.particleidx = i
+    # ccw(x, res)
+  r = nlsolve( ccw, ccw.params[ccw.varidx][:,ccw.particleidx] )
+  ccw.params[ccw.varidx][1,ccw.particleidx] = r.zero[1]
+end
+
+@test abs(Base.mean(p1)-0.0) < 3.0
+@test abs(Base.mean(p2)-100.0) < 3.0
+
+end
+
 
 # function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
 #
