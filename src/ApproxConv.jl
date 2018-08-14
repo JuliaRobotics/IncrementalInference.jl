@@ -280,20 +280,20 @@ end
 
 # work in progress to replace equivalent GenericWrapParam{} version
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               ccw::CommonConvWrapper{T},
+                               ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=100,
                                dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
-  sfidx, maxlen = prepareCommonConvWrapper!(ccw, Xi, solvefor, N)
-  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccw.hypotheses, maxlen, sfidx, length(Xi))
+  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
 
   # perform the numeric solutions on the indicated elements
-  computeAcrossHypothesis!(ccw, allelements, activehypo, certainidx, sfidx)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx)
 
-  return ccw.params[gwp.varidx]
+  return ccwl.params[ccwl.varidx]
 end
 
 #  Singletons ==================================================================
@@ -321,6 +321,28 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
     for dimnum in fnc.partial
       i += 1
       val[dimnum,:] = generalwrapper.measurement[1][i,:]
+    end
+    return val
+  end
+end
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               ccwl::CommonConvWrapper{T},
+                               solvefor::Int;
+                               N::Int=0,
+                               dbg::Bool=false ) where {T <: FunctorSingleton}
+  #
+  fnc = ccwl.usrfnc!
+
+  nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
+  ccwl.measurement = getSample(ccwl.usrfnc!, nn)
+  if !ccwl.partial
+    return ccwl.measurement[1]
+  else
+    val = deepcopy(getVal(Xi[1]))
+    i = 0
+    for dimnum in fnc.partial
+      i += 1
+      val[dimnum,:] = ccwl.measurement[1][i,:]
     end
     return val
   end
@@ -362,6 +384,36 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   # TODO -- returning to memory location inside
   return generalwrapper.measurement[1]
 end
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               ccwl::CommonConvWrapper{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorSingletonNH}
+  #
+  fnc = ccwl.usrfnc!
+
+  val = getVal(Xi[1])
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+
+  # determine amount share of null hypothesis particles
+  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  # values of 0 imply null hypothesis
+  # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) - 1
+
+  # TODO -- not valid for manifold
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+
+  for i in 1:N
+    if nhc[i] == 0
+      ccwl.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
+    end
+  end
+  # TODO -- returning to memory location inside
+  return ccwl.measurement[1]
+end
 
 """
     $(SIGNATURES)
@@ -375,11 +427,11 @@ function evalFactor2(fgl::FactorGraph,
                      dbg::Bool=false )
   #
 
-  gwp = getData(fct).fnc
+  ccw = getData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
-  gwp.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
+  ccw.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)
@@ -387,14 +439,14 @@ function evalFactor2(fgl::FactorGraph,
     # push!(Xi, dlapi.getvertex(fgl,id))
 
     # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
-    gwp.factormetadata.variablelist[count] = Symbol(xi.label)
+    ccw.factormetadata.variablelist[count] = Symbol(xi.label)
 
     # TODO bad way to search for `solvefor`
     if xi.index == solvefor
-      gwp.factormetadata.solvefor = Symbol(xi.label)
+      ccw.factormetadata.solvefor = Symbol(xi.label)
     end
   end
-  return evalPotentialSpecific(Xi, gwp, solvefor, N=N, dbg=dbg)
+  return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
 
 """

@@ -161,6 +161,9 @@ end
 function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
   fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
+function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
+  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
+end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
   mhcat=nothing
   if length(str) > 0

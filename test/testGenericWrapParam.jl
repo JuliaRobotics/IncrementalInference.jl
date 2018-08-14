@@ -365,7 +365,7 @@ v2=addNode!(fg, :x2, ContinuousScalar, N=N)
 bws = getBW(d1)[:,1]
 f1 = addFactor!(fg, [v1], Obsv2(p1, reshape(bws, 1, length(bws)), [1.0]))
 
-odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
 
 tree = wipeBuildNewTree!(fg)
@@ -392,6 +392,3 @@ pts = getVal(getVert(fg,:x2))
 
 
 end
-
-
-# repeat tests with SolverUtilities version
