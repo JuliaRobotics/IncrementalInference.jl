@@ -27,10 +27,10 @@ function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
   end
   nothing
 end
-# Shuffle incoming X into random permutation in fr.Y
+# Shuffle incoming X into random positions in fr.Y
 # shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
 function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
-  # populate defaults
+  # populate defaults from existing values
   for i in 1:ccwl.xDim
     ccwl.Y[i] = ccwl.X[i, ccwl.particleidx]
   end
@@ -173,6 +173,64 @@ function numericRootGenericRandomizedFnc!(
     error("Unresolved numeric solve case")
   end
   fr.X[:,fr.gwp.particleidx] = fr.Y
+  nothing
+end
+function numericRootGenericRandomizedFnc!(
+            ccwl::CommonConvWrapper{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwise}
+  #
+  # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
+  # @show ccwl.zDim, ccwl.xDim, ccwl.gwp.partial, ccwl.gwp.particleidx
+  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
+    # less measurement dimensions than variable dimensions -- i.e. shuffle
+    shuffle!(ccwl.p)
+    for i in 1:ccwl.xDim
+      ccwl.perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
+      ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] += ccwl.perturb
+      r = nlsolve(  ccwl,
+                    ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] # this is x0
+                 )
+      if r.f_converged
+        shuffleXAltD!( ccwl, r.zero )
+        break;
+      else
+        # TODO -- report on this bottleneck, useful for optimization of code
+        # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
+        temp = ccwl.p[end]
+        ccwl.p[2:end] = ccwl.p[1:(end-1)]
+        ccwl.p[1] = temp
+        if i == ccwl.xDim
+          error("numericRootGenericRandomizedFnc could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
+        end
+      end
+    end
+    #shuffleXAltD!( ccwl, r.zero ) # moved up
+  elseif ccwl.zDim >= ccwl.xDim && !ccwl.partial
+    # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
+    ccwl.perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
+    ccwl.X[1:ccwl.xDim, ccwl.particleidx] += ccwl.perturb[1:ccwl.xDim] # moved up
+    r = nlsolve( ccwl, ccwl.X[1:ccwl.xDim,ccwl.particleidx] )
+    if sum(isnan.(( r ).zero)) == 0
+      ccwl.Y[1:ccwl.xDim] = ( r ).zero
+    else
+      warn("got NaN, ccwl.particleidx = $(ccwl.particleidx), r=$(r)")
+      @show ccwl.usrfnc!
+      for thatlen in 1:length(ccwl.params)
+        @show thatlen, ccwl.params[thatlen][:, ccwl.particleidx]
+      end
+    end
+  elseif ccwl.partial
+    # improve memory management in this function
+    ccwl.p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    r = nlsolve(  ccwl,
+                  ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] # this is x0
+               )
+    shuffleXAltD!( ccwl, r.zero )
+  else
+    error("Unresolved numeric solve case")
+  end
+  ccwl.X[:,ccwl.particleidx] = ccwl.Y
   nothing
 end
 

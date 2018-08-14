@@ -175,8 +175,8 @@ generalwrapper.varidx = 2
   generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
 end
 
-@test abs(Base.mean(p1)-0.0) < 3.0
-@test abs(Base.mean(p2)-100.0) < 3.0
+@test abs(Base.mean(p1)-0.0) < 4.0
+@test abs(Base.mean(p2)-100.0) < 4.0
 
 
 
@@ -209,8 +209,8 @@ ccw.varidx = 2
   ccw.params[ccw.varidx][1,ccw.particleidx] = r.zero[1]
 end
 
-@test abs(Base.mean(p1)-0.0) < 3.0
-@test abs(Base.mean(p2)-100.0) < 3.0
+@test abs(Base.mean(p1)-0.0) < 4.0
+@test abs(Base.mean(p2)-100.0) < 4.0
 
 end
 
@@ -277,6 +277,66 @@ end
 end
 
 
+@testset "Test with CommonConvWrapper for un-permuted root finding..." begin
+
+N = 110
+p1 = rand(1,N)
+p2 = rand(1,N)
+t = Array{Array{Float64,2},1}()
+push!(t,p1)
+push!(t,p2)
+
+odo = Pose1Pose1Test(Normal(100.0,1.0))
+# varidx=2 means we are solving for p2 relative to p1
+
+measurement = getSample(odo, N)
+@show zDim = size(measurement[1],1)
+
+solvefor = 2
+
+ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, measurement=measurement)
+@show ccw.varidx = solvefor
+# gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
+
+# and return complete fr/gwp
+@time for n in 1:N
+  # gwp(x, res)
+  ccw.particleidx = n
+  numericRootGenericRandomizedFnc!( ccw )
+end
+
+# @show gwp.params
+
+@test 90.0 < Base.mean(ccw.params[ccw.varidx]) < 110.0
+@test -10.0 < Base.mean(ccw.params[1]) < 10.0
+
+println("and in the reverse direction, achieved by simply changing CommonConvWrapper.varidx to 1...")
+
+solvefor = 1
+@show ccw.varidx = solvefor
+ccw.params[solvefor][:,:] = -100.0*ones(size(ccw.params[solvefor]))
+ccw.X = ccw.params[solvefor]
+
+# @show gwp.params
+
+# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+
+@time for n in 1:N
+  # gwp(x, res)
+  ccw.particleidx = n
+  numericRootGenericRandomizedFnc!( ccw )
+end
+
+# @show gwp.params
+
+@test -10.0 < Base.mean(ccw.params[1]) < 10.0
+@test 90.0 < Base.mean(ccw.params[2]) < 110.0
+
+end
+
+
+
+
 @testset "Test with FastRootGenericWrapParam for permuted root finding..." begin
 
 warn("test not implemented yet")
@@ -287,7 +347,7 @@ end
 
 
 
-println("GenericWrapParam testing in factor graph context...")
+@testset "GenericWrapParam testing in factor graph context..." begin
 
 N=101
 p1 = randn(1,N)
@@ -331,7 +391,7 @@ pts = getVal(getVert(fg,:x2))
 @test abs(Base.mean(pts)-100.0) < 10.0
 
 
-
+end
 
 
 # repeat tests with SolverUtilities version
