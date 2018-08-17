@@ -259,7 +259,7 @@ function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
       ccwl.particleidx = n
       numericRootGenericRandomizedFnc!( ccwl )
     else
-      ccwl.params[ccwl.gwp.varidx][:,n] += rand(ENT)
+      ccwl.params[ccwl.varidx][:,n] += rand(ENT)
     end
   end
   nothing
