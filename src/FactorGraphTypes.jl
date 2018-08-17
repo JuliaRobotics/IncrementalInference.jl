@@ -247,7 +247,7 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   Y::Vector{Float64}
   xDim::Int
   zDim::Int
-  gg::Function
+  # gg::Function
   res::Vector{Float64}
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
 end
@@ -269,7 +269,7 @@ function CommonConvWrapper(fnc::T,
                            perturb=zeros(zDim),
                            Y=zeros(size(X,1)),
                            xDim=size(X,1),
-                           gg::Function=()->error("Must define function gg in CommonConvWrapper"),
+                           # gg::Function=()->error("Must define function gg in CommonConvWrapper"),
                            res=zeros(0) ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
@@ -290,7 +290,7 @@ function CommonConvWrapper(fnc::T,
   ccw.Y = Y
   ccw.xDim = xDim
   ccw.zDim = zDim
-  ccw.gg = gg
+  # ccw.gg = gg
   ccw.res = res
 
   return ccw

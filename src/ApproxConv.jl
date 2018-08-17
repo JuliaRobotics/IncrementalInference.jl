@@ -127,9 +127,9 @@ function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
   ccw.p = collect(1:size(ccw.X,1))
   ccw.xDim = size(ccw.X,1)
   ccw.Y = zeros(ccw.xDim)
-  ccw.res = zeros(ccw.xDim)
+  ccw.res = zeros(ccw.xDim) # used in ccw functor for FunctorPairwiseMinimize
   # res = zeros(ccw.xDim)
-  ccw.gg = (x) -> ccw(ccw.res, x)  # issues if use ccw.res
+  # ccw.gg = (x) -> ccw(ccw.res, x)  # issues if use ccw.res
   return sfidx, maxlen
 end
 
@@ -206,6 +206,18 @@ function assembleNullHypothesis(fr::FastRootGenericWrapParam{T},
   #
   nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
   val = fr.gwp.params[fr.gwp.varidx]
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  allelements = 1:maxlen
+  return allelements, nhc, ENT
+end
+function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
+                                maxlen::Int,
+                                spreadfactor::Float64 ) where {T}
+  #
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) - 1
+  val = ccwl.params[ccwl.varidx]
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))

@@ -29,18 +29,18 @@ f2 = addFactor!(fg, [:x1, :x2], Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
 @testset "Testing conversion to packed function node data structure and back" begin
   topack = getData(f1)
   dd = convert(PackedFunctionNodeData{PackedObsv2},topack)
-  upd = convert(FunctionNodeData{GenericWrapParam{Obsv2}}, dd)
+  upd = convert(FunctionNodeData{CommonConvWrapper{Obsv2}}, dd)
 
   @test compare(topack, upd)
 
   topack = getData(f2) #fg.f[4].attributes["data"]
   dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedOdo},topack)
-  upd = convert(IncrementalInference.FunctionNodeData{GenericWrapParam{Odo}}, dd)
+  upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{Odo}}, dd)
 
   @test compare(topack, upd)
 
   # packedv4data = FNDencode(IncrementalInference.PackedFunctionNodeData{PackedOdo}, getData(f2))
-  # upv4data = FNDdecode(IncrementalInference.FunctionNodeData{GenericWrapParam{Odo}}, packedv4data)
+  # upv4data = FNDdecode(IncrementalInference.FunctionNodeData{CommonConvWrapper{Odo}}, packedv4data)
   # @test compare(getData(f2), upv4data)
 end
 
