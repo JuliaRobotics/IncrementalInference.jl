@@ -1,5 +1,320 @@
 # deprecated functions
 
+function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  for n in elements
+    frl.gwp.particleidx = n
+    numericRootGenericRandomizedFnc!( frl )
+  end
+  nothing
+end
+
+function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
+
+  # TODO should not be claiming new memory every single time....
+  # frl.res = zeros(frl.xDim)
+  # frl.gg = (x) -> frl.gwp(frl.res, x) # TODO standardize this function into frl
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+  for n in elements
+    frl.gwp.particleidx = n
+    numericRootGenericRandomizedFnc!( frl )
+    # frl.res[1:frl.xDim] = 0.0
+    # r = optimize( frl.gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
+    # # TODO -- clearly lots of optmization to be done here
+    # frl.Y[1:frl.xDim] = r.minimizer
+    # frl.X[1:frl.xDim,frl.gwp.particleidx] = frl.Y
+  end
+  nothing
+end
+
+function prepareFastRootGWP(gwp::GenericWrapParam{T},
+                            Xi::Vector{Graphs.ExVertex},
+                            solvefor::Int,
+                            N::Int  ) where {T <: FunctorInferenceType}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
+  gwp.params = ARR
+  gwp.varidx = sfidx
+  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
+  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
+  if gwp.specialzDim
+    zDim = gwp.usrfnc!.zDim[sfidx]
+  end
+  # Construct complete fr (with fr.gwp) object
+  # TODO -- create FastRootGenericWrapParam at addFactor time only?
+  fr = FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp)
+  fr.res = zeros(fr.xDim)
+  fr.gg = (x) -> fr.gwp(fr.res, x)
+  return fr, sfidx, maxlen
+end
+
+
+function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
+                                 allelements,
+                                 activehypo,
+                                 certainidx,
+                                 sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  count = 0
+  for (mhidx, vars) in activehypo
+    count += 1
+    if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
+      # standard case mhidx, sfidx = $mhidx, $sfidx
+      frl.gwp.activehypo = vars
+      approxConvOnElements!(frl, allelements[count])
+    elseif mhidx == sfidx
+      # multihypo, do conv case, mhidx == sfidx
+      frl.gwp.activehypo = sort(union([sfidx;], certainidx))
+      approxConvOnElements!(frl, allelements[count])
+    elseif mhidx != sfidx
+      # multihypo, take other value case
+      # sfidx=2, mhidx=3:  2 should take a value from 3
+      # sfidx=3, mhidx=2:  3 should take a value from 2
+      frl.gwp.params[sfidx][:,allelements[count]] = view(frl.gwp.params[mhidx],:,allelements[count])
+      # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
+    else
+      error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
+    end
+  end
+  nothing
+end
+
+function assembleNullHypothesis(fr::FastRootGenericWrapParam{T},
+                                maxlen::Int,
+                                spreadfactor::Float64 ) where {T}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
+  val = fr.gwp.params[fr.gwp.varidx]
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  allelements = 1:maxlen
+  return allelements, nhc, ENT
+end
+
+function computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T},
+                                      allelements,
+                                      nhc,
+                                      ENT  ) where {T <: FunctorPairwiseNH}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  # TODO --  Threads.@threads see area4 branch
+  for n in allelements
+    # frl.gwp(x, res)
+    if nhc[n] != 0
+      frl.gwp.particleidx = n
+      numericRootGenericRandomizedFnc!( frl )
+    else
+      frl.gwp.params[frl.gwp.varidx][:,n] += rand(ENT)
+    end
+  end
+  nothing
+end
+
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               generalwrapper::GenericWrapParam{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorSingletonNH}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  fnc = generalwrapper.usrfnc!
+
+  val = getVal(Xi[1])
+  d = size(val,1)
+  var = Base.var(val,2) + 1e-3
+
+  # determine amount share of null hypothesis particles
+  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
+  # values of 0 imply null hypothesis
+  # generalwrapper.usrfnc!.nullhypothesis::Distributions.Categorical
+  nhc = rand(generalwrapper.usrfnc!.nullhypothesis, N) - 1
+
+  # TODO -- not valid for manifold
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+
+  for i in 1:N
+    if nhc[i] == 0
+      generalwrapper.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
+    end
+  end
+  # TODO -- returning to memory location inside
+  return generalwrapper.measurement[1]
+end
+
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               generalwrapper::GenericWrapParam{T},
+                               solvefor::Int;
+                               N::Int=0,
+                               dbg::Bool=false ) where {T <: FunctorSingleton}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  fnc = generalwrapper.usrfnc!
+
+  nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
+  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, nn)
+  if !generalwrapper.partial
+    return generalwrapper.measurement[1]
+  else
+    val = deepcopy(getVal(Xi[1]))
+    i = 0
+    for dimnum in fnc.partial
+      i += 1
+      val[dimnum,:] = generalwrapper.measurement[1][i,:]
+    end
+    return val
+  end
+end
+
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               gwp::GenericWrapParam{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+  # TODO -- could be constructed and maintained at addFactor! time
+  fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
+  # prepare nullhypothesis
+  allelements, nhc, ENT = assembleNullHypothesis(fr, maxlen, spreadfactor)
+
+  # Compute across the true or null hypothesis
+  computeAcrossNullHypothesis!(fr, allelements, nhc, ENT )
+
+  return fr.gwp.params[gwp.varidx]
+end
+
+# Shuffle incoming X into random permutation in fr.Y
+# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
+function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+  # populate defaults
+  for i in 1:fr.xDim
+    fr.Y[i] = fr.X[i, fr.gwp.particleidx]
+  end
+  # fr.Y[1:fr.xDim] = view(fr.X, 1:fr.xDim, fr.gwp.particleidx)
+  # fr.Y[1:fr.xDim] = fr.X[1:fr.xDim,fr.gwp.particleidx]
+  # copy!(fr.Y, fr.X[:,fr.gwp.particleidx])
+  for i in 1:fr.zDim
+    fr.Y[fr.p[i]] = X[i]
+  end
+  nothing
+end
+
+function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+  # TODO -- move to inner lambda that is defined once against p.params...
+  # approximates by not considering cross indices among parameters
+  # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
+  p.params[p.varidx][:, p.particleidx] = x
+  # p.usrfnc!(res, p.particleidx, p.measurement, p.params...)
+  # who are active hypotheses?  p.params[p.activehypo]...
+  p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, view(p.params,p.activehypo)...)
+  # p.usrfnc!(res, p.factormetadata, p.particleidx, p.measurement, p.params[p.activehypo]...)
+end
+
+function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64} )
+    warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+
+  shuffleXAltD!(fr, x)
+  fr.gwp( res, fr.Y )
+end
+
+function numericRootGenericRandomizedFnc!(
+            frl::FastRootGenericWrapParam{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
+  #
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+  fill!(frl.res, 0.0) # 1:frl.xDim
+  r = optimize( frl.gg, frl.X[:, frl.gwp.particleidx] ) # frl.gg
+  # TODO -- clearly lots of optmization to be done here
+  frl.Y[:] = r.minimizer
+  frl.X[:,frl.gwp.particleidx] = frl.Y
+  nothing
+end
+
+function numericRootGenericRandomizedFnc!(
+            fr::FastRootGenericWrapParam{T};
+            perturb::Float64=1e-10,
+            testshuffle::Bool=false ) where {T <: FunctorPairwise}
+  #
+  # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
+  # @show fr.zDim, fr.xDim, fr.gwp.partial, fr.gwp.particleidx
+  warn("GenericWrapParam and FastRootGenericWrapParam are deprecated, use CommonConvWrapper instead.")
+  if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
+    # less measurement dimensions than variable dimensions -- i.e. shuffle
+    shuffle!(fr.p)
+    for i in 1:fr.xDim
+      fr.perturb[1:fr.zDim] = perturb*randn(fr.zDim)
+      fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] += fr.perturb
+      r = nlsolve(  fr,
+                    fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
+                 )
+      if r.f_converged
+        shuffleXAltD!( fr, r.zero )
+        break;
+      else
+        # TODO -- report on this bottleneck, useful for optimization of code
+        # @show i, fr.p, fr.xDim, fr.zDim
+        temp = fr.p[end]
+        fr.p[2:end] = fr.p[1:(end-1)]
+        fr.p[1] = temp
+        if i == fr.xDim
+          error("numericRootGenericRandomizedFnc could not converge, i=$(i), fr.gwp.usrfnc!=$(typeof(fr.gwp.usrfnc!))")
+        end
+      end
+    end
+    #shuffleXAltD!( fr, r.zero ) # moved up
+  elseif fr.zDim >= fr.xDim && !fr.gwp.partial
+    # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
+    fr.perturb[1:fr.xDim] = perturb*randn(fr.xDim)
+    fr.X[1:fr.xDim, fr.gwp.particleidx] += fr.perturb[1:fr.xDim] # moved up
+    r = nlsolve( fr.gwp, fr.X[1:fr.xDim,fr.gwp.particleidx] )
+    if sum(isnan.(( r ).zero)) == 0
+      fr.Y[1:fr.xDim] = ( r ).zero
+    else
+      warn("got NaN, fr.gwp.particleidx = $(fr.gwp.particleidx), r=$(r)")
+      @show fr.gwp.usrfnc!
+      for thatlen in 1:length(fr.gwp.params)
+        @show thatlen, fr.gwp.params[thatlen][:, fr.gwp.particleidx]
+      end
+    end
+  elseif fr.gwp.partial
+    # improve memory management in this function
+    fr.p[1:length(fr.gwp.usrfnc!.partial)] = Int[fr.gwp.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    r = nlsolve(  fr,
+                  fr.X[fr.p[1:fr.zDim], fr.gwp.particleidx] # this is x0
+               )
+    shuffleXAltD!( fr, r.zero )
+  else
+    error("Unresolved numeric solve case")
+  end
+  fr.X[:,fr.gwp.particleidx] = fr.Y
+  nothing
+end
+
+
+
 # must set either dims or initval for proper initialization
 # Add node to graph, given graph struct, labal, init values,
 # std dev [TODO -- generalize], particle size and ready flag for concurrency
