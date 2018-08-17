@@ -70,18 +70,20 @@ function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
   shuffleXAltD!(ccw, x)
   # fr.gwp( res, fr.Y )
   ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
+  # @show ccw.X[:,ccw.particleidx]
+  # @show ccw.p, ccw.Y
   ret = ccw.usrfnc!(res, ccw.factormetadata, ccw.particleidx, ccw.measurement, ccw.params[ccw.activehypo]...) # optmize the view here, re-use the same memory
+  # @show ret
   return ret
 end
 
+
 # UNTESTED AND PROBABLY HAS THE SAME GG ISSUE AS FastRootGenericWrapParam DOES -- TODO, switch, solve, use
-# function (ccw::CommonConvWrapper)(x::Vector{Float64})
-#   info("CommonConvWrapper is still experimental")
-#   shuffleXAltD!(ccw, x)
-#   # fr.gwp( fr.res, fr.Y )
-#   ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
-#   ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, view(ccw.params,ccw.activehypo)...)
-# end
+function (ccw::CommonConvWrapper)(x::Vector{Float64})
+  # ccw.Y = x # dont shuffle
+  ccw.params[ccw.varidx][:, ccw.particleidx] = x #ccw.Y
+  ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, view(ccw.params,ccw.activehypo)...)
+end
 
 
 function numericRootGenericRandomizedFnc!(
@@ -104,7 +106,8 @@ function numericRootGenericRandomizedFnc!(
   #
   # warn("still in development")
   fill!(ccwl.res, 0.0) # 1:frl.xDim
-  r = optimize( ccwl.gg, ccwl.X[:, ccwl.particleidx] ) # frl.gg
+  # @show ccwl.gg, ccwl.res, pointer(ccwl.res)
+  r = optimize( ccwl, ccwl.X[:, ccwl.particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
   ccwl.Y[:] = r.minimizer
   ccwl.X[:,ccwl.particleidx] = ccwl.Y

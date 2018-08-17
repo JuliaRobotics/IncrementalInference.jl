@@ -415,7 +415,7 @@ function prepgenericconvolution(
           specialzDim = sum(fldnms .== :zDim) >= 1,
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo
-      )
+        )
   #
   ccw.factormetadata.variableuserdata = []
   ccw.factormetadata.solvefor = :null
@@ -442,10 +442,11 @@ function setDefaultFactorNode!(
 
   # experimental wip
   data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], m, ccw)
+  vert.attributes["data"] = data_ccw
 
   # existing interface
-  data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
-  vert.attributes["data"] = data
+  # data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
+  # vert.attributes["data"] = data
 
   nothing
 end

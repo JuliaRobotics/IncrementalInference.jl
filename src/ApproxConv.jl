@@ -119,7 +119,7 @@ function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
   ccw.varidx = sfidx
   ccw.measurement = getSample(ccw.usrfnc!, maxlen) # ccw.samplerfnc
   if ccw.specialzDim
-    ccw.zDim = ccw.zDim[sfidx]
+    ccw.zDim = ccw.usrfnc!.zDim[sfidx]
   else
     ccw.zDim = size(ccw.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
   end
@@ -128,7 +128,8 @@ function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
   ccw.xDim = size(ccw.X,1)
   ccw.Y = zeros(ccw.xDim)
   ccw.res = zeros(ccw.xDim)
-  ccw.gg = (x) -> ccw.gwp(ccw.res, x)
+  # res = zeros(ccw.xDim)
+  ccw.gg = (x) -> ccw(ccw.res, x)  # issues if use ccw.res
   return sfidx, maxlen
 end
 
@@ -234,6 +235,23 @@ function computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T},
   end
   nothing
 end
+function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
+                                      allelements,
+                                      nhc,
+                                      ENT  ) where {T <: FunctorPairwiseNH}
+  #
+  # TODO --  Threads.@threads see area4 branch
+  for n in allelements
+    # ccwl.gwp(x, res)
+    if nhc[n] != 0
+      ccwl.particleidx = n
+      numericRootGenericRandomizedFnc!( ccwl )
+    else
+      ccwl.params[ccwl.gwp.varidx][:,n] += rand(ENT)
+    end
+  end
+  nothing
+end
 
 
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
@@ -253,6 +271,25 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   computeAcrossNullHypothesis!(fr, allelements, nhc, ENT )
 
   return fr.gwp.params[gwp.varidx]
+end
+
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               ccwl::CommonConvWrapper{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               spreadfactor::Float64=10.0,
+                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
+  #
+
+  # TODO -- could be constructed and maintained at addFactor! time
+  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  # prepare nullhypothesis
+  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadfactor)
+
+  # Compute across the true or null hypothesis
+  computeAcrossNullHypothesis!(ccwl, allelements, nhc, ENT )
+
+  return ccwl.params[ccwl.varidx]
 end
 
 """
