@@ -40,18 +40,14 @@ end
 
 
 
-const FunctionNodeData{T <: Union{InferenceType, FunctorInferenceType}} = GenericFunctionNodeData{T, Symbol}
+# Obsolete
 # FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: FunctorInferenceType}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
-
 # typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-const PackedFunctionNodeData{T <: PackedInferenceType} = GenericFunctionNodeData{T, <: AbstractString}
 # PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
 # PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
-
+# TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
 function normalfromstring(str::AS) where {AS <: AbstractString}
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
   mean = split(meanstr, '=')[2]
@@ -88,6 +84,7 @@ function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: 
 end
 
 function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
+  # TODO improve use of multidispatch and packing of Distribution types
   if str == ""
     return nothing
   elseif (ismatch(r"Normal", str) && !ismatch(r"FullNormal", str))
@@ -162,7 +159,7 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
 end
 
 
-function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
+function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
   fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
@@ -179,14 +176,20 @@ end
 # TODO simplify and reduce to single pack and unpack converter
 ## packing converters-----------------------------------------------------------
 
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: InferenceType}
-    # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  error("convert(::Type{PackedFunctionNodeData{P}} : this convert function should probably not be used. Use FunctorInferenceType instead of InferenceType.")
-  mhstr = packmultihypo(d.fnc)
-  return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc), mhstr) # TODO -- should use convert(P, d.fnc.usrfnc!) instead
-end
+# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: InferenceType}
+#     # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+#   error("convert(::Type{PackedFunctionNodeData{P}} : this convert function should probably not be used. Use FunctorInferenceType instead of InferenceType.")
+#   mhstr = packmultihypo(d.fnc)
+#   return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           string(d.frommodule), convert(P, d.fnc), mhstr) # TODO -- should use convert(P, d.fnc.usrfnc!) instead
+# end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
+  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  mhstr = packmultihypo(d.fnc)
+  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+end
+function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
@@ -195,31 +198,30 @@ end
 
 
 
-
 ## unpack converters------------------------------------------------------------
 
-# Functor version -- TODO, abstraction can be improved here
-function convert(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P}) where {T <: InferenceType, P <: PackedInferenceType}
-  error("Old unpacking converter from DB to Graphs.jl")
-  return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), convert(T, d.fnc))
-end
+# Functor version -- abstraction can be improved here
+# function convert(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P}) where {T <: InferenceType, P <: PackedInferenceType}
+#   error("Old unpacking converter from DB to Graphs.jl")
+#   return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           Symbol(d.frommodule), convert(T, d.fnc))
+# end
+
+
 
 function convert(
-            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
+            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
   # warn("Unpacking Option 2, F=$(F), P=$(P)")
   usrfnc = convert(F, d.fnc)
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
-  # @show typeof(mhcat)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
-  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), gwpf)
+
+  ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
+  return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), ccw)
 end
-
-
 
 
 
@@ -301,7 +303,7 @@ end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
   # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
   functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-  fulltype = FunctionNodeData{GenericWrapParam{functype}}
+  fulltype = FunctionNodeData{CommonConvWrapper{functype}}
   convert(fulltype, packeddata)
 end
 
@@ -352,7 +354,7 @@ end
 
 
 """
-    convertfrompackedfunctionnode(fgl, fsym)
+    $(SIGNATURES)
 
 If you get unknown type conversion error when loading a .jld, while using your own
 FunctorInferenceTypes, you should:
@@ -368,7 +370,7 @@ function convertfrompackedfunctionnode(fgl::FactorGraph,
   fnc = getData(fgl, fid).fnc #getfnctype(fgl, fid)
   usrtyp = convert(FunctorInferenceType, fnc)
   data = getData(fgl, fid, api=api)
-  newtype = FunctionNodeData{GenericWrapParam{usrtyp}}
+  newtype = FunctionNodeData{CommonConvWrapper{usrtyp}}
   cfnd = convert(newtype, data)
   return cfnd, usrtyp
 end

@@ -12,16 +12,23 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+function approxConvOnElements!(ccwl::CommonConvWrapper{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
   for n in elements
-    frl.gwp.particleidx = n
-    numericRootGenericRandomizedFnc!( frl )
+    ccwl.particleidx = n
+    numericRootGenericRandomizedFnc!( ccwl )
   end
-  # r = nlsolve( gwp, ARR[sfidx][:,gwp.particleidx] )
-  # gwp.params[gwp.varidx][:,gwp.particleidx] = r.zero[:]
   nothing
 end
+
+# mutable struct MinimizeFnc <: Function
+#   res
+#
+# end
+#
+# function (mmf::MinimizeFnc)(x::Vector{Float64})
+#
+# end
 
 """
     $(SIGNATURES)
@@ -31,44 +38,47 @@ Perform the nonlinear numerical operations to approximate the convolution with a
 Notes:
 - remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
 """
-function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
+function approxConvOnElements!(ccwl::CommonConvWrapper{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
+
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  res = zeros(frl.xDim) # TODO should not be claiming new memory every single time....
-  gg = (x) -> frl.gwp(res, x)
   for n in elements
-    frl.gwp.particleidx = n
-    res[:] = 0.0
-    r = optimize( gg, frl.X[1:frl.xDim, frl.gwp.particleidx] )
-    # TODO -- clearly lots of optmization to be done here
-    frl.Y[1:frl.xDim] = r.minimizer
-    frl.X[:,frl.gwp.particleidx] = frl.Y
+    ccwl.particleidx = n
+    numericRootGenericRandomizedFnc!( ccwl )
   end
   nothing
 end
 
+
+
 """
     $(SIGNATURES)
 
-Prepare a common functor computation object `FastRootGenericWrapParam{T}` containing the `GenericWrapParam{T}` functor along with additional variables and information.
+Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
 """
-function prepareFastRootGWP(gwp::GenericWrapParam{T},
-                            Xi::Vector{Graphs.ExVertex},
-                            solvefor::Int,
-                            N::Int  ) where {T <: FunctorInferenceType}
+function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
+                                   Xi::Vector{Graphs.ExVertex},
+                                   solvefor::Int,
+                                   N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
-  gwp.params = ARR
-  gwp.varidx = sfidx
-  gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, maxlen)
-  zDim = size(gwp.measurement[1],1) # TODO -- zDim aspect desperately needs to be redone
-  if gwp.specialzDim
-    zDim = gwp.usrfnc!.zDim[sfidx]
+  ccw.params = ARR
+  ccw.varidx = sfidx
+  ccw.measurement = getSample(ccw.usrfnc!, maxlen) # ccw.samplerfnc
+  if ccw.specialzDim
+    ccw.zDim = ccw.usrfnc!.zDim[sfidx]
+  else
+    ccw.zDim = size(ccw.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
   end
-  # Construct complete fr (with fr.gwp) object
-  # TODO -- create FastRootGenericWrapParam at addFactor time only?
-  FastRootGenericWrapParam{T}(gwp.params[sfidx], zDim, gwp), sfidx, maxlen
+  ccw.X = ccw.params[sfidx]
+  ccw.p = collect(1:size(ccw.X,1))
+  ccw.xDim = size(ccw.X,1)
+  ccw.Y = zeros(ccw.xDim)
+  ccw.res = zeros(ccw.xDim) # used in ccw functor for FunctorPairwiseMinimize
+  # res = zeros(ccw.xDim)
+  # ccw.gg = (x) -> ccw(ccw.res, x)  # issues if use ccw.res
+  return sfidx, maxlen
 end
 
 """
@@ -76,7 +86,7 @@ end
 
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `FunctorPairwise` and `FunctorPairwiseMinimize` factors.
 """
-function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
+function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                  allelements,
                                  activehypo,
                                  certainidx,
@@ -86,17 +96,17 @@ function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
     count += 1
     if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
       # standard case mhidx, sfidx = $mhidx, $sfidx
-      frl.gwp.activehypo = vars
-      approxConvOnElements!(frl, allelements[count])
+      ccwl.activehypo = vars
+      approxConvOnElements!(ccwl, allelements[count])
     elseif mhidx == sfidx
       # multihypo, do conv case, mhidx == sfidx
-      frl.gwp.activehypo = sort(union([sfidx;], certainidx))
-      approxConvOnElements!(frl, allelements[count])
+      ccwl.activehypo = sort(union([sfidx;], certainidx))
+      approxConvOnElements!(ccwl, allelements[count])
     elseif mhidx != sfidx
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
-      frl.gwp.params[sfidx][:,allelements[count]] = view(frl.gwp.params[mhidx],:,allelements[count])
+      ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
       # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
@@ -110,12 +120,12 @@ end
 
 Prepare data required for null hypothesis cases during convolution.
 """
-function assembleNullHypothesis(fr::FastRootGenericWrapParam{T},
+function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
                                 maxlen::Int,
                                 spreadfactor::Float64 ) where {T}
   #
-  nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
-  val = fr.gwp.params[fr.gwp.varidx]
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) - 1
+  val = ccwl.params[ccwl.varidx]
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
@@ -128,27 +138,28 @@ end
 
 Do true and null hypothesis computations based on data structures prepared earlier -- specific to `FunctorPairwiseNH`.  This function will be merged into a standard case for `FunctorPairwise/Minimize` in the future.
 """
-function computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T},
+function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
                                       allelements,
                                       nhc,
                                       ENT  ) where {T <: FunctorPairwiseNH}
   #
   # TODO --  Threads.@threads see area4 branch
   for n in allelements
-    # frl.gwp(x, res)
+    # ccwl.gwp(x, res)
     if nhc[n] != 0
-      frl.gwp.particleidx = n
-      numericRootGenericRandomizedFnc!( frl )
+      ccwl.particleidx = n
+      numericRootGenericRandomizedFnc!( ccwl )
     else
-      frl.gwp.params[frl.gwp.varidx][:,n] += rand(ENT)
+      ccwl.params[ccwl.varidx][:,n] += rand(ENT)
     end
   end
   nothing
 end
 
 
+
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               gwp::GenericWrapParam{T},
+                               ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=100,
                                spreadfactor::Float64=10.0,
@@ -156,14 +167,14 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   #
 
   # TODO -- could be constructed and maintained at addFactor! time
-  fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
+  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
   # prepare nullhypothesis
-  allelements, nhc, ENT = assembleNullHypothesis(fr, maxlen, spreadfactor)
+  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadfactor)
 
   # Compute across the true or null hypothesis
-  computeAcrossNullHypothesis!(fr, allelements, nhc, ENT )
+  computeAcrossNullHypothesis!(ccwl, allelements, nhc, ENT )
 
-  return fr.gwp.params[gwp.varidx]
+  return ccwl.params[ccwl.varidx]
 end
 
 """
@@ -172,49 +183,47 @@ end
 Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               gwp::GenericWrapParam{T},
+                               ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=100,
                                dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
-  fnc = gwp.usrfnc!
 
   # Prep computation variables
-  fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
-  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(fr.gwp.hypotheses, maxlen, sfidx, length(Xi))
+  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
 
   # perform the numeric solutions on the indicated elements
-  computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx)
 
-  return fr.gwp.params[gwp.varidx]
+  return ccwl.params[ccwl.varidx]
 end
-
 
 #  Singletons ==================================================================
 
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingleton}` types.
+Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingleton}` types.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               generalwrapper::GenericWrapParam{T},
+                               ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=0,
                                dbg::Bool=false ) where {T <: FunctorSingleton}
   #
-  fnc = generalwrapper.usrfnc!
+  fnc = ccwl.usrfnc!
 
   nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, nn)
-  if !generalwrapper.partial
-    return generalwrapper.measurement[1]
+  ccwl.measurement = getSample(ccwl.usrfnc!, nn)
+  if !ccwl.partial
+    return ccwl.measurement[1]
   else
     val = deepcopy(getVal(Xi[1]))
     i = 0
     for dimnum in fnc.partial
       i += 1
-      val[dimnum,:] = generalwrapper.measurement[1][i,:]
+      val[dimnum,:] = ccwl.measurement[1][i,:]
     end
     return val
   end
@@ -223,38 +232,38 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingletonNH}` types.
+Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingletonNH}` types.
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               generalwrapper::GenericWrapParam{T},
+                               ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=100,
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorSingletonNH}
   #
-  fnc = generalwrapper.usrfnc!
+  fnc = ccwl.usrfnc!
 
   val = getVal(Xi[1])
   d = size(val,1)
   var = Base.var(val,2) + 1e-3
 
   # determine amount share of null hypothesis particles
-  generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)
+  ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
-  # generalwrapper.usrfnc!.nullhypothesis::Distributions.Categorical
-  nhc = rand(generalwrapper.usrfnc!.nullhypothesis, N) - 1
+  # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) - 1
 
   # TODO -- not valid for manifold
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
 
   for i in 1:N
     if nhc[i] == 0
-      generalwrapper.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
+      ccwl.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
     end
   end
   # TODO -- returning to memory location inside
-  return generalwrapper.measurement[1]
+  return ccwl.measurement[1]
 end
 
 """
@@ -269,11 +278,11 @@ function evalFactor2(fgl::FactorGraph,
                      dbg::Bool=false )
   #
 
-  gwp = getData(fct).fnc
+  ccw = getData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
-  gwp.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
+  ccw.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)
@@ -281,14 +290,14 @@ function evalFactor2(fgl::FactorGraph,
     # push!(Xi, dlapi.getvertex(fgl,id))
 
     # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
-    gwp.factormetadata.variablelist[count] = Symbol(xi.label)
+    ccw.factormetadata.variablelist[count] = Symbol(xi.label)
 
     # TODO bad way to search for `solvefor`
     if xi.index == solvefor
-      gwp.factormetadata.solvefor = Symbol(xi.label)
+      ccw.factormetadata.solvefor = Symbol(xi.label)
     end
   end
-  return evalPotentialSpecific(Xi, gwp, solvefor, N=N, dbg=dbg)
+  return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
 
 """
@@ -304,7 +313,7 @@ function approxConv(fgl::FactorGraph,
   #
   fc = getVert(fgl, fct, nt=:fct, api=api)
   v1 = getVert(fgl, towards, api=api)
-  N = N == -1 ? N : getNumPts(v1)
+  N = N == -1 ? getNumPts(v1) : N
   return evalFactor2(fgl, fc, v1.index, N=N)
 end
 

@@ -72,7 +72,7 @@ f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(1.0,0.5,0.5))
 
 
 # @test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(getData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience 
+@test sum(abs.(getData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
 @test sum(abs.(getData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
@@ -132,7 +132,7 @@ end
 
   topack = getData(f1)
   dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
-  unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopPrior}},dd)
+  unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
   @test abs(unpacked.fnc.usrfnc!.x.μ - 10.0) < 1e-10
   @test abs(unpacked.fnc.usrfnc!.x.σ - 1.0) < 1e-10
@@ -141,7 +141,7 @@ end
 
   topack = getData(f3)
   dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
-  unpacked = convert(FunctionNodeData{GenericWrapParam{DevelopLikelihood}},dd)
+  unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
   # @test unpacked.fnc.hypoverts == Symbol[:x3; :x4]
   @test sum(abs.(unpacked.fnc.hypotheses.p[1] .- 0.0)) < 0.1
