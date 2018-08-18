@@ -159,9 +159,6 @@ function ==(a::VariableNodeData,b::VariableNodeData, nt::Symbol=:var)
 end
 
 
-function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
-  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
-end
 function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
   fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
@@ -210,22 +207,7 @@ end
 #           Symbol(d.frommodule), convert(T, d.fnc))
 # end
 
-# will be deprecated
-function convert(
-            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
-            d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
-  #
-  warn("Packing and unpacking of GenericWrapParam{T} will be deprecated, use CommonConvWrapper{T} instead.")
-  usrfnc = convert(F, d.fnc)
-  # @show d.multihypo
-  mhcat = parsemultihypostr(d.multihypo)
-  # @show typeof(mhcat)
-  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
 
-  # ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
-  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), gwpf)
-end
 
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
@@ -235,8 +217,6 @@ function convert(
   usrfnc = convert(F, d.fnc)
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
-  # @show typeof(mhcat)
-  # gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
 
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
   return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
@@ -323,7 +303,6 @@ end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
   # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
   functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-  # fulltype = FunctionNodeData{GenericWrapParam{functype}}
   fulltype = FunctionNodeData{CommonConvWrapper{functype}}
   convert(fulltype, packeddata)
 end

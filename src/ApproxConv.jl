@@ -183,25 +183,6 @@ end
 Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
-                               gwp::GenericWrapParam{T},
-                               solvefor::Int;
-                               N::Int=100,
-                               dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
-  #
-  fnc = gwp.usrfnc!
-
-  # Prep computation variables
-  fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
-  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(fr.gwp.hypotheses, maxlen, sfidx, length(Xi))
-
-  # perform the numeric solutions on the indicated elements
-  computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
-
-  return fr.gwp.params[gwp.varidx]
-end
-
-# work in progress to replace equivalent GenericWrapParam{} version
-function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
                                N::Int=100,
@@ -223,7 +204,7 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingleton}` types.
+Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingleton}` types.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
@@ -251,7 +232,7 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for evaluating the `genericwrapper::GenericWrapParam{<: FunctorSingletonNH}` types.
+Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingletonNH}` types.
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},

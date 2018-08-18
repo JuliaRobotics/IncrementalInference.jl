@@ -1,9 +1,110 @@
 # deprecated functions
 
+
+mutable struct GenericWrapParam{T} <: FunctorInferenceType
+  #TODO: <: FunctorIT cannot be right here -- Used in one of the unpacking converters
+  usrfnc!::T
+  params::Vector{Array{Float64,2}}
+  varidx::Int
+  particleidx::Int
+  measurement::Tuple #Array{Float64,2}
+  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
+  specialzDim::Bool
+  partial::Bool
+  # hypoverts::Vector{Symbol}
+  hypotheses::Union{Void, Distributions.Categorical}
+  activehypo::Union{UnitRange{Int},Vector{Int}}
+  factormetadata::FactorMetadata
+  GenericWrapParam{T}() where {T} = new()
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, varidx::Int, prtcl::Int) where {T} = new(fnc, t, varidx, prtcl, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
+end
+
+mutable struct FastRootGenericWrapParam{T} <: Function
+  p::Vector{Int}
+  perturb::Vector{Float64}
+  X::Array{Float64,2}
+  Y::Vector{Float64}
+  xDim::Int
+  zDim::Int
+  gwp::GenericWrapParam{T}
+  gg::Function
+  res::Vector{Float64}
+  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
+      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, +, zeros(0))
+end
+
+function packmultihypo(fnc::GenericWrapParam{T}) where {T<:FunctorInferenceType}
+  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
+end
+
+function prepgenericwrapper(
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::UnionAll,
+            samplefnc::Function;
+            multihypo::Union{Void, Distributions.Categorical}=nothing )
+      # multiverts::Vector{Symbol}=Symbol[]
+  #
+  error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
+end
+
+function prepgenericwrapper(
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::T,
+            samplefnc::Function;
+            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+      # multiverts::Vector{Symbol}=Symbol[]
+  #
+  ARR = Array{Array{Float64,2},1}()
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  # test if specific zDim or partial constraint used
+  fldnms = fieldnames(usrfnc)
+  # sum(fldnms .== :zDim) >= 1
+  gwp = GenericWrapParam{T}(
+            usrfnc,
+            ARR,
+            1,
+            1,
+            (zeros(0,1),),
+            samplefnc,
+            sum(fldnms .== :zDim) >= 1,
+            sum(fldnms .== :partial) >= 1,
+            multihypo
+        )
+    gwp.factormetadata.variableuserdata = []
+    gwp.factormetadata.solvefor = :null
+    for xi in Xi
+      push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
+    end
+    return gwp
+end
+
+# will be deprecated
+function convert(
+            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.GenericWrapParam{F},Symbol}},
+            d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
+  #
+  warn("Packing and unpacking of GenericWrapParam{T} will be deprecated, use CommonConvWrapper{T} instead.")
+  usrfnc = convert(F, d.fnc)
+  # @show d.multihypo
+  mhcat = parsemultihypostr(d.multihypo)
+  # @show typeof(mhcat)
+  gwpf = prepgenericwrapper(Graphs.ExVertex[], usrfnc, getSample, multihypo=mhcat)
+
+  # ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
+  return FunctionNodeData{GenericWrapParam{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+          Symbol(d.frommodule), gwpf)
+end
+
 function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
   #
-  
+
 
   for n in elements
     frl.gwp.particleidx = n
@@ -18,7 +119,7 @@ function approxConvOnElements!(frl::FastRootGenericWrapParam{T},
   # TODO should not be claiming new memory every single time....
   # frl.res = zeros(frl.xDim)
   # frl.gg = (x) -> frl.gwp(frl.res, x) # TODO standardize this function into frl
-  
+
 
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
   for n in elements
@@ -38,7 +139,7 @@ function prepareFastRootGWP(gwp::GenericWrapParam{T},
                             solvefor::Int,
                             N::Int  ) where {T <: FunctorInferenceType}
   #
-  
+
 
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
@@ -58,14 +159,13 @@ function prepareFastRootGWP(gwp::GenericWrapParam{T},
   return fr, sfidx, maxlen
 end
 
-
 function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
                                  allelements,
                                  activehypo,
                                  certainidx,
                                  sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
-  
+
 
   count = 0
   for (mhidx, vars) in activehypo
@@ -91,11 +191,29 @@ function computeAcrossHypothesis(frl::FastRootGenericWrapParam{T},
   nothing
 end
 
+function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+                               gwp::GenericWrapParam{T},
+                               solvefor::Int;
+                               N::Int=100,
+                               dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  #
+  fnc = gwp.usrfnc!
+
+  # Prep computation variables
+  fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(fr.gwp.hypotheses, maxlen, sfidx, length(Xi))
+
+  # perform the numeric solutions on the indicated elements
+  computeAcrossHypothesis(fr, allelements, activehypo, certainidx, sfidx)
+
+  return fr.gwp.params[gwp.varidx]
+end
+
 function assembleNullHypothesis(fr::FastRootGenericWrapParam{T},
                                 maxlen::Int,
                                 spreadfactor::Float64 ) where {T}
   #
-  
+
 
   nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
   val = fr.gwp.params[fr.gwp.varidx]
@@ -111,7 +229,7 @@ function computeAcrossNullHypothesis!(frl::FastRootGenericWrapParam{T},
                                       nhc,
                                       ENT  ) where {T <: FunctorPairwiseNH}
   #
-  
+
 
   # TODO --  Threads.@threads see area4 branch
   for n in allelements
@@ -133,7 +251,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorSingletonNH}
   #
-  
+
 
   fnc = generalwrapper.usrfnc!
 
@@ -165,7 +283,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                N::Int=0,
                                dbg::Bool=false ) where {T <: FunctorSingleton}
   #
-  
+
 
   fnc = generalwrapper.usrfnc!
 
@@ -191,7 +309,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
-  
+
   # TODO -- could be constructed and maintained at addFactor! time
   fr, sfidx, maxlen = prepareFastRootGWP(gwp, Xi, solvefor, N)
   # prepare nullhypothesis
@@ -206,7 +324,7 @@ end
 # Shuffle incoming X into random permutation in fr.Y
 # shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
 function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
-  
+
   # populate defaults
   for i in 1:fr.xDim
     fr.Y[i] = fr.X[i, fr.gwp.particleidx]
@@ -221,7 +339,7 @@ function shuffleXAltD!(fr::FastRootGenericWrapParam, X::Vector{Float64})
 end
 
 function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
-  
+
   # TODO -- move to inner lambda that is defined once against p.params...
   # approximates by not considering cross indices among parameters
   # @show length(p.params), p.varidx, p.particleidx, size(x), size(res), size(p.measurement)
@@ -233,7 +351,7 @@ function (p::GenericWrapParam)(res::Vector{Float64}, x::Vector{Float64})
 end
 
 function (fr::FastRootGenericWrapParam)( res::Vector{Float64}, x::Vector{Float64} )
-    
+
 
   shuffleXAltD!(fr, x)
   fr.gwp( res, fr.Y )
@@ -244,7 +362,7 @@ function numericRootGenericRandomizedFnc!(
             perturb::Float64=1e-10,
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
-  
+
   fill!(frl.res, 0.0) # 1:frl.xDim
   r = optimize( frl.gg, frl.X[:, frl.gwp.particleidx] ) # frl.gg
   # TODO -- clearly lots of optmization to be done here
@@ -260,7 +378,7 @@ function numericRootGenericRandomizedFnc!(
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
   # @show fr.zDim, fr.xDim, fr.gwp.partial, fr.gwp.particleidx
-  
+
   if fr.zDim < fr.xDim && !fr.gwp.partial || testshuffle
     # less measurement dimensions than variable dimensions -- i.e. shuffle
     shuffle!(fr.p)

@@ -356,47 +356,6 @@ function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
   return mh
 end
 
-function prepgenericwrapper(
-            Xi::Vector{Graphs.ExVertex},
-            usrfnc::UnionAll,
-            samplefnc::Function;
-            multihypo::Union{Void, Distributions.Categorical}=nothing )
-      # multiverts::Vector{Symbol}=Symbol[]
-  #
-  error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
-end
-
-function prepgenericwrapper(
-            Xi::Vector{Graphs.ExVertex},
-            usrfnc::T,
-            samplefnc::Function;
-            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
-      # multiverts::Vector{Symbol}=Symbol[]
-  #
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  # test if specific zDim or partial constraint used
-  fldnms = fieldnames(usrfnc)
-  # sum(fldnms .== :zDim) >= 1
-  gwp = GenericWrapParam{T}(
-            usrfnc,
-            ARR,
-            1,
-            1,
-            (zeros(0,1),),
-            samplefnc,
-            sum(fldnms .== :zDim) >= 1,
-            sum(fldnms .== :partial) >= 1,
-            multihypo
-        )
-    gwp.factormetadata.variableuserdata = []
-    gwp.factormetadata.solvefor = :null
-    for xi in Xi
-      push!(gwp.factormetadata.variableuserdata, getData(xi).softtype)
-    end
-    return gwp
-end
-
 function prepgenericconvolution(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T;

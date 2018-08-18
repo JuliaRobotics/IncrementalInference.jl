@@ -182,45 +182,6 @@ mutable struct FactorMetadata
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
-mutable struct GenericWrapParam{T} <: FunctorInferenceType
-  #TODO: <: FunctorIT cannot be right here -- Used in one of the unpacking converters
-  usrfnc!::T
-  params::Vector{Array{Float64,2}}
-  varidx::Int
-  particleidx::Int
-  measurement::Tuple #Array{Float64,2}
-  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
-  specialzDim::Bool
-  partial::Bool
-  # hypoverts::Vector{Symbol}
-  hypotheses::Union{Void, Distributions.Categorical}
-  activehypo::Union{UnitRange{Int},Vector{Int}}
-  factormetadata::FactorMetadata
-  GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, varidx::Int, prtcl::Int) where {T} = new(fnc, t, varidx, prtcl, (zeros(0,1),) , +, false, false, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
-end
-
-mutable struct FastRootGenericWrapParam{T} <: Function
-  p::Vector{Int}
-  perturb::Vector{Float64}
-  X::Array{Float64,2}
-  Y::Vector{Float64}
-  xDim::Int
-  zDim::Int
-  gwp::GenericWrapParam{T}
-  gg::Function
-  res::Vector{Float64}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc, +, zeros(0))
-end
-
-
 mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
     # no longer used
     # gwp::GenericWrapParam{T}
