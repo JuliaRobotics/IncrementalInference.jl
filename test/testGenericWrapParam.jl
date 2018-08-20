@@ -66,7 +66,7 @@ end
 struct Test2 <: FunctorInferenceType
 end
 
-@testset "GenericWrapParam test" begin
+@testset "CommonConbWrapper test" begin
 
 
 function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
@@ -75,9 +75,10 @@ function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, m
   nothing;
 end
 
+N = 3
 tst2 = Test2()
-A = rand(2,3)
-B = rand(2,3)
+A = rand(2,N)
+B = rand(2,N)
 At = deepcopy(A)
 t = Array{Array{Float64,2},1}()
 push!(t,A)
@@ -85,18 +86,25 @@ push!(t,B)
 t[1][1,1] = -10.0
 @test A[1,1] == -10
 # @show typeof(t)
-generalwrapper = GenericWrapParam{Test2}(tst2, t, 1, 1)
+# generalwrapper = GenericWrapParam{Test2}(tst2, t, 1, 1)
 ccw = CommonConvWrapper(tst2, t[1], 2, t) # generalwrapper.measurement = rand(1,1)
 
 
-x, res = zeros(2), zeros(2)
-@show t[1][:,1]
-@time generalwrapper(res, x)
+# x, res = zeros(2), zeros(2)
+# @show t[1][:,1]
+# # @time generalwrapper(res, x)
+#
+# At[1,1] = -2.0
+# At[2,1] = 0.0
+# @test A == At
 
-At[1,1] = -2.0
-At[2,1] = 0.0
-@test A == At
 
+ccw.cpt
+
+ccw.cpt[Threads.threadid()].factormetadata
+ccw.cpt[Threads.threadid()].particleidx
+ccw.measurement = (randn(1,N),)
+ccw.params[ccw.cpt[Threads.threadid()].activehypo]
 
 x, res = zeros(2), zeros(2)
 @time ccw(res, x)
@@ -153,30 +161,30 @@ push!(t,p1)
 push!(t,p2)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
+# generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
 # generalwrapper.measurement = getSample(odo, N)
 
-x, res = zeros(1), zeros(1)
-@time for generalwrapper.particleidx in 1:N
-    # nlsolve( generalwrapper, x0? .. )
-  generalwrapper(res, x)
-  # each point should be near 100.0
-  @test res[1] > 50.0
-end
+# x, res = zeros(1), zeros(1)
+# @time for generalwrapper.particleidx in 1:N
+#     # nlsolve( generalwrapper, x0? .. )
+#   generalwrapper(res, x)
+#   # each point should be near 100.0
+#   @test res[1] > 50.0
+# end
 
 
-println("Test with NLsolve for root finding using generalwrapper functor.")
-
-generalwrapper.varidx = 2
-@time for i in 1:N
-  generalwrapper.particleidx = i
-    # generalwrapper(x, res)
-  r = nlsolve( generalwrapper, generalwrapper.params[generalwrapper.varidx][:,generalwrapper.particleidx] )
-  generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
-end
-
-@test abs(Base.mean(p1)-0.0) < 4.0
-@test abs(Base.mean(p2)-100.0) < 4.0
+# println("Test with NLsolve for root finding using generalwrapper functor.")
+#
+# generalwrapper.varidx = 2
+# @time for i in 1:N
+#   generalwrapper.particleidx = i
+#     # generalwrapper(x, res)
+#   r = nlsolve( generalwrapper, generalwrapper.params[generalwrapper.varidx][:,generalwrapper.particleidx] )
+#   generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
+# end
+#
+# @test abs(Base.mean(p1)-0.0) < 4.0
+# @test abs(Base.mean(p2)-100.0) < 4.0
 
 
 
@@ -192,9 +200,12 @@ push!(t,p2)
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 ccw = CommonConvWrapper(odo, t[1], 1, t, measurement=getSample(odo, N))
 
+
+freshSamples!(ccw, N)
 x, res = zeros(1), zeros(1)
 
-@time for ccw.particleidx in 1:N
+@time for n in 1:N
+  ccw.cpt[Threads.threadid()].particleidx = n
     # nlsolve( generalwrapper, x0? .. )
   ccw(res, x)
   # each point should be near 100.0
@@ -202,11 +213,11 @@ x, res = zeros(1), zeros(1)
 end
 
 ccw.varidx = 2
-@time for i in 4:N
-  ccw.particleidx = i
+@time for i in 1:N
+  ccw.cpt[Threads.threadid()].particleidx = i
     # ccw(x, res)
-  r = nlsolve( ccw, ccw.params[ccw.varidx][:,ccw.particleidx] )
-  ccw.params[ccw.varidx][1,ccw.particleidx] = r.zero[1]
+  r = nlsolve( ccw, ccw.params[ccw.varidx][:,ccw.cpt[Threads.threadid()].particleidx] )
+  ccw.params[ccw.varidx][1,ccw.cpt[Threads.threadid()].particleidx] = r.zero[1]
 end
 
 @test abs(Base.mean(p1)-0.0) < 4.0
@@ -220,18 +231,18 @@ end
 #
 # end
 
-@testset "Test with FastRootGenericWrapParam for un-permuted root finding..." begin
-
-N = 110
-p1 = rand(1,N)
-p2 = rand(1,N)
-t = Array{Array{Float64,2},1}()
-push!(t,p1)
-push!(t,p2)
-
-odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+# @testset "Test with FastRootGenericWrapParam for un-permuted root finding..." begin
+#
+# N = 110
+# p1 = rand(1,N)
+# p2 = rand(1,N)
+# t = Array{Array{Float64,2},1}()
+# push!(t,p1)
+# push!(t,p2)
+#
+# odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 # varidx=2 means we are solving for p2 relative to p1
-gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
+# gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
 
 # fgr = FastGenericRoot{GenericWrapParam{Pose1Pose1Test}}(1, 1, generalwrapper)
 # numericRootGenericRandomizedFnc!( fgr )
@@ -239,42 +250,42 @@ gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) 
 #
 # @show p2
 
-@show gwp.varidx
-gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
-@show zDim = size(gwp.measurement,1)
-fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-
-# and return complete fr/gwp
-@time for gwp.particleidx in 1:N
-  # gwp(x, res)
-  numericRootGenericRandomizedFnc!( fr )
-end
-
-# @show gwp.params
-
-@test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
-@test -10.0 < Base.mean(gwp.params[1]) < 10.0
-
-println("and in the reverse direction, achieved by simply changing GenericWrapParam.varidx to 1...")
-
-@show gwp.varidx = 1
-gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))
+# @show gwp.varidx
+# gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
+# @show zDim = size(gwp.measurement,1)
+# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+#
+# # and return complete fr/gwp
+# @time for gwp.particleidx in 1:N
+#   # gwp(x, res)
+#   numericRootGenericRandomizedFnc!( fr )
+# end
 
 # @show gwp.params
 
-fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+# @test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
+# @test -10.0 < Base.mean(gwp.params[1]) < 10.0
 
-@time for gwp.particleidx in 1:100
-  # gwp(x, res)
-  numericRootGenericRandomizedFnc!( fr )
-end
-
-# @show gwp.params
-
-@test -10.0 < Base.mean(gwp.params[1]) < 10.0
-@test 90.0 < Base.mean(gwp.params[2]) < 110.0
-
-end
+# println("and in the reverse direction, achieved by simply changing GenericWrapParam.varidx to 1...")
+#
+# @show gwp.varidx = 1
+# gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))
+#
+# # @show gwp.params
+#
+# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
+#
+# @time for gwp.particleidx in 1:100
+#   # gwp(x, res)
+#   numericRootGenericRandomizedFnc!( fr )
+# end
+#
+# # @show gwp.params
+#
+# @test -10.0 < Base.mean(gwp.params[1]) < 10.0
+# @test 90.0 < Base.mean(gwp.params[2]) < 110.0
+#
+# end
 
 
 @testset "Test with CommonConvWrapper for un-permuted root finding..." begin
@@ -298,10 +309,11 @@ ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, measurement=measurement)
 @show ccw.varidx = solvefor
 # gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
 
+freshSamples!(ccw, N)
 # and return complete fr/gwp
 @time for n in 1:N
   # gwp(x, res)
-  ccw.particleidx = n
+  ccw.cpt[Threads.threadid()].particleidx = n
   numericRootGenericRandomizedFnc!( ccw )
 end
 
@@ -315,15 +327,16 @@ println("and in the reverse direction, achieved by simply changing CommonConvWra
 solvefor = 1
 @show ccw.varidx = solvefor
 ccw.params[solvefor][:,:] = -100.0*ones(size(ccw.params[solvefor]))
-ccw.X = ccw.params[solvefor]
+ccw.cpt[Threads.threadid()].X = ccw.params[solvefor]
 
 # @show gwp.params
 
 # fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
 
+freshSamples!(ccw, N)
 @time for n in 1:N
   # gwp(x, res)
-  ccw.particleidx = n
+  ccw.cpt[Threads.threadid()].particleidx = n
   numericRootGenericRandomizedFnc!( ccw )
 end
 
@@ -347,7 +360,7 @@ end
 
 
 
-@testset "GenericWrapParam testing in factor graph context..." begin
+@testset "Generic convolution testing in factor graph context..." begin
 
 N=101
 p1 = randn(1,N)

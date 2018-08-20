@@ -12,6 +12,8 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+include("testMultithreaded.jl")
+
 println("[TEST] basic Bayes tree construction")
 include("testBayesTreeiSAM2Example.jl")
 println("Success")

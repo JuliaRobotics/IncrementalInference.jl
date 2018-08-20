@@ -101,6 +101,7 @@ export
 
   #functors need
   getSample,
+  freshSamples!,
 
   #Visualization
   writeGraphPdf,
@@ -135,6 +136,7 @@ export
   # functor abstracts
   FunctorInferenceType,
   FunctorPairwise,
+  FunctorPairwiseMinimize,
   FunctorSingleton,
   # FunctorPartialSingleton,
   FunctorPairwiseNH,

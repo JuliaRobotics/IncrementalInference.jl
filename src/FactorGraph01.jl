@@ -376,10 +376,12 @@ function prepgenericconvolution(
           hypotheses=multihypo
         )
   #
-  ccw.factormetadata.variableuserdata = []
-  ccw.factormetadata.solvefor = :null
-  for xi in Xi
-    push!(ccw.factormetadata.variableuserdata, getData(xi).softtype)
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i].factormetadata.variableuserdata = []
+    ccw.cpt[i].factormetadata.solvefor = :null
+    for xi in Xi
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getData(xi).softtype)
+    end
   end
   return ccw
 end

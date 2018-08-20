@@ -14,8 +14,10 @@ Future work:
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
-  for n in elements
-    ccwl.particleidx = n
+  Threads.@threads for n in elements
+    # ccwl.thrid_ = Threads.threadid()
+    ccwl.cpt[Threads.threadid()].particleidx = n
+    # ccall(:jl_, Void, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
     numericRootGenericRandomizedFnc!( ccwl )
   end
   nothing
@@ -42,8 +44,9 @@ function approxConvOnElements!(ccwl::CommonConvWrapper{T},
                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
 
   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  for n in elements
-    ccwl.particleidx = n
+  Threads.@threads for n in elements
+    # ccwl.thrid_ = Threads.threadid()
+    ccwl.cpt[Threads.threadid()].particleidx = n
     numericRootGenericRandomizedFnc!( ccwl )
   end
   nothing
@@ -56,28 +59,30 @@ end
 
 Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
 """
-function prepareCommonConvWrapper!(ccw::CommonConvWrapper{T},
+function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    Xi::Vector{Graphs.ExVertex},
                                    solvefor::Int,
                                    N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
-  ccw.params = ARR
-  ccw.varidx = sfidx
-  ccw.measurement = getSample(ccw.usrfnc!, maxlen) # ccw.samplerfnc
-  if ccw.specialzDim
-    ccw.zDim = ccw.usrfnc!.zDim[sfidx]
+  ccwl.params = ARR
+  ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
+  if ccwl.specialzDim
+    ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
-    ccw.zDim = size(ccw.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
+    ccwl.zDim = size(ccwl.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
   end
-  ccw.X = ccw.params[sfidx]
-  ccw.p = collect(1:size(ccw.X,1))
-  ccw.xDim = size(ccw.X,1)
-  ccw.Y = zeros(ccw.xDim)
-  ccw.res = zeros(ccw.xDim) # used in ccw functor for FunctorPairwiseMinimize
-  # res = zeros(ccw.xDim)
-  # ccw.gg = (x) -> ccw(ccw.res, x)  # issues if use ccw.res
+  ccwl.varidx = sfidx
+
+  ccwl.xDim = size(ccwl.cpt[1].X,1)
+  for i in 1:Threads.nthreads()
+    ccwl.cpt[i].X = ccwl.params[sfidx]
+    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1))
+    ccwl.cpt[i].Y = zeros(ccwl.xDim)
+    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for FunctorPairwiseMinimize
+  end
+
   return sfidx, maxlen
 end
 
@@ -87,20 +92,21 @@ end
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `FunctorPairwise` and `FunctorPairwiseMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
-                                 allelements,
-                                 activehypo,
-                                 certainidx,
-                                 sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                                  allelements,
+                                  activehypo,
+                                  certainidx,
+                                  sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   for (mhidx, vars) in activehypo
     count += 1
     if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
       # standard case mhidx, sfidx = $mhidx, $sfidx
-      ccwl.activehypo = vars
+      for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
     elseif mhidx == sfidx
       # multihypo, do conv case, mhidx == sfidx
-      ccwl.activehypo = sort(union([sfidx;], certainidx))
+      ah = sort(union([sfidx;], certainidx))
+      for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
       approxConvOnElements!(ccwl, allelements[count])
     elseif mhidx != sfidx
       # multihypo, take other value case
@@ -147,7 +153,7 @@ function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
   for n in allelements
     # ccwl.gwp(x, res)
     if nhc[n] != 0
-      ccwl.particleidx = n
+      ccwl.cpt[Threads.threadid()].particleidx = n
       numericRootGenericRandomizedFnc!( ccwl )
     else
       ccwl.params[ccwl.varidx][:,n] += rand(ENT)
@@ -282,7 +288,7 @@ function evalFactor2(fgl::FactorGraph,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
-  ccw.factormetadata.variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
+  variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)
@@ -290,12 +296,17 @@ function evalFactor2(fgl::FactorGraph,
     # push!(Xi, dlapi.getvertex(fgl,id))
 
     # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
-    ccw.factormetadata.variablelist[count] = Symbol(xi.label)
+    variablelist[count] = Symbol(xi.label)
 
     # TODO bad way to search for `solvefor`
     if xi.index == solvefor
-      ccw.factormetadata.solvefor = Symbol(xi.label)
+      for i in 1:Threads.nthreads()
+        ccw.cpt[i].factormetadata.solvefor = Symbol(xi.label)
+      end
     end
+  end
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i].factormetadata.variablelist = variablelist
   end
   return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
