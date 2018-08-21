@@ -132,6 +132,9 @@ export
   PackedInferenceType,
   Singleton,
   Pairwise,
+  # introduced for approximate convolution operations
+  SingleThreaded,
+  MultiThreaded,
 
   # functor abstracts
   FunctorInferenceType,

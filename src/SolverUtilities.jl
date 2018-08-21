@@ -45,11 +45,15 @@ function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
 end
 
 
-# UNTESTED AND PROBABLY HAS THE SAME GG ISSUE AS FastRootGenericWrapParam DOES -- TODO, switch, solve, use
 function (ccw::CommonConvWrapper)(x::Vector{Float64})
   # ccw.Y = x # dont shuffle
-  ccw.params[ccw.varidx][:, ccw.cpt[ccw.thrid_].particleidx] = x #ccw.Y
-  ccw.usrfnc!(ccw.cpt[ccw.thrid_].res, ccw.factormetadata, ccw.cpt[ccw.thrid_].particleidx, ccw.measurement, ccw.params[ccw.cpt[ccw.thrid_].activehypo]...)
+  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x #ccw.Y
+  # @show ccw.cpt[Threads.threadid()].res
+  # @show ccw.cpt[Threads.threadid()].particleidx
+  # @show ccw.cpt[Threads.threadid()].activehypo
+  # @show size(ccw.params)
+  # @show ccw.cpt[Threads.threadid()].factormetadata
+  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
 
@@ -60,10 +64,11 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   # warn("still in development")
-  fill!(ccwl.res, 0.0) # 1:frl.xDim
+  fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
   # @show ccwl.gg, ccwl.res, pointer(ccwl.res)
   r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
+  # @show size(ccwl.cpt[Threads.threadid()].Y), size(r.minimizer)
   ccwl.cpt[Threads.threadid()].Y[:] = r.minimizer
   ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
   nothing
@@ -86,7 +91,7 @@ function numericRootGenericRandomizedFnc!(
   # ccall(:jl_, Void, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
     # less measurement dimensions than variable dimensions -- i.e. shuffle
-    shuffle!(ccwl.p)
+    shuffle!(ccwl.cpt[Threads.threadid()].p)
     for i in 1:ccwl.xDim
       ccwl.cpt[Threads.threadid()].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
       ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb

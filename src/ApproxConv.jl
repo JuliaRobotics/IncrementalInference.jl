@@ -1,4 +1,6 @@
 
+
+
 """
     $(SIGNATURES)
 
@@ -13,7 +15,7 @@ Future work:
 
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}  ) where {T <: FunctorPairwise}
+                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -23,33 +25,58 @@ function approxConvOnElements!(ccwl::CommonConvWrapper{T},
   nothing
 end
 
-# mutable struct MinimizeFnc <: Function
-#   res
+"""
+    $(SIGNATURES)
+
+Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
+
+Notes:
+- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
+
+Future work:
+- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+- improve handling of n and particleidx, especially considering future multithreading support
+
+"""
+function approxConvOnElements!(ccwl::CommonConvWrapper{T},
+                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  #
+  for n in elements
+    ccwl.cpt[Threads.threadid()].particleidx = n
+    numericRootGenericRandomizedFnc!( ccwl )
+  end
+  nothing
+end
+# function approxConvOnElements!(ccwl::CommonConvWrapper{T},
+#                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
 #
-# end
-#
-# function (mmf::MinimizeFnc)(x::Vector{Float64})
-#
+#   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+#   # Threads.@threads
+#   for n in elements
+#     # ccwl.thrid_ = Threads.threadid()
+#     ccwl.cpt[Threads.threadid()].particleidx = n
+#     numericRootGenericRandomizedFnc!( ccwl )
+#   end
+#   nothing
 # end
 
 """
     $(SIGNATURES)
 
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses minimization of the res[1] variable.
+Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
 
 Notes:
 - remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
+
+Future work:
+- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
+- improve handling of n and particleidx, especially considering future multithreading support
+
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
-
-  # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-  Threads.@threads for n in elements
-    # ccwl.thrid_ = Threads.threadid()
-    ccwl.cpt[Threads.threadid()].particleidx = n
-    numericRootGenericRandomizedFnc!( ccwl )
-  end
-  nothing
+                               elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+  #
+  approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
 end
 
 
@@ -75,7 +102,9 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   end
   ccwl.varidx = sfidx
 
-  ccwl.xDim = size(ccwl.cpt[1].X,1)
+  ccwl.xDim = size(ccwl.params[sfidx],1)
+  # ccwl.xDim = size(ccwl.cpt[1].X,1)
+  # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
     ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1))
@@ -200,6 +229,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
 
   # perform the numeric solutions on the indicated elements
+  # error("ccwl.xDim=$(ccwl.xDim)")
   computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx)
 
   return ccwl.params[ccwl.varidx]

@@ -182,6 +182,11 @@ mutable struct FactorMetadata
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
+struct SingleThreaded
+end
+struct MultiThreaded
+end
+
 mutable struct ConvPerThread
   thrid_::Int
   particleidx::Int # the actual particle being solved at this moment
@@ -233,6 +238,7 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   measurement::Tuple # user defined measurement values for each approxConv operation
+  threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
 
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{ConvPerThread}
@@ -266,7 +272,8 @@ function CommonConvWrapper(fnc::T,
                            perturb=zeros(zDim),
                            Y=zeros(size(X,1)),
                            xDim=size(X,1),
-                           res=zeros(0) ) where {T<:FunctorInferenceType}
+                           res=zeros(0),
+                           threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
 
@@ -278,6 +285,7 @@ function CommonConvWrapper(fnc::T,
   ccw.hypotheses = hypotheses
   ccw.params = params
   ccw.varidx = varidx
+  ccw.threadmodel = threadmodel
 
   # thread specific elements
   ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
