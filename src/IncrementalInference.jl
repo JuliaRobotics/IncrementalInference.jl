@@ -216,7 +216,7 @@ const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")
-include("BoundedScalarSampling.jl")
+include("AliasScalarSampling.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("DispatchPackedConversions.jl")
