@@ -158,9 +158,10 @@ Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over
 """
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
-  inferOverTree!(fg, tree)
+  inferOverTree!(fgl, tree)
   tree
 end
+
 
 
 
