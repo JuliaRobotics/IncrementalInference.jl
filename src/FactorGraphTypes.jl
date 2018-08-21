@@ -182,34 +182,76 @@ mutable struct FactorMetadata
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
-mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
-    # no longer used
-    # gwp::GenericWrapParam{T}
-    # samplerfnc::Function # removed, since no required. Direct multiple dispatch at solve -- user zDim = size(meas[1],1)
-  usrfnc!::T # user factor
+struct SingleThreaded
+end
+struct MultiThreaded
+end
+
+mutable struct ConvPerThread
+  thrid_::Int
+  particleidx::Int # the actual particle being solved at this moment
   factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
+  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
+  p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
+  perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
+  X::Array{Float64,2}
+  Y::Vector{Float64}
+  res::Vector{Float64}
+  ConvPerThread() = new()
+end
+
+function ConvPerThread(X::Array{Float64,2},
+                       zDim::Int;
+                       factormetadata::FactorMetadata=FactorMetadata(),
+                       particleidx::Int=1,
+                       activehypo= 1:length(params),
+                       p=collect(1:size(X,1)),
+                       perturb=zeros(zDim),
+                       Y=zeros(size(X,1)),
+                       res=zeros(0)  )
+  #
+  cpt = ConvPerThread()
+  cpt.thrid_ = 0
+  cpt.X = X
+  cpt.factormetadata = factormetadata
+  cpt.particleidx = particleidx
+  cpt.activehypo = activehypo
+  cpt.p = p
+  cpt.perturb = perturb
+  cpt.Y = Y
+  cpt.res = res
+  return cpt
+end
+
+mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+  ### Values consistent across all threads during approx convolution
+  usrfnc!::T # user factor / function
+  # general setup
+  xDim::Int
+  zDim::Int
   # special case settings
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
   hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
-  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
-
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
-
-  # particular convolution computation values per particle idx
   measurement::Tuple # user defined measurement values for each approxConv operation
-  particleidx::Int # the actual particle being solved at this moment
-  p::Vector{Int} # a numerical slight permutation vector in case degenerate case is incountered by solver
-  perturb::Vector{Float64}
-  X::Array{Float64,2}
-  Y::Vector{Float64}
-  xDim::Int
-  zDim::Int
-  # gg::Function
-  res::Vector{Float64}
+  threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
+
+  ### particular convolution computation values per particle idx (varies by thread)
+  cpt::Vector{ConvPerThread}
+  # varidx::Int # which index is being solved for in params?
+  # factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
+  # activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
+  # particleidx::Int # the actual particle being solved at this moment
+  # p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
+  # perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
+  # X::Array{Float64,2}
+  # Y::Vector{Float64}
+  # res::Vector{Float64}
+
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
 end
 
@@ -230,29 +272,43 @@ function CommonConvWrapper(fnc::T,
                            perturb=zeros(zDim),
                            Y=zeros(size(X,1)),
                            xDim=size(X,1),
-                           # gg::Function=()->error("Must define function gg in CommonConvWrapper"),
-                           res=zeros(0) ) where {T<:FunctorInferenceType}
+                           res=zeros(0),
+                           threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
 
   ccw.usrfnc! = fnc
-  ccw.factormetadata = factormetadata
+  ccw.xDim = xDim
+  ccw.zDim = zDim
   ccw.specialzDim = specialzDim
   ccw.partial = partial
   ccw.hypotheses = hypotheses
-  ccw.activehypo = activehypo
   ccw.params = params
   ccw.varidx = varidx
-  ccw.measurement = measurement
-  ccw.particleidx = particleidx
-  ccw.p = p
-  ccw.perturb = perturb
-  ccw.X = X
-  ccw.Y = Y
-  ccw.xDim = xDim
-  ccw.zDim = zDim
-  # ccw.gg = gg
-  ccw.res = res
+  ccw.threadmodel = threadmodel
+
+  # thread specific elements
+  ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i] = ConvPerThread(X, zDim,
+                    factormetadata=factormetadata,
+                    particleidx=particleidx,
+                    activehypo=activehypo,
+                    p=p,
+                    perturb=perturb,
+                    Y=Y,
+                    res=res )
+  end
+  # ccw.varidx = varidx
+  # ccw.measurement = measurement
+  # ccw.activehypo = activehypo
+  # ccw.factormetadata = factormetadata
+  # ccw.particleidx = particleidx
+  # ccw.p = p
+  # ccw.perturb = perturb
+  # ccw.X = X
+  # ccw.Y = Y
+  # ccw.res = res
 
   return ccw
 end

@@ -101,6 +101,7 @@ export
 
   #functors need
   getSample,
+  freshSamples!,
 
   #Visualization
   writeGraphPdf,
@@ -131,10 +132,14 @@ export
   PackedInferenceType,
   Singleton,
   Pairwise,
+  # introduced for approximate convolution operations
+  SingleThreaded,
+  MultiThreaded,
 
   # functor abstracts
   FunctorInferenceType,
   FunctorPairwise,
+  FunctorPairwiseMinimize,
   FunctorSingleton,
   # FunctorPartialSingleton,
   FunctorPairwiseNH,

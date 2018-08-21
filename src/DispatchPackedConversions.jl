@@ -200,14 +200,6 @@ end
 
 ## unpack converters------------------------------------------------------------
 
-# Functor version -- abstraction can be improved here
-# function convert(::Type{FunctionNodeData{T}}, d::PackedFunctionNodeData{P}) where {T <: InferenceType, P <: PackedInferenceType}
-#   error("Old unpacking converter from DB to Graphs.jl")
-#   return FunctionNodeData{T}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-#           Symbol(d.frommodule), convert(T, d.fnc))
-# end
-
-
 
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
@@ -218,6 +210,7 @@ function convert(
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
 
+  # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
   return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)

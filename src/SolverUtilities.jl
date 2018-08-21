@@ -4,6 +4,11 @@ function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Flo
 end
 
 
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  nothing
+end
+
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
   # n = length(X)
   Y = deepcopy(Alt)
@@ -18,11 +23,11 @@ end
 function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
   # populate defaults from existing values
   for i in 1:ccwl.xDim
-    ccwl.Y[i] = ccwl.X[i, ccwl.particleidx]
+    ccwl.cpt[Threads.threadid()].Y[i] = ccwl.cpt[Threads.threadid()].X[i, ccwl.cpt[Threads.threadid()].particleidx]
   end
   # populate as many measurment dimensions randomly for calculation
   for i in 1:ccwl.zDim
-    ccwl.Y[ccwl.p[i]] = X[i]
+    ccwl.cpt[Threads.threadid()].Y[ccwl.cpt[Threads.threadid()].p[i]] = X[i]
   end
   nothing
 end
@@ -31,20 +36,24 @@ end
 function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
   shuffleXAltD!(ccw, x)
   # fr.gwp( res, fr.Y )
-  ccw.params[ccw.varidx][:, ccw.particleidx] = ccw.Y
+  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
   # @show ccw.X[:,ccw.particleidx]
   # @show ccw.p, ccw.Y
-  ret = ccw.usrfnc!(res, ccw.factormetadata, ccw.particleidx, ccw.measurement, ccw.params[ccw.activehypo]...) # optmize the view here, re-use the same memory
+  ret = ccw.usrfnc!(res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
   # @show ret
   return ret
 end
 
 
-# UNTESTED AND PROBABLY HAS THE SAME GG ISSUE AS FastRootGenericWrapParam DOES -- TODO, switch, solve, use
 function (ccw::CommonConvWrapper)(x::Vector{Float64})
   # ccw.Y = x # dont shuffle
-  ccw.params[ccw.varidx][:, ccw.particleidx] = x #ccw.Y
-  ccw.usrfnc!(ccw.res, ccw.factormetadata, ccw.particleidx, ccw.measurement, view(ccw.params,ccw.activehypo)...)
+  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x #ccw.Y
+  # @show ccw.cpt[Threads.threadid()].res
+  # @show ccw.cpt[Threads.threadid()].particleidx
+  # @show ccw.cpt[Threads.threadid()].activehypo
+  # @show size(ccw.params)
+  # @show ccw.cpt[Threads.threadid()].factormetadata
+  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
 
@@ -55,12 +64,13 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   # warn("still in development")
-  fill!(ccwl.res, 0.0) # 1:frl.xDim
+  fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
   # @show ccwl.gg, ccwl.res, pointer(ccwl.res)
-  r = optimize( ccwl, ccwl.X[:, ccwl.particleidx] ) # ccw.gg
+  r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
-  ccwl.Y[:] = r.minimizer
-  ccwl.X[:,ccwl.particleidx] = ccwl.Y
+  # @show size(ccwl.cpt[Threads.threadid()].Y), size(r.minimizer)
+  ccwl.cpt[Threads.threadid()].Y[:] = r.minimizer
+  ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
   nothing
 end
 
@@ -77,14 +87,16 @@ function numericRootGenericRandomizedFnc!(
   #
   # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
   # @show ccwl.zDim, ccwl.xDim, ccwl.gwp.partial, ccwl.gwp.particleidx
+  # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
+  # ccall(:jl_, Void, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
     # less measurement dimensions than variable dimensions -- i.e. shuffle
-    shuffle!(ccwl.p)
+    shuffle!(ccwl.cpt[Threads.threadid()].p)
     for i in 1:ccwl.xDim
-      ccwl.perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
-      ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] += ccwl.perturb
+      ccwl.cpt[Threads.threadid()].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
+      ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb
       r = nlsolve(  ccwl,
-                    ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] # this is x0
+                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
                  )
       if r.f_converged
         shuffleXAltD!( ccwl, r.zero )
@@ -92,9 +104,9 @@ function numericRootGenericRandomizedFnc!(
       else
         # TODO -- report on this bottleneck, useful for optimization of code
         # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
-        temp = ccwl.p[end]
-        ccwl.p[2:end] = ccwl.p[1:(end-1)]
-        ccwl.p[1] = temp
+        temp = ccwl.cpt[Threads.threadid()].p[end]
+        ccwl.cpt[Threads.threadid()].p[2:end] = ccwl.cpt[Threads.threadid()].p[1:(end-1)]
+        ccwl.cpt[Threads.threadid()].p[1] = temp
         if i == ccwl.xDim
           error("numericRootGenericRandomizedFnc could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
         end
@@ -103,29 +115,38 @@ function numericRootGenericRandomizedFnc!(
     #shuffleXAltD!( ccwl, r.zero ) # moved up
   elseif ccwl.zDim >= ccwl.xDim && !ccwl.partial
     # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
-    ccwl.perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
-    ccwl.X[1:ccwl.xDim, ccwl.particleidx] += ccwl.perturb[1:ccwl.xDim] # moved up
-    r = nlsolve( ccwl, ccwl.X[1:ccwl.xDim,ccwl.particleidx] )
+    ccwl.cpt[Threads.threadid()].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
+    ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim, ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb[1:ccwl.xDim] # moved up
+
+    # str = "nlsolve, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx), X=$(ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx])"
+    # ccall(:jl_, Void, (Any,), str)
+    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx] )
+    # ccall(:jl_, Void, (Any,), "nlsolve.zero=$(r.zero)")
     if sum(isnan.(( r ).zero)) == 0
-      ccwl.Y[1:ccwl.xDim] = ( r ).zero
+      ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
     else
-      warn("got NaN, ccwl.particleidx = $(ccwl.particleidx), r=$(r)")
-      @show ccwl.usrfnc!
+      # TODO print this output as needed
+      # warn("got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)")
+      str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
+      ccall(:jl_, Void, (Any,), str)
+      ccall(:jl_, Void, (Any,), ccwl.usrfnc!)
       for thatlen in 1:length(ccwl.params)
-        @show thatlen, ccwl.params[thatlen][:, ccwl.particleidx]
+        str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
+        ccall(:jl_, Void, (Any,), str)
       end
     end
   elseif ccwl.partial
     # improve memory management in this function
-    ccwl.p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    ccwl.cpt[Threads.threadid()].p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
     r = nlsolve(  ccwl,
-                  ccwl.X[ccwl.p[1:ccwl.zDim], ccwl.particleidx] # this is x0
+                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
                )
     shuffleXAltD!( ccwl, r.zero )
   else
+    ccall(:jl_, Void, (Any,), "ERROR: Unresolved numeric solve case")
     error("Unresolved numeric solve case")
   end
-  ccwl.X[:,ccwl.particleidx] = ccwl.Y
+  ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
   nothing
 end
 
@@ -137,9 +158,10 @@ Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over
 """
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
-  inferOverTree!(fg, tree)
+  inferOverTree!(fgl, tree)
   tree
 end
+
 
 
 

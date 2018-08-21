@@ -330,7 +330,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
     end
   end
 
-
+  # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
   return maxlen, sfidx
@@ -359,7 +359,8 @@ end
 function prepgenericconvolution(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T;
-            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+            multihypo::Union{Void, Distributions.Categorical}=nothing,
+            threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
@@ -373,13 +374,16 @@ function prepgenericconvolution(
           ARR,
           specialzDim = sum(fldnms .== :zDim) >= 1,
           partial = sum(fldnms .== :partial) >= 1,
-          hypotheses=multihypo
+          hypotheses=multihypo,
+          threadmodel=threadmodel
         )
   #
-  ccw.factormetadata.variableuserdata = []
-  ccw.factormetadata.solvefor = :null
-  for xi in Xi
-    push!(ccw.factormetadata.variableuserdata, getData(xi).softtype)
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i].factormetadata.variableuserdata = []
+    ccw.cpt[i].factormetadata.solvefor = :null
+    for xi in Xi
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getData(xi).softtype)
+    end
   end
   return ccw
 end
@@ -389,13 +393,14 @@ function setDefaultFactorNode!(
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      threadmodel=MultiThreaded) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
   mhcat = parseusermultihypo(multihypo)
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat)
+  # gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
   m = Symbol(ftyp.name.module)
 
@@ -414,7 +419,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
-  fgl.fIDs[lbl] = id # fg.id
+  fgl.fIDs[lbl] = id # fg.id,
 
   # used for cloudgraph solving
   vert.attributes["ready"] = ready
@@ -550,7 +555,8 @@ function addFactor!(fgl::FactorGraph,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true) where
+      autoinit::Bool=true,
+      threadmodel=MultiThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -564,7 +570,7 @@ function addFactor!(fgl::FactorGraph,
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo)
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
@@ -603,7 +609,8 @@ function addFactor!(
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true ) where
+      autoinit::Bool=true,
+      threadmodel=MultiThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -611,7 +618,7 @@ function addFactor!(
   for xi in xisyms
       push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
+  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit, threadmodel=threadmodel )
 end
 
 
