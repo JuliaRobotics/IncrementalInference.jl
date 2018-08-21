@@ -117,7 +117,7 @@ export
   approxConv,
 
   # weiged sampling
-  BoundedScalarSampler,
+  AliasingScalarSampler,
   rand!,
   rand,
 
