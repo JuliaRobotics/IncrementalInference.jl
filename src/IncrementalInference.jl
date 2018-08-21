@@ -2,17 +2,16 @@ module IncrementalInference
 
 import Base: convert
 import HDF5: root
-# import KernelDensityEstimate: root
 import Distributions: sample
-# import KernelDensityEstimate: sample
+import Base: rand, rand!
 import KernelDensityEstimate: kde!
-# import Graphs: plot
 
 using
   Graphs,
   NLsolve,
   Optim,
   Distributions,
+  StatsBase,
   KernelDensityEstimate,
   HDF5,
   JLD,
@@ -117,7 +116,17 @@ export
   evalFactor2,
   approxConv,
 
+  # weiged sampling
+  BoundedScalarSampler,
+  rand!,
+  rand,
+
   # dev
+  CommonConvWrapper, # new wrapper (experimental) -- not ready for use
+
+  # is deprecated
+  FastGenericRoot,
+  FastRootGenericWrapParam,
   GenericWrapParam,
 
   # solve inference
@@ -152,9 +161,6 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
-  FastGenericRoot, # will be deprecated
-  FastRootGenericWrapParam, # may be deprecated
-  CommonConvWrapper, # new wrapper (experimental) -- not ready for use
 
   # user functions
   proposalbeliefs,
@@ -210,6 +216,7 @@ const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")
+include("BoundedScalarSampling.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("DispatchPackedConversions.jl")
