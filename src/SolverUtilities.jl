@@ -35,24 +35,14 @@ end
 
 function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
   shuffleXAltD!(ccw, x)
-  # fr.gwp( res, fr.Y )
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
-  # @show ccw.X[:,ccw.particleidx]
-  # @show ccw.p, ccw.Y
   ret = ccw.usrfnc!(res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
-  # @show ret
   return ret
 end
 
 
 function (ccw::CommonConvWrapper)(x::Vector{Float64})
-  # ccw.Y = x # dont shuffle
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x #ccw.Y
-  # @show ccw.cpt[Threads.threadid()].res
-  # @show ccw.cpt[Threads.threadid()].particleidx
-  # @show ccw.cpt[Threads.threadid()].activehypo
-  # @show size(ccw.params)
-  # @show ccw.cpt[Threads.threadid()].factormetadata
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
@@ -63,12 +53,9 @@ function numericRootGenericRandomizedFnc!(
             perturb::Float64=1e-10,
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
-  # warn("still in development")
   fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
-  # @show ccwl.gg, ccwl.res, pointer(ccwl.res)
   r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
-  # @show size(ccwl.cpt[Threads.threadid()].Y), size(r.minimizer)
   ccwl.cpt[Threads.threadid()].Y[:] = r.minimizer
   ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
   nothing
@@ -85,8 +72,6 @@ function numericRootGenericRandomizedFnc!(
             perturb::Float64=1e-10,
             testshuffle::Bool=false ) where {T <: FunctorPairwise}
   #
-  # info("numericRootGenericRandomizedFnc! FastRootGenericWrapParam{$T}")
-  # @show ccwl.zDim, ccwl.xDim, ccwl.gwp.partial, ccwl.gwp.particleidx
   # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
   # ccall(:jl_, Void, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
@@ -162,44 +147,6 @@ function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
   tree
 end
 
-
-
-
-#-------------------------------------------------------------------------------
-
-# mutable struct TestSolver <: FunctorPairwise
-#   testfnc::Function
-# end
-
-
-# function numericRootGenericRandomizedFnc(
-#       residFnc!::Function,
-#       zDim::Int,
-#       xDim::Int,
-#       x0::Vector{Float64};
-#       perturb::Float64=1e-5,
-#       testshuffle::Bool=false   )
-#   #
-#   # TODO -- this only start of refactoring for inplace, more to come
-#   # xDim = length(x0)
-#   # fgr = FastGenericRoot{typeof(residFnc!)}(xDim, zDim, residFnc!)
-#   # shuffle!(fgr.p);
-#   # fgr.perturb[1:fgr.zDim] = perturb*randn(fgr.zDim)
-#   # copy!(fgr.X, x0)
-#
-#   info("This specific `numericRootGenericRandomizedFnc(,,,)` function is a convenience function only -- do tnot use in production.")
-#
-#   rr = TestSolver(residFnc!)
-#   gwp = GenericWrapParam{TestSolver}(rr, t, 1, 1)
-#   gwp.measurement = (zeros(zDim,0), )
-#   fr = FastRootGenericWrapParam{TestSolver}(gwp.params[gwp.varidx], zDim, gwp)
-#
-#   fr.xDim = xDim
-#   gwp.particleidx = 1
-#
-#   numericRootGenericRandomizedFnc!( fgr, perturb=perturb, testshuffle=testshuffle )
-#   fgr.Y
-# end
 
 
 

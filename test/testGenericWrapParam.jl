@@ -226,67 +226,6 @@ end
 end
 
 
-# function evalPotential(factor::GenericWrapParam, Xi::Array{Graphs.ExVertex,1}, solveforid::Int; N:Int=100)
-#
-#
-# end
-
-# @testset "Test with FastRootGenericWrapParam for un-permuted root finding..." begin
-#
-# N = 110
-# p1 = rand(1,N)
-# p2 = rand(1,N)
-# t = Array{Array{Float64,2},1}()
-# push!(t,p1)
-# push!(t,p2)
-#
-# odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-# varidx=2 means we are solving for p2 relative to p1
-# gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
-
-# fgr = FastGenericRoot{GenericWrapParam{Pose1Pose1Test}}(1, 1, generalwrapper)
-# numericRootGenericRandomizedFnc!( fgr )
-# # but this only represents the last step, should happen internal -- TODO
-#
-# @show p2
-
-# @show gwp.varidx
-# gwp.measurement = gwp.samplerfnc(gwp.usrfnc!, N)
-# @show zDim = size(gwp.measurement,1)
-# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-#
-# # and return complete fr/gwp
-# @time for gwp.particleidx in 1:N
-#   # gwp(x, res)
-#   numericRootGenericRandomizedFnc!( fr )
-# end
-
-# @show gwp.params
-
-# @test 90.0 < Base.mean(gwp.params[gwp.varidx]) < 110.0
-# @test -10.0 < Base.mean(gwp.params[1]) < 10.0
-
-# println("and in the reverse direction, achieved by simply changing GenericWrapParam.varidx to 1...")
-#
-# @show gwp.varidx = 1
-# gwp.params[1][:,:] = -100.0*ones(size(gwp.params[1]))
-#
-# # @show gwp.params
-#
-# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-#
-# @time for gwp.particleidx in 1:100
-#   # gwp(x, res)
-#   numericRootGenericRandomizedFnc!( fr )
-# end
-#
-# # @show gwp.params
-#
-# @test -10.0 < Base.mean(gwp.params[1]) < 10.0
-# @test 90.0 < Base.mean(gwp.params[2]) < 110.0
-#
-# end
-
 
 @testset "Test with CommonConvWrapper for un-permuted root finding..." begin
 
