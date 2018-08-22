@@ -47,18 +47,7 @@ function approxConvOnElements!(ccwl::CommonConvWrapper{T},
   end
   nothing
 end
-# function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-#                                elements::Union{Vector{Int}, UnitRange{Int}}) where {T <: FunctorPairwiseMinimize}
-#
-#   # TODO -- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-#   # Threads.@threads
-#   for n in elements
-#     # ccwl.thrid_ = Threads.threadid()
-#     ccwl.cpt[Threads.threadid()].particleidx = n
-#     numericRootGenericRandomizedFnc!( ccwl )
-#   end
-#   nothing
-# end
+
 
 """
     $(SIGNATURES)

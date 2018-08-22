@@ -60,6 +60,7 @@ function prepgenericwrapper(
             multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
+  warn("GenericWrapParam deprecated, use CommonConvWrapper instead.")
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
   # test if specific zDim or partial constraint used
