@@ -25,7 +25,7 @@ if solvefor 1, then allelem = [mhidx.==2; mhidx.==3]
 if solvefor 2, then allelem = [mhidx.==2] and ARR[solvefor][:,mhidx.==3]=ARR[3][:,mhidx.==3]
 if solvefor 3, then allelem = [mhidx.==3] and ARR[solvefor][:,mhidx.==2]=ARR[2][:,mhidx.==2]
 
-# `activehypo` in example mh=[0;0.5;0.5]
+# `activehypo` in example mh=[1.0;0.5;0.5]
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=2, mhidx=2:  ah = [1;2]
@@ -33,12 +33,22 @@ sfidx=2, mhidx=3:  2 should take a value from 3
 sfidx=3, mhidx=2:  3 should take a value from 2
 sfidx=3, mhidx=3:  ah = [1;3]
 
-# `activehypo` in example mh=[0;0.33;0.33;0.34]
+# `activehypo` in example mh=[1.0;0.33;0.33;0.34]
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=1, mhidx=4:  ah = [1;4]
-...
+
+sfidx=2, mhidx=2:  ah = [1;2]
 sfidx=2, mhidx=3:  2 should take a value from 3
+sfidx=2, mhidx=4:  2 should take a value from 4
+
+sfidx=3, mhidx=2:  3 should take a value from 2
+sfidx=3, mhidx=3:  ah = [1;3]
+sfidx=3, mhidx=4:  3 should take a value from 4
+
+sfidx=4, mhidx=2:  4 should take a value from 2
+sfidx=4, mhidx=3:  4 should take a value from 3
+sfidx=4, mhidx=4:  ah = [1;4]
 ```
 """
 function assembleHypothesesElements!(
@@ -81,61 +91,7 @@ function assembleHypothesesElements!(
 
   return certainidx, allelements, activehypo, mhidx
 end
-# function assembleHypothesesElements!(
-#             mh::Categorical,
-#             maxlen::Int,
-#             sfidx::Int,
-#             lenXi::Int  )
-#   #
-#   allelements = []
-#   activehypo = []
-#   mhidx = Int[]
-#
-#   mh.p
-#   allidx = 1:maxlen
-#   allmhp = 1:length(mh.p)
-#   certainidx = allmhp[mh.p .< 1e-10]
-#
-#   if mh != nothing
-#     # If present, prep mmultihypothesis selection values
-#     mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
-#   end
-#
-#   # this is not going to work? sfidx could be anything
-#   if mh.p[sfidx] < 1e-10
-#     pidx = 0
-#     for pval in mh.p
-#       pidx += 1
-#       if pval > 1e-10
-#         iterarr = allidx[mhidx .== pidx]
-#         push!(allelements, iterarr)
-#         iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-#         push!(activehypo, (pidx, iterah))
-#       end
-#     end
-#   elseif mh.p[sfidx] >= 1e-10
-#     pidx = 0
-#     for pval in mh.p
-#       pidx += 1
-#       ## TODO -- Maybe a mistake with iterah variables in these cases?
-#       if pval < 1e-10
-#         iterarr = allidx[mhidx .== pidx]
-#         push!(allelements, iterarr)
-#         iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-#         push!(activehypo, (pidx, iterah))
-#       else
-#         iterarr = allidx[mhidx .== pidx]
-#         push!(allelements, iterarr)
-#         iterah = allmhp[mh.p .> 1e-10]
-#         push!(activehypo, (pidx,iterah))
-#       end
-#     end
-#   else
-#     error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p)")
-#   end
-#
-#   return certainidx, allelements, activehypo, mhidx
-# end
+
 function assembleHypothesesElements!(
             mh::Void,
             maxlen::Int,
@@ -161,3 +117,46 @@ function assembleHypothesesElements!(
   end
   return certainidx, allelements, activehypo, mhidx # certainidx = allhp
 end
+
+
+
+
+
+
+
+
+
+
+# Test multihypo computation assembly
+#
+# using Distributions
+# using DocStringExtensions
+#
+# s2_1 = assembleHypothesesElements!(nothing, 20, 1, 2 )
+# s2_2 = assembleHypothesesElements!(nothing, 20, 2, 2 )
+#
+# s3_1 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 1, 3 )
+#
+#
+#
+#
+#
+#
+#
+#
+# s3_2 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 2, 3 )
+#
+#
+#
+#
+#
+#
+#
+# s3_3 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 3, 3 )
+#
+#
+#
+#
+#
+#
+# s4_2 = assembleHypothesesElements!(Categorical([0.0;0.3;0.3;0.4]), 20, 2, 4 )
