@@ -94,7 +94,9 @@ function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} w
   elseif ismatch(r"Categorical", str)
     return categoricalfromstring(str)
   elseif ismatch(r"KDE:", str)
-    return convert(KernelDensityEstimate.BallTreeDensity, str)
+    return convert(KDE.BallTreeDensity, str)
+  elseif ismatch(r"AliasingScalarSampler", str)
+    return convert(IIF.AliasingScalarSampler, str)
   else
     error("Don't know how to extract distribution from str=$(str)")
   end
