@@ -1,8 +1,8 @@
 # Second iteration of explicitly exloring the marginalization of discrete variables onto the continuous state space.
 # Although this code is still excessive and messy, this is a significant feature expansion; and future versions will
 # generalize the marginalization process to allow for implicit hypothesis exploration.  The messy explicit version of code is
-# intended to help develop the required generalistic unit tests.  The unit tests will then be validated, frozen and uesd to
-# confirm future "algebraic" marginalization (implicit) versions operate correctly.
+# intended to help develop the required generalistic unit tests.  The unit tests will then be validated, frozen and used to
+# confirm that future "algebraic" marginalization (implicit) versions operate correctly.
 # FYI, the complexity of general multihypothesis convolutions can be deceiving, however, note that the coding
 # complexity is contained for each indivual factor at a time.  Global Bayes tree inference then creates the symphony
 # of non-Gaussian (multimodal) posterior beliefs from the entire factor graph.
@@ -124,39 +124,4 @@ end
 
 
 
-
-
-
-# Test multihypo computation assembly
 #
-# using Distributions
-# using DocStringExtensions
-#
-# s2_1 = assembleHypothesesElements!(nothing, 20, 1, 2 )
-# s2_2 = assembleHypothesesElements!(nothing, 20, 2, 2 )
-#
-# s3_1 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 1, 3 )
-#
-#
-#
-#
-#
-#
-#
-#
-# s3_2 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 2, 3 )
-#
-#
-#
-#
-#
-#
-#
-# s3_3 = assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 20, 3, 3 )
-#
-#
-#
-#
-#
-#
-# s4_2 = assembleHypothesesElements!(Categorical([0.0;0.3;0.3;0.4]), 20, 2, 4 )
