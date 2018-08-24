@@ -3,7 +3,6 @@
 # of convert in their namespace
 
 
-
 """
     savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
 
@@ -140,6 +139,7 @@ function ls2(fgl::FactorGraph, vsym::Symbol)
   return xlxl
 end
 
+hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 
 """
     landmarks(fgl::FactorGraph, vsym::Symbol)
