@@ -80,7 +80,8 @@ function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: 
   psubs = split(psubs, '[')[end]
   psubsub = split(psubs, ']')[1]
   pw = split(psubsub, ',')
-  return Categorical(parse.(Float64, pw))
+  p = parse.(Float64, pw)
+  return Categorical(p ./ sum(p))
 end
 
 function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
