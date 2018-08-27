@@ -75,11 +75,11 @@ function assembleHypothesesElements!(
     iterah = Int[]
     if pval >= 1e-10 && mh.p[sfidx] < 1e-10
       iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
+    elseif pval < 1e-10 && mh.p[sfidx] >= 1e-10
+      iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
     elseif pval < 1e-10 && mh.p[sfidx] < 1e-10
       iterarr = Int[]
       # info("assembleHypothesesElements! -- not processing pval < 1e-10 && mh.p[sfidx] < 1e-10")
-    elseif pval < 1e-10 && mh.p[sfidx] >= 1e-10
-      iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
     elseif pval >= 1e-10 && mh.p[sfidx] >= 1e-10
       iterah = allmhp[mh.p .> 1e-10]
     else
