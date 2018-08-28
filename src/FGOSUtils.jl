@@ -50,9 +50,10 @@ function loadjld(;file::AbstractString="tempfg.jld")
   return fgd, gt
 end
 
+"""
+    $(SIGNATURES)
 
-
-
+"""
 function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
   # TODO ring functionality must still be implemented
   lsa = Symbol[]
@@ -73,6 +74,16 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
 end
 ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
 
+"""
+    $(SIGNATURES)
+
+List the nodes in a factor graph.
+
+# Examples
+```julia-repl
+ls(fg)
+```
+"""
 function ls(fgl::FactorGraph)
   k = collect(keys(fgl.IDs))
   l = []
@@ -97,9 +108,19 @@ function ls(fgl::FactorGraph)
   for i in 1:length(x)
     xx[i] = Symbol(string("x",x[i]))
   end
-  return xx,ll
+  return xx, ll #return poses, landmarks
 end
 
+"""
+    $(SIGNATURES)
+
+List factors in a factor graph.
+
+# Examples
+```julia-repl
+lsf(fg)
+```
+"""
 function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
   # v = Union{}
