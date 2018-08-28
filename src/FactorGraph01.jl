@@ -367,6 +367,7 @@ function prepgenericconvolution(
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
   fldnms = fieldnames(usrfnc)
   zdim = typeof(usrfnc) != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
@@ -375,6 +376,7 @@ function prepgenericconvolution(
           specialzDim = sum(fldnms .== :zDim) >= 1,
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo,
+          certainhypo=certainhypo,
           threadmodel=threadmodel
         )
   #

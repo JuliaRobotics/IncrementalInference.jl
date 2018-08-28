@@ -63,31 +63,42 @@ function assembleHypothesesElements!(
 
   allidx = 1:maxlen
   allmhp = 1:length(mh.p)
-  certainidx = allmhp[mh.p .< 1e-10]
+  certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
+  uncertnidx = allmhp[0.0 .< mh.p]
 
   # prep mmultihypothesis selection values
   mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
 
   pidx = 0
+  sfincer = sfidx in certainidx
   for pval in mh.p
     pidx += 1
+    pidxincer = pidx in certainidx # ??
+    # permutation vectors for later computation
     iterarr = allidx[mhidx .== pidx]
     iterah = Int[]
-    if pval >= 1e-10 && mh.p[sfidx] < 1e-10
-      iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-    elseif pval < 1e-10 && mh.p[sfidx] < 1e-10
+    if !pidxincer && sfincer # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
+      # solve for one of the certain variables containing uncertain hypotheses in others
+      iterah = sort(union(certainidx, pidx)) # sort([sfidx;pidx])
+      # DONE -- supports n-ary factors in multihypo mode
+    elseif pidxincer && !sfincer || sfidx == pidx # pval < 1e-15 && mh.p[sfidx] >= 1e-10
+      # solve for one of the uncertain variables
+      iterah = sort(union(certainidx, sfidx)) # sort([sfidx;pidx])
+      # EXPERIMENTAL -- support more than binary factors in multihypo mode
+    elseif pidxincer && sfincer # pval < 1e-15 && mh.p[sfidx] < 1e-10
       iterarr = Int[]
-      # info("assembleHypothesesElements! -- not processing pval < 1e-10 && mh.p[sfidx] < 1e-10")
-    elseif pval < 1e-10 && mh.p[sfidx] >= 1e-10
-      iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-    elseif pval >= 1e-10 && mh.p[sfidx] >= 1e-10
-      iterah = allmhp[mh.p .> 1e-10]
+      iterah = Int[] # may be moot anyway, but double check first
+    elseif !pidxincer && !sfincer # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
+      iterah = uncertnidx #allmhp[mh.p .> 1e-15]
     else
       error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
     end
     push!(allelements, iterarr)
     push!(activehypo, (pidx,iterah))
   end
+
+  # if mhidx == sfidx
+  # ah = sort(union([sfidx;], certainidx))
 
   return certainidx, allelements, activehypo, mhidx
 end

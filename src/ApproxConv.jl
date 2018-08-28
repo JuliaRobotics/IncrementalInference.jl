@@ -115,23 +115,25 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   certainidx,
                                   sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
+  # TODO remove assert once all GenericWrapParam has been removed
+  @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (mhidx, vars) in activehypo
     count += 1
-    if sfidx in certainidx || mhidx in certainidx # certainidx[count] in vars
-      # standard case mhidx, sfidx = $mhidx, $sfidx
+    if sfidx in certainidx || mhidx in certainidx || mhidx == sfidx
+      # hypo case mhidx, sfidx = $mhidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
-    elseif mhidx == sfidx
-      # multihypo, do conv case, mhidx == sfidx
-      ah = sort(union([sfidx;], certainidx))
-      for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
-      approxConvOnElements!(ccwl, allelements[count])
+    # elseif mhidx == sfidx
+    #   # multihypo, do conv case, mhidx == sfidx
+    #   ah = sort(union([sfidx;], certainidx))
+    #   @assert norm(ah - vars) < 1e-10
+    #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
+    #   approxConvOnElements!(ccwl, allelements[count])
     elseif mhidx != sfidx
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
-      # frl.gwp.params[sfidx][:,allelements[count]] = frl.gwp.params[mhidx][:,allelements[count]]
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -215,7 +217,8 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   # Prep computation variables
   sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
-  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
+  certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")

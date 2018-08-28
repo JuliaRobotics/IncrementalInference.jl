@@ -234,6 +234,7 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
   hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  certainhypo::Union{Void, Vector{Int}}
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
@@ -264,6 +265,7 @@ function CommonConvWrapper(fnc::T,
                            specialzDim::Bool=false,
                            partial::Bool=false,
                            hypotheses=nothing,
+                           certainhypo=nothing,
                            activehypo= 1:length(params),
                            varidx::Int=1,
                            measurement::Tuple=(zeros(0,1),),
@@ -283,6 +285,7 @@ function CommonConvWrapper(fnc::T,
   ccw.specialzDim = specialzDim
   ccw.partial = partial
   ccw.hypotheses = hypotheses
+  ccw.certainhypo=certainhypo
   ccw.params = params
   ccw.varidx = varidx
   ccw.threadmodel = threadmodel
