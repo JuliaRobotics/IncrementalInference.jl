@@ -30,8 +30,8 @@ N  = 100
 fg = emptyFactorGraph()
 
 # used later in packing converter tests
-f1 = nothing
-f3 = nothing
+# f1 = nothing
+# f3 = nothing
 
 @testset "test populate factor graph with a multi-hypothesis factor..." begin
 
@@ -85,17 +85,17 @@ end
 
 @testset "Test multi-hypothesis factor convolution exploration" begin
 
-pts = approxConv(fg, Symbol(f3.label), Symbol(v2.label), N=N)
+pts = approxConv(fg, :x2x3x4f1, :x2, N=N)
 # pts = evalFactor2(fg, f3, v2.index, N=N)
 
 @test 99 < sum(pts .<= -70.0)
 
-pts = approxConv(fg, Symbol(f3.label), Symbol(v3.label), N=N)
+pts = approxConv(fg, :x2x3x4f1, :x3, N=N)
 # pts = evalFactor2(fg, f3, v3.index, N=N)
 
 @test 25 < sum(pts .== 3.0) < 75
 
-pts = approxConv(fg, Symbol(f3.label), Symbol(v4.label), N=N)
+pts = approxConv(fg, :x2x3x4f1, :x4, N=N)
 # pts = evalFactor2(fg, f3, v4.index, N=N)
 
 @test 25 < sum(pts .== 2.0) < 75
