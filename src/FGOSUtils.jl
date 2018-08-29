@@ -112,13 +112,13 @@ function ls(fgl::FactorGraph; key1='x', key2='l')
       push!(x,node_idx)
       if canparse1
         canparse1 &= canparse
-        canparse1 ? push!(xval, parse(Int, node_idx))
+        canparse1 ? push!(xval, parse(Int, node_idx)) : nothing
       end
     elseif idstr[1] == key2
       push!(l,node_idx)
       if canparse2
         canparse2 &= canparse
-        canparse2 ? push!(lval, parse(Int, node_idx))
+        canparse2 ? push!(lval, parse(Int, node_idx)) : nothing
       end
     end
   end
