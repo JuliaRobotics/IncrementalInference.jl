@@ -1,5 +1,7 @@
 module IncrementalInference
 
+info("Using multithreaded convolutions Threads.nthreads()=$(Threads.nthreads())")
+
 import Base: convert
 import HDF5: root
 import Distributions: sample
@@ -107,6 +109,7 @@ export
   ls,
   lsf,
   ls2,
+  hasOrphans,
   getfnctype,
   drawCopyFG,
 
