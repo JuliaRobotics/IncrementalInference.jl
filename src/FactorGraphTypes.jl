@@ -197,7 +197,7 @@ function ConvPerThread(X::Array{Float64,2},
                        p=collect(1:size(X,1)),
                        perturb=zeros(zDim),
                        Y=zeros(size(X,1)),
-                       res=zeros(0)  )
+                       res=zeros(zDim)  )
   #
   cpt = ConvPerThread()
   cpt.thrid_ = 0
@@ -263,7 +263,7 @@ function CommonConvWrapper(fnc::T,
                            perturb=zeros(zDim),
                            Y=zeros(size(X,1)),
                            xDim=size(X,1),
-                           res=zeros(0),
+                           res=zeros(zDim),
                            threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
@@ -278,6 +278,7 @@ function CommonConvWrapper(fnc::T,
   ccw.params = params
   ccw.varidx = varidx
   ccw.threadmodel = threadmodel
+  ccw.measurement = measurement
 
   # thread specific elements
   ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
@@ -291,16 +292,6 @@ function CommonConvWrapper(fnc::T,
                     Y=Y,
                     res=res )
   end
-  # ccw.varidx = varidx
-  # ccw.measurement = measurement
-  # ccw.activehypo = activehypo
-  # ccw.factormetadata = factormetadata
-  # ccw.particleidx = particleidx
-  # ccw.p = p
-  # ccw.perturb = perturb
-  # ccw.X = X
-  # ccw.Y = Y
-  # ccw.res = res
 
   return ccw
 end

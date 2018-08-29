@@ -121,6 +121,7 @@ export
   evalPotential,
   evalFactor2,
   approxConv,
+  approxConvBinary,
 
   # weiged sampling
   AliasingScalarSampler,
