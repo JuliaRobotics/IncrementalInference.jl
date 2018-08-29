@@ -431,6 +431,8 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
         setValKDE!(xi, pts)
         getData(xi).initialized = true
         # println("doautoinit! just before update vertex...")
+        @show "UPDATING VERTEX!"
+        @show api
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
