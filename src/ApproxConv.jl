@@ -129,7 +129,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
     #   @assert norm(ah - vars) < 1e-10
     #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
     #   approxConvOnElements!(ccwl, allelements[count])
-    elseif mhidx != sfidx
+    elseif mhidx != sfidx   # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
