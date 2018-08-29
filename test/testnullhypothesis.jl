@@ -10,9 +10,12 @@ mutable struct DevelopPriorNH <: IncrementalInference.FunctorSingletonNH
   x::Distribution
   nullhypothesis::Distributions.Categorical
 end
-getSample(dpl::DevelopPriorNH, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
+function getSample(dpl::DevelopPriorNH, N::Int=1)
+  return (reshape(rand(dpl.x, N),1,N), )
+end
 
 
+@testset "test null hypothesis singletons..." begin
 
 N  = 100
 fg = emptyFactorGraph()
@@ -32,8 +35,7 @@ pts = evalFactor2(fg, f1, v1.index, N=N)
 @test sum(abs.(pts - 1.0) .< 5) > 30
 @test sum(abs.(pts - 10.0) .< 5) > 30
 
-
-
+end
 
 
 

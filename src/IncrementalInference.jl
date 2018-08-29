@@ -1,18 +1,19 @@
 module IncrementalInference
 
+info("Using multithreaded convolutions Threads.nthreads()=$(Threads.nthreads())")
+
 import Base: convert
 import HDF5: root
-# import KernelDensityEstimate: root
 import Distributions: sample
-# import KernelDensityEstimate: sample
+import Base: rand, rand!
 import KernelDensityEstimate: kde!
-# import Graphs: plot
 
 using
   Graphs,
   NLsolve,
   Optim,
   Distributions,
+  StatsBase,
   KernelDensityEstimate,
   HDF5,
   JLD,
@@ -33,6 +34,8 @@ export
   Ndim,
   getBW,
 
+  evalLikelihood,
+
   # data layer variables
   dlapi,
   localapi,
@@ -45,6 +48,9 @@ export
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
+  SamplableBelief,
+  Prior,
+  LinearConditional,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -62,6 +68,7 @@ export
   FactorGraph,
   addNode!,
   addFactor!,
+  doautoinit!,
   resetData!,
   getVert,
   getData,
@@ -98,12 +105,14 @@ export
 
   #functors need
   getSample,
+  freshSamples!,
 
   #Visualization
   writeGraphPdf,
   ls,
   lsf,
   ls2,
+  hasOrphans,
   getfnctype,
   drawCopyFG,
 
@@ -113,24 +122,39 @@ export
   evalFactor2,
   approxConv,
 
+  # weiged sampling
+  AliasingScalarSampler,
+  rand!,
+  rand,
+
   # dev
+  CommonConvWrapper, # new wrapper (experimental) -- not ready for use
+
+  # is deprecated
+  FastGenericRoot,
+  FastRootGenericWrapParam,
   GenericWrapParam,
 
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
-    #development interface
-    upMsgPassingRecursive,
+
+  #development interface
+  upMsgPassingRecursive,
 
   # Inference types
   InferenceType,
   PackedInferenceType,
   Singleton,
   Pairwise,
+  # introduced for approximate convolution operations
+  SingleThreaded,
+  MultiThreaded,
 
   # functor abstracts
   FunctorInferenceType,
   FunctorPairwise,
+  FunctorPairwiseMinimize,
   FunctorSingleton,
   # FunctorPartialSingleton,
   FunctorPairwiseNH,
@@ -143,8 +167,6 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
-  FastGenericRoot,
-  FastRootGenericWrapParam,
 
   # user functions
   proposalbeliefs,
@@ -158,7 +180,6 @@ export
   convert, # for protobuf stuff
   compare,
   extractdistribution,
-
 
   # factor graph operating system utils (fgos)
   convert2packedfunctionnode,
@@ -201,6 +222,8 @@ const VoidUnion{T} = Union{Void, T}
 
 
 include("FactorGraphTypes.jl")
+include("AliasScalarSampling.jl")
+include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("DispatchPackedConversions.jl")
