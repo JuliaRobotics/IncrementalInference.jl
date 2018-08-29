@@ -53,6 +53,15 @@ end
 """
     $(SIGNATURES)
 
+Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
+"""
+allnums(str::S) where {S <: AbstractString} = ismatch(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
+
+# ismatch(r"_+|,+|-+", node_idx)
+
+"""
+    $(SIGNATURES)
+
 """
 function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
   # TODO ring functionality must still be implemented
@@ -84,30 +93,43 @@ List the nodes in a factor graph.
 ls(fg)
 ```
 """
-function ls(fgl::FactorGraph)
+function ls(fgl::FactorGraph; key1='x', key2='l')
   k = collect(keys(fgl.IDs))
-  l = []
-  x = []
+  x = String[]
+  l = String[]
+  xval = Int[]
+  lval = Int[]
+  canparse1 = true
+  canparse2 = true
+  idx = 0
   for id in k
+    idx += 1
     idstr = string(id)
     # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
     node_idx = idstr[2:end]
-    if idstr[1] == 'l'
-      push!(l,node_idx)
-    elseif idstr[1] == 'x'
+    canparse = allnums(node_idx)
+    if idstr[1] == key1
       push!(x,node_idx)
+      if canparse1
+        canparse1 &= canparse
+        canparse1 ? push!(xval, parse(Int, node_idx))
+      end
+    elseif idstr[1] == key2
+      push!(l,node_idx)
+      if canparse2
+        canparse2 &= canparse
+        canparse2 ? push!(lval, parse(Int, node_idx))
+      end
     end
   end
-  l = sort(l)
-  x = sort(x)
-  ll = Array{Symbol,1}(length(l))
-  xx = Array{Symbol,1}(length(x))
-  for i in 1:length(l)
-    ll[i] = Symbol(string("l",l[i]))
+  if canparse1
+    x = x[sortperm(xval)]
   end
-  for i in 1:length(x)
-    xx[i] = Symbol(string("x",x[i]))
+  if canparse2
+    l = l[sortperm(lval)]
   end
+  xx = Symbol.(x)
+  ll = Symbol.(l)
   return xx, ll #return poses, landmarks
 end
 
