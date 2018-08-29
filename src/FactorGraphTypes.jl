@@ -22,17 +22,6 @@ abstract type ConvolutionObject <: Function end
 @compat abstract type FunctorPairwiseNH <: FunctorPairwise end
 # @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
-struct ContinuousScalar <: InferenceVariable
-  dims::Int
-  labels::Vector{String}
-  ContinuousScalar() = new(1, String["";])
-end
-struct ContinuousMultivariate <:InferenceVariable
-  dims::Int
-  labels::Vector{String}
-  ContinuousMultivariate() = new()
-  ContinuousMultivariate(x) = new(x, String["";])
-end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}

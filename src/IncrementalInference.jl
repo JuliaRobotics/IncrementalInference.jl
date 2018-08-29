@@ -48,6 +48,9 @@ export
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
+  SamplableBelief,
+  Prior,
+  LinearConditional,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -220,6 +223,7 @@ const VoidUnion{T} = Union{Void, T}
 
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
+include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("DispatchPackedConversions.jl")
