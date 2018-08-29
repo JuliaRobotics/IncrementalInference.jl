@@ -1,16 +1,17 @@
 language: julia
 os:
   - linux
-  - osx
 julia:
   - 0.6
   - 0.7
+  - 1.0
   - nightly
 notifications:
   email: false
 matrix:
   allow_failures:
-    - os: osx
+    - julia: 0.7
+    - julia: 1.0
     - julia: nightly
 addons:
   apt:
