@@ -113,6 +113,9 @@ export
   lsf,
   ls2,
   hasOrphans,
+  allnums,
+  isnestednum,
+  sortnestedperm,
   getfnctype,
   drawCopyFG,
 
