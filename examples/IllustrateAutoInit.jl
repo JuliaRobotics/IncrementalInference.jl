@@ -149,18 +149,6 @@ plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 # Helper function for graphing the factor graph structure (using GraphViz)
 
-function writeGraphPdf(fgl::FactorGraph; file::String="fg.pdf")
-  fgd = drawCopyFG(fgl)
-  println("Writing factor graph file")
-  fid = open("fg.dot","w+")
-  write(fid,Graphs.to_dot(fgd.g))
-  close(fid)
-  fext = split(file, '.')[end]
-  run(`dot fg.dot -T$fext -o $file`)
-  Base.rm("fg.dot")
-  nothing
-end
-
 
 # using Gadfly
 # pl.guides[1] = Gadfly.Guide.xlabel("")
