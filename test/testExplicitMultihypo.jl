@@ -184,7 +184,7 @@ end
 
 warn("only partially testing tri-modality")
 
-N = 40
+N = 50
 s4_1_gt1 = [1]
 s4_1_gt2 = (0,4,4,4,N)
 s4_1_gt3 = [(1,Int[]); (2,Int[1;2]); (3,Int[1;3]); (4,Int[1;4])]
@@ -219,7 +219,7 @@ s4_1 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 
 
 
-N = 40
+N = 50
 s4_2_gt1 = [1]
 s4_2_gt2 = (0,4,4,4,N)
 s4_2_gt3 = [(1,Int[1;2]); (2,Int[1;2]); (3,Int[2;3;4]); (4,Int[2;3;4])]
@@ -253,7 +253,7 @@ s4_2 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test length(s4_2[4]) == s4_2_gt4
 
 
-N = 40
+N = 50
 s4_3_gt1 = [1]
 s4_3_gt2 = (0,4,4,4,N)
 s4_3_gt3 = [(1,Int[1;3]); (2,Int[2;3;4]); (3,Int[1;3]); (4,Int[2;3;4])]
@@ -287,7 +287,7 @@ s4_3 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test length(s4_3[4]) == s4_3_gt4
 
 
-N = 40
+N = 50
 s4_4_gt1 = [1]
 s4_4_gt2 = (0,4,4,4,N)
 s4_4_gt3 = [(1,Int[1;4]); (2,Int[2;3;4]); (3,Int[2;3;4]); (4,Int[1;4])]

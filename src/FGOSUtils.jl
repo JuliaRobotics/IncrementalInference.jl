@@ -56,8 +56,17 @@ end
 Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
 """
 allnums(str::S) where {S <: AbstractString} = ismatch(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
-
 # ismatch(r"_+|,+|-+", node_idx)
+
+isnestednum(str::S; delim='_') where {S <: AbstractString} = ismatch(Regex("[0-9]+$(delim)[0-9]+"), str)
+
+function sortnestedperm(strs::Vector{<:AbstractString}; delim='_')
+  str12 = split.(strs, delim)
+  sp1 = sortperm(parse.(Int,getindex.(str12,2)))
+  sp2 = sortperm(parse.(Int,getindex.(str12,1)[sp1]))
+  return sp1[sp2]
+end
+
 
 """
     $(SIGNATURES)
@@ -95,12 +104,13 @@ ls(fg)
 """
 function ls(fgl::FactorGraph; key1='x', key2='l')
   k = collect(keys(fgl.IDs))
-  x = String[]
-  l = String[]
-  xval = Int[]
-  lval = Int[]
-  canparse1 = true
-  canparse2 = true
+  x, l = String[], String[]
+  xval, lval = Int[], Int[]
+  xstr, lstr = String[], String[]
+  xvalnested, lvalnested = String[], String[]
+  xstrnested, lstrnested = String[], String[]
+  canparse1, canparse2 = true,true
+  nestedparse1, nestedparse2 = true, true
   idx = 0
   for id in k
     idx += 1
@@ -108,30 +118,39 @@ function ls(fgl::FactorGraph; key1='x', key2='l')
     # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
     node_idx = idstr[2:end]
     canparse = allnums(node_idx)
+    nested = isnestednum(node_idx)
     if idstr[1] == key1
-      push!(x,string(key1,node_idx))
-      if canparse1
-        canparse1 &= canparse
-        canparse1 ? push!(xval, parse(Int, node_idx)) : nothing
+      keystr = string(key1,node_idx)
+      if canparse
+        push!(xstr, keystr)
+        push!(xval, parse(Int, node_idx))
+      elseif nested
+        push!(xvalnested, node_idx)
+        push!(xstrnested, string(node_idx))
+      else
+        push!(x,keystr)
       end
     elseif idstr[1] == key2
-      push!(l,string(key2,node_idx))
-      if canparse2
-        canparse2 &= canparse
-        canparse2 ? push!(lval, parse(Int, node_idx)) : nothing
+      keystr = string(key2,node_idx)
+      if canparse
+        push!(lstr, keystr)
+        push!(lval, parse(Int, node_idx))
+      elseif nested
+        push!(lstrnested, keystr)
+        push!(lvalnested, string(node_idx))
+      else
+        push!(l,string(key2,node_idx))
       end
     end
   end
-  if canparse1
-    x = x[sortperm(xval)]
-  else
-    x = sort(x)
-  end
-  if canparse2
-    l = l[sortperm(lval)]
-  else
-    l = sort(l)
-  end
+  x1 = xstr[sortperm(xval)]
+  x2 = xstrnested[sortnestedperm(xvalnested)]
+  x = [x1; x2; sort(x)]
+
+  l1 = lstr[sortperm(lval)]
+  l2 = lstrnested[sortnestedperm(lvalnested)]
+  l = [l1; l2; sort(l)]
+
   xx = Symbol.(x)
   ll = Symbol.(l)
   return xx, ll #return poses, landmarks
