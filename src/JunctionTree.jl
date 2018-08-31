@@ -401,21 +401,22 @@ function countSkips(bt::BayesTree)
 end
 
 function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
-  numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
-  condAssocMat = cliq.attributes["data"].cliqAssocMat[:,numfrtl1:end]
-  condMsgMat = cliq.attributes["data"].cliqMsgMat[:,numfrtl1:end]
+  cliqdata = getData(cliq)
+  numfrtl1 = floor(Int,length(cliqdata.frontalIDs)+1)
+  condAssocMat = cliqdata.cliqAssocMat[:,numfrtl1:end]
+  condMsgMat = cliqdata.cliqMsgMat[:,numfrtl1:end]
   mat = [condAssocMat;condMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,condMsgMat),1) .== 1
   mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliq.attributes["data"].conditIDs[vec(collect(mab))]
+  msgidx = cliqdata.conditIDs[vec(collect(mab))]
   return msgidx
 end
 
 function directPriorMsgIDs(cliq::Graphs.ExVertex)
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getData(cliq).frontalIDs
+  cond = getData(cliq).conditIDs
   cols = [frtl;cond]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),2) .== 1
@@ -429,39 +430,39 @@ function directPriorMsgIDs(cliq::Graphs.ExVertex)
 end
 
 function directFrtlMsgIDs(cliq::Graphs.ExVertex)
-  numfrtl = length(cliq.attributes["data"].frontalIDs)
-  frntAssocMat = cliq.attributes["data"].cliqAssocMat[:,1:numfrtl]
-  frtlMsgMat = cliq.attributes["data"].cliqMsgMat[:,1:numfrtl]
+  numfrtl = length(getData(cliq).frontalIDs)
+  frntAssocMat = getData(cliq).cliqAssocMat[:,1:numfrtl]
+  frtlMsgMat = getData(cliq).cliqMsgMat[:,1:numfrtl]
   mat = [frntAssocMat; frtlMsgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabM = sum(map(Int,frtlMsgMat),1) .== 1
   mab = mab .& mabM
-  return cliq.attributes["data"].frontalIDs[vec(collect(mab))]
+  return getData(cliq).frontalIDs[vec(collect(mab))]
 end
 
 function directAssignmentIDs(cliq::Graphs.ExVertex)
   # NOTE -- old version been included in iterated variable stack
-  assocMat = cliq.attributes["data"].cliqAssocMat
-  msgMat = cliq.attributes["data"].cliqMsgMat
+  assocMat = getData(cliq).cliqAssocMat
+  msgMat = getData(cliq).cliqMsgMat
   mat = [assocMat;msgMat];
   mab = sum(map(Int,mat),1) .== 1
   mabA = sum(map(Int,assocMat),1) .== 1
   mab = mab .& mabA
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getData(cliq).frontalIDs
+  cond = getData(cliq).conditIDs
   cols = [frtl;cond]
   return cols[vec(collect(mab))]
   # also calculate how which are conditionals
 end
 
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
-  assocMat = cliq.attributes["data"].cliqAssocMat
-  msgMat = cliq.attributes["data"].cliqMsgMat
+  assocMat = getData(cliq).cliqAssocMat
+  msgMat = getData(cliq).cliqMsgMat
   mat = [assocMat;msgMat];
   sum(sum(map(Int,mat),1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),1)
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getData(cliq).frontalIDs
+  cond = getData(cliq).conditIDs
   cols = [frtl;cond]
   # dev code
   # prioritize prior'ed variables, then high degree next
@@ -478,16 +479,16 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
 end
 
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].directPriorMsgIDs = directPriorMsgIDs(cliq)
+  getData(cliq).directPriorMsgIDs = directPriorMsgIDs(cliq)
 
   # NOTE -- combined larger iter group
-  cliq.attributes["data"].directvarIDs = directAssignmentIDs(cliq)
-  # cliq.attributes["data"].itervarIDs = mcmcIterationIDs(cliq)
+  getData(cliq).directvarIDs = directAssignmentIDs(cliq)
+  # getData(cliq).itervarIDs = mcmcIterationIDs(cliq)
   # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
   usset = union(mcmcIterationIDs(cliq), directAssignmentIDs(cliq))
-  cliq.attributes["data"].itervarIDs = setdiff(usset, cliq.attributes["data"].directPriorMsgIDs)
-  cliq.attributes["data"].msgskipIDs = skipThroughMsgsIDs(cliq)
-  cliq.attributes["data"].directFrtlMsgIDs = directFrtlMsgIDs(cliq)
+  getData(cliq).itervarIDs = setdiff(usset, getData(cliq).directPriorMsgIDs)
+  getData(cliq).msgskipIDs = skipThroughMsgsIDs(cliq)
+  getData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
 
 
   nothing

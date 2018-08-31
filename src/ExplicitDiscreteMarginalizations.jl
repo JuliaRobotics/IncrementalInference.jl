@@ -1,8 +1,8 @@
 # Second iteration of explicitly exloring the marginalization of discrete variables onto the continuous state space.
 # Although this code is still excessive and messy, this is a significant feature expansion; and future versions will
 # generalize the marginalization process to allow for implicit hypothesis exploration.  The messy explicit version of code is
-# intended to help develop the required generalistic unit tests.  The unit tests will then be validated, frozen and uesd to
-# confirm future "algebraic" marginalization (implicit) versions operate correctly.
+# intended to help develop the required generalistic unit tests.  The unit tests will then be validated, frozen and used to
+# confirm that future "algebraic" marginalization (implicit) versions operate correctly.
 # FYI, the complexity of general multihypothesis convolutions can be deceiving, however, note that the coding
 # complexity is contained for each indivual factor at a time.  Global Bayes tree inference then creates the symphony
 # of non-Gaussian (multimodal) posterior beliefs from the entire factor graph.
@@ -25,7 +25,7 @@ if solvefor 1, then allelem = [mhidx.==2; mhidx.==3]
 if solvefor 2, then allelem = [mhidx.==2] and ARR[solvefor][:,mhidx.==3]=ARR[3][:,mhidx.==3]
 if solvefor 3, then allelem = [mhidx.==3] and ARR[solvefor][:,mhidx.==2]=ARR[2][:,mhidx.==2]
 
-# `activehypo` in example mh=[0;0.5;0.5]
+# `activehypo` in example mh=[1.0;0.5;0.5]
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=2, mhidx=2:  ah = [1;2]
@@ -33,86 +33,106 @@ sfidx=2, mhidx=3:  2 should take a value from 3
 sfidx=3, mhidx=2:  3 should take a value from 2
 sfidx=3, mhidx=3:  ah = [1;3]
 
-# `activehypo` in example mh=[0;0.33;0.33;0.34]
+# `activehypo` in example mh=[1.0;0.33;0.33;0.34]
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=1, mhidx=4:  ah = [1;4]
-...
+
+sfidx=2, mhidx=2:  ah = [1;2]
 sfidx=2, mhidx=3:  2 should take a value from 3
+sfidx=2, mhidx=4:  2 should take a value from 4
+
+sfidx=3, mhidx=2:  3 should take a value from 2
+sfidx=3, mhidx=3:  ah = [1;3]
+sfidx=3, mhidx=4:  3 should take a value from 4
+
+sfidx=4, mhidx=2:  4 should take a value from 2
+sfidx=4, mhidx=3:  4 should take a value from 3
+sfidx=4, mhidx=4:  ah = [1;4]
 ```
 """
-function assembleHypothesesElements!(allelements::Array,
-            activehypo::Array,
+function assembleHypothesesElements!(
             mh::Categorical,
             maxlen::Int,
             sfidx::Int,
-            mhidx,
             lenXi::Int  )
   #
-  # @show mhidx
+  allelements = []
+  activehypo = []
+  mhidx = Int[]
+
   allidx = 1:maxlen
   allmhp = 1:length(mh.p)
-  # @show mh.p
-  certainidx = allmhp[mh.p .< 1e-10]
+  certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
+  uncertnidx = allmhp[0.0 .< mh.p]
 
-  # this is not going to work? sfidx could be anything
-  if mh.p[sfidx] < 1e-10
-    pidx = 0
-    for pval in mh.p
-      pidx += 1
-      if pval > 1e-10
-        iterarr = allidx[mhidx .== pidx]
-        push!(allelements, iterarr)
-        iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-        push!(activehypo, (pidx, iterah))
-      end
+  # prep mmultihypothesis selection values
+  mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
+
+  pidx = 0
+  sfincer = sfidx in certainidx
+  for pval in mh.p
+    pidx += 1
+    pidxincer = pidx in certainidx # ??
+    # permutation vectors for later computation
+    iterarr = allidx[mhidx .== pidx]
+    iterah = Int[]
+    if !pidxincer && sfincer # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
+      # solve for one of the certain variables containing uncertain hypotheses in others
+      iterah = sort(union(certainidx, pidx)) # sort([sfidx;pidx])
+      # DONE -- supports n-ary factors in multihypo mode
+    elseif pidxincer && !sfincer || sfidx == pidx # pval < 1e-15 && mh.p[sfidx] >= 1e-10
+      # solve for one of the uncertain variables
+      iterah = sort(union(certainidx, sfidx)) # sort([sfidx;pidx])
+      # EXPERIMENTAL -- support more than binary factors in multihypo mode
+    elseif pidxincer && sfincer # pval < 1e-15 && mh.p[sfidx] < 1e-10
+      iterarr = Int[]
+      iterah = Int[] # may be moot anyway, but double check first
+    elseif !pidxincer && !sfincer # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
+      iterah = uncertnidx #allmhp[mh.p .> 1e-15]
+    else
+      error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
     end
-  elseif mh.p[sfidx] >= 1e-10
-    pidx = 0
-    for pval in mh.p
-      pidx += 1
-      # must still include cases where sfidx != pidx
-      ## TODO -- Maybe a mistake with iterah variables in these cases?
-      if pval < 1e-10
-        iterarr = allidx[mhidx .== pidx]
-        push!(allelements, iterarr)
-        iterah = sort([sfidx;pidx]) # TODO -- currently only support binary factors in multihypo mode
-        push!(activehypo, (pidx, iterah))
-      elseif pval > 1e-10 && sfidx == pidx
-        iterarr = allidx[mhidx .== pidx]
-        push!(allelements, iterarr)
-        iterah = allmhp[mh.p .> 1e-10]
-        # @show iterah = sort(union([pidx;], allmhp[mh.p .< 1e-10]))
-        push!(activehypo, (pidx,iterah))
-      elseif pval > 1e-10 && sfidx != pidx
-        iterarr = allidx[mhidx .== pidx]
-        push!(allelements, iterarr)
-        iterah = allmhp[mh.p .> 1e-10]
-        push!(activehypo, (pidx,iterah))
-      else
-        error("assembleHypothesesElements! mh.p[sfidx=$(sfidx)] >= 1e-10 is missing a case: pval=$pval")
-      end
-    end
-  else
-    error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p)")
+    push!(allelements, iterarr)
+    push!(activehypo, (pidx,iterah))
   end
 
-  return certainidx
+  # if mhidx == sfidx
+  # ah = sort(union([sfidx;], certainidx))
+
+  return certainidx, allelements, activehypo, mhidx
 end
-function assembleHypothesesElements!(allelements::Array, activehypo::Array, mh::Void, maxlen::Int, sfidx::Int, mhidx, lenXi::Int)
-  # error("assembleHypothesesElements!(..) -- Error in code design, refactor of general multihypothesis situations required if you arrived here.")
+
+function assembleHypothesesElements!(
+            mh::Void,
+            maxlen::Int,
+            sfidx::Int,
+            lenXi::Int  )
+  #
+  allelements = []
+  activehypo = []
+  mhidx = Int[]
+
   allidx = 1:maxlen
-  allhp = 1:lenXi
+  certainidx = 1:lenXi
   doneall = false
-  for i in allhp
+  for i in certainidx
     if !doneall
       push!(allelements, allidx)
-      push!(activehypo, (i,allhp))
+      push!(activehypo, (i,certainidx))
       doneall = true
     else
       push!(allelements, Int[])
       push!(activehypo, (i,Int[]))
     end
   end
-  return allhp # certainidx =
+  return certainidx, allelements, activehypo, mhidx # certainidx = allhp
 end
+
+
+
+
+
+
+
+#

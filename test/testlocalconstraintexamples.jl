@@ -38,8 +38,10 @@ doors2 = getPoints(pd);
   @test norm(Base.mean(getVal(fg, :x2),2)-[50.0]) < 15.0
 end
 
+# using RoMEPlotting
+#
 # plotKDE( getVertKDE(fg,:x2) )
-
+# plotKDE(kde!(pts))
 
 
 
