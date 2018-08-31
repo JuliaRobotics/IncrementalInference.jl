@@ -836,20 +836,23 @@ function drawCopyFG(fgl::FactorGraph)
 end
 
 function writeGraphPdf(fgl::FactorGraph;
-                       pdfreader::Union{Void, String}="evince",
-                       filename::AS="/tmp/fg.pdf"  ) where {AS <: AbstractString}
+                       viewerapp::String="evince",
+                       filepath::AS="/tmp/fg.pdf",
+                       show::Bool=true  ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
-  dotfile = split(filename, ".pdf")[1]*".dot"
+  fext = split(filepath, '.')[end]
+  fpwoext = split(filepath, '.')[end-1]
+  dotfile = fpwoext*".dot"
   fid = open(dotfile,"w")
   write(fid,Graphs.to_dot(fgd.g))
   close(fid)
-  run(`dot $(dotfile) -Tpdf -o $(filename)`)
+  show? (@async run(`dot $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
   try
-    pdfreader != nothing ? (@async run(`$(pdfreader) $(filename)`)) : nothing
+    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
-    warn("not able to show $(filename) with pdfreader=$(pdfreader). Exception e=$(e)")
+    warn("not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)")
   end
   nothing
 end

@@ -163,7 +163,13 @@ end
 
 
 ## Find batch belief propagation solution
-function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=false)
+function prepBatchTree!(fg::FactorGraph;
+                        ordering::Symbol=:qr,
+                        drawpdf::Bool=false,
+                        show::Bool=false,
+                        filepath::String="/tmp/bt.pdf",
+                        viewerapp::String="evince"  )
+  #
   p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
   println()
   fge = deepcopy(fg)
@@ -182,10 +188,13 @@ function prepBatchTree!(fg::FactorGraph; ordering::Symbol=:qr,drawpdf::Bool=fals
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
   println("Bayes Tree")
   if drawpdf
-    fid = open("bt.dot","w+")
+    fext = split(filepath, '.')[end]
+    fpwoext = split(filepath, '.')[end-1]
+    fid = open("$(fpwoext).dot","w+")
     write(fid,to_dot(tree.bt))
     close(fid)
-    run(`dot bt.dot -Tpdf -o bt.pdf`)
+    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   end
 
   # GraphViz.Graph(to_dot(tree.bt))

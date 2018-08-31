@@ -40,13 +40,6 @@ end
 
 
 
-# Obsolete
-# FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-# typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-# PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
-# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
-
-
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
 function normalfromstring(str::AS) where {AS <: AbstractString}
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
@@ -173,19 +166,10 @@ function parsemultihypostr(str::AS) where {AS <: AbstractString}
   return mhcat
 end
 
+
+## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-
-# TODO simplify and reduce to single pack and unpack converter
-## packing converters-----------------------------------------------------------
-
-# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: InferenceType}
-#     # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-#   error("convert(::Type{PackedFunctionNodeData{P}} : this convert function should probably not be used. Use FunctorInferenceType instead of InferenceType.")
-#   mhstr = packmultihypo(d.fnc)
-#   return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-#           string(d.frommodule), convert(P, d.fnc), mhstr) # TODO -- should use convert(P, d.fnc.usrfnc!) instead
-# end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
   mhstr = packmultihypo(d.fnc)
