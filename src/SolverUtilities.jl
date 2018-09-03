@@ -183,7 +183,11 @@ function fifoFreeze!(fgl::FactorGraph)
   end
 
   tofreeze = fgl.fifo[1:(end-fgl.qfl)]
-  println("[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end]).")
+  if length(tofreeze) == 0
+      info("[fifoFreeze] QFL - no nodes to freeze.")
+      return nothing
+  end
+  info("[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end]).")
   setfreeze!.(fgl, tofreeze)
   nothing
 end
