@@ -28,7 +28,7 @@ function emptyBTNodeData()
 end
 
 # BayesTree declarations
-type BayesTree
+mutable struct BayesTree
   bt
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}

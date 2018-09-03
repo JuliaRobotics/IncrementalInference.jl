@@ -19,6 +19,7 @@ mutable struct PackedVariableNodeData
   # groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   softtype::String
   initialized::Bool
+  isfrozen::Bool
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x1::Vector{Float64},
                          x2::Int,
@@ -35,7 +36,8 @@ mutable struct PackedVariableNodeData
                          x13::Int,
                          x14::Vector{Int},
                          x15::String,
-                         x16::Bool) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16)
+                         x16::Bool,
+                         x17::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17)
 end
 
 
@@ -105,7 +107,7 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                               d.BayesNetOutVertIDs,
                               d.dimIDs, d.dims, d.eliminated,
                               d.BayesNetVertID, d.separator,
-                              string(d.softtype), d.initialized)
+                              string(d.softtype), d.initialized, d.isfrozen)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
@@ -130,7 +132,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing, st, d.initialized )
+    nothing, st, d.initialized, d.isfrozen )
 end
 
 
@@ -147,6 +149,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.eliminated == b.eliminated
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
+    TP = TP && a.isfrozen == b.isfrozen
     return TP
 end
 

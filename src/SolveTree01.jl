@@ -447,17 +447,20 @@ function fmcmc!(fgl::FactorGraph,
       print("#$(iter)\t -- ")
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
-        # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-        densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
-        if size(densPts,1)>0
-          updvert = getVert(fgl, vertid, api=dlapi)
-          setValKDE!(updvert, densPts)
-          # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
-          dlapi.updatevertex!(fgl, updvert)
-          # fgl.v[vertid].attributes["val"] = densPts
-          if dbg
-            push!(dbgvals.prods, potprod)
-            push!(dbgvals.lbls, Symbol(updvert.label))
+        vert = getVert(fgl, vertid, api=dlapi)
+        if !getData(vert).isfrozen
+          # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+          if size(densPts,1)>0
+            updvert = getVert(fgl, vertid, api=dlapi)  # TODO --  can we remove this duplicate getVert?
+            setValKDE!(updvert, densPts)
+            # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
+            dlapi.updatevertex!(fgl, updvert)
+            # fgl.v[vertid].attributes["val"] = densPts
+            if dbg
+              push!(dbgvals.prods, potprod)
+              push!(dbgvals.lbls, Symbol(updvert.label))
+            end
           end
         end
       end
@@ -504,7 +507,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3, dbg)
-    elseif true
+    else
       dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directFrtlMsgIDs, N, 1)
       if length(inp.cliq.attributes["data"].msgskipIDs) > 0
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].msgskipIDs, N, 1)

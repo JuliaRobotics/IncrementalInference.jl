@@ -142,12 +142,50 @@ end
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
+  if fgl.isfixedlag
+      println("Quasi fixed-lag is enabled (a feature currently in testing)!")
+      IIF.fifoFreeze!(fgl)
+  end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
   inferOverTree!(fgl, tree)
   tree
 end
 
+"""
+    $(SIGNATURES)
 
+Update the frozen node
+"""
+function setfreeze!(fgl::FactorGraph, sym::Symbol)
+  if !isInitialized(fgl, sym)
+    warn("Vertex $(sym) is not initialized, and won't be frozen at this time.")
+    return nothing
+  end
+  vert = getVert(fgl, sym)
+  data = getData(vert)
+  data.isfrozen = true
+
+  nothing
+end
+
+
+"""
+    $(SIGNATURES)
+
+Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
+
+Future:
+- Allow different freezing strategies beyond fifo.
+"""
+function fifoFreeze!(fgl::FactorGraph)
+  if fgl.qfl == 0
+    warn("Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl")
+  end
+
+  tofreeze = fgl.fifo[1:(end-fgl.qfl)]
+  setfreeze!.(fgl, tofreeze)
+  nothing
+end
 
 
 #

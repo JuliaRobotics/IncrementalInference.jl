@@ -102,6 +102,7 @@ export
   getVertKDE,
   initializeNode!,
   batchSolve!,
+  fifoFreeze!,
 
   #functors need
   getSample,
