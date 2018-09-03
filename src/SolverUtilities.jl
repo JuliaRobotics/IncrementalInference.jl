@@ -144,7 +144,7 @@ Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
   if fgl.isfixedlag
       println("Quasi fixed-lag is enabled (a feature currently in testing)!")
-      IIF.fifoFreeze!(fgl)
+      fifoFreeze!(fgl)
   end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
   inferOverTree!(fgl, tree)
