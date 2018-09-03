@@ -154,12 +154,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false, false) #initialized
   end
   #
   setData!(v, data)
@@ -235,6 +235,9 @@ function addNode!(fg::FactorGraph,
 
   # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
+
+  # keep a fifo queue of incoming symbols
+  push!(fg.fifo, lbl)
 
   vert
 end
