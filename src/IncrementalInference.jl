@@ -153,6 +153,7 @@ export
   Singleton,
   Pairwise,
   # introduced for approximate convolution operations
+  setThreadModel!,
   SingleThreaded,
   MultiThreaded,
 

@@ -244,5 +244,13 @@ end
 
 
 
+function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
+  for (key, id) in fg.fIDs
+    getData(getVert(fg, key,nt=:fnc)).fnc.threadmodel = model
+  end
+  nothing
+end
+
+
 
 #
