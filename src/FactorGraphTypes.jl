@@ -171,8 +171,7 @@ mutable struct FactorMetadata
   variableuserdata::Union{Vector, Tuple}
   variablesmalldata::Union{Vector, Tuple}
   solvefor::Union{Symbol, Void}
-  variablelist::Union{Void, Vector{Sy
-  mbol}}
+  variablelist::Union{Void, Vector{Symbol}}
   dbg::Bool
   FactorMetadata() = new() # [], []
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
