@@ -5,24 +5,24 @@
 #   bws::Array{Float64,1}
 # end
 
-type NBPMessage <: Singleton
+mutable struct NBPMessage <: Singleton
   p::Dict{Int,EasyMessage}
 end
 
-type PotProd
+mutable struct PotProd
     Xi::Int
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
     potentialfac::Vector{AbstractString}
 end
-type CliqGibbsMC
+mutable struct CliqGibbsMC
     prods::Array{PotProd,1}
     lbls::Vector{Symbol}
     CliqGibbsMC() = new()
     CliqGibbsMC(a,b) = new(a,b)
 end
-type DebugCliqMCMC
+mutable struct DebugCliqMCMC
     mcmc::Union{Void, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
     outmsglbls::Dict{Symbol, Int}
@@ -31,19 +31,19 @@ type DebugCliqMCMC
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
-type UpReturnBPType
+mutable struct UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
 end
 
-type DownReturnBPType
+mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
     IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
 end
 
-type ExploreTreeType
+mutable struct ExploreTreeType
   fg::FactorGraph
   bt::BayesTree
   cliq::Graphs.ExVertex
@@ -51,7 +51,7 @@ type ExploreTreeType
   sendmsgs::Array{NBPMessage,1}
 end
 
-type MsgPassType
+mutable struct MsgPassType
   fg::FactorGraph
   cliq::Graphs.ExVertex
   vid::Int
@@ -126,14 +126,15 @@ function packFromLocalPotentials!(fgl::FactorGraph,
       wfac::Vector{AbstractString},
       cliq::Graphs.ExVertex,
       vertid::Int,
-      N::Int  )
+      N::Int,
+      dbg::Bool=false )
   #
   for idfct in cliq.attributes["data"].potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( find(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N)
+      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -146,14 +147,15 @@ function packFromLocalPartials!(fgl::FactorGraph,
       partials::Dict{Int, Vector{BallTreeDensity}},
       cliq::Graphs.ExVertex,
       vertid::Int,
-      N::Int  )
+      N::Int,
+      dbg::Bool=false)
   #
 
   for idfct in cliq.attributes["data"].potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( find(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N)
+      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -169,7 +171,7 @@ end
 
 
 """
-    productpartials!(pGM, dummy, partials)
+    $(SIGNATURES)
 
 Multiply different dimensions from partial constraints individually.
 """
@@ -189,7 +191,7 @@ function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
 end
 
 """
-    prodmultiplefullpartials( dens, partials, Ndims, N )
+    $(SIGNATURES)
 
 Multiply various full and partial dimension constraints.
 """
@@ -207,7 +209,7 @@ function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
 end
 
 """
-    prodmultipleonefullpartials( dens, partials, Ndims, N )
+    $(SIGNATURES)
 
 Multiply a single full and several partial dimension constraints.
 """
@@ -229,7 +231,8 @@ function productbelief(fg::FactorGraph,
       vertid::Int,
       dens::Vector{BallTreeDensity},
       partials::Dict{Int, Vector{BallTreeDensity}},
-      N::Int  )
+      N::Int;
+      dbg::Bool=false )
   #
 
   pGM = Array{Float64}(0,0)
@@ -271,11 +274,12 @@ function proposalbeliefs!(fgl::FactorGraph,
       factors::Vector{Graphs.ExVertex},
       dens::Vector{BallTreeDensity},
       partials::Dict{Int, Vector{BallTreeDensity}};
-      N::Int=100)
+      N::Int=100,
+      dbg::Bool=false )
   #
   for fct in factors
     data = getData(fct)
-    p = findRelatedFromPotential(fgl, fct, destvertid, N)
+    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -293,43 +297,63 @@ function proposalbeliefs!(fgl::FactorGraph,
 end
 
 function predictbelief(fgl::FactorGraph,
-      destvert::ExVertex,
-      factors::Vector{Graphs.ExVertex};
-      N::Int=100  )
+                       destvert::ExVertex,
+                       factors::Vector{Graphs.ExVertex};
+                       N::Int=0,
+                       dbg::Bool=false )
   #
   destvertid = destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
 
+  # determine number of particles to draw from the marginal
+  nn = N != 0 ? N : size(getVal(destvert),2)
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=N)
+  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N )
+  pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
 
   return pGM
 end
 
 function predictbelief(fgl::FactorGraph,
-      destvertsym::Symbol,
-      factorsyms::Vector{Symbol};
-      N::Int=100,
-      api::DataLayerAPI=IncrementalInference.localapi  )
+                       destvertsym::Symbol,
+                       factorsyms::Vector{Symbol};
+                       N::Int=0,
+                       dbg::Bool=false,
+                       api::DataLayerAPI=IncrementalInference.localapi  )
   #
   factors = Graphs.ExVertex[]
   for fsym in factorsyms
     push!(factors, getVert(fgl, fgl.fIDs[fsym], api=api))
   end
-  predictbelief(fgl, getVert(fgl, destvertsym, api=api), factors, N=N)
+  vert = getVert(fgl, destvertsym, api=api)
+
+  # determine the number of particles to draw from the marginal
+  nn = N != 0 ? N : size(getVal(vert),2)
+
+  # do the belief prediction
+  predictbelief(fgl, vert, factors, N=nn, dbg=dbg)
 end
 
+function predictbelief(fgl::FactorGraph,
+                       destvertsym::Symbol,
+                       factorsyms::Colon;
+                       N::Int=0,
+                       dbg::Bool=false,
+                       api::DataLayerAPI=IncrementalInference.localapi  )
+  #
+  predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api, dbg=dbg )
+end
 
 function localProduct(fgl::FactorGraph,
-        sym::Symbol;
-        N::Int=100,
-        api::DataLayerAPI=IncrementalInference.dlapi  )
+                      sym::Symbol;
+                      N::Int=100,
+                      dbg::Bool=false,
+                      api::DataLayerAPI=IncrementalInference.dlapi  )
   # TODO -- converge this function with predictbelief for this node
-
   # TODO -- update to use getVertId
   destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
@@ -344,15 +368,15 @@ function localProduct(fgl::FactorGraph,
   end
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N)
+  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N )
+  pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
   pp = kde!(pGM)
 
   return pp, dens, partials, lb
 end
-localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100) = localProduct(fgl, Symbol(lbl), N=N)
+localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
@@ -383,7 +407,7 @@ function cliqGibbs(fg::FactorGraph,
       vertid::Int,
       inmsgs::Array{NBPMessage,1},
       N::Int,
-      debugflag::Bool )
+      dbg::Bool )
   #
   # several optimizations can be performed in this function TODO
 
@@ -393,11 +417,11 @@ function cliqGibbs(fg::FactorGraph,
   wfac = Vector{AbstractString}()
   packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
-  packFromLocalPartials!(fg, partials, cliq, vertid, N)
+  packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
 
-  potprod = !debugflag ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
-  pGM = productbelief(fg, vertid, dens, partials, N )
-  if debugflag  potprod.product = pGM  end
+  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
+  pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
+  if dbg  potprod.product = pGM  end
 
   print(" ")
   return pGM, potprod
@@ -409,7 +433,7 @@ function fmcmc!(fgl::FactorGraph,
       IDs::Vector{Int},
       N::Int,
       MCMCIter::Int,
-      debugflag::Bool=false  )
+      dbg::Bool=false  )
   #
     println("---------- successive fnc approx ------------$(cliq.attributes["label"])")
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
@@ -421,23 +445,26 @@ function fmcmc!(fgl::FactorGraph,
     for iter in 1:MCMCIter
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
       print("#$(iter)\t -- ")
-      dbg = !debugflag ? nothing : CliqGibbsMC([], Symbol[])
+      dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
-        # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-        densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, debugflag) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
-        if size(densPts,1)>0
-          updvert = getVert(fgl, vertid, api=dlapi)
-          setValKDE!(updvert, densPts)
-          # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
-          dlapi.updatevertex!(fgl, updvert)
-          # fgl.v[vertid].attributes["val"] = densPts
-          if debugflag
-            push!(dbg.prods, potprod)
-            push!(dbg.lbls, Symbol(updvert.label))
+        vert = getVert(fgl, vertid, api=dlapi)
+        if !getData(vert).isfrozen
+          # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+          if size(densPts,1)>0
+            updvert = getVert(fgl, vertid, api=dlapi)  # TODO --  can we remove this duplicate getVert?
+            setValKDE!(updvert, densPts)
+            # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
+            dlapi.updatevertex!(fgl, updvert)
+            # fgl.v[vertid].attributes["val"] = densPts
+            if dbg
+              push!(dbgvals.prods, potprod)
+              push!(dbgvals.lbls, Symbol(updvert.label))
+            end
           end
         end
       end
-      !debugflag ? nothing : push!(mcmcdbg, dbg)
+      !dbg ? nothing : push!(mcmcdbg, dbgvals)
       println("")
     end
 
@@ -480,7 +507,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     if false
       IDS = [inp.cliq.attributes["data"].frontalIDs;inp.cliq.attributes["data"].conditIDs] #inp.cliq.attributes["frontalIDs"]
       mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3, dbg)
-    elseif true
+    else
       dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].directFrtlMsgIDs, N, 1)
       if length(inp.cliq.attributes["data"].msgskipIDs) > 0
         dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["data"].msgskipIDs, N, 1)
@@ -909,6 +936,8 @@ end
 
 
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+    println("Ensure all nodes are initialized")
+    ensureAllInitialized!(fgl)
     println("Do multi-process inference over tree")
     cliq = bt.cliques[1]
     upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
@@ -918,6 +947,8 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=f
 end
 
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+    println("Ensure all nodes are initialized")
+    ensureAllInitialized!(fgl)
     println("Do recursive inference over tree")
     cliq = bt.cliques[1]
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);

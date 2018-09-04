@@ -39,6 +39,10 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+function getNumPts(v::Graphs.ExVertex)
+  return size(getData(v).val,2)
+end
+
 function getfnctype(data)
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData
@@ -60,14 +64,16 @@ end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
-  v.attributes["data"].val = val
+  getData(v).val = val
+  # v.attributes["data"].val = val
   nothing
 end
 function getBWVal(v::Graphs.ExVertex)
   return getData(v).bw
 end
 function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
-  v.attributes["data"].bw = bw
+  getData(v).bw = bw
+  # v.attributes["data"].bw = bw
   nothing
 end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
@@ -78,6 +84,9 @@ end
 function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
   setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
   nothing
+end
+function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataLayerAPI=localapi)
+  setVal!(api.getvertex(fg, sym), val)
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   p = kde!(val)
@@ -115,8 +124,12 @@ function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
 end
 
 
-function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
-                             stdev::Array{Float64,2}, dodims::Int, N::Int, dims::Int;
+function setDefaultNodeData!(v::Graphs.ExVertex,
+                             initval::Array{Float64,2},
+                             stdev::Array{Float64,2},
+                             dodims::Int,
+                             N::Int,
+                             dims::Int;
                              gt=nothing, initialized::Bool=true,
                              softtype=nothing)
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
@@ -134,27 +147,42 @@ function setDefaultNodeData!(v::Graphs.ExVertex, initval::Array{Float64,2},
       pN = kde!(initval)
     end
     # dims = size(initval,1) # rows indicate dimensions
-    sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+    sp = Int[0;] #round.(Int,linspace(dodims,dodims+dims-1,dims))
     gbw = getBW(pN)[:,1]
     gbw2 = Array{Float64}(length(gbw),1)
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false, false) #initialized
   end
   #
-  v.attributes["data"] = data
+  setData!(v, data)
+  # v.attributes["data"] = data
+
+  # what about dedicated user variable metadata
+  # p.factormetadata
 
   nothing
 end
 
-function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
+"""
+    $(SIGNATURES)
+
+Initialize a new Graphs.ExVertex which will be added to some factor graph.
+"""
+function addNewVarVertInGraph!(fgl::FactorGraph,
+            vert::Graphs.ExVertex,
+            id::Int,
+            lbl::Symbol,
+            ready::Int,
+            smalldata  )
+  #
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = string(lbl) #fg.v[fg.id]
   fgl.IDs[lbl] = id
@@ -163,51 +191,55 @@ function addNewVarVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes["ready"] = ready
   vert.attributes["backendset"] = 0
 
-  # fgl.g.vertices[id] = vert # will be inserted during addvertex! call
-  # fgl.v[id] = vert #  -- this is likely not required, but is used in subgraph methods
+  # store user metadata
+  vert.attributes["smalldata"] = smalldata
   nothing
 end
 
-# must set either dims or initval for proper initialization
-# Add node to graph, given graph struct, labal, init values,
-# std dev [TODO -- generalize], particle size and ready flag for concurrency
+
+
+"""
+$(SIGNATURES)
+
+Add a node (variable) to a graph. Use this over the other dispatches.
+"""
 function addNode!(fg::FactorGraph,
-      lbl::Symbol,
-      initval::Array{Float64}=zeros(1,1),
-      stdev::Array{Float64}=ones(1,1); # this is bad and should be removed TODO
-      N::Int=100,
-      ready::Int=1,
-      labels::Vector{T}=String[],
-      api::DataLayerAPI=dlapi,
-      uid::Int=-1,
-      dims::Int=-1  ) where {T <: AbstractString}
+                  lbl::Symbol,
+                  softtype::T;
+                  N::Int=100,
+                  autoinit::Bool=true,  # does init need to be separate from ready? TODO
+                  ready::Int=1,
+                  labels::Vector{<:AbstractString}=String[],
+                  api::DataLayerAPI=dlapi,
+                  uid::Int=-1,
+                  smalldata=""  ) where {T <:InferenceVariable}
   #
-  warn("this addNode! will be deprecated, please use FactorGraph01.jl:addNode!(fg::FactorGraph, lbl::Symbol, softtype::Type{T}).")
   currid = fg.id+1
   if uid==-1
     fg.id=currid
   else
     currid = uid
   end
-  dims = dims != -1 ? dims : size(initval,1)
-
+  # dims = dims != -1 ? dims : st.dims
   lblstr = string(lbl)
   vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
+  addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
-  dodims = fg.dimID+1
-  # TODO -- vert should not loose information here
-  setDefaultNodeData!(vert, initval, stdev, dodims, N, dims) #fg.v[currid]
+  # dodims = fg.dimID+1
+  setDefaultNodeData!(vert, zeros(softtype.dims,N), zeros(0,0), 0, N, softtype.dims, initialized=!autoinit, softtype=softtype) # dodims
 
-  vnlbls = deepcopy(labels)
+  vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
-  # addvert!(fg, vert, api=api)
-  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
 
-  fg.dimID+=dims # rows indicate dimensions, move to last dimension
+  api.addvertex!(fg, vert, labels=vnlbls)
+
+  # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
 
-  return vert #fg.v[fg.id]
+  # keep a fifo queue of incoming symbols
+  push!(fg.fifo, lbl)
+
+  vert
 end
 
 """
@@ -216,54 +248,33 @@ $(SIGNATURES)
 Add a node (variable) to a graph. Use this over the other dispatches.
 """
 function addNode!(fg::FactorGraph,
-      lbl::Symbol,
-      softtype::Type{<:InferenceVariable};
-      N::Int=100,
-      autoinit=true,  # does init need to be separate from ready? TODO
-      ready::Int=1,
-      labels::Vector{<:AbstractString}=String[],
-      api::DataLayerAPI=dlapi,
-      uid::Int=-1,
-      dims::Int=-1  ) # where {T , S }
+                  lbl::Symbol,
+                  softtype::Type{<:InferenceVariable};
+                  N::Int=100,
+                  autoinit::Bool=true,
+                  ready::Int=1,
+                  labels::Vector{<:AbstractString}=String[],
+                  api::DataLayerAPI=dlapi,
+                  uid::Int=-1,
+                  # dims::Int=-1,
+                  smalldata=""  )
   #
-  currid = fg.id+1
-  if uid==-1
-    fg.id=currid
-  else
-    currid = uid
-  end
-  st = softtype()
-  dims = dims != -1 ? dims : st.dims
-
-  lblstr = string(lbl)
-  vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready)
-  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
-  dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(dims,N), zeros(0,0), dodims, N, dims, initialized=!autoinit, softtype=st) #fg.v[currid]
-
-  vnlbls = union(string.(labels), st.labels, String["VARIABLE";])
-  push!(vnlbls, fg.sessionname)
-  # addvert!(fg, vert, api=api)
-  api.addvertex!(fg, vert, labels=vnlbls) #fg.g ##vertr =
-
-  fg.dimID+=dims # rows indicate dimensions, move to last dimension
-  push!(fg.nodeIDs, currid)
-
-  vert
+  addNode!(fg,
+           lbl,
+           softtype();
+           N=N,
+           autoinit=autoinit,
+           ready=ready,
+           labels=labels,
+           api=api,
+           uid=uid,
+           smalldata=smalldata  )
 end
 
 
-# rethink abstraction, maybe closer to CloudGraph use case a better solution
-# function addEdge!(g::FGG,n1,n2)
-#   edge = dlapi.makeedge(g, n1, n2)
-#   dlapi.addedge!(g, edge)
-#   # edge = Graphs.make_edge(g, n1, n2)
-#   # Graphs.add_edge!(g, edge)
-# end
-
 
 function getVal(vA::Array{Graphs.ExVertex,1})
+  warn("getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead.")
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
@@ -287,25 +298,22 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   return val
 end
 
-function registerCallback!(fgl::FactorGraph, fnc::Function)
-  m = Symbol(typeof(fnc).name.module)
-  fgl.registeredModuleFunctions[m] = fnc
-  nothing
-end
 
-# idea for registering, will likely be removed again
-# function createregistercallback!(fnc::Function)
-#   fgl = initfg()
-#   m = Symbol(typeof(fnc).name.module)
-#   fgl.registeredModuleFunctions[m] = fnc
-#   nothing
-# end
-#
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.ExVertex}, N::Int, solvefor::Int)
+"""
+    $(SIGNATURES)
+
+Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.  Note `Xi` is order sensitive.
+"""
+function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
+            Xi::Vector{Graphs.ExVertex},
+            N::Int,
+            solvefor::Int  )
+  #
   LEN = Int[]
   maxlen = N
   count = 0
   sfidx = 0
+
   for xi in Xi
     push!(ARR, getVal(xi))
     len = size(ARR[end], 2)
@@ -324,45 +332,90 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},Xi::Vector{Graphs.Ex
       ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
-  # we are generating a proposal distribution, not direct replacement for existing
+
+  # TODO --rather define reusable memory for the proposal
+  # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
   return maxlen, sfidx
 end
 
-function prepgenericwrapper(
-      Xi::Vector{Graphs.ExVertex},
-      usrfnc::UnionAll,
-      samplefnc::Function )
-  #
-  error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
+function parseusermultihypo(multihypo::Void)
+  verts = Symbol[]
+  mh = nothing
+  return mh
+end
+function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
+  mh = nothing
+  if multihypo != nothing
+    multihypo2 = Float64[multihypo...]
+    # verts = Symbol.(multihypo[1,:])
+    for i in 1:length(multihypo)
+      if multihypo[i] > 0.999999
+        multihypo2[i] = 0.0
+      end
+    end
+    mh = Categorical(Float64[multihypo2...] )
+  end
+  return mh
 end
 
-function prepgenericwrapper(
-      Xi::Vector{Graphs.ExVertex},
-      usrfnc::T,
-      samplefnc::Function ) where {T <: FunctorInferenceType}
+function prepgenericconvolution(
+            Xi::Vector{Graphs.ExVertex},
+            usrfnc::T;
+            multihypo::Union{Void, Distributions.Categorical}=nothing,
+            threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
+      # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  # test if specific zDim or partial constraint used
   fldnms = fieldnames(usrfnc)
-  # sum(fldnms .== :zDim) >= 1
-  return GenericWrapParam{T}(usrfnc, ARR, 1, 1, (zeros(0,1),), samplefnc, sum(fldnms .== :zDim) >= 1, sum(fldnms .== :partial) >= 1)
+  zdim = typeof(usrfnc) != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  ccw = CommonConvWrapper(
+          usrfnc,
+          zeros(1,0),
+          zdim,
+          ARR,
+          specialzDim = sum(fldnms .== :zDim) >= 1,
+          partial = sum(fldnms .== :partial) >= 1,
+          hypotheses=multihypo,
+          certainhypo=certainhypo,
+          threadmodel=threadmodel
+        )
+  #
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i].factormetadata.variableuserdata = []
+    ccw.cpt[i].factormetadata.solvefor = :null
+    for xi in Xi
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getData(xi).softtype)
+    end
+  end
+  return ccw
 end
 
 function setDefaultFactorNode!(
       fgl::FactorGraph,
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
-      usrfnc::T  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      usrfnc::T;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      threadmodel=MultiThreaded) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
-  gwpf = prepgenericwrapper(Xi, usrfnc, getSample)
+  mhcat = parseusermultihypo(multihypo)
+  # gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
   m = Symbol(ftyp.name.module)
-  data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
-  vert.attributes["data"] = data
+
+  # experimental wip
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], m, ccw)
+  vert.attributes["data"] = data_ccw
+
+  # existing interface
+  # data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
+  # vert.attributes["data"] = data
 
   nothing
 end
@@ -371,7 +424,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
-  fgl.fIDs[lbl] = id # fg.id
+  fgl.fIDs[lbl] = id # fg.id,
 
   # used for cloudgraph solving
   vert.attributes["ready"] = ready
@@ -394,18 +447,21 @@ function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
 end
 
 """
-    doautoinit!(fg, Xi[,api=dlapi])
+    $(SIGNATURES)
 
 initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
-function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLayerAPI=dlapi, singles::Bool=true)
+function doautoinit!(fgl::FactorGraph,
+                     Xi::Vector{Graphs.ExVertex};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...
   for xi in Xi
     if !isInitialized(xi)
-       # @show "doautoinit!", size(getVal(xi))
       vsym = Symbol(xi.label)
       neinodes = ls(fgl, vsym)
       if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
@@ -417,7 +473,8 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
           for vsym2 in xfneivarnodes
             # println("find all variables that are initialized for $vsym2")
             vert2 = getVert(fgl, vsym2)
-            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1      # OR singleton  TODO get faster version of isInitialized for database version
+            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
+              # OR singleton  TODO get faster version of isInitialized for database version
               # println("adding $xifct to init factors list")
               push!(useinitfct, xifct)
             end
@@ -427,34 +484,39 @@ function doautoinit!(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; api::DataLay
 
         # calculate the predicted belief over $vsym
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        # println("doautoinit! Past predictbelief...")
         setValKDE!(xi, pts)
         getData(xi).initialized = true
-        # println("doautoinit! just before update vertex...")
-        @show "UPDATING VERTEX!"
-        @show api
         api.updatevertex!(fgl, xi, updateMAPest=false)
       end
     end
   end
 
-  # len = length(Xi)
-  # # pts = Array{Float64,2}()
-  # if length(Xi) == 1
-  #   pts = evalFactor2(fgl, fc, Xi[1].index)
-  #   setValKDE!(Xi[1], pts)
-  #   api.updatevertex!(fgl, Xi[1], updateMAPest=false)
-  # elseif len == 2
-  #   pts = evalFactor2(fgl, fc, Xi[2].index)
-  #   setValKDE!(Xi[2], pts)
-  #   api.updatevertex!(fgl, Xi[2], updateMAPest=false)
-  # else
-  #   # consider specifying an init order in the constraint type
-  #   # also consider taking product between all incoming densities which have been inited
-  #   error("don't know how to autoinit with pairwise dimension > 2")
-  # end
-  # println("doautoinit! Done in autoinit!")
+
   nothing
+end
+
+"""
+    $(SIGNATURES)
+
+initialize destination variable nodes based on this factor in factor graph, fg, generally called
+during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+"""
+function doautoinit!(fgl::FactorGraph,
+                     xsyms::Vector{Symbol};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
+  #
+  verts = getVert.(fgl, xsyms, api=api)
+  doautoinit!(fgl, verts, api=api, singles=singles, N=N)
+end
+function doautoinit!(fgl::FactorGraph,
+                     xsym::Symbol;
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)
+  #
+  doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
 end
 
 function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
@@ -485,14 +547,21 @@ function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxpa
   return namestring
 end
 
+"""
+    $(SIGNATURES)
+
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
+"""
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true) where
+      autoinit::Bool=true,
+      threadmodel=MultiThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -506,11 +575,12 @@ function addFactor!(fgl::FactorGraph,
   # fgl.id+=1
   newvert = ExVertex(currid,namestring)
   addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc))
+  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
   push!(fgl.factorIDs,currid)
 
   for vert in Xi
-    push!(newvert.attributes["data"].fncargvID, vert.index)
+    push!(getData(newvert).fncargvID, vert.index)
+    # push!(newvert.attributes["data"].fncargvID, vert.index)
   end
 
   fnlbls = deepcopy(labels)
@@ -533,17 +603,19 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.
+Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
 """
 function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
+      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
       uid::Int=-1,
-      autoinit::Bool=true ) where
+      autoinit::Bool=true,
+      threadmodel=MultiThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -551,7 +623,7 @@ function addFactor!(
   for xi in xisyms
       push!( verts, api.getvertex(fgl,xi) )
   end
-  addFactor!(fgl, verts, usrfnc, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit)
+  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit, threadmodel=threadmodel )
 end
 
 
@@ -766,17 +838,27 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
-# function writeGraphPdf(fgl::FactorGraph)
-#   fgd = drawCopyFG(fgl)
-#   println("Writing factor graph file")
-#   fid = open("fg.dot","w+")
-#   write(fid,Graphs.to_dot(fgd.g))
-#   close(fid)
-#   run(`dot fg.dot -Tpdf -o fg.pdf`)
-#   nothing
-# end
-
-
+function writeGraphPdf(fgl::FactorGraph;
+                       viewerapp::String="evince",
+                       filepath::AS="/tmp/fg.pdf",
+                       show::Bool=true  ) where {AS <: AbstractString}
+  #
+  fgd = drawCopyFG(fgl)
+  println("Writing factor graph file")
+  fext = split(filepath, '.')[end]
+  fpwoext = split(filepath, '.')[end-1]
+  dotfile = fpwoext*".dot"
+  fid = open(dotfile,"w")
+  write(fid,Graphs.to_dot(fgd.g))
+  close(fid)
+  show? (@async run(`dot $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
+  try
+    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+  catch e
+    warn("not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)")
+  end
+  nothing
+end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,

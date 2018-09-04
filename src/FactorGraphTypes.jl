@@ -7,6 +7,7 @@ import Base: ==
 @compat abstract type FunctorInferenceType <: Function end
 
 abstract type InferenceVariable end
+abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
 @compat abstract type Pairwise <: InferenceType end
@@ -21,15 +22,6 @@ abstract type InferenceVariable end
 @compat abstract type FunctorPairwiseNH <: FunctorPairwise end
 # @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
-struct ContinuousScalar <: InferenceVariable
-  dims::Int
-  ContinuousScalar() = new(1)
-end
-struct ContinuousMultivariate <:InferenceVariable
-  dims::Int
-  ContinuousMultivariate() = new()
-  ContinuousMultivariate(x) = new(x)
-end
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
@@ -63,6 +55,9 @@ mutable struct FactorGraph
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
+  fifo::Vector{Symbol}
+  qfl::Int # Quasi fixed length
+  isfixedlag::Bool # true when adhering to qfl window size for solves
   FactorGraph() = new()
   FactorGraph(
     x1,
@@ -100,7 +95,10 @@ mutable struct FactorGraph
     x15,
     x16,
     x17,
-    false )
+    false,
+    Symbol[],
+    0,
+    false  )
 end
 
 """
@@ -132,12 +130,12 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
 end
 
 mutable struct VariableNodeData
-  initval::Array{Float64,2}
-  initstdev::Array{Float64,2}
+  initval::Array{Float64,2} # TODO deprecate
+  initstdev::Array{Float64,2} # TODO deprecate
   val::Array{Float64,2}
   bw::Array{Float64,2}
   BayesNetOutVertIDs::Array{Int,1}
-  dimIDs::Array{Int,1}
+  dimIDs::Array{Int,1} # Likely deprecate
   dims::Int
   eliminated::Bool
   BayesNetVertID::Int
@@ -145,10 +143,11 @@ mutable struct VariableNodeData
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
+  isfrozen::Bool #let it be, let it be...
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
     warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1::Array{Float64,2},
                    x2::Array{Float64,2},
@@ -162,39 +161,148 @@ mutable struct VariableNodeData
                    x10::Vector{Int},
                    x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
                    x12,
-                   x13::Bool) =
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
+                   x13::Bool,
+                   x14::Bool ) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14)
 end
 
-
-
-mutable struct GenericWrapParam{T} <: FunctorInferenceType
-  usrfnc!::T
-  params::Vector{Array{Float64,2}}
-  varidx::Int
-  particleidx::Int
-  measurement::Tuple #Array{Float64,2}
-  samplerfnc::Function # TODO -- remove, since no required. Direct multiple dispatch at solve
-  specialzDim::Bool
-  partial::Bool
-  GenericWrapParam{T}() where {T} = new()
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}) where {T} = new(fnc, t, 1,1, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int) where {T} = new(fnc, t, i, j, (zeros(0,1),) , +, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false)
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial)
+mutable struct FactorMetadata
+  factoruserdata
+  variableuserdata::Union{Vector, Tuple}
+  variablesmalldata::Union{Vector, Tuple}
+  solvefor::Union{Symbol, Void}
+  variablelist::Union{Void, Vector{Sy
+  mbol}}
+  dbg::Bool
+  FactorMetadata() = new() # [], []
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4, nothing, false)
+  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
-mutable struct FastRootGenericWrapParam{T} <: Function
-  p::Vector{Int}
-  perturb::Vector{Float64}
+struct SingleThreaded
+end
+struct MultiThreaded
+end
+
+mutable struct ConvPerThread
+  thrid_::Int
+  particleidx::Int # the actual particle being solved at this moment
+  factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
+  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
+  p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
+  perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
   X::Array{Float64,2}
   Y::Vector{Float64}
+  res::Vector{Float64}
+  ConvPerThread() = new()
+end
+
+function ConvPerThread(X::Array{Float64,2},
+                       zDim::Int;
+                       factormetadata::FactorMetadata=FactorMetadata(),
+                       particleidx::Int=1,
+                       activehypo= 1:length(params),
+                       p=collect(1:size(X,1)),
+                       perturb=zeros(zDim),
+                       Y=zeros(size(X,1)),
+                       res=zeros(zDim)  )
+  #
+  cpt = ConvPerThread()
+  cpt.thrid_ = 0
+  cpt.X = X
+  cpt.factormetadata = factormetadata
+  cpt.particleidx = particleidx
+  cpt.activehypo = activehypo
+  cpt.p = p
+  cpt.perturb = perturb
+  cpt.Y = Y
+  cpt.res = res
+  return cpt
+end
+
+mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+  ### Values consistent across all threads during approx convolution
+  usrfnc!::T # user factor / function
+  # general setup
   xDim::Int
   zDim::Int
-  gwp::GenericWrapParam{T}
-  FastRootGenericWrapParam{T}(xArr::Array{Float64,2}, zDim::Int, residfnc::GenericWrapParam{T}) where {T} =
-      new(collect(1:size(xArr,1)), zeros(zDim), xArr, zeros(size(xArr,1)), size(xArr,1), zDim, residfnc)
+  # special case settings
+  specialzDim::Bool # is there a special zDim requirement -- defined by user
+  partial::Bool # is this a partial constraint -- defined by user
+  # multi hypothesis settings
+  hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  certainhypo::Union{Void, Vector{Int}}
+  # values specific to one complete convolution operation
+  params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
+  varidx::Int # which index is being solved for in params?
+  measurement::Tuple # user defined measurement values for each approxConv operation
+  threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
+
+  ### particular convolution computation values per particle idx (varies by thread)
+  cpt::Vector{ConvPerThread}
+  # varidx::Int # which index is being solved for in params?
+  # factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
+  # activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
+  # particleidx::Int # the actual particle being solved at this moment
+  # p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
+  # perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
+  # X::Array{Float64,2}
+  # Y::Vector{Float64}
+  # res::Vector{Float64}
+
+  CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
+end
+
+
+function CommonConvWrapper(fnc::T,
+                           X::Array{Float64,2},
+                           zDim::Int,
+                           params::Vector{Array{Float64,2}};
+                           factormetadata::FactorMetadata=FactorMetadata(),
+                           specialzDim::Bool=false,
+                           partial::Bool=false,
+                           hypotheses=nothing,
+                           certainhypo=nothing,
+                           activehypo= 1:length(params),
+                           varidx::Int=1,
+                           measurement::Tuple=(zeros(0,1),),
+                           particleidx::Int=1,
+                           p=collect(1:size(X,1)),
+                           perturb=zeros(zDim),
+                           Y=zeros(size(X,1)),
+                           xDim=size(X,1),
+                           res=zeros(zDim),
+                           threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
+  #
+  ccw = CommonConvWrapper{T}()
+
+  ccw.usrfnc! = fnc
+  ccw.xDim = xDim
+  ccw.zDim = zDim
+  ccw.specialzDim = specialzDim
+  ccw.partial = partial
+  ccw.hypotheses = hypotheses
+  ccw.certainhypo=certainhypo
+  ccw.params = params
+  ccw.varidx = varidx
+  ccw.threadmodel = threadmodel
+  ccw.measurement = measurement
+
+  # thread specific elements
+  ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
+  for i in 1:Threads.nthreads()
+    ccw.cpt[i] = ConvPerThread(X, zDim,
+                    factormetadata=factormetadata,
+                    particleidx=particleidx,
+                    activehypo=activehypo,
+                    p=p,
+                    perturb=perturb,
+                    Y=Y,
+                    res=res )
+  end
+
+  return ccw
 end
 
 mutable struct GenericFunctionNodeData{T, S}
@@ -204,10 +312,21 @@ mutable struct GenericFunctionNodeData{T, S}
   edgeIDs::Array{Int,1}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
+  multihypo::String # likely to moved when GenericWrapParam is refactored
   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
-  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6)
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
+
+
+# where {T <: Union{InferenceType, FunctorInferenceType}}
+const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
+
+# where {T <: PackedInferenceType}
+const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
 ###

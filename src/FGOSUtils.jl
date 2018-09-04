@@ -3,7 +3,6 @@
 # of convert in their namespace
 
 
-
 """
     savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
 
@@ -51,9 +50,28 @@ function loadjld(;file::AbstractString="tempfg.jld")
   return fgd, gt
 end
 
+"""
+    $(SIGNATURES)
+
+Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
+"""
+allnums(str::S) where {S <: AbstractString} = ismatch(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
+# ismatch(r"_+|,+|-+", node_idx)
+
+isnestednum(str::S; delim='_') where {S <: AbstractString} = ismatch(Regex("[0-9]+$(delim)[0-9]+"), str)
+
+function sortnestedperm(strs::Vector{<:AbstractString}; delim='_')
+  str12 = split.(strs, delim)
+  sp1 = sortperm(parse.(Int,getindex.(str12,2)))
+  sp2 = sortperm(parse.(Int,getindex.(str12,1)[sp1]))
+  return sp1[sp2]
+end
 
 
+"""
+    $(SIGNATURES)
 
+"""
 function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
   # TODO ring functionality must still be implemented
   lsa = Symbol[]
@@ -74,32 +92,80 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
 end
 ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
 
-function ls(fgl::FactorGraph)
+"""
+    $(SIGNATURES)
+
+List the nodes in a factor graph.
+
+# Examples
+```julia-repl
+ls(fg)
+```
+"""
+function ls(fgl::FactorGraph; key1='x', key2='l')
   k = collect(keys(fgl.IDs))
-  l = Int[]
-  x = Int[]
-  for kk in k
-    kstr = string(kk)
-    val = parse(Int,kstr[2:end]) # kk
-    if kstr[1] == 'l'
-      push!(l,val)
-    elseif kstr[1] == 'x'
-      push!(x,val)
+  x, l = String[], String[]
+  xval, lval = Int[], Int[]
+  xstr, lstr = String[], String[]
+  xvalnested, lvalnested = String[], String[]
+  xstrnested, lstrnested = String[], String[]
+  canparse1, canparse2 = true,true
+  nestedparse1, nestedparse2 = true, true
+  idx = 0
+  for id in k
+    idx += 1
+    idstr = string(id)
+    # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
+    node_idx = idstr[2:end]
+    canparse = allnums(node_idx)
+    nested = isnestednum(node_idx)
+    if idstr[1] == key1
+      keystr = string(key1,node_idx)
+      if canparse
+        push!(xstr, keystr)
+        push!(xval, parse(Int, node_idx))
+      elseif nested
+        push!(xvalnested, node_idx)
+        push!(xstrnested, string(node_idx))
+      else
+        push!(x,keystr)
+      end
+    elseif idstr[1] == key2
+      keystr = string(key2,node_idx)
+      if canparse
+        push!(lstr, keystr)
+        push!(lval, parse(Int, node_idx))
+      elseif nested
+        push!(lstrnested, keystr)
+        push!(lvalnested, string(node_idx))
+      else
+        push!(l,string(key2,node_idx))
+      end
     end
   end
-  l = sort(l)
-  x = sort(x)
-  ll = Array{Symbol,1}(length(l))
-  xx = Array{Symbol,1}(length(x))
-  for i in 1:length(l)
-    ll[i] = Symbol(string("l",l[i]))
-  end
-  for i in 1:length(x)
-    xx[i] = Symbol(string("x",x[i]))
-  end
-  return xx,ll
+  x1 = xstr[sortperm(xval)]
+  x2 = xstrnested[sortnestedperm(xvalnested)]
+  x = [x1; x2; sort(x)]
+
+  l1 = lstr[sortperm(lval)]
+  l2 = lstrnested[sortnestedperm(lvalnested)]
+  l = [l1; l2; sort(l)]
+
+  xx = Symbol.(x)
+  ll = Symbol.(l)
+  return xx, ll #return poses, landmarks
 end
 
+"""
+    $(SIGNATURES)
+
+List factors in a factor graph.
+
+# Examples
+```julia-repl
+lsf(fg)
+```
+"""
 function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
   # v = Union{}
@@ -140,6 +206,7 @@ function ls2(fgl::FactorGraph, vsym::Symbol)
   return xlxl
 end
 
+hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 
 """
     landmarks(fgl::FactorGraph, vsym::Symbol)
@@ -160,6 +227,20 @@ function landmarks(fgl::FactorGraph, vsym::Symbol)
 end
 
 
+
+function evalLikelihood(fg::FactorGraph, sym::Symbol, point::Vector{Float64})
+  p = getVertKDE(fg, sym)
+  Ndim(p) == length(point) ? nothing : error("point (dim=$(length(point))) must have same dimension as belief (dim=$(Ndim(p)))")
+  evaluateDualTree(p, reshape(point,:,1))[1]
+end
+
+# Evaluate the likelihood of an Array{2} of points on the marginal belief of some variable
+# note the dimensions must match
+function evalLikelihood(fg::FactorGraph, sym::Symbol, points::Array{Float64,2})
+  p = getVertKDE(fg, sym)
+  Ndim(p) == size(points,1) ? nothing : error("points (dim=$(size(points,1))) must have same dimension as belief (dim=$(Ndim(p)))")
+  evaluateDualTree(p, (points))
+end
 
 
 

@@ -10,10 +10,10 @@
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
 <p align="center">
-<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
+<a href="https://vimeo.com/190052649" target="_blank"><img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/mmfgbt.gif" alt="IMAGE ALT TEXT HERE" width="480" height="320" /></a>
 </p>
 
-This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/dehann/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package is also available.
+This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package is also available.
 
 Introduction
 ------------
@@ -27,7 +27,7 @@ The animation below shows 50% confidence lines of marginal beliefs relating to 6
 <img src="https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/x60mcmc.gif" alt="successive approximation" width="480"/></img>
 </p>
 
-<!-- ![alt tag](https://raw.githubusercontent.com/dehann/IncrementalInference.jl/master/doc/images/BayesTreeExample.png) -->
+<!-- ![alt tag](https://raw.githubusercontent.com/JuliaRobotics/IncrementalInference.jl/master/doc/images/BayesTreeExample.png) -->
 
 Comments, questions and issues welcome.
 
@@ -63,7 +63,7 @@ Here 4 simultaneous modes are considered producing multi-modal posterior beliefs
 DataBase interaction layer
 ==========================
 
-The data layer of the solver can be swapped away from the default Julia based [Graphs.jl](http://www.github.com/JuliaArchive/Graphs.jl). For using the solver on a DataBase layer please see [Caesar.jl](http://www.github.com/dehann/Caesar.jl) and associated [CloudGraphs](http://github.com/GearsAD/CloudGraphs.jl) project.
+The data layer of the solver can be swapped away from the default Julia based [Graphs.jl](http://www.github.com/JuliaArchive/Graphs.jl). For using the solver on a DataBase layer please see [Caesar.jl](http://www.github.com/JuliaRobotics/Caesar.jl) and associated [CloudGraphs](http://github.com/GearsAD/CloudGraphs.jl) project.
 
 Contributors
 ============

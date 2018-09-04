@@ -12,6 +12,14 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+include("testExplicitMultihypo.jl")
+
+include("testMultithreaded.jl")
+
+println("[TEST] basic Bayes tree construction")
+include("testBayesTreeiSAM2Example.jl")
+println("Success")
+
 print("[TEST] Ensure converter types can be run from extending namespaces...")
 include("saveconvertertypes.jl")
 println("Success")
@@ -36,8 +44,12 @@ println("[TEST] partial constraints...")
 include("testpartialconstraint.jl")
 println("Success")
 
-println("[TEST] partial constraints...")
+println("[TEST] null hypothesis...")
 include("testnullhypothesis.jl")
+println("Success")
+
+println("[TEST] standardized multihypothesis...")
+include("testmultihypothesisapi.jl")
 println("Success")
 
 println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")

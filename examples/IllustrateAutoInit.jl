@@ -16,6 +16,7 @@ struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distri
 end
 getSample(s::LinearOffset, N::Int=1) = (rand(s.z,N), )
 function (s::LinearOffset)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple{Array{Float64, 1}},
       X1::Array{Float64,2},
@@ -31,6 +32,7 @@ struct MultiModalOffset <: IncrementalInference.FunctorPairwise
 end
 getSample(s::MultiModalOffset, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
 function (s::MultiModalOffset)(res::Array{Float64},
+      userdata::FactorMetadata,
       idx::Int,
       meas::Tuple,
       X1::Array{Float64,2},
@@ -146,18 +148,6 @@ plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 
 # Helper function for graphing the factor graph structure (using GraphViz)
-
-function writeGraphPdf(fgl::FactorGraph; file::String="fg.pdf")
-  fgd = drawCopyFG(fgl)
-  println("Writing factor graph file")
-  fid = open("fg.dot","w+")
-  write(fid,Graphs.to_dot(fgd.g))
-  close(fid)
-  fext = split(file, '.')[end]
-  run(`dot fg.dot -T$fext -o $file`)
-  Base.rm("fg.dot")
-  nothing
-end
 
 
 # using Gadfly
