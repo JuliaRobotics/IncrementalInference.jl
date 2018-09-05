@@ -37,6 +37,8 @@ function (s::LinearConditional)(res::Array{Float64},
 end
 
 
+## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
+
 struct PackedPrior <: PackedInferenceType
   Z::String
   PackedPrior() = new()

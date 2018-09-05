@@ -198,11 +198,14 @@ export
   landmarks,
 
   # For 1D example, should be refactored and renamed
+  ## TODO will be deprecated
   Odo,
   odoAdd,
   PackedOdo,
   Obsv2,
   PackedObsv2,
+
+  # TODO rename to ball radius
   Ranged,
   PackedRanged,
 
@@ -216,12 +219,6 @@ export
   # development
   shuffleXAltD,
   reshapeVec2Mat
-
-  # deprecated
-  # VNDencoder,
-  # VNDdecoder,
-  # FNDencode,
-  # FNDdecode
 
 
 

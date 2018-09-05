@@ -361,6 +361,8 @@ function convertfrompackedfunctionnode(fgl::FactorGraph,
   return cfnd, usrtyp
 end
 
+# import IncrementalInference: decodefg, loadjld
+
 """
     $(SIGNATURES)
 
@@ -378,7 +380,6 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
     data,ftyp = convertfrompackedfunctionnode(fgs, fsym)
-    @show data.fnc.usrfnc!
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
@@ -403,19 +404,16 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   # rebuild factormetadata
   @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
     varuserdata = []
-    @show nodes = ls(fgu, fsym)
-    for var in nodes
-      @show st = getData(fg, var).softtype
-      push!(varuserdata, )
+    node = getVert(fgu, fsym, nt=:fnc)
+    for nei in out_neighbors(node, fgu.g)
+        st = getData(nei).softtype
+        push!(varuserdata, st)
     end
-    @show varuserdata
-    error("rebuilding")
     fc = getData(fgu, fid).fnc
     for i in 1:Threads.nthreads()
       fc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
     end
   end
-
   return fgu
 end
 
