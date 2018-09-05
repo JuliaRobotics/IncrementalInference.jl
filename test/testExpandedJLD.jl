@@ -4,7 +4,7 @@ using Base: Test
 
 
 
-@testset "test solve from loading jld..." begin
+@testset "test solve by saving and loading basic jld..." begin
 
 
 fgt = emptyFactorGraph()

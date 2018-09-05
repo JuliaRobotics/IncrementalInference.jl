@@ -64,6 +64,7 @@ fgu = loadjld( file="tempfg.jld" )
 Base.rm("tempfg.jld")
 println("Success")
 
+include("testExpandedJLD.jl")
 
 
 

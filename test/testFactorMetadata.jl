@@ -7,7 +7,7 @@ using Base: Test
 @testset "test default userdata::FactorMetadata..." begin
 
 
-fgt = initfg()
+fgt = emptyFactorGraph()
 
 addNode!(fgt, :x1, ContinuousScalar)
 addFactor!(fgt, [:x1], Prior(Normal()))

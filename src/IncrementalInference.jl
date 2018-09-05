@@ -53,6 +53,8 @@ export
   PackedPrior,
   LinearConditional,
   PackedLinearConditional,
+  MixtureLinearConditional,
+  PackedMixtureLinearConditional,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
