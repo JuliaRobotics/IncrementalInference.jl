@@ -12,6 +12,8 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+include("testFactorMetadata.jl")
+
 include("testExplicitMultihypo.jl")
 
 include("testMultithreaded.jl")
@@ -62,6 +64,7 @@ fgu = loadjld( file="tempfg.jld" )
 Base.rm("tempfg.jld")
 println("Success")
 
+include("testExpandedJLD.jl")
 
 
 

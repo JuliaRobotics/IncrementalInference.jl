@@ -7,31 +7,34 @@ import IncrementalInference: getSample
 
 ## MARKER START is a required block of code, but can be reviewed at the end of the tutorial,
 # Run this but skip past these user defined functions for a quicker introduction======================
-struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: Distribution
-  z::T
-end
-getSample(s::Prior, N::Int=1) = (rand(s.z,N), )
-struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distribution
-  z::T
-end
-getSample(s::LinearOffset, N::Int=1) = (rand(s.z,N), )
-function (s::LinearOffset)(res::Array{Float64},
-      userdata::FactorMetadata,
-      idx::Int,
-      meas::Tuple{Array{Float64, 1}},
-      X1::Array{Float64,2},
-      X2::Array{Float64,2}  )
-  #
-  res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
-  nothing
-end
+
+# Moved to IIF
+# struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: Distribution
+#   z::T
+# end
+# getSample(s::Prior, N::Int=1) = (rand(s.z,N), )
+# struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distribution
+#   z::T
+# end
+# getSample(s::LinearOffset, N::Int=1) = (rand(s.z,N), )
+# function (s::LinearOffset)(res::Array{Float64},
+#       userdata::FactorMetadata,
+#       idx::Int,
+#       meas::Tuple{Array{Float64, 1}},
+#       X1::Array{Float64,2},
+#       X2::Array{Float64,2}  )
+#   #
+#   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
+#   nothing
+# end
+
 # and a bi-modal conditional function
-struct MultiModalOffset <: IncrementalInference.FunctorPairwise
+struct MixtureConditional <: IncrementalInference.FunctorPairwise
   z::Vector{Distribution}
   c::Categorical
 end
-getSample(s::MultiModalOffset, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
-function (s::MultiModalOffset)(res::Array{Float64},
+getSample(s::MixtureConditional, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
+function (s::MixtureConditional)(res::Array{Float64},
       userdata::FactorMetadata,
       idx::Int,
       meas::Tuple,
@@ -74,7 +77,7 @@ addNode!(fg, :x1, ContinuousScalar)
 
 # with a linear conditional belief to :x0
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
-addFactor!(fg, [:x0, :x1], LinearOffset(Normal(10.0,1)))
+addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)))
 
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx01.png")
 
@@ -101,7 +104,7 @@ plotKDE(fg, [:x0, :x1])
 # add another node, but introduce more general beliefs
 addNode!(fg, :x2, ContinuousScalar)
 
-mmo = MultiModalOffset([Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
+mmo = MixtureConditional([Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
 addFactor!(fg, [:x1, :x2], mmo)
 
 # Graphs.plot(fg.g)
@@ -116,7 +119,7 @@ plotKDE(fg, [:x0, :x1, :x2])
 # Now transmit this 'weird' multi-modal marginal belief through a another unimodal linear offset (conditional likelihood)
 addNode!(fg, :x3, ContinuousScalar)
 
-addFactor!(fg, [:x2, :x3], LinearOffset(Normal(-50, 1)))
+addFactor!(fg, [:x2, :x3], LinearConditional(Normal(-50, 1)))
 # note, this addFactor step relies on :x2 being initialized and would have done so if we didn't call ensureAllInitialized! a few lines earlier.
 
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx0123.png")
@@ -125,7 +128,7 @@ ensureAllInitialized!(fg)
 plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 
-lo3 = LinearOffset(Normal(40, 1))
+lo3 = LinearConditional(Normal(40, 1))
 addFactor!(fg, [:x3, :x0], lo3)
 
 

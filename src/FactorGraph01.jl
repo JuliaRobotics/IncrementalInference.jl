@@ -14,7 +14,7 @@ getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl,
 # see JuliaArchive/Graphs.jl#233
 getData(v::Graphs.ExVertex) = v.attributes["data"]
 # Convenience functions
-getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi) = getData(getVert(fgl, lbl, api=api))
+getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt=:var) = getData(getVert(fgl, lbl, api=api, nt=nt))
 getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
 
 function setData!(v::Graphs.ExVertex, data)
