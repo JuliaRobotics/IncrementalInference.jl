@@ -245,7 +245,7 @@ end
 
 
 function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
-  for (key, id) in fg.fIDs
+  for (key, id) in fgl.fIDs
     getData(getVert(fgl, key,nt=:fnc)).fnc.threadmodel = model
   end
   nothing
