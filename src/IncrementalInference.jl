@@ -50,7 +50,9 @@ export
   ContinuousMultivariate,
   SamplableBelief,
   Prior,
+  PackedPrior,
   LinearConditional,
+  PackedLinearConditional,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -232,6 +234,7 @@ include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 

@@ -99,17 +99,17 @@ function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} w
 end
 
 
-function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+function convert(::Type{<:PackedVariableNodeData}, d::VariableNodeData)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
-                              d.initstdev[:],size(d.initstdev,1),
-                              d.val[:],size(d.val,1),
-                              d.bw[:], size(d.bw,1),
-                              d.BayesNetOutVertIDs,
-                              d.dimIDs, d.dims, d.eliminated,
-                              d.BayesNetVertID, d.separator,
-                              string(d.softtype), d.initialized, d.isfrozen)
+                                d.initstdev[:],size(d.initstdev,1),
+                                d.val[:],size(d.val,1),
+                                d.bw[:], size(d.bw,1),
+                                d.BayesNetOutVertIDs,
+                                d.dimIDs, d.dims, d.eliminated,
+                                d.BayesNetVertID, d.separator,
+                                string(d.softtype), d.initialized, d.isfrozen)
 end
-function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
+function convert(::Type{<:VariableNodeData}, d::PackedVariableNodeData)
 
   r1 = d.diminitval
   c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
@@ -226,10 +226,10 @@ end
 
 
 
-function convert{PT <: PackedInferenceType, T <:FunctorInferenceType}(::Type{PT}, ::T)
+function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
   getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
-function convert{T <: FunctorInferenceType, PT <: PackedInferenceType}(::Type{T}, ::PT)
+function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: PackedInferenceType}
   getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
 end
 
@@ -267,8 +267,8 @@ end
 Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
 """
 function convert2packedfunctionnode(fgl::FactorGraph,
-      fsym::Symbol,
-      api::DataLayerAPI=localapi  )
+                                    fsym::Symbol,
+                                    api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fid)
@@ -279,13 +279,16 @@ end
 
 
 
-function decodePackedType(packeddata::PackedVariableNodeData, typestring::String)
+function decodePackedType(packeddata::PackedVariableNodeData,
+                          typestring::String )
+  #
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
   # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
   functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
+  @assert convert(FunctorInferenceType, PT) == functype # NEW METHOD: TODO -- use as primary once known to work consistently
   fulltype = FunctionNodeData{CommonConvWrapper{functype}}
   convert(fulltype, packeddata)
 end
@@ -346,8 +349,8 @@ FunctorInferenceType definitions.
 See RoME/src/fgos.jl for example.
 """
 function convertfrompackedfunctionnode(fgl::FactorGraph,
-      fsym::Symbol,
-      api::DataLayerAPI=localapi  )
+                                       fsym::Symbol,
+                                       api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
   fnc = getData(fgl, fid).fnc #getfnctype(fgl, fid)
@@ -359,14 +362,14 @@ function convertfrompackedfunctionnode(fgl::FactorGraph,
 end
 
 """
-    decodefg(fgs::FactorGraph)
+    $(SIGNATURES)
 
 Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
 """
 function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   fgu = deepcopy(fgs)
-  fgu.cg = nothing
-  fgu.registeredModuleFunctions = nothing
+  fgu.cg = nothing # will be deprecated or replaced
+  fgu.registeredModuleFunctions = nothing # obsolete
   fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
   @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
     cpvert = deepcopy(getVert(fgs, vid, api=api))
@@ -375,6 +378,7 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
     data,ftyp = convertfrompackedfunctionnode(fgs, fsym)
+    @show data.fnc.usrfnc!
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
@@ -393,6 +397,22 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
           fgu.g.vertices[ed.source.index],
           fgu.g.vertices[ed.target.index]  )
       push!(fgu.g.inclist[eid], newed)
+    end
+  end
+
+  # rebuild factormetadata
+  @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
+    varuserdata = []
+    @show nodes = ls(fgu, fsym)
+    for var in nodes
+      @show st = getData(fg, var).softtype
+      push!(varuserdata, )
+    end
+    @show varuserdata
+    error("rebuilding")
+    fc = getData(fgu, fid).fnc
+    for i in 1:Threads.nthreads()
+      fc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
     end
   end
 

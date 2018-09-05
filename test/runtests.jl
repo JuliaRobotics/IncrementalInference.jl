@@ -12,6 +12,8 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
+include("testFactorMetadata.jl")
+
 include("testExplicitMultihypo.jl")
 
 include("testMultithreaded.jl")
