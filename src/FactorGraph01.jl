@@ -837,7 +837,8 @@ end
 
 function writeGraphPdf(fgl::FactorGraph;
                        pdfreader::Union{Void, String}="evince",
-                       filename::AS="/tmp/fg.pdf"  ) where {AS <: AbstractString}
+                       filename::AS="/tmp/fg.pdf",
+                        engine::AS="sfdp"  ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
@@ -845,7 +846,7 @@ function writeGraphPdf(fgl::FactorGraph;
   fid = open(dotfile,"w")
   write(fid,Graphs.to_dot(fgd.g))
   close(fid)
-  run(`dot $(dotfile) -Tpdf -o $(filename)`)
+  run(`$(engine) $(dotfile) -Tpdf -o $(filename)`)
   try
     pdfreader != nothing ? (@async run(`$(pdfreader) $(filename)`)) : nothing
   catch e
