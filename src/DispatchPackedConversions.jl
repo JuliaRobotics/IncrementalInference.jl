@@ -19,6 +19,7 @@ mutable struct PackedVariableNodeData
   # groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   softtype::String
   initialized::Bool
+  isfrozen::Bool
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x1::Vector{Float64},
                          x2::Int,
@@ -35,84 +36,78 @@ mutable struct PackedVariableNodeData
                          x13::Int,
                          x14::Vector{Int},
                          x15::String,
-                         x16::Bool) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16)
+                         x16::Bool,
+                         x17::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17)
 end
 
 
 
-# Obsolete
-# FunctionNodeData() = GenericFunctionNodeData{T, Symbol}()
-# typealias PackedFunctionNodeData{T <: PackedInferenceType} GenericFunctionNodeData{T, AbstractString}
-# PackedFunctionNodeData{T}() where T = GenericFunctionNodeData{T, AbstractString}()
-# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData{T, AbstractString}(x1, x2, x3, x4, x5, x6)
-
-
-# TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
-function normalfromstring(str::AS) where {AS <: AbstractString}
-  meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
-  mean = split(meanstr, '=')[2]
-  sigmastr = match(r"σ=[+-]?([0-9]*[.])?[0-9]+", str).match
-  sigma = split(sigmastr, '=')[2]
-  Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
-end
-
-function mvnormalfromstring(str::AS) where {AS <: AbstractString}
-  means = split(split(split(str, 'μ')[2],']')[1],'[')[end]
-  mean = Float64[]
-  for ms in split(means, ',')
-    push!(mean, parse(Float64, ms))
-  end
-  sigs = split(split(split(str, 'Σ')[2],']')[1],'[')[end]
-  sig = Float64[]
-  for ms in split(sigs, ';')
-    for m in split(ms, ' ')
-      length(m) > 0 ? push!(sig, parse(Float64, m)) : nothing
-    end
-  end
-  len = length(mean)
-  sigm = reshape(sig, len,len)
-  MvNormal(mean, sigm)
-end
-
-function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: AbstractString}
-  # pstr = match(r"p=\[", str).match
-  psubs = split(str, '=')[end]
-  psubs = split(psubs, '[')[end]
-  psubsub = split(psubs, ']')[1]
-  pw = split(psubsub, ',')
-  p = parse.(Float64, pw)
-  return Categorical(p ./ sum(p))
-end
-
-function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
-  # TODO improve use of multidispatch and packing of Distribution types
-  if str == ""
-    return nothing
-  elseif (ismatch(r"Normal", str) && !ismatch(r"FullNormal", str))
-    return normalfromstring(str)
-  elseif ismatch(r"FullNormal", str)
-    return mvnormalfromstring(str)
-  elseif ismatch(r"Categorical", str)
-    return categoricalfromstring(str)
-  elseif ismatch(r"KDE:", str)
-    return convert(KDE.BallTreeDensity, str)
-  elseif ismatch(r"AliasingScalarSampler", str)
-    return convert(AliasingScalarSampler, str)
-  else
-    error("Don't know how to extract distribution from str=$(str)")
-  end
-end
+# # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
+# function normalfromstring(str::AS) where {AS <: AbstractString}
+#   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
+#   mean = split(meanstr, '=')[2]
+#   sigmastr = match(r"σ=[+-]?([0-9]*[.])?[0-9]+", str).match
+#   sigma = split(sigmastr, '=')[2]
+#   Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
+# end
+#
+# function mvnormalfromstring(str::AS) where {AS <: AbstractString}
+#   means = split(split(split(str, 'μ')[2],']')[1],'[')[end]
+#   mean = Float64[]
+#   for ms in split(means, ',')
+#     push!(mean, parse(Float64, ms))
+#   end
+#   sigs = split(split(split(str, 'Σ')[2],']')[1],'[')[end]
+#   sig = Float64[]
+#   for ms in split(sigs, ';')
+#     for m in split(ms, ' ')
+#       length(m) > 0 ? push!(sig, parse(Float64, m)) : nothing
+#     end
+#   end
+#   len = length(mean)
+#   sigm = reshape(sig, len,len)
+#   MvNormal(mean, sigm)
+# end
+#
+# function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: AbstractString}
+#   # pstr = match(r"p=\[", str).match
+#   psubs = split(str, '=')[end]
+#   psubs = split(psubs, '[')[end]
+#   psubsub = split(psubs, ']')[1]
+#   pw = split(psubsub, ',')
+#   p = parse.(Float64, pw)
+#   return Categorical(p ./ sum(p))
+# end
+#
+# function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
+#   # TODO improve use of multidispatch and packing of Distribution types
+#   if str == ""
+#     return nothing
+#   elseif (ismatch(r"Normal", str) && !ismatch(r"FullNormal", str))
+#     return normalfromstring(str)
+#   elseif ismatch(r"FullNormal", str)
+#     return mvnormalfromstring(str)
+#   elseif ismatch(r"Categorical", str)
+#     return categoricalfromstring(str)
+#   elseif ismatch(r"KDE:", str)
+#     return convert(KDE.BallTreeDensity, str)
+#   elseif ismatch(r"AliasingScalarSampler", str)
+#     return convert(AliasingScalarSampler, str)
+#   else
+#     error("Don't know how to extract distribution from str=$(str)")
+#   end
+# end
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
-                              d.initstdev[:],size(d.initstdev,1),
-                              d.val[:],size(d.val,1),
-                              d.bw[:], size(d.bw,1),
-                              d.BayesNetOutVertIDs,
-                              d.dimIDs, d.dims, d.eliminated,
-                              d.BayesNetVertID, d.separator,
-                              string(d.softtype), d.initialized)
+                                d.initstdev[:],size(d.initstdev,1),
+                                d.val[:],size(d.val,1),
+                                d.bw[:], size(d.bw,1),
+                                d.BayesNetOutVertIDs,
+                                d.dimIDs, d.dims, d.eliminated,
+                                d.BayesNetVertID, d.separator,
+                                string(d.softtype), d.initialized, d.isfrozen)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
@@ -137,7 +132,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing, st, d.initialized )
+    nothing, st, d.initialized, d.isfrozen )
 end
 
 
@@ -154,6 +149,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.eliminated == b.eliminated
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
+    TP = TP && a.isfrozen == b.isfrozen
     return TP
 end
 
@@ -173,19 +169,10 @@ function parsemultihypostr(str::AS) where {AS <: AbstractString}
   return mhcat
 end
 
+
+## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-
-# TODO simplify and reduce to single pack and unpack converter
-## packing converters-----------------------------------------------------------
-
-# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: InferenceType}
-#     # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-#   error("convert(::Type{PackedFunctionNodeData{P}} : this convert function should probably not be used. Use FunctorInferenceType instead of InferenceType.")
-#   mhstr = packmultihypo(d.fnc)
-#   return PackedFunctionNodeData{P}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-#           string(d.frommodule), convert(P, d.fnc), mhstr) # TODO -- should use convert(P, d.fnc.usrfnc!) instead
-# end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
   mhstr = packmultihypo(d.fnc)
@@ -239,10 +226,10 @@ end
 
 
 
-function convert{PT <: PackedInferenceType, T <:FunctorInferenceType}(::Type{PT}, ::T)
+function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
   getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
-function convert{T <: FunctorInferenceType, PT <: PackedInferenceType}(::Type{T}, ::PT)
+function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: PackedInferenceType}
   getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
 end
 
@@ -280,25 +267,29 @@ end
 Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
 """
 function convert2packedfunctionnode(fgl::FactorGraph,
-      fsym::Symbol,
-      api::DataLayerAPI=localapi  )
+                                    fsym::Symbol,
+                                    api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
-  fnc = getfnctype(fgl, fid)
-  usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp},getData(fgl, fid, api=api) )
+  @show fnc = getfnctype(fgl, fid)
+  @show usrtyp = convert(PackedInferenceType, fnc)
+  @show getData(fgl, fid, api=api)
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(fgl, fid, api=api) )
   return cfnd, usrtyp
 end
 
 
 
-function decodePackedType(packeddata::PackedVariableNodeData, typestring::String)
+function decodePackedType(packeddata::PackedVariableNodeData,
+                          typestring::String )
+  #
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
   # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
   functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
+  @assert convert(FunctorInferenceType, PT) == functype # NEW METHOD: TODO -- use as primary once known to work consistently
   fulltype = FunctionNodeData{CommonConvWrapper{functype}}
   convert(fulltype, packeddata)
 end
@@ -306,9 +297,9 @@ end
 """
     $(SIGNATURES)
 
-Make a full memory copy of the graph and encode all complicated function node
-types with assumed to exist convert to 'Packed<type>' formats. Same converters
-as used for database persistence storage with CloudGraphs.jl.
+Make a full memory copy of the graph and encode all composite function node
+types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
+are used for database persistence with CloudGraphs.jl.
 """
 function encodefg(fgl::FactorGraph;
       api::DataLayerAPI=localapi  )
@@ -359,8 +350,8 @@ FunctorInferenceType definitions.
 See RoME/src/fgos.jl for example.
 """
 function convertfrompackedfunctionnode(fgl::FactorGraph,
-      fsym::Symbol,
-      api::DataLayerAPI=localapi  )
+                                       fsym::Symbol,
+                                       api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
   fnc = getData(fgl, fid).fnc #getfnctype(fgl, fid)
@@ -371,15 +362,17 @@ function convertfrompackedfunctionnode(fgl::FactorGraph,
   return cfnd, usrtyp
 end
 
+# import IncrementalInference: decodefg, loadjld
+
 """
-    decodefg(fgs::FactorGraph)
+    $(SIGNATURES)
 
 Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
 """
 function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   fgu = deepcopy(fgs)
-  fgu.cg = nothing
-  fgu.registeredModuleFunctions = nothing
+  fgu.cg = nothing # will be deprecated or replaced
+  fgu.registeredModuleFunctions = nothing # obsolete
   fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
   @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
     cpvert = deepcopy(getVert(fgs, vid, api=api))
@@ -409,6 +402,19 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
     end
   end
 
+  # rebuild factormetadata
+  @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
+    varuserdata = []
+    node = getVert(fgu, fsym, nt=:fnc)
+    for nei in out_neighbors(node, fgu.g)
+        st = getData(nei).softtype
+        push!(varuserdata, st)
+    end
+    fc = getData(fgu, fid).fnc
+    for i in 1:Threads.nthreads()
+      fc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
+    end
+  end
   return fgu
 end
 

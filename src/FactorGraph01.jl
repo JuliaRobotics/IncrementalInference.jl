@@ -14,7 +14,7 @@ getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl,
 # see JuliaArchive/Graphs.jl#233
 getData(v::Graphs.ExVertex) = v.attributes["data"]
 # Convenience functions
-getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi) = getData(getVert(fgl, lbl, api=api))
+getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt=:var) = getData(getVert(fgl, lbl, api=api, nt=nt))
 getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
 
 function setData!(v::Graphs.ExVertex, data)
@@ -154,12 +154,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false, false) #initialized
   end
   #
   setData!(v, data)
@@ -235,6 +235,9 @@ function addNode!(fg::FactorGraph,
 
   # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
   push!(fg.nodeIDs, currid)
+
+  # keep a fifo queue of incoming symbols
+  push!(fg.fifo, lbl)
 
   vert
 end
@@ -558,7 +561,7 @@ function addFactor!(fgl::FactorGraph,
       labels::Vector{T}=String[],
       uid::Int=-1,
       autoinit::Bool=true,
-      threadmodel=MultiThreaded  ) where
+      threadmodel=SingleThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -612,7 +615,7 @@ function addFactor!(
       labels::Vector{T}=String[],
       uid::Int=-1,
       autoinit::Bool=true,
-      threadmodel=MultiThreaded  ) where
+      threadmodel=SingleThreaded  ) where
         {R <: Union{FunctorInferenceType, InferenceType},
          T <: AbstractString}
   #
@@ -836,21 +839,25 @@ function drawCopyFG(fgl::FactorGraph)
 end
 
 function writeGraphPdf(fgl::FactorGraph;
-                       pdfreader::Union{Void, String}="evince",
-                       filename::AS="/tmp/fg.pdf",
-                        engine::AS="sfdp"  ) where {AS <: AbstractString}
+                       viewerapp::String="evince",
+                       filepath::AS="/tmp/fg.pdf",
+                       engine::AS="sfdp",
+                       show::Bool=true ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
-  dotfile = split(filename, ".pdf")[1]*".dot"
+  fext = split(filepath, '.')[end]
+  fpwoext = split(filepath, '.')[end-1]
+  dotfile = fpwoext*".dot"
   fid = open(dotfile,"w")
   write(fid,Graphs.to_dot(fgd.g))
   close(fid)
-  run(`$(engine) $(dotfile) -Tpdf -o $(filename)`)
+  show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
+
   try
-    pdfreader != nothing ? (@async run(`$(pdfreader) $(filename)`)) : nothing
+    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
-    warn("not able to show $(filename) with pdfreader=$(pdfreader). Exception e=$(e)")
+    warn("not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)")
   end
   nothing
 end

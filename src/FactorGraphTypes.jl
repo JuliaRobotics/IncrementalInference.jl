@@ -55,6 +55,9 @@ mutable struct FactorGraph
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
+  fifo::Vector{Symbol}
+  qfl::Int # Quasi fixed length
+  isfixedlag::Bool # true when adhering to qfl window size for solves
   FactorGraph() = new()
   FactorGraph(
     x1,
@@ -92,7 +95,10 @@ mutable struct FactorGraph
     x15,
     x16,
     x17,
-    false )
+    false,
+    Symbol[],
+    0,
+    false  )
 end
 
 """
@@ -124,12 +130,12 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
 end
 
 mutable struct VariableNodeData
-  initval::Array{Float64,2}
-  initstdev::Array{Float64,2}
+  initval::Array{Float64,2} # TODO deprecate
+  initstdev::Array{Float64,2} # TODO deprecate
   val::Array{Float64,2}
   bw::Array{Float64,2}
   BayesNetOutVertIDs::Array{Int,1}
-  dimIDs::Array{Int,1}
+  dimIDs::Array{Int,1} # Likely deprecate
   dims::Int
   eliminated::Bool
   BayesNetVertID::Int
@@ -137,10 +143,11 @@ mutable struct VariableNodeData
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
+  isfrozen::Bool #let it be, let it be...
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
     warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1::Array{Float64,2},
                    x2::Array{Float64,2},
@@ -154,8 +161,9 @@ mutable struct VariableNodeData
                    x10::Vector{Int},
                    x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
                    x12,
-                   x13::Bool) =
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
+                   x13::Bool,
+                   x14::Bool ) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14)
 end
 
 mutable struct FactorMetadata
