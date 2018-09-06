@@ -841,7 +841,8 @@ end
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",
-                       show::Bool=true  ) where {AS <: AbstractString}
+                       engine::AS="sfdp",
+                       show::Bool=true ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
   println("Writing factor graph file")
@@ -851,7 +852,8 @@ function writeGraphPdf(fgl::FactorGraph;
   fid = open(dotfile,"w")
   write(fid,Graphs.to_dot(fgd.g))
   close(fid)
-  show? (@async run(`dot $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
+  show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
+
   try
     viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
