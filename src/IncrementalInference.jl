@@ -135,6 +135,7 @@ export
   AliasingScalarSampler,
   rand!,
   rand,
+  fastnorm,
 
   # dev
   CommonConvWrapper, # new wrapper (experimental) -- not ready for use
