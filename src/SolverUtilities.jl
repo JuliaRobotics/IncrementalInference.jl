@@ -163,7 +163,7 @@ function setfreeze!(fgl::FactorGraph, sym::Symbol)
   end
   vert = getVert(fgl, sym)
   data = getData(vert)
-  data.isfrozen = true
+  data.ismargin = true
 
   nothing
 end

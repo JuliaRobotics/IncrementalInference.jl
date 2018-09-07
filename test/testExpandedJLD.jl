@@ -16,6 +16,7 @@ addNode!(fgt, :x2, ContinuousScalar)
 addFactor!(fgt, [:x1;:x2], LinearConditional(Normal(10,1)))
 
 savejld(fgt)
+savejld(fgt, file=joinpath(Pkg.dir("IncrementalInference"),"test","testdata","compatibility_test_fg.jld"))
 fgl, = loadjld()
 
 fct = getData(fgt, :x1x2f1, nt=:fct).fnc.cpt[1].factormetadata
