@@ -1,6 +1,6 @@
 module IncrementalInference
 
-info("Using multithreaded convolutions Threads.nthreads()=$(Threads.nthreads())")
+info("Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`.")
 
 import Base: convert
 import HDF5: root

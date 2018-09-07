@@ -330,6 +330,10 @@ const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
 PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
 
 
+
+
+
+
 ###
 
 function addGraphsVert!(fgl::FactorGraph,
