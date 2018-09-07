@@ -687,7 +687,7 @@ end
 function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
   for p in elimOrder
     vert = getVert(fg, p, api=localapi)
-    @show vert.label, getData(vert).BayesNetVertID
+    # @show vert.label, getData(vert).BayesNetVertID
     if getData(vert).BayesNetVertID == 0
       fg.bnid+=1
       vert.attributes["data"].BayesNetVertID = p

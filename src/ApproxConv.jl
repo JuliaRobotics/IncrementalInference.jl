@@ -347,8 +347,6 @@ function approxConv(fgl::FactorGraph,
   fc = getVert(fgl, fct, nt=:fct, api=api)
   v1 = getVert(fgl, towards, api=api)
   N = N == -1 ? getNumPts(v1) : N
-  @show v1.index, fc
-  @show getData(fc).fncargvID
   return evalFactor2(fgl, fc, v1.index, N=N)
 end
 
