@@ -177,14 +177,12 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
   warn("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
   mhstr = packmultihypo(d.fnc)
-  info("Packing d.fncargvID=$(d.fncargvID)")
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
   mhstr = packmultihypo(d.fnc)
-  info("Packing d.fncargvID=$(d.fncargvID)")
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
@@ -202,10 +200,8 @@ function convert(
   usrfnc = convert(F, d.fnc)
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
-  info("Common unpacking d.fncargvID=$(d.fncargvID), multihypo=$(mhcat)")
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
-  info("convert to genfunnodedata{ccw}, len(params)=$(length(ccw.params))")
   return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)
 end
