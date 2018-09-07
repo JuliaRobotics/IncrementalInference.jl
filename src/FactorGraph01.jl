@@ -359,6 +359,8 @@ function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
   return mh
 end
 
+# import IncrementalInference: prepgenericconvolution, convert
+
 function prepgenericconvolution(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T;
@@ -399,7 +401,7 @@ function setDefaultFactorNode!(
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T;
       multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
-      threadmodel=MultiThreaded) where {T <: Union{FunctorInferenceType, InferenceType}}
+      threadmodel=SingleThreaded  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
@@ -578,6 +580,7 @@ function addFactor!(fgl::FactorGraph,
   setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
   push!(fgl.factorIDs,currid)
 
+  # TODO -- evaluate and streamline
   for vert in Xi
     push!(getData(newvert).fncargvID, vert.index)
     # push!(newvert.attributes["data"].fncargvID, vert.index)

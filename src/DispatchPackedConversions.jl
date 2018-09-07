@@ -175,6 +175,7 @@ end
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+  warn("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
@@ -199,7 +200,6 @@ function convert(
   usrfnc = convert(F, d.fnc)
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
-
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
   return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
@@ -271,9 +271,8 @@ function convert2packedfunctionnode(fgl::FactorGraph,
                                     api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
-  @show fnc = getfnctype(fgl, fid)
-  @show usrtyp = convert(PackedInferenceType, fnc)
-  @show getData(fgl, fid, api=api)
+  fnc = getfnctype(fgl, fid)
+  usrtyp = convert(PackedInferenceType, fnc)
   cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(fgl, fid, api=api) )
   return cfnd, usrtyp
 end
@@ -320,6 +319,7 @@ function encodefg(fgl::FactorGraph;
     for (key,val) in getVert(fgl,fid,api=api).attributes
       newvert.attributes[key] = val
     end
+    ## losing fgl.fncargvID before setdata
     setData!(newvert, data)
     api.addvertex!(fgs, newvert)
   end
@@ -364,6 +364,10 @@ end
 
 # import IncrementalInference: decodefg, loadjld
 
+veeCategorical(val::Categorical) = val.p
+veeCategorical(val::Union{Void, Vector{Float64}}) = val
+
+
 """
     $(SIGNATURES)
 
@@ -405,14 +409,26 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   # rebuild factormetadata
   @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
     varuserdata = []
-    node = getVert(fgu, fsym, nt=:fnc)
-    for nei in out_neighbors(node, fgu.g)
-        st = getData(nei).softtype
-        push!(varuserdata, st)
+    fcnode = getVert(fgu, fsym, nt=:fnc)
+    # ccw = getData(fcnode)
+    ccw_jld = deepcopy(getData(fcnode))
+    allnei = Graphs.ExVertex[]
+    for nei in out_neighbors(fcnode, fgu.g)
+        push!(allnei, nei)
+        data = IncrementalInference.getData(nei)
+        push!(varuserdata, data.softtype)
     end
-    fc = getData(fgu, fid).fnc
+    setDefaultFactorNode!(fgu, fcnode, allnei, ccw_jld.fnc.usrfnc!, threadmodel=ccw_jld.fnc.threadmodel, multihypo=veeCategorical(ccw_jld.fnc.hypotheses))
+    ccw_new = IncrementalInference.getData(fcnode)
     for i in 1:Threads.nthreads()
-      fc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
+      ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
+    end
+    ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
+    # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
+    for field in fieldnames(ccw_jld)
+      if field != :fnc
+        setfield!(ccw_new, field, getfield(ccw_jld, field))
+      end
     end
   end
   return fgu
