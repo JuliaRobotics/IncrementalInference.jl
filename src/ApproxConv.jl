@@ -80,6 +80,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    solvefor::Int,
                                    N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
+  @show length(Xi)
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
@@ -91,6 +92,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   end
   ccwl.varidx = sfidx
 
+  @show sfidx, size(ccwl.params), ccwl.xDim
   ccwl.xDim = size(ccwl.params[sfidx],1)
   # ccwl.xDim = size(ccwl.cpt[1].X,1)
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
@@ -133,6 +135,10 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
+      @show sfidx, count, mhidx, length(allelements[count])
+      @show size(ccwl.params)
+      @show size(ccwl.params[mhidx]), size(ccwl.params[sfidx])
+      @show allelements[count]
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
@@ -330,9 +336,10 @@ function evalFactor2(fgl::FactorGraph,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
+  @show Xi, solvefor
   return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
-
+# import IncrementalInference: evalFactor2, approxConv
 """
     $(SIGNATURES)
 
@@ -347,6 +354,8 @@ function approxConv(fgl::FactorGraph,
   fc = getVert(fgl, fct, nt=:fct, api=api)
   v1 = getVert(fgl, towards, api=api)
   N = N == -1 ? getNumPts(v1) : N
+  @show v1.index, fc
+  @show getData(fc).fncargvID
   return evalFactor2(fgl, fc, v1.index, N=N)
 end
 
