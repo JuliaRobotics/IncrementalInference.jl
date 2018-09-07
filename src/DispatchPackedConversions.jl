@@ -20,6 +20,7 @@ mutable struct PackedVariableNodeData
   softtype::String
   initialized::Bool
   isfrozen::Bool
+  dontmargin::Bool
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x1::Vector{Float64},
                          x2::Int,
@@ -37,7 +38,8 @@ mutable struct PackedVariableNodeData
                          x14::Vector{Int},
                          x15::String,
                          x16::Bool,
-                         x17::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17)
+                         x17::Bool,
+                         x18::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
 end
 
 
@@ -107,7 +109,7 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                                 d.BayesNetOutVertIDs,
                                 d.dimIDs, d.dims, d.eliminated,
                                 d.BayesNetVertID, d.separator,
-                                string(d.softtype), d.initialized, d.isfrozen)
+                                string(d.softtype), d.initialized, d.isfrozen, d.dontmargin)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
@@ -132,7 +134,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing, st, d.initialized, d.isfrozen )
+    nothing, st, d.initialized, d.isfrozen, d.dontmargin )
 end
 
 
@@ -271,9 +273,9 @@ function convert2packedfunctionnode(fgl::FactorGraph,
                                     api::DataLayerAPI=localapi  )
   #
   fid = fgl.fIDs[fsym]
-  @show fnc = getfnctype(fgl, fid)
-  @show usrtyp = convert(PackedInferenceType, fnc)
-  @show getData(fgl, fid, api=api)
+  fnc = getfnctype(fgl, fid)
+  usrtyp = convert(PackedInferenceType, fnc)
+  # getData(fgl, fid, api=api)
   cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(fgl, fid, api=api) )
   return cfnd, usrtyp
 end
