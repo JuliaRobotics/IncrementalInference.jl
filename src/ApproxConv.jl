@@ -116,7 +116,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
-  @assert norm(ccwl.certainhypo - certainidx) < 1e-6
+  # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (mhidx, vars) in activehypo
     count += 1
     if sfidx in certainidx || mhidx in certainidx || mhidx == sfidx
@@ -133,10 +133,6 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
-      @show sfidx, count, mhidx, length(allelements[count])
-      @show size(ccwl.params)
-      @show size(ccwl.params[mhidx]), size(ccwl.params[sfidx])
-      @show allelements[count]
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
