@@ -7,7 +7,7 @@ function fastnorm(u)
   @fastmath @inbounds @simd for i in 1:n
       s += u[i]^2
   end
-  @fastmath @inbounds return sqrt(s/n)
+  @fastmath @inbounds return sqrt(s)
 end
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
