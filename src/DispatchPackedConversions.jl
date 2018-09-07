@@ -19,7 +19,7 @@ mutable struct PackedVariableNodeData
   # groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   softtype::String
   initialized::Bool
-  isfrozen::Bool
+  ismargin::Bool
   dontmargin::Bool
   PackedVariableNodeData() = new()
   PackedVariableNodeData(x1::Vector{Float64},
@@ -109,7 +109,7 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                                 d.BayesNetOutVertIDs,
                                 d.dimIDs, d.dims, d.eliminated,
                                 d.BayesNetVertID, d.separator,
-                                string(d.softtype), d.initialized, d.isfrozen, d.dontmargin)
+                                string(d.softtype), d.initialized, d.ismargin, d.dontmargin)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
@@ -134,7 +134,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing, st, d.initialized, d.isfrozen, d.dontmargin )
+    nothing, st, d.initialized, d.ismargin, d.dontmargin )
 end
 
 
@@ -151,7 +151,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.eliminated == b.eliminated
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
-    TP = TP && a.isfrozen == b.isfrozen
+    TP = TP && a.ismargin == b.ismargin
     return TP
 end
 

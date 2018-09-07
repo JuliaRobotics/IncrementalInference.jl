@@ -143,7 +143,7 @@ mutable struct VariableNodeData
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
-  isfrozen::Bool
+  ismargin::Bool
   dontmargin::Bool
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)

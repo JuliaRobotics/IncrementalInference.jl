@@ -448,7 +448,7 @@ function fmcmc!(fgl::FactorGraph,
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
         vert = getVert(fgl, vertid, api=dlapi)
-        if !getData(vert).isfrozen
+        if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
           densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
           if size(densPts,1)>0
