@@ -80,7 +80,6 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    solvefor::Int,
                                    N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
-  @show length(Xi)
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
@@ -92,7 +91,6 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   end
   ccwl.varidx = sfidx
 
-  @show sfidx, size(ccwl.params), ccwl.xDim
   ccwl.xDim = size(ccwl.params[sfidx],1)
   # ccwl.xDim = size(ccwl.cpt[1].X,1)
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
