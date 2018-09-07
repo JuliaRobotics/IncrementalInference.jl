@@ -330,7 +330,6 @@ function evalFactor2(fgl::FactorGraph,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
-  @show Xi, solvefor
   return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
 # import IncrementalInference: evalFactor2, approxConv
