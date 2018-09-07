@@ -130,7 +130,9 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
                              dodims::Int,
                              N::Int,
                              dims::Int;
-                             gt=nothing, initialized::Bool=true,
+                             gt=nothing,
+                             initialized::Bool=true,
+                             dontmargin::Bool=false,
                              softtype=nothing)
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
@@ -154,12 +156,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true, false) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
   else
       sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false, false) #initialized
+                              dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
   end
   #
   setData!(v, data)
@@ -209,6 +211,7 @@ function addNode!(fg::FactorGraph,
                   N::Int=100,
                   autoinit::Bool=true,  # does init need to be separate from ready? TODO
                   ready::Int=1,
+                  dontmargin::Bool=false,
                   labels::Vector{<:AbstractString}=String[],
                   api::DataLayerAPI=dlapi,
                   uid::Int=-1,
@@ -226,7 +229,7 @@ function addNode!(fg::FactorGraph,
   addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   # dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(softtype.dims,N), zeros(0,0), 0, N, softtype.dims, initialized=!autoinit, softtype=softtype) # dodims
+  setDefaultNodeData!(vert, zeros(softtype.dims,N), zeros(0,0), 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
 
   vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
@@ -253,6 +256,7 @@ function addNode!(fg::FactorGraph,
                   N::Int=100,
                   autoinit::Bool=true,
                   ready::Int=1,
+                  dontmargin::Bool=false,
                   labels::Vector{<:AbstractString}=String[],
                   api::DataLayerAPI=dlapi,
                   uid::Int=-1,
@@ -265,6 +269,7 @@ function addNode!(fg::FactorGraph,
            N=N,
            autoinit=autoinit,
            ready=ready,
+           dontmargin=dontmargin,
            labels=labels,
            api=api,
            uid=uid,
