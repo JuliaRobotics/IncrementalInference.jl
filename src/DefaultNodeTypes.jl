@@ -6,13 +6,13 @@ SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTr
 struct ContinuousScalar <: InferenceVariable
   dims::Int
   labels::Vector{String}
-  ContinuousScalar() = new(1, String["";])
+  ContinuousScalar() = new(1, String[])
 end
 struct ContinuousMultivariate <: InferenceVariable
   dims::Int
   labels::Vector{String}
   ContinuousMultivariate() = new()
-  ContinuousMultivariate(x) = new(x, String["";])
+  ContinuousMultivariate(x) = new(x, String[])
 end
 
 
