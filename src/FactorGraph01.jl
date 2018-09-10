@@ -143,7 +143,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
       p = kde!(initval,diag(stdev));
       pN = resample(p,N)
     elseif size(initval,2) < N && size(initval, 1) != dims
-      println("Node value memory allocated but not initialized")
+      info("Node value memory allocated but not initialized")
       pN = kde!(randn(dims, N));
     else
       pN = kde!(initval)
@@ -531,7 +531,7 @@ function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
   allvarnodes = union(xx, xl)
   for vsym in allvarnodes
     if !isInitialized(fgl, vsym)
-      println("$vsym is not initialized, and will do so now...")
+      info("$vsym is not initialized, and will do so now...")
       doautoinit!(fgl, Graphs.ExVertex[getVert(fgl, vsym, api=api);], api=api, singles=true)
     end
   end
@@ -693,7 +693,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
       vert.attributes["data"].BayesNetVertID = p
       localapi.updatevertex!(fg, vert)
     else
-      println("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
+      warn("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
     end
   end
 end
@@ -716,8 +716,8 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  println("adding marginal to")
-  for x in Xi @show x.index end
+  info("adding marginal to")
+  for x in Xi info("x.index=",x.index) end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
@@ -757,10 +757,10 @@ end
 function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
     addBayesNetVerts!(fg, p)
     for v in p
-      println()
-      println("Eliminating $(v)")
-      println("===============")
-      println()
+      info()
+      info("Eliminating $(v)")
+      info("===============")
+      info()
       # which variable are we eliminating
 
       # all factors adjacent to this variable
@@ -853,7 +853,7 @@ function writeGraphPdf(fgl::FactorGraph;
                        show::Bool=true ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
-  println("Writing factor graph file")
+  info("Writing factor graph file")
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
