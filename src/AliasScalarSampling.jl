@@ -6,10 +6,18 @@ struct AliasingScalarSampler
   weights::StatsBase.ProbabilityWeights
   AliasingScalarSampler() = new()
   AliasingScalarSampler(x::Vector{<:Real}, p_x::Vector{<:Real}; SNRfloor::Float64=0.0) = begin
+    
+    # pxf = Float64.(p_x)
+    # pxf .-= quantile(pxf, SNRfloor)
+    # pxf[pxf .< 0.0] = 0.0
+    # pxf ./= norm(pxf)
+    # new implementation : pxf should be an empirical pmf before use in statsbase
     pxf = Float64.(p_x)
-    pxf .-= quantile(pxf, SNRfloor)
-    pxf[pxf .< 0.0] = 0.0
-    pxf ./= norm(pxf)
+    pxf[pxf.<0.0]= 0.0 # no negative values!
+    pxf ./=sum(pxf)  # must sum to 1
+    pxf .-= quantile(pxf,q) # remove lowest quantile
+    pxf[pxf.<0.0]= 0.0
+    pxf ./=sum(pxf)
     wim = StatsBase.ProbabilityWeights(pxf)
     new(x, wim)
   end
