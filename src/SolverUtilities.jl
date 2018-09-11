@@ -126,9 +126,11 @@ function numericRootGenericRandomizedFnc!(
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
       ccall(:jl_, Void, (Any,), str)
       ccall(:jl_, Void, (Any,), ccwl.usrfnc!)
+      info(str)
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
         ccall(:jl_, Void, (Any,), str)
+        warn(str)
       end
     end
   elseif ccwl.partial
@@ -154,7 +156,7 @@ Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over
 """
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, N::Int=100)
   if fgl.isfixedlag
-      println("Quasi fixed-lag is enabled (a feature currently in testing)!")
+      info("Quasi fixed-lag is enabled (a feature currently in testing)!")
       fifoFreeze!(fgl)
   end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
