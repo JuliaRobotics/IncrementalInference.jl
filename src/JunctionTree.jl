@@ -509,7 +509,7 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     for child in out_neighbors(cliq, bt.bt)#tree
         buildCliquePotentials(fg, bt, child)
     end
-    println("Get potentials $(cliq.attributes["label"])");
+    info("Get potentials $(cliq.attributes["label"])");
     getCliquePotentials!(fg, bt, cliq);
 
     compCliqAssocMatrices!(fg, bt, cliq);
