@@ -263,9 +263,13 @@ function addNode!(fg::FactorGraph,
                   # dims::Int=-1,
                   smalldata=""  )
   #
+  sto = softtype()
+  if :ut in fieldnames(sto)
+    sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
+  end
   addNode!(fg,
            lbl,
-           softtype();
+           sto,
            N=N,
            autoinit=autoinit,
            ready=ready,
