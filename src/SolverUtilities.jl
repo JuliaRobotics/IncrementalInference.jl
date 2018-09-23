@@ -1,4 +1,15 @@
 
+function fastnorm(u)
+  # dest[1] = ...
+  n = length(u)
+  T = eltype(u)
+  s = zero(T)
+  @fastmath @inbounds @simd for i in 1:n
+      s += u[i]^2
+  end
+  @fastmath @inbounds return sqrt(s)
+end
+
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
   return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
 end
@@ -115,9 +126,11 @@ function numericRootGenericRandomizedFnc!(
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
       ccall(:jl_, Void, (Any,), str)
       ccall(:jl_, Void, (Any,), ccwl.usrfnc!)
+      info(str)
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
         ccall(:jl_, Void, (Any,), str)
+        warn(str)
       end
     end
   elseif ccwl.partial
@@ -141,13 +154,56 @@ end
 
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
-function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false)
+function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, N::Int=100)
+  if fgl.isfixedlag
+      info("Quasi fixed-lag is enabled (a feature currently in testing)!")
+      fifoFreeze!(fgl)
+  end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
-  inferOverTree!(fgl, tree)
+  inferOverTree!(fgl, tree, N=N)
   tree
 end
 
+"""
+    $(SIGNATURES)
 
+Update the frozen node
+"""
+function setfreeze!(fgl::FactorGraph, sym::Symbol)
+  if !isInitialized(fgl, sym)
+    warn("Vertex $(sym) is not initialized, and won't be frozen at this time.")
+    return nothing
+  end
+  vert = getVert(fgl, sym)
+  data = getData(vert)
+  data.ismargin = true
+
+  nothing
+end
+
+
+"""
+    $(SIGNATURES)
+
+Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
+
+Future:
+- Allow different freezing strategies beyond fifo.
+"""
+function fifoFreeze!(fgl::FactorGraph)
+  if fgl.qfl == 0
+    warn("Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl")
+  end
+
+  tofreeze = fgl.fifo[1:(end-fgl.qfl)]
+  if length(tofreeze) == 0
+      info("[fifoFreeze] QFL - no nodes to freeze.")
+      return nothing
+  end
+  info("[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end]).")
+  setfreeze!.(fgl, tofreeze)
+  nothing
+end
 
 
 #

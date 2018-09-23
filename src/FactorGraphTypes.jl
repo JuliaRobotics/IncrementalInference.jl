@@ -55,6 +55,9 @@ mutable struct FactorGraph
   registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
   reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
+  fifo::Vector{Symbol}
+  qfl::Int # Quasi fixed length
+  isfixedlag::Bool # true when adhering to qfl window size for solves
   FactorGraph() = new()
   FactorGraph(
     x1,
@@ -92,7 +95,10 @@ mutable struct FactorGraph
     x15,
     x16,
     x17,
-    false )
+    false,
+    Symbol[],
+    0,
+    false  )
 end
 
 """
@@ -124,12 +130,12 @@ function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vecto
 end
 
 mutable struct VariableNodeData
-  initval::Array{Float64,2}
-  initstdev::Array{Float64,2}
+  initval::Array{Float64,2} # TODO deprecate
+  initstdev::Array{Float64,2} # TODO deprecate
   val::Array{Float64,2}
   bw::Array{Float64,2}
   BayesNetOutVertIDs::Array{Int,1}
-  dimIDs::Array{Int,1}
+  dimIDs::Array{Int,1} # Likely deprecate
   dims::Int
   eliminated::Bool
   BayesNetVertID::Int
@@ -137,10 +143,12 @@ mutable struct VariableNodeData
   groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
+  ismargin::Bool
+  dontmargin::Bool
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
     warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true) # TODO ensure this is initialized true is working for most cases
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1::Array{Float64,2},
                    x2::Array{Float64,2},
@@ -154,8 +162,10 @@ mutable struct VariableNodeData
                    x10::Vector{Int},
                    x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
                    x12,
-                   x13::Bool) =
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
+                   x13::Bool,
+                   x14::Bool,
+                   x15::Bool) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15)
 end
 
 mutable struct FactorMetadata
@@ -197,7 +207,7 @@ function ConvPerThread(X::Array{Float64,2},
                        p=collect(1:size(X,1)),
                        perturb=zeros(zDim),
                        Y=zeros(size(X,1)),
-                       res=zeros(0)  )
+                       res=zeros(zDim)  )
   #
   cpt = ConvPerThread()
   cpt.thrid_ = 0
@@ -263,7 +273,7 @@ function CommonConvWrapper(fnc::T,
                            perturb=zeros(zDim),
                            Y=zeros(size(X,1)),
                            xDim=size(X,1),
-                           res=zeros(0),
+                           res=zeros(zDim),
                            threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
@@ -278,6 +288,7 @@ function CommonConvWrapper(fnc::T,
   ccw.params = params
   ccw.varidx = varidx
   ccw.threadmodel = threadmodel
+  ccw.measurement = measurement
 
   # thread specific elements
   ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
@@ -291,16 +302,6 @@ function CommonConvWrapper(fnc::T,
                     Y=Y,
                     res=res )
   end
-  # ccw.varidx = varidx
-  # ccw.measurement = measurement
-  # ccw.activehypo = activehypo
-  # ccw.factormetadata = factormetadata
-  # ccw.particleidx = particleidx
-  # ccw.p = p
-  # ccw.perturb = perturb
-  # ccw.X = X
-  # ccw.Y = Y
-  # ccw.res = res
 
   return ccw
 end
@@ -327,6 +328,10 @@ FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: U
 # where {T <: PackedInferenceType}
 const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
 PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
+
+
+
+
 
 
 ###

@@ -1,6 +1,6 @@
 module IncrementalInference
 
-info("Using multithreaded convolutions Threads.nthreads()=$(Threads.nthreads())")
+info("Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`.")
 
 import Base: convert
 import HDF5: root
@@ -50,7 +50,11 @@ export
   ContinuousMultivariate,
   SamplableBelief,
   Prior,
+  PackedPrior,
   LinearConditional,
+  PackedLinearConditional,
+  MixtureLinearConditional,
+  PackedMixtureLinearConditional,
 
   # using either dictionary or cloudgraphs
   VariableNodeData,
@@ -102,6 +106,7 @@ export
   getVertKDE,
   initializeNode!,
   batchSolve!,
+  fifoFreeze!,
 
   #functors need
   getSample,
@@ -113,6 +118,9 @@ export
   lsf,
   ls2,
   hasOrphans,
+  allnums,
+  isnestednum,
+  sortnestedperm,
   getfnctype,
   drawCopyFG,
 
@@ -121,11 +129,13 @@ export
   evalPotential,
   evalFactor2,
   approxConv,
+  approxConvBinary,
 
   # weiged sampling
   AliasingScalarSampler,
   rand!,
   rand,
+  fastnorm,
 
   # dev
   CommonConvWrapper, # new wrapper (experimental) -- not ready for use
@@ -148,6 +158,7 @@ export
   Singleton,
   Pairwise,
   # introduced for approximate convolution operations
+  setThreadModel!,
   SingleThreaded,
   MultiThreaded,
 
@@ -190,11 +201,14 @@ export
   landmarks,
 
   # For 1D example, should be refactored and renamed
+  ## TODO will be deprecated
   Odo,
   odoAdd,
   PackedOdo,
   Obsv2,
   PackedObsv2,
+
+  # TODO rename to ball radius
   Ranged,
   PackedRanged,
 
@@ -209,12 +223,6 @@ export
   shuffleXAltD,
   reshapeVec2Mat
 
-  # deprecated
-  # VNDencoder,
-  # VNDdecoder,
-  # FNDencode,
-  # FNDdecode
-
 
 
 
@@ -226,6 +234,7 @@ include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
+include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 

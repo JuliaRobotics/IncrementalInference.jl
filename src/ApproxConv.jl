@@ -116,7 +116,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
-  @assert norm(ccwl.certainhypo - certainidx) < 1e-6
+  # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (mhidx, vars) in activehypo
     count += 1
     if sfidx in certainidx || mhidx in certainidx || mhidx == sfidx
@@ -332,7 +332,7 @@ function evalFactor2(fgl::FactorGraph,
   end
   return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
 end
-
+# import IncrementalInference: evalFactor2, approxConv
 """
     $(SIGNATURES)
 
@@ -350,6 +350,24 @@ function approxConv(fgl::FactorGraph,
   return evalFactor2(fgl, fc, v1.index, N=N)
 end
 
+
+function approxConvBinary(arr::Array{Float64,2}, meas::T, outdims::Int; N::Int=0) where {T <: FunctorInferenceType}
+  N = N == 0 ? size(arr,2) : N
+  pts = zeros(outdims,N);
+  t = Array{Array{Float64,2},1}()
+  push!(t,arr)
+  push!(t,pts)
+
+  measurement = getSample(meas, N)
+
+  ccw = CommonConvWrapper(meas, t[2], size(measurement[1],2), t, varidx=2, measurement=measurement)
+
+  for n in 1:N
+    ccw.cpt[Threads.threadid()].particleidx = n
+    numericRootGenericRandomizedFnc!( ccw )
+  end
+  return pts
+end
 
 """
     $(SIGNATURES)
