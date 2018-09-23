@@ -235,8 +235,6 @@ function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: Packed
   getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
 end
 
-
-
 function getmodule(t::T) where T
   T.name.module
 end
@@ -247,7 +245,7 @@ function encodePackedType(topackdata::VariableNodeData)
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
   convert(IncrementalInference.PackedVariableNodeData, topackdata)
 end
-function encodePackedType(topackdata::GenericFunctionNodeData{T, Symbol}) where {T <: FunctorInferenceType}
+function encodePackedType(topackdata::GenericFunctionNodeData{CommonConvWrapper{T}, Symbol}) where {T <: FunctorInferenceType}
   # println("IncrementalInference.encodePackedType(::GenericFunctionNodeData{T,Symbol}): Unknown packed type encoding T=$(T) of $(topackdata)")
   fnctype = getfnctype(topackdata)
   fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
@@ -281,18 +279,18 @@ end
 
 
 
+# Variables
 function decodePackedType(packeddata::PackedVariableNodeData,
                           typestring::String )
-  #
-  # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
+#TODO: typestring is unnecessary
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
-function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, typestring::String) where {PT}
-  # warn("decodePackedType($(typeof(packeddata)),$(typestring)) is happening with PT=$(PT) and ")
-  functype = getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-  @assert convert(FunctorInferenceType, PT) == functype # NEW METHOD: TODO -- use as primary once known to work consistently
-  fulltype = FunctionNodeData{CommonConvWrapper{functype}}
-  convert(fulltype, packeddata)
+# Factors
+#TODO: typestring is unnecessary
+function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, notused::String) where {PT}
+  usrtyp = convert(FunctorInferenceType, packeddata.fnc)
+  fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
+  return convert(fulltype, packeddata)
 end
 
 """
@@ -341,29 +339,6 @@ function encodefg(fgl::FactorGraph;
   return fgs
 end
 
-
-"""
-    $(SIGNATURES)
-
-If you get unknown type conversion error when loading a .jld, while using your own
-FunctorInferenceTypes, you should:
-Copy these functions below, and overload in your package with local extented
-FunctorInferenceType definitions.
-See RoME/src/fgos.jl for example.
-"""
-function convertfrompackedfunctionnode(fgl::FactorGraph,
-                                       fsym::Symbol,
-                                       api::DataLayerAPI=localapi  )
-  #
-  fid = fgl.fIDs[fsym]
-  fnc = getData(fgl, fid).fnc #getfnctype(fgl, fid)
-  usrtyp = convert(FunctorInferenceType, fnc)
-  data = getData(fgl, fid, api=api)
-  newtype = FunctionNodeData{CommonConvWrapper{usrtyp}}
-  cfnd = convert(newtype, data)
-  return cfnd, usrtyp
-end
-
 # import IncrementalInference: decodefg, loadjld
 
 veeCategorical(val::Categorical) = val.p
@@ -378,7 +353,7 @@ Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
 function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   fgu = deepcopy(fgs)
   fgu.cg = nothing # will be deprecated or replaced
-  fgu.registeredModuleFunctions = nothing # obsolete
+  fgu.registeredModuleFunctions = nothing # TODO: obsolete
   fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
   @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
     cpvert = deepcopy(getVert(fgs, vid, api=api))
@@ -386,7 +361,9 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
   end
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
-    data,ftyp = convertfrompackedfunctionnode(fgs, fsym)
+    fdata = getData(fgs, fid)
+    data = decodePackedType(fdata, "")
+
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
