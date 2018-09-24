@@ -19,13 +19,13 @@ function set_defaults(knobs::Vector{Float64})
     if length(knobs) != KNOBS
         error("")
     end
-    ccall((:ccolamd_set_defaults, :libccolamd), Void, (Ptr{Cdouble},), knobs)
+    ccall((:ccolamd_set_defaults, :libccolamd), Nothing, (Ptr{Cdouble},), knobs)
     return knobs
 end
 
 function ccolamd!(n_row::SuiteSparse_long, A::Vector{SuiteSparse_long},
-    p::Vector{SuiteSparse_long}, knobs::Union{Ptr{Void},Vector{Float64}}, stats::Vector{SuiteSparse_long},
-    cmember::Union{Ptr{Void},Vector{SuiteSparse_long}})
+    p::Vector{SuiteSparse_long}, knobs::Union{Ptr{Nothing},Vector{Float64}}, stats::Vector{SuiteSparse_long},
+    cmember::Union{Ptr{Nothing},Vector{SuiteSparse_long}})
 
     n_col = length(p) - 1
 
@@ -62,7 +62,7 @@ function ccolamd!(n_row::SuiteSparse_long, A::Vector{SuiteSparse_long},
     return p
 end
 
-function ccolamd!(n_row, A::Vector{SuiteSparse_long}, p::Vector{SuiteSparse_long}, cmember::Union{Ptr{Void},Vector{SuiteSparse_long}})
+function ccolamd!(n_row, A::Vector{SuiteSparse_long}, p::Vector{SuiteSparse_long}, cmember::Union{Ptr{Nothing},Vector{SuiteSparse_long}})
     n_col = length(p) - 1
 
     if length(cmember) != n_col
@@ -87,6 +87,6 @@ ccolamd(n_row, A::Vector{SuiteSparse_long}, p::Vector{SuiteSparse_long}) =
 ccolamd(A::SparseMatrixCSC) = ccolamd(size(A, 1), A.rowval, A.colptr)
 
 report(stats::Vector{SuiteSparse_long}) =
-    ccall((:ccolamd_l_report, :libccolamd), Void, (Ptr{SuiteSparse_long},), stats)
+    ccall((:ccolamd_l_report, :libccolamd), Nothing, (Ptr{SuiteSparse_long},), stats)
 
 end #module

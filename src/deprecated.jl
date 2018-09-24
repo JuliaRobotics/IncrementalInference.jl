@@ -12,7 +12,7 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType
   specialzDim::Bool
   partial::Bool
   # hypoverts::Vector{Symbol}
-  hypotheses::Union{Void, Distributions.Categorical}
+  hypotheses::Union{Nothing, Distributions.Categorical}
   activehypo::Union{UnitRange{Int},Vector{Int}}
   factormetadata::FactorMetadata
   GenericWrapParam{T}() where {T} = new()
@@ -21,7 +21,7 @@ mutable struct GenericWrapParam{T} <: FunctorInferenceType
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function) where {T} = new(fnc, t, i, j, meas, smpl, false, false, nothing, 1:length(t), FactorMetadata())
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, false, nothing, 1:length(t), FactorMetadata())
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, nothing, 1:length(t), FactorMetadata())
-  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Void,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
+  GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Union{Nothing,Categorical}) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, mhcat, 1:length(t), FactorMetadata())
   GenericWrapParam{T}(fnc::T, t::Vector{Array{Float64,2}}, i::Int, j::Int, meas::Tuple, smpl::Function, szd::Bool, partial::Bool, mhcat::Tuple) where {T} = new(fnc, t, i, j, meas, smpl, szd, partial, Categorical(mhcat), 1:length(t), FactorMetadata())
 end
 
@@ -47,7 +47,7 @@ function prepgenericwrapper(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::UnionAll,
             samplefnc::Function;
-            multihypo::Union{Void, Distributions.Categorical}=nothing )
+            multihypo::Union{Nothing, Distributions.Categorical}=nothing )
       # multiverts::Vector{Symbol}=Symbol[]
   #
   error("prepgenericwrapper -- unknown type usrfnc=$(usrfnc), maybe the wrong usrfnc conversion was dispatched.  Place an error in your unpacking convert function to ensure that IncrementalInference.jl is calling the right unpacking conversion function.")
@@ -57,7 +57,7 @@ function prepgenericwrapper(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T,
             samplefnc::Function;
-            multihypo::Union{Void, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
+            multihypo::Union{Nothing, Distributions.Categorical}=nothing ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
   warn("GenericWrapParam deprecated, use CommonConvWrapper instead.")

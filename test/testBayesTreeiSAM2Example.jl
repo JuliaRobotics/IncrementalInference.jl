@@ -2,33 +2,33 @@ using IncrementalInference
 using Graphs
 # using KernelDensityEstimate, Gadfly # for vstack
 
-using Base: Test
+using Test
 
 fg = emptyFactorGraph()
 
 N=100
 
-doors = [-100.0;0.0;100.0;300.0]'
-cov = [3.0]
+# doors = [-100.0;0.0;100.0;300.0]'
+# cov = [3.0]
 
 
 v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
-f1  = addFactor!(fg, [:x1;], Obsv2(doors, cov', [1.0]))
+f1  = addFactor!(fg, [:x1;], Prior(Normal()))
 
-tem = 2.0*randn(1,N)+getVal(v1)+50.0
+# tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg,[:x1, :x2],Odo([50.0]',[2.0]',[1.0]))
+addFactor!(fg,[:x1, :x2], LinearConditional(Normal()))
 
 v3=addNode!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
-addFactor!(fg,[:x2,:x3],Odo([50.0]',[4.0]',[1.0]))
+addFactor!(fg,[:x2,:x3],LinearConditional(Normal()))
 
 
 l1=addNode!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
-addFactor!(fg, [:x1,:l1], Ranged([64.0],[0.5],[1.0]))
-addFactor!(fg, [:x2,:l1], Ranged([16.0],[0.5],[1.0]))
+addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) )
+addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
 
 l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
-addFactor!(fg, [:x3,:l2], Ranged([16.0],[0.5],[1.0]))
+addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
 
 
@@ -94,6 +94,6 @@ end
 
 # TODO -- add testing to ensure this is the correct tree!
 
-
+@warn "add test tree verification"
 
 # run(`evince bt.pdf`)

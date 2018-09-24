@@ -1,5 +1,5 @@
 
-type BayesTreeNodeData
+mutable struct BayesTreeNodeData
   frontalIDs::Vector{Int}
   conditIDs::Vector{Int}
   inmsgIDs::Vector{Int}
@@ -21,8 +21,8 @@ end
 # TODO -- this should be a constructor
 function emptyBTNodeData()
   BayesTreeNodeData(Int[],Int[],Int[],
-                    Int[],Int[],Array{Bool}(0,0),
-                    Array{Bool}(0,0),Int[],Int[],
+                    Int[],Int[],Array{Bool}(undef, 0,0),
+                    Array{Bool}(undef, 0,0),Int[],Int[],
                     Int[],Int[],Int[],
                     nothing, nothing)
 end
@@ -240,7 +240,7 @@ function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
   return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf);
 end
 
-function whichCliq{T <: AbstractString}(bt::BayesTree, frt::T)
+function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
     bt.cliques[bt.frontals[frt]]
 end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
@@ -332,8 +332,8 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
   cols = [frtl;cond]
   cliq.attributes["data"].inmsgIDs = inmsgIDs
   cliq.attributes["data"].potIDs = potIDs
-  cliqAssocMat = Array{Bool,2}(length(potIDs), length(cols))
-  cliqMsgMat = Array{Bool,2}(length(inmsgIDs), length(cols))
+  cliqAssocMat = Array{Bool,2}(undef, length(potIDs), length(cols))
+  cliqMsgMat = Array{Bool,2}(undef, length(inmsgIDs), length(cols))
   fill!(cliqAssocMat, false)
   fill!(cliqMsgMat, false)
   for j in 1:length(cols)
@@ -509,7 +509,7 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     for child in out_neighbors(cliq, bt.bt)#tree
         buildCliquePotentials(fg, bt, child)
     end
-    info("Get potentials $(cliq.attributes["label"])");
+    @info "Get potentials $(cliq.attributes["label"])"
     getCliquePotentials!(fg, bt, cliq);
 
     compCliqAssocMatrices!(fg, bt, cliq);

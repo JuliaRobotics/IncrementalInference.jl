@@ -29,7 +29,7 @@ end
 
 
 function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: FunctorPairwise}
-  info("assembleConvType -- development testing function only, not intended for production.")
+  @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
   vars = Array{Array{Float64,2},1}()

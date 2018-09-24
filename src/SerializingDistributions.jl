@@ -36,7 +36,7 @@ function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: 
   return Categorical(p ./ sum(p))
 end
 
-function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
+function extractdistribution(str::AS)::Union{Nothing, Distributions.Distribution} where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
   if str == ""
     return nothing

@@ -180,11 +180,11 @@ function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   end
   return lsa
 end
-lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
+lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
-function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+function lsf(fgl::FactorGraph,
       mt::Type{T};
-      api::DataLayerAPI=dlapi  )
+      api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
   #
   syms = Symbol[]
   for (fsym,fid) in fgl.fIDs

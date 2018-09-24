@@ -52,8 +52,8 @@ mutable struct FactorGraph
   sessionname::String
   robotname::String
   username::String
-  registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
-  reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
+  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
@@ -106,7 +106,7 @@ end
 
 Construct an empty FactorGraph object with the minimum amount of information / memory populated.
 """
-function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
+function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
                     #  Dict{Int,Graphs.ExVertex}(),
@@ -140,7 +140,7 @@ mutable struct VariableNodeData
   eliminated::Bool
   BayesNetVertID::Int
   separator::Array{Int,1}
-  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
+  groundtruth::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
   ismargin::Bool
@@ -160,7 +160,7 @@ mutable struct VariableNodeData
                    x8::Bool,
                    x9::Int,
                    x10::Vector{Int},
-                   x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
+                   x11::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
                    x12,
                    x13::Bool,
                    x14::Bool,
@@ -172,8 +172,8 @@ mutable struct FactorMetadata
   factoruserdata
   variableuserdata::Union{Vector, Tuple}
   variablesmalldata::Union{Vector, Tuple}
-  solvefor::Union{Symbol, Void}
-  variablelist::Union{Void, Vector{Symbol}}
+  solvefor::Union{Symbol, Nothing}
+  variablelist::Union{Nothing, Vector{Symbol}}
   dbg::Bool
   FactorMetadata() = new() # [], []
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
@@ -232,8 +232,8 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
-  hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
-  certainhypo::Union{Void, Vector{Int}}
+  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  certainhypo::Union{Nothing, Vector{Int}}
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
@@ -350,7 +350,7 @@ end
 function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
-getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
+getVertNode(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
 
 

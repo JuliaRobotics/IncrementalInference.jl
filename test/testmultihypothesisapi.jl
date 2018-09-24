@@ -19,7 +19,7 @@ function (vv::DevelopLikelihood)(res::Array{Float64},
             idx::Int,
             meas::Tuple,
             wXi::Array{Float64,2},
-            wXj::Array{Float64,2}  )::Void
+            wXj::Array{Float64,2}  )::Nothing
   #
   res[1] = meas[1][idx] - (wXj[1,idx] - wXi[1,idx])
   nothing

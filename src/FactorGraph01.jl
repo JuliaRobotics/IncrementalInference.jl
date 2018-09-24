@@ -143,7 +143,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
       p = kde!(initval,diag(stdev));
       pN = resample(p,N)
     elseif size(initval,2) < N && size(initval, 1) != dims
-      info("Node value memory allocated but not initialized")
+      @info "Node value memory allocated but not initialized"
       pN = kde!(randn(dims, N));
     else
       pN = kde!(initval)
@@ -348,7 +348,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   return maxlen, sfidx
 end
 
-function parseusermultihypo(multihypo::Void)
+function parseusermultihypo(multihypo::Nothing)
   verts = Symbol[]
   mh = nothing
   return mh
@@ -373,7 +373,7 @@ end
 function prepgenericconvolution(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T;
-            multihypo::Union{Void, Distributions.Categorical}=nothing,
+            multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
@@ -409,7 +409,7 @@ function setDefaultFactorNode!(
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       threadmodel=SingleThreaded  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
@@ -446,7 +446,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes["width"] = 0.2
   nothing
 end
-addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) =
+addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 function isInitialized(vert::Graphs.ExVertex)::Bool
@@ -535,7 +535,7 @@ function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
   allvarnodes = union(xx, xl)
   for vsym in allvarnodes
     if !isInitialized(fgl, vsym)
-      info("$vsym is not initialized, and will do so now...")
+      @info "$vsym is not initialized, and will do so now..."
       doautoinit!(fgl, Graphs.ExVertex[getVert(fgl, vsym, api=api);], api=api, singles=true)
     end
   end
@@ -566,7 +566,7 @@ Add factor with user defined type <: FunctorInferenceType to the factor graph ob
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -621,7 +621,7 @@ function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -720,8 +720,10 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  info("adding marginal to")
-  for x in Xi info("x.index=",x.index) end
+  @info "adding marginal to"
+  for x in Xi
+    @info "x.index=",x.index
+  end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
@@ -761,10 +763,10 @@ end
 function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
     addBayesNetVerts!(fg, p)
     for v in p
-      info()
-      info("Eliminating $(v)")
-      info("===============")
-      info()
+      @info ""
+      @info "Eliminating $(v)"
+      @info "==============="
+      @info ""
       # which variable are we eliminating
 
       # all factors adjacent to this variable
@@ -857,7 +859,7 @@ function writeGraphPdf(fgl::FactorGraph;
                        show::Bool=true ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
-  info("Writing factor graph file")
+  @info "Writing factor graph file"
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
