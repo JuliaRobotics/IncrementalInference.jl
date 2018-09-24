@@ -58,7 +58,7 @@ f2 = addFactor!(fg, [:x1;:x2], pp)
 
 ensureAllInitialized!(fg)
 
-@test abs(Base.mean(getVal(fg, :x2))-110.0) < 10.0
+@test abs(Statistics.mean(getVal(fg, :x2))-110.0) < 10.0
 
 
 
@@ -189,7 +189,7 @@ f2 = addFactor!(fg, [:x1;:x2], pp)
 
 ensureAllInitialized!(fg)
 
-@test abs(Base.mean(getVal(fg, :x2))-110.0) < 10.0
+@test abs(Statistics.mean(getVal(fg, :x2))-110.0) < 10.0
 
 
 

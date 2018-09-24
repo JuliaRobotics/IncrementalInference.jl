@@ -36,19 +36,19 @@ function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: 
   return Categorical(p ./ sum(p))
 end
 
-function extractdistribution(str::AS)::Union{Nothing, Distributions.Distribution} where {AS <: AbstractString}
+function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
   if str == ""
     return nothing
-  elseif (ismatch(r"Normal", str) && !ismatch(r"FullNormal", str))
+  elseif (occursin(r"Normal", str) && !occursin(r"FullNormal", str))
     return normalfromstring(str)
-  elseif ismatch(r"FullNormal", str)
+  elseif occursin(r"FullNormal", str)
     return mvnormalfromstring(str)
-  elseif ismatch(r"Categorical", str)
+  elseif occursin(r"Categorical", str)
     return categoricalfromstring(str)
-  elseif ismatch(r"KDE:", str)
-    return convert(KDE.BallTreeDensity, str)
-  elseif ismatch(r"AliasingScalarSampler", str)
+  elseif occursin(r"KDE:", str)
+    return convert(BallTreeDensity, str)
+  elseif occursin(r"AliasingScalarSampler", str)
     return convert(AliasingScalarSampler, str)
   else
     error("Don't know how to extract distribution from str=$(str)")

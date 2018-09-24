@@ -291,7 +291,7 @@ function CommonConvWrapper(fnc::T,
   ccw.measurement = measurement
 
   # thread specific elements
-  ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
+  ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
   for i in 1:Threads.nthreads()
     ccw.cpt[i] = ConvPerThread(X, zDim,
                     factormetadata=factormetadata,

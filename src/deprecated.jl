@@ -219,7 +219,7 @@ function assembleNullHypothesis(fr::FastRootGenericWrapParam{T},
   nhc = rand(fr.gwp.usrfnc!.nullhypothesis, maxlen) - 1
   val = fr.gwp.params[fr.gwp.varidx]
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  var = Statistics.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
   allelements = 1:maxlen
   return allelements, nhc, ENT
@@ -258,7 +258,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   val = getVal(Xi[1])
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  var = Statistics.var(val,2) + 1e-3
 
   # determine amount share of null hypothesis particles
   generalwrapper.measurement = generalwrapper.samplerfnc(generalwrapper.usrfnc!, N)

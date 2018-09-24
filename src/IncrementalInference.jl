@@ -11,6 +11,8 @@ using Reexport
 using
   Graphs,
   Distributed,
+  LinearAlgebra,
+  Statistics,
   Random,
   NLsolve,
   StatsBase,
@@ -21,6 +23,7 @@ using
   Optim, # might be deprecated in favor for only NLsolve dependency
   Compat
 
+const KDE = KernelDensityEstimate
 
 import Base: convert
 import HDF5: root
@@ -29,6 +32,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: kde!
 
 export
+  KDE,
   dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,

@@ -1,7 +1,7 @@
 using Base: Test
 
 
-module  Dependency
+module Dependency
   using Compat
   import Base: convert
   export abst, pabst, convert, convertsave
@@ -15,8 +15,8 @@ module  Dependency
 end
 
 module Extend
-  using Dependency
-  import Dependency: convert
+  using Main.Dependency
+  import Main.Dependency: convert
 
   export T1, PackedT1, convertsave
 
@@ -25,7 +25,7 @@ module Extend
 end
 
 
-using Extend
+using Main.Extend
 
 @test convertsave(T1()) == Extend.PackedT1
 

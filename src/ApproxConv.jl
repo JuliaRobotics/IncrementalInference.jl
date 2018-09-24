@@ -153,7 +153,7 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
   nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) - 1
   val = ccwl.params[ccwl.varidx]
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  var = Statistics.var(val,2) + 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
   allelements = 1:maxlen
   return allelements, nhc, ENT
@@ -274,7 +274,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   val = getVal(Xi[1])
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  var = Statistics.var(val,2) + 1e-3
 
   # determine amount share of null hypothesis particles
   ccwl.measurement = getSample(ccwl.usrfnc!, N)
@@ -310,7 +310,7 @@ function evalFactor2(fgl::FactorGraph,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
-  variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
+  variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)

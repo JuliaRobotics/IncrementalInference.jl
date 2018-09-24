@@ -264,7 +264,7 @@ function addNode!(fg::FactorGraph,
                   smalldata=""  )
   #
   sto = softtype()
-  if :ut in fieldnames(sto)
+  if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
   addNode!(fg,
@@ -379,8 +379,8 @@ function prepgenericconvolution(
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  fldnms = fieldnames(usrfnc)
-  zdim = typeof(usrfnc) != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  fldnms = fieldnames(T) # typeof(usrfnc)
+  zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,

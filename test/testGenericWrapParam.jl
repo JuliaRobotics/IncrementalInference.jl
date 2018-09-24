@@ -183,8 +183,8 @@ odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 #   generalwrapper.params[generalwrapper.varidx][1,generalwrapper.particleidx] = r.zero[1]
 # end
 #
-# @test abs(Base.mean(p1)-0.0) < 4.0
-# @test abs(Base.mean(p2)-100.0) < 4.0
+# @test abs(Statistics.mean(p1)-0.0) < 4.0
+# @test abs(Statistics.mean(p2)-100.0) < 4.0
 
 
 
@@ -220,8 +220,8 @@ ccw.varidx = 2
   ccw.params[ccw.varidx][1,ccw.cpt[Threads.threadid()].particleidx] = r.zero[1]
 end
 
-@test abs(Base.mean(p1)-0.0) < 4.0
-@test abs(Base.mean(p2)-100.0) < 4.0
+@test abs(Statistics.mean(p1)-0.0) < 4.0
+@test abs(Statistics.mean(p2)-100.0) < 4.0
 
 end
 
@@ -258,8 +258,8 @@ end
 
 # @show gwp.params
 
-@test 90.0 < Base.mean(ccw.params[ccw.varidx]) < 110.0
-@test -10.0 < Base.mean(ccw.params[1]) < 10.0
+@test 90.0 < Statistics.mean(ccw.params[ccw.varidx]) < 110.0
+@test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
 
 println("and in the reverse direction, achieved by simply changing CommonConvWrapper.varidx to 1...")
 
@@ -281,8 +281,8 @@ end
 
 # @show gwp.params
 
-@test -10.0 < Base.mean(ccw.params[1]) < 10.0
-@test 90.0 < Base.mean(ccw.params[2]) < 110.0
+@test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
+@test 90.0 < Statistics.mean(ccw.params[2]) < 110.0
 
 end
 
@@ -323,9 +323,9 @@ f2 = addFactor!(fg, [v1;v2], odo)
 tree = wipeBuildNewTree!(fg)
 
 pts = getVal(getVert(fg,:x1))
-@test abs(Base.mean(pts)-0.0) < 10.0
+@test abs(Statistics.mean(pts)-0.0) < 10.0
 pts = getVal(getVert(fg,:x2))
-@test abs(Base.mean(pts)-0.0) < 10.0
+@test abs(Statistics.mean(pts)-0.0) < 10.0
 
 inferOverTreeR!(fg, tree, N=N)
 inferOverTreeR!(fg, tree)
@@ -337,10 +337,10 @@ inferOverTreeR!(fg, tree)
 # plotKDE(getVertKDE(fg,:x2))
 
 pts = getVal(getVert(fg,:x1))
-@test abs(Base.mean(pts)-0.0) < 10.0
+@test abs(Statistics.mean(pts)-0.0) < 10.0
 
 pts = getVal(getVert(fg,:x2))
-@test abs(Base.mean(pts)-100.0) < 10.0
+@test abs(Statistics.mean(pts)-100.0) < 10.0
 
 
 end

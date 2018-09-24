@@ -394,7 +394,7 @@ function initializeNode!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Base.mean(pts,2), Base.std(pts,2)
+  @show "initializing", sym, size(pts), Statistics.mean(pts,2), Base.std(pts,2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
@@ -615,7 +615,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
+        # updvert.attributes["latestEst"] = Statistics.mean(dat[2],2)
         dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing

@@ -404,7 +404,7 @@ function countSkips(bt::BayesTree)
   for cliq in bt.cliques
     m = getCliqMat(cliq[2])
     mi = map(Int,m)
-    skps += sum(map(Int,sum(mi,1) .== 1))
+    skps += sum(map(Int,sum(mi, dims=1) .== 1))
   end
   return skps
 end
@@ -415,8 +415,8 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   condAssocMat = cliqdata.cliqAssocMat[:,numfrtl1:end]
   condMsgMat = cliqdata.cliqMsgMat[:,numfrtl1:end]
   mat = [condAssocMat;condMsgMat];
-  mab = sum(map(Int,mat),1) .== 1
-  mabM = sum(map(Int,condMsgMat),1) .== 1
+  mab = sum(map(Int,mat),dims=1) .== 1
+  mabM = sum(map(Int,condMsgMat),dims=1) .== 1
   mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
   msgidx = cliqdata.conditIDs[vec(collect(mab))]
@@ -428,12 +428,12 @@ function directPriorMsgIDs(cliq::Graphs.ExVertex)
   cond = getData(cliq).conditIDs
   cols = [frtl;cond]
   mat = getCliqMat(cliq, showmsg=true)
-  singr = sum(map(Int,mat),2) .== 1
+  singr = sum(map(Int,mat),dims=2) .== 1
   rerows = collect(1:length(singr))
   b = vec(collect(singr))
   rerows2 = rerows[b]
-  sumsrAc = sum(map(Int,mat[rerows2,:]),1)
-  sumc = sum(map(Int,mat),1)
+  sumsrAc = sum(map(Int,mat[rerows2,:]),dims=1)
+  sumc = sum(map(Int,mat),dims=1)
   pmSkipCols = (sumsrAc - sumc) .== 0
   return cols[vec(collect(pmSkipCols))]
 end
@@ -443,8 +443,8 @@ function directFrtlMsgIDs(cliq::Graphs.ExVertex)
   frntAssocMat = getData(cliq).cliqAssocMat[:,1:numfrtl]
   frtlMsgMat = getData(cliq).cliqMsgMat[:,1:numfrtl]
   mat = [frntAssocMat; frtlMsgMat];
-  mab = sum(map(Int,mat),1) .== 1
-  mabM = sum(map(Int,frtlMsgMat),1) .== 1
+  mab = sum(map(Int,mat),dims=1) .== 1
+  mabM = sum(map(Int,frtlMsgMat),dims=1) .== 1
   mab = mab .& mabM
   return getData(cliq).frontalIDs[vec(collect(mab))]
 end
@@ -454,8 +454,8 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   assocMat = getData(cliq).cliqAssocMat
   msgMat = getData(cliq).cliqMsgMat
   mat = [assocMat;msgMat];
-  mab = sum(map(Int,mat),1) .== 1
-  mabA = sum(map(Int,assocMat),1) .== 1
+  mab = sum(map(Int,mat),dims=1) .== 1
+  mabA = sum(map(Int,assocMat),dims=1) .== 1
   mab = mab .& mabA
   frtl = getData(cliq).frontalIDs
   cond = getData(cliq).conditIDs
@@ -468,8 +468,8 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
   assocMat = getData(cliq).cliqAssocMat
   msgMat = getData(cliq).cliqMsgMat
   mat = [assocMat;msgMat];
-  sum(sum(map(Int,mat),1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
-  mab = 1 .< sum(map(Int,mat),1)
+  sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
+  mab = 1 .< sum(map(Int,mat),dims=1)
   frtl = getData(cliq).frontalIDs
   cond = getData(cliq).conditIDs
   cols = [frtl;cond]

@@ -38,7 +38,7 @@ f2  = addFactor!(fg,[:x1],dp)
   pts = evalFactor2(fg, f1, v1.index, N=N)
   @test size(pts,1) == 2
   @test size(pts,2) == N
-  @test norm(Base.mean(pts,2)[1]-[0.0]) < 0.3
+  @test norm(Statistics.mean(pts,2)[1]-[0.0]) < 0.3
 end
 
 memcheck = getVal(v1)
@@ -49,7 +49,7 @@ memcheck = getVal(v1)
 
   @test size(pts, 1) == 2
   @test size(pts,2) == N
-  @test norm(Base.mean(pts,2)[1]-[2.0]) < 0.75
+  @test norm(Statistics.mean(pts,2)[1]-[2.0]) < 0.75
   # ensure the correct response from
   @test norm(X1pts[1,:] - pts[1,:]) > 2.0
   @test norm(X1pts[2,:] - pts[2,:]) < 1e-10
@@ -61,8 +61,8 @@ end
 
   inferOverTreeR!(fg,tree, N=N)
   pts = getVal(fg, :x1)
-  @test norm(Base.mean(pts,2)[1]-[0.0]) < 0.25
-  @test norm(Base.mean(pts,2)[2]-[0.0]) < 0.25
+  @test norm(Statistics.mean(pts,2)[1]-[0.0]) < 0.25
+  @test norm(Statistics.mean(pts,2)[2]-[0.0]) < 0.25
 end
 # plotKDE(getVertKDE(fg, :x1),levels=3)
 
@@ -105,12 +105,12 @@ ensureAllInitialized!(fg)
 valx2 = getVal(fg, :x2)
 pts = evalFactor2(fg, f3, v2.index, N=N)
 @test size(pts,1) == 2
-@test norm(Base.mean(pts,2)[2]-[10.0]) < 3.0
+@test norm(Statistics.mean(pts,2)[2]-[10.0]) < 3.0
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
 pts = evalFactor2(fg, f4, v2.index, N=N)
 @test size(pts,1) == 2
-@test norm(Base.mean(pts,2)[1]-[-20.0]) < 0.75
+@test norm(Statistics.mean(pts,2)[1]-[-20.0]) < 0.75
 @test (Base.std(pts,2)[1]-1.0) < 0.4
 
 end
@@ -155,7 +155,7 @@ X2pts = getVal(v2)
 val = predictbelief(fg, v2, [f4], N=N)
 @test norm(X2pts[2,:] - val[2,:]) < 1e-10
 @test 0.0 < norm(X2pts[1,:] - val[1,:])
-@test norm(Base.mean(val[1,:])+20.0) < 0.75
+@test norm(Statistics.mean(val[1,:])+20.0) < 0.75
 
 
 # partial pairwise
@@ -163,14 +163,14 @@ X2pts = getVal(v2)
 val = predictbelief(fg, v2, [f3], N=N)
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
-@test abs(Base.mean(val[2,:] - getVal(v1)[2,:])-10.0) < 0.75
+@test abs(Statistics.mean(val[2,:] - getVal(v1)[2,:])-10.0) < 0.75
 
 
 # combination of partials
 val = predictbelief(fg, v2, [f3;f4], N=N)
 # plotKDE(kde!(val),levels=3)
-@test norm(Base.mean(val,2)[1]-[-20.0]) < 2.0
-@test norm(Base.mean(val,2)[2]-[10.0]) < 2.0
+@test norm(Statistics.mean(val,2)[1]-[-20.0]) < 2.0
+@test norm(Statistics.mean(val,2)[2]-[10.0]) < 2.0
 @test (Base.std(val,2)[1]-1.0) < 3.0
 @test (Base.std(val,2)[2]-1.0) < 3.0
 
@@ -181,12 +181,12 @@ tree = wipeBuildNewTree!(fg )#, drawpdf=true)
 inferOverTreeR!(fg,tree, N=N)
 
 pts = getVal(fg, :x1)
-@test norm(Base.mean(pts,2)[1]-[0.0]) < 0.5
-@test norm(Base.mean(pts,2)[2]-[0.0]) < 0.5
+@test norm(Statistics.mean(pts,2)[1]-[0.0]) < 0.5
+@test norm(Statistics.mean(pts,2)[2]-[0.0]) < 0.5
 
 pts = getVal(fg, :x2)
-@test norm(Base.mean(pts,2)[1]-[-20.0]) < 2.0
-@test norm(Base.mean(pts,2)[2]-[10.0]) < 2.0
+@test norm(Statistics.mean(pts,2)[1]-[-20.0]) < 2.0
+@test norm(Statistics.mean(pts,2)[2]-[10.0]) < 2.0
 @test (Base.std(pts,2)[1]-1.0) < 3.0
 @test (Base.std(pts,2)[2]-1.0) < 3.0
 

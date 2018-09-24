@@ -66,7 +66,7 @@ function (s::AreEqual)(res::Array{Float64},
 end
 
 
-type NumbersPrior <: IncrementalInference.FunctorSingleton
+mutable struct NumbersPrior <: IncrementalInference.FunctorSingleton
   z::BallTreeDensity
 end
 getSample(s::NumbersPrior, N::Int=1) = (KernelDensityEstimate.sample(s.z,N)[1], )
