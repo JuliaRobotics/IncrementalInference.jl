@@ -1,26 +1,26 @@
 import Base: convert
 import Base: ==
 
-@compat abstract type InferenceType end
-@compat abstract type PackedInferenceType end
+abstract type InferenceType end
+abstract type PackedInferenceType end
 
-@compat abstract type FunctorInferenceType <: Function end
+abstract type FunctorInferenceType <: Function end
 
 abstract type InferenceVariable end
 abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
-@compat abstract type Pairwise <: InferenceType end
-@compat abstract type Singleton <: InferenceType end
+abstract type Pairwise <: InferenceType end
+abstract type Singleton <: InferenceType end
 
-@compat abstract type FunctorSingleton <: FunctorInferenceType end
-# @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
-@compat abstract type FunctorSingletonNH <: FunctorSingleton end
+abstract type FunctorSingleton <: FunctorInferenceType end
+# abstract type FunctorPartialSingleton <: FunctorInferenceType end
+abstract type FunctorSingletonNH <: FunctorSingleton end
 
-@compat abstract type FunctorPairwise <: FunctorInferenceType end
-@compat abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
-@compat abstract type FunctorPairwiseNH <: FunctorPairwise end
-# @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+abstract type FunctorPairwise <: FunctorInferenceType end
+abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
+abstract type FunctorPairwiseNH <: FunctorPairwise end
+# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}

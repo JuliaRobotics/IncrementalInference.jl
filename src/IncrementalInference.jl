@@ -21,8 +21,8 @@ using
   FileIO,
   ProgressMeter,
   DocStringExtensions,
-  Optim, # might be deprecated in favor for only NLsolve dependency
-  Compat
+  Optim # might be deprecated in favor for only NLsolve dependency
+
 
 const KDE = KernelDensityEstimate
 
@@ -206,19 +206,6 @@ export
   shuffleXAltD,
   reshapeVec2Mat # TODO deprecate
 
-  ## TODO will be deprecated
-  # Odo,
-  # odoAdd,
-  # PackedOdo,
-  # Obsv2,
-  # PackedObsv2,
-
-  # define evalPotential functions outside IIF
-  # registerCallback!,
-  # deprecated
-  # FastGenericRoot,
-  # FastRootGenericWrapParam,
-  # GenericWrapParam,
 
 
 
@@ -241,12 +228,5 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
-
-# include("TreePotentials01.jl")
-# include("deprecated.jl")
-
-# function plot(fg::FactorGraph)
-#   Graphs.plot(fg.g)
-# end
 
 end

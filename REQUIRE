@@ -1,4 +1,4 @@
-julia 0.6
+julia 0.7
 Graphs 0.10.0
 Reexport 0.2.0
 NLsolve 1.0.0
@@ -11,4 +11,3 @@ JLD2
 FileIO
 ProgressMeter
 DocStringExtensions 0.4.1
-Compat 0.18

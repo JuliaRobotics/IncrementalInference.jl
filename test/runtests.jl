@@ -35,7 +35,7 @@ include("testNumericRootGenericRandomized.jl")
 println("Success")
 
 println("[TEST] GenericWrapParam functors...")
-include("testGenericWrapParam.jl")
+include("testCommonConvWrapper.jl")
 println("Success")
 
 println("[TEST] with simple local constraint examples Odo, Obsv2...")
