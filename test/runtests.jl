@@ -58,7 +58,7 @@ println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
 
-println("[TEST] saving to and loading from .jld file")
+println("[TEST] saving to and loading from .jld2 file")
 savejld(fg, file="tempfg.jld2" )
 fgu = loadjld( file="tempfg.jld2" )
 Base.rm("tempfg.jld2")
