@@ -48,6 +48,8 @@ export
   PackedPrior,
   LinearConditional,
   PackedLinearConditional,
+  MixturePrior,
+  PackedMixturePrior,
   MixtureLinearConditional,
   PackedMixtureLinearConditional,
 

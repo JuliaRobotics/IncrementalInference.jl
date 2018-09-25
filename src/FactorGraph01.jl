@@ -675,9 +675,9 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
       A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
       p = Int[]
       if ordering==:chol
-        p = cholfact(A'A,:U,Val{true})[:p] #,pivot=true
+        p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
       elseif ordering==:qr
-        q,r,p = qr(A,Val{true})
+        q,r,p = qr(A, Val(true))
       else
         prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
       end

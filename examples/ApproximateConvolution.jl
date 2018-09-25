@@ -2,7 +2,7 @@
 
 using IncrementalInference, KernelDensityEstimate, Distributions
 using Gadfly # for draw PDF
-using Base.Test
+using Test
 
 import IncrementalInference: getSample
 

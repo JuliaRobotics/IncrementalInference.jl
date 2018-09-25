@@ -1,6 +1,6 @@
 # test numericRootGenericRandomized
 using IncrementalInference
-using Base.Test
+using Test
 
 
 
@@ -25,11 +25,11 @@ end
 
 
 
-@testset "Test FastRootGenericWrapParam{T} not implemented yet" begin
+@testset "test CommonConvWrapper{T}" begin
 
 
 function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: FunctorPairwise}
-  @info "assembleConvType -- development testing function only, not intended for production."
+  # @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
   vars = Array{Array{Float64,2},1}()
@@ -37,10 +37,16 @@ function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T
     push!(vars, zeros(xDim, N))
   end
 
-  gwp = GenericWrapParam{T}(functor, vars, 1, 1)
-  gwp.measurement = (zeros(zDim,N),)
+  # gwp = GenericWrapParam{T}(functor, vars, 1, 1)
+  # gwp.measurement = (zeros(zDim,N),)
+  #
+  # FastRootGenericWrapParam{T}(gwp.params[gwp.varidx], zDim, gwp)
 
-  FastRootGenericWrapParam{T}(gwp.params[gwp.varidx], zDim, gwp)
+    # fnc::T,
+    # X::Array{Float64,2},
+    # zDim::Int,
+    # params::Vector{Array{Float64,2}};
+  CommonConvWrapper(functor,vars[1],zDim,vars, measurement=(zeros(zDim,N),))
 end
 
 
@@ -48,16 +54,16 @@ end
 
 # TODO -- expand testing to include subcomponent tests from numericRootGenericRandomizedFnc
 lr1 = LineResidual(2.0, 3.0)
-fr = assembleConvType(lr1, 1, 1, 2)
+ccw = assembleConvType(lr1, 1, 1, 2)
 
 res = zeros(1)
-fr(res, zeros(1))
+ccw(res, zeros(1))
 
 # gwp(x, res)
-fr.gwp.particleidx = 1
-numericRootGenericRandomizedFnc!( fr )
+ccw.cpt[1].particleidx = 1
+numericRootGenericRandomizedFnc!( ccw )
 
-@test abs(fr.Y[1] + 1.50) < 1e-5
+@test abs(ccw.cpt[1].Y[1] + 1.50) < 1e-5
 
 
 end

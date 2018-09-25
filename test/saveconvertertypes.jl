@@ -9,7 +9,7 @@ module Dependency
   @compat abstract type abst end
   @compat abstract type pabst end
 
-  convert{P <: pabst, T <: abst}(::Type{P}, ::T) =
+  convert(::Type{P}, ::T) where {P <: pabst, T <: abst} =
           getfield(T.name.module, Symbol("Packed$(T.name.name)"))
   convertsave(t) = convert(pabst, t)
 end

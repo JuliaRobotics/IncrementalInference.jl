@@ -287,7 +287,7 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                     if (fg.IDs[sslbl] == fid)
                         continue # skip the fid itself
                     end
-                    sea = findmin(abs.(allids-fg.IDs[sslbl]))
+                    sea = findmin(abs.(allids .- fg.IDs[sslbl]))
                     if sea[1]==0.0
                         appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
                         # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]

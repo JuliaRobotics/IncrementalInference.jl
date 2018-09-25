@@ -1,9 +1,10 @@
 # test GenericWrapParam
-using Base: Test
+using Test
 using Distributions
 using NLsolve
 using KernelDensityEstimate
 using IncrementalInference
+using Statistics
 
 import IncrementalInference: getSample
 
@@ -99,7 +100,7 @@ ccw = CommonConvWrapper(tst2, t[1], 2, t) # generalwrapper.measurement = rand(1,
 # @test A == At
 
 
-ccw.cpt
+# ccw.cpt
 
 ccw.cpt[Threads.threadid()].factormetadata
 ccw.cpt[Threads.threadid()].particleidx
@@ -134,7 +135,7 @@ mutable struct Pose1Pose1Test{T} <: FunctorPairwise
 end
 Pose1Pose1Test(a::T) where T = Pose1Pose1Test{T}(a)
 
-getSample{T}(pp1t::Pose1Pose1Test{T}, N::Int=1) = (reshape(rand(pp1t.Dx,N),1,N),)
+getSample(pp1t::Pose1Pose1Test{T}, N::Int=1) where T = (reshape(rand(pp1t.Dx,N),1,N),)
 
 
 #proposed standardized parameter list, does not have to be functor
@@ -161,6 +162,8 @@ push!(t,p1)
 push!(t,p2)
 
 odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+
+
 # generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
 # generalwrapper.measurement = getSample(odo, N)
 
@@ -315,7 +318,7 @@ fg = emptyFactorGraph()
 v1=addNode!(fg, :x1, ContinuousScalar, N=N)
 v2=addNode!(fg, :x2, ContinuousScalar, N=N)
 bws = getBW(d1)[:,1]
-f1 = addFactor!(fg, [v1], Obsv2(p1, reshape(bws, 1, length(bws)), [1.0]))
+f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)

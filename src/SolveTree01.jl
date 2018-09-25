@@ -394,7 +394,7 @@ function initializeNode!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Statistics.mean(pts,2), Base.std(pts,2)
+  @show "initializing", sym, size(pts), Statistics.mean(pts,2), Statistics.std(pts,2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 

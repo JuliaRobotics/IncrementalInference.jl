@@ -111,7 +111,7 @@ pts = evalFactor2(fg, f3, v2.index, N=N)
 pts = evalFactor2(fg, f4, v2.index, N=N)
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,2)[1]-[-20.0]) < 0.75
-@test (Base.std(pts,2)[1]-1.0) < 0.4
+@test (Statistics.std(pts,2)[1]-1.0) < 0.4
 
 end
 
@@ -171,8 +171,8 @@ val = predictbelief(fg, v2, [f3;f4], N=N)
 # plotKDE(kde!(val),levels=3)
 @test norm(Statistics.mean(val,2)[1]-[-20.0]) < 2.0
 @test norm(Statistics.mean(val,2)[2]-[10.0]) < 2.0
-@test (Base.std(val,2)[1]-1.0) < 3.0
-@test (Base.std(val,2)[2]-1.0) < 3.0
+@test (Statistics.std(val,2)[1]-1.0) < 3.0
+@test (Statistics.std(val,2)[2]-1.0) < 3.0
 
 
 tree = wipeBuildNewTree!(fg )#, drawpdf=true)
@@ -187,8 +187,8 @@ pts = getVal(fg, :x1)
 pts = getVal(fg, :x2)
 @test norm(Statistics.mean(pts,2)[1]-[-20.0]) < 2.0
 @test norm(Statistics.mean(pts,2)[2]-[10.0]) < 2.0
-@test (Base.std(pts,2)[1]-1.0) < 3.0
-@test (Base.std(pts,2)[2]-1.0) < 3.0
+@test (Statistics.std(pts,2)[1]-1.0) < 3.0
+@test (Statistics.std(pts,2)[2]-1.0) < 3.0
 
 end
 
