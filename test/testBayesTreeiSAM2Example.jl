@@ -4,30 +4,30 @@ using Graphs
 
 using Test
 
-fg = emptyFactorGraph()
 
-N=100
+global N=100
+global fg = emptyFactorGraph()
 
 # doors = [-100.0;0.0;100.0;300.0]'
 # cov = [3.0]
 
 
-v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
-f1  = addFactor!(fg, [:x1;], Prior(Normal()))
+global v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
+global f1  = addFactor!(fg, [:x1;], Prior(Normal()))
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
-v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
+global v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[:x1, :x2], LinearConditional(Normal()))
 
-v3=addNode!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
+global v3=addNode!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
 addFactor!(fg,[:x2,:x3],LinearConditional(Normal()))
 
 
-l1=addNode!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
+global l1=addNode!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) )
 addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
 
-l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
+global l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
 
@@ -44,15 +44,15 @@ addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
 
 # p = IncrementalInference.getEliminationOrder(fg, ordering=:qr)
-p = [7,10,1,3,5,12];
-p = [7,10,1,3,5];
+global p = [7,10,1,3,5,12];
+global p = [7,10,1,3,5];
 
 println()
-fge = deepcopy(fg)
+global fge = deepcopy(fg)
 println("Building Bayes net...")
 buildBayesNet!(fge, p)
 
-tree = emptyBayesTree()
+global tree = emptyBayesTree()
 buildTree!(tree, fge, p)
 
 # println("Bayes Net")

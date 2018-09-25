@@ -154,7 +154,7 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
   val = ccwl.params[ccwl.varidx]
   d = size(val,1)
   var = Statistics.var(val,2) + 1e-3
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])))
   allelements = 1:maxlen
   return allelements, nhc, ENT
 end
@@ -274,16 +274,17 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   val = getVal(Xi[1])
   d = size(val,1)
-  var = Statistics.var(val,2) + 1e-3
+  var = Statistics.var(val, dims=2) .+ 1e-3
 
   # determine amount share of null hypothesis particles
   ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
   # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) - 1
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
 
   # TODO -- not valid for manifold
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  # TODO bad memory management
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])) )
 
   for i in 1:N
     if nhc[i] == 0

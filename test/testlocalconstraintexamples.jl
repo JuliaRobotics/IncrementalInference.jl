@@ -30,14 +30,14 @@ global doors2 = getPoints(pd);
   @test isInitialized(fg, :x1)
 
   global pts = evalFactor2(fg, f2, v2.index)
-  @show Statistics.mean(pts,2)
+  @show Statistics.mean(pts,dims=2)
   @test norm(Statistics.mean(pts,2)-[50.0]) < 15.0
 
   ensureAllInitialized!(fg)
   global tree = wipeBuildNewTree!(fg, drawpdf=false)
   inferOverTree!(fg, tree)
 
-  @test norm(Statistics.mean(getVal(fg, :x2),2)-[50.0]) < 15.0
+  @test norm(Statistics.mean(getVal(fg, :x2),dims=2)-[50.0]) < 15.0
 end
 
 # using RoMEPlotting

@@ -133,7 +133,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( find(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
+    if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
       p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
@@ -154,7 +154,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
   for idfct in cliq.attributes["data"].potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
-    if length( find(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
+    if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
       p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -419,7 +419,7 @@ function cliqGibbs(fg::FactorGraph,
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
+  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(undef, 0,0), dens, wfac)
   pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 

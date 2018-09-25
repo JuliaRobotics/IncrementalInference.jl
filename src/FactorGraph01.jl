@@ -652,8 +652,8 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     sf = fg.factorIDs
     lensf = length(sf)
     adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
-    permuteds = Vector{Int}(lens)
-    permutedsf = Vector{Int}(lensf)
+    permuteds = Vector{Int}(undef, lens)
+    permutedsf = Vector{Int}(undef, lensf)
     for j in 1:length(dictpermu)
       semap = 0
       for i in 1:lens

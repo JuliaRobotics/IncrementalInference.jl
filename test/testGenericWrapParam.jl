@@ -1,8 +1,6 @@
 # test GenericWrapParam
 using Test
-using Distributions
 using NLsolve
-using KernelDensityEstimate
 using IncrementalInference
 using Statistics
 
@@ -19,11 +17,11 @@ function (fw::FunctorWorks)(x)
   nothing
 end
 
-A = rand(2,3)
-At = deepcopy(A)
-At[1,1] = -1.0
+global A = rand(2,3)
+global At = deepcopy(A)
+global At[1,1] = -1.0
 
-fvar = FunctorWorks(A)
+global fvar = FunctorWorks(A)
 fvar(0.0)
 @test At == A
 
@@ -49,12 +47,12 @@ function (fi::FunctorArray)(x)
   fi.fnc!(fi.a...)
 end
 
-A = rand(2,3)
-B = rand(2,3)
-t = Array{Array{Float64,2},1}()
+global A = rand(2,3)
+global B = rand(2,3)
+global t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
-At = deepcopy(A)
+global At = deepcopy(A)
 At[1,1] = -1.0
 
 fvar = FunctorArray(testarray!, t)
@@ -67,28 +65,28 @@ end
 struct Test2 <: FunctorInferenceType
 end
 
-@testset "CommonConbWrapper test" begin
+@testset "CommonConvWrapper test" begin
 
 
 function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
   tp1[1,1]=-2.0;
-  res[:] = 1.0
+  res[:] .= 1.0
   nothing;
 end
 
-N = 3
-tst2 = Test2()
-A = rand(2,N)
-B = rand(2,N)
-At = deepcopy(A)
-t = Array{Array{Float64,2},1}()
+global N = 3
+global tst2 = Test2()
+global A = rand(2,N)
+global B = rand(2,N)
+global At = deepcopy(A)
+global t = Array{Array{Float64,2},1}()
 push!(t,A)
 push!(t,B)
 t[1][1,1] = -10.0
 @test A[1,1] == -10
 # @show typeof(t)
 # generalwrapper = GenericWrapParam{Test2}(tst2, t, 1, 1)
-ccw = CommonConvWrapper(tst2, t[1], 2, t) # generalwrapper.measurement = rand(1,1)
+global ccw = CommonConvWrapper(tst2, t[1], 2, t) # generalwrapper.measurement = rand(1,1)
 
 
 # x, res = zeros(2), zeros(2)
@@ -107,7 +105,7 @@ ccw.cpt[Threads.threadid()].particleidx
 ccw.measurement = (randn(1,N),)
 ccw.params[ccw.cpt[Threads.threadid()].activehypo]
 
-x, res = zeros(2), zeros(2)
+global x, res = zeros(2), zeros(2)
 @time ccw(res, x)
 
 
@@ -154,14 +152,14 @@ end
 @testset "Test in factor graph setting..." begin
 
 
-N = 101
-p1 = rand(1,N)
-p2 = rand(1,N)
-t = Array{Array{Float64,2},1}()
+global N = 101
+global p1 = rand(1,N)
+global p2 = rand(1,N)
+global t = Array{Array{Float64,2},1}()
 push!(t,p1)
 push!(t,p2)
 
-odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+global odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 
 
 # generalwrapper = GenericWrapParam{Pose1Pose1Test}(odo, t, 1, 1, getSample(odo, N), getSample)
@@ -193,19 +191,19 @@ odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 
 ## Repeat for new CommonConvWrapper
 
-N = 101
-p1 = rand(1,N)
-p2 = rand(1,N)
-t = Array{Array{Float64,2},1}()
+global N = 101
+global p1 = rand(1,N)
+global p2 = rand(1,N)
+global t = Array{Array{Float64,2},1}()
 push!(t,p1)
 push!(t,p2)
 
-odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
-ccw = CommonConvWrapper(odo, t[1], 1, t, measurement=getSample(odo, N))
+global odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
+global ccw = CommonConvWrapper(odo, t[1], 1, t, measurement=getSample(odo, N))
 
 
 freshSamples!(ccw, N)
-x, res = zeros(1), zeros(1)
+global x, res = zeros(1), zeros(1)
 
 @time for n in 1:N
   ccw.cpt[Threads.threadid()].particleidx = n
@@ -232,22 +230,22 @@ end
 
 @testset "Test with CommonConvWrapper for un-permuted root finding..." begin
 
-N = 110
-p1 = rand(1,N)
-p2 = rand(1,N)
-t = Array{Array{Float64,2},1}()
+global N = 110
+global p1 = rand(1,N)
+global p2 = rand(1,N)
+global t = Array{Array{Float64,2},1}()
 push!(t,p1)
 push!(t,p2)
 
-odo = Pose1Pose1Test(Normal(100.0,1.0))
+global odo = Pose1Pose1Test(Normal(100.0,1.0))
 # varidx=2 means we are solving for p2 relative to p1
 
-measurement = getSample(odo, N)
+global measurement = getSample(odo, N)
 @show zDim = size(measurement[1],1)
 
-solvefor = 2
+global solvefor = 2
 
-ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, measurement=measurement)
+global ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, measurement=measurement)
 @show ccw.varidx = solvefor
 # gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
 
@@ -266,7 +264,7 @@ end
 
 println("and in the reverse direction, achieved by simply changing CommonConvWrapper.varidx to 1...")
 
-solvefor = 1
+global solvefor = 1
 @show ccw.varidx = solvefor
 ccw.params[solvefor][:,:] = -100.0*ones(size(ccw.params[solvefor]))
 ccw.cpt[Threads.threadid()].X = ccw.params[solvefor]
@@ -304,30 +302,30 @@ end
 
 @testset "Generic convolution testing in factor graph context..." begin
 
-N=101
-p1 = randn(1,N)
-d1 = kde!(p1)
-p2 = randn(1,N)
-t = Array{Array{Float64,2},1}()
+global N=101
+global p1 = randn(1,N)
+global d1 = kde!(p1)
+global p2 = randn(1,N)
+global t = Array{Array{Float64,2},1}()
 push!(t,p1)
 push!(t,p2)
 
-fg = emptyFactorGraph()
+global fg = emptyFactorGraph()
 # fg.registeredModuleFunctions[:Main] = getSample
 
-v1=addNode!(fg, :x1, ContinuousScalar, N=N)
-v2=addNode!(fg, :x2, ContinuousScalar, N=N)
-bws = getBW(d1)[:,1]
-f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
+global v1=addNode!(fg, :x1, ContinuousScalar, N=N)
+global v2=addNode!(fg, :x2, ContinuousScalar, N=N)
+global bws = getBW(d1)[:,1]
+global f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 
-odo = Pose1Pose1Test(Normal(100.0,1.0))
-f2 = addFactor!(fg, [v1;v2], odo)
+global odo = Pose1Pose1Test(Normal(100.0,1.0))
+global f2 = addFactor!(fg, [v1;v2], odo)
 
-tree = wipeBuildNewTree!(fg)
+global tree = wipeBuildNewTree!(fg)
 
-pts = getVal(getVert(fg,:x1))
+global pts = getVal(getVert(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
-pts = getVal(getVert(fg,:x2))
+global pts = getVal(getVert(fg,:x2))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
 inferOverTreeR!(fg, tree, N=N)
@@ -339,10 +337,10 @@ inferOverTreeR!(fg, tree)
 # plot(y=rand(10))
 # plotKDE(getVertKDE(fg,:x2))
 
-pts = getVal(getVert(fg,:x1))
+global pts = getVal(getVert(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-pts = getVal(getVert(fg,:x2))
+global pts = getVal(getVert(fg,:x2))
 @test abs(Statistics.mean(pts)-100.0) < 10.0
 
 

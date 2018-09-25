@@ -8,10 +8,10 @@ using Reexport
 @reexport using Distributions
 @reexport using KernelDensityEstimate
 @reexport using Graphs
+@reexport using LinearAlgebra
 
 using
   Distributed,
-  LinearAlgebra,
   Statistics,
   Random,
   NLsolve,
@@ -237,12 +237,12 @@ include("FGOSUtils.jl")
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
-include("TreePotentials01.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
 
+# include("TreePotentials01.jl")
 # include("deprecated.jl")
 
 # function plot(fg::FactorGraph)
