@@ -34,6 +34,8 @@ batchSolve!(fgl)
 savejld(fgt)
 fgl, = loadjld()
 
+Base.rm("tempfg.jld2")
+
 fct = getData(fgt, :x1x2f1, nt=:fct).fnc.cpt[1].factormetadata
 fcl = getData(fgl, :x1x2f1, nt=:fct).fnc.cpt[1].factormetadata
 
