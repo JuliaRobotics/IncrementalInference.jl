@@ -1,7 +1,5 @@
 using IncrementalInference
-using Distributions
-using Base: Test
-
+using Test
 
 
 @testset "test solve by saving and loading basic jld..." begin
@@ -50,7 +48,7 @@ end
 @testset "test backwards compatibility of loadjld from previous versions of IIF (from an existing test data file)..." begin
 
 
-fgprev, = loadjld(file=joinpath(Pkg.dir("IncrementalInference"),"test","testdata","compatibility_test_fg.jld") )
+fgprev, = loadjld(file=joinpath(Pkg.dir("IncrementalInference"),"test","testdata","compatibility_test_fg.jld2") )
 
 
 fc = getData(getVert(fgprev, :x1x2f1, nt=:fnc))

@@ -18,6 +18,7 @@ using
   StatsBase,
   HDF5,
   JLD2,
+  FileIO,
   ProgressMeter,
   DocStringExtensions,
   Optim, # might be deprecated in favor for only NLsolve dependency

@@ -4,14 +4,14 @@
 
 
 """
-    savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
+    $(SIGNATURES)
 
 Save mostly complete Factor Graph type by converting complicated FunctionNodeData
 types to 'Packed' types using user supplied converters. Ground truth can also be
-saved and recovered by the associated loadjld(file="tempfg.jld") method.
+saved and recovered by the associated loadjld(file="tempfg.jld2") method.
 """
 function savejld(fgl::FactorGraph;
-      file::AbstractString="tempfg.jld",
+      file::AbstractString="tempfg.jld2",
       groundtruth=nothing)
   fgs = encodefg(fgl)
   if groundtruth == nothing
@@ -26,13 +26,13 @@ end
 
 
 """
-    loadjld(file="tempfg.jld")
+    $(SIGNATURES)
 
 Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This function
 uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
 """
-function loadjld(;file::AbstractString="tempfg.jld")
-  dd = JLD.load(file)
+function loadjld(;file::AbstractString="tempfg.jld2")
+  dd = FileIO.load(file)
   # fgs = jldopen(file,"r") do file
   #   read(file, "fgs")
   # end

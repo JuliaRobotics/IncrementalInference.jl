@@ -134,7 +134,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       firstelim = 99999999999
       for s in Sj
-        temp = findfirst(p, s)
+        temp = something(findfirst(isequal(s), p), 0) # findfirst(p, s)
         if (temp < firstelim)
           firstelim = temp
         end
@@ -153,7 +153,7 @@ end
 
 # build the whole tree in batch format
 function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
-  rp = flipdim(p,1)
+  rp = reverse(p,dims=1) # flipdim(p, 1)
   prevVar = 0
   for var in rp
     newPotential(tree, fg, var, prevVar, p)

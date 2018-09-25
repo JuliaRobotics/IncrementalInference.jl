@@ -59,9 +59,9 @@ include("fourdoortest.jl")
 println("Success")
 
 println("[TEST] saving to and loading from .jld file")
-savejld(fg, file="tempfg.jld" )
-fgu = loadjld( file="tempfg.jld" )
-Base.rm("tempfg.jld")
+savejld(fg, file="tempfg.jld2" )
+fgu = loadjld( file="tempfg.jld2" )
+Base.rm("tempfg.jld2")
 println("Success")
 
 include("testExpandedJLD.jl")
