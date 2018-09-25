@@ -7,9 +7,9 @@ using Reexport
 
 @reexport using Distributions
 @reexport using KernelDensityEstimate
+@reexport using Graphs
 
 using
-  Graphs,
   Distributed,
   LinearAlgebra,
   Statistics,

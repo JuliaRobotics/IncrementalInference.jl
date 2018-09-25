@@ -55,10 +55,10 @@ end
 
 Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
 """
-allnums(str::S) where {S <: AbstractString} = ismatch(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
-# ismatch(r"_+|,+|-+", node_idx)
+allnums(str::S) where {S <: AbstractString} = occursin(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
+# occursin(r"_+|,+|-+", node_idx)
 
-isnestednum(str::S; delim='_') where {S <: AbstractString} = ismatch(Regex("[0-9]+$(delim)[0-9]+"), str)
+isnestednum(str::S; delim='_') where {S <: AbstractString} = occursin(Regex("[0-9]+$(delim)[0-9]+"), str)
 
 function sortnestedperm(strs::Vector{<:AbstractString}; delim='_')
   str12 = split.(strs, delim)
