@@ -29,7 +29,7 @@ end
 
 
 
-type AreEqual <: IncrementalInference.FunctorPairwise
+struct AreEqual <: IncrementalInference.FunctorPairwise
   z::Distributions.Normal
 end
 function getSample(s::AreEqual, N::Int=1)
@@ -49,7 +49,7 @@ end
 
 
 
-type Square <: IncrementalInference.FunctorPairwise
+struct Square <: IncrementalInference.FunctorPairwise
   z::Distributions.Normal
 end
 getSample(s::Square, N::Int=1) = (rand(s.z,N)', )
@@ -180,13 +180,16 @@ end
 
 # Do all the runs
 # frequencies of interest
-FR = linspace(0.5/(2pi),3.0/(2pi), 8)
+
+FR = range(0.5/(2pi),stop=3.0/(2pi), length=8)
+# FR = linspace(0.5/(2pi),3.0/(2pi), 8)
+
 
 mc = 3
 
 # data containers
-FG = Vector{Vector{FactorGraph}}(mc)
-CYCLE = Vector{Dict}(mc)
+FG = Vector{Vector{FactorGraph}}(undef, mc)
+CYCLE = Vector{Dict}(undef, mc)
 
 
 for i in 1:mc
@@ -277,7 +280,7 @@ DFs = DataFrame[]
 for i in [1,2,3,5,13]
   p = CYCLE[1][:PP][:x][i]
   mxmx = getKDERange(p)
-  x = [linspace(mxmx..., 2000);]
+  x = [range(mxmx[1], stop=mxmx[2], length=2000);]
   push!(DFs, DataFrame(
     x = x,
     y = clamp(evaluateDualTree(p,x),0,4),
@@ -297,7 +300,7 @@ DFs = DataFrame[]
 for i in [1,2,3,5,13]
   p = CYCLE[1][:PP][:xy][i]
   mxmx = getKDERange(p, extend=0.4)
-  x = [linspace(mxmx..., 2000);]
+  x = [range(mxmx[1], stop=mxmx[2], length=2000);]
   push!(DFs, DataFrame(
     x = x,
     y = clamp(evaluateDualTree(p,x),0,6),

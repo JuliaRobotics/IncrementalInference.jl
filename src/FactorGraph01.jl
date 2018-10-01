@@ -158,7 +158,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
                             gbw2, Int[], sp,
                             dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
   else
-      sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+      sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
                               dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
@@ -779,7 +779,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
           for sepNode in localapi.outneighbors(fg, fct)
-            if sepNode.index != v && length(findin(sepNode.index,Si)) == 0
+            if sepNode.index != v && !(sepNode in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
