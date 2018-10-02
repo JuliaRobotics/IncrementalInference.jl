@@ -404,7 +404,7 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
     end
     ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
     # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
-    for field in fieldnames(ccw_jld)
+    for field in fieldnames(typeof(ccw_jld))
       if field != :fnc
         setfield!(ccw_new, field, getfield(ccw_jld, field))
       end

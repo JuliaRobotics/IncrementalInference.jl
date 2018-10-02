@@ -292,7 +292,7 @@ end
 
 @testset "Test with FastRootGenericWrapParam for permuted root finding..." begin
 
-warn("test not implemented yet")
+@warn "test not implemented yet"
 
 end
 
