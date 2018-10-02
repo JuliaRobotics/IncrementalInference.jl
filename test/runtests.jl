@@ -1,7 +1,7 @@
 # addprocs(3)
 
-using Base.Test
-using Compat
+using Test
+# using Compat
 # using IncrementalInference
 
 println("[TEST] out of module evalPotential...")
@@ -35,7 +35,7 @@ include("testNumericRootGenericRandomized.jl")
 println("Success")
 
 println("[TEST] GenericWrapParam functors...")
-include("testGenericWrapParam.jl")
+include("testCommonConvWrapper.jl")
 println("Success")
 
 println("[TEST] with simple local constraint examples Odo, Obsv2...")
@@ -58,10 +58,10 @@ println("[TEST] with local Graphs.jl dictionary and arrays only (multicore)...")
 include("fourdoortest.jl")
 println("Success")
 
-println("[TEST] saving to and loading from .jld file")
-savejld(fg, file="tempfg.jld" )
-fgu = loadjld( file="tempfg.jld" )
-Base.rm("tempfg.jld")
+println("[TEST] saving to and loading from .jld2 file")
+savejld(fg, file="tempfg.jld2" )
+fgu = loadjld( file="tempfg.jld2" )
+Base.rm("tempfg.jld2")
 println("Success")
 
 include("testExpandedJLD.jl")

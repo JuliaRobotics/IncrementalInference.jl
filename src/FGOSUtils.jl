@@ -4,14 +4,14 @@
 
 
 """
-    savefgjld(fgl::FactorGraph; file::AbstractString="tempfg.jld")
+    $(SIGNATURES)
 
 Save mostly complete Factor Graph type by converting complicated FunctionNodeData
 types to 'Packed' types using user supplied converters. Ground truth can also be
-saved and recovered by the associated loadjld(file="tempfg.jld") method.
+saved and recovered by the associated loadjld(file="tempfg.jld2") method.
 """
 function savejld(fgl::FactorGraph;
-      file::AbstractString="tempfg.jld",
+      file::AbstractString="tempfg.jld2",
       groundtruth=nothing)
   fgs = encodefg(fgl)
   if groundtruth == nothing
@@ -26,13 +26,13 @@ end
 
 
 """
-    loadjld(file="tempfg.jld")
+    $(SIGNATURES)
 
 Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This function
 uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
 """
-function loadjld(;file::AbstractString="tempfg.jld")
-  dd = JLD.load(file)
+function loadjld(;file::AbstractString="tempfg.jld2")
+  dd = FileIO.load(file)
   # fgs = jldopen(file,"r") do file
   #   read(file, "fgs")
   # end
@@ -55,10 +55,10 @@ end
 
 Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
 """
-allnums(str::S) where {S <: AbstractString} = ismatch(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
-# ismatch(r"_+|,+|-+", node_idx)
+allnums(str::S) where {S <: AbstractString} = occursin(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
+# occursin(r"_+|,+|-+", node_idx)
 
-isnestednum(str::S; delim='_') where {S <: AbstractString} = ismatch(Regex("[0-9]+$(delim)[0-9]+"), str)
+isnestednum(str::S; delim='_') where {S <: AbstractString} = occursin(Regex("[0-9]+$(delim)[0-9]+"), str)
 
 function sortnestedperm(strs::Vector{<:AbstractString}; delim='_')
   str12 = split.(strs, delim)
@@ -180,11 +180,11 @@ function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   end
   return lsa
 end
-lsf{T <: AbstractString}(fgl::FactorGraph, lbl::T) = lsf(fgl,Symbol(lbl))
+lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
-function lsf{T <: FunctorInferenceType}(fgl::FactorGraph,
+function lsf(fgl::FactorGraph,
       mt::Type{T};
-      api::DataLayerAPI=dlapi  )
+      api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
   #
   syms = Symbol[]
   for (fsym,fid) in fgl.fIDs

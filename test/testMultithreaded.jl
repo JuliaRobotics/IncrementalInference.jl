@@ -1,8 +1,7 @@
 # development testing for multithreaded convolution
 
-using Distributions
 using IncrementalInference
-using Base: Test
+using Test
 
 import IncrementalInference: getSample
 
@@ -12,10 +11,10 @@ import IncrementalInference: getSample
 
 @show Threads.nthreads()
 
-N = 100
+global N = 100
 
 # Start with an empty factor graph
-fg = emptyFactorGraph()
+global fg = emptyFactorGraph()
 
 # add the first node
 addNode!(fg, :x0, ContinuousScalar, N=N)
@@ -29,9 +28,9 @@ addNode!(fg, :x1, ContinuousScalar, N=N)
 addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)), threadmodel=MultiThreaded)
 
 
-pts = approxConv(fg, :x0x1f1, :x1, N=N)
+global pts = approxConv(fg, :x0x1f1, :x1, N=N)
 
-@test 0.95*N <= sum(abs.(pts - 10.0) .< 5.0)
+@test 0.95*N <= sum(abs.(pts .- 10.0) .< 5.0)
 
 
 end

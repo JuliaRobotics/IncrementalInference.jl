@@ -104,7 +104,7 @@ function assembleHypothesesElements!(
 end
 
 function assembleHypothesesElements!(
-            mh::Void,
+            mh::Nothing,
             maxlen::Int,
             sfidx::Int,
             lenXi::Int  )

@@ -1,7 +1,7 @@
 
 
 
-type MyType
+mutable struct MyType
    arr::Array{Float64,1}
    var::Int
    str::String

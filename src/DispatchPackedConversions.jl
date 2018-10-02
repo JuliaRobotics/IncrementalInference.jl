@@ -16,7 +16,7 @@ mutable struct PackedVariableNodeData
   eliminated::Bool
   BayesNetVertID::Int
   separator::Array{Int,1}
-  # groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
+  # groundtruth::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   softtype::String
   initialized::Bool
   ismargin::Bool
@@ -81,7 +81,7 @@ end
 #   return Categorical(p ./ sum(p))
 # end
 #
-# function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} where {AS <: AbstractString}
+# function extractdistribution(str::AS)::Union{Nothing, Distributions.Distribution} where {AS <: AbstractString}
 #   # TODO improve use of multidispatch and packing of Distribution types
 #   if str == ""
 #     return nothing
@@ -342,7 +342,7 @@ end
 # import IncrementalInference: decodefg, loadjld
 
 veeCategorical(val::Categorical) = val.p
-veeCategorical(val::Union{Void, Vector{Float64}}) = val
+veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 
 """
@@ -404,7 +404,7 @@ function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
     end
     ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
     # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
-    for field in fieldnames(ccw_jld)
+    for field in fieldnames(typeof(ccw_jld))
       if field != :fnc
         setfield!(ccw_new, field, getfield(ccw_jld, field))
       end

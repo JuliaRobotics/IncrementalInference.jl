@@ -1,6 +1,5 @@
 # example to illustate how autoinit functions work, and used as a development script towards a standard unit test.
 
-using Distributions
 using IncrementalInference
 
 import IncrementalInference: getSample
@@ -8,42 +7,26 @@ import IncrementalInference: getSample
 ## MARKER START is a required block of code, but can be reviewed at the end of the tutorial,
 # Run this but skip past these user defined functions for a quicker introduction======================
 
-# Moved to IIF
-# struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: Distribution
-#   z::T
+
+# and a bi-modal conditional function
+
+## TODO: NEW STANDARD FEATURE USE addFactor!(fg, .., multihypo=[...]),   or  MixtureLinearConditional
+# struct MixtureConditional <: IncrementalInference.FunctorPairwise
+#   z::Vector{Distribution}
+#   c::Categorical
 # end
-# getSample(s::Prior, N::Int=1) = (rand(s.z,N), )
-# struct LinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distribution
-#   z::T
-# end
-# getSample(s::LinearOffset, N::Int=1) = (rand(s.z,N), )
-# function (s::LinearOffset)(res::Array{Float64},
+# getSample(s::MixtureConditional, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
+# function (s::MixtureConditional)(res::Array{Float64},
 #       userdata::FactorMetadata,
 #       idx::Int,
-#       meas::Tuple{Array{Float64, 1}},
+#       meas::Tuple,
 #       X1::Array{Float64,2},
-#       X2::Array{Float64,2}  )
-#   #
-#   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
+#       X2::Array{Float64,2}
+#   )
+#   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
 #   nothing
 # end
 
-# and a bi-modal conditional function
-struct MixtureConditional <: IncrementalInference.FunctorPairwise
-  z::Vector{Distribution}
-  c::Categorical
-end
-getSample(s::MixtureConditional, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
-function (s::MixtureConditional)(res::Array{Float64},
-      userdata::FactorMetadata,
-      idx::Int,
-      meas::Tuple,
-      X1::Array{Float64,2},
-      X2::Array{Float64,2}
-  )
-  res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
-  nothing
-end
 ## Define a model with these user defined functions ===============================================
 ## MARKER END
 

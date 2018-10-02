@@ -5,7 +5,7 @@
 
 [![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.6.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.6)
 [![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_0.7.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=0.7)
-
+[![IncrementalInference](http://pkg.julialang.org/badges/IncrementalInference_1.0.svg)](http://pkg.julialang.org/?pkg=IncrementalInference&ver=1.0)
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 

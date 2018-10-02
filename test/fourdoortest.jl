@@ -1,54 +1,61 @@
-using IncrementalInference, KernelDensityEstimate
+using IncrementalInference
 
-fg = emptyFactorGraph()
 
-N=100
+global N=100
+global fg = emptyFactorGraph()
+global doors = reshape(Float64[-100.0;0.0;100.0;300.0],1,4)
+global pd = kde!(doors,[3.0])
+global pd = resample(pd,N);
+global bws = getBW(pd)[:,1]
+global doors2 = getPoints(pd);
 
-doors = reshape(Float64[-100.0;0.0;100.0;300.0],1,4)
-pd = kde!(doors,[3.0])
-pd = resample(pd,N);
-bws = getBW(pd)[:,1]
-doors2 = getPoints(pd);
 
-v1 = addNode!(fg,:x0,ContinuousScalar,N=N)
-f1  = addFactor!(fg,[v1],Obsv2( doors2, reshape(bws,1,1), [1.0])) #, samplefnc=getSample
+addNode!(fg,:x0,ContinuousScalar,N=N)
+addFactor!(fg,[:x0], Prior( pd ) )
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
-v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg, [:x0; :x2], Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
-# addFactor!(fg, [v1;v2], Odo(50.0*ones(1,1),[2.0]',[1.0])) #, samplefnc=getSample
+addNode!(fg,:x2, ContinuousScalar, N=N)
+addFactor!(fg, [:x0; :x2], LinearConditional(Normal(50.0,2.0)) )
+# addFactor!(fg, [v1;v2], Odo(50.0*ones(1,1),[2.0]',[1.0]))
 
 
 # monocular sighting would look something like
 #addFactor!(fg, Mono, [:x3,:l1], [14.0], [1.0], [1.0])
 #addFactor!(fg, Mono, [:x4,:l1], [11.0], [1.0], [1.0])
 
-v3=addNode!(fg,:x3,ContinuousScalar, N=N)
-addFactor!(fg,[v2;v3],Odo(50.0*ones(1,1),4.0*ones(1,1),[1.0])) #, samplefnc=getSample
-f2 = addFactor!(fg,[v3], Obsv2(doors2, bws', [1.0]))
+addNode!(fg,:x3,ContinuousScalar, N=N)
+addFactor!(fg,[:x2;:x3], LinearConditional( Normal(50.0,4.0)) )
+addFactor!(fg,[:x3], Prior( pd ))
 
-v4=addNode!(fg,:x4,ContinuousScalar, N=N)
-addFactor!(fg,[v3;v4],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
-
-
-l1=addNode!(fg, :l1, ContinuousScalar, N=N)
-addFactor!(fg, [v3,l1], Ranged([64.0],[0.5],[1.0])) #, samplefnc=getSample
-addFactor!(fg, [v4,l1], Ranged([16.0],[0.5],[1.0])) #, samplefnc=getSample
+addNode!(fg,:x4,ContinuousScalar, N=N)
+addFactor!(fg,[:x3;:x4], LinearConditional( Normal(50.0,2.0)) )
 
 
-
-v5=addNode!(fg,:x5,ContinuousScalar, N=N)
-addFactor!(fg,[v4;v5],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
-
-
-v6=addNode!(fg,:x6,ContinuousScalar, N=N)
-addFactor!(fg,[v5;v6],Odo(40.0*ones(1,1),1.20*ones(1,1),[1.0])) #, samplefnc=getSample
+addNode!(fg, :l1, ContinuousScalar, N=N)
+addFactor!(fg, [:x3,:l1], Ranged([64.0],[0.5],[1.0]))
+addFactor!(fg, [:x4,:l1], Ranged([16.0],[0.5],[1.0]))
 
 
-v7=addNode!(fg,:x7,ContinuousScalar, N=N)
-addFactor!(fg,[v6;v7],Odo(60.0*ones(1,1),2.0*ones(1,1),[1.0])) #, samplefnc=getSample
 
-f3 = addFactor!(fg,[v7], Obsv2(doors, reshape(bws,1,1), [1.0])) #, samplefnc=getSample
+addNode!(fg,:x5,ContinuousScalar, N=N)
+addFactor!(fg,[:x4;:x5], LinearConditional( Normal(50.0,2.0)) )
+
+
+addNode!(fg,:x6,ContinuousScalar, N=N)
+addFactor!(fg,[:x5;:x6], LinearConditional( Normal(40.0,1.20)) )
+
+
+addNode!(fg,:x7,ContinuousScalar, N=N)
+addFactor!(fg,[:x6;:x7], LinearConditional( Normal(60.0,2.0)) )
+
+ensureAllInitialized!(fg)
+
+mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))
+
+# getSample(mlc)
+
+addFactor!(fg,[:x7], mlc )
+
 
 
 # HMM computed ground truth, extended for 7 poses with landmark
@@ -72,7 +79,8 @@ tree = prepBatchTree!(fg, drawpdf=false);
 # using recursive single core approach (better stack trace for development)
 # inferOverTreeR!(fg, tree)
 inferOverTreeR!(fg, tree, N=N, dbg=true)
-#
+
+ #
 # test multi-processor solve (operational fast solving)
 inferOverTree!(fg, tree)
 # inferOverTree!(fg, tree, dbg=true)
