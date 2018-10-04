@@ -150,10 +150,10 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
                                 maxlen::Int,
                                 spreadfactor::Float64 ) where {T}
   #
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) - 1
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
   val = ccwl.params[ccwl.varidx]
   d = size(val,1)
-  var = Statistics.var(val,2) + 1e-3
+  var = Statistics.var(val,dims=2) .+ 1e-3
   ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])))
   allelements = 1:maxlen
   return allelements, nhc, ENT
