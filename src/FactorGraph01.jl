@@ -119,7 +119,7 @@ function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
             api::DataLayerAPI=IncrementalInference.dlapi,
             updateMAPest::Bool=false  )
   #
-  warn("use of updateFullVert! should be clarified for local or remote operations.")
+  @warn "use of updateFullVert! should be clarified for local or remote operations."
   api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
 end
 
@@ -139,7 +139,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
   data = nothing
   if initialized
     if size(initval,2) < N && size(initval, 1) == dims
-      warn("setDefaultNodeData! -- deprecated use of stdev.")
+      @warn "setDefaultNodeData! -- deprecated use of stdev."
       p = kde!(initval,diag(stdev));
       pN = resample(p,N)
     elseif size(initval,2) < N && size(initval, 1) != dims
@@ -149,7 +149,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
       pN = kde!(initval)
     end
     # dims = size(initval,1) # rows indicate dimensions
-    sp = Int[0;] #round.(Int,linspace(dodims,dodims+dims-1,dims))
+    sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
     gbw2 = Array{Float64}(length(gbw),1)
     gbw2[:,1] = gbw[:]
@@ -283,7 +283,7 @@ end
 
 
 function getVal(vA::Array{Graphs.ExVertex,1})
-  warn("getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead.")
+  @warn "getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
@@ -697,7 +697,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
       vert.attributes["data"].BayesNetVertID = p
       localapi.updatevertex!(fg, vert)
     else
-      warn("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
+      @warn "addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex"
     end
   end
 end
@@ -742,7 +742,7 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
           edge = localapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
             if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
-              warn("removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)")
+              @warn "removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)"
               localapi.deleteedge!(fgl, edge)
               m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
               localapi.updatevertex!(fgl, m)
@@ -753,7 +753,7 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
     end
     # if 0 edges, delete the marginal
     if length(localapi.outneighbors(fgl, m)) <= 1
-      warn("removing vertex id=$(m.index)")
+      @warn "removing vertex id=$(m.index)"
       localapi.deletevertex!(fgl,m)
     end
   end
@@ -871,7 +871,7 @@ function writeGraphPdf(fgl::FactorGraph;
   try
     viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
-    warn("not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)")
+    @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
   nothing
 end

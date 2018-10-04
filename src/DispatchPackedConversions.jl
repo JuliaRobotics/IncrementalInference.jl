@@ -177,7 +177,7 @@ end
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  warn("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
+  @warn "convert GenericWrapParam is deprecated, use CommonConvWrapper instead."
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
@@ -198,7 +198,7 @@ function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  # warn("Unpacking Option 2, F=$(F), P=$(P)")
+  # @warn "Unpacking Option 2, F=$(F), P=$(P)"
   usrfnc = convert(F, d.fnc)
   # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
@@ -254,7 +254,7 @@ end
 function encodePackedType(topackdata::GenericFunctionNodeData{T, <:AbstractString}) where {T <: PackedInferenceType}
   error("IncrementalInference.encodePackedType(::FunctionNodeData{T, <:AbstractString}): Unknown packed type encoding T=$(T) of $(topackdata)")
   # @show T, typeof(topackdata)
-  # warn("Yes, its packed!")
+  # @warn "Yes, its packed!"
   # fnctype = getfnctype(topackdata)
   # @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
   # convert(PackedFunctionNodeData{T}, topackdata)

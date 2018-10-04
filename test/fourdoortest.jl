@@ -50,7 +50,7 @@ addFactor!(fg,[:x6;:x7], LinearConditional( Normal(60.0,2.0)) )
 
 ensureAllInitialized!(fg)
 
-mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))
+global mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))
 
 # getSample(mlc)
 
@@ -59,7 +59,7 @@ addFactor!(fg,[:x7], mlc )
 
 
 # HMM computed ground truth, extended for 7 poses with landmark
-gt = Dict{Symbol, Array{Float64,2}}()
+global gt = Dict{Symbol, Array{Float64,2}}()
 gt[:x0]=reshape(Float64[0.0;1.97304 ],2,1) # -0.0342366
 gt[:x2]=reshape(Float64[50.0; 2.83153 ],2,1) # 49.8797
 gt[:x3]=reshape(Float64[100.0; 1.65557 ],2,1) # 99.8351
@@ -70,7 +70,7 @@ gt[:x7]=reshape(Float64[300.0; 2.14353 ],2,1) # 298.467
 gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 
 
-tree = prepBatchTree!(fg, drawpdf=false);
+global tree = prepBatchTree!(fg, drawpdf=false);
 
 # list vertices in fg
 @show xx,ll = ls(fg)

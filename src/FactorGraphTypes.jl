@@ -147,7 +147,7 @@ mutable struct VariableNodeData
   dontmargin::Bool
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
-    warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
+    @warn "Deprecated use of VariableNodeData(11 param), use 13 parameters instead"
     new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1::Array{Float64,2},
@@ -385,7 +385,7 @@ function graphsGetEdge(fgl::FactorGraph, id::Int)
 end
 
 function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
-  warn("graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)")
+  @warn "graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)"
   nothing
 end
 
