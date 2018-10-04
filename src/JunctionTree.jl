@@ -123,7 +123,6 @@ end
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     firvert = localapi.getvertex(fg,var)
     if (length(getData(firvert).separator) == 0)
-      # warn("newPotential -- sep length is 0")
       if (length(tree.cliques) == 0)
         addClique!(tree, fg, var)
       else

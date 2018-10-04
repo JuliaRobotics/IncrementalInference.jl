@@ -122,7 +122,6 @@ function numericRootGenericRandomizedFnc!(
       ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
     else
       # TODO print this output as needed
-      # warn("got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)")
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
       ccall(:jl_, Nothing, (Any,), str)
       ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
@@ -130,7 +129,7 @@ function numericRootGenericRandomizedFnc!(
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
         ccall(:jl_, Nothing, (Any,), str)
-        warn(str)
+        @warn str
       end
     end
   elseif ccwl.partial
@@ -171,7 +170,7 @@ Update the frozen node
 """
 function setfreeze!(fgl::FactorGraph, sym::Symbol)
   if !isInitialized(fgl, sym)
-    warn("Vertex $(sym) is not initialized, and won't be frozen at this time.")
+    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
   vert = getVert(fgl, sym)
@@ -192,7 +191,7 @@ Future:
 """
 function fifoFreeze!(fgl::FactorGraph)
   if fgl.qfl == 0
-    warn("Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl")
+    @warn "Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
   tofreeze = fgl.fifo[1:(end-fgl.qfl)]

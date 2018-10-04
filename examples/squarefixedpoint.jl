@@ -182,7 +182,7 @@ end
 # frequencies of interest
 
 FR = range(0.5/(2pi),stop=3.0/(2pi), length=8)
-# FR = linspace(0.5/(2pi),3.0/(2pi), 8)
+# FR = range(0.5/(2pi),stop=3.0/(2pi), length=8)
 
 
 mc = 3
