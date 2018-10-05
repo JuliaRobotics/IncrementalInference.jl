@@ -10,7 +10,7 @@ import IncrementalInference: getSample
 toggleYTicks()
 
 
-type MultiModalConditional <: IncrementalInference.FunctorPairwise
+mutable struct MultiModalConditional <: IncrementalInference.FunctorPairwise
   x::Vector{Distribution}
   hypo::Categorical
   MultiModalConditional{D <: Distribution}(x::Vector{D}, p::Categorical) = new(x, p)

@@ -151,7 +151,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     # dims = size(initval,1) # rows indicate dimensions
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
-    gbw2 = Array{Float64}(length(gbw),1)
+    gbw2 = Array{Float64}(undef, length(gbw),1)
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
@@ -299,7 +299,7 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   cols = cumsum(cols)
   sc = cols[end]
   rw = floor(Int,rows[1])
-  val = Array{Float64,2}(rw, sc)
+  val = Array{Float64,2}(undef,rw, sc)
   for i in 1:(len-1)
       val[:,(cols[i]+1):cols[i+1]] = vals[i]
   end

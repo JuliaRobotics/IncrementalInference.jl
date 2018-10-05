@@ -16,7 +16,6 @@ using
   Random,
   NLsolve,
   StatsBase,
-  HDF5,
   JLD2,
   FileIO,
   ProgressMeter,
@@ -27,7 +26,7 @@ using
 const KDE = KernelDensityEstimate
 
 import Base: convert
-import HDF5: root
+# import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: kde!
