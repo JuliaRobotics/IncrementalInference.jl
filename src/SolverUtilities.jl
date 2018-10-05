@@ -179,7 +179,11 @@ function setfreeze!(fgl::FactorGraph, sym::Symbol)
 
   nothing
 end
-
+function setfreeze!(fgl::FactorGraph, syms::Vector{Symbol})
+  for sym in syms
+    setfreeze!(fgl, sym)
+  end
+end
 
 """
     $(SIGNATURES)
@@ -191,7 +195,7 @@ Future:
 """
 function fifoFreeze!(fgl::FactorGraph)
   if fgl.qfl == 0
-    @warn "Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
+    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
   tofreeze = fgl.fifo[1:(end-fgl.qfl)]
@@ -200,7 +204,7 @@ function fifoFreeze!(fgl::FactorGraph)
       return nothing
   end
   @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
-  setfreeze!.(fgl, tofreeze)
+  setfreeze!(fgl, tofreeze)
   nothing
 end
 
