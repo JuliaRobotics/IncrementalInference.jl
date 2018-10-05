@@ -263,7 +263,7 @@ function productbelief(fg::FactorGraph,
     pGM = getPoints(dens[1])
   else
     @warn "Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)"
-    pGM = Array{Float64,2}(0,1)
+    pGM = Array{Float64,2}(undef, 0,1)
   end
 
   return pGM
