@@ -182,6 +182,8 @@ export
   # user functions
   proposalbeliefs,
   predictbelief,
+  getCliqMat,
+  getCliqMsgMat,
 
   # generic marginal used during elimitation game
   GenericMarginal,
