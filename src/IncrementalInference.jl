@@ -7,6 +7,7 @@ using Reexport
 
 @reexport using Distributions
 @reexport using KernelDensityEstimate
+@reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
 
