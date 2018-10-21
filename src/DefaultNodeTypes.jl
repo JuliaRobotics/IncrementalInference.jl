@@ -56,17 +56,17 @@ end
 
 ## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
 
-# struct PackedPrior <: PackedInferenceType
-#   Z::String
-#   PackedPrior() = new()
-#   PackedPrior(z::AS) where {AS <: AbstractString} = new(z)
-# end
-# function convert(::Type{PackedPrior}, d::Prior)
-#   PackedPrior(string(d.Z))
-# end
-# function convert(::Type{Prior}, d::PackedPrior)
-#   Prior(extractdistribution(d.Z))
-# end
+struct PackedPrior <: PackedInferenceType
+  Z::String
+  PackedPrior() = new()
+  PackedPrior(z::AS) where {AS <: AbstractString} = new(z)
+end
+function convert(::Type{PackedPrior}, d::Prior)
+  PackedPrior(string(d.Z))
+end
+function convert(::Type{Prior}, d::PackedPrior)
+  Prior(extractdistribution(d.Z))
+end
 
 
 struct PackedLinearConditional <: PackedInferenceType
