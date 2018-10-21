@@ -36,6 +36,9 @@ export
 
   evalLikelihood,
 
+  # Temp placeholder for evaluating string types to real types
+  _evalType,
+
   # data layer variables
   dlapi,
   localapi,

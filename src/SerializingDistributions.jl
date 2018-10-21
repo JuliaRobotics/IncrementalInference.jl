@@ -54,3 +54,8 @@ function extractdistribution(str::AS)::Union{Void, Distributions.Distribution} w
     error("Don't know how to extract distribution from str=$(str)")
   end
 end
+
+function extractdistributionJson(packedFactor::Dict{String, Any})::Union{Void, Distributions.Distribution}
+  # TODO improve use of multidispatch and packing of Distribution types
+  error("Not implemented yet")
+end
