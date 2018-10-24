@@ -84,7 +84,7 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwise}
   #
   # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
-  # ccall(:jl_, Void, (Any,), ststr)
+  # ccall(:jl_, Nothing, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
     # less measurement dimensions than variable dimensions -- i.e. shuffle
     shuffle!(ccwl.cpt[Threads.threadid()].p)
@@ -115,22 +115,21 @@ function numericRootGenericRandomizedFnc!(
     ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim, ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb[1:ccwl.xDim] # moved up
 
     # str = "nlsolve, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx), X=$(ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx])"
-    # ccall(:jl_, Void, (Any,), str)
+    # ccall(:jl_, Nothing, (Any,), str)
     r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx] )
-    # ccall(:jl_, Void, (Any,), "nlsolve.zero=$(r.zero)")
+    # ccall(:jl_, Nothing, (Any,), "nlsolve.zero=$(r.zero)")
     if sum(isnan.(( r ).zero)) == 0
       ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
     else
       # TODO print this output as needed
-      # warn("got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)")
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
-      ccall(:jl_, Void, (Any,), str)
-      ccall(:jl_, Void, (Any,), ccwl.usrfnc!)
-      info(str)
+      ccall(:jl_, Nothing, (Any,), str)
+      ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
+      @info str
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
-        ccall(:jl_, Void, (Any,), str)
-        warn(str)
+        ccall(:jl_, Nothing, (Any,), str)
+        @warn str
       end
     end
   elseif ccwl.partial
@@ -141,7 +140,7 @@ function numericRootGenericRandomizedFnc!(
                )
     shuffleXAltD!( ccwl, r.zero )
   else
-    ccall(:jl_, Void, (Any,), "ERROR: Unresolved numeric solve case")
+    ccall(:jl_, Nothing, (Any,), "ERROR: Unresolved numeric solve case")
     error("Unresolved numeric solve case")
   end
   ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
@@ -156,7 +155,7 @@ Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over
 """
 function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, N::Int=100)
   if fgl.isfixedlag
-      info("Quasi fixed-lag is enabled (a feature currently in testing)!")
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(fgl)
   end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
@@ -171,7 +170,7 @@ Update the frozen node
 """
 function setfreeze!(fgl::FactorGraph, sym::Symbol)
   if !isInitialized(fgl, sym)
-    warn("Vertex $(sym) is not initialized, and won't be frozen at this time.")
+    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
   vert = getVert(fgl, sym)
@@ -180,7 +179,11 @@ function setfreeze!(fgl::FactorGraph, sym::Symbol)
 
   nothing
 end
-
+function setfreeze!(fgl::FactorGraph, syms::Vector{Symbol})
+  for sym in syms
+    setfreeze!(fgl, sym)
+  end
+end
 
 """
     $(SIGNATURES)
@@ -192,16 +195,16 @@ Future:
 """
 function fifoFreeze!(fgl::FactorGraph)
   if fgl.qfl == 0
-    warn("Quasi fixed-lag is enabled buyt QFL horizon is zero. Please set a valid window with FactoGraph.qfl")
+    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
   tofreeze = fgl.fifo[1:(end-fgl.qfl)]
   if length(tofreeze) == 0
-      info("[fifoFreeze] QFL - no nodes to freeze.")
+      @info "[fifoFreeze] QFL - no nodes to freeze."
       return nothing
   end
-  info("[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end]).")
-  setfreeze!.(fgl, tofreeze)
+  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
+  setfreeze!(fgl, tofreeze)
   nothing
 end
 

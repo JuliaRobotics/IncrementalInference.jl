@@ -53,18 +53,18 @@ mutable struct PackedOdo <: PackedInferenceType
     PackedOdo() = new()
     PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
 end
-function convert(::Type{Odo}, d::PackedOdo)
-  Zij = reshapeVec2Mat(d.vecZij,d.dimz)
-  Cov = reshapeVec2Mat(d.vecCov, d.dimc)
-  return Odo(Zij, Cov, d.W)
-end
-function convert(::Type{PackedOdo}, d::Odo)
-  v1 = d.Zij[:];
-  v2 = d.Cov[:];
-  return PackedOdo(v1,length(v1),
-                    v2,length(v2),
-                    d.W)
-end
+# function convert(::Type{Odo}, d::PackedOdo)
+#   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
+#   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
+#   return Odo(Zij, Cov, d.W)
+# end
+# function convert(::Type{PackedOdo}, d::Odo)
+#   v1 = d.Zij[:];
+#   v2 = d.Cov[:];
+#   return PackedOdo(v1,length(v1),
+#                     v2,length(v2),
+#                     d.W)
+# end
 
 
 
@@ -150,35 +150,35 @@ end
 # ------------------------------------------------------------
 
 
-mutable struct Obsv2 <: FunctorSingleton
-    pts::Array{Float64,2}
-    bws::Array{Float64,2}
-    W::Array{Float64,1}
-    Obsv2() = new()
-    Obsv2(x...) = new(x[1], x[2], x[3])
-end
-mutable struct PackedObsv2 <: PackedInferenceType
-    vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int
-    vecCov::Array{Float64,1}
-    dimc::Int
-    W::Array{Float64,1}
-    PackedObsv2() = new()
-    PackedObsv2(x...) = new(x[1],x[2],x[3],x[4],x[5])
-end
-function convert(::Type{Obsv2}, d::PackedObsv2)
-  Zij = reshapeVec2Mat(d.vecZij,d.dimz)
-  Cov = reshapeVec2Mat(d.vecCov, d.dimc)
-  return Obsv2(Zij, Cov, d.W)
-end
-function convert(::Type{PackedObsv2}, d::Obsv2)
-  v1 = d.pts[:];
-  v2 = d.bws[:];
-  return PackedObsv2(v1,size(d.pts,1),
-                    v2,size(d.bws,1),
-                    d.W)
-end
-function getSample(obs::Obsv2, N::Int=1)
-  pd = kde!(obs.pts, obs.bws[:,1])
-  return (KernelDensityEstimate.sample(pd,N)[1],)
-end
+# mutable struct Obsv2 <: FunctorSingleton
+#     pts::Array{Float64,2}
+#     bws::Array{Float64,2}
+#     W::Array{Float64,1}
+#     Obsv2() = new()
+#     Obsv2(x...) = new(x[1], x[2], x[3])
+# end
+# mutable struct PackedObsv2 <: PackedInferenceType
+#     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
+#     dimz::Int
+#     vecCov::Array{Float64,1}
+#     dimc::Int
+#     W::Array{Float64,1}
+#     PackedObsv2() = new()
+#     PackedObsv2(x...) = new(x[1],x[2],x[3],x[4],x[5])
+# end
+# function convert(::Type{Obsv2}, d::PackedObsv2)
+#   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
+#   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
+#   return Obsv2(Zij, Cov, d.W)
+# end
+# function convert(::Type{PackedObsv2}, d::Obsv2)
+#   v1 = d.pts[:];
+#   v2 = d.bws[:];
+#   return PackedObsv2(v1,size(d.pts,1),
+#                     v2,size(d.bws,1),
+#                     d.W)
+# end
+# function getSample(obs::Obsv2, N::Int=1)
+#   pd = kde!(obs.pts, obs.bws[:,1])
+#   return (KernelDensityEstimate.sample(pd,N)[1],)
+# end

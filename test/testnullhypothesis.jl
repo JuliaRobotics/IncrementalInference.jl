@@ -1,7 +1,7 @@
 # test null hypothesis cases
 
-using Base: Test
-using IncrementalInference, Distributions
+using Test
+using IncrementalInference
 # going to introduce two new constraint types
 import IncrementalInference: getSample
 
@@ -17,23 +17,21 @@ end
 
 @testset "test null hypothesis singletons..." begin
 
-N  = 100
-fg = emptyFactorGraph()
+global N  = 100
+global fg = emptyFactorGraph()
 
-v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
+global v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
 
-pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))
-f1 = addFactor!(fg,[:x1],pr, autoinit=true)
-
+global pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))
+global f1 = addFactor!(fg,[:x1],pr, autoinit=true)
 
 # ensureAllInitialized!(fg)
-
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
 
-pts = evalFactor2(fg, f1, v1.index, N=N)
+global pts = evalFactor2(fg, f1, v1.index, N=N)
 
-@test sum(abs.(pts - 1.0) .< 5) > 30
-@test sum(abs.(pts - 10.0) .< 5) > 30
+@test sum(abs.(pts .- 1.0) .< 5) > 30
+@test sum(abs.(pts .- 10.0) .< 5) > 30
 
 end
 

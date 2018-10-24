@@ -1,6 +1,5 @@
 using IncrementalInference
-using Distributions
-using Base: Test
+using Test
 
 
 

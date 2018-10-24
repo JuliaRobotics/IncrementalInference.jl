@@ -1,21 +1,20 @@
 # test module wrapping
 
 
-addprocs(1)
+# addprocs(1) # TODO reinsert once Julia 0.7 tests pass
 
-@everywhere using Base.Test
+using Test
+using IncrementalInference
 
-@everywhere module First
-
-using Compat
+module First
 
 export solve, InferenceType, Container
 
-@compat abstract type InferenceType end
+abstract type InferenceType end
 
-type Container
+mutable struct Container
   col::Dict{Symbol, Function}
-  Container(::Void) = new()
+  Container(::Nothing) = new()
   Container(;col=Dict{Symbol, Function}()) = new(col)
 end
 
@@ -40,16 +39,15 @@ end
 end
 
 
+module Second
 
-
-@everywhere module Second
-importall First
+using Main.First
 export SecondType, SecondAgain, evalPotential, solve, registerCallback!, Container
 
-type SecondType <: First.InferenceType
+struct SecondType <: Main.First.InferenceType
   x::Int
 end
-type SecondAgain <: First.InferenceType
+struct SecondAgain <: Main.First.InferenceType
   x::Int
 end
 
@@ -72,8 +70,7 @@ end
 # typeof(f).name.mt.name
 
 # Okay lets see
-using Second
-@everywhere using Second
+using Main.Second
 
 Col = First.Container()
 
@@ -94,8 +91,8 @@ sa = Second.SecondAgain(saA)
 @test First.solve(CCol, sa) == saA
 
 
-@elapsed evalPotential(st)
-t1 = @elapsed evalPotential(st)
+@elapsed Second.evalPotential(st)
+t1 = @elapsed Second.evalPotential(st)
 t2 = @elapsed solve(Col, sa)
 
 println("Check the speed is reasonable")

@@ -19,7 +19,7 @@ function approxConvOnElements!(ccwl::CommonConvWrapper{T},
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
-    # ccall(:jl_, Void, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
+    # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
     numericRootGenericRandomizedFnc!( ccwl )
   end
   nothing
@@ -150,11 +150,11 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
                                 maxlen::Int,
                                 spreadfactor::Float64 ) where {T}
   #
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) - 1
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
   val = ccwl.params[ccwl.varidx]
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  var = Statistics.var(val,dims=2) .+ 1e-3
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])))
   allelements = 1:maxlen
   return allelements, nhc, ENT
 end
@@ -274,16 +274,17 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
 
   val = getVal(Xi[1])
   d = size(val,1)
-  var = Base.var(val,2) + 1e-3
+  var = Statistics.var(val, dims=2) .+ 1e-3
 
   # determine amount share of null hypothesis particles
   ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
   # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) - 1
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
 
   # TODO -- not valid for manifold
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*diagm(var[:]))
+  # TODO bad memory management
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])) )
 
   for i in 1:N
     if nhc[i] == 0
@@ -310,7 +311,7 @@ function evalFactor2(fgl::FactorGraph,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = Graphs.ExVertex[]
   count = 0
-  variablelist = Vector{Symbol}(length(getData(fct).fncargvID))
+  variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
     xi = getVert(fgl,id)

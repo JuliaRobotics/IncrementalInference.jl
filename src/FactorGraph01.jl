@@ -102,6 +102,10 @@ function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   nothing
 end
+function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity)
+  setValKDE!(getVert(fgl, sym), p)
+  nothing
+end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
 setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
@@ -119,7 +123,7 @@ function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
             api::DataLayerAPI=IncrementalInference.dlapi,
             updateMAPest::Bool=false  )
   #
-  warn("use of updateFullVert! should be clarified for local or remote operations.")
+  @warn "use of updateFullVert! should be clarified for local or remote operations."
   api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
 end
 
@@ -139,26 +143,26 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
   data = nothing
   if initialized
     if size(initval,2) < N && size(initval, 1) == dims
-      warn("setDefaultNodeData! -- deprecated use of stdev.")
+      @warn "setDefaultNodeData! -- deprecated use of stdev."
       p = kde!(initval,diag(stdev));
       pN = resample(p,N)
     elseif size(initval,2) < N && size(initval, 1) != dims
-      info("Node value memory allocated but not initialized")
+      @info "Node value memory allocated but not initialized"
       pN = kde!(randn(dims, N));
     else
       pN = kde!(initval)
     end
     # dims = size(initval,1) # rows indicate dimensions
-    sp = Int[0;] #round.(Int,linspace(dodims,dodims+dims-1,dims))
+    sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
-    gbw2 = Array{Float64}(length(gbw),1)
+    gbw2 = Array{Float64}(undef, length(gbw),1)
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     data = VariableNodeData(initval, stdev, pNpts,
                             gbw2, Int[], sp,
                             dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
   else
-      sp = round.(Int,linspace(dodims,dodims+dims-1,dims))
+      sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
       data = VariableNodeData(initval, stdev, zeros(dims, N),
                               zeros(dims,1), Int[], sp,
                               dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
@@ -264,7 +268,7 @@ function addNode!(fg::FactorGraph,
                   smalldata=""  )
   #
   sto = softtype()
-  if :ut in fieldnames(sto)
+  if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
   addNode!(fg,
@@ -283,7 +287,7 @@ end
 
 
 function getVal(vA::Array{Graphs.ExVertex,1})
-  warn("getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead.")
+  @warn "getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
@@ -299,7 +303,7 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   cols = cumsum(cols)
   sc = cols[end]
   rw = floor(Int,rows[1])
-  val = Array{Float64,2}(rw, sc)
+  val = Array{Float64,2}(undef,rw, sc)
   for i in 1:(len-1)
       val[:,(cols[i]+1):cols[i+1]] = vals[i]
   end
@@ -348,7 +352,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   return maxlen, sfidx
 end
 
-function parseusermultihypo(multihypo::Void)
+function parseusermultihypo(multihypo::Nothing)
   verts = Symbol[]
   mh = nothing
   return mh
@@ -373,14 +377,14 @@ end
 function prepgenericconvolution(
             Xi::Vector{Graphs.ExVertex},
             usrfnc::T;
-            multihypo::Union{Void, Distributions.Categorical}=nothing,
+            multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
-  fldnms = fieldnames(usrfnc)
-  zdim = typeof(usrfnc) != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  fldnms = fieldnames(T) # typeof(usrfnc)
+  zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,
@@ -409,7 +413,7 @@ function setDefaultFactorNode!(
       vert::Graphs.ExVertex,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::T;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       threadmodel=SingleThreaded  ) where {T <: Union{FunctorInferenceType, InferenceType}}
   #
   ftyp = typeof(usrfnc) # maybe this can be T
@@ -446,7 +450,7 @@ function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int,
   vert.attributes["width"] = 0.2
   nothing
 end
-addNewFncVertInGraph!{T <: AbstractString}(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) =
+addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 function isInitialized(vert::Graphs.ExVertex)::Bool
@@ -535,7 +539,7 @@ function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
   allvarnodes = union(xx, xl)
   for vsym in allvarnodes
     if !isInitialized(fgl, vsym)
-      info("$vsym is not initialized, and will do so now...")
+      @info "$vsym is not initialized, and will do so now..."
       doautoinit!(fgl, Graphs.ExVertex[getVert(fgl, vsym, api=api);], api=api, singles=true)
     end
   end
@@ -566,7 +570,7 @@ Add factor with user defined type <: FunctorInferenceType to the factor graph ob
 function addFactor!(fgl::FactorGraph,
       Xi::Vector{Graphs.ExVertex},
       usrfnc::R;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -621,7 +625,7 @@ function addFactor!(
       fgl::FactorGraph,
       xisyms::Vector{Symbol},
       usrfnc::R;
-      multihypo::Union{Void,Tuple,Vector{Float64}}=nothing,
+      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       api::DataLayerAPI=dlapi,
       labels::Vector{T}=String[],
@@ -652,8 +656,8 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
     sf = fg.factorIDs
     lensf = length(sf)
     adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
-    permuteds = Vector{Int}(lens)
-    permutedsf = Vector{Int}(lensf)
+    permuteds = Vector{Int}(undef, lens)
+    permutedsf = Vector{Int}(undef, lensf)
     for j in 1:length(dictpermu)
       semap = 0
       for i in 1:lens
@@ -675,9 +679,9 @@ function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
       A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
       p = Int[]
       if ordering==:chol
-        p = cholfact(A'A,:U,Val{true})[:p] #,pivot=true
+        p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
       elseif ordering==:qr
-        q,r,p = qr(A,Val{true})
+        q,r,p = qr(A, Val(true))
       else
         prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
       end
@@ -697,7 +701,7 @@ function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
       vert.attributes["data"].BayesNetVertID = p
       localapi.updatevertex!(fg, vert)
     else
-      warn("addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex")
+      @warn "addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex"
     end
   end
 end
@@ -720,8 +724,10 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  info("adding marginal to")
-  for x in Xi info("x.index=",x.index) end
+  @info "adding marginal to"
+  for x in Xi
+    @info "x.index=",x.index
+  end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
@@ -740,7 +746,7 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
           edge = localapi.getedge(fgl, id)
           if edge != nothing # hack to avoid dictionary use case
             if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
-              warn("removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)")
+              @warn "removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)"
               localapi.deleteedge!(fgl, edge)
               m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
               localapi.updatevertex!(fgl, m)
@@ -751,7 +757,7 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
     end
     # if 0 edges, delete the marginal
     if length(localapi.outneighbors(fgl, m)) <= 1
-      warn("removing vertex id=$(m.index)")
+      @warn "removing vertex id=$(m.index)"
       localapi.deletevertex!(fgl,m)
     end
   end
@@ -761,10 +767,10 @@ end
 function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
     addBayesNetVerts!(fg, p)
     for v in p
-      info()
-      info("Eliminating $(v)")
-      info("===============")
-      info()
+      @info ""
+      @info "Eliminating $(v)"
+      @info "==============="
+      @info ""
       # which variable are we eliminating
 
       # all factors adjacent to this variable
@@ -777,7 +783,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
           for sepNode in localapi.outneighbors(fg, fct)
-            if sepNode.index != v && length(findin(sepNode.index,Si)) == 0
+            if sepNode.index != v && !(sepNode in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
@@ -857,7 +863,7 @@ function writeGraphPdf(fgl::FactorGraph;
                        show::Bool=true ) where {AS <: AbstractString}
   #
   fgd = drawCopyFG(fgl)
-  info("Writing factor graph file")
+  @info "Writing factor graph file"
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
@@ -869,7 +875,7 @@ function writeGraphPdf(fgl::FactorGraph;
   try
     viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
-    warn("not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)")
+    @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
   nothing
 end

@@ -1,26 +1,26 @@
 import Base: convert
 import Base: ==
 
-@compat abstract type InferenceType end
-@compat abstract type PackedInferenceType end
+abstract type InferenceType end
+abstract type PackedInferenceType end
 
-@compat abstract type FunctorInferenceType <: Function end
+abstract type FunctorInferenceType <: Function end
 
 abstract type InferenceVariable end
 abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
-@compat abstract type Pairwise <: InferenceType end
-@compat abstract type Singleton <: InferenceType end
+abstract type Pairwise <: InferenceType end
+abstract type Singleton <: InferenceType end
 
-@compat abstract type FunctorSingleton <: FunctorInferenceType end
-# @compat abstract type FunctorPartialSingleton <: FunctorInferenceType end
-@compat abstract type FunctorSingletonNH <: FunctorSingleton end
+abstract type FunctorSingleton <: FunctorInferenceType end
+# abstract type FunctorPartialSingleton <: FunctorInferenceType end
+abstract type FunctorSingletonNH <: FunctorSingleton end
 
-@compat abstract type FunctorPairwise <: FunctorInferenceType end
-@compat abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
-@compat abstract type FunctorPairwiseNH <: FunctorPairwise end
-# @compat abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+abstract type FunctorPairwise <: FunctorInferenceType end
+abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
+abstract type FunctorPairwiseNH <: FunctorPairwise end
+# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
@@ -52,8 +52,8 @@ mutable struct FactorGraph
   sessionname::String
   robotname::String
   username::String
-  registeredModuleFunctions::VoidUnion{Dict{Symbol, Function}}
-  reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
+  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
@@ -106,7 +106,7 @@ end
 
 Construct an empty FactorGraph object with the minimum amount of information / memory populated.
 """
-function emptyFactorGraph(;reference::VoidUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
+function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
                     #  Dict{Int,Graphs.ExVertex}(),
@@ -140,14 +140,14 @@ mutable struct VariableNodeData
   eliminated::Bool
   BayesNetVertID::Int
   separator::Array{Int,1}
-  groundtruth::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
+  groundtruth::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
   ismargin::Bool
   dontmargin::Bool
   VariableNodeData() = new()
   function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
-    warn("Deprecated use of VariableNodeData(11 param), use 13 parameters instead")
+    @warn "Deprecated use of VariableNodeData(11 param), use 13 parameters instead"
     new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
   end
   VariableNodeData(x1::Array{Float64,2},
@@ -160,7 +160,7 @@ mutable struct VariableNodeData
                    x8::Bool,
                    x9::Int,
                    x10::Vector{Int},
-                   x11::VoidUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
+                   x11::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
                    x12,
                    x13::Bool,
                    x14::Bool,
@@ -172,8 +172,8 @@ mutable struct FactorMetadata
   factoruserdata
   variableuserdata::Union{Vector, Tuple}
   variablesmalldata::Union{Vector, Tuple}
-  solvefor::Union{Symbol, Void}
-  variablelist::Union{Void, Vector{Symbol}}
+  solvefor::Union{Symbol, Nothing}
+  variablelist::Union{Nothing, Vector{Symbol}}
   dbg::Bool
   FactorMetadata() = new() # [], []
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
@@ -232,8 +232,8 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
-  hypotheses::Union{Void, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
-  certainhypo::Union{Void, Vector{Int}}
+  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  certainhypo::Union{Nothing, Vector{Int}}
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
@@ -291,7 +291,7 @@ function CommonConvWrapper(fnc::T,
   ccw.measurement = measurement
 
   # thread specific elements
-  ccw.cpt = Vector{ConvPerThread}(Threads.nthreads())
+  ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
   for i in 1:Threads.nthreads()
     ccw.cpt[i] = ConvPerThread(X, zDim,
                     factormetadata=factormetadata,
@@ -350,7 +350,7 @@ end
 function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
-getVertNode{T <: AbstractString}(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
+getVertNode(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
 
 
@@ -385,7 +385,7 @@ function graphsGetEdge(fgl::FactorGraph, id::Int)
 end
 
 function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
-  warn("graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)")
+  @warn "graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)"
   nothing
 end
 

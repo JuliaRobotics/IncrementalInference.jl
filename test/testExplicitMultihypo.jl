@@ -1,9 +1,7 @@
 
 # Test multihypo computation assembly
 
-using Distributions
-using DocStringExtensions
-using Base: Test
+using Test
 
 using IncrementalInference
 
@@ -14,11 +12,11 @@ s2_1_gt2 = (1:20,Int[])
 s2_1_gt3 = [(1,1:2); (2,Int[])]
 s2_1_gt4 = Int[]
 s2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 1, 2 )
-@test sum(s2_1_gt1 .- s2_1[1]) == 0
-@test sum(s2_1_gt2[1] .- s2_1[2][1]) == 0
+@test sum([s2_1_gt1;] .- [s2_1[1];]) == 0
+@test sum([s2_1_gt2[1];] .- [s2_1[2][1];]) == 0
 @test sum(s2_1_gt2[2] .- s2_1[2][2]) == 0
 @test s2_1_gt3[1][1] == s2_1[3][1][1]
-@test sum(s2_1_gt3[1][2] .- s2_1[3][1][2]) == 0
+@test sum([s2_1_gt3[1][2];] .- [s2_1[3][1][2];]) == 0
 @test s2_1_gt3[2][1] == s2_1[3][2][1]
 @test sum(s2_1_gt3[2][2] .- s2_1[3][2][2]) == 0
 @test sum(s2_1_gt4 .- s2_1[4])  == 0
@@ -31,11 +29,11 @@ s2_2_gt4 = Int[]
 
 s2_2 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 2, 2 )
 
-@test sum(s2_2_gt1 .- s2_2[1]) == 0
-@test sum(s2_2_gt2[1] .- s2_2[2][1]) == 0
+@test sum([s2_2_gt1;] .- [s2_2[1];]) == 0
+@test sum([s2_2_gt2[1];] .- [s2_2[2][1];]) == 0
 @test sum(s2_2_gt2[2] .- s2_2[2][2]) == 0
 @test s2_2_gt3[1][1] == s2_2[3][1][1]
-@test sum(s2_2_gt3[1][2] .- s2_2[3][1][2]) == 0
+@test sum([s2_2_gt3[1][2];] .- [s2_2[3][1][2];]) == 0
 @test s2_2_gt3[2][1] == s2_2[3][2][1]
 @test sum(s2_2_gt3[2][2] .- s2_2[3][2][2]) == 0
 @test sum(s2_2_gt4 .- s2_2[4])  == 0
@@ -57,8 +55,8 @@ s3_1_gt4 = 40
 
 s3_1 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.5;0.5]), 40, 1, 3)
 
-@test sum(s3_1_gt1 - s3_1[1]) == 0
-@test sum(s3_1_gt2[1] .- s3_1[2][1]) == 0
+@test sum([s3_1_gt1;] - [s3_1[1];]) == 0
+@test sum([s3_1_gt2[1];] .- [s3_1[2][1];]) == 0
 @test length(s3_1[2][2]) > s3_1_gt2[2]
 @test length(s3_1[2][3]) > s3_1_gt2[3]
 @test length(s3_1[2][2]) + length(s3_1[2][3]) == s3_1_gt2[4]
@@ -320,6 +318,6 @@ s4_4 = IncrementalInference.assembleHypothesesElements!(Categorical([0.0;0.33;0.
 @test length(s4_4[4]) == s4_4_gt4
 
 
-warn("only partially testing tri-modality")
+@warn "only partially testing tri-modality"
 
 end

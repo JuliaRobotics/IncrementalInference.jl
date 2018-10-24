@@ -23,10 +23,10 @@ mutable struct CliqGibbsMC
     CliqGibbsMC(a,b) = new(a,b)
 end
 mutable struct DebugCliqMCMC
-    mcmc::Union{Void, Array{CliqGibbsMC,1}}
+    mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
     outmsglbls::Dict{Symbol, Int}
-    priorprods::Vector{CliqGibbsMC} #Union{Void, Dict{Symbol, Vector{EasyMessage}}}
+    priorprods::Vector{CliqGibbsMC} #Union{Nothing, Dict{Symbol, Vector{EasyMessage}}}
     DebugCliqMCMC() = new()
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
@@ -133,7 +133,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( find(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
+    if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
       p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
@@ -154,7 +154,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
   for idfct in cliq.attributes["data"].potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
-    if length( find(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
+    if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
       p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -235,20 +235,20 @@ function productbelief(fg::FactorGraph,
       dbg::Bool=false )
   #
 
-  pGM = Array{Float64}(0,0)
+  pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
     Ndims = Ndim(dens[1])
-    info("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     pGM = prodmultiplefullpartials(dens, partials, Ndims, N)
   elseif lennonp == 1 && lenpart >= 1
     Ndims = Ndim(dens[1])
-    info("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N)
   elseif lennonp == 0 && lenpart >= 1
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
-    info("[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],")
+    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
     productpartials!(pGM, dummy, partials)
@@ -259,11 +259,11 @@ function productbelief(fg::FactorGraph,
   #     pGM[dimnum,:] = getPoints(pp)
   #   end
   elseif lennonp == 1 && lenpart == 0
-    info("[drct]")
+    @info "[drct]"
     pGM = getPoints(dens[1])
   else
-    warn("Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)")
-    pGM = Array{Float64,2}(0,1)
+    @warn "Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)"
+    pGM = Array{Float64,2}(undef, 0,1)
   end
 
   return pGM
@@ -376,7 +376,7 @@ function localProduct(fgl::FactorGraph,
 
   return pp, dens, partials, lb
 end
-localProduct{T <: AbstractString}(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
+localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
@@ -394,7 +394,7 @@ function initializeNode!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Base.mean(pts,2), Base.std(pts,2)
+  @show "initializing", sym, size(pts), Statistics.mean(pts,2), Statistics.std(pts,2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
@@ -419,11 +419,11 @@ function cliqGibbs(fg::FactorGraph,
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(0,0), dens, wfac)
+  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(undef, 0,0), dens, wfac)
   pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
-  info(" ")
+  @info " "
   return pGM, potprod
 end
 
@@ -435,7 +435,7 @@ function fmcmc!(fgl::FactorGraph,
       MCMCIter::Int,
       dbg::Bool=false  )
   #
-    info("---------- successive fnc approx ------------$(cliq.attributes["label"])")
+    @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
     if length(IDs) == 1
         MCMCIter=1
@@ -444,7 +444,7 @@ function fmcmc!(fgl::FactorGraph,
 
     for iter in 1:MCMCIter
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
-      info("#$(iter)\t -- ")
+      @info "#$(iter)\t -- "
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
         vert = getVert(fgl, vertid, api=dlapi)
@@ -465,7 +465,7 @@ function fmcmc!(fgl::FactorGraph,
         end
       end
       !dbg ? nothing : push!(mcmcdbg, dbgvals)
-      info("")
+      @info ""
     end
 
     # populate dictionary for return NBPMessage in multiple dispatch
@@ -478,13 +478,13 @@ function fmcmc!(fgl::FactorGraph,
       d[vertid] = EasyMessage(getVal(vert), bws)
       # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
-    info("fmcmc! -- finished on $(cliq.attributes["label"])")
+    @info "fmcmc! -- finished on $(cliq.attributes["label"])"
 
     return mcmcdbg, d
 end
 
 function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float64,2}
-  info("Outgoing msg density on: ")
+  @info "Outgoing msg density on: "
   len = length(IDs)
   m = NBPMessage(Dict{Int,EasyMessage}())
   for id in IDs
@@ -494,7 +494,7 @@ function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float
 end
 
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
-    info("up w $(length(inp.sendmsgs)) msgs")
+    @info "up w $(length(inp.sendmsgs)) msgs"
     # Local mcmc over belief functions
     # this is so slow! TODO Can be ignored once we have partial working
     # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
@@ -562,9 +562,9 @@ end
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
-      info("Dwn msg keys $(keys(dwnMsgs[1].p))")
+      @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
     end # ignore root, now incoming dwn msg
-    info("Outgoing msg density on: ")
+    @info "Outgoing msg density on: "
     m = NBPMessage(Dict{Int,EasyMessage}())
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
@@ -579,7 +579,7 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
-        info("")
+        @info ""
         # info("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
@@ -587,7 +587,7 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
 end
 
 function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, N::Int=200, MCMCIter::Int=3, dbg::Bool=false)
-    info("dwn")
+    @info "dwn"
     mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["data"].frontalIDs, N, MCMCIter, dbg)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
@@ -615,7 +615,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # updvert.attributes["latestEst"] = Base.mean(dat[2],2)
+        # updvert.attributes["latestEst"] = Statistics.mean(dat[2],2)
         dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
@@ -636,13 +636,13 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
       setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
       dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
-    info("updateFGBT! up -- finished updating $(cliq.attributes["label"])")
+    @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
     nothing
 end
 
 # pass NBPMessages back down the tree -- pre order tree traversal
 function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false)
-    info("====================== Clique $(inp.cliq.attributes["label"]) =============================")
+    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
@@ -663,30 +663,30 @@ end
 
 # post order tree traversal and build potential functions
 function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
-    info("Start Clique $(inp.cliq.attributes["label"]) =============================")
+    @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
     len = length(out_neighbors(inp.cliq, inp.bt.bt))
     for child in out_neighbors(inp.cliq, inp.bt.bt)
         ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[]) # ,Union{})
-        info("upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])")
+        @info "upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])"
         newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
-        info("upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))")
+        @info "upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))"
         push!(  childMsgs, newmsgs )
     end
 
-    info("====================== Clique $(inp.cliq.attributes["label"]) =============================")
+    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg)
-    info("End Clique $(inp.cliq.attributes["label"]) =============================")
+    @info "End Clique $(inp.cliq.attributes["label"]) ============================="
     urt.upMsgs
 end
 
 
 function downGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
-  info("=================== Iter Clique $(inp.cliq.attributes["label"]) ===========================")
+  @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
   mcmciter = inp.prnt != Union{} ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
 end
@@ -801,7 +801,7 @@ function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bo
   prepDwnPreOrderStack!(startett.bt, parentStack)
   processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg)
 
-  info("dwnward leftovers, $(keys(refdict))")
+  @info "dwnward leftovers, $(keys(refdict))"
   nothing
 end
 
@@ -834,16 +834,16 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       dbg::Bool=false  )
   #
   if stkcnt == 0
-    info("asyncProcessPostStacks! ERROR stkcnt=0")
+    @info "asyncProcessPostStacks! ERROR stkcnt=0"
     error("asyncProcessPostStacks! stkcnt=0")
   end
   cliq = chldstk[stkcnt]
   gomulti = true
-  info("Start Clique $(cliq.attributes["label"]) =============================")
+  @info "Start Clique $(cliq.attributes["label"]) ============================="
   childMsgs = Array{NBPMessage,1}()
   ur = nothing
   for child in out_neighbors(cliq, bt.bt)
-      info("asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))")
+      @info "asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))"
         while !haskey(refdict, child.index)
           # info("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
           # @show child.index, keys(refdict)
@@ -861,12 +861,12 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       push!(childMsgs, ur.upMsgs)
 
   end
-  info("====================== Clique $(cliq.attributes["label"]) =============================")
+  @info "====================== Clique $(cliq.attributes["label"]) ============================="
   emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
   pett = partialExploreTreeType(fgl, emptr, cliq, Union{}, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
   if haskey(cliq.attributes, "remoteref")
-      info("asyncProcessPostStacks! -- WHY YOU ALREADY HAVE REMOTEREF?")
+      @info "asyncProcessPostStacks! -- WHY YOU ALREADY HAVE REMOTEREF?"
   end
 
   newprocid = upp2()
@@ -883,7 +883,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       delete!(refdict, child.index)
   end
 
-  info("End Clique $(cliq.attributes["label"]) =============================")
+  @info "End Clique $(cliq.attributes["label"]) ============================="
   nothing
 end
 
@@ -905,7 +905,7 @@ function processPostOrderStacks!(fg::FactorGraph,
         @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg) # deepcopy(stkcnt)
     end
   end
-  info("processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC")
+  @info "processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC"
   # we still need to fetch the root node computational output
   if true
     ur = fetch(refdict[childStack[1].index])
@@ -915,7 +915,7 @@ function processPostOrderStacks!(fg::FactorGraph,
   # delete!(childStack[1].attributes, "remoteref") # childStack[1].cliq
   delete!(refdict, childStack[1].index)
 
-  info("upward leftovers, $(keys(refdict))")
+  @info "upward leftovers, $(keys(refdict))"
 
   updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg ) # nodedata
   nothing
@@ -936,9 +936,9 @@ end
 
 
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
-    info("Ensure all nodes are initialized")
+    @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
-    info("Do multi-process inference over tree")
+    @info "Do multi-process inference over tree"
     cliq = bt.cliques[1]
     upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
     cliq = bt.cliques[1]
@@ -947,9 +947,9 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=f
 end
 
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
-    info("Ensure all nodes are initialized")
+    @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
-    info("Do recursive inference over tree")
+    @info "Do recursive inference over tree"
     cliq = bt.cliques[1]
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);
     cliq = bt.cliques[1]

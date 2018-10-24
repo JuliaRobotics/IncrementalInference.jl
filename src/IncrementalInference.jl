@@ -1,49 +1,41 @@
 module IncrementalInference
 
-info("Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`.")
+@info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
-import Base: convert
-import HDF5: root
-import Distributions: sample
-import Base: rand, rand!
-import KernelDensityEstimate: kde!
+
+using Reexport
+
+@reexport using Distributions
+@reexport using KernelDensityEstimate
+@reexport using Graphs
+@reexport using LinearAlgebra
 
 using
-  Graphs,
+  Distributed,
+  Statistics,
+  Random,
   NLsolve,
-  Optim,
-  Distributions,
   StatsBase,
-  KernelDensityEstimate,
-  HDF5,
-  JLD,
+  JLD2,
+  FileIO,
   ProgressMeter,
   DocStringExtensions,
-  Compat
+  Optim # might be deprecated in favor for only NLsolve dependency
+
+
+const KDE = KernelDensityEstimate
+
+import Base: convert
+# import HDF5: root
+import Distributions: sample
+import Random: rand, rand!
+import KernelDensityEstimate: kde!
 
 export
-  # pass through from Graphs.jl
-  # plot,
-
-  # added methods to functions from KernelDensityEstimate
-  kde!,
-  getPoints,
-
-  # pass through functions commonly used lower down
-  Npoints,
-  Ndim,
-  getBW,
-
-  evalLikelihood,
-
-  # Temp placeholder for evaluating string types to real types
-  _evalType,
-
-  # data layer variables
-  dlapi,
+  KDE,
+  dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,
-  # and callback setting function
   setdatalayerAPI!,
   DataLayerAPI,
 
@@ -56,6 +48,8 @@ export
   PackedPrior,
   LinearConditional,
   PackedLinearConditional,
+  MixturePrior,
+  PackedMixturePrior,
   MixtureLinearConditional,
   PackedMixtureLinearConditional,
 
@@ -127,8 +121,7 @@ export
   getfnctype,
   drawCopyFG,
 
-  # Tree stuff
-  # spyCliqMat,
+  # Bayes (Junction) Tree
   evalPotential,
   evalFactor2,
   approxConv,
@@ -140,13 +133,9 @@ export
   rand,
   fastnorm,
 
-  # dev
-  CommonConvWrapper, # new wrapper (experimental) -- not ready for use
+  # new wrapper (experimental)
+  CommonConvWrapper,
 
-  # is deprecated
-  FastGenericRoot,
-  FastRootGenericWrapParam,
-  GenericWrapParam,
 
   # solve inference
   inferOverTree!,
@@ -185,6 +174,8 @@ export
   # user functions
   proposalbeliefs,
   predictbelief,
+  getCliqMat,
+  getCliqMsgMat,
 
   # generic marginal used during elimitation game
   GenericMarginal,
@@ -203,33 +194,26 @@ export
   loadjld,
   landmarks,
 
-  # For 1D example, should be refactored and renamed
-  ## TODO will be deprecated
-  Odo,
-  odoAdd,
-  PackedOdo,
-  Obsv2,
-  PackedObsv2,
+  # Temp placeholder for evaluating string types to real types
+  _evalType,
+
+  # For 1D example,
 
   # TODO rename to ball radius
   Ranged,
   PackedRanged,
 
+  # development
   # dev exports
   addGraphsVert!,
   makeAddEdge!,
-
-  # define evalPotential functions outside IIF
-  registerCallback!,
-
-  # development
   shuffleXAltD,
-  reshapeVec2Mat
+  reshapeVec2Mat # TODO deprecate
 
 
 
 
-const VoidUnion{T} = Union{Void, T}
+const NothingUnion{T} = Union{Nothing, T}
 
 
 include("FactorGraphTypes.jl")
@@ -244,16 +228,9 @@ include("FGOSUtils.jl")
 include("JunctionTree.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
-include("TreePotentials01.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
-
-include("deprecated.jl")
-
-# function plot(fg::FactorGraph)
-#   Graphs.plot(fg.g)
-# end
 
 end
