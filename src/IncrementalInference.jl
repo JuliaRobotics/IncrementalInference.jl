@@ -194,6 +194,9 @@ export
   loadjld,
   landmarks,
 
+  # Temp placeholder for evaluating string types to real types
+  _evalType,
+
   # For 1D example,
 
   # TODO rename to ball radius
