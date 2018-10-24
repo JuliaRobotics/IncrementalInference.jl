@@ -123,9 +123,9 @@ function numericRootGenericRandomizedFnc!(
     else
       # TODO print this output as needed
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
+      @info str
       ccall(:jl_, Nothing, (Any,), str)
       ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
-      @info str
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
         ccall(:jl_, Nothing, (Any,), str)
