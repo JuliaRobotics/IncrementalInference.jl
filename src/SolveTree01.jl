@@ -622,7 +622,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
     end
     if fillcolor != ""
       cliq.attributes["fillcolor"] = fillcolor
-      cliq.attributes["style"] = filled
+      cliq.attributes["style"] = "filled"
     end
     for dat in ddt.IDvals
       #TODO -- should become an update call
@@ -635,7 +635,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
 end
 
 # TODO -- use Union{} for two types, rather than separate functions
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false, fillcolor::String="")
     # if dlapi.cgEnabled
     #   return nothing
     # end
@@ -643,6 +643,10 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+    end
+    if fillcolor != ""
+      cliq.attributes["fillcolor"] = fillcolor
+      cliq.attributes["style"] = "filled"
     end
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
@@ -654,12 +658,13 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
 end
 
 # pass NBPMessages back down the tree -- pre order tree traversal
-function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg)
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="pink")
+    drawpdf ? drawTree(bt) : nothing
 
     # rr = Array{Future,1}()
     pcs = procs()
@@ -675,7 +680,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=fal
 end
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
+function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
@@ -692,7 +697,8 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg)
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+    drawpdf ? drawTree(bt) : nothing
     @info "End Clique $(inp.cliq.attributes["label"]) ============================="
     urt.upMsgs
 end
@@ -802,7 +808,11 @@ function processPreOrderStack!(fg::FactorGraph,
     nothing
 end
 
-function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function downMsgPassingIterative!(startett::ExploreTreeType;
+                                  N::Int=200,
+                                  dbg::Bool=false,
+                                  drawpdf::Bool=false  )
+  #
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
   refdict = Dict{Int,Future}()
@@ -815,13 +825,15 @@ function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bo
   push!(parentStack, startett.cliq ) # r
 
   prepDwnPreOrderStack!(startett.bt, parentStack)
-  processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg)
+  processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg, drawpdf=drawpdf )
 
   @info "dwnward leftovers, $(keys(refdict))"
   nothing
 end
 
-function prepPostOrderUpPassStacks!(bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, childStack::Array{Graphs.ExVertex,1})
+function prepPostOrderUpPassStacks!(bt::BayesTree,
+                                    parentStack::Array{Graphs.ExVertex,1},
+                                    childStack::Array{Graphs.ExVertex,1}  )
   # upward message passing preparation
   while ( length(parentStack) != 0 )
       #2.1 Pop a node from first stack and push it to second stack
@@ -842,12 +854,13 @@ end
 
 # for up message passing
 function asyncProcessPostStacks!(fgl::FactorGraph,
-      bt::BayesTree,
-      chldstk::Vector{Graphs.ExVertex},
-      stkcnt::Int,
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                                 bt::BayesTree,
+                                 chldstk::Vector{Graphs.ExVertex},
+                                 stkcnt::Int,
+                                 refdict::Dict{Int,Future};
+                                 N::Int=200,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  )
   #
   if stkcnt == 0
     @info "asyncProcessPostStacks! ERROR stkcnt=0"
@@ -871,7 +884,8 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       else
         ur = child.attributes["remoteref"]
       end
-      updateFGBT!( fgl, bt, child.index, ur, dbg=dbg ) # deep copies happen in the update function
+      updateFGBT!( fgl, bt, child.index, ur, dbg=dbg, fillcolor="pink" ) # deep copies happen in the update function
+      drawpdf ? drawTree(bt) : nothing
       #delete!(child.attributes, "remoteref")
 
       push!(childMsgs, ur.upMsgs)
@@ -919,7 +933,7 @@ function processPostOrderStacks!(fg::FactorGraph,
   @sync begin
     sendcnt = stkcnt:-1:1 # separate stable memory
     for i in 1:stkcnt
-        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg) # deepcopy(stkcnt)
+        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf ) # deepcopy(stkcnt)
     end
   end
   @info "processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC"
@@ -939,7 +953,7 @@ function processPostOrderStacks!(fg::FactorGraph,
   nothing
 end
 
-function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
   #http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
@@ -948,7 +962,7 @@ function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool
   push!(parentStack, startett.cliq )
   # Starting at the root means we have a top down view of the tree
   prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
-  processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg)
+  processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
   nothing
 end
 
@@ -964,13 +978,13 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=f
     nothing
 end
 
-function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
     @info "Do recursive inference over tree"
     cliq = bt.cliques[1]
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
     cliq = bt.cliques[1]
-    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);
+    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
     nothing
 end
