@@ -67,6 +67,15 @@ end
 # end
 
 
+"""
+Ensure the desired number of julia processes are present.
+"""
+function check_procs(nprocs::Int)
+  if nprocs > 1
+    nprocs() < nprocs ? addprocs(nprocs-nprocs()) : nothing
+  end
+end
+
 #global pidx
 pidx = 1
 pidl = 1
@@ -603,13 +612,17 @@ function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs:
 end
 
 
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false, fillcolor::String="")
     # if dlapi.cgEnabled
     #   return nothing
     # end
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
+    end
+    if fillcolor != ""
+      cliq.attributes["fillcolor"] = fillcolor
+      cliq.attributes["style"] = filled
     end
     for dat in ddt.IDvals
       #TODO -- should become an update call
@@ -738,12 +751,13 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
 end
 
 function dispatchNewDwnProc!(fg::FactorGraph,
-      bt::BayesTree,
-      parentStack::Array{Graphs.ExVertex,1},
-      stkcnt::Int,
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                             bt::BayesTree,
+                             parentStack::Array{Graphs.ExVertex,1},
+                             stkcnt::Int,
+                             refdict::Dict{Int,Future};
+                             N::Int=200,
+                             dbg::Bool=false,
+                             drawpdf::Bool=false  )
   #
   cliq = parentStack[stkcnt]
   while !haskey(refdict, cliq.index) # nodedata.cliq
@@ -754,7 +768,8 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   delete!(refdict,cliq.index) # nodedata
 
   if rDDT != Union{}
-    updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg)
+    updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+    drawpdf ? drawTree(bt) : nothing
   end
 
   emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
@@ -768,11 +783,12 @@ function dispatchNewDwnProc!(fg::FactorGraph,
 end
 
 function processPreOrderStack!(fg::FactorGraph,
-      bt::BayesTree,
-      parentStack::Array{Graphs.ExVertex,1},
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                               bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1},
+                               refdict::Dict{Int,Future};
+                               N::Int=200,
+                               dbg::Bool=false,
+                               drawpdf::Bool=false )
   #
     # dwn message passing function for iterative tree exploration
     stkcnt = 0
@@ -780,7 +796,7 @@ function processPreOrderStack!(fg::FactorGraph,
     @sync begin
       sendcnt = 1:length(parentStack) # separate memory for remote calls
       for i in 1:sendcnt[end]
-          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg) # stkcnt ##pidxI,nodedata
+          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
       end
     end
     nothing
@@ -890,10 +906,11 @@ end
 
 # upward belief propagation message passing function
 function processPostOrderStacks!(fg::FactorGraph,
-      bt::BayesTree,
-      childStack::Array{Graphs.ExVertex,1};
-      N::Int=200,
-      dbg::Bool=false  )
+                                 bt::BayesTree,
+                                 childStack::Array{Graphs.ExVertex,1};
+                                 N::Int=200,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  )
   #
 
   refdict = Dict{Int,Future}()
@@ -917,7 +934,8 @@ function processPostOrderStacks!(fg::FactorGraph,
 
   @info "upward leftovers, $(keys(refdict))"
 
-  updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg ) # nodedata
+  updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg, fillcolor="pink" ) # nodedata
+  drawpdf ? drawTree(bt) : nothing
   nothing
 end
 
@@ -935,14 +953,14 @@ function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool
 end
 
 
-function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
     @info "Do multi-process inference over tree"
     cliq = bt.cliques[1]
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
+    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     cliq = bt.cliques[1]
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
+    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     nothing
 end
 

@@ -2,7 +2,7 @@ module IncrementalInference
 
 @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
-
+using Distributed
 using Reexport
 
 @reexport using Distributions
@@ -11,7 +11,6 @@ using Reexport
 @reexport using LinearAlgebra
 
 using
-  Distributed,
   Statistics,
   Random,
   NLsolve,
@@ -38,6 +37,7 @@ export
   showcurrentdlapi,
   setdatalayerAPI!,
   DataLayerAPI,
+  check_procs,
 
   # general types for softtyping of variable nodes
   InferenceVariable,

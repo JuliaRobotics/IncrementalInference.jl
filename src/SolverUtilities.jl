@@ -153,13 +153,13 @@ end
 
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
-function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, N::Int=100)
+function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, show::Bool=false, N::Int=100)
   if fgl.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(fgl)
   end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
-  inferOverTree!(fgl, tree, N=N)
+  inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf)
   tree
 end
 

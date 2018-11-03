@@ -994,6 +994,7 @@ function getShortestPathNeighbors(fgl::FactorGraph;
     to::Graphs.ExVertex=nothing,
     neighbors::Int=0 )
 
+  @show num_edges(fgl.g), from, to
   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
   vertdict = Dict{Int,Graphs.ExVertex}()
   edgedict = edgelist2edgedict(edgelist)
@@ -1026,6 +1027,7 @@ function subgraphFromVerts(fgl::FactorGraph,
     for i in 1:len, j in (i+1):len
       from = verts[allkeys[i]]
       to = verts[allkeys[j]]
+      @show from, to, neighbors
       vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
       for vert in vertdict
         if !haskey(allverts, vert[1])
@@ -1051,22 +1053,30 @@ function subgraphFromVerts(fgl::FactorGraph,
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
 
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-# Using unique index into graph data structure
+"""
+    $(SIGNATURES)
+
+Explore all shortest paths combinations in verts, add neighbors and reference
+subgraph using unique index into graph data structure.
+"""
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{String,1};
-    neighbors::Int=0  )
+                           verts::Union{Vector{String},Vector{Symbol}};
+                           neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
     id = -1
-    if haskey(fgl.IDs, vert)
-      id = fgl.IDs[Symbol(vert)]
+    vsym = Symbol(vert)
+    if haskey(fgl.IDs, vsym)
+      id = fgl.IDs[vsym]
     else
       error("FactorGraph01 only supports variable node subgraph search at this point")
     end
-    vertdict[id] = fgl.g.vertices[id]
+    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
+
+
+#

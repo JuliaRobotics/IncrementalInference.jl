@@ -95,6 +95,18 @@ ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
 """
     $(SIGNATURES)
 
+Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
+"""
+function ls(fgl::FactorGraph,
+            lbls::Vector{Symbol};
+            api::DataLayerAPI=dlapi,
+            ring::Int=1)
+  union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
+end
+
+"""
+    $(SIGNATURES)
+
 List the nodes in a factor graph.
 
 # Examples
