@@ -432,7 +432,7 @@ function cliqGibbs(fg::FactorGraph,
   pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
-  @info " "
+  # @info " "
   return pGM, potprod
 end
 
@@ -474,7 +474,7 @@ function fmcmc!(fgl::FactorGraph,
         end
       end
       !dbg ? nothing : push!(mcmcdbg, dbgvals)
-      @info ""
+      # @info ""
     end
 
     # populate dictionary for return NBPMessage in multiple dispatch
@@ -588,7 +588,7 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
-        @info ""
+        # @info ""
         # info("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
@@ -664,7 +664,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=fal
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="pink")
-    drawpdf ? drawTree(bt) : nothing
+    drawpdf ? drawTree(inp.bt) : nothing
 
     # rr = Array{Future,1}()
     pcs = procs()
@@ -698,7 +698,7 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
-    drawpdf ? drawTree(bt) : nothing
+    drawpdf ? drawTree(inp.bt) : nothing
     @info "End Clique $(inp.cliq.attributes["label"]) ============================="
     urt.upMsgs
 end

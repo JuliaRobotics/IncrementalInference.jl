@@ -167,10 +167,19 @@ function drawTree(treel::BayesTree;
   #
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
-  fid = open("$(fpwoext).dot","w+")
-  write(fid,to_dot(treel.bt))
-  close(fid)
-  run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+  fid = IOStream("")
+  try
+    fid = open("$(fpwoext).dot","w+")
+    write(fid,to_dot(treel.bt))
+    close(fid)
+    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+  catch ex
+    @warn ex
+    @show stacktrace()
+  finally
+    close(fid)
+  end
+
   show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
 end
 
