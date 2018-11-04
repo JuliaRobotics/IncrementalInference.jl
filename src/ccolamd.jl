@@ -1,6 +1,7 @@
 module Ccolamd
 
-using Base.SparseArrays.CHOLMOD.SuiteSparse_long
+using SparseArrays
+using SuiteSparse.CHOLMOD: SuiteSparse_long
 
 const KNOBS = 20
 const STATS = 20

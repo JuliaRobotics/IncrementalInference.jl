@@ -23,6 +23,9 @@ using
   Optim # might be deprecated in favor for only NLsolve dependency
 
 
+include("ccolamd.jl")
+using Ccolamd
+
 const KDE = KernelDensityEstimate
 
 import Base: convert
@@ -214,7 +217,6 @@ export
 
 
 const NothingUnion{T} = Union{Nothing, T}
-
 
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
