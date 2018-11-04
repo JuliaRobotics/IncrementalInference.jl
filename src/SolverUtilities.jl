@@ -208,5 +208,26 @@ function fifoFreeze!(fgl::FactorGraph)
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Return all factors currently registered in the workspace.
+"""
+function getCurrentWorkspaceFactors()::Vector{Type}
+    return [
+        subtypes(IncrementalInference.FunctorSingleton)...,
+        subtypes(IncrementalInference.FunctorPairwise)...,
+        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
+end
+
+"""
+    $(SIGNATURES)
+
+Return all variables currently registered in the workspace.
+"""
+function getCurrentWorkspaceVariables()::Vector{Type}
+    return subtypes(IncrementalInference.InferenceVariable);
+end
+
 
 #
