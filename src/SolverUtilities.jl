@@ -159,6 +159,7 @@ function batchSolve!(fgl::FactorGraph; drawpdf::Bool=false, show::Bool=false, N:
       fifoFreeze!(fgl)
   end
   tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
+  show ? showTree() : nothing
   inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf)
   tree
 end

@@ -160,6 +160,18 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
   end
 end
 
+function showTree(;filepath::String="/tmp/bt.pdf",
+                   viewerapp::String="evince"  )
+  #
+  try
+    @async run(`$(viewerapp) $(filepath)`)
+  catch ex
+    @warn "not able to show via $(viewerapp) $(filepath)"
+    @show ex
+    @show stacktrace()
+  end
+end
+
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/bt.pdf",
@@ -180,8 +192,9 @@ function drawTree(treel::BayesTree;
     close(fid)
   end
 
-  show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+  show ? showTree(viewerapp=viewerapp, filepath=filepath) : nothing
 end
+
 
 
 ## Find batch belief propagation solution
