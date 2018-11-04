@@ -237,11 +237,11 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
 end
 
 function productbelief(fg::FactorGraph,
-      vertid::Int,
-      dens::Vector{BallTreeDensity},
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      N::Int;
-      dbg::Bool=false )
+                       vertid::Int,
+                       dens::Vector{BallTreeDensity},
+                       partials::Dict{Int, Vector{BallTreeDensity}},
+                       N::Int;
+                       dbg::Bool=false )
   #
 
   pGM = Array{Float64,2}(undef, 0,0)
@@ -258,7 +258,7 @@ function productbelief(fg::FactorGraph,
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    dummy = kde!(rand(Ndims,N), ones(Ndims)) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
     productpartials!(pGM, dummy, partials)
   # elseif lennonp == 0 && lenpart == 1
@@ -268,7 +268,7 @@ function productbelief(fg::FactorGraph,
   #     pGM[dimnum,:] = getPoints(pp)
   #   end
   elseif lennonp == 1 && lenpart == 0
-    @info "[drct]"
+    # @info "[drct]"
     pGM = getPoints(dens[1])
   else
     @warn "Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)"
@@ -357,6 +357,14 @@ function predictbelief(fgl::FactorGraph,
   predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api, dbg=dbg )
 end
 
+"""
+    $(SIGNATURES)
+
+Using factor graph object `fg`, project belief through connected factors
+(convolution with conditional) to variable `sym` followed by a approximate functional product.
+
+Return: product belief, full proposals, partial dimension proposals, labels
+"""
 function localProduct(fgl::FactorGraph,
                       sym::Symbol;
                       N::Int=100,
@@ -385,11 +393,20 @@ function localProduct(fgl::FactorGraph,
 
   return pp, dens, partials, lb
 end
+
+"""
+    $(SIGNATURES)
+
+Using factor graph object `fg`, project belief through connected factors
+(convolution with conditional) to variable `sym` followed by a approximate functional product.
+
+Return: product belief, full proposals, partial dimension proposals, labels
+"""
 localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
-    initializeNode!(::FactorGraph, ::Symbol; N::Int=100, api::DataLayerAPI=dlapi)
+    $(SIGNATURES)
 
 Initialize the belief of a variable node in the factor graph struct.
 """
@@ -436,13 +453,20 @@ function cliqGibbs(fg::FactorGraph,
   return pGM, potprod
 end
 
+"""
+    $(SIGNATURES)
+
+Iterate successive approximations of clique marginal beliefs by means 
+of the stipulated proposal convolutions and products of the functional objects
+for tree clique `cliq`.
+"""
 function fmcmc!(fgl::FactorGraph,
-      cliq::Graphs.ExVertex,
-      fmsgs::Vector{NBPMessage},
-      IDs::Vector{Int},
-      N::Int,
-      MCMCIter::Int,
-      dbg::Bool=false  )
+                cliq::Graphs.ExVertex,
+                fmsgs::Vector{NBPMessage},
+                IDs::Vector{Int},
+                N::Int,
+                MCMCIter::Int,
+                dbg::Bool=false  )
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
