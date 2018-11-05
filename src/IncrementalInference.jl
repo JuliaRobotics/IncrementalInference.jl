@@ -114,6 +114,7 @@ export
   ls,
   lsf,
   ls2,
+  lsRear,
   hasOrphans,
   allnums,
   isnestednum,
