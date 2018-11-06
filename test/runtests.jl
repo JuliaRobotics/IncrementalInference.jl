@@ -24,7 +24,7 @@ println("[TEST] packing converters work...")
 include("testgraphpackingconverters.jl")
 println("Success")
 
-# include("testNLsolve.jl")
+include("testNLsolve.jl")
 
 println("[TEST] generic root finding by numeric solve of residual functions...")
 include("testNumericRootGenericRandomized.jl")
