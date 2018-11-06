@@ -104,6 +104,8 @@ export
   initializeNode!,
   batchSolve!,
   fifoFreeze!,
+  getCurrentWorkspaceFactors,
+  getCurrentWorkspaceVariables,
 
   #functors need
   getSample,

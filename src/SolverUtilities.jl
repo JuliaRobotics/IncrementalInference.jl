@@ -11,6 +11,7 @@ function fastnorm(u)
 end
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+  # function is being deprecated
   return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
 end
 
@@ -123,9 +124,9 @@ function numericRootGenericRandomizedFnc!(
     else
       # TODO print this output as needed
       str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
+      @info str
       ccall(:jl_, Nothing, (Any,), str)
       ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
-      @info str
       for thatlen in 1:length(ccwl.params)
         str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
         ccall(:jl_, Nothing, (Any,), str)
@@ -217,6 +218,27 @@ function fifoFreeze!(fgl::FactorGraph)
   @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
   setfreeze!(fgl, tofreeze)
   nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return all factors currently registered in the workspace.
+"""
+function getCurrentWorkspaceFactors()::Vector{Type}
+    return [
+        subtypes(IncrementalInference.FunctorSingleton)...,
+        subtypes(IncrementalInference.FunctorPairwise)...,
+        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
+end
+
+"""
+    $(SIGNATURES)
+
+Return all variables currently registered in the workspace.
+"""
+function getCurrentWorkspaceVariables()::Vector{Type}
+    return subtypes(IncrementalInference.InferenceVariable);
 end
 
 

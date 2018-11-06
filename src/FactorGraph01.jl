@@ -506,7 +506,6 @@ function doautoinit!(fgl::FactorGraph,
     end
   end
 
-
   nothing
 end
 
