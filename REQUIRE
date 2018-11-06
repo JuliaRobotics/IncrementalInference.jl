@@ -1,7 +1,7 @@
 julia 0.7 1.1
 Graphs 0.10.1
 Reexport 0.2.0
-NLsolve 2.1.0 3.0.0
+NLsolve 2.1.0
 Optim 0.16.0
 Distributions 0.16.4
 StatsBase 0.25.0
