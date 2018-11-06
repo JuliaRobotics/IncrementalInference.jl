@@ -168,7 +168,7 @@ ccw.varidx = 2
 
 # do for a single point (i=1)
 
-r = nlsolve( ccw, 0.0 )
+r = nlsolve( ccw, [0.0] )
 
 
 # for all points
