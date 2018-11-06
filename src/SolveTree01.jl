@@ -67,6 +67,15 @@ end
 # end
 
 
+"""
+Ensure the desired number of julia processes are present.
+"""
+function check_procs(nprocs::Int)
+  if nprocs > 1
+    nprocs() < nprocs ? addprocs(nprocs-nprocs()) : nothing
+  end
+end
+
 #global pidx
 pidx = 1
 pidl = 1
@@ -228,11 +237,11 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
 end
 
 function productbelief(fg::FactorGraph,
-      vertid::Int,
-      dens::Vector{BallTreeDensity},
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      N::Int;
-      dbg::Bool=false )
+                       vertid::Int,
+                       dens::Vector{BallTreeDensity},
+                       partials::Dict{Int, Vector{BallTreeDensity}},
+                       N::Int;
+                       dbg::Bool=false )
   #
 
   pGM = Array{Float64,2}(undef, 0,0)
@@ -249,7 +258,7 @@ function productbelief(fg::FactorGraph,
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+    dummy = kde!(rand(Ndims,N), ones(Ndims)) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
     productpartials!(pGM, dummy, partials)
   # elseif lennonp == 0 && lenpart == 1
@@ -259,7 +268,7 @@ function productbelief(fg::FactorGraph,
   #     pGM[dimnum,:] = getPoints(pp)
   #   end
   elseif lennonp == 1 && lenpart == 0
-    @info "[drct]"
+    # @info "[drct]"
     pGM = getPoints(dens[1])
   else
     @warn "Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)"
@@ -348,6 +357,14 @@ function predictbelief(fgl::FactorGraph,
   predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api, dbg=dbg )
 end
 
+"""
+    $(SIGNATURES)
+
+Using factor graph object `fg`, project belief through connected factors
+(convolution with conditional) to variable `sym` followed by a approximate functional product.
+
+Return: product belief, full proposals, partial dimension proposals, labels
+"""
 function localProduct(fgl::FactorGraph,
                       sym::Symbol;
                       N::Int=100,
@@ -376,11 +393,20 @@ function localProduct(fgl::FactorGraph,
 
   return pp, dens, partials, lb
 end
+
+"""
+    $(SIGNATURES)
+
+Using factor graph object `fg`, project belief through connected factors
+(convolution with conditional) to variable `sym` followed by a approximate functional product.
+
+Return: product belief, full proposals, partial dimension proposals, labels
+"""
 localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
-    initializeNode!(::FactorGraph, ::Symbol; N::Int=100, api::DataLayerAPI=dlapi)
+    $(SIGNATURES)
 
 Initialize the belief of a variable node in the factor graph struct.
 """
@@ -423,17 +449,24 @@ function cliqGibbs(fg::FactorGraph,
   pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
-  @info " "
+  # @info " "
   return pGM, potprod
 end
 
+"""
+    $(SIGNATURES)
+
+Iterate successive approximations of clique marginal beliefs by means 
+of the stipulated proposal convolutions and products of the functional objects
+for tree clique `cliq`.
+"""
 function fmcmc!(fgl::FactorGraph,
-      cliq::Graphs.ExVertex,
-      fmsgs::Vector{NBPMessage},
-      IDs::Vector{Int},
-      N::Int,
-      MCMCIter::Int,
-      dbg::Bool=false  )
+                cliq::Graphs.ExVertex,
+                fmsgs::Vector{NBPMessage},
+                IDs::Vector{Int},
+                N::Int,
+                MCMCIter::Int,
+                dbg::Bool=false  )
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
@@ -465,7 +498,7 @@ function fmcmc!(fgl::FactorGraph,
         end
       end
       !dbg ? nothing : push!(mcmcdbg, dbgvals)
-      @info ""
+      # @info ""
     end
 
     # populate dictionary for return NBPMessage in multiple dispatch
@@ -579,7 +612,7 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         # outDens[i] = cdwndict[cvid]
-        @info ""
+        # @info ""
         # info("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
@@ -603,13 +636,17 @@ function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs:
 end
 
 
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false, fillcolor::String="")
     # if dlapi.cgEnabled
     #   return nothing
     # end
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
+    end
+    if fillcolor != ""
+      cliq.attributes["fillcolor"] = fillcolor
+      cliq.attributes["style"] = "filled"
     end
     for dat in ddt.IDvals
       #TODO -- should become an update call
@@ -622,7 +659,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
 end
 
 # TODO -- use Union{} for two types, rather than separate functions
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false)
+function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false, fillcolor::String="")
     # if dlapi.cgEnabled
     #   return nothing
     # end
@@ -630,6 +667,10 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+    end
+    if fillcolor != ""
+      cliq.attributes["fillcolor"] = fillcolor
+      cliq.attributes["style"] = "filled"
     end
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
@@ -641,12 +682,13 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
 end
 
 # pass NBPMessages back down the tree -- pre order tree traversal
-function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg)
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="pink")
+    drawpdf ? drawTree(inp.bt) : nothing
 
     # rr = Array{Future,1}()
     pcs = procs()
@@ -662,7 +704,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=fal
 end
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
+function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
@@ -679,7 +721,8 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg)
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+    drawpdf ? drawTree(inp.bt) : nothing
     @info "End Clique $(inp.cliq.attributes["label"]) ============================="
     urt.upMsgs
 end
@@ -738,12 +781,13 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
 end
 
 function dispatchNewDwnProc!(fg::FactorGraph,
-      bt::BayesTree,
-      parentStack::Array{Graphs.ExVertex,1},
-      stkcnt::Int,
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                             bt::BayesTree,
+                             parentStack::Array{Graphs.ExVertex,1},
+                             stkcnt::Int,
+                             refdict::Dict{Int,Future};
+                             N::Int=200,
+                             dbg::Bool=false,
+                             drawpdf::Bool=false  )
   #
   cliq = parentStack[stkcnt]
   while !haskey(refdict, cliq.index) # nodedata.cliq
@@ -754,7 +798,8 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   delete!(refdict,cliq.index) # nodedata
 
   if rDDT != Union{}
-    updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg)
+    updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+    drawpdf ? drawTree(bt) : nothing
   end
 
   emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
@@ -768,11 +813,12 @@ function dispatchNewDwnProc!(fg::FactorGraph,
 end
 
 function processPreOrderStack!(fg::FactorGraph,
-      bt::BayesTree,
-      parentStack::Array{Graphs.ExVertex,1},
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                               bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1},
+                               refdict::Dict{Int,Future};
+                               N::Int=200,
+                               dbg::Bool=false,
+                               drawpdf::Bool=false )
   #
     # dwn message passing function for iterative tree exploration
     stkcnt = 0
@@ -780,13 +826,17 @@ function processPreOrderStack!(fg::FactorGraph,
     @sync begin
       sendcnt = 1:length(parentStack) # separate memory for remote calls
       for i in 1:sendcnt[end]
-          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg) # stkcnt ##pidxI,nodedata
+          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
       end
     end
     nothing
 end
 
-function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function downMsgPassingIterative!(startett::ExploreTreeType;
+                                  N::Int=200,
+                                  dbg::Bool=false,
+                                  drawpdf::Bool=false  )
+  #
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
   refdict = Dict{Int,Future}()
@@ -799,13 +849,15 @@ function downMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bo
   push!(parentStack, startett.cliq ) # r
 
   prepDwnPreOrderStack!(startett.bt, parentStack)
-  processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg)
+  processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg, drawpdf=drawpdf )
 
   @info "dwnward leftovers, $(keys(refdict))"
   nothing
 end
 
-function prepPostOrderUpPassStacks!(bt::BayesTree, parentStack::Array{Graphs.ExVertex,1}, childStack::Array{Graphs.ExVertex,1})
+function prepPostOrderUpPassStacks!(bt::BayesTree,
+                                    parentStack::Array{Graphs.ExVertex,1},
+                                    childStack::Array{Graphs.ExVertex,1}  )
   # upward message passing preparation
   while ( length(parentStack) != 0 )
       #2.1 Pop a node from first stack and push it to second stack
@@ -826,12 +878,13 @@ end
 
 # for up message passing
 function asyncProcessPostStacks!(fgl::FactorGraph,
-      bt::BayesTree,
-      chldstk::Vector{Graphs.ExVertex},
-      stkcnt::Int,
-      refdict::Dict{Int,Future};
-      N::Int=200,
-      dbg::Bool=false  )
+                                 bt::BayesTree,
+                                 chldstk::Vector{Graphs.ExVertex},
+                                 stkcnt::Int,
+                                 refdict::Dict{Int,Future};
+                                 N::Int=200,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  )
   #
   if stkcnt == 0
     @info "asyncProcessPostStacks! ERROR stkcnt=0"
@@ -855,7 +908,8 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
       else
         ur = child.attributes["remoteref"]
       end
-      updateFGBT!( fgl, bt, child.index, ur, dbg=dbg ) # deep copies happen in the update function
+      updateFGBT!( fgl, bt, child.index, ur, dbg=dbg, fillcolor="pink" ) # deep copies happen in the update function
+      drawpdf ? drawTree(bt) : nothing
       #delete!(child.attributes, "remoteref")
 
       push!(childMsgs, ur.upMsgs)
@@ -890,10 +944,11 @@ end
 
 # upward belief propagation message passing function
 function processPostOrderStacks!(fg::FactorGraph,
-      bt::BayesTree,
-      childStack::Array{Graphs.ExVertex,1};
-      N::Int=200,
-      dbg::Bool=false  )
+                                 bt::BayesTree,
+                                 childStack::Array{Graphs.ExVertex,1};
+                                 N::Int=200,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  )
   #
 
   refdict = Dict{Int,Future}()
@@ -902,7 +957,7 @@ function processPostOrderStacks!(fg::FactorGraph,
   @sync begin
     sendcnt = stkcnt:-1:1 # separate stable memory
     for i in 1:stkcnt
-        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg) # deepcopy(stkcnt)
+        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf ) # deepcopy(stkcnt)
     end
   end
   @info "processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC"
@@ -917,11 +972,12 @@ function processPostOrderStacks!(fg::FactorGraph,
 
   @info "upward leftovers, $(keys(refdict))"
 
-  updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg ) # nodedata
+  updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg, fillcolor="pink" ) # nodedata
+  drawpdf ? drawTree(bt) : nothing
   nothing
 end
 
-function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false)
+function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
   #http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
@@ -930,29 +986,29 @@ function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool
   push!(parentStack, startett.cliq )
   # Starting at the root means we have a top down view of the tree
   prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
-  processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg)
+  processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
   nothing
 end
 
 
-function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
     @info "Do multi-process inference over tree"
     cliq = bt.cliques[1]
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
+    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     cliq = bt.cliques[1]
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg);
+    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     nothing
 end
 
-function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false)
+function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
     @info "Do recursive inference over tree"
     cliq = bt.cliques[1]
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
     cliq = bt.cliques[1]
-    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg);
+    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
     nothing
 end

@@ -95,6 +95,18 @@ ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
 """
     $(SIGNATURES)
 
+Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
+"""
+function ls(fgl::FactorGraph,
+            lbls::Vector{Symbol};
+            api::DataLayerAPI=dlapi,
+            ring::Int=1)
+  union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
+end
+
+"""
+    $(SIGNATURES)
+
 List the nodes in a factor graph.
 
 # Examples
@@ -205,6 +217,27 @@ function ls2(fgl::FactorGraph, vsym::Symbol)
   xlxl = setdiff(xlxl, [vsym])
   return xlxl
 end
+
+
+"""
+    $(SIGNATURES)
+
+Return array of all variable nodes connected to the last `n` many poses (`:x*`).
+
+Example:
+
+```julia
+# Shallow copy the tail end of poses from a factor graph `fg1`
+vars = lsRear(fg1, 5)
+fg1_r5 = subgraphFromVerts(fg1, vars)
+```
+"""
+function lsRear(fgl::FactorGraph, n::Int=1)
+  lasts = ls(fgl)[1][(end-n):end]
+  syms = ls(fgl, lasts)
+  union(lsf.(fgl, syms)[:]...)
+end
+
 
 hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 

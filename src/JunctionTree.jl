@@ -160,6 +160,42 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
   end
 end
 
+function showTree(;filepath::String="/tmp/bt.pdf",
+                   viewerapp::String="evince"  )
+  #
+  try
+    @async run(`$(viewerapp) $(filepath)`)
+  catch ex
+    @warn "not able to show via $(viewerapp) $(filepath)"
+    @show ex
+    @show stacktrace()
+  end
+end
+
+function drawTree(treel::BayesTree;
+                  show::Bool=false,                  # must remain false for stability and automated use in solver
+                  filepath::String="/tmp/bt.pdf",
+                  viewerapp::String="evince"  )
+  #
+  fext = split(filepath, '.')[end]
+  fpwoext = split(filepath, '.')[end-1]
+  fid = IOStream("")
+  try
+    fid = open("$(fpwoext).dot","w+")
+    write(fid,to_dot(treel.bt))
+    close(fid)
+    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+  catch ex
+    @warn ex
+    @show stacktrace()
+  finally
+    close(fid)
+  end
+
+  show ? showTree(viewerapp=viewerapp, filepath=filepath) : nothing
+end
+
+
 
 ## Find batch belief propagation solution
 function prepBatchTree!(fg::FactorGraph;
@@ -187,13 +223,7 @@ function prepBatchTree!(fg::FactorGraph;
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
   println("Bayes Tree")
   if drawpdf
-    fext = split(filepath, '.')[end]
-    fpwoext = split(filepath, '.')[end-1]
-    fid = open("$(fpwoext).dot","w+")
-    write(fid,to_dot(tree.bt))
-    close(fid)
-    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
-    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+    drawTree(tree, show=show, filepath=filepath, viewerapp=viewerapp)
   end
 
   # GraphViz.Graph(to_dot(tree.bt))
@@ -234,9 +264,15 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
   nothing
 end
 
-function wipeBuildNewTree!(fg::FactorGraph; ordering=:qr,drawpdf=false)
+function wipeBuildNewTree!(fg::FactorGraph;
+                           ordering=:qr,
+                           drawpdf=false,
+                           show::Bool=false,
+                           filepath::String="/tmp/bt.pdf",
+                           viewerapp::String="evince"  )
+  #
   resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf);
+  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp);
 end
 
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}

@@ -723,10 +723,10 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  @info "adding marginal to"
-  for x in Xi
-    @info "x.index=",x.index
-  end
+  # @info "adding marginal to"
+  # for x in Xi
+  #   @info "x.index=",x.index
+  # end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
@@ -1050,22 +1050,30 @@ function subgraphFromVerts(fgl::FactorGraph,
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
 
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-# Using unique index into graph data structure
+"""
+    $(SIGNATURES)
+
+Explore all shortest paths combinations in verts, add neighbors and reference
+subgraph using unique index into graph data structure.
+"""
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{String,1};
-    neighbors::Int=0  )
+                           verts::Union{Vector{String},Vector{Symbol}};
+                           neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
     id = -1
-    if haskey(fgl.IDs, vert)
-      id = fgl.IDs[Symbol(vert)]
+    vsym = Symbol(vert)
+    if haskey(fgl.IDs, vsym)
+      id = fgl.IDs[vsym]
     else
       error("FactorGraph01 only supports variable node subgraph search at this point")
     end
-    vertdict[id] = fgl.g.vertices[id]
+    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
+
+
+#
