@@ -994,7 +994,6 @@ function getShortestPathNeighbors(fgl::FactorGraph;
     to::Graphs.ExVertex=nothing,
     neighbors::Int=0 )
 
-  @show num_edges(fgl.g), from, to
   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
   vertdict = Dict{Int,Graphs.ExVertex}()
   edgedict = edgelist2edgedict(edgelist)
@@ -1027,7 +1026,6 @@ function subgraphFromVerts(fgl::FactorGraph,
     for i in 1:len, j in (i+1):len
       from = verts[allkeys[i]]
       to = verts[allkeys[j]]
-      @show from, to, neighbors
       vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
       for vert in vertdict
         if !haskey(allverts, vert[1])
