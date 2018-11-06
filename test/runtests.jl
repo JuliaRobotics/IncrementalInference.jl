@@ -12,12 +12,6 @@ print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
 
-include("testFactorMetadata.jl")
-
-include("testExplicitMultihypo.jl")
-
-include("testMultithreaded.jl")
-
 println("[TEST] basic Bayes tree construction")
 include("testBayesTreeiSAM2Example.jl")
 println("Success")
@@ -30,6 +24,8 @@ println("[TEST] packing converters work...")
 include("testgraphpackingconverters.jl")
 println("Success")
 
+# include("testNLsolve.jl")
+
 println("[TEST] generic root finding by numeric solve of residual functions...")
 include("testNumericRootGenericRandomized.jl")
 println("Success")
@@ -41,6 +37,12 @@ println("Success")
 println("[TEST] with simple local constraint examples Odo, Obsv2...")
 include("testlocalconstraintexamples.jl")
 println("Success")
+
+include("testFactorMetadata.jl")
+
+include("testExplicitMultihypo.jl")
+
+include("testMultithreaded.jl")
 
 println("[TEST] partial constraints...")
 include("testpartialconstraint.jl")
