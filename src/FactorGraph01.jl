@@ -724,10 +724,10 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  @info "adding marginal to"
-  for x in Xi
-    @info "x.index=",x.index
-  end
+  # @info "adding marginal to"
+  # for x in Xi
+  #   @info "x.index=",x.index
+  # end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
