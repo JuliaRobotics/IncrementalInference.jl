@@ -262,5 +262,15 @@ function _evalType(pt::String)::Type
     end
 end
 
+"""
+    $(SIGNATURES)
+
+Print the maximum point values form all variables approximate marginals in the factor graph.
+The full marginal can be recovered for example `X0 = getVertKDE(fg, :x0)`.
+"""
+function printgraphmax(fgl::FactorGraph)
+    verts = union(ls(fgl)...)
+    map(v -> println("$v : $(getKDEMax(getVertKDE(fgl, v)))"), verts);
+end
 
 #

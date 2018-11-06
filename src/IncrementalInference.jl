@@ -117,6 +117,7 @@ export
   lsf,
   ls2,
   hasOrphans,
+  printgraphmax,
   allnums,
   isnestednum,
   sortnestedperm,
