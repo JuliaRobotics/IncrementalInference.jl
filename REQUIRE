@@ -1,4 +1,5 @@
 julia 0.7 1.1
+Distributed
 Graphs 0.10.1
 Reexport 0.2.0
 NLsolve 2.1.0 3.0.0
