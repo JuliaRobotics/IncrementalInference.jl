@@ -67,14 +67,6 @@ end
 # end
 
 
-"""
-Ensure the desired number of julia processes are present.
-"""
-function check_procs(nprocs::Int)
-  if nprocs > 1
-    nprocs() < nprocs ? addprocs(nprocs-nprocs()) : nothing
-  end
-end
 
 #global pidx
 pidx = 1
