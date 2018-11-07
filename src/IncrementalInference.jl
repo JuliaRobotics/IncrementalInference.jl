@@ -23,8 +23,6 @@ using
   Optim # might be deprecated in favor for only NLsolve dependency
 
 
-include("ccolamd.jl")
-using Ccolamd
 
 const KDE = KernelDensityEstimate
 
@@ -217,6 +215,8 @@ export
 
 
 const NothingUnion{T} = Union{Nothing, T}
+
+include("ccolamd.jl")
 
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
