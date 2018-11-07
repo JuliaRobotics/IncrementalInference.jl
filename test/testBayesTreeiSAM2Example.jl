@@ -97,3 +97,15 @@ end
 @warn "add test tree verification"
 
 # run(`evince bt.pdf`)
+
+
+
+
+
+
+# debug fill color issue
+
+tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+
+
+#
