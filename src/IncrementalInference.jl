@@ -37,7 +37,6 @@ export
   showcurrentdlapi,
   setdatalayerAPI!,
   DataLayerAPI,
-  check_procs,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
