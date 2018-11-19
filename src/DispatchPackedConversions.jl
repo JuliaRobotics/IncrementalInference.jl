@@ -1,6 +1,8 @@
 
-# Creation of packed types should be automated with macros
 
+"""
+$(TYPEDEF)
+"""
 mutable struct PackedVariableNodeData
   vecinitval::Array{Float64,1}
   diminitval::Int

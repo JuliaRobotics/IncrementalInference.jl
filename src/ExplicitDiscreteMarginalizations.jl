@@ -102,7 +102,6 @@ function assembleHypothesesElements!(
 
   return certainidx, allelements, activehypo, mhidx
 end
-
 function assembleHypothesesElements!(
             mh::Nothing,
             maxlen::Int,

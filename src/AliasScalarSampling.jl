@@ -1,6 +1,9 @@
 # sample from weights
 
 
+"""
+$(TYPEDEF)
+"""
 struct AliasingScalarSampler
   domain::Vector{Float64}
   weights::StatsBase.ProbabilityWeights

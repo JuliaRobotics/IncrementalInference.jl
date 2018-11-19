@@ -3,11 +3,17 @@
 SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
 
 
+"""
+$(TYPEDEF)
+"""
 struct ContinuousScalar <: InferenceVariable
   dims::Int
   labels::Vector{String}
   ContinuousScalar() = new(1, String[])
 end
+"""
+$(TYPEDEF)
+"""
 struct ContinuousMultivariate <: InferenceVariable
   dims::Int
   labels::Vector{String}
@@ -16,12 +22,18 @@ struct ContinuousMultivariate <: InferenceVariable
 end
 
 
+"""
+$(TYPEDEF)
+"""
 struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBelief
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
+"""
+$(TYPEDEF)
+"""
 struct LinearConditional{T} <: IncrementalInference.FunctorPairwise where T <: SamplableBelief
   Z::T
 end
@@ -38,6 +50,9 @@ function (s::LinearConditional)(res::Array{Float64},
 end
 
 
+"""
+$(TYPEDEF)
+"""
 struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
   Z::Vector{T}
   C::Distributions.Categorical
@@ -50,6 +65,9 @@ MixturePrior(z::Vector{T}, c::Union{Distributions.Categorical, Vector{Float64}})
 getSample(s::MixturePrior, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
 
 
+"""
+$(TYPEDEF)
+"""
 struct MixtureLinearConditional{T} <: IncrementalInference.FunctorPairwise
   Z::Vector{T}
   C::Distributions.Categorical
@@ -75,6 +93,9 @@ end
 
 ## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
 
+"""
+$(TYPEDEF)
+"""
 struct PackedPrior <: PackedInferenceType
   Z::String
   PackedPrior() = new()
@@ -88,6 +109,9 @@ function convert(::Type{Prior}, d::PackedPrior)
 end
 
 
+"""
+$(TYPEDEF)
+"""
 struct PackedLinearConditional <: PackedInferenceType
   Z::String
   PackedLinearConditional() = new()
@@ -101,6 +125,9 @@ function convert(::Type{LinearConditional}, d::PackedLinearConditional)
 end
 
 
+"""
+$(TYPEDEF)
+"""
 struct PackedMixtureLinearConditional <: PackedInferenceType
   strs::Vector{String}
   cat::String
@@ -116,6 +143,9 @@ end
 
 
 
+"""
+$(TYPEDEF)
+"""
 struct PackedMixturePrior <: PackedInferenceType
   strs::Vector{String}
   cat::String
