@@ -271,7 +271,7 @@ function addNode!(fg::FactorGraph,
   @warn "IIF.addNode!(..) is being deprecated, use IIF.addVariable!(..) instead."
   return addVariable!( fg,
                        lbl,
-                       softtype
+                       softtype,
                        N=N,
                        autoinit=autoinit,  # does init need to be separate from ready? TODO
                        ready=ready,
