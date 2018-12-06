@@ -185,7 +185,7 @@ export
   PackedGenericMarginal,
 
   uppA,
-  convert, # for protobuf stuff
+  convert,
   compare,
   extractdistribution,
 
@@ -199,6 +199,9 @@ export
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
+
+  setUpMsg!,
+  upMsg,
 
   # For 1D example,
 

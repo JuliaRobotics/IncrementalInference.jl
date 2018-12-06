@@ -35,12 +35,14 @@ mutable struct UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
+    keepupmsgs::Dict{Symbol, BallTreeDensity}
 end
 
 mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
     IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
+    keepdwnmsgs::Dict{Symbol, BallTreeDensity}
 end
 
 mutable struct ExploreTreeType
@@ -385,15 +387,6 @@ function localProduct(fgl::FactorGraph,
 
   return pp, dens, partials, lb
 end
-
-"""
-    $(SIGNATURES)
-
-Using factor graph object `fg`, project belief through connected factors
-(convolution with conditional) to variable `sym` followed by a approximate functional product.
-
-Return: product belief, full proposals, partial dimension proposals, labels
-"""
 localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
 
 
@@ -448,7 +441,7 @@ end
 """
     $(SIGNATURES)
 
-Iterate successive approximations of clique marginal beliefs by means 
+Iterate successive approximations of clique marginal beliefs by means
 of the stipulated proposal convolutions and products of the functional objects
 for tree clique `cliq`.
 """
@@ -518,6 +511,12 @@ function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float
   return m
 end
 
+"""
+    $(SIGNATURES)
+
+Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
+This function is usually called as part via remote_call for multiprocess dispatch.
+"""
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     @info "up w $(length(inp.sendmsgs)) msgs"
     # Local mcmc over belief functions
@@ -553,7 +552,6 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
     m = upPrepOutMsg!(d, inp.cliq.attributes["data"].conditIDs)
 
-
     outmsglbl = Dict{Symbol, Int}()
     if dbg
       for (ke, va) in m.p
@@ -561,13 +559,20 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
       end
     end
 
+    upmsgs = Dict{Symbol, BallTreeDensity}()
+    for (ke, va) in m.p
+      msgsym = Symbol(inp.fg.g.vertices[ke].label)
+      upmsgs[msgsym] = convert(BallTreeDensity, va)
+    end
+    setUpMsg!(inp.cliq, upmsgs)
+
     # Copy frontal variables back
     # for id in inp.cliq.attributes["frontalIDs"]
     #     inp.fg.v[id].attributes["val"] = loclfg.v[id].attributes["val"] # inp.
     # end
     # @show getVal(inp.fg.v[1])
     mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
-    return UpReturnBPType(m, mdbg, d)
+    return UpReturnBPType(m, mdbg, d, upmsgs)
 end
 # else
 #   rr = Array{Future,1}(4)
@@ -623,8 +628,11 @@ function downGibbsCliqueDensity(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs:
       end
     end
 
+    dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
+    # TODO add down keep messages to cliq data
+
     mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
-    return DownReturnBPType(m, mdbg, d)
+    return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
 end
 
 
@@ -660,6 +668,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
     if dbg
       cliq.attributes["debug"] = deepcopy(urt.dbgUp)
     end
+    setUpMsg!(cliq, urt.keepupmsgs)
     if fillcolor != ""
       cliq.attributes["fillcolor"] = fillcolor
       cliq.attributes["style"] = "filled"
