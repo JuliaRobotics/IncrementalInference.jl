@@ -393,4 +393,8 @@ function convert(::Type{BallTreeDensity}, p::EasyMessage)
   kde!(p.pts, p.bws)
 end
 
+function convert(::Type{EasyMessage}, p::BallTreeDensity)
+  EasyMessage(getPoints(p), getBW(p)[:,1])
+end
+
 #

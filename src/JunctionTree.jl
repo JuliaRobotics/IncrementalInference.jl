@@ -294,13 +294,56 @@ function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
 end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for Bayes (Junction) tree clique `cliql`.
+
+> TODO: add to func_ref.md lising in Caesar documentation.
+"""
 function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
   getData(cliql).upMsg = msgs
 end
 
-function upMsg(btl::BayesTree, sym::Symbol)
-  getData(whichCliq(btl, sym)).upMsg
+"""
+    $(SIGNATURES)
+
+Set the downward passing message for Bayes (Junction) tree clique `cliql`.
+
+> TODO: add to func_ref.md lising in Caesar documentation.
+"""
+function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+  getData(cliql).dwnMsg = msgs
 end
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+
+> TODO add to Caesar documentation func_ref.md listing.
+"""
+function upMsg(cliq::Graphs.ExVertex)
+  getData(cliq).upMsg
+end
+function upMsg(btl::BayesTree, sym::Symbol)
+  upMsg(whichCliq(btl, sym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+
+> TODO add to Caesar documentation func_ref.md listing.
+"""
+function dwnMsg(cliq::Graphs.ExVertex)
+  getData(cliq).dwnMsg
+end
+function dwnMsg(btl::BayesTree, sym::Symbol)
+  upMsg(whichCliq(btl, sym))
+end
+
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   for tp in usefcts
@@ -572,4 +615,17 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     setCliqMCIDs!(cliq);
 
     nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return a vector of child cliques to `cliq`.
+"""
+function childCliqs(treel::BayesTree, cliq::Graphs.ExVertex)
+    childcliqs = Vector{Graphs.ExVertex}(undef, 0)
+    for cl in Graphs.out_neighbors(cliq, treel.bt)
+        push!(childcliqs, cl)
+    end
+    return childcliqs
 end

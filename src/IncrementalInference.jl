@@ -98,6 +98,7 @@ export
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  childCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -129,6 +130,10 @@ export
   evalFactor2,
   approxConv,
   approxConvBinary,
+
+  # more debugging tools
+  localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
+  treeProductUp,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -202,6 +207,8 @@ export
 
   setUpMsg!,
   upMsg,
+  setDwnMsg!,
+  dwnMsg,
 
   # For 1D example,
 

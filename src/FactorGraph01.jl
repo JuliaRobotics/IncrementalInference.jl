@@ -22,14 +22,17 @@ function setData!(v::Graphs.ExVertex, data)
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
+"""
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
 end
 function getVal(v::Graphs.ExVertex, idx::Int)
   return getData(v).val[:,idx]
 end
-
-# Convenience function to get values for given variable label
 function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
   getVal(getVert(fgl, lbl, api=api))
@@ -39,6 +42,11 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+"""
+    $(SIGNATURES)
+
+Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
+"""
 function getNumPts(v::Graphs.ExVertex)
   return size(getData(v).val,2)
 end
@@ -109,7 +117,11 @@ end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
 setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
+"""
+    $(SIGNATURES)
 
+Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
+"""
 function kde!(em::EasyMessage)
   return kde!(em.pts,em.bws)
 end
