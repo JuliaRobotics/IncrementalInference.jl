@@ -69,6 +69,7 @@ export
   addNode!,
   addFactor!,
   doautoinit!,
+  manualinit!,
   resetData!,
   getVert,
   getData,
