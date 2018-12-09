@@ -524,7 +524,7 @@ end
 """
     $(SIGNATURES)
 
-initialize destination variable nodes based on this factor in factor graph, fg, generally called
+Initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
 function doautoinit!(fgl::FactorGraph,
@@ -543,6 +543,22 @@ function doautoinit!(fgl::FactorGraph,
                      N::Int=100)
   #
   doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
+end
+
+"""
+    $(SIGNATURES)
+
+Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
+
+> TODO add to Caesar func_ref.md documentation.
+"""
+function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
+  @warn "manual_init being used as a workaround for temporary autoinit issues."
+  pts = predictbelief(fgl, sym, usefcts)
+  Xpre = kde!(pts)
+  setValKDE!(fgl, sym, Xpre)
+  getData(fgl, sym).initialized = true
+  nothing
 end
 
 function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
