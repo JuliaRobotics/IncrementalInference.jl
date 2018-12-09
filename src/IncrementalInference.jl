@@ -99,6 +99,7 @@ export
   wipeBuildNewTree!,
   whichCliq,
   childCliqs,
+  parentCliq,
   getKDE,
   getVertKDE,
   initializeNode!,

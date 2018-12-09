@@ -61,12 +61,6 @@ mutable struct MsgPassType
   N::Int
 end
 
-# type UpMsgPassType
-#   fg::FactorGraph
-#   cliq::Graphs.ExVertex
-#   upMsgs::Array{NBPMessage,1}
-#   N::Int
-# end
 
 
 
@@ -557,6 +551,7 @@ function treeProductUp(fg::FactorGraph, tree::BayesTree, cliq::Symbol, sym::Symb
   return pGM, potprod
 end
 
+
 """
     $(SIGNATURES)
 
@@ -575,20 +570,23 @@ function treeProductDwn(fg::FactorGraph,
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
 
+  # get the local variable id::Int identifier
+  vertid = fg.IDs[sym]
 
-    # get the local variable id::Int identifier
-    vertid = fg.IDs[sym]
+  # get all the incoming (upward) messages from the tree cliques
+  # convert incoming messages to Int indexed format (semi-legacy format)
+  cl = parentCliq(tree, cliq)
+  msgdict = dwnMsg(cl[1])
+  dict = Dict{Int, EasyMessage}()
+  for (dsy, btd) in msgdict
+      dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
+  end
+  dwnmsgssym = NBPMessage[NBPMessage(dict);]
 
-    # get all the incoming (upward) messages from the tree cliques
-    # convert incoming messages to Int indexed format (semi-legacy format)
-    cl = parentCliq(tree, cliq)
-    msgdict = dwnMsg(cl)
-    dict = Dict{Int, EasyMessage}()
-    for (dsy, btd) in msgdict
-        dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
-    end
-    dwnmsgssym = NBPMessage[NBPMessage(dict);]
+  # perform the actual computation
+  pGM, potprod = cliqGibbs( fg, cliq, vertid, dwnmsgssym, N, dbg )
 
+  return pGM, potprod, vertid, dwnmsgssym
 end
 
 
@@ -725,7 +723,7 @@ function downGibbsCliqueDensity(fg::FactorGraph,
     # Always keep dwn messages in cliq data
     dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
     for (ke, va) in m.p
-      msgsym = Symbol(inp.fg.g.vertices[ke].label)
+      msgsym = Symbol(fg.g.vertices[ke].label)
       dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
     end
     setDwnMsg!(cliq, dwnkeepmsgs)

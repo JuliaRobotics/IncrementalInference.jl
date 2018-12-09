@@ -621,6 +621,8 @@ end
     $(SIGNATURES)
 
 Return a vector of child cliques to `cliq`.
+
+> TODO add to Caesar func_ref.md documentation.
 """
 function childCliqs(treel::BayesTree, cliq::Graphs.ExVertex)
     childcliqs = Vector{Graphs.ExVertex}(undef, 0)
@@ -628,4 +630,23 @@ function childCliqs(treel::BayesTree, cliq::Graphs.ExVertex)
         push!(childcliqs, cl)
     end
     return childcliqs
+end
+function childCliqs(treel::BayesTree, frtsym::Symbol)
+  childCliqs(treel,  whichCliq(treel, frtsym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return `cliq`'s parent clique.
+"""
+function parentCliq(treel::BayesTree, cliq::Graphs.ExVertex)
+    childcliqs = Vector{Graphs.ExVertex}(undef, 0)
+    for cl in Graphs.in_neighbors(cliq, treel.bt)
+        push!(childcliqs, cl)
+    end
+    return childcliqs
+end
+function parentCliq(treel::BayesTree, frtsym::Symbol)
+  parentCliq(treel,  whichCliq(treel, frtsym))
 end

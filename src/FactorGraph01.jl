@@ -794,7 +794,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
           for sepNode in localapi.outneighbors(fg, fct)
-            if sepNode.index != v && !(sepNode in Si) # length(findin(sepNode.index, Si)) == 0
+            # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
+            if sepNode.index != v && !(sepNode.index in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
@@ -836,14 +837,27 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     return X,Y
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+
+> TODO add to Caesar func_ref.md function list.
+"""
 function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+
+> TODO add to Caesar func_ref.md function list.
+"""
 function getVertKDE(v::Graphs.ExVertex)
   return getKDE(v)
 end
-
 function getVertKDE(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,id)
   return getKDE(v)
@@ -852,7 +866,9 @@ function getVertKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,lbl)
   return getKDE(v)
 end
-
+function getKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  return getVertKDE(fgl, lbl, api=api)
+end
 
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
@@ -867,6 +883,13 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
+"""
+    $(SIGNATURES)
+
+Export a dot and pdf file drawn by Graphviz showing the factor graph.
+
+> TODO add to Caesar func_ref.md documentation.
+"""
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",
