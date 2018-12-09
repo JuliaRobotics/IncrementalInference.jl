@@ -14,8 +14,10 @@ mutable struct BayesTreeNodeData
   directPriorMsgIDs::Vector{Int}
   debug
   debugDwn
+  upMsg::Dict{Symbol, BallTreeDensity}
+  dwnMsg::Dict{Symbol, BallTreeDensity}
   BayesTreeNodeData() = new()
-  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14])
+  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],x[12],x[13],x[14],x[15],x[16])
 end
 
 # TODO -- this should be a constructor
@@ -24,7 +26,9 @@ function emptyBTNodeData()
                     Int[],Int[],Array{Bool}(undef, 0,0),
                     Array{Bool}(undef, 0,0),Int[],Int[],
                     Int[],Int[],Int[],
-                    nothing, nothing)
+                    nothing, nothing,
+                    Dict{Symbol, BallTreeDensity}(:null => KDE.kde!([0.0;], [1.0;])),
+                    Dict{Symbol, BallTreeDensity}(:null => KDE.kde!([0.0;], [1.0;])) )
 end
 
 # BayesTree declarations
@@ -264,6 +268,11 @@ function resetFactorGraphNewTree!(fg::FactorGraph)
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Build a completely new Bayes (Junction) tree, after first wiping clean all temporary state in fg from a possibly pre-existing tree.
+"""
 function wipeBuildNewTree!(fg::FactorGraph;
                            ordering=:qr,
                            drawpdf=false,
@@ -275,10 +284,65 @@ function wipeBuildNewTree!(fg::FactorGraph;
   return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp);
 end
 
+"""
+    $(SIGNATURES)
+
+Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
+"""
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
     bt.cliques[bt.frontals[frt]]
 end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for Bayes (Junction) tree clique `cliql`.
+
+> TODO: add to func_ref.md lising in Caesar documentation.
+"""
+function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+  getData(cliql).upMsg = msgs
+end
+
+"""
+    $(SIGNATURES)
+
+Set the downward passing message for Bayes (Junction) tree clique `cliql`.
+
+> TODO: add to func_ref.md lising in Caesar documentation.
+"""
+function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+  getData(cliql).dwnMsg = msgs
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+
+> TODO add to Caesar documentation func_ref.md listing.
+"""
+function upMsg(cliq::Graphs.ExVertex)
+  getData(cliq).upMsg
+end
+function upMsg(btl::BayesTree, sym::Symbol)
+  upMsg(whichCliq(btl, sym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+
+> TODO add to Caesar documentation func_ref.md listing.
+"""
+function dwnMsg(cliq::Graphs.ExVertex)
+  getData(cliq).dwnMsg
+end
+function dwnMsg(btl::BayesTree, sym::Symbol)
+  upMsg(whichCliq(btl, sym))
+end
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -551,4 +615,38 @@ function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVe
     setCliqMCIDs!(cliq);
 
     nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return a vector of child cliques to `cliq`.
+
+> TODO add to Caesar func_ref.md documentation.
+"""
+function childCliqs(treel::BayesTree, cliq::Graphs.ExVertex)
+    childcliqs = Vector{Graphs.ExVertex}(undef, 0)
+    for cl in Graphs.out_neighbors(cliq, treel.bt)
+        push!(childcliqs, cl)
+    end
+    return childcliqs
+end
+function childCliqs(treel::BayesTree, frtsym::Symbol)
+  childCliqs(treel,  whichCliq(treel, frtsym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return `cliq`'s parent clique.
+"""
+function parentCliq(treel::BayesTree, cliq::Graphs.ExVertex)
+    childcliqs = Vector{Graphs.ExVertex}(undef, 0)
+    for cl in Graphs.in_neighbors(cliq, treel.bt)
+        push!(childcliqs, cl)
+    end
+    return childcliqs
+end
+function parentCliq(treel::BayesTree, frtsym::Symbol)
+  parentCliq(treel,  whichCliq(treel, frtsym))
 end

@@ -389,5 +389,12 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
   nothing
 end
 
+function convert(::Type{BallTreeDensity}, p::EasyMessage)
+  kde!(p.pts, p.bws)
+end
+
+function convert(::Type{EasyMessage}, p::BallTreeDensity)
+  EasyMessage(getPoints(p), getBW(p)[:,1])
+end
 
 #

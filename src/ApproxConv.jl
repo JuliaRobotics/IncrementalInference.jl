@@ -373,9 +373,9 @@ end
 """
     $(SIGNATURES)
 
-Compute proposal belief on varnodeid through fctvert representing some constraint in factor graph.
-Always full dimension of variable node, where partial constraints will only influence directed
-subset of variable dimensions. Remaining dimensions will keep existing variable values.
+Compute proposal belief on `vertid` through `idfct` representing some constraint in factor graph.
+Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
+The remaining dimensions will keep pre-existing variable values.
 """
 function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int, dbg::Bool=false) # vert
   # assuming it is properly initialized TODO

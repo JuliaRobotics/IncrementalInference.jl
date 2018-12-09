@@ -22,14 +22,17 @@ function setData!(v::Graphs.ExVertex, data)
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
+"""
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
 end
 function getVal(v::Graphs.ExVertex, idx::Int)
   return getData(v).val[:,idx]
 end
-
-# Convenience function to get values for given variable label
 function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
   getVal(getVert(fgl, lbl, api=api))
@@ -39,6 +42,11 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+"""
+    $(SIGNATURES)
+
+Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
+"""
 function getNumPts(v::Graphs.ExVertex)
   return size(getData(v).val,2)
 end
@@ -109,7 +117,11 @@ end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
 setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
+"""
+    $(SIGNATURES)
 
+Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
+"""
 function kde!(em::EasyMessage)
   return kde!(em.pts,em.bws)
 end
@@ -512,7 +524,7 @@ end
 """
     $(SIGNATURES)
 
-initialize destination variable nodes based on this factor in factor graph, fg, generally called
+Initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
 function doautoinit!(fgl::FactorGraph,
@@ -531,6 +543,22 @@ function doautoinit!(fgl::FactorGraph,
                      N::Int=100)
   #
   doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
+end
+
+"""
+    $(SIGNATURES)
+
+Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
+
+> TODO add to Caesar func_ref.md documentation.
+"""
+function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
+  @warn "manual_init being used as a workaround for temporary autoinit issues."
+  pts = predictbelief(fgl, sym, usefcts)
+  Xpre = kde!(pts)
+  setValKDE!(fgl, sym, Xpre)
+  getData(fgl, sym).initialized = true
+  nothing
 end
 
 function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
@@ -782,7 +810,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
           for sepNode in localapi.outneighbors(fg, fct)
-            if sepNode.index != v && !(sepNode in Si) # length(findin(sepNode.index, Si)) == 0
+            # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
+            if sepNode.index != v && !(sepNode.index in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
@@ -824,14 +853,27 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     return X,Y
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+
+> TODO add to Caesar func_ref.md function list.
+"""
 function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+
+> TODO add to Caesar func_ref.md function list.
+"""
 function getVertKDE(v::Graphs.ExVertex)
   return getKDE(v)
 end
-
 function getVertKDE(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,id)
   return getKDE(v)
@@ -840,7 +882,9 @@ function getVertKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,lbl)
   return getKDE(v)
 end
-
+function getKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  return getVertKDE(fgl, lbl, api=api)
+end
 
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
@@ -855,6 +899,13 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
+"""
+    $(SIGNATURES)
+
+Export a dot and pdf file drawn by Graphviz showing the factor graph.
+
+> TODO add to Caesar func_ref.md documentation.
+"""
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",

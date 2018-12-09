@@ -69,6 +69,7 @@ export
   addNode!,
   addFactor!,
   doautoinit!,
+  manualinit!,
   resetData!,
   getVert,
   getData,
@@ -98,6 +99,8 @@ export
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  childCliqs,
+  parentCliq,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -129,6 +132,10 @@ export
   evalFactor2,
   approxConv,
   approxConvBinary,
+
+  # more debugging tools
+  localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
+  treeProductUp,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -185,7 +192,7 @@ export
   PackedGenericMarginal,
 
   uppA,
-  convert, # for protobuf stuff
+  convert,
   compare,
   extractdistribution,
 
@@ -199,6 +206,11 @@ export
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
+
+  setUpMsg!,
+  upMsg,
+  setDwnMsg!,
+  dwnMsg,
 
   # For 1D example,
 
