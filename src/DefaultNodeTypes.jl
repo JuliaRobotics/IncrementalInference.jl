@@ -75,7 +75,7 @@ end
 
 ## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
 
-struct PackedPrior <: PackedInferenceType
+mutable struct PackedPrior <: PackedInferenceType
   Z::String
   PackedPrior() = new()
   PackedPrior(z::AS) where {AS <: AbstractString} = new(z)
@@ -88,7 +88,7 @@ function convert(::Type{Prior}, d::PackedPrior)
 end
 
 
-struct PackedLinearConditional <: PackedInferenceType
+mutable struct PackedLinearConditional <: PackedInferenceType
   Z::String
   PackedLinearConditional() = new()
   PackedLinearConditional(z::AS) where {AS <: AbstractString} = new(z)
@@ -101,7 +101,7 @@ function convert(::Type{LinearConditional}, d::PackedLinearConditional)
 end
 
 
-struct PackedMixtureLinearConditional <: PackedInferenceType
+mutable struct PackedMixtureLinearConditional <: PackedInferenceType
   strs::Vector{String}
   cat::String
   PackedMixtureLinearConditional() = new()
@@ -116,7 +116,7 @@ end
 
 
 
-struct PackedMixturePrior <: PackedInferenceType
+mutable struct PackedMixturePrior <: PackedInferenceType
   strs::Vector{String}
   cat::String
   PackedMixturePrior() = new()
