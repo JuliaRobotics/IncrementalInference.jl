@@ -168,14 +168,14 @@ ccw.varidx = 2
 
 # do for a single point (i=1)
 
-r = nlsolve( ccw, [0.0] )
+r = nlsolve( ccw, [0.0], inplace=true )
 
 
 # for all points
 @time for i in 1:N
   ccw.cpt[Threads.threadid()].particleidx = i
     # ccw(x, res)
-  r = nlsolve( ccw, ccw.params[ccw.varidx][:,ccw.cpt[Threads.threadid()].particleidx] )
+  r = nlsolve( ccw, ccw.params[ccw.varidx][:,ccw.cpt[Threads.threadid()].particleidx], inplace=true )
   ccw.params[ccw.varidx][1,ccw.cpt[Threads.threadid()].particleidx] = r.zero[1]
 end
 
