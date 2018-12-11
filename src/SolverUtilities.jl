@@ -12,7 +12,7 @@ end
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
   # function is being deprecated
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 ), inplace=true).zero
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
 end
 
 
