@@ -549,8 +549,6 @@ end
     $(SIGNATURES)
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
-
-> TODO add to Caesar func_ref.md documentation.
 """
 function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
   @warn "manual_init being used as a workaround for temporary autoinit issues."
@@ -857,8 +855,6 @@ end
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
-
-> TODO add to Caesar func_ref.md function list.
 """
 function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
@@ -868,8 +864,6 @@ end
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
-
-> TODO add to Caesar func_ref.md function list.
 """
 function getVertKDE(v::Graphs.ExVertex)
   return getKDE(v)
@@ -903,8 +897,6 @@ end
     $(SIGNATURES)
 
 Export a dot and pdf file drawn by Graphviz showing the factor graph.
-
-> TODO add to Caesar func_ref.md documentation.
 """
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",

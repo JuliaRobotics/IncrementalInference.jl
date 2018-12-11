@@ -121,8 +121,6 @@ end
     $(SIGNATURES)
 
 Add all potentials associated with this clique and vertid to dens.
-
-> TODO add to func_ref.md in Caesar documentation.
 """
 function packFromLocalPotentials!(fgl::FactorGraph,
       dens::Vector{BallTreeDensity},
@@ -416,8 +414,6 @@ end
     $(SIGNATURES)
 
 Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov trasit integral -- here involving separate approximate functional convolution and product operations.
-
-> TODO add to func_ref.md in Caesar.jl documentation.
 """
 function cliqGibbs(fg::FactorGraph,
                    cliq::Graphs.ExVertex,
@@ -522,8 +518,6 @@ end
 
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
-
-> TODO: add to Caesar docs func_ref.md list.
 """
 function treeProductUp(fg::FactorGraph, tree::BayesTree, cliq::Symbol, sym::Symbol; N::Int=100, dbg::Bool=false )
   cliq = whichCliq(tree, cliq)
@@ -557,8 +551,6 @@ end
 
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the downward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
-
-> TODO: add to Caesar docs func_ref.md list.
 """
 function treeProductDwn(fg::FactorGraph,
                         tree::BayesTree,
@@ -595,8 +587,6 @@ end
 
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
 This function is usually called as part via remote_call for multiprocess dispatch.
-
-> TODO add to func_ref.md in Caesar documentation.
 """
 function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     @info "up w $(length(inp.sendmsgs)) msgs"
@@ -736,8 +726,6 @@ end
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
-
-> TODO add to func_ref.md in Caesar documentation.
 """
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false, fillcolor::String="")
     # if dlapi.cgEnabled
@@ -766,8 +754,6 @@ end
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
-
-> TODO add to func_ref.md in Caesar documentation.
 """
 function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false, fillcolor::String="")
 # TODO -- use Union{} for two types, rather than separate functions
@@ -797,8 +783,6 @@ end
     $(SIGNATURES)
 
 Pass NBPMessages back down the tree -- pre order tree traversal.
-
-> TODO add to func_ref.md in Caesar documentation.
 """
 function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
