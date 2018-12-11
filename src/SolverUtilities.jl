@@ -12,7 +12,7 @@ end
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
   # function is being deprecated
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
 end
 
 
@@ -101,7 +101,8 @@ function numericRootGenericRandomizedFnc!(
       ccwl.cpt[Threads.threadid()].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
       ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb
       r = nlsolve(  ccwl,
-                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
+                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                    inplace=true
                  )
       if r.f_converged
         shuffleXAltD!( ccwl, r.zero )
@@ -125,7 +126,7 @@ function numericRootGenericRandomizedFnc!(
 
     # str = "nlsolve, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx), X=$(ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx])"
     # ccall(:jl_, Nothing, (Any,), str)
-    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx] )
+    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx], inplace=true )
     # ccall(:jl_, Nothing, (Any,), "nlsolve.zero=$(r.zero)")
     if sum(isnan.(( r ).zero)) == 0
       ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
@@ -145,7 +146,8 @@ function numericRootGenericRandomizedFnc!(
     # improve memory management in this function
     ccwl.cpt[Threads.threadid()].p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
     r = nlsolve(  ccwl,
-                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
+                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                  inplace=true
                )
     shuffleXAltD!( ccwl, r.zero )
   else
