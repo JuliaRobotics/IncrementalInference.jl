@@ -102,6 +102,11 @@ end
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+
+    @info "ANABASIS Encoding Softtype"
+  @show string(d.softtype)
+  @info "ANABASIS Encoding Softtype"
+
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                                 d.initstdev[:],size(d.initstdev,1),
                                 d.val[:],size(d.val,1),
@@ -130,7 +135,26 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)
+  # @show d
+  @show d.softtype
+  @info "KATABASIS LOGGERY"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
+  try
+      siesman = split(d.softtype, "(")[1]
+      siesman = replace(siesman, "IncrementalInference." => "")
+      siesman = replace(siesman, "RoME." => "")
+      @info "DECODING Softtype = $siesman"
+      # st = eval(Meta.parse("$siesman()"))
+      st = getfield(Main, Symbol(siesman))()
+      # We cringe... but this is by far NOT the WORST thing we've ever hacked...
+      # ... Definitely threw up in my mouth a little though...
+  catch ex
+      @warn "Unable to deserialize soft type!"
+      io = IOBuffer()
+      showerror(io, ex, catch_backtrace())
+      err = String(take!(io))
+      @warn err
+  end
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
@@ -152,6 +176,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
     TP = TP && a.ismargin == b.ismargin
+    TP = TP && a.softtype == b.softtype
     return TP
 end
 
