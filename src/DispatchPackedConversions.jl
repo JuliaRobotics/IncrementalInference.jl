@@ -215,16 +215,17 @@ end
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  @warn "convert GenericWrapParam is deprecated, use CommonConvWrapper instead."
+  @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
+
+
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  mhstr = packmultihypo(d.fnc)
+  mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr, d.fnc.certainhypo)
 end
 
 
@@ -236,14 +237,16 @@ function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  # @warn "Unpacking Option 2, F=$(F), P=$(P)"
   usrfnc = convert(F, d.fnc)
-  # @show d.multihypo
   mhcat = parsemultihypostr(d.multihypo)
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
-  return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+  @warn "experimental certainhypo unpacking -- using override"
+  ccw.certainhypo = d.certainhypo
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)
+  # error("what what $(ret.fnc.certainhypo)")
+  return ret
 end
 
 
