@@ -141,11 +141,17 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
   try
       siesman = split(d.softtype, "(")[1]
-      siesman = replace(siesman, "IncrementalInference." => "")
-      siesman = replace(siesman, "RoME." => "")
+      # siesman = replace(siesman, "IncrementalInference." => "")
+      # siesman = replace(siesman, "RoME." => "")
       @info "DECODING Softtype = $siesman"
       # st = eval(Meta.parse("$siesman()"))
-      st = getfield(Main, Symbol(siesman))()
+      # st = getfield(Main, Symbol(siesman))()
+
+      if siesman == "Point2"
+          st = Point2()
+      elseif "siesman" == "Pose2"
+          sr = Pose2()
+      end
       # We cringe... but this is by far NOT the WORST thing we've ever hacked...
       # ... Definitely threw up in my mouth a little though...
   catch ex
@@ -155,6 +161,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
       err = String(take!(io))
       @warn err
   end
+  @info "Net result: $st"
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
