@@ -225,7 +225,8 @@ end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
   mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr, d.fnc.certainhypo)
+          string(d.frommodule), convert(P, d.fnc.usrfnc!),
+          mhstr, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -237,12 +238,16 @@ function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
+  # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, d.fnc)
   mhcat = parsemultihypostr(d.multihypo)
-  # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
+
+  # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
+  # reconstitute from stored data
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
   @warn "experimental certainhypo unpacking -- using override"
   ccw.certainhypo = d.certainhypo
+
   ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)
   # error("what what $(ret.fnc.certainhypo)")
