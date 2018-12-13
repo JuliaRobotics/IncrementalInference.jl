@@ -249,5 +249,16 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
+# Hack for RoME module.
+global _romeModule = nothing
+function setRoMEModule(romeModule)::Nothing
+    global _romeModule
+    _romeModule = romeModule
+    return nothing
+end
+function getRoMEModule()
+    return _romeModule
+end
+export setRoMEModule, getRoMEModule
 
 end

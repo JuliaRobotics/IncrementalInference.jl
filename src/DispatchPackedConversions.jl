@@ -139,19 +139,25 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   @show d.softtype
   @info "KATABASIS LOGGERY"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
+  # YEEEESH...
+  @show rome = getRoMEModule()
+  # rome == nothing || @error "ROME IS NOT SET, NOR BUILT IN A DAY - please call setRoMEModule()"
+  # @show getfield(rome, :Pose2)
   try
       siesman = split(d.softtype, "(")[1]
-      # siesman = replace(siesman, "IncrementalInference." => "")
-      # siesman = replace(siesman, "RoME." => "")
+      siesman = replace(siesman, "IncrementalInference." => "")
+      siesman = replace(siesman, "RoME." => "")
       @info "DECODING Softtype = $siesman"
       # st = eval(Meta.parse("$siesman()"))
-      # st = getfield(Main, Symbol(siesman))()
+      st = getfield(rome, Symbol(siesman))()
 
-      if siesman == "Point2"
-          st = Point2()
-      elseif "siesman" == "Pose2"
-          sr = Pose2()
-      end
+      # convert(InferenceVariable, "Pose2")
+      # if siesman == "Point2"
+      #     st = Point2()
+      # end
+      # if siesman == "Pose2"
+      #     st = Pose2()
+      # end
       # We cringe... but this is by far NOT the WORST thing we've ever hacked...
       # ... Definitely threw up in my mouth a little though...
   catch ex
