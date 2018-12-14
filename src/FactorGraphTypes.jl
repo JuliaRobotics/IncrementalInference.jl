@@ -129,6 +129,26 @@ function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Ve
     return fg
 end
 
+"""
+    $(SIGNATURES)
+
+De-serialization of IncrementalInference objects require foreign types -- tunneltypes dict allows discovery of the required types.
+
+Example:
+
+Template the tunnel type function in a user module is:
+```julia
+function getType(typestring::AS) where {AS <: AbstractString}
+  # eval(Meta.parse(typestring))()
+  # getfield(Main, Symbol(typestring))
+  getfield(@__MODULE__, Symbol(typestring))
+end
+```
+"""
+function addTunnelType!(fgl::FactorGraph, keyval::Tuple{String, Function})
+  fgl.tunneltypes[keyval[1]] = keyval[2]
+end
+
 mutable struct VariableNodeData
   initval::Array{Float64,2} # TODO deprecate
   initstdev::Array{Float64,2} # TODO deprecate

@@ -213,6 +213,10 @@ export
   setDwnMsg!,
   dwnMsg,
 
+  compareField,
+  compareFields,
+  compareAll,
+
   # For 1D example,
 
   # TODO rename to ball radius
@@ -250,6 +254,8 @@ include("ApproxConv.jl")
 include("SolveTree01.jl")
 
 # Hack for RoME module.
+global tunneltypes = Dict{String, Function}()
+
 global _romeModule = nothing
 function setRoMEModule(romeModule)::Nothing
     global _romeModule
