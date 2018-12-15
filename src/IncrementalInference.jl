@@ -265,11 +265,12 @@ Example:
 
 Template to tunnel types from a user module:
 ```julia
-using RoME
-IIF.setSerializationNamespace!("RoME" => RoME)
-
 # or more generic solution -- will always try Main if available
 IIF.setSerializationNamespace!("Main" => Main)
+
+# or a specific package such as RoME
+using RoME
+IIF.setSerializationNamespace!("RoME" => RoME)
 ```
 """
 function setSerializationNamespace!(keyval::Pair{String, Module})
@@ -283,16 +284,17 @@ end
 # end
 
 
-global _romeModule = nothing
+# global _romeModule = nothing
 function setRoMEModule(romeModule)::Nothing
-    @warn "Deprecated setRoMEModule, use IIF.setSerializationNamespace!(\"Main\" => Main) function instead"
-    global _romeModule
+    error("Deprecated setRoMEModule, use IIF.setSerializationNamespace!(\"Main\" => Main) function instead")
+    # global _romeModule
     _romeModule = romeModule
     return nothing
 end
 # function getRoMEModule()
 #     return _romeModule
 # end
+
 function getSerializationModule(mod::String="Main")::Module
   global serializationnamespace
   @info "setting serialization namespace -- $mod"
