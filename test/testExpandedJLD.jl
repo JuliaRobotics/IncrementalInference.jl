@@ -1,6 +1,7 @@
 using IncrementalInference
 using Test
 
+# setSerializationNamespace!("Main" => Main)
 
 @testset "test solve by saving and loading basic jld..." begin
 
@@ -31,8 +32,8 @@ batchSolve!(fgl)
 @test length(fct.variableuserdata) == length(fcl.variableuserdata)
 
 # save load and repeat tests
-savejld(fgt)
-global fgl, = loadjld()
+savejld(fgt, file="tempfg.jld2")
+global fgl, = loadjld(file="tempfg.jld2")
 
 Base.rm("tempfg.jld2")
 
