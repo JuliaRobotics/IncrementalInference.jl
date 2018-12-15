@@ -140,16 +140,18 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   @info "KATABASIS LOGGERY"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
   # YEEEESH...
-  @show rome = getRoMEModule()
+  # @show rome = getRoMEModule()
+  mainmod = getSerializationModule()
   # rome == nothing || @error "ROME IS NOT SET, NOR BUILT IN A DAY - please call setRoMEModule()"
   # @show getfield(rome, :Pose2)
   try
       siesman = split(d.softtype, "(")[1]
-      siesman = replace(siesman, "IncrementalInference." => "")
-      siesman = replace(siesman, "RoME." => "")
+      siesman = split(siesman, '.')[end]
+      # siesman = replace(siesman, "IncrementalInference." => "")
+      # siesman = replace(siesman, "RoME." => "")
       @info "DECODING Softtype = $siesman"
       # st = eval(Meta.parse("$siesman()"))
-      st = getfield(rome, Symbol(siesman))()
+      st = getfield(mainmod, Symbol(siesman))()
 
       # convert(InferenceVariable, "Pose2")
       # if siesman == "Point2"
