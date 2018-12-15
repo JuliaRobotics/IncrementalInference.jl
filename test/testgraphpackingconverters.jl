@@ -69,13 +69,16 @@ end
   global pd = convert(IncrementalInference.PackedVariableNodeData, dat)
   global unpckd = convert(IncrementalInference.VariableNodeData, pd)
 
-  @test IncrementalInference.compare(getData(fg, :x1), unpckd)
-  @test getData(fg,:x1) == unpckd
+  @test compareFields(dat, unpckd, skip=[:softtype])
+  @test compareFields(dat.softtype, unpckd.softtype)
+  @test isa(dat.softtype, ContinuousScalar)
+  @test isa(unpckd.softtype, ContinuousScalar)
 
   # packedv1data = VNDencoder(IncrementalInference.PackedVariableNodeData, getData(v1))
   # upv1data = VNDdecoder(IncrementalInference.VariableNodeData, packedv1data)
   # @test compare(getData(v1), upv1data)
 end
+
 
 
 
