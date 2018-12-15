@@ -254,17 +254,57 @@ include("ApproxConv.jl")
 include("SolveTree01.jl")
 
 # Hack for RoME module.
-global tunneltypes = Dict{String, Function}()
+global serializationnamespace = Dict{String, Module}()
+
+"""
+    $(SIGNATURES)
+
+De-serialization of IncrementalInference objects require discovery of foreign types.
+
+Example:
+
+Template to tunnel types from a user module:
+```julia
+using RoME
+IIF.setSerializationNamespace!("RoME" => RoME)
+
+# or more generic solution -- will always try Main if available
+IIF.setSerializationNamespace!("Main" => Main)
+```
+"""
+function setSerializationNamespace!(keyval::Pair{String, Module})
+  serializationnamespace[keyval[1]] = keyval[2]
+end
+# Old code that might be used again
+# function getType(typestring::AS) where {AS <: AbstractString}
+#  # eval(Meta.parse(typestring))()
+#  # getfield(Main, Symbol(typestring))
+#  getfield(@__MODULE__, Symbol(typestring))
+# end
+
 
 global _romeModule = nothing
 function setRoMEModule(romeModule)::Nothing
+    @warn "Deprecated setRoMEModule, use IIF.setSerializationNamespace!(\"Main\" => Main) function instead"
     global _romeModule
     _romeModule = romeModule
     return nothing
 end
-function getRoMEModule()
-    return _romeModule
+# function getRoMEModule()
+#     return _romeModule
+# end
+function getSerializationModule(mod::String="Main")::Module
+  global serializationnamespace
+  @info "setting serialization namespace -- $mod"
+  return serializationnamespace[mod]
 end
-export setRoMEModule, getRoMEModule
+
+function getRoMEModule()::Module
+  @warn "Deprecated getRoMEModule, use getSerializationModule(\"RoME\") instead"
+  return getSerializationModule("RoME")
+end
+
+export setSerializationNamespace!
+export setRoMEModule, getRoMEModule, getSerializationModule
 
 end
