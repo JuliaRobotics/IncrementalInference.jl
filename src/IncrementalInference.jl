@@ -302,7 +302,7 @@ function getSerializationModule(mod::String="Main")::Module
 end
 
 function getRoMEModule()::Module
-  @warn "Deprecated getRoMEModule, use getSerializationModule(\"RoME\") instead"
+  @warn "Deprecated getRoMEModule, use getSerializationModule(...) instead"
   return getSerializationModule("RoME")
 end
 
