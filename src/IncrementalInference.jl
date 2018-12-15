@@ -297,7 +297,6 @@ end
 
 function getSerializationModule(mod::String="Main")::Module
   global serializationnamespace
-  @info "setting serialization namespace -- $mod"
   return serializationnamespace[mod]
 end
 
