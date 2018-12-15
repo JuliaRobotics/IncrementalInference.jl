@@ -276,12 +276,6 @@ IIF.setSerializationNamespace!("RoME" => RoME)
 function setSerializationNamespace!(keyval::Pair{String, Module})
   serializationnamespace[keyval[1]] = keyval[2]
 end
-# Old code that might be used again
-# function getType(typestring::AS) where {AS <: AbstractString}
-#  # eval(Meta.parse(typestring))()
-#  # getfield(Main, Symbol(typestring))
-#  getfield(@__MODULE__, Symbol(typestring))
-# end
 
 
 # global _romeModule = nothing
@@ -291,15 +285,21 @@ function setRoMEModule(romeModule)::Nothing
     _romeModule = romeModule
     return nothing
 end
-# function getRoMEModule()
-#     return _romeModule
-# end
 
 function getSerializationModule(mod::String="Main")::Module
   global serializationnamespace
   return serializationnamespace[mod]
 end
 
+# Old code that might be used again
+# function getType(typestring::AS) where {AS <: AbstractString}
+#  # eval(Meta.parse(typestring))()
+#  # getfield(Main, Symbol(typestring))
+#  getfield(@__MODULE__, Symbol(typestring))
+# end
+# function getRoMEModule()
+#     return _romeModule
+# end
 function getRoMEModule()::Module
   @warn "Deprecated getRoMEModule, use getSerializationModule(...) instead"
   return getSerializationModule("RoME")
