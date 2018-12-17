@@ -129,6 +129,7 @@ function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Ve
     return fg
 end
 
+
 mutable struct VariableNodeData
   initval::Array{Float64,2} # TODO deprecate
   initstdev::Array{Float64,2} # TODO deprecate
