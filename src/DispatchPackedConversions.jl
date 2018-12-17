@@ -135,39 +135,22 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)
-  # @show d
   @show d.softtype
   @info "KATABASIS LOGGERY"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
-  # YEEEESH...
-  # @show rome = getRoMEModule()
   mainmod = getSerializationModule()
-  # rome == nothing || @error "ROME IS NOT SET, NOR BUILT IN A DAY - please call setRoMEModule()"
-  # @show getfield(rome, :Pose2)
+  mainmod == nothing && error("Serialization module is null - please call setSerializationNamespace!(\"Main\" => Main) in your main program.")
   try
       siesman = split(d.softtype, "(")[1]
       siesman = split(siesman, '.')[end]
-      # siesman = replace(siesman, "IncrementalInference." => "")
-      # siesman = replace(siesman, "RoME." => "")
       @info "DECODING Softtype = $siesman"
-      # st = eval(Meta.parse("$siesman()"))
       st = getfield(mainmod, Symbol(siesman))()
-
-      # convert(InferenceVariable, "Pose2")
-      # if siesman == "Point2"
-      #     st = Point2()
-      # end
-      # if siesman == "Pose2"
-      #     st = Pose2()
-      # end
-      # We cringe... but this is by far NOT the WORST thing we've ever hacked...
-      # ... Definitely threw up in my mouth a little though...
   catch ex
-      @warn "Unable to deserialize soft type!"
+      @error "Unable to deserialize soft type $(d.softtype)"
       io = IOBuffer()
       showerror(io, ex, catch_backtrace())
       err = String(take!(io))
-      @warn err
+      @error err
   end
   @info "Net result: $st"
 
