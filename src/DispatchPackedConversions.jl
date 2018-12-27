@@ -147,7 +147,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
       err = String(take!(io))
       @error err
   end
-  @info "Net result: $st"
+  @debug "Net conversion result: $st"
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
