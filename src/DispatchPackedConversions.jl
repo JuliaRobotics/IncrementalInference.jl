@@ -102,11 +102,7 @@ end
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
-
-    @info "ANABASIS Encoding Softtype"
-  @show string(d.softtype)
-  @info "ANABASIS Encoding Softtype"
-
+  @debug "Dispatching conversion variable -> packed variable for type $(string(d.softtype))"
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                                 d.initstdev[:],size(d.initstdev,1),
                                 d.val[:],size(d.val,1),
@@ -135,16 +131,15 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)
-  @show d.softtype
-  @info "KATABASIS LOGGERY"
+  @debug "Dispatching conversion packed variable -> variable for type $(string(d.softtype))"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
   mainmod = getSerializationModule()
   mainmod == nothing && error("Serialization module is null - please call setSerializationNamespace!(\"Main\" => Main) in your main program.")
   try
-      siesman = split(d.softtype, "(")[1]
-      siesman = split(siesman, '.')[end]
-      @info "DECODING Softtype = $siesman"
-      st = getfield(mainmod, Symbol(siesman))()
+      unpackedTypeName = split(d.softtype, "(")[1]
+      unpackedTypeName = split(unpackedTypeName, '.')[end]
+      @debug "DECODING Softtype = $unpackedTypeName"
+      st = getfield(mainmod, Symbol(unpackedTypeName))()
   catch ex
       @error "Unable to deserialize soft type $(d.softtype)"
       io = IOBuffer()
