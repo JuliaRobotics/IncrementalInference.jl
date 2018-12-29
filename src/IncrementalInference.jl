@@ -277,9 +277,17 @@ function setSerializationNamespace!(keyval::Pair{String, Module})
   serializationnamespace[keyval[1]] = keyval[2]
 end
 
-function getSerializationModule(mod::String="Main")::Module
+function getSerializationModule(mod::String="Main")::Union{Module, Nothing}
   global serializationnamespace
-  return serializationnamespace[mod]
+  if haskey(serializationnamespace, mod)
+    return serializationnamespace[mod]
+  end
+  return nothing
+end
+
+function getSerializationModules()::Dict{String, Module}
+  global serializationnamespace
+  return serializationnamespace
 end
 
 # Old code that might be used again
@@ -289,6 +297,6 @@ end
 #  getfield(@__MODULE__, Symbol(typestring))
 # end
 
-export setSerializationNamespace!, getSerializationModule
+export setSerializationNamespace!, getSerializationModule, getSerializationModules
 
 end
