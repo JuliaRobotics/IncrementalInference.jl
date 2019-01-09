@@ -201,7 +201,7 @@ function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
       Ndims::Int, N::Int  )
   #
   dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
-  pGM, = prodAppxMSGibbsS(dummy, dens, nothing, nothing, Niter=8) #10
+  pGM, = prodAppxMSGibbsS(dummy, dens, nothing, nothing, 8) #10
   for (dimnum,pp) in partials
     push!(pp, kde!(pGM[dimnum,:]))
   end
