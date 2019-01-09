@@ -129,6 +129,7 @@ function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Ve
     return fg
 end
 
+
 mutable struct VariableNodeData
   initval::Array{Float64,2} # TODO deprecate
   initstdev::Array{Float64,2} # TODO deprecate
@@ -314,20 +315,21 @@ mutable struct GenericFunctionNodeData{T, S}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
   multihypo::String # likely to moved when GenericWrapParam is refactored
+  certainhypo::Vector{Int}
   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
-  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
   # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
 
 
 # where {T <: Union{InferenceType, FunctorInferenceType}}
 const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
 
 # where {T <: PackedInferenceType}
 const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
 
 
 

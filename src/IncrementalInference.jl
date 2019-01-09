@@ -213,6 +213,10 @@ export
   setDwnMsg!,
   dwnMsg,
 
+  compareField,
+  compareFields,
+  compareAll,
+
   # For 1D example,
 
   # TODO rename to ball radius
@@ -249,5 +253,50 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 
+# Hack for RoME module.
+global serializationnamespace = Dict{String, Module}()
+
+"""
+    $(SIGNATURES)
+
+De-serialization of IncrementalInference objects require discovery of foreign types.
+
+Example:
+
+Template to tunnel types from a user module:
+```julia
+# or more generic solution -- will always try Main if available
+IIF.setSerializationNamespace!("Main" => Main)
+
+# or a specific package such as RoME
+using RoME
+IIF.setSerializationNamespace!("RoME" => RoME)
+```
+"""
+function setSerializationNamespace!(keyval::Pair{String, Module})
+  serializationnamespace[keyval[1]] = keyval[2]
+end
+
+function getSerializationModule(mod::String="Main")::Union{Module, Nothing}
+  global serializationnamespace
+  if haskey(serializationnamespace, mod)
+    return serializationnamespace[mod]
+  end
+  return nothing
+end
+
+function getSerializationModules()::Dict{String, Module}
+  global serializationnamespace
+  return serializationnamespace
+end
+
+# Old code that might be used again
+# function getType(typestring::AS) where {AS <: AbstractString}
+#  # eval(Meta.parse(typestring))()
+#  # getfield(Main, Symbol(typestring))
+#  getfield(@__MODULE__, Symbol(typestring))
+# end
+
+export setSerializationNamespace!, getSerializationModule, getSerializationModules
 
 end
