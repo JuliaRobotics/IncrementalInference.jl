@@ -274,6 +274,7 @@ IIF.setSerializationNamespace!("RoME" => RoME)
 ```
 """
 function setSerializationNamespace!(keyval::Pair{String, Module})
+  global serializationnamespace
   serializationnamespace[keyval[1]] = keyval[2]
 end
 
