@@ -171,7 +171,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     #initval, stdev
-    data = VariableNodeData(zeros(0,0), zeros(0,0), pNpts,
+    data = VariableNodeData(pNpts,
                             gbw2, Int[], sp,
                             dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
   else

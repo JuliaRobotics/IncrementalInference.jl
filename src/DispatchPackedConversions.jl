@@ -2,10 +2,6 @@
 # Creation of packed types should be automated with macros
 
 mutable struct PackedVariableNodeData
-  vecinitval::Array{Float64,1}
-  diminitval::Int
-  vecinitstdev::Array{Float64,1}
-  diminitdev::Int
   vecval::Array{Float64,1}
   dimval::Int
   vecbw::Array{Float64,1}
@@ -22,11 +18,7 @@ mutable struct PackedVariableNodeData
   ismargin::Bool
   dontmargin::Bool
   PackedVariableNodeData() = new()
-  PackedVariableNodeData(x1::Vector{Float64},
-                         x2::Int,
-                         x3::Vector{Float64},
-                         x4::Int,
-                         x5::Vector{Float64},
+  PackedVariableNodeData(x5::Vector{Float64},
                          x6::Int,
                          x7::Vector{Float64},
                          x8::Int,
@@ -39,7 +31,7 @@ mutable struct PackedVariableNodeData
                          x15::String,
                          x16::Bool,
                          x17::Bool,
-                         x18::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
+                         x18::Bool ) = new(x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
 end
 
 
@@ -103,9 +95,7 @@ end
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
   @debug "Dispatching conversion variable -> packed variable for type $(string(d.softtype))"
-  return PackedVariableNodeData(d.initval[:],size(d.initval,1),
-                                d.initstdev[:],size(d.initstdev,1),
-                                d.val[:],size(d.val,1),
+  return PackedVariableNodeData(d.val[:],size(d.val,1),
                                 d.bw[:], size(d.bw,1),
                                 d.BayesNetOutVertIDs,
                                 d.dimIDs, d.dims, d.eliminated,
@@ -114,13 +104,13 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
-  r1 = d.diminitval
-  c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
-  M1 = reshape(d.vecinitval,r1,c1)
-
-  r2 = d.diminitdev
-  c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
-  M2 = reshape(d.vecinitstdev,r2,c2)
+  # r1 = d.diminitval
+  # c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
+  # M1 = reshape(d.vecinitval,r1,c1)
+  #
+  # r2 = d.diminitdev
+  # c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
+  # M2 = reshape(d.vecinitstdev,r2,c2)
 
   r3 = d.dimval
   c3 = r3 > 0 ? floor(Int,length(d.vecval)/r3) : 0
@@ -149,7 +139,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   end
   @debug "Net conversion result: $st"
 
-  return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
+  return VariableNodeData(M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
     nothing, st, d.initialized, d.ismargin, d.dontmargin )
 end
@@ -158,8 +148,6 @@ end
 
 function compare(a::VariableNodeData,b::VariableNodeData)
     TP = true
-    TP = TP && a.initval == b.initval
-    TP = TP && a.initstdev == b.initstdev
     TP = TP && a.val == b.val
     TP = TP && a.bw == b.bw
     TP = TP && a.BayesNetOutVertIDs == b.BayesNetOutVertIDs
