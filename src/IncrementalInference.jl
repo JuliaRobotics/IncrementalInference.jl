@@ -213,9 +213,11 @@ export
   setDwnMsg!,
   dwnMsg,
 
+  # some utils
   compareField,
   compareFields,
   compareAll,
+  getIdx,
 
   # For 1D example,
 
