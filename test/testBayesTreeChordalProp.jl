@@ -10,7 +10,7 @@ global cov = [3.0]
 
 
 global v1 = addNode!(fg,:x1,ContinuousScalar,N=N)
-global f1  = addFactor!(fg,[v1], Obsv2(doors, cov', [1.0]))
+global f1  = addFactor!(fg,[v1], Prior(Normal(doors, cov)))
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
 global v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
@@ -38,7 +38,9 @@ addFactor!(fg, [v5,l3], Ranged([16.0],[0.5],[1.0]))
 
 # writeGraphPdf(fg);
 
-global tree = prepBatchTree!(fg,drawpdf=true);
+global tree = wipeBuildNewTree!(fg, drawpdf=true);
+# global tree = prepBatchTree!(fg,drawpdf=true);
+
 # run(`evince bt.pdf`)
 
 # do belief propagation inference over tree once

@@ -3,6 +3,84 @@
 # of convert in their namespace
 
 
+
+function compareField(Allc, Bllc, syms)::Bool
+  return eval(:($Allc.$syms == $Bllc.$syms))
+end
+
+"""
+    $(SIGNATURES)
+
+Compare the all fields of T that are not in `skip` for objects `Al` and `Bl`.
+
+TODO > add to func_ref.md
+"""
+function compareFields(Al::T,
+                       Bl::T;
+                       show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[]  )::Bool where {T}
+  TP = true
+  fields = fieldnames(T)
+  for field in fields
+    if (field in skip)
+      continue
+    end
+    tp = compareField(Al, Bl, field)
+    show ? println("$tp : $field") : nothing
+    TP = TP && tp
+  end
+  return TP
+end
+
+function compareFields(Al::T,
+                       Bl::T;
+                       show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Union{Number, AbstractString}}
+  #
+  return Al == Bl
+end
+
+"""
+    $(SIGNATURES)
+
+Recursively compare the all fields of T that are not in `skip` for objects `Al` and `Bl`.
+
+TODO > add to func_ref.md
+"""
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Tuple}
+  #
+  TP = true
+  TP = TP && length(Al) == length(Bl)
+  for i in 1:length(Al)
+    compareAll(Al[i], Bl[i], show=show, skip=skip)
+  end
+  return true
+end
+
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: DataType}
+  #
+  return true
+end
+
+function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
+  TP = compareFields(Al, Bl, show=show, skip=skip)
+  for field in fieldnames(T)
+    if field in skip
+      continue
+    end
+    Ad = eval(:($Al.$field))
+    Bd = eval(:($Bl.$field))
+    TP = TP && compareAll(Ad, Bd, show=show, skip=skip)
+  end
+  return TP
+end
+
 """
     $(SIGNATURES)
 
@@ -91,6 +169,18 @@ function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
   return lsa
 end
 ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
+
+"""
+    $(SIGNATURES)
+
+Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
+"""
+function ls(fgl::FactorGraph,
+            lbls::Vector{Symbol};
+            api::DataLayerAPI=dlapi,
+            ring::Int=1)
+  union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
+end
 
 """
     $(SIGNATURES)
@@ -206,6 +296,27 @@ function ls2(fgl::FactorGraph, vsym::Symbol)
   return xlxl
 end
 
+
+"""
+    $(SIGNATURES)
+
+Return array of all variable nodes connected to the last `n` many poses (`:x*`).
+
+Example:
+
+```julia
+# Shallow copy the tail end of poses from a factor graph `fg1`
+vars = lsRear(fg1, 5)
+fg1_r5 = subgraphFromVerts(fg1, vars)
+```
+"""
+function lsRear(fgl::FactorGraph, n::Int=1)
+  lasts = ls(fgl)[1][(end-n):end]
+  syms = ls(fgl, lasts)
+  union(lsf.(fgl, syms)[:]...)
+end
+
+
 hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 
 """
@@ -251,6 +362,26 @@ function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThrea
   nothing
 end
 
+function _evalType(pt::String)::Type
+    try
+        getfield(Main, Symbol(pt))
+    catch ex
+        io = IOBuffer()
+        showerror(io, ex, catch_backtrace())
+        err = String(take!(io))
+        error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
+    end
+end
 
+"""
+    $(SIGNATURES)
+
+Print the maximum point values form all variables approximate marginals in the factor graph.
+The full marginal can be recovered for example `X0 = getVertKDE(fg, :x0)`.
+"""
+function printgraphmax(fgl::FactorGraph)
+    verts = union(ls(fgl)...)
+    map(v -> println("$v : $(getKDEMax(getVertKDE(fgl, v)))"), verts);
+end
 
 #

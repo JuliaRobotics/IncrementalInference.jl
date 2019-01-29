@@ -102,6 +102,7 @@ end
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
+  @debug "Dispatching conversion variable -> packed variable for type $(string(d.softtype))"
   return PackedVariableNodeData(d.initval[:],size(d.initval,1),
                                 d.initstdev[:],size(d.initstdev,1),
                                 d.val[:],size(d.val,1),
@@ -130,7 +131,23 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)
+  @debug "Dispatching conversion packed variable -> variable for type $(string(d.softtype))"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
+  mainmod = getSerializationModule()
+  mainmod == nothing && error("Serialization module is null - please call setSerializationNamespace!(\"Main\" => Main) in your main program.")
+  try
+      unpackedTypeName = split(d.softtype, "(")[1]
+      unpackedTypeName = split(unpackedTypeName, '.')[end]
+      @debug "DECODING Softtype = $unpackedTypeName"
+      st = getfield(mainmod, Symbol(unpackedTypeName))()
+  catch ex
+      @error "Unable to deserialize soft type $(d.softtype)"
+      io = IOBuffer()
+      showerror(io, ex, catch_backtrace())
+      err = String(take!(io))
+      @error err
+  end
+  @debug "Net conversion result: $st"
 
   return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
@@ -152,6 +169,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
     TP = TP && a.ismargin == b.ismargin
+    TP = TP && a.softtype == b.softtype
     return TP
 end
 
@@ -177,16 +195,18 @@ end
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  @warn "convert GenericWrapParam is deprecated, use CommonConvWrapper instead."
+  @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
+
+
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  mhstr = packmultihypo(d.fnc)
+  mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+          string(d.frommodule), convert(P, d.fnc.usrfnc!),
+          mhstr, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -198,14 +218,19 @@ function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  # @warn "Unpacking Option 2, F=$(F), P=$(P)"
-  usrfnc = convert(F, d.fnc)
-  # @show d.multihypo
-  mhcat = parsemultihypostr(d.multihypo)
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
+  usrfnc = convert(F, d.fnc)
+  mhcat = parsemultihypostr(d.multihypo)
+
+  # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
+  # reconstitute from stored data
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
-  return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+  ccw.certainhypo = d.certainhypo
+
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)
+  # error("what what $(ret.fnc.certainhypo)")
+  return ret
 end
 
 

@@ -22,14 +22,17 @@ function setData!(v::Graphs.ExVertex, data)
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
+"""
 function getVal(v::Graphs.ExVertex)
   return getData(v).val
 end
 function getVal(v::Graphs.ExVertex, idx::Int)
   return getData(v).val[:,idx]
 end
-
-# Convenience function to get values for given variable label
 function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
   getVal(getVert(fgl, lbl, api=api))
@@ -39,6 +42,11 @@ function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   getVal(getVert(fgl, exvertid, api=api))
 end
 
+"""
+    $(SIGNATURES)
+
+Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
+"""
 function getNumPts(v::Graphs.ExVertex)
   return size(getData(v).val,2)
 end
@@ -102,10 +110,18 @@ function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   nothing
 end
+function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity)
+  setValKDE!(getVert(fgl, sym), p)
+  nothing
+end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
 setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
+"""
+    $(SIGNATURES)
 
+Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
+"""
 function kde!(em::EasyMessage)
   return kde!(em.pts,em.bws)
 end
@@ -154,12 +170,13 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     gbw2 = Array{Float64}(undef, length(gbw),1)
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
-    data = VariableNodeData(initval, stdev, pNpts,
+    #initval, stdev
+    data = VariableNodeData(zeros(0,0), zeros(0,0), pNpts,
                             gbw2, Int[], sp,
                             dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
   else
       sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-      data = VariableNodeData(initval, stdev, zeros(dims, N),
+      data = VariableNodeData(zeros(0,0), zeros(0,0), zeros(dims, N),
                               zeros(dims,1), Int[], sp,
                               dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
   end
@@ -502,14 +519,13 @@ function doautoinit!(fgl::FactorGraph,
     end
   end
 
-
   nothing
 end
 
 """
     $(SIGNATURES)
 
-initialize destination variable nodes based on this factor in factor graph, fg, generally called
+Initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
 function doautoinit!(fgl::FactorGraph,
@@ -528,6 +544,20 @@ function doautoinit!(fgl::FactorGraph,
                      N::Int=100)
   #
   doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
+end
+
+"""
+    $(SIGNATURES)
+
+Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
+"""
+function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
+  @warn "manual_init being used as a workaround for temporary autoinit issues."
+  pts = predictbelief(fgl, sym, usefcts)
+  Xpre = kde!(pts)
+  setValKDE!(fgl, sym, Xpre)
+  getData(fgl, sym).initialized = true
+  nothing
 end
 
 function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
@@ -720,10 +750,10 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
   for s in Si
     push!(Xi, getVert(fg, s, api=localapi))
   end
-  @info "adding marginal to"
-  for x in Xi
-    @info "x.index=",x.index
-  end
+  # @info "adding marginal to"
+  # for x in Xi
+  #   @info "x.index=",x.index
+  # end
   addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
   nothing
 end
@@ -779,7 +809,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
           for sepNode in localapi.outneighbors(fg, fct)
-            if sepNode.index != v && !(sepNode in Si) # length(findin(sepNode.index, Si)) == 0
+            # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
+            if sepNode.index != v && !(sepNode.index in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
@@ -821,14 +852,23 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     return X,Y
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+"""
 function getKDE(v::Graphs.ExVertex)
   return kde!(getVal(v), getBWVal(v)[:,1])
 end
 
+"""
+    $(SIGNATURES)
+
+Get KernelDensityEstimate kde estimate stored in variable node.
+"""
 function getVertKDE(v::Graphs.ExVertex)
   return getKDE(v)
 end
-
 function getVertKDE(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,id)
   return getKDE(v)
@@ -837,7 +877,9 @@ function getVertKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   v = api.getvertex(fgl,lbl)
   return getKDE(v)
 end
-
+function getKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+  return getVertKDE(fgl, lbl, api=api)
+end
 
 function drawCopyFG(fgl::FactorGraph)
   fgd = deepcopy(fgl)
@@ -852,6 +894,11 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
+"""
+    $(SIGNATURES)
+
+Export a dot and pdf file drawn by Graphviz showing the factor graph.
+"""
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",
@@ -1047,22 +1094,30 @@ function subgraphFromVerts(fgl::FactorGraph,
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
 
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-# Using unique index into graph data structure
+"""
+    $(SIGNATURES)
+
+Explore all shortest paths combinations in verts, add neighbors and reference
+subgraph using unique index into graph data structure.
+"""
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{String,1};
-    neighbors::Int=0  )
+                           verts::Union{Vector{String},Vector{Symbol}};
+                           neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
     id = -1
-    if haskey(fgl.IDs, vert)
-      id = fgl.IDs[Symbol(vert)]
+    vsym = Symbol(vert)
+    if haskey(fgl.IDs, vsym)
+      id = fgl.IDs[vsym]
     else
       error("FactorGraph01 only supports variable node subgraph search at this point")
     end
-    vertdict[id] = fgl.g.vertices[id]
+    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
 end
+
+
+#

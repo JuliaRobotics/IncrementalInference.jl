@@ -11,7 +11,6 @@ global fg = emptyFactorGraph()
 # doors = [-100.0;0.0;100.0;300.0]'
 # cov = [3.0]
 
-
 global v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
 global f1  = addFactor!(fg, [:x1;], Prior(Normal()))
 
@@ -29,6 +28,10 @@ addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
 
 global l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
+
+# addNode!(fg, :x4, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
+# addFactor!(fg,[:x3,:x4],LinearConditional(Normal()))
+
 
 
 
@@ -97,3 +100,9 @@ end
 @warn "add test tree verification"
 
 # run(`evince bt.pdf`)
+
+
+
+
+
+#

@@ -229,7 +229,7 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x3, N=N)
 @test 0.1*N < sum(pts .== 3.0) < 0.5*N
 @test 0.1*N < sum(pts .== 4.0) < 0.5*N
 
-@test sum(80 .< pts .< 100.0) + sum(pts .== 3.0) + sum(pts .== 4.0) == N
+@test sum(70 .< pts .< 110.0) + sum(pts .== 3.0) + sum(pts .== 4.0) == N
 
 
 # solve for one of uncertain variables
