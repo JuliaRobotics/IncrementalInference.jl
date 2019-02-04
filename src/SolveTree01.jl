@@ -674,7 +674,7 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-      # outp = kde!(d[vid], "lcv") # need to find new down msg bandwidths
+      # outp = kde!(d[vid]) # need to find new down msg bandwidths
       # # i+=1
       # # outDens[i] = outp
       # bws = vec((getBW(outp))[:,1])
