@@ -228,6 +228,20 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   return pGM
 end
 
+"""
+    $SIGNATURES
+
+Take product of `dens` accompanied by optional `partials` proposal belief densities.
+
+Notes
+-----
+- `d` dimensional product approximation
+- `partials` are treated as one dimensional
+
+Future
+------
+- Incorporate ApproxManifoldProducts to process variables in individual batches.
+"""
 function productbelief(fg::FactorGraph,
                        vertid::Int,
                        dens::Vector{BallTreeDensity},
@@ -276,11 +290,12 @@ function proposalbeliefs!(fgl::FactorGraph,
       dens::Vector{BallTreeDensity},
       partials::Dict{Int, Vector{BallTreeDensity}};
       N::Int=100,
-      dbg::Bool=false )
+      dbg::Bool=false,
+      api::DataLayerAPI=dlapi )
   #
   for fct in factors
     data = getData(fct)
-    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg)
+    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -377,7 +392,7 @@ function localProduct(fgl::FactorGraph,
   end
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg)
+  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
