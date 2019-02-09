@@ -222,7 +222,7 @@ export
 
   # For 1D example,
 
-  # TODO rename to ball radius
+  # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
@@ -238,8 +238,10 @@ export
 
 const NothingUnion{T} = Union{Nothing, T}
 
+# non-free, but not currently use!
 include("ccolamd.jl")
 
+# regular
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -258,6 +260,7 @@ include("SolveTree01.jl")
 
 # Hack for RoME module.
 global serializationnamespace = Dict{String, Module}()
+
 
 """
     $(SIGNATURES)

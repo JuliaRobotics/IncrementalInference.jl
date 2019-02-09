@@ -674,18 +674,10 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-      # outp = kde!(d[vid], "lcv") # need to find new down msg bandwidths
-      # # i+=1
-      # # outDens[i] = outp
-      # bws = vec((getBW(outp))[:,1])
-      # m.p[vid] = EasyMessage(  deepcopy(d[vid]) , bws  )
     end
     for cvid in cliq.attributes["data"].conditIDs
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
-        # outDens[i] = cdwndict[cvid]
-        # @info ""
-        # info("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
     return m

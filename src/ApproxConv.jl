@@ -386,7 +386,7 @@ function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, verti
   Ndim = size(ptsbw,1)
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  p = kde!(ptsbw, "lcv")
+  p = kde!(ptsbw)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
   end
