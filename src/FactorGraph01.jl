@@ -110,8 +110,8 @@ function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   nothing
 end
-function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity)
-  setValKDE!(getVert(fgl, sym), p)
+function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity; api::DataLayerAPI=dlapi)
+  setValKDE!(getVert(fgl, sym, api=api), p)
   nothing
 end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
