@@ -388,3 +388,8 @@ function findRelatedFromPotential(fg::FactorGraph,
   end
   return p
 end
+
+
+
+
+#
