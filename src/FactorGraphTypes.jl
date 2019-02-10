@@ -139,8 +139,8 @@ end
 $(TYPEDEF)
 """
 mutable struct VariableNodeData
-  initval::Array{Float64,2} # TODO deprecate
-  initstdev::Array{Float64,2} # TODO deprecate
+  # initval::Array{Float64,2} # TODO deprecate
+  # initstdev::Array{Float64,2} # TODO deprecate
   val::Array{Float64,2}
   bw::Array{Float64,2}
   BayesNetOutVertIDs::Array{Int,1}
@@ -155,26 +155,24 @@ mutable struct VariableNodeData
   ismargin::Bool
   dontmargin::Bool
   VariableNodeData() = new()
-  function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
-    @warn "Deprecated use of VariableNodeData(11 param), use 13 parameters instead"
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
-  end
+  # function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9)
+  #   @warn "Deprecated use of VariableNodeData(11 param), use 13 parameters instead"
+  #   new(x1,x2,x3,x4,x5,x6,x7,x8,x9, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
+  # end
   VariableNodeData(x1::Array{Float64,2},
                    x2::Array{Float64,2},
-                   x3::Array{Float64,2},
-                   x4::Array{Float64,2},
-                   x5::Vector{Int},
-                   x6::Vector{Int},
+                   x3::Vector{Int},
+                   x4::Vector{Int},
+                   x5::Int,
+                   x6::Bool,
                    x7::Int,
-                   x8::Bool,
-                   x9::Int,
-                   x10::Vector{Int},
-                   x11::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
-                   x12,
-                   x13::Bool,
-                   x14::Bool,
-                   x15::Bool) =
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15)
+                   x8::Vector{Int},
+                   x9::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } },
+                   x10,
+                   x11::Bool,
+                   x12::Bool,
+                   x13::Bool) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
 """
@@ -338,20 +336,21 @@ mutable struct GenericFunctionNodeData{T, S}
   frommodule::S #Union{Symbol, AbstractString}
   fnc::T
   multihypo::String # likely to moved when GenericWrapParam is refactored
+  certainhypo::Vector{Int}
   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
-  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
+  GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
+  GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
   # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
 end
 
 
 # where {T <: Union{InferenceType, FunctorInferenceType}}
 const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="") where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7)
+FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
 
 # where {T <: PackedInferenceType}
 const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="") where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7)
+PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
 
 
 
@@ -413,5 +412,12 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
   nothing
 end
 
+function convert(::Type{BallTreeDensity}, p::EasyMessage)
+  kde!(p.pts, p.bws)
+end
+
+function convert(::Type{EasyMessage}, p::BallTreeDensity)
+  EasyMessage(getPoints(p), getBW(p)[:,1])
+end
 
 #

@@ -96,7 +96,7 @@ end
 """
 $(TYPEDEF)
 """
-struct PackedPrior <: PackedInferenceType
+mutable struct PackedPrior <: PackedInferenceType
   Z::String
   PackedPrior() = new()
   PackedPrior(z::AS) where {AS <: AbstractString} = new(z)
@@ -112,7 +112,7 @@ end
 """
 $(TYPEDEF)
 """
-struct PackedLinearConditional <: PackedInferenceType
+mutable struct PackedLinearConditional <: PackedInferenceType
   Z::String
   PackedLinearConditional() = new()
   PackedLinearConditional(z::AS) where {AS <: AbstractString} = new(z)
@@ -128,7 +128,7 @@ end
 """
 $(TYPEDEF)
 """
-struct PackedMixtureLinearConditional <: PackedInferenceType
+mutable struct PackedMixtureLinearConditional <: PackedInferenceType
   strs::Vector{String}
   cat::String
   PackedMixtureLinearConditional() = new()
@@ -146,7 +146,7 @@ end
 """
 $(TYPEDEF)
 """
-struct PackedMixturePrior <: PackedInferenceType
+mutable struct PackedMixturePrior <: PackedInferenceType
   strs::Vector{String}
   cat::String
   PackedMixturePrior() = new()

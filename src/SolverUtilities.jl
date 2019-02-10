@@ -12,7 +12,7 @@ end
 
 function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
   # function is being deprecated
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0 )).zero
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
 end
 
 
@@ -30,8 +30,12 @@ function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vecto
   return Y
 end
 
-# Shuffle incoming X into random positions in fr.Y
-# shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res)
+"""
+    $(SIGNATURES)
+
+Shuffle incoming X into random positions in fr.Y.
+Shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res).
+"""
 function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
   # populate defaults from existing values
   for i in 1:ccwl.xDim
@@ -73,17 +77,21 @@ function numericRootGenericRandomizedFnc!(
   nothing
 end
 
-## TODO desperately needs cleaning up and refactoring
-# Solve free variable x by root finding residual function fgr.usrfnc(x, res)
-# randomly shuffle x dimensions if underconstrained by measurement z dimensions
-# small random perturbation used to prevent trivial solver cases, div by 0 etc.
-# result stored in fgr.Y
-# fr.X must be set to memory ref the param[varidx] being solved, at creation of fr
+"""
+    $(SIGNATURES)
+
+Solve free variable x by root finding residual function fgr.usrfnc(x, res)
+randomly shuffle x dimensions if underconstrained by measurement z dimensions
+small random perturbation used to prevent trivial solver cases, div by 0 etc.
+result stored in fgr.Y
+ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
+"""
 function numericRootGenericRandomizedFnc!(
             ccwl::CommonConvWrapper{T};
             perturb::Float64=1e-10,
             testshuffle::Bool=false ) where {T <: FunctorPairwise}
   #
+  ## TODO desperately needs cleaning up and refactoring
   # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
   # ccall(:jl_, Nothing, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
@@ -93,7 +101,8 @@ function numericRootGenericRandomizedFnc!(
       ccwl.cpt[Threads.threadid()].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
       ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb
       r = nlsolve(  ccwl,
-                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
+                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                    inplace=true
                  )
       if r.f_converged
         shuffleXAltD!( ccwl, r.zero )
@@ -117,7 +126,7 @@ function numericRootGenericRandomizedFnc!(
 
     # str = "nlsolve, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx), X=$(ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx])"
     # ccall(:jl_, Nothing, (Any,), str)
-    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx] )
+    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx], inplace=true )
     # ccall(:jl_, Nothing, (Any,), "nlsolve.zero=$(r.zero)")
     if sum(isnan.(( r ).zero)) == 0
       ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
@@ -137,7 +146,8 @@ function numericRootGenericRandomizedFnc!(
     # improve memory management in this function
     ccwl.cpt[Threads.threadid()].p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
     r = nlsolve(  ccwl,
-                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] # this is x0
+                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                  inplace=true
                )
     shuffleXAltD!( ccwl, r.zero )
   else
@@ -158,7 +168,9 @@ function batchSolve!(fgl::FactorGraph;
                      drawpdf::Bool=false,
                      show::Bool=false,
                      N::Int=100,
-                     recursive::Bool=false  )
+                     recursive::Bool=false,
+                     dbg::Bool=false  )
+  #
   if fgl.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(fgl)
@@ -168,9 +180,9 @@ function batchSolve!(fgl::FactorGraph;
 
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
-    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf)
+    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg)
   else
-    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf)
+    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg)
   end
   tree
 end
@@ -178,7 +190,7 @@ end
 """
     $(SIGNATURES)
 
-Update the frozen node
+Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
 function setfreeze!(fgl::FactorGraph, sym::Symbol)
   if !isInitialized(fgl, sym)

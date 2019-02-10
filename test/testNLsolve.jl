@@ -14,7 +14,7 @@ function f!(F, x, dummy)
 end
 
 data = randn(2,3)
-r = nlsolve( (res, x) -> f!(res, x, data), zeros(2))
+r = nlsolve( (res, x) -> f!(res, x, data), zeros(2), inplace=true )
 
 @test norm(r.zero - [0, 1.0]) < 1e-10
 
@@ -57,7 +57,7 @@ global meas = (reshape(rand(odo.Dx,N),1,N),)
 global ccw = CommonConvWrapper(odo, VARS[1], 1, VARS, measurement=meas, varidx=2)
 
 # Find definition of (::ccw)(res, x) here:
-nlsolve(  ccw, [0.0] )
+nlsolve(  ccw, [0.0], inplace=true )
 
 end
 

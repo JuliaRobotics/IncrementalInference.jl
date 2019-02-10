@@ -4,10 +4,6 @@
 $(TYPEDEF)
 """
 mutable struct PackedVariableNodeData
-  vecinitval::Array{Float64,1}
-  diminitval::Int
-  vecinitstdev::Array{Float64,1}
-  diminitdev::Int
   vecval::Array{Float64,1}
   dimval::Int
   vecbw::Array{Float64,1}
@@ -24,11 +20,7 @@ mutable struct PackedVariableNodeData
   ismargin::Bool
   dontmargin::Bool
   PackedVariableNodeData() = new()
-  PackedVariableNodeData(x1::Vector{Float64},
-                         x2::Int,
-                         x3::Vector{Float64},
-                         x4::Int,
-                         x5::Vector{Float64},
+  PackedVariableNodeData(x5::Vector{Float64},
                          x6::Int,
                          x7::Vector{Float64},
                          x8::Int,
@@ -41,7 +33,7 @@ mutable struct PackedVariableNodeData
                          x15::String,
                          x16::Bool,
                          x17::Bool,
-                         x18::Bool ) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
+                         x18::Bool ) = new(x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
 end
 
 
@@ -104,9 +96,8 @@ end
 
 
 function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
-  return PackedVariableNodeData(d.initval[:],size(d.initval,1),
-                                d.initstdev[:],size(d.initstdev,1),
-                                d.val[:],size(d.val,1),
+  @debug "Dispatching conversion variable -> packed variable for type $(string(d.softtype))"
+  return PackedVariableNodeData(d.val[:],size(d.val,1),
                                 d.bw[:], size(d.bw,1),
                                 d.BayesNetOutVertIDs,
                                 d.dimIDs, d.dims, d.eliminated,
@@ -115,13 +106,13 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
-  r1 = d.diminitval
-  c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
-  M1 = reshape(d.vecinitval,r1,c1)
-
-  r2 = d.diminitdev
-  c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
-  M2 = reshape(d.vecinitstdev,r2,c2)
+  # r1 = d.diminitval
+  # c1 = r1 > 0 ? floor(Int,length(d.vecinitval)/r1) : 0
+  # M1 = reshape(d.vecinitval,r1,c1)
+  #
+  # r2 = d.diminitdev
+  # c2 = r2 > 0 ? floor(Int,length(d.vecinitstdev)/r2) : 0
+  # M2 = reshape(d.vecinitstdev,r2,c2)
 
   r3 = d.dimval
   c3 = r3 > 0 ? floor(Int,length(d.vecval)/r3) : 0
@@ -132,9 +123,25 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
   M4 = reshape(d.vecbw,r4,c4)
 
   # TODO -- allow out of module type allocation (future feature, not currently in use)
+  @debug "Dispatching conversion packed variable -> variable for type $(string(d.softtype))"
   st = IncrementalInference.ContinuousMultivariate # eval(parse(d.softtype))
+  mainmod = getSerializationModule()
+  mainmod == nothing && error("Serialization module is null - please call setSerializationNamespace!(\"Main\" => Main) in your main program.")
+  try
+      unpackedTypeName = split(d.softtype, "(")[1]
+      unpackedTypeName = split(unpackedTypeName, '.')[end]
+      @debug "DECODING Softtype = $unpackedTypeName"
+      st = getfield(mainmod, Symbol(unpackedTypeName))()
+  catch ex
+      @error "Unable to deserialize soft type $(d.softtype)"
+      io = IOBuffer()
+      showerror(io, ex, catch_backtrace())
+      err = String(take!(io))
+      @error err
+  end
+  @debug "Net conversion result: $st"
 
-  return VariableNodeData(M1,M2,M3,M4, d.BayesNetOutVertIDs,
+  return VariableNodeData(M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
     nothing, st, d.initialized, d.ismargin, d.dontmargin )
 end
@@ -143,8 +150,6 @@ end
 
 function compare(a::VariableNodeData,b::VariableNodeData)
     TP = true
-    TP = TP && a.initval == b.initval
-    TP = TP && a.initstdev == b.initstdev
     TP = TP && a.val == b.val
     TP = TP && a.bw == b.bw
     TP = TP && a.BayesNetOutVertIDs == b.BayesNetOutVertIDs
@@ -154,6 +159,7 @@ function compare(a::VariableNodeData,b::VariableNodeData)
     TP = TP && a.BayesNetVertID == b.BayesNetVertID
     TP = TP && a.separator == b.separator
     TP = TP && a.ismargin == b.ismargin
+    TP = TP && a.softtype == b.softtype
     return TP
 end
 
@@ -179,16 +185,18 @@ end
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  @warn "convert GenericWrapParam is deprecated, use CommonConvWrapper instead."
+  @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
   mhstr = packmultihypo(d.fnc)
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
 end
+
+
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  mhstr = packmultihypo(d.fnc)
+  mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
+          string(d.frommodule), convert(P, d.fnc.usrfnc!),
+          mhstr, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -200,14 +208,19 @@ function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F},Symbol}},
             d::IncrementalInference.GenericFunctionNodeData{P,String} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
-  # @warn "Unpacking Option 2, F=$(F), P=$(P)"
-  usrfnc = convert(F, d.fnc)
-  # @show d.multihypo
-  mhcat = parsemultihypostr(d.multihypo)
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
+  usrfnc = convert(F, d.fnc)
+  mhcat = parsemultihypostr(d.multihypo)
+
+  # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
+  # reconstitute from stored data
   ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
-  return FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+  ccw.certainhypo = d.certainhypo
+
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           Symbol(d.frommodule), ccw)
+  # error("what what $(ret.fnc.certainhypo)")
+  return ret
 end
 
 

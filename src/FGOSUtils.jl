@@ -3,6 +3,84 @@
 # of convert in their namespace
 
 
+
+function compareField(Allc, Bllc, syms)::Bool
+  return eval(:($Allc.$syms == $Bllc.$syms))
+end
+
+"""
+    $(SIGNATURES)
+
+Compare the all fields of T that are not in `skip` for objects `Al` and `Bl`.
+
+TODO > add to func_ref.md
+"""
+function compareFields(Al::T,
+                       Bl::T;
+                       show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[]  )::Bool where {T}
+  TP = true
+  fields = fieldnames(T)
+  for field in fields
+    if (field in skip)
+      continue
+    end
+    tp = compareField(Al, Bl, field)
+    show ? println("$tp : $field") : nothing
+    TP = TP && tp
+  end
+  return TP
+end
+
+function compareFields(Al::T,
+                       Bl::T;
+                       show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Union{Number, AbstractString}}
+  #
+  return Al == Bl
+end
+
+"""
+    $(SIGNATURES)
+
+Recursively compare the all fields of T that are not in `skip` for objects `Al` and `Bl`.
+
+TODO > add to func_ref.md
+"""
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Tuple}
+  #
+  TP = true
+  TP = TP && length(Al) == length(Bl)
+  for i in 1:length(Al)
+    compareAll(Al[i], Bl[i], show=show, skip=skip)
+  end
+  return true
+end
+
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: DataType}
+  #
+  return true
+end
+
+function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
+  TP = compareFields(Al, Bl, show=show, skip=skip)
+  for field in fieldnames(T)
+    if field in skip
+      continue
+    end
+    Ad = eval(:($Al.$field))
+    Bd = eval(:($Bl.$field))
+    TP = TP && compareAll(Ad, Bd, show=show, skip=skip)
+  end
+  return TP
+end
+
 """
     $(SIGNATURES)
 
