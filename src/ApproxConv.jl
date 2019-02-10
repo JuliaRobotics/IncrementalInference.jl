@@ -184,6 +184,13 @@ end
 
 
 
+"""
+    $(SIGNATURES)
+
+Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+
+Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
+"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -203,11 +210,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -227,13 +229,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-#  Singletons ==================================================================
-
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingleton}` types.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -257,12 +252,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   end
 end
 
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingletonNH}` types.
-Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -377,7 +366,11 @@ Compute proposal belief on `vertid` through `idfct` representing some constraint
 Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
 The remaining dimensions will keep pre-existing variable values.
 """
-function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, vertid::Int, N::Int, dbg::Bool=false) # vert
+function findRelatedFromPotential(fg::FactorGraph,
+                                  idfct::Graphs.ExVertex,
+                                  vertid::Int,
+                                  N::Int,
+                                  dbg::Bool=false) # vert
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(fg, idfct, vertid, N=N, dbg=dbg);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
@@ -386,9 +379,8 @@ function findRelatedFromPotential(fg::FactorGraph, idfct::Graphs.ExVertex, verti
   Ndim = size(ptsbw,1)
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  @show manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
-  p = AMP.kde!(ptsbw, manis)
-  @info "done"
+  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  p = AMP.manikde!(ptsbw, manis)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
   end

@@ -27,13 +27,16 @@ const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVer
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
 # Condensed representation of KernelDensityEstimate, by saving points and bandwidth
-mutable struct EasyMessage
+mutable struct EasyMessage{T <: Tuple}
   pts::Array{Float64,2}
   bws::Array{Float64,1}
-  EasyMessage() = new()
-  EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}) = new(a,b)
-  EasyMessage(p::BallTreeDensity) = new(getPoints(p), getBW(p)[:,1])
+  manifolds::T
+  EasyMessage{T}() where {T <: Tuple} = new{T}()
+  EasyMessage{T}(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = new{T}(a,b, manis)
+  EasyMessage{T}(p::BallTreeDensity, manis::T) where {T <: Tuple}  = new{T}(getPoints(p), getBW(p)[:,1], manis)
 end
+EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = EasyMessage{T}(a, b, manis)
+EasyMessage(p::BallTreeDensity, manis::T) where {T <: Tuple} = EasyMessage{T}(p, manis)
 
 
 mutable struct FactorGraph
@@ -392,11 +395,11 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
 end
 
 function convert(::Type{BallTreeDensity}, p::EasyMessage)
-  kde!(p.pts, p.bws)
+  AMP.manikde!(p.pts, p.bws, p.manifolds)
 end
 
-function convert(::Type{EasyMessage}, p::BallTreeDensity)
-  EasyMessage(getPoints(p), getBW(p)[:,1])
+function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
+  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
 end
 
 #

@@ -1,4 +1,5 @@
-# test GenericWrapParam
+# test CommonConvWrapper
+
 using Test
 using NLsolve
 using IncrementalInference

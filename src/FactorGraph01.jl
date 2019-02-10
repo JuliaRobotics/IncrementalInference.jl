@@ -108,9 +108,9 @@ end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
   # recover softtype information
   sty = getSofttype(v)
-  @show sty.manifolds
+  # @show sty.manifolds
   #
-  p = AMP.kde!(val, sty.manifolds)
+  p = AMP.manikde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
   nothing
 end
@@ -136,7 +136,7 @@ setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
 """
 function kde!(em::EasyMessage)
-  return kde!(em.pts,em.bws)
+  return AMP.manikde!(em.pts,em.bws, em.manifolds)
 end
 
 
@@ -169,13 +169,13 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
   if initialized
     if size(initval,2) < N && size(initval, 1) == dims
       @warn "setDefaultNodeData! -- deprecated use of stdev."
-      p = kde!(initval,diag(stdev));
+      p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
       pN = resample(p,N)
     elseif size(initval,2) < N && size(initval, 1) != dims
       @info "Node value memory allocated but not initialized"
-      pN = kde!(randn(dims, N));
+      pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
     else
-      pN = kde!(initval)
+      pN = AMP.manikde!(initval, softtype.manifolds)
     end
     # dims = size(initval,1) # rows indicate dimensions
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
@@ -565,10 +565,12 @@ end
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
 function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
+  global localapi
   @warn "manual_init being used as a workaround for temporary autoinit issues."
   pts = predictbelief(fgl, sym, usefcts)
-  Xpre = kde!(pts)
-  setValKDE!(fgl, sym, Xpre)
+  vert = getVert(fgl, sym, api=localapi)
+  Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
+  setValKDE!(vert, Xpre) # fgl, sym
   getData(fgl, sym).initialized = true
   nothing
 end
@@ -871,7 +873,7 @@ end
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
 function getKDE(v::Graphs.ExVertex)
-  return kde!(getVal(v), getBWVal(v)[:,1])
+  return AMP.manikde!(getVal(v), getBWVal(v)[:,1], getSofttype(v).manifolds)
 end
 
 """

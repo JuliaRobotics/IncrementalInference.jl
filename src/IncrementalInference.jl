@@ -31,7 +31,8 @@ import Base: convert
 # import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
-import KernelDensityEstimate: kde!
+# import KernelDensityEstimate: kde!
+import ApproxManifoldProducts: kde!
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
