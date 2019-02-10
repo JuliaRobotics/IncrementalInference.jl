@@ -23,6 +23,15 @@ function setData!(v::Graphs.ExVertex, data)
 end
 
 """
+   $(SIGNATURES)
+
+Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
+"""
+function getSofttype(v::ExVertex)
+  getData(v).softtype
+end
+
+"""
     $(SIGNATURES)
 
 Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
@@ -97,7 +106,11 @@ function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataL
   setVal!(api.getvertex(fg, sym), val)
 end
 function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
-  p = kde!(val)
+  # recover softtype information
+  sty = getSofttype(v)
+  @show sty.manifolds
+  #
+  p = AMP.kde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
   nothing
 end

@@ -25,12 +25,16 @@ using
 
 
 const KDE = KernelDensityEstimate
+const AMP = ApproxManifoldProducts
 
 import Base: convert
 # import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: kde!
+
+# TODO temporary for initial version of on-manifold products
+KDE.setForceEvalDirect!(true)
 
 export
   KDE,
@@ -76,6 +80,7 @@ export
   getVert,
   getData,
   setData!,
+  getSofttype,
   getVarNode,
   getVal,
   setVal!,
