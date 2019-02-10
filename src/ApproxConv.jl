@@ -293,7 +293,8 @@ function evalFactor2(fgl::FactorGraph,
                      fct::Graphs.ExVertex,
                      solvefor::Int;
                      N::Int=100,
-                     dbg::Bool=false )
+                     dbg::Bool=false,
+                     api::DataLayerAPI=dlapi  )
   #
 
   ccw = getData(fct).fnc
@@ -303,7 +304,7 @@ function evalFactor2(fgl::FactorGraph,
   variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
-    xi = getVert(fgl,id)
+    xi = getVert(fgl, id, api=api)
     push!(Xi, xi ) # TODO localapi
     # push!(Xi, dlapi.getvertex(fgl,id))
 
@@ -337,7 +338,7 @@ function approxConv(fgl::FactorGraph,
   fc = getVert(fgl, fct, nt=:fct, api=api)
   v1 = getVert(fgl, towards, api=api)
   N = N == -1 ? getNumPts(v1) : N
-  return evalFactor2(fgl, fc, v1.index, N=N)
+  return evalFactor2(fgl, fc, v1.index, N=N, api=api)
 end
 
 
@@ -370,9 +371,10 @@ function findRelatedFromPotential(fg::FactorGraph,
                                   idfct::Graphs.ExVertex,
                                   vertid::Int,
                                   N::Int,
-                                  dbg::Bool=false) # vert
+                                  dbg::Bool=false;
+                                  api::DataLayerAPI=dlapi  ) # vert
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(fg, idfct, vertid, N=N, dbg=dbg);
+  ptsbw = evalFactor2(fg, idfct, vertid, N=N, dbg=dbg, api=api );
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
 
   # TODO -- better to upsample before the projection
