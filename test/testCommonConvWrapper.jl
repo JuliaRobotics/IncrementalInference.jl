@@ -272,8 +272,8 @@ push!(t,p2)
 global fg = emptyFactorGraph()
 # fg.registeredModuleFunctions[:Main] = getSample
 
-global v1=addNode!(fg, :x1, ContinuousScalar, N=N)
-global v2=addNode!(fg, :x2, ContinuousScalar, N=N)
+global v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
+global v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
 global bws = getBW(d1)[:,1]
 global f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 

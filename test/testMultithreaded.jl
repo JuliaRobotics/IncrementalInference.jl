@@ -17,13 +17,13 @@ global N = 100
 global fg = emptyFactorGraph()
 
 # add the first node
-addNode!(fg, :x0, ContinuousScalar, N=N)
+addVariable!(fg, :x0, ContinuousScalar, N=N)
 
 # this is unary (prior) factor and does not immediately trigger autoinit of :x0.
 addFactor!(fg, [:x0], Prior(Normal(0,1)))
 
 
-addNode!(fg, :x1, ContinuousScalar, N=N)
+addVariable!(fg, :x1, ContinuousScalar, N=N)
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
 addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)) , threadmodel=MultiThreaded)
 

@@ -48,12 +48,12 @@ pd = kde!(doors,[2.0])
 pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
-v1 = addNode!(fg,:x1,doors,N=N)
+v1 = addVariable!(fg,:x1,doors,N=N)
 f1  = addFactor!(fg,[v1],Obsv2( doors2, bws', [1.0])) #, samplefnc=getSample
 
 
 # not initialized
-v2 = addNode!(fg,:x2, N=N)
+v2 = addVariable!(fg,:x2, N=N)
 
 mmc = MultiModalConditional([Normal(-5,0.5),Normal(5,0.5)],Categorical([0.5,0.5]))
 f2 = addFactor!(fg, [:x1; :x2], mmc )

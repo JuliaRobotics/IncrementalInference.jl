@@ -11,32 +11,32 @@ global fg = emptyFactorGraph()
 # doors = [-100.0;0.0;100.0;300.0]'
 # cov = [3.0]
 
-global v1 = addNode!(fg,:x1, ContinuousScalar, N=N)
+global v1 = addVariable!(fg,:x1, ContinuousScalar, N=N)
 global f1  = addFactor!(fg, [:x1;], Prior(Normal()))
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
-global v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
+global v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[:x1, :x2], LinearConditional(Normal()))
 
-global v3=addNode!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
+global v3=addVariable!(fg, :x3, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
 addFactor!(fg,[:x2,:x3],LinearConditional(Normal()))
 
 
-global l1=addNode!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
+global l1=addVariable!(fg, :l1, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) )
 addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
 
-global l2=addNode!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
+global l2=addVariable!(fg, :l2, ContinuousScalar, N=N) # 0.5*randn(1,N)+getVal(v3)+64.0
 addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
-# addNode!(fg, :x4, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
+# addVariable!(fg, :x4, ContinuousScalar, N=N) # 4.0*randn(1,N)+getVal(v2)+50.0
 # addFactor!(fg,[:x3,:x4],LinearConditional(Normal()))
 
 
 
 
 # for thesis
-# v4=addNode!(fg,:x4,4.0*randn(1,N)+getVal(v2)+50.0, N=N)
+# v4=addVariable!(fg,:x4,4.0*randn(1,N)+getVal(v2)+50.0, N=N)
 # addFactor!(fg,[:x4,:l2],Odo([50.0]',[4.0]',[1.0]))
 
 

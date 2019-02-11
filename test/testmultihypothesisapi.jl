@@ -35,7 +35,7 @@ global fg = emptyFactorGraph()
 
 @testset "test populate factor graph with a multi-hypothesis factor..." begin
 
-global v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
+global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
 
 global pr = DevelopPrior(Normal(10.0,1.0))
 global f1 = addFactor!(fg,[:x1],pr)
@@ -52,7 +52,7 @@ global pts = evalFactor2(fg, f1, v1.index, N=N)
 
 
 
-global v2 = addNode!(fg, :x2, ContinuousScalar, N=N)
+global v2 = addVariable!(fg, :x2, ContinuousScalar, N=N)
 global pp = DevelopLikelihood(Normal(100.0,1.0))
 global f2 = addFactor!(fg, [:x1;:x2], pp)
 
@@ -63,8 +63,8 @@ ensureAllInitialized!(fg)
 
 
 
-global v3 = addNode!(fg, :x3, ContinuousScalar, N=N)
-global v4 = addNode!(fg, :x4, ContinuousScalar, N=N)
+global v3 = addVariable!(fg, :x3, ContinuousScalar, N=N)
+global v4 = addVariable!(fg, :x4, ContinuousScalar, N=N)
 
 global ppMH = DevelopLikelihood(Normal(90.0,1.0))
 global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(1.0,0.5,0.5))
@@ -164,7 +164,7 @@ global fg = emptyFactorGraph()
 @testset "test tri-modal factor..." begin
 
 
-global v1 = addNode!(fg, :x1, ContinuousScalar, N=N)
+global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
 
 global pr = DevelopPrior(Normal(10.0,1.0))
 global f1 = addFactor!(fg,[:x1],pr)
@@ -183,7 +183,7 @@ global pts = approxConv(fg, Symbol(f1.label), :x1, N=N)
 
 
 
-global v2 = addNode!(fg, :x2, ContinuousScalar, N=N)
+global v2 = addVariable!(fg, :x2, ContinuousScalar, N=N)
 global pp = DevelopLikelihood(Normal(100.0,1.0))
 global f2 = addFactor!(fg, [:x1;:x2], pp)
 
@@ -193,9 +193,9 @@ ensureAllInitialized!(fg)
 
 
 
-global v3 = addNode!(fg, :x3, ContinuousScalar, N=N)
-global v4 = addNode!(fg, :x4, ContinuousScalar, N=N)
-global v5 = addNode!(fg, :x5, ContinuousScalar, N=N)
+global v3 = addVariable!(fg, :x3, ContinuousScalar, N=N)
+global v4 = addVariable!(fg, :x4, ContinuousScalar, N=N)
+global v5 = addVariable!(fg, :x5, ContinuousScalar, N=N)
 
 
 global ppMH = DevelopLikelihood(Normal(90.0,1.0))

@@ -8,10 +8,10 @@ using Test
 
 global fgt = emptyFactorGraph()
 
-addNode!(fgt, :x1, ContinuousScalar)
+addVariable!(fgt, :x1, ContinuousScalar)
 addFactor!(fgt, [:x1], Prior(Normal()))
 
-addNode!(fgt, :x2, ContinuousScalar)
+addVariable!(fgt, :x2, ContinuousScalar)
 addFactor!(fgt, [:x1;:x2], LinearConditional(Normal(10,1)))
 
 savejld(fgt)
