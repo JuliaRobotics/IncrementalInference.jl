@@ -1,4 +1,7 @@
 
+"""
+$(TYPEDEF)
+"""
 mutable struct BayesTreeNodeData
   frontalIDs::Vector{Int}
   conditIDs::Vector{Int}
@@ -32,6 +35,9 @@ function emptyBTNodeData()
 end
 
 # BayesTree declarations
+"""
+$(TYPEDEF)
+"""
 mutable struct BayesTree
   bt
   btid::Int

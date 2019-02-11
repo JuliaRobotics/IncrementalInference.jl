@@ -27,6 +27,9 @@ const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVer
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
 # Condensed representation of KernelDensityEstimate, by saving points and bandwidth
+"""
+$(TYPEDEF)
+"""
 mutable struct EasyMessage
   pts::Array{Float64,2}
   bws::Array{Float64,1}
@@ -36,6 +39,9 @@ mutable struct EasyMessage
 end
 
 
+"""
+$(TYPEDEF)
+"""
 mutable struct FactorGraph
   g::FGGdict
   bn
@@ -129,7 +135,9 @@ function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Ve
     return fg
 end
 
-
+"""
+$(TYPEDEF)
+"""
 mutable struct VariableNodeData
   # initval::Array{Float64,2} # TODO deprecate
   # initstdev::Array{Float64,2} # TODO deprecate
@@ -167,6 +175,9 @@ mutable struct VariableNodeData
     new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct FactorMetadata
   factoruserdata
   variableuserdata::Union{Vector, Tuple}
@@ -182,9 +193,15 @@ end
 
 struct SingleThreaded
 end
+"""
+$(TYPEDEF)
+"""
 struct MultiThreaded
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct ConvPerThread
   thrid_::Int
   particleidx::Int # the actual particle being solved at this moment
@@ -221,6 +238,9 @@ function ConvPerThread(X::Array{Float64,2},
   return cpt
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -305,6 +325,9 @@ function CommonConvWrapper(fnc::T,
   return ccw
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct GenericFunctionNodeData{T, S}
   fncargvID::Array{Int,1}
   eliminated::Bool

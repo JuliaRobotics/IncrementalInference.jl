@@ -5,10 +5,16 @@
 #   bws::Array{Float64,1}
 # end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct NBPMessage <: Singleton
   p::Dict{Int,EasyMessage}
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct PotProd
     Xi::Int
     prev::Array{Float64,2}
@@ -16,12 +22,18 @@ mutable struct PotProd
     potentials::Array{BallTreeDensity,1}
     potentialfac::Vector{AbstractString}
 end
+"""
+$(TYPEDEF)
+"""
 mutable struct CliqGibbsMC
     prods::Array{PotProd,1}
     lbls::Vector{Symbol}
     CliqGibbsMC() = new()
     CliqGibbsMC(a,b) = new(a,b)
 end
+"""
+$(TYPEDEF)
+"""
 mutable struct DebugCliqMCMC
     mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
@@ -31,6 +43,9 @@ mutable struct DebugCliqMCMC
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
@@ -38,6 +53,9 @@ mutable struct UpReturnBPType
     keepupmsgs::Dict{Symbol, BallTreeDensity}
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
@@ -45,6 +63,9 @@ mutable struct DownReturnBPType
     keepdwnmsgs::Dict{Symbol, BallTreeDensity}
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct ExploreTreeType
   fg::FactorGraph
   bt::BayesTree
@@ -53,6 +74,9 @@ mutable struct ExploreTreeType
   sendmsgs::Array{NBPMessage,1}
 end
 
+"""
+$(TYPEDEF)
+"""
 mutable struct MsgPassType
   fg::FactorGraph
   cliq::Graphs.ExVertex

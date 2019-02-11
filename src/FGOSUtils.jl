@@ -149,6 +149,7 @@ end
 """
     $(SIGNATURES)
 
+Return all elements `ls(fg)` as tuples, or nodes connected to the a specific element, eg. `ls(fg, :x1)
 """
 function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
   # TODO ring functionality must still be implemented
@@ -270,8 +271,29 @@ function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   end
   return lsa
 end
+
+"""
+    $(SIGNATURES)
+
+List factors in a factor graph.
+
+# Examples
+```julia-repl
+lsf(fg)
+```
+"""
 lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
+"""
+    $(SIGNATURES)
+
+List factors in a factor graph.
+
+# Examples
+```julia-repl
+lsf(fg)
+```
+"""
 function lsf(fgl::FactorGraph,
       mt::Type{T};
       api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
