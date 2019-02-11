@@ -12,6 +12,9 @@
 
 # define the simple 1D odo
 # TODO -- rework to use Distributions rather than Z and Cov
+"""
+$(TYPEDEF)
+"""
 mutable struct Odo <: FunctorPairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
@@ -44,6 +47,9 @@ end
 #   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
 #   return ret
 # end
+"""
+$(TYPEDEF)
+"""
 mutable struct PackedOdo <: PackedInferenceType
     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
     dimz::Int
@@ -68,6 +74,9 @@ end
 
 
 
+"""
+$(TYPEDEF)
+"""
 mutable struct OdoMM <: Pairwise
     Zij::Array{Float64,2} # 0rotations, 1translation in each column
     Cov::Array{Float64,2}
@@ -86,6 +95,9 @@ function getSample(odo::OdoMM, N::Int=1)
 end
 
 
+"""
+$(TYPEDEF)
+"""
 mutable struct Ranged <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
@@ -93,6 +105,9 @@ mutable struct Ranged <: FunctorPairwise
     Ranged() = new()
     Ranged(x...) = new(x[1], x[2], x[3])
 end
+"""
+$(TYPEDEF)
+"""
 mutable struct PackedRanged <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
@@ -126,6 +141,9 @@ function getSample(ra::Ranged, N::Int=1)
 end
 
 
+"""
+$(TYPEDEF)
+"""
 mutable struct GenericMarginal <: FunctorPairwise
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
@@ -133,6 +151,9 @@ mutable struct GenericMarginal <: FunctorPairwise
     GenericMarginal() = new()
     GenericMarginal(a,b,c) = new(a,b,c)
 end
+"""
+$(TYPEDEF)
+"""
 mutable struct PackedGenericMarginal <: PackedInferenceType
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}

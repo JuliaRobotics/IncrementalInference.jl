@@ -2,6 +2,9 @@
 # The idea is for a one line call to change from internal Graphs.jl to CloudGraphs.jl
 # switch for as data layer.
 
+"""
+$(TYPEDEF)
+"""
 mutable struct DataLayerAPI
   addvertex!::Function
   getvertex::Function

@@ -235,17 +235,17 @@ $(SIGNATURES)
 
 Add a node (variable) to a graph. Use this over the other dispatches.
 """
-function addNode!(fg::FactorGraph,
-                  lbl::Symbol,
-                  softtype::T;
-                  N::Int=100,
-                  autoinit::Bool=true,  # does init need to be separate from ready? TODO
-                  ready::Int=1,
-                  dontmargin::Bool=false,
-                  labels::Vector{<:AbstractString}=String[],
-                  api::DataLayerAPI=dlapi,
-                  uid::Int=-1,
-                  smalldata=""  ) where {T <:InferenceVariable}
+function addVariable!(fg::FactorGraph,
+                      lbl::Symbol,
+                      softtype::T;
+                      N::Int=100,
+                      autoinit::Bool=true,  # does init need to be separate from ready? TODO
+                      ready::Int=1,
+                      dontmargin::Bool=false,
+                      labels::Vector{<:AbstractString}=String[],
+                      api::DataLayerAPI=dlapi,
+                      uid::Int=-1,
+                      smalldata=""  ) where {T <:InferenceVariable}
   #
   currid = fg.id+1
   if uid==-1
@@ -279,19 +279,52 @@ end
 $(SIGNATURES)
 
 Add a node (variable) to a graph. Use this over the other dispatches.
+
+DEPRECATED: use addVarialbe! instead.
 """
 function addNode!(fg::FactorGraph,
                   lbl::Symbol,
-                  softtype::Type{<:InferenceVariable};
+                  softtype::T;
                   N::Int=100,
-                  autoinit::Bool=true,
+                  autoinit::Bool=true,  # does init need to be separate from ready? TODO
                   ready::Int=1,
                   dontmargin::Bool=false,
                   labels::Vector{<:AbstractString}=String[],
                   api::DataLayerAPI=dlapi,
                   uid::Int=-1,
-                  # dims::Int=-1,
-                  smalldata=""  )
+                  smalldata=""  ) where {T <:InferenceVariable}
+  #
+  @warn "IIF.addNode!(..) is being deprecated, use IIF.addVariable!(..) instead."
+  return addVariable!( fg,
+                       lbl,
+                       softtype,
+                       N=N,
+                       autoinit=autoinit,  # does init need to be separate from ready? TODO
+                       ready=ready,
+                       dontmargin=dontmargin,
+                       labels=labels,
+                       api=api,
+                       uid=uid,
+                       smalldata=smalldata )
+end
+
+"""
+$(SIGNATURES)
+
+Add a node (variable) to a graph. Use this over the other dispatches.
+"""
+function addVariable!(fg::FactorGraph,
+                      lbl::Symbol,
+                      softtype::Type{<:InferenceVariable};
+                      N::Int=100,
+                      autoinit::Bool=true,
+                      ready::Int=1,
+                      dontmargin::Bool=false,
+                      labels::Vector{<:AbstractString}=String[],
+                      api::DataLayerAPI=dlapi,
+                      uid::Int=-1,
+                      # dims::Int=-1,
+                      smalldata=""  )
   #
   sto = softtype()
   if :ut in fieldnames(typeof(sto))
@@ -310,8 +343,45 @@ function addNode!(fg::FactorGraph,
            smalldata=smalldata  )
 end
 
+"""
+$(SIGNATURES)
 
+Add a node (variable) to a graph. Use this over the other dispatches.
 
+DEPRECATED: use addVariable! instead.
+"""
+function addNode!(fg::FactorGraph,
+                  lbl::Symbol,
+                  softtype::Type{<:InferenceVariable};
+                  N::Int=100,
+                  autoinit::Bool=true,
+                  ready::Int=1,
+                  dontmargin::Bool=false,
+                  labels::Vector{<:AbstractString}=String[],
+                  api::DataLayerAPI=dlapi,
+                  uid::Int=-1,
+                  # dims::Int=-1,
+                  smalldata=""  )
+  #
+  @warn "IIF.addNode!(..) is being deprecated, use IIF.addVariable!(..) instead."
+  return addVariable!(fg,
+                      lbl,
+                      softtype,
+                      N=N,
+                      autoinit=autoinit,
+                      ready=ready,
+                      dontmargin=dontmargin,
+                      labels=labels,
+                      api=api,
+                      uid=uid,
+                      smalldata=smalldata)
+end
+
+"""
+    $(SIGNATURES)
+
+Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
+"""
 function getVal(vA::Array{Graphs.ExVertex,1})
   @warn "getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead."
   len = length(vA)
@@ -490,7 +560,7 @@ end
 """
     $(SIGNATURES)
 
-initialize destination variable nodes based on this factor in factor graph, fg, generally called
+EXPERIMENTAL: initialize destination variable nodes based on this factor in factor graph, fg, generally called
 during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
 """
 function doautoinit!(fgl::FactorGraph,
