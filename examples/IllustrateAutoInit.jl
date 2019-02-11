@@ -36,7 +36,7 @@ import IncrementalInference: getSample
 fg = emptyFactorGraph()
 
 # add the first node
-addNode!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x0, ContinuousScalar)
 
 # this is unary (prior) factor and does not immediately trigger autoinit of :x0.
 addFactor!(fg, [:x0], Prior(Normal(0,1)))
@@ -56,7 +56,7 @@ addFactor!(fg, [:x0], Prior(Normal(0,1)))
 # deferred until such criteria are met.
 
 # Auto initialization of :x0 is triggered by connecting the next (probably uninitialized) variable node
-addNode!(fg, :x1, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
 
 # with a linear conditional belief to :x0
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
@@ -85,7 +85,7 @@ ensureAllInitialized!(fg)
 plotKDE(fg, [:x0, :x1])
 
 # add another node, but introduce more general beliefs
-addNode!(fg, :x2, ContinuousScalar)
+addVariable!(fg, :x2, ContinuousScalar)
 
 mmo = MixtureConditional([Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
 addFactor!(fg, [:x1, :x2], mmo)
@@ -100,7 +100,7 @@ ensureAllInitialized!(fg)
 plotKDE(fg, [:x0, :x1, :x2])
 
 # Now transmit this 'weird' multi-modal marginal belief through a another unimodal linear offset (conditional likelihood)
-addNode!(fg, :x3, ContinuousScalar)
+addVariable!(fg, :x3, ContinuousScalar)
 
 addFactor!(fg, [:x2, :x3], LinearConditional(Normal(-50, 1)))
 # note, this addFactor step relies on :x2 being initialized and would have done so if we didn't call ensureAllInitialized! a few lines earlier.

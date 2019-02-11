@@ -144,14 +144,14 @@ function runFullBatchIterations(;N=100, iters=50)
   fg = emptyFactorGraph()
 
   x0 = 0.5-rand(1,N)  #[1.0+0.1*randn(N);10+0.1*randn(N)]'
-  addNode!(fg, :x, x0, N=N)
-  # addNode!(fg, :y, x0,N=N)
+  addVariable!(fg, :x, x0, N=N)
+  # addVariable!(fg, :y, x0,N=N)
 
   pts = rand(Distributions.Normal(4.0,0.05),N)   #;rand(Distributions.Normal(144.0,0.05),N)]
   md = kde!(pts)
   npx = NumbersPrior(md)
   pts0 = getSample(npx,N)[1]
-  addNode!(fg, :xy, pts0, N=N)
+  addVariable!(fg, :xy, pts0, N=N)
 
   addFactor!(fg, [getVert(fg, :xy)], npx)
   #
@@ -365,13 +365,13 @@ Gadfly.draw(PDF("sqrtexamplekldrelative.pdf",10cm,6cm),pldiv)
 
 DFs = DataFrame[]
 # x0 = [1.0+0.1*randn(100);10+0.1*randn(100)]'
-# addNode!(fg, :x, ContinuousScalar, N=N)
+# addVariable!(fg, :x, ContinuousScalar, N=N)
 #
 # pts = [rand(Distributions.Normal(4.0,0.05),100);rand(Distributions.Normal(144.0,0.05),100)]
 # md = kde!(pts)
 # npx = NumbersPrior(md)
 # pts0 = getSample(npx,N)[1]
-# addNode!(fg, :xy, ContinuousScalar, N=N)
+# addVariable!(fg, :xy, ContinuousScalar, N=N)
 
 
 for i in 1:mc

@@ -23,42 +23,42 @@ cov = 3.0*ones(1,1)
 # doors2 = getPoints(pd);
 
 
-v1 = addNode!(fg,:x1,ContinuousScalar,N=N)
+v1 = addVariable!(fg,:x1,ContinuousScalar,N=N)
 f1  = addFactor!(fg,[v1], Obsv2(doors, cov, [1.0]))
 
 tem = 2.0*randn(1,N)+getVal(v1)+50.0
-v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
+v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[v1;v2],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
 
 # monocular sighting would look something like
 #addFactor!(fg, Mono, [:x3,:l1], [14.0], [1.0], [1.0])
 #addFactor!(fg, Mono, [:x4,:l1], [11.0], [1.0], [1.0])
 
-v3=addNode!(fg,:x3,ContinuousScalar, N=N)
+v3=addVariable!(fg,:x3,ContinuousScalar, N=N)
 addFactor!(fg,[v2;v3],Odo(50.0*ones(1,1),4.0*ones(1,1),[1.0]))
 f2 = addFactor!(fg,[v3], Obsv2(doors, cov', [1.0]))
 
 if true
 
-    v4=addNode!(fg,:x4,ContinuousScalar, N=N)
+    v4=addVariable!(fg,:x4,ContinuousScalar, N=N)
     addFactor!(fg,[v3;v4],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
 
     if true
-        l1=addNode!(fg, :l1, ContinuousScalar, N=N)
+        l1=addVariable!(fg, :l1, ContinuousScalar, N=N)
         addFactor!(fg, [v3,l1], Ranged([64.0],[0.5],[1.0]))
         addFactor!(fg, [v4,l1], Ranged([16.0],[0.5],[1.0]))
     end
 
 
-    v5=addNode!(fg,:x5,ContinuousScalar, N=N)
+    v5=addVariable!(fg,:x5,ContinuousScalar, N=N)
     addFactor!(fg,[v4;v5],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
 
 
-    v6=addNode!(fg,:x6,ContinuousScalar, N=N)
+    v6=addVariable!(fg,:x6,ContinuousScalar, N=N)
     addFactor!(fg,[v5;v6],Odo(40.0*ones(1,1),1.25*ones(1,1),[1.0]))
 
 
-    v7=addNode!(fg,:x7,ContinuousScalar, N=N)
+    v7=addVariable!(fg,:x7,ContinuousScalar, N=N)
     addFactor!(fg,[v6;v7],Odo(60.0*ones(1,1),2.0*ones(1,1),[1.0]))
 
     f3 = addFactor!(fg,[v7], Obsv2(doors, cov, [1.0]))

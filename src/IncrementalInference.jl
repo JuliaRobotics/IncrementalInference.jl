@@ -74,6 +74,7 @@ export
 
   FactorGraph,
   addNode!,
+  addVariable!,
   addFactor!,
   doautoinit!,
   manualinit!,
@@ -263,6 +264,8 @@ include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
+
+include("Deprecated.jl")
 
 # Hack for RoME module.
 global serializationnamespace = Dict{String, Module}()

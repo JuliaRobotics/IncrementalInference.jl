@@ -25,7 +25,7 @@ global N=50
 global fg = emptyFactorGraph()
 
 
-global v1 = addNode!(fg,:x1,ContinuousMultivariate(2,manifolds=(:Euclid, :Euclid)),N=N)
+global v1 = addVariable!(fg,:x1,ContinuousMultivariate(2,manifolds=(:Euclid, :Euclid)),N=N)
 
 global pr = DevelopDim2(MvNormal([0.0;0.0], 0.01*Matrix{Float64}(LinearAlgebra.I,2,2)))
 global f1  = addFactor!(fg,[:x1],pr)
@@ -88,7 +88,7 @@ end
 
 
 
-global v2 = addNode!(fg,:x2,ContinuousMultivariate(2),N=N)
+global v2 = addVariable!(fg,:x2,ContinuousMultivariate(2),N=N)
 
 
 global dpp = DevelopPartialPairwise(Normal(10.0, 1.0))

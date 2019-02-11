@@ -36,11 +36,11 @@ global bws = getBW(pd)[:,1]
 global bws2 = Array{Float64,2}(undef, length(bws),1)
 global bws2[:,1] = bws[:]
 global doors2 = getPoints(pd);
-global v1 = addNode!(fg,:x1, ContinuousScalar,N=N)
+global v1 = addVariable!(fg,:x1, ContinuousScalar,N=N)
 global f1  = addFactor!(fg,[:x1], Prior(kde!(doors2, bws2[:]))) #Obsv2( doors2, bws2, [1.0])
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
-global v2 = addNode!(fg,:x2, ContinuousScalar, N=N)
+global v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 # Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])
 global lc = LinearConditional(  Normal(50.0, 2.0) )
 global f2 = addFactor!(fg, [:x1; :x2], lc)
