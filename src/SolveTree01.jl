@@ -124,9 +124,10 @@ end
 
 
 function packFromIncomingDensities!(dens::Array{BallTreeDensity,1},
-      wfac::Vector{AbstractString},
-      vertid::Int,
-      inmsgs::Array{NBPMessage,1} )
+                                    wfac::Vector{AbstractString},
+                                    vertid::Int,
+                                    inmsgs::Array{NBPMessage,1},
+                                    manis::T ) where {T <: Tuple}
   #
   for m in inmsgs
     for idx in keys(m.p)
@@ -200,14 +201,16 @@ end
 
 Multiply different dimensions from partial constraints individually.
 """
-function productpartials!(pGM::Array{Float64,2}, dummy::BallTreeDensity,
-        partials::Dict{Int, Vector{BallTreeDensity}}  )
-
+function productpartials!(pGM::Array{Float64,2},
+                          dummy::BallTreeDensity,
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          manis::T  ) where {T <: Tuple}
   #
   for (dimnum,pp) in partials
-    dummy2 = marginal(dummy,[dimnum]) # kde!(rand(1,N),[1.0])
+    dummy2 = marginal(dummy,[dimnum])
     if length(pp) > 1
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, Union{}, Union{}, 8)
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, nothing, nothing, 5)
+
     else
       pGM[dimnum,:] = getPoints(pp[1])
     end
@@ -221,15 +224,21 @@ end
 Multiply various full and partial dimension constraints.
 """
 function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      Ndims::Int, N::Int  )
+                                   partials::Dict{Int, Vector{BallTreeDensity}},
+                                   Ndims::Int,
+                                   N::Int,
+                                   manis::T ) where {T <: Tuple}
   #
-  dummy = kde!(rand(Ndims,N),[1.0]); # TODO -- reuse memory rather than rand here
-  pGM, = prodAppxMSGibbsS(dummy, dens, nothing, nothing, 8) #10
+  # TODO -- reuse memory rather than rand here
+  pq = AMP.manifoldProduct(dens, manis, Niter=5)
+  # pGM, = prodAppxMSGibbsS(dummy, dens, nothing, nothing, 5)
   for (dimnum,pp) in partials
-    push!(pp, kde!(pGM[dimnum,:]))
+    push!(pp, marginal(pq, [dimnum] ) )
+    # push!(pp, AMP.manikde!(pGM[dimnum,:] ))
   end
-  productpartials!(pGM, dummy, partials)
+  dummy = AMP.manikde!(rand(Ndims,N),[1.0], manis);
+  pGM = getPoints(pq)
+  productpartials!(pGM, dummy, partials, manis)
   return pGM
 end
 
@@ -239,16 +248,21 @@ end
 Multiply a single full and several partial dimension constraints.
 """
 function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      Ndims::Int, N::Int  )
+                                      partials::Dict{Int, Vector{BallTreeDensity}},
+                                      Ndims::Int,
+                                      N::Int,
+                                      manis::T  ) where {T <: Tuple}
   #
-  dummy = kde!(rand(Ndims,N),[1.0]) # TODO -- reuse memory rather than rand here
+  # TODO -- reuse memory rather than rand here
+  # TODO -- should this be [1.0] or ones(Ndims)
+  dummy = AMP.manikde!(rand(Ndims,N), [1.0], manis)
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
-    push!(pp, kde!(pGM[dimnum,:]))
+    @show (manis[dimnum],)
+    push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
-  productpartials!(pGM, dummy, partials)
+  productpartials!(pGM, dummy, partials, manis)
   return pGM
 end
 
@@ -274,23 +288,25 @@ function productbelief(fg::FactorGraph,
                        dbg::Bool=false )
   #
 
+  vert = getVert(fg, vertid, api=localapi)
+  manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
     Ndims = Ndim(dens[1])
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    pGM = prodmultiplefullpartials(dens, partials, Ndims, N)
+    pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 1 && lenpart >= 1
     Ndims = Ndim(dens[1])
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    pGM = prodmultipleonefullpartials(dens, partials, Ndims, N)
+    pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
     denspts = getVal(fg,vertid,api=localapi)
     Ndims = size(denspts,1)
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    dummy = kde!(rand(Ndims,N), ones(Ndims)) # [1.0] # TODO -- reuse memory rather than rand here
+    dummy = AMP.manikde!(rand(Ndims,N), ones(Ndims), manis) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
-    productpartials!(pGM, dummy, partials)
+    productpartials!(pGM, dummy, partials, manis)
   # elseif lennonp == 0 && lenpart == 1
   #   info("[prtl]")
   #   pGM = deepcopy(getVal(fg,vertid,api=localapi) )
@@ -410,7 +426,7 @@ function localProduct(fgl::FactorGraph,
   fcts = Vector{Graphs.ExVertex}()
   cf = ls(fgl, sym, api=api)
   for f in cf
-    vert = getVert(fgl,f, nt=:fnc, api=api)
+    vert = getVert(fgl, f, nt=:fnc, api=api)
     push!(fcts, vert)
     push!(lb, vert.label)
   end
@@ -420,7 +436,8 @@ function localProduct(fgl::FactorGraph,
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
-  pp = kde!(pGM)
+  vert = getVert(fg, sym, api=api)
+  pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb
 end
@@ -459,7 +476,8 @@ function cliqGibbs(fg::FactorGraph,
                    vertid::Int,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
-                   dbg::Bool  )
+                   dbg::Bool,
+                   manis::T  ) where {T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
@@ -467,7 +485,7 @@ function cliqGibbs(fg::FactorGraph,
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{AbstractString}()
-  packFromIncomingDensities!(dens, wfac, vertid, inmsgs)
+  packFromIncomingDensities!(dens, wfac, vertid, inmsgs, manis)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
   packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
 
@@ -492,7 +510,8 @@ function fmcmc!(fgl::FactorGraph,
                 IDs::Vector{Int},
                 N::Int,
                 MCMCIter::Int,
-                dbg::Bool=false  )
+                dbg::Bool=false,
+                api::DataLayerAPI=dlapi )
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
@@ -506,10 +525,10 @@ function fmcmc!(fgl::FactorGraph,
       @info "#$(iter)\t -- "
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       for vertid in IDs
-        vert = getVert(fgl, vertid, api=dlapi)
+        vert = getVert(fgl, vertid, api=api)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
           if size(densPts,1)>0
             updvert = getVert(fgl, vertid, api=dlapi)  # TODO --  can we remove this duplicate getVert?
             setValKDE!(updvert, densPts)
@@ -531,10 +550,12 @@ function fmcmc!(fgl::FactorGraph,
     # TODO -- change to EasyMessage dict
     d = Dict{Int,EasyMessage}() # Array{Float64,2}
     for vertid in IDs
-      vert = dlapi.getvertex(fgl,vertid)
+      # TODO reduce to local fg only
+      vert = getVert(fgl,vertid, api=api)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
-      d[vertid] = EasyMessage(getVal(vert), bws)
+      manis = getSofttype(vert).manifolds
+      d[vertid] = EasyMessage(getVal(vert), bws, manis)
       # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
     @info "fmcmc! -- finished on $(cliq.attributes["label"])"
@@ -558,7 +579,13 @@ end
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductUp(fg::FactorGraph, tree::BayesTree, cliq::Symbol, sym::Symbol; N::Int=100, dbg::Bool=false )
+function treeProductUp(fg::FactorGraph,
+                       tree::BayesTree,
+                       cliq::Symbol,
+                       sym::Symbol;
+                       N::Int=100,
+                       dbg::Bool=false  )
+  #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
   # IDS = [cliqdata.frontalIDs; cliqdata.conditIDs]
@@ -573,13 +600,15 @@ function treeProductUp(fg::FactorGraph, tree::BayesTree, cliq::Symbol, sym::Symb
     msgdict = upMsg(cl)
     dict = Dict{Int, EasyMessage}()
     for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
+      manis = getSofttype(getVert(fg, dsy, api=localapi)).manifolds
+      dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
 
   # perform the actual computation
-  pGM, potprod = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg )
+  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  pGM, potprod = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end
@@ -713,18 +742,10 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     i = 0
     for vid in cliq.attributes["data"].frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-      # outp = kde!(d[vid]) # need to find new down msg bandwidths
-      # # i+=1
-      # # outDens[i] = outp
-      # bws = vec((getBW(outp))[:,1])
-      # m.p[vid] = EasyMessage(  deepcopy(d[vid]) , bws  )
     end
     for cvid in cliq.attributes["data"].conditIDs
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
-        # outDens[i] = cdwndict[cvid]
-        # @info ""
-        # info("Looking for cvid=$(cvid)")
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
     end
     return m

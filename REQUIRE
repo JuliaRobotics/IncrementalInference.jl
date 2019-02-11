@@ -5,7 +5,8 @@ NLsolve 3.0.0
 Optim 0.16.0
 Distributions 0.16.4
 StatsBase 0.25.0
-KernelDensityEstimate 0.4.0 0.5.0
+KernelDensityEstimate 0.4.3
+ApproxManifoldProducts 0.0.2
 JLD2 0.1.2
 FileIO 1.0.2
 ProgressMeter 0.6.0

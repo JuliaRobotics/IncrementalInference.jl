@@ -184,6 +184,13 @@ end
 
 
 
+"""
+    $(SIGNATURES)
+
+Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+
+Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
+"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -203,11 +210,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -227,13 +229,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-#  Singletons ==================================================================
-
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingleton}` types.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -257,12 +252,6 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   end
 end
 
-"""
-    $(SIGNATURES)
-
-Multiple dispatch wrapper for evaluating the `ccwl::CommonConvWrapper{<: FunctorSingletonNH}` types.
-Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
-"""
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Int;
@@ -392,9 +381,15 @@ function findRelatedFromPotential(fg::FactorGraph,
   Ndim = size(ptsbw,1)
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  p = kde!(ptsbw) # TODO: addop diffop, see WIP AMP
+  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  p = AMP.manikde!(ptsbw, manis)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
   end
   return p
 end
+
+
+
+
+#

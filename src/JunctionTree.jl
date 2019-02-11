@@ -30,8 +30,8 @@ function emptyBTNodeData()
                     Array{Bool}(undef, 0,0),Int[],Int[],
                     Int[],Int[],Int[],
                     nothing, nothing,
-                    Dict{Symbol, BallTreeDensity}(:null => KDE.kde!([0.0;], [1.0;])),
-                    Dict{Symbol, BallTreeDensity}(:null => KDE.kde!([0.0;], [1.0;])) )
+                    Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
+                    Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))) )
 end
 
 # BayesTree declarations

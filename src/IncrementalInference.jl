@@ -7,6 +7,7 @@ using Reexport
 
 @reexport using Distributions
 @reexport using KernelDensityEstimate
+@reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
 
@@ -24,12 +25,17 @@ using
 
 
 const KDE = KernelDensityEstimate
+const AMP = ApproxManifoldProducts
 
 import Base: convert
 # import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
-import KernelDensityEstimate: kde!
+# import KernelDensityEstimate: kde!
+import ApproxManifoldProducts: kde!
+
+# TODO temporary for initial version of on-manifold products
+KDE.setForceEvalDirect!(true)
 
 export
   KDE,
@@ -75,6 +81,7 @@ export
   getVert,
   getData,
   setData!,
+  getSofttype,
   getVarNode,
   getVal,
   setVal!,
@@ -213,13 +220,15 @@ export
   setDwnMsg!,
   dwnMsg,
 
+  # some utils
   compareField,
   compareFields,
   compareAll,
+  getIdx,
 
   # For 1D example,
 
-  # TODO rename to ball radius
+  # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
@@ -235,8 +244,10 @@ export
 
 const NothingUnion{T} = Union{Nothing, T}
 
+# non-free, but not currently use!
 include("ccolamd.jl")
 
+# regular
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -255,6 +266,7 @@ include("SolveTree01.jl")
 
 # Hack for RoME module.
 global serializationnamespace = Dict{String, Module}()
+
 
 """
     $(SIGNATURES)

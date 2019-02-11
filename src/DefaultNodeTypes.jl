@@ -9,16 +9,27 @@ $(TYPEDEF)
 struct ContinuousScalar <: InferenceVariable
   dims::Int
   labels::Vector{String}
-  ContinuousScalar() = new(1, String[])
+  manifolds::Tuple{Symbol}
+  ContinuousScalar(;labels::Vector{<:AbstractString}=String[], manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, labels, manifolds)
 end
+
 """
 $(TYPEDEF)
 """
-struct ContinuousMultivariate <: InferenceVariable
+struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
   dims::Int
   labels::Vector{String}
-  ContinuousMultivariate() = new()
-  ContinuousMultivariate(x) = new(x, String[])
+  manifolds::T1
+  ContinuousMultivariate{T}() where {T} = new()
+  ContinuousMultivariate{T}(x::Int;labels::Vector{<:AbstractString}=String[], manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, labels, manifolds)
+end
+
+function ContinuousMultivariate(x::Int;
+                                labels::Vector{<:AbstractString}=String[],
+                                manifolds::T1=(:Euclid,)  )  where {T1 <: Tuple}
+  #
+  @show maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
+  ContinuousMultivariate{typeof(maniT)}(x, labels=labels, manifolds=maniT)
 end
 
 
