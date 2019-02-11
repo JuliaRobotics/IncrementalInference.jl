@@ -154,8 +154,6 @@ end
 
 
 function setDefaultNodeData!(v::Graphs.ExVertex,
-                             initval::Array{Float64,2},
-                             stdev::Array{Float64,2},
                              dodims::Int,
                              N::Int,
                              dims::Int;
@@ -167,16 +165,16 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
   if initialized
-    if size(initval,2) < N && size(initval, 1) == dims
-      @warn "setDefaultNodeData! -- deprecated use of stdev."
-      p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
-      pN = resample(p,N)
-    elseif size(initval,2) < N && size(initval, 1) != dims
+    # if size(initval,2) < N && size(initval, 1) == dims
+    #   @warn "setDefaultNodeData! -- deprecated use of stdev."
+    #   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
+    #   pN = resample(p,N)
+    # if size(initval,2) < N && size(initval, 1) != dims
       @info "Node value memory allocated but not initialized"
       pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
-    else
-      pN = AMP.manikde!(initval, softtype.manifolds)
-    end
+    # else
+    #   pN = AMP.manikde!(initval, softtype.manifolds)
+    # end
     # dims = size(initval,1) # rows indicate dimensions
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
@@ -259,7 +257,7 @@ function addVariable!(fg::FactorGraph,
   addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   # dodims = fg.dimID+1
-  setDefaultNodeData!(vert, zeros(softtype.dims,N), zeros(0,0), 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+  setDefaultNodeData!(vert, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
 
   vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
   push!(vnlbls, fg.sessionname)
