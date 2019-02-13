@@ -6,7 +6,7 @@ using Test
 @testset "test solve by saving and loading basic jld..." begin
 
 
-global fgt = emptyFactorGraph()
+global fgt = FactorGraph()
 
 addVariable!(fgt, :x1, ContinuousScalar)
 addFactor!(fgt, [:x1], Prior(Normal()))

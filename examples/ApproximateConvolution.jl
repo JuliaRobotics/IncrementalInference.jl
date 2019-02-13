@@ -39,7 +39,7 @@ end
 
 
 
-fg = emptyFactorGraph()
+fg = FactorGraph()
 
 N=100
 

@@ -8,7 +8,7 @@ using Test
 
 
 global N=100
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 global doors = zeros(1,1)
 global pd = kde!(doors,[3.0])

@@ -68,47 +68,29 @@ mutable struct FactorGraph
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph() = new()
-  FactorGraph(
-    x1,
-    x2,
-    x3,
-    x4,
-    x5,
-    x6,
-    x7,
-    x8,
-    x9,
-    x10,
-    x11,
-    x12,
-    x13,
-    x14,
-    x15,
-    x16,
-    x17
-   ) = new(
-    x1,
-    x2,
-    x3,
-    x4,
-    x5,
-    x6,
-    x7,
-    x8,
-    x9,
-    x10,
-    x11,
-    x12,
-    x13,
-    x14,
-    x15,
-    x16,
-    x17,
-    false,
-    Symbol[],
-    0,
-    false  )
+  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
+                      #  Dict{Int,Graphs.ExVertex}(),
+                      #  Dict{Int,Graphs.ExVertex}(),
+                      Dict{Symbol,Int}(),
+                      Dict{Symbol,Int}(),
+                      0,
+                      [],
+                      [],
+                      Dict{Int,Graphs.ExVertex}(),
+                      0,
+                      0,
+                      nothing,
+                      Dict{Int,Int}(),
+                      "",
+                      "",
+                      "",
+                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
+                      reference,
+                      false,
+                      Symbol[],
+                      0,
+                      false  )
 end
 
 """
@@ -135,7 +117,13 @@ function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Ve
                      "",
                      "",
                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                     reference  ) #evalPotential
+                     reference,
+                     false,
+                     Symbol[],
+                     0,
+                     false  )
+    #
+    @warn "emptyFactorGraph(;reference=) is deprecated, use FactorGraph(;reference=) instead."
     return fg
 end
 

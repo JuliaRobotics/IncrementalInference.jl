@@ -27,7 +27,7 @@ end
 
 
 global N  = 100
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 # used later in packing converter tests
 # f1 = nothing
@@ -159,7 +159,7 @@ end
 
 # start a new factor graph
 global N = 200
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 @testset "test tri-modal factor..." begin
 

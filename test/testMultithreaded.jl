@@ -14,7 +14,7 @@ import IncrementalInference: getSample
 global N = 100
 
 # Start with an empty factor graph
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 # add the first node
 addVariable!(fg, :x0, ContinuousScalar, N=N)

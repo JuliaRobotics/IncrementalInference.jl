@@ -25,7 +25,7 @@ end
 
 
 
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 global N=100
 
 global doors = zeros(1,4)

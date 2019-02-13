@@ -18,7 +18,7 @@ end
 @testset "test null hypothesis singletons..." begin
 
 global N  = 100
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
 
