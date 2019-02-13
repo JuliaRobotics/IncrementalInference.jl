@@ -243,8 +243,16 @@ function addVariable!(fg::FactorGraph,
                       labels::Vector{<:AbstractString}=String[],
                       api::DataLayerAPI=dlapi,
                       uid::Int=-1,
-                      smalldata=""  ) where {T <:InferenceVariable}
+                      smalldata="",
+                      checkduplicates::Bool=true  ) where {T <:InferenceVariable}
   #
+  if checkduplicates
+    if haskey(fg.IDs, lbl)
+      @warn "Variable $lbl already exists in fg.sessionname=$(fg.sessionname).  Igoring this addVariable! call."
+      return getVert(fg, lbl, api=api)
+    end
+  end
+
   currid = fg.id+1
   if uid==-1
     fg.id=currid
