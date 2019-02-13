@@ -436,7 +436,7 @@ function localProduct(fgl::FactorGraph,
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
-  vert = getVert(fg, sym, api=api)
+  vert = getVert(fgl, sym, api=api)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb
