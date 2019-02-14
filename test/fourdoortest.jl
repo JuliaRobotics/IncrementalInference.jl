@@ -2,7 +2,7 @@ using IncrementalInference
 
 
 global N=100
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 global doors = reshape(Float64[-100.0;0.0;100.0;300.0],1,4)
 global pd = kde!(doors,[3.0])
 global pd = resample(pd,N);

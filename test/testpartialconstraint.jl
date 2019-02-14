@@ -22,7 +22,7 @@ getSample(dpl::DevelopDim2, N::Int=1) = (rand(dpl.x, N), )
 
 
 global N=50
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 
 global v1 = addVariable!(fg,:x1,ContinuousMultivariate(2,manifolds=(:Euclid, :Euclid)),N=N)

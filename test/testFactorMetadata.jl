@@ -6,7 +6,7 @@ using Test
 @testset "test default userdata::FactorMetadata..." begin
 
 
-fgt = emptyFactorGraph()
+fgt = FactorGraph()
 
 addVariable!(fgt, :x1, ContinuousScalar)
 addFactor!(fgt, [:x1], Prior(Normal()))

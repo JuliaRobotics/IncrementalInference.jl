@@ -98,7 +98,7 @@ export
   EasyMessage,
   NBPMessage,
   ExploreTreeType,
-  emptyFactorGraph,
+  FactorGraph,
   subgraphShortestPath,
   subgraphFromVerts,
   getEliminationOrder,

@@ -1,7 +1,7 @@
 using IncrementalInference
 
 
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 global N=100
 

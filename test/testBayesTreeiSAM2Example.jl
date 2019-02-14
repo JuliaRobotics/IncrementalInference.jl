@@ -6,7 +6,7 @@ using Test
 
 
 global N=100
-global fg = emptyFactorGraph()
+global fg = FactorGraph()
 
 # doors = [-100.0;0.0;100.0;300.0]'
 # cov = [3.0]
