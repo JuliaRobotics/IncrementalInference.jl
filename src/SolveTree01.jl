@@ -465,6 +465,15 @@ function initVariable!(fgl::FactorGraph,
 
   nothing
 end
+function initializeNode!(fgl::FactorGraph,
+                         sym::Symbol;
+                         N::Int=100,
+                         api::DataLayerAPI=IncrementalInference.dlapi )
+  #
+  @warn "initializeNode! has been deprecated in favor of initVariable!"
+  initVariable!(fgl,sym,N=N,api=api )
+end
+
 
 """
     $(SIGNATURES)
