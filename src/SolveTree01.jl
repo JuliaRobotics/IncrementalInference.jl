@@ -449,7 +449,7 @@ localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: 
 
 Initialize the belief of a variable node in the factor graph struct.
 """
-function initializeNode!(fgl::FactorGraph,
+function initVariable!(fgl::FactorGraph,
         sym::Symbol;
         N::Int=100,
         api::DataLayerAPI=IncrementalInference.dlapi )
@@ -459,12 +459,21 @@ function initializeNode!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Statistics.mean(pts,2), Statistics.std(pts,2)
+  @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
   nothing
 end
+function initializeNode!(fgl::FactorGraph,
+                         sym::Symbol;
+                         N::Int=100,
+                         api::DataLayerAPI=IncrementalInference.dlapi )
+  #
+  @warn "initializeNode! has been deprecated in favor of initVariable!"
+  initVariable!(fgl,sym,N=N,api=api )
+end
+
 
 """
     $(SIGNATURES)
