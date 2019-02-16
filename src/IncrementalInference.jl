@@ -226,6 +226,7 @@ export
   compareFields,
   compareAll,
   getIdx,
+  showFactor,
 
   # For 1D example,
 

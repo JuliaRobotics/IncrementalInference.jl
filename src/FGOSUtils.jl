@@ -440,6 +440,15 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
   return getIdx(pp.dimtype, sym)
 end
 
+"""
+    $SIGNATURES
+
+Display and return to console a factor identified by tag name. 
+"""
+function showFactor(fgl::FactorGraph, fsym::Symbol)
+  ufn = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
+  @show ufn
+end
 
 
 #
