@@ -10,12 +10,17 @@ getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var)
 getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
 
 
-# TODO -- upgrade to dedicated memory location in Graphs.jl
-# see JuliaArchive/Graphs.jl#233
+
+"""
+    $SIGNATURES
+
+Retrieve data structure stored in a node.
+"""
 getData(v::Graphs.ExVertex) = v.attributes["data"]
-# Convenience functions
 getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt=:var) = getData(getVert(fgl, lbl, api=api, nt=nt))
 getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
+# TODO -- upgrade to dedicated memory location in Graphs.jl
+# see JuliaArchive/Graphs.jl#233
 
 function setData!(v::Graphs.ExVertex, data)
   v.attributes["data"] = data
@@ -27,8 +32,11 @@ end
 
 Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
 """
+function getSofttype(vnd::VariableNodeData)
+  return vnd.softtype
+end
 function getSofttype(v::ExVertex)
-  getData(v).softtype
+  getSofttype(getData(v))
 end
 
 """
@@ -36,11 +44,13 @@ end
 
 Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
 """
+getVal(vnd::VariableNodeData) = vnd.val
+getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:,idx]
 function getVal(v::Graphs.ExVertex)
-  return getData(v).val
+  return getVal(getData(v))
 end
 function getVal(v::Graphs.ExVertex, idx::Int)
-  return getData(v).val[:,idx]
+  return getVal(getData(v),idx)
 end
 function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
@@ -77,6 +87,10 @@ function getfnctype(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   # data = getData(fgl, exvertid, api=api)
   # data.fnc.usrfnc!
   getfnctype(getVert(fgl, exvertid, api=api))
+end
+
+function getBW(vnd::VariableNodeData)
+  return vnd.bw
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
@@ -878,13 +892,18 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     return X,Y
 end
 
+function getKDE(vnd::VariableNodeData)
+  AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+end
+
+
 """
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
 function getKDE(v::Graphs.ExVertex)
-  return AMP.manikde!(getVal(v), getBWVal(v)[:,1], getSofttype(v).manifolds)
+  return getKDE(getData(v))
 end
 
 """
