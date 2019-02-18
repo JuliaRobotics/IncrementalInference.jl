@@ -440,6 +440,28 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
   return getIdx(pp.dimtype, sym)
 end
 
+"""
+    $SIGNATURES
 
+Display and return to console a factor identified by tag name.
+"""
+function showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi)
+  ufn = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
+  @show ufn
+end
+
+
+function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
+  vert = getVert(fg, vsym, api=api)
+  vnd = getData(vert)
+  println("label: $(vert.label), exVertexId: $(vert.index)")
+  println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
+  println("size marginal samples $(size(getVal(vnd)))")
+  println("kde bandwidths: $(getBW(vnd)[:,1])")
+  println("kde mean: $(round.(getKDEMean(getKDE(vnd)),digits=4))")
+  println("kde max: $(round.(getKDEMax(getKDE(vnd)),digits=4))")
+  println()
+  vnd
+end
 
 #

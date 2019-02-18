@@ -79,7 +79,7 @@ function setdatalayerAPI!(;addvertex::Function = addGraphsVert!,
   # dlapi.deleteedge! = deleteCloudEdge!
   # dlapi.cgEnabled = true
 
-  println("Changed internal API calls to use outside calls.")
+  println("Changed internal `dlapi` for specific API calls.")
   nothing
 end
 

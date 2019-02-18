@@ -10,12 +10,17 @@ getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var)
 getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
 
 
-# TODO -- upgrade to dedicated memory location in Graphs.jl
-# see JuliaArchive/Graphs.jl#233
+
+"""
+    $SIGNATURES
+
+Retrieve data structure stored in a node.
+"""
 getData(v::Graphs.ExVertex) = v.attributes["data"]
-# Convenience functions
 getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt=:var) = getData(getVert(fgl, lbl, api=api, nt=nt))
 getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
+# TODO -- upgrade to dedicated memory location in Graphs.jl
+# see JuliaArchive/Graphs.jl#233
 
 function setData!(v::Graphs.ExVertex, data)
   v.attributes["data"] = data
@@ -27,8 +32,11 @@ end
 
 Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
 """
+function getSofttype(vnd::VariableNodeData)
+  return vnd.softtype
+end
 function getSofttype(v::ExVertex)
-  getData(v).softtype
+  getSofttype(getData(v))
 end
 
 """
@@ -36,11 +44,13 @@ end
 
 Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
 """
+getVal(vnd::VariableNodeData) = vnd.val
+getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:,idx]
 function getVal(v::Graphs.ExVertex)
-  return getData(v).val
+  return getVal(getData(v))
 end
 function getVal(v::Graphs.ExVertex, idx::Int)
-  return getData(v).val[:,idx]
+  return getVal(getData(v),idx)
 end
 function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   #getVal(dlapi.getvertex(fgl, lbl))
@@ -77,6 +87,10 @@ function getfnctype(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
   # data = getData(fgl, exvertid, api=api)
   # data.fnc.usrfnc!
   getfnctype(getVert(fgl, exvertid, api=api))
+end
+
+function getBW(vnd::VariableNodeData)
+  return vnd.bw
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
@@ -695,6 +709,58 @@ function addFactor!(
 end
 
 
+
+"""
+    $SIGNATURES
+
+Delete factor and its edges.
+"""
+function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
+  fid = fgl.fIDs[fsym]
+  eds = fgl.g.inclist[fid]
+  alledsids = Int[]
+  nedges = length(eds)
+  for eds in fgl.g.inclist[fid]
+    union!(alledsids, [eds.source.index; eds.target.index])
+  end
+  for edids in setdiff!(alledsids, fid)
+    count = 0
+    for eds in fgl.g.inclist[edids]
+      count += 1
+      if fid == eds.source.index || fid == eds.target.index
+        deleteat!(fgl.g.inclist[edids], count)
+        break
+      end
+    end
+  end
+  delete!(fgl.g.inclist, fid)
+  fgl.g.nedges -= nedges
+  delete!(fgl.g.vertices, fid)
+  delete!(fgl.fIDs, fsym)
+  deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Delete variables, and also the factors+edges if `andfactors=true` (default).
+"""
+function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
+  vid = fgl.IDs[vsym]
+  vert = fgl.g.vertices[vid]
+  if andfactors
+    for ne in Graphs.out_neighbors(vert, fgl.g)
+      deleteFactor!(fgl, Symbol(ne.label))
+    end
+  end
+  delete!(fgl.g.vertices, vid)
+  delete!(fgl.IDs, vsym)
+  deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
+  nothing
+end
+
+
 function prtslperr(s)
   println(s)
   sleep(0.1)
@@ -878,13 +944,18 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     return X,Y
 end
 
+function getKDE(vnd::VariableNodeData)
+  AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+end
+
+
 """
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
 function getKDE(v::Graphs.ExVertex)
-  return AMP.manikde!(getVal(v), getBWVal(v)[:,1], getSofttype(v).manifolds)
+  return getKDE(getData(v))
 end
 
 """
