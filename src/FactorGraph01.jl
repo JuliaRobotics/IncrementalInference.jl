@@ -737,6 +737,7 @@ function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
   fgl.g.nedges -= nedges
   delete!(fgl.g.vertices, fid)
   delete!(fgl.fIDs, fsym)
+  deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
   nothing
 end
 
@@ -755,6 +756,7 @@ function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
   end
   delete!(fgl.g.vertices, vid)
   delete!(fgl.IDs, vsym)
+  deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
   nothing
 end
 
