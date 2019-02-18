@@ -709,6 +709,56 @@ function addFactor!(
 end
 
 
+
+"""
+    $SIGNATURES
+
+Delete factor and its edges.
+"""
+function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
+  fid = fgl.fIDs[fsym]
+  eds = fgl.g.inclist[fid]
+  alledsids = Int[]
+  nedges = length(eds)
+  for eds in fgl.g.inclist[fid]
+    union!(alledsids, [eds.source.index; eds.target.index])
+  end
+  for edids in setdiff!(alledsids, fid)
+    count = 0
+    for eds in fgl.g.inclist[edids]
+      count += 1
+      if fid == eds.source.index || fid == eds.target.index
+        deleteat!(fgl.g.inclist[edids], count)
+        break
+      end
+    end
+  end
+  delete!(fgl.g.inclist, fid)
+  fgl.g.nedges -= nedges
+  delete!(fgl.g.vertices, fid)
+  delete!(fgl.fIDs, fsym)
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Delete variables, and also the factors+edges if `andfactors=true` (default).
+"""
+function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
+  vid = fgl.IDs[vsym]
+  vert = fgl.g.vertices[vid]
+  if andfactors
+    for ne in Graphs.out_neighbors(vert, fgl.g)
+      deleteFactor!(fgl, Symbol(ne.label))
+    end
+  end
+  delete!(fgl.g.vertices, vid)
+  delete!(fgl.IDs, vsym)
+  nothing
+end
+
+
 function prtslperr(s)
   println(s)
   sleep(0.1)
