@@ -50,7 +50,7 @@ mutable struct UpReturnBPType
     upMsgs::NBPMessage
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
-    keepupmsgs::Dict{Symbol, BallTreeDensity}
+    keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
 end
 
 """
@@ -66,12 +66,21 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct ExploreTreeType
+mutable struct ExploreTreeType{T}
   fg::FactorGraph
   bt::BayesTree
   cliq::Graphs.ExVertex
-  prnt::Any
+  prnt::T
   sendmsgs::Array{NBPMessage,1}
+end
+
+function ExploreTreeType(fgl::FactorGraph,
+                btl::BayesTree,
+                vertl::Graphs.ExVertex,
+                prt::T,
+                msgs::Array{NBPMessage,1} ) where {T}
+  #
+  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
 
 """
@@ -533,8 +542,10 @@ function fmcmc!(fgl::FactorGraph,
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
       @info "#$(iter)\t -- "
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
+      # @show IDs
       for vertid in IDs
         vert = getVert(fgl, vertid, api=api)
+        # @show vert.index, vert.label
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
           densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
@@ -585,7 +596,7 @@ end
 """
     $(SIGNATURES)
 
-Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
+Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductUp(fg::FactorGraph,
@@ -665,7 +676,7 @@ end
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
 This function is usually called as part via remote_call for multiprocess dispatch.
 """
-function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
+function upGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=200, dbg::Bool=false) where {T}
     @info "up w $(length(inp.sendmsgs)) msgs"
     # Local mcmc over belief functions
     # this is so slow! TODO Can be ignored once we have partial working
@@ -718,28 +729,10 @@ function upGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
     end
     setUpMsg!(inp.cliq, upmsgs)
 
-    # Copy frontal variables back
-    # for id in inp.cliq.attributes["frontalIDs"]
-    #     inp.fg.v[id].attributes["val"] = loclfg.v[id].attributes["val"] # inp.
-    # end
-    # @show getVal(inp.fg.v[1])
     mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
     return UpReturnBPType(m, mdbg, d, upmsgs)
 end
-# else
-#   rr = Array{Future,1}(4)
-#   rr[1] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directFrtlMsgIDs"], N, 1)
-#   rr[2] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["msgskipIDs"], N, 1)
-#   rr[3] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["itervarIDs"], N, 3)
-#   rr[4] = remotecall(upp2(), fmcmc!, inp.fg, inp.cliq, inp.sendmsgs, inp.cliq.attributes["directvarIDs"], N, 1)
-#   dummy, d = fetch(rr[1])
-#   dummy, dd = fetch(rr[2])
-#   mcmcdbg, ddd = fetch(rr[3])
-#   dummy, dddd = fetch(rr[4])
-#
-#   for md in dd d[md[1]] = md[2]; end
-#   for md in ddd d[md[1]] = md[2]; end
-#   for md in dddd d[md[1]] = md[2]; end
+
 
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
     # pack all downcoming conditionals in a dictionary too.
@@ -853,7 +846,7 @@ end
 
 Pass NBPMessages back down the tree -- pre order tree traversal.
 """
-function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
+function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
     @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
@@ -875,12 +868,13 @@ function downMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=fal
 end
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) #upmsgdict = Dict{Int, Array{Float64,2}}()
+function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
-    len = length(out_neighbors(inp.cliq, inp.bt.bt))
-    for child in out_neighbors(inp.cliq, inp.bt.bt)
+    outnei = out_neighbors(inp.cliq, inp.bt.bt)
+    len = length(outnei)
+    for child in outnei
         ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[]) # ,Union{})
         @info "upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])"
         newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
@@ -899,7 +893,7 @@ function upMsgPassingRecursive(inp::ExploreTreeType; N::Int=200, dbg::Bool=false
 end
 
 
-function downGibbsCliqueDensity(inp::ExploreTreeType, N::Int=200, dbg::Bool=false)
+function downGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=200, dbg::Bool=false) where {T}
   @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
   mcmciter = inp.prnt != Union{} ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
@@ -1003,10 +997,10 @@ function processPreOrderStack!(fg::FactorGraph,
     nothing
 end
 
-function downMsgPassingIterative!(startett::ExploreTreeType;
+function downMsgPassingIterative!(startett::ExploreTreeType{T};
                                   N::Int=200,
                                   dbg::Bool=false,
-                                  drawpdf::Bool=false  )
+                                  drawpdf::Bool=false  ) where {T}
   #
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()
@@ -1148,7 +1142,7 @@ function processPostOrderStacks!(fg::FactorGraph,
   nothing
 end
 
-function upMsgPassingIterative!(startett::ExploreTreeType; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
+function upMsgPassingIterative!(startett::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
   #http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
   parentStack = Array{Graphs.ExVertex,1}()

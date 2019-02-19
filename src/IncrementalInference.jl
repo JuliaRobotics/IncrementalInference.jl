@@ -110,7 +110,9 @@ export
   wipeBuildNewTree!,
   whichCliq,
   childCliqs,
+  getChildren,
   parentCliq,
+  getParent,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -219,8 +221,10 @@ export
 
   setUpMsg!,
   upMsg,
+  getUpMsgs,
   setDwnMsg!,
   dwnMsg,
+  getDwnMsg,
 
   # some utils
   compareField,

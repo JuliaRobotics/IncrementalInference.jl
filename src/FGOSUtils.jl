@@ -81,6 +81,12 @@ function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[]
   return TP
 end
 
+
+function compare(p1::BallTreeDensity, p2::BallTreeDensity)::Bool
+  return compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) &&
+         compareAll(p1,p2, skip=[:calcStatsHandle; :bt])
+end
+
 """
     $(SIGNATURES)
 
@@ -99,7 +105,6 @@ function savejld(fgl::FactorGraph;
   end
   return file
 end
-
 
 
 
