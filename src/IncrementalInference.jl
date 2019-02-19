@@ -148,6 +148,7 @@ export
   # more debugging tools
   localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
   treeProductUp,
+  approxCliqMarginalUp!,
 
   # weiged sampling
   AliasingScalarSampler,

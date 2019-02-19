@@ -867,6 +867,58 @@ function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=
     return ddt
 end
 
+
+
+"""
+    $SIGNATURES
+
+Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
+
+Notes
+=====
+- `onduplicate=true` by default internally deep copies a new factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
+"""
+function approxCliqMarginalUp!(fgl::FactorGraph,
+                               treel::BayesTree,
+                               csym::Symbol,
+                               onduplicate=true;
+                               N::Int=100,
+                               dbg::Bool=false,
+                               drawpdf::Bool=false  )
+  #
+  fg_ = onduplicate ? deepcopy(fgl) : fgl
+  onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
+  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
+  # copy up and down msgs that may already exists
+  if onduplicate
+    for (id, cliq) in tree_.cliques
+      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq))
+      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
+    end
+  end
+
+  cliq = whichCliq(tree_, csym)
+  childmsgs = NBPMessage[]
+  for child in getChildren(tree_, cliq)
+    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
+    for (key, bel) in getUpMsgs(child)
+      id = fg_.IDs[key]
+      nbpchild.p[id] = IIF.convert(EasyMessage, bel)
+    end
+    push!(childmsgs, nbpchild)
+  end
+
+  @info "=== start Clique $(cliq.attributes["label"]) ======================"
+  ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
+  urt = IIF.upGibbsCliqueDensity(ett, N, dbg)
+  IIF.updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+  drawpdf ? drawTree(tree_) : nothing
+  @info "=== end Clique $(cliq.attributes["label"]) ========================"
+  urt
+end
+
+
 # post order tree traversal and build potential functions
 function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
