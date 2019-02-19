@@ -110,7 +110,9 @@ export
   wipeBuildNewTree!,
   whichCliq,
   childCliqs,
+  getChildren,
   parentCliq,
+  getParent,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -146,6 +148,7 @@ export
   # more debugging tools
   localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
   treeProductUp,
+  approxCliqMarginalUp!,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -219,8 +222,10 @@ export
 
   setUpMsg!,
   upMsg,
+  getUpMsgs,
   setDwnMsg!,
   dwnMsg,
+  getDwnMsg,
 
   # some utils
   compareField,

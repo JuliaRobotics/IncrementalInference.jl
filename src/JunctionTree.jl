@@ -301,6 +301,15 @@ end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
 """
+    $SIGNATURES
+
+Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
+"""
+getCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+
+
+
+"""
     $(SIGNATURES)
 
 Set the upward passing message for Bayes (Junction) tree clique `cliql`.
@@ -333,6 +342,16 @@ end
 """
     $(SIGNATURES)
 
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getUpMsgs(btl::BayesTree, sym::Symbol) = upMsg(btl, sym)
+getUpMsgs(cliql::Graphs.ExVertex) = upMsg(cliql)
+
+
+
+"""
+    $(SIGNATURES)
+
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
 function dwnMsg(cliq::Graphs.ExVertex)
@@ -341,6 +360,14 @@ end
 function dwnMsg(btl::BayesTree, sym::Symbol)
   upMsg(whichCliq(btl, sym))
 end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getDwnMsgs(btl::BayesTree, sym::Symbol) = dwnMsg(btl, sym)
+getDwnMsgs(cliql::Graphs.ExVertex) = dwnMsg(cliql)
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -471,30 +498,6 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
   return mat
 end
 
-# function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-#   mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
-#   # TODO -- add improved visualization here, iter vs skip
-#   mat = map(Float64, mat)*2.0-1.0
-#   numlcl = size(getCliqAssocMat(cliq),1)
-#   mat[(numlcl+1):end,:] *= 0.9
-#   mat[(numlcl+1):end,:] -= 0.1
-#   numfrtl1 = floor(Int,length(cliq.attributes["data"].frontalIDs)+1)
-#   mat[:,numfrtl1:end] *= 0.9
-#   mat[:,numfrtl1:end] -= 0.1
-#   @show cliq.attributes["data"].itervarIDs
-#   @show cliq.attributes["data"].directvarIDs
-#   @show cliq.attributes["data"].msgskipIDs
-#   @show cliq.attributes["data"].directFrtlMsgIDs
-#   @show cliq.attributes["data"].directPriorMsgIDs
-#   sp = Gadfly.spy(mat)
-#   push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
-#   push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
-#   push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
-#   return sp
-# end
-# function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true)
-#   spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg)
-# end
 
 function countSkips(bt::BayesTree)
   skps = 0
@@ -570,20 +573,21 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
   frtl = getData(cliq).frontalIDs
   cond = getData(cliq).conditIDs
   cols = [frtl;cond]
-  # dev code
-  # prioritize prior'ed variables, then high degree next
-  # get all prior type rows, should be prioritized
-  # TODO -- maybe sort according to decreasing degree
-  # singleperrows = 1 .== sum(map(Int,mat),2)
-  # singleperrows = collect(singleperrows)
-  # prioredvarsum = sum(map(Int,mat[singleperrows]),1)
-  # prioredperm = sortperm(prioredvarsum, rev=true) # decreasing count
 
-  #end dev code
-  # final output
   return cols[vec(collect(mab))]
 end
 
+"""
+    $(SIGNATURES)
+
+Prepare the variable IDs for nested clique Gibbs mini-batch calculations, by assembing these clique data fields:
+- `directPriorMsgIDs`
+- `directvarIDs`
+- `itervarIDs`
+- `msgskipIDs`
+- `directFrtlMsgIDs`
+
+"""
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
   getData(cliq).directPriorMsgIDs = directPriorMsgIDs(cliq)
 
@@ -591,11 +595,14 @@ function setCliqMCIDs!(cliq::Graphs.ExVertex)
   getData(cliq).directvarIDs = directAssignmentIDs(cliq)
   # getData(cliq).itervarIDs = mcmcIterationIDs(cliq)
   # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
-  usset = union(mcmcIterationIDs(cliq), directAssignmentIDs(cliq))
+  # NOTE -- using direct then mcmcIter ordering to prioritize non-msg vars first
+  usset = union(directAssignmentIDs(cliq), mcmcIterationIDs(cliq))
   getData(cliq).itervarIDs = setdiff(usset, getData(cliq).directPriorMsgIDs)
   getData(cliq).msgskipIDs = skipThroughMsgsIDs(cliq)
   getData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
 
+  # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
+  
 
   nothing
 end
@@ -634,15 +641,26 @@ end
 """
     $(SIGNATURES)
 
+Return a vector of child cliques to `cliq`.
+"""
+getChildren(treel::BayesTree, frtsym::Symbol) = childCliqs(treel, frtsym)
+getChildren(treel::BayesTree, cliq::Graphs.ExVertex) = childCliqs(treel, cliq)
+
+"""
+    $(SIGNATURES)
+
 Return `cliq`'s parent clique.
 """
 function parentCliq(treel::BayesTree, cliq::Graphs.ExVertex)
-    childcliqs = Vector{Graphs.ExVertex}(undef, 0)
-    for cl in Graphs.in_neighbors(cliq, treel.bt)
-        push!(childcliqs, cl)
-    end
-    return childcliqs
+    Graphs.in_neighbors(cliq, treel.bt)
 end
 function parentCliq(treel::BayesTree, frtsym::Symbol)
   parentCliq(treel,  whichCliq(treel, frtsym))
 end
+
+"""
+    $(SIGNATURES)
+
+Return `cliq`'s parent clique.
+"""
+getParent(treel::BayesTree, afrontal::Symbol) = parentCliq(treel, afrontal)
