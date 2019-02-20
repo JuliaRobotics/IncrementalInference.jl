@@ -445,17 +445,26 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
   return getIdx(pp.dimtype, sym)
 end
 
+
 """
     $SIGNATURES
 
-Display and return to console a factor identified by tag name.
+Return the user factor identified by tag name.
 """
-function showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi)
-  ufn = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
-  @show ufn
-end
+getFactor(fgl::FactorGraph, fsym::Symbol) = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
 
+"""
+    $SIGNATURES
 
+Display and return to console the user factor identified by tag name.
+"""
+showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getFactor(fgl,fsym)
+
+"""
+   $SIGNATURES
+
+Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`. 
+"""
 function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   vert = getVert(fg, vsym, api=api)
   vnd = getData(vert)
