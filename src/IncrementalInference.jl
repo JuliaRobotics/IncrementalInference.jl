@@ -75,10 +75,13 @@ export
   FactorGraph,
   addNode!,
   addVariable!,
+  deleteVariable!,
   addFactor!,
+  deleteFactor!,
   doautoinit!,
   manualinit!,
   resetData!,
+  getFactor,
   getVert,
   getData,
   setData!,
@@ -197,6 +200,7 @@ export
   # user functions
   proposalbeliefs,
   predictbelief,
+  getCliq,
   getCliqMat,
   getCliqMsgMat,
 
@@ -225,7 +229,7 @@ export
   getUpMsgs,
   setDwnMsg!,
   dwnMsg,
-  getDwnMsg,
+  getDwnMsgs,
 
   # some utils
   compareField,
