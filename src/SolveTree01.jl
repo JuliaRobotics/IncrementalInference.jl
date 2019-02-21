@@ -1,9 +1,4 @@
 
-#
-# type EasyMessage
-#   pts::Array{Float64,2}
-#   bws::Array{Float64,1}
-# end
 
 """
 $(TYPEDEF)
