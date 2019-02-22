@@ -210,11 +210,11 @@ function productpartials!(pGM::Array{Float64,2},
                           partials::Dict{Int, Vector{BallTreeDensity}},
                           manis::T  ) where {T <: Tuple}
   #
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manis)
   for (dimnum,pp) in partials
     dummy2 = marginal(dummy,[dimnum])
     if length(pp) > 1
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, nothing, nothing, 5)
-
+      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, nothing, nothing, Niter=5, addop=(addopT[dimnum],), diffop=(diffopT[dimnum],), getMu=(getManiMu[dimnum],))
     else
       pGM[dimnum,:] = getPoints(pp[1])
     end
