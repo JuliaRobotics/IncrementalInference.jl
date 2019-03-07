@@ -41,6 +41,17 @@ struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBel
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
+"""
+$(TYPEDEF)
+"""
+struct PartialPrior{T,P} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief, P <: Tuple}
+  Z::T
+  partial::P
+end
+PartialPrior(z::T, par::P) where {T <: SamplableBelief, P<:Tuple} = PartialPrior{T, P}(z, par)
+getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+
 
 """
 $(TYPEDEF)
@@ -117,6 +128,23 @@ function convert(::Type{PackedPrior}, d::Prior)
 end
 function convert(::Type{Prior}, d::PackedPrior)
   Prior(extractdistribution(d.Z))
+end
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct PackedPartialPrior <: PackedInferenceType
+  Z::String
+  partials::Vector{Int}
+  PackedPartialPrior() = new()
+  PackedPartialPrior(z::AS) where {AS <: AbstractString} = new(z)
+end
+function convert(::Type{PackedPartialPrior}, d::PartialPrior)
+  PackedPartialPrior(string(d.Z), [d.partial...;])
+end
+function convert(::Type{PartialPrior}, d::PackedPartialPrior)
+  PartialPrior(extractdistribution(d.Z),(d.partials...,))
 end
 
 

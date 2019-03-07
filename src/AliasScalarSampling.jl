@@ -1,5 +1,5 @@
 # sample from weights
-
+# import IncrementalInference: AliasingScalarSampler
 
 """
 $(TYPEDEF)
@@ -16,10 +16,10 @@ struct AliasingScalarSampler
     # pxf ./= norm(pxf)
     # new implementation : pxf should be an empirical pmf before use in statsbase
     pxf = Float64.(p_x)
-    pxf[pxf.<0.0]= 0.0 # no negative values!
+    pxf[pxf.<0.0] .= 0.0 # no negative values!
     pxf ./=sum(pxf)  # must sum to 1
     pxf .-= quantile(pxf,SNRfloor) # remove lowest quantile
-    pxf[pxf.<0.0]= 0.0
+    pxf[pxf.<0.0] .= 0.0
     pxf ./=sum(pxf)
     wim = StatsBase.ProbabilityWeights(pxf)
     new(x, wim)

@@ -52,6 +52,8 @@ export
   SamplableBelief,
   Prior,
   PackedPrior,
+  PartialPrior,
+  PackedPartialPrior,
   LinearConditional,
   PackedLinearConditional,
   MixturePrior,
