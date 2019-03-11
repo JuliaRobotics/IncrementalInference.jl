@@ -100,7 +100,7 @@ Initialize an empty `::FactorGraph` object while initializing `sessionname`, `ro
 """
 function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)
   # fgl = RoME.initfg(sessionname=sessionname)
-  fgl = IIF.FactorGraph()
+  fgl = FactorGraph()
   fgl.sessionname = sessionname
   fgl.robotname = robotname
   fgl.username = username
