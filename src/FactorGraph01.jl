@@ -257,7 +257,15 @@ end
 """
 $(SIGNATURES)
 
-Add a node (variable) to a graph. Use this over the other dispatches.
+Add a variable node `lbl::Symbol` to `fg::FactorGraph`, as `softtype<:InferenceVariable`.  
+
+Example
+-------
+
+```julia
+fg = initfg()
+addVariable!(fg, :x0, Pose2)
+```
 """
 function addVariable!(fg::FactorGraph,
                       lbl::Symbol,
@@ -307,11 +315,6 @@ function addVariable!(fg::FactorGraph,
   vert
 end
 
-"""
-$(SIGNATURES)
-
-Add a node (variable) to a graph. Use this over the other dispatches.
-"""
 function addVariable!(fg::FactorGraph,
                       lbl::Symbol,
                       softtype::Type{<:InferenceVariable};
