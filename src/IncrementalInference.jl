@@ -106,6 +106,7 @@ export
   NBPMessage,
   ExploreTreeType,
   FactorGraph,
+  initfg,
   subgraphShortestPath,
   subgraphFromVerts,
   getEliminationOrder,

@@ -94,9 +94,26 @@ mutable struct FactorGraph
 end
 
 """
+    $SIGNATURES
+
+Initialize an empty `::FactorGraph` object while initializing `sessionname`, `robotname`, and `cloudgraph`.
+"""
+function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)
+  # fgl = RoME.initfg(sessionname=sessionname)
+  fgl = IIF.FactorGraph()
+  fgl.sessionname = sessionname
+  fgl.robotname = robotname
+  fgl.username = username
+  fgl.cg = cloudgraph
+  return fgl
+end
+
+"""
     $(SIGNATURES)
 
 Construct an empty FactorGraph object with the minimum amount of information / memory populated.
+
+@warn DEPRECATED, use initfg instead.
 """
 function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
