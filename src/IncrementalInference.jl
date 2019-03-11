@@ -84,6 +84,7 @@ export
   manualinit!,
   resetData!,
   getFactor,
+  getVariable,
   getVert,
   getData,
   setData!,
@@ -105,6 +106,7 @@ export
   NBPMessage,
   ExploreTreeType,
   FactorGraph,
+  initfg,
   subgraphShortestPath,
   subgraphFromVerts,
   getEliminationOrder,
@@ -228,6 +230,7 @@ export
 
   setUpMsg!,
   upMsg,
+  getDwnMsgs,
   getUpMsgs,
   setDwnMsg!,
   dwnMsg,
