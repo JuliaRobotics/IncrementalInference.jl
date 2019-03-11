@@ -233,7 +233,7 @@ export
   getUpMsgs,
   setDwnMsg!,
   dwnMsg,
-  getDwnMsg,
+  getDwnMsgs,
 
   # some utils
   compareField,
