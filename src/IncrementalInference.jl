@@ -172,6 +172,7 @@ export
   inferOverTreeR!,
 
   #development interface
+  getCliqOrderUpSolve,
   upMsgPassingRecursive,
 
   # Inference types

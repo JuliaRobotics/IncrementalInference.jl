@@ -602,7 +602,7 @@ function setCliqMCIDs!(cliq::Graphs.ExVertex)
   getData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
 
   # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
-  
+
 
   nothing
 end

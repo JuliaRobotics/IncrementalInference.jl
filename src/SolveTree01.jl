@@ -1189,20 +1189,50 @@ function processPostOrderStacks!(fg::FactorGraph,
   nothing
 end
 
-function upMsgPassingIterative!(startett::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
-  #http://www.geeksforgeeks.org/iterative-postorder-traversal/
+
+"""
+    $SIGNATURES
+
+Return clique pointers for the given order in which they will be solved (sequentially).
+"""
+function getCliqOrderUpSolve(treel::BayesTree, startcliq=treel.cliques[1])
+  # http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
-  parentStack = Array{Graphs.ExVertex,1}()
-  childStack = Array{Graphs.ExVertex,1}()
+  parentStack = Vector{Graphs.ExVertex}()
+  childStack = Vector{Graphs.ExVertex}()
   #Loop while first stack is not empty
-  push!(parentStack, startett.cliq )
+  push!(parentStack, startcliq)
   # Starting at the root means we have a top down view of the tree
-  prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
+  prepPostOrderUpPassStacks!(treel, parentStack, childStack)
+  return childStack
+end
+
+"""
+    $SIGNATURES
+
+Perform upward message passing (multi-process) algorithm for sum-product solution from leaves to root of the tree.
+"""
+function upMsgPassingIterative!(startett::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
+
+  childStack = getCliqOrderUpSolve(startett.bt, startett.cliq)
+  # # http://www.geeksforgeeks.org/iterative-postorder-traversal/
+  # # this is where we launch the downward iteration process from
+  # parentStack = Array{Graphs.ExVertex,1}()
+  # childStack = Array{Graphs.ExVertex,1}()
+  # #Loop while first stack is not empty
+  # push!(parentStack, startett.cliq )
+  # # Starting at the root means we have a top down view of the tree
+  # prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
+
   processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
   nothing
 end
 
+"""
+    $SIGNATURES
 
+Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
+"""
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
@@ -1214,6 +1244,11 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=f
     nothing
 end
 
+"""
+    $SIGNATURES
+
+Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
+"""
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)
     @info "Ensure all nodes are initialized"
     ensureAllInitialized!(fgl)
