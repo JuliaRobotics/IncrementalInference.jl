@@ -46,6 +46,8 @@ function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS
     return mvnormalfromstring(str)
   elseif occursin(r"Categorical", str)
     return categoricalfromstring(str)
+  elseif occursin(r"DiscreteNonParametric", str)
+    return categoricalfromstring(str)
   elseif occursin(r"KDE:", str)
     return convert(BallTreeDensity, str)
   elseif occursin(r"AliasingScalarSampler", str)

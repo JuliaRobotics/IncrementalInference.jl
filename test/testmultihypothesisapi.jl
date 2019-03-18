@@ -1,5 +1,6 @@
 using Test
 using IncrementalInference, Distributions
+using Statistics
 # going to introduce two new constraint types
 import Base: convert
 import IncrementalInference: getSample
@@ -29,9 +30,6 @@ end
 global N  = 100
 global fg = FactorGraph()
 
-# used later in packing converter tests
-# f1 = nothing
-# f3 = nothing
 
 @testset "test populate factor graph with a multi-hypothesis factor..." begin
 
