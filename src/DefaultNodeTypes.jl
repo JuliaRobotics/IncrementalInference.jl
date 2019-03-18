@@ -35,6 +35,9 @@ end
 
 """
 $(TYPEDEF)
+
+Default prior on all dimensions of a variable node in the factor graph.  `Prior` is
+not recommended when non-Euclidean dimensions are used in variables.
 """
 struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBelief
   Z::T
