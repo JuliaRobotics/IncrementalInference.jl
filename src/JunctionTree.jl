@@ -37,6 +37,8 @@ end
 # BayesTree declarations
 """
 $(TYPEDEF)
+
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
 """
 mutable struct BayesTree
   bt
@@ -53,6 +55,13 @@ function emptyBayesTree()
                      Dict{AbstractString, Int}())
     return bt
 end
+
+"""
+    $(TYPEDSIGNATURES)
+
+Get the frontal variable IDs `::Int` for a given Bayes (Junction) tree clique.
+"""
+getFrontals(cliql::Graphs.ExVertex) = getData(cliql).frontalIDs
 
 # create a new clique
 function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])

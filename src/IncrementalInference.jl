@@ -237,6 +237,10 @@ export
   dwnMsg,
   getDwnMsgs,
 
+  getFrontals,
+  getSym,
+  doCliqInferenceUp!,
+
   # some utils
   compareField,
   compareFields,

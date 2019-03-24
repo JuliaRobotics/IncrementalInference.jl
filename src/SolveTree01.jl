@@ -671,61 +671,98 @@ end
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
 This function is usually called as part via remote_call for multiprocess dispatch.
 """
-function upGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=200, dbg::Bool=false) where {T}
-    @info "up w $(length(inp.sendmsgs)) msgs"
-    # Local mcmc over belief functions
-    # this is so slow! TODO Can be ignored once we have partial working
-    # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
+function upGibbsCliqueDensity(inp::ExploreTreeType{T},
+                              N::Int=100,
+                              dbg::Bool=false,
+                              iters::Int=3) where {T}
+  #
+  @info "up w $(length(inp.sendmsgs)) msgs"
+  # Local mcmc over belief functions
+  # this is so slow! TODO Can be ignored once we have partial working
+  # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
 
-    # TODO -- some weirdness with: d,. = d = ., nothing
-    mcmcdbg = Array{CliqGibbsMC,1}()
-    d = Dict{Int,EasyMessage}()
+  # TODO -- some weirdness with: d,. = d = ., nothing
+  mcmcdbg = Array{CliqGibbsMC,1}()
+  d = Dict{Int,EasyMessage}()
 
-    priorprods = Vector{CliqGibbsMC}()
+  priorprods = Vector{CliqGibbsMC}()
 
-    cliqdata = inp.cliq.attributes["data"]
+  cliqdata = inp.cliq.attributes["data"]
 
-    # use nested structure for more fficient Chapman-Kolmogorov solution approximation
-    if false
-      IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
-      mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, 3, dbg)
-    else
-      dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1)
-      if length(cliqdata.msgskipIDs) > 0
-        dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1)
-        for md in dd d[md[1]] = md[2]; end
-      end
-      # NOTE -- previous mistake, must iterate over directsvarIDs also
-      if length(cliqdata.itervarIDs) > 0
-        mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, 3, dbg)
-        for md in ddd d[md[1]] = md[2]; end
-      end
-      if length(cliqdata.directPriorMsgIDs) > 0
-        doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-        priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg)
-        for md in dddd d[md[1]] = md[2]; end
-      end
+  # use nested structure for more fficient Chapman-Kolmogorov solution approximation
+  if false
+    IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+    mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg)
+  else
+    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1)
+    if length(cliqdata.msgskipIDs) > 0
+      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1)
+      for md in dd d[md[1]] = md[2]; end
     end
-
-    #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
-    m = upPrepOutMsg!(d, cliqdata.conditIDs)
-
-    outmsglbl = Dict{Symbol, Int}()
-    if dbg
-      for (ke, va) in m.p
-        outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
-      end
+    # NOTE -- previous mistake, must iterate over directsvarIDs also
+    if length(cliqdata.itervarIDs) > 0
+      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg)
+      for md in ddd d[md[1]] = md[2]; end
     end
+    if length(cliqdata.directPriorMsgIDs) > 0
+      doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
+      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg)
+      for md in dddd d[md[1]] = md[2]; end
+    end
+  end
 
-    upmsgs = Dict{Symbol, BallTreeDensity}()
+  #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
+  m = upPrepOutMsg!(d, cliqdata.conditIDs)
+
+  outmsglbl = Dict{Symbol, Int}()
+  if dbg
     for (ke, va) in m.p
-      msgsym = Symbol(inp.fg.g.vertices[ke].label)
-      upmsgs[msgsym] = convert(BallTreeDensity, va)
+      outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
     end
-    setUpMsg!(inp.cliq, upmsgs)
+  end
 
-    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
-    return UpReturnBPType(m, mdbg, d, upmsgs)
+  upmsgs = Dict{Symbol, BallTreeDensity}()
+  for (ke, va) in m.p
+    msgsym = Symbol(inp.fg.g.vertices[ke].label)
+    upmsgs[msgsym] = convert(BallTreeDensity, va)
+  end
+  setUpMsg!(inp.cliq, upmsgs)
+
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
+  return UpReturnBPType(m, mdbg, d, upmsgs)
+end
+
+
+"""
+    $(TYPEDSIGNATURES)
+
+Perform Chapman-Kolmogorov transit integral procedure for a given clique, specifically for the upward direction.
+
+Notes:
+-----
+* Assumes the same procedure has completed for the child cliques, since upward messages are required from them.
+* Can adjust the number of `iters::Int=3` must be performed on the `itervars` of this clique.
+"""
+function doCliqInferenceUp!(fgl::FactorGraph,
+                            treel::BayesTree,
+                            cliql::Graphs.ExVertex;
+                            N::Int=100,
+                            dbg::Bool=false,
+                            iters::Int=3  )
+  # get children
+  childr = childCliqs(treel, cliql)
+
+  # get upward messages from children
+  upmsgs = NBPMessage[]
+  for child in childr
+    frsym = getSym(fgl, getFrontals[1])
+    push!(upmsg, getUpMsgs(treel, frsym))
+  end
+
+  ett = ExploreTreeType(fgl, treel, cliql, nothing, upmsgs)
+
+  urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+  return urt.keepupmsgs
 end
 
 

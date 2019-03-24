@@ -10,6 +10,14 @@ getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var)
 getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
 
 """
+    $(TYPEDSIGNATURES)
+
+Get the `::Symbol` name for a node with `id::Int`.
+"""
+getSym(fgl::FactorGraph, id::Int) = Symbol(Graphs.vertices(fg.g)[id].label)
+
+
+"""
     $SIGNATURES
 
 Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
@@ -257,7 +265,7 @@ end
 """
 $(SIGNATURES)
 
-Add a variable node `lbl::Symbol` to `fg::FactorGraph`, as `softtype<:InferenceVariable`.  
+Add a variable node `lbl::Symbol` to `fg::FactorGraph`, as `softtype<:InferenceVariable`.
 
 Example
 -------
