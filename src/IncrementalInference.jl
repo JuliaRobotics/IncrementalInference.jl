@@ -240,6 +240,7 @@ export
   getFrontals,
   getSym,
   doCliqInferenceUp!,
+  getFactorsAmongVariablesOnly,
 
   # some utils
   compareField,

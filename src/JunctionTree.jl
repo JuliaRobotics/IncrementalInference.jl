@@ -389,52 +389,98 @@ function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Return list of factors which depend only on variables in variable list in factor graph -- i.e. among variables.
+
+Notes
+-----
+* `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
+"""
+function getFactorsAmongVariablesOnly(fgl::FactorGraph,
+                                      varlist::Vector{Symbol};
+                                      unused::Bool=true  )
+  # collect all factors attached to variables
+  prefcts = Symbol[]
+  for var in varlist
+    union!(prefcts, ls(fgl, var))
+  end
+
+  almostfcts = Symbol[]
+  if unused
+    # now check if those factors have already been added
+    for fct in prefcts
+      vert = getVert(fgl, fct, nt=:fct)
+      if !getData(vert).potentialused
+        push!(almostfcts, fct)
+      end
+    end
+  else
+    almostfcts = prefcts
+  end
+
+  # Select factors that have all variables in this clique var list
+  usefcts = Symbol[]
+  for fct in almostfcts
+    if length(setdiff(lsf(fgl, fct), varlist)) == 0
+      push!(usefcts, fct)
+    end
+  end
+
+  return usefcts
+end
 
 
 function getCliquePotentials!(fg::FactorGraph,
                               bt::BayesTree,
                               cliq::Graphs.ExVertex  )
   #
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getData(cliq).frontalIDs
+  cond = getData(cliq).conditIDs
   allids = [frtl;cond]
-  alldimIDs = Int[]
-  for fid in frtl
-    alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,fid)).dimIDs]
-  end
-  for cid in cond
-    alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,cid)).dimIDs]
+
+  if true
+    varlist = Symbol[]
+    for id in allids
+      push!(varlist, getSym(fg, id))
+    end
+    fctsyms = getFactorsAmongVariablesOnly(fg, varlist, unused=true )
+    for fsym in fctsyms
+      push!(cliq.attributes["data"].potentials, fg.fIDs[fsym])
+      fct = getVert(fg, fsym, nt=:fct)
+      fct.attributes["data"].potentialused = true
+    end
+  else
+    for fid in frtl
+        usefcts = []
+        for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
+            if getData(fct).potentialused!=true
+                loutn = localapi.outneighbors(fg, fct)
+                if length(loutn)==1
+                    appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
+                    fct.attributes["data"].potentialused = true
+                    localapi.updatevertex!(fg, fct)
+                end
+                for sepSearch in loutn
+                    sslbl = Symbol(sepSearch.label)
+                    if (fg.IDs[sslbl] == fid)
+                        continue # skip the fid itself
+                    end
+                    sea = findmin(abs.(allids .- fg.IDs[sslbl]))
+                    if sea[1]==0.0
+                        appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
+                        fct.attributes["data"].potentialused = true
+                        localapi.updatevertex!(fg, fct)
+                    end
+                end
+            end
+        end
+        cliq.attributes["data"].potentials = union(getData(cliq).potentials, usefcts)
+    end
   end
 
-  for fid in frtl
-      usefcts = []
-      for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
-          if getData(fct).potentialused!=true
-              loutn = localapi.outneighbors(fg, fct)
-              if length(loutn)==1
-                  appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
-                  # TODO -- make update vertex call
-                  fct.attributes["data"].potentialused = true
-                  localapi.updatevertex!(fg, fct)
-              end
-              for sepSearch in loutn
-                  sslbl = Symbol(sepSearch.label)
-                  if (fg.IDs[sslbl] == fid)
-                      continue # skip the fid itself
-                  end
-                  sea = findmin(abs.(allids .- fg.IDs[sslbl]))
-                  if sea[1]==0.0
-                      appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
-                      # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
-                      fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
-                      localapi.updatevertex!(fg, fct)
-                  end
-              end
-          end
-      end
-      cliq.attributes["data"].potentials=union(cliq.attributes["data"].potentials,usefcts)
-  end
-  return nothing
+  nothing
 end
 
 function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
