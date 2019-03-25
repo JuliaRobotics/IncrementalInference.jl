@@ -208,7 +208,7 @@ Multiply different dimensions from partial constraints individually.
 function productpartials!(pGM::Array{Float64,2},
                           dummy::BallTreeDensity,
                           partials::Dict{Int, Vector{BallTreeDensity}},
-                          manis::T  ) where {T <: Tuple}
+                          manis::T  )::Nothing where {T <: Tuple}
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manis)
   for (dimnum,pp) in partials
@@ -329,13 +329,13 @@ function productbelief(fg::FactorGraph,
 end
 
 function proposalbeliefs!(fgl::FactorGraph,
-      destvertid::Int,
-      factors::Vector{Graphs.ExVertex},
-      dens::Vector{BallTreeDensity},
-      partials::Dict{Int, Vector{BallTreeDensity}};
-      N::Int=100,
-      dbg::Bool=false,
-      api::DataLayerAPI=dlapi )
+                          destvertid::Int,
+                          factors::Vector{Graphs.ExVertex},
+                          dens::Vector{BallTreeDensity},
+                          partials::Dict{Int, Vector{BallTreeDensity}};
+                          N::Int=100,
+                          dbg::Bool=false,
+                          api::DataLayerAPI=dlapi  )::Nothing
   #
   for fct in factors
     data = getData(fct)
@@ -616,6 +616,7 @@ function treeProductUp(fg::FactorGraph,
     dict = Dict{Int, EasyMessage}()
     for (dsy, btd) in msgdict
       manis = getSofttype(getVert(fg, dsy, api=localapi)).manifolds
+
       dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
@@ -732,38 +733,6 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
   return UpReturnBPType(m, mdbg, d, upmsgs)
 end
 
-
-"""
-    $(TYPEDSIGNATURES)
-
-Perform Chapman-Kolmogorov transit integral procedure for a given clique, specifically for the upward direction.
-
-Notes:
------
-* Assumes the same procedure has completed for the child cliques, since upward messages are required from them.
-* Can adjust the number of `iters::Int=3` must be performed on the `itervars` of this clique.
-"""
-function doCliqInferenceUp!(fgl::FactorGraph,
-                            treel::BayesTree,
-                            cliql::Graphs.ExVertex;
-                            N::Int=100,
-                            dbg::Bool=false,
-                            iters::Int=3  )
-  # get children
-  childr = childCliqs(treel, cliql)
-
-  # get upward messages from children
-  upmsgs = NBPMessage[]
-  for child in childr
-    frsym = getSym(fgl, getFrontals[1])
-    push!(upmsg, getUpMsgs(treel, frsym))
-  end
-
-  ett = ExploreTreeType(fgl, treel, cliql, nothing, upmsgs)
-
-  urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-  return urt.keepupmsgs
-end
 
 
 function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
@@ -908,7 +877,7 @@ Approximate Chapman-Kolmogorov transit integral and return separator marginals a
 
 Notes
 =====
-- `onduplicate=true` by default internally deep copies a new factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
+- `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
 function approxCliqMarginalUp!(fgl::FactorGraph,
                                treel::BayesTree,
@@ -916,7 +885,8 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                onduplicate=true;
                                N::Int=100,
                                dbg::Bool=false,
-                               drawpdf::Bool=false  )
+                               iters::Int=3,
+                               drawpdf::Bool=false   )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
@@ -943,12 +913,64 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
   ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
-  urt = IIF.upGibbsCliqueDensity(ett, N, dbg)
-  IIF.updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+  urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt
 end
+
+
+function doCliqInferenceUp!(fgl::FactorGraph,
+                            treel::BayesTree,
+                            csym::Symbol,
+                            onduplicate=true;
+                            N::Int=100,
+                            dbg::Bool=false,
+                            iters::Int=3,
+                            drawpdf::Bool=false   )
+  #
+  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf )
+end
+
+# """
+#     $(TYPEDSIGNATURES)
+#
+# Perform Chapman-Kolmogorov transit integral procedure for a given clique, specifically for the upward direction.
+#
+# Notes:
+# -----
+# * Assumes the same procedure has completed for the child cliques, since upward messages are required from them.
+# * Can adjust the number of `iters::Int=3` must be performed on the `itervars` of this clique.
+# """
+# function doCliqInferenceUp!(fgl::FactorGraph,
+#                             treel::BayesTree,
+#                             cliql::Graphs.ExVertex;
+#                             N::Int=100,
+#                             dbg::Bool=false,
+#                             iters::Int=3  )
+#   #
+#   # get children
+#   childr = childCliqs(treel, cliql)
+#
+#   # get upward messages from children
+#   upmsgs = NBPMessage[]
+#   for child in childr
+#     frsym = getSym(fgl, getFrontals(child)[1])
+#     ret = getUpMsgs(treel, frsym)
+#     @show typeof(ret)
+#     newmsg = NBPMessage()
+#     for (id, val) in ret
+#       newmsg[id] = convert(EasyMessage, val, manis)
+#     end
+#     push!(upmsgs, newmsg)
+#   end
+#
+#   ett = ExploreTreeType(fgl, treel, cliql, nothing, upmsgs)
+#
+#   urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+#   return urt.keepupmsgs
+# end
 
 
 # post order tree traversal and build potential functions

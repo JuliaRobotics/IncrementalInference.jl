@@ -14,7 +14,7 @@ getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl,
 
 Get the `::Symbol` name for a node with `id::Int`.
 """
-getSym(fgl::FactorGraph, id::Int) = Symbol(Graphs.vertices(fg.g)[id].label)
+getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
 
 
 """

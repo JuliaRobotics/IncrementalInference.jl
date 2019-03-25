@@ -253,14 +253,14 @@ function prepBatchTree!(fg::FactorGraph;
   buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
   # now update all factor graph vertices used for this tree
-  for v in vertices(fg.g)
+  for (id,v) in fg.g.vertices
     dlapi.updatevertex!(fg, v)
   end
 
   return tree
 end
 
-function resetData!(vdata::VariableNodeData)
+function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Int[]
   vdata.BayesNetVertID = 0
@@ -268,18 +268,17 @@ function resetData!(vdata::VariableNodeData)
   nothing
 end
 
-function resetData!(vdata::FunctionNodeData)
+function resetData!(vdata::FunctionNodeData)::Nothing
   vdata.eliminated = false
   vdata.potentialused = false
   nothing
 end
 
-function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in vertices(fg.g)
+function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
+  for (id, v) in fgl.g.vertices
     resetData!(getData(v))
-    localapi.updatevertex!(fg, v)
+    localapi.updatevertex!(fgl, v)
   end
-
   nothing
 end
 
@@ -289,11 +288,11 @@ end
 Build a completely new Bayes (Junction) tree, after first wiping clean all temporary state in fg from a possibly pre-existing tree.
 """
 function wipeBuildNewTree!(fg::FactorGraph;
-                           ordering=:qr,
-                           drawpdf=false,
+                           ordering::Symbol=:qr,
+                           drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
-                           viewerapp::String="evince"  )
+                           viewerapp::String="evince"  )::BayesTree
   #
   resetFactorGraphNewTree!(fg);
   return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp);
@@ -305,7 +304,7 @@ end
 Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
 """
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
-    bt.cliques[bt.frontals[frt]]
+  bt.cliques[bt.frontals[frt]]
 end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
@@ -392,47 +391,50 @@ end
 
 
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
-    frtl = cliq.attributes["data"].frontalIDs
-    cond = cliq.attributes["data"].conditIDs
-    allids = [frtl;cond]
-    alldimIDs = Int[]
-    for fid in frtl
-      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,fid)).dimIDs]
-    end
-    for cid in cond
-      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,cid)).dimIDs]
-    end
+function getCliquePotentials!(fg::FactorGraph,
+                              bt::BayesTree,
+                              cliq::Graphs.ExVertex  )
+  #
+  frtl = cliq.attributes["data"].frontalIDs
+  cond = cliq.attributes["data"].conditIDs
+  allids = [frtl;cond]
+  alldimIDs = Int[]
+  for fid in frtl
+    alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,fid)).dimIDs]
+  end
+  for cid in cond
+    alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,cid)).dimIDs]
+  end
 
-    for fid in frtl
-        usefcts = []
-        for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
-            if getData(fct).potentialused!=true
-                loutn = localapi.outneighbors(fg, fct)
-                if length(loutn)==1
-                    appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
-                    # TODO -- make update vertex call
-                    fct.attributes["data"].potentialused = true
-                    localapi.updatevertex!(fg, fct)
-                end
-                for sepSearch in loutn
-                    sslbl = Symbol(sepSearch.label)
-                    if (fg.IDs[sslbl] == fid)
-                        continue # skip the fid itself
-                    end
-                    sea = findmin(abs.(allids .- fg.IDs[sslbl]))
-                    if sea[1]==0.0
-                        appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
-                        # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
-                        fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
-                        localapi.updatevertex!(fg, fct)
-                    end
-                end
-            end
-        end
-        cliq.attributes["data"].potentials=union(cliq.attributes["data"].potentials,usefcts)
-    end
-    return nothing
+  for fid in frtl
+      usefcts = []
+      for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
+          if getData(fct).potentialused!=true
+              loutn = localapi.outneighbors(fg, fct)
+              if length(loutn)==1
+                  appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
+                  # TODO -- make update vertex call
+                  fct.attributes["data"].potentialused = true
+                  localapi.updatevertex!(fg, fct)
+              end
+              for sepSearch in loutn
+                  sslbl = Symbol(sepSearch.label)
+                  if (fg.IDs[sslbl] == fid)
+                      continue # skip the fid itself
+                  end
+                  sea = findmin(abs.(allids .- fg.IDs[sslbl]))
+                  if sea[1]==0.0
+                      appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
+                      # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
+                      fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                      localapi.updatevertex!(fg, fct)
+                  end
+              end
+          end
+      end
+      cliq.attributes["data"].potentials=union(cliq.attributes["data"].potentials,usefcts)
+  end
+  return nothing
 end
 
 function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
