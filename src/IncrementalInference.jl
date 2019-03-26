@@ -172,6 +172,7 @@ export
   inferOverTreeR!,
 
   #development interface
+  getCliqOrderUpSolve,
   upMsgPassingRecursive,
 
   # Inference types
@@ -207,6 +208,11 @@ export
   getCliq,
   getCliqMat,
   getCliqMsgMat,
+  getCliqFrontalVarIds,
+  getCliqSeparatorVarIds,
+  getCliqAllVarIds,
+  getCliqVarIdsPriors,
+  getCliqVarSingletons,
 
   # generic marginal used during elimitation game
   GenericMarginal,
@@ -235,6 +241,11 @@ export
   setDwnMsg!,
   dwnMsg,
   getDwnMsgs,
+
+  getFrontals,
+  getSym,
+  doCliqInferenceUp!,
+  getFactorsAmongVariablesOnly,
 
   # some utils
   compareField,

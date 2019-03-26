@@ -37,6 +37,8 @@ end
 # BayesTree declarations
 """
 $(TYPEDEF)
+
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
 """
 mutable struct BayesTree
   bt
@@ -53,6 +55,13 @@ function emptyBayesTree()
                      Dict{AbstractString, Int}())
     return bt
 end
+
+"""
+    $(TYPEDSIGNATURES)
+
+Get the frontal variable IDs `::Int` for a given Bayes (Junction) tree clique.
+"""
+getFrontals(cliql::Graphs.ExVertex) = getData(cliql).frontalIDs
 
 # create a new clique
 function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])
@@ -244,14 +253,14 @@ function prepBatchTree!(fg::FactorGraph;
   buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
 
   # now update all factor graph vertices used for this tree
-  for v in vertices(fg.g)
+  for (id,v) in fg.g.vertices
     dlapi.updatevertex!(fg, v)
   end
 
   return tree
 end
 
-function resetData!(vdata::VariableNodeData)
+function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Int[]
   vdata.BayesNetVertID = 0
@@ -259,18 +268,17 @@ function resetData!(vdata::VariableNodeData)
   nothing
 end
 
-function resetData!(vdata::FunctionNodeData)
+function resetData!(vdata::FunctionNodeData)::Nothing
   vdata.eliminated = false
   vdata.potentialused = false
   nothing
 end
 
-function resetFactorGraphNewTree!(fg::FactorGraph)
-  for v in vertices(fg.g)
+function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
+  for (id, v) in fgl.g.vertices
     resetData!(getData(v))
-    localapi.updatevertex!(fg, v)
+    localapi.updatevertex!(fgl, v)
   end
-
   nothing
 end
 
@@ -280,11 +288,11 @@ end
 Build a completely new Bayes (Junction) tree, after first wiping clean all temporary state in fg from a possibly pre-existing tree.
 """
 function wipeBuildNewTree!(fg::FactorGraph;
-                           ordering=:qr,
-                           drawpdf=false,
+                           ordering::Symbol=:qr,
+                           drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
-                           viewerapp::String="evince"  )
+                           viewerapp::String="evince"  )::BayesTree
   #
   resetFactorGraphNewTree!(fg);
   return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp);
@@ -296,7 +304,7 @@ end
 Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
 """
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
-    bt.cliques[bt.frontals[frt]]
+  bt.cliques[bt.frontals[frt]]
 end
 whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
@@ -381,20 +389,69 @@ function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
   nothing
 end
 
+"""
+    $SIGNATURES
 
+Return list of factors which depend only on variables in variable list in factor graph -- i.e. among variables.
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
-    frtl = cliq.attributes["data"].frontalIDs
-    cond = cliq.attributes["data"].conditIDs
-    allids = [frtl;cond]
-    alldimIDs = Int[]
-    for fid in frtl
-      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,fid)).dimIDs]
+Notes
+-----
+* `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
+"""
+function getFactorsAmongVariablesOnly(fgl::FactorGraph,
+                                      varlist::Vector{Symbol};
+                                      unused::Bool=true  )
+  # collect all factors attached to variables
+  prefcts = Symbol[]
+  for var in varlist
+    union!(prefcts, ls(fgl, var))
+  end
+
+  almostfcts = Symbol[]
+  if unused
+    # now check if those factors have already been added
+    for fct in prefcts
+      vert = getVert(fgl, fct, nt=:fct)
+      if !getData(vert).potentialused
+        push!(almostfcts, fct)
+      end
     end
-    for cid in cond
-      alldimIDs = [alldimIDs; getData(localapi.getvertex(fg,cid)).dimIDs]
-    end
+  else
+    almostfcts = prefcts
+  end
 
+  # Select factors that have all variables in this clique var list
+  usefcts = Symbol[]
+  for fct in almostfcts
+    if length(setdiff(lsf(fgl, fct), varlist)) == 0
+      push!(usefcts, fct)
+    end
+  end
+
+  return usefcts
+end
+
+
+function getCliquePotentials!(fg::FactorGraph,
+                              bt::BayesTree,
+                              cliq::Graphs.ExVertex  )
+  #
+  frtl = getData(cliq).frontalIDs
+  cond = getData(cliq).conditIDs
+  allids = [frtl;cond]
+
+  if true
+    varlist = Symbol[]
+    for id in allids
+      push!(varlist, getSym(fg, id))
+    end
+    fctsyms = getFactorsAmongVariablesOnly(fg, varlist, unused=true )
+    for fsym in fctsyms
+      push!(cliq.attributes["data"].potentials, fg.fIDs[fsym])
+      fct = getVert(fg, fsym, nt=:fct)
+      fct.attributes["data"].potentialused = true
+    end
+  else
     for fid in frtl
         usefcts = []
         for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
@@ -402,7 +459,6 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                 loutn = localapi.outneighbors(fg, fct)
                 if length(loutn)==1
                     appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
-                    # TODO -- make update vertex call
                     fct.attributes["data"].potentialused = true
                     localapi.updatevertex!(fg, fct)
                 end
@@ -414,16 +470,17 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVer
                     sea = findmin(abs.(allids .- fg.IDs[sslbl]))
                     if sea[1]==0.0
                         appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
-                        # usefcts = [usefcts;(fg.IDs[sslbl], fct, fid)]
-                        fct.attributes["data"].potentialused = true #fct.attributes["potentialused"] = true
+                        fct.attributes["data"].potentialused = true
                         localapi.updatevertex!(fg, fct)
                     end
                 end
             end
         end
-        cliq.attributes["data"].potentials=union(cliq.attributes["data"].potentials,usefcts)
+        cliq.attributes["data"].potentials = union(getData(cliq).potentials, usefcts)
     end
-    return nothing
+  end
+
+  nothing
 end
 
 function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
@@ -445,10 +502,82 @@ function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
   end
   return allseps
 end
+function getCliqAssocMat(cliq::Graphs.ExVertex)
+  getData(cliq).cliqAssocMat
+end
+function getCliqMsgMat(cliq::Graphs.ExVertex)
+  getData(cliq).cliqMsgMat
+end
+function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
+  assocMat = getCliqAssocMat(cliq)
+  msgMat = getCliqMsgMat(cliq)
+  mat = showmsg ? [assocMat;msgMat] : assocMat
+  return mat
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` frontal variable ids`::Int`.
+"""
+function getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  getData(cliq).frontalIDs
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` separator (a.k.a. conditional) variable ids`::Int`.
+"""
+function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  getData(cliq).conditIDs
+end
+
+
+"""
+    $SIGNATURES
+
+Get all `cliq` variable ids`::Int`.
+"""
+function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  frtl = getCliqFrontalVarIds(cliq)
+  cond = getCliqSeparatorVarIds(cliq)
+  [frtl;cond]
+end
+
+"""
+    $SIGNATURES
+
+Get variable ids`::Int` with prior factors associated with this `cliq`.
+"""
+function getCliqVarIdsPriors(cliq::Graphs.ExVertex, allids::Vector{Int}=getCliqAllVarIds(cliq))::Vector{Int}
+  # get ids with prior factors associated with this cliq
+  amat = getCliqAssocMat(cliq)
+  prfcts = sum(amat, dims=2) .== 1
+  allids[sum(amat[prfcts[:],:], dims=1)[:] .> 0]
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and up messages.
+"""
+function getCliqVarSingletons(cliq::Graphs.ExVertex, allids::Vector{Int}=getCliqAllVarIds(cliq))::Vector{Int}
+  # get incoming upward messages (known singletons)
+  mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
+  upmsgids = allids[mask]
+
+  # get ids with prior factors associated with this cliq
+  prids = getCliqVarIdsPriors(cliq)
+
+  # return union of both lists
+  return union(upmsgids, prids)
+end
+
 
 function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getCliqFrontalVarIds(cliq)
+  cond = getCliqSeparatorVarIds(cliq)
   inmsgIDs = collectSeparators(bt, cliq)
   potIDs = cliqPotentialIDs(cliq)
   # Construct associations matrix here
@@ -483,19 +612,6 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
   cliq.attributes["data"].cliqAssocMat = cliqAssocMat
   cliq.attributes["data"].cliqMsgMat = cliqMsgMat
   nothing
-end
-
-function getCliqAssocMat(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].cliqAssocMat
-end
-function getCliqMsgMat(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].cliqMsgMat
-end
-function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  assocMat = getCliqAssocMat(cliq)
-  msgMat = getCliqMsgMat(cliq)
-  mat = showmsg ? [assocMat;msgMat] : assocMat
-  return mat
 end
 
 
@@ -565,16 +681,71 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
 end
 
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
-  assocMat = getData(cliq).cliqAssocMat
-  msgMat = getData(cliq).cliqMsgMat
-  mat = [assocMat;msgMat];
+  mat = getCliqMat(cliq)
+  # assocMat = getData(cliq).cliqAssocMat
+  # msgMat = getData(cliq).cliqMsgMat
+  # mat = [assocMat;msgMat];
+
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
-  frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  cols = getCliqAllVarIds(cliq)
 
-  return cols[vec(collect(mab))]
+  # must also include "direct variables" connected through projection only
+  directvars = directAssignmentIDs(cliq)
+  usset = union(directvars, cols[vec(collect(mab))])
+  # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
+  # NOTE -- using direct then mcmcIter ordering to prioritize non-msg vars first
+  return setdiff(usset, getData(cliq).directPriorMsgIDs)
+end
+
+function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Int, allids=getCliqAllVarIds(cliq) )
+  len = length(allids)
+  [1:len;][allids .== varid][1]
+end
+
+"""
+    $SIGNATURES
+
+Determine and return order list of variable ids required for minibatch Gibbs iteration inside `cliq`.
+
+Notes
+* Singleton factors (priors and up messages) back of the list
+* least number of associated factor variables earlier in list
+"""
+function mcmcIterationIdsOrdered(cliq::Graphs.ExVertex)
+  # get unordered iter list
+  alliter = mcmcIterationIDs(cliq)
+
+  # get all singletons
+  allsings = getCliqVarSingletons(cliq)
+  singletonvars = intersect(alliter, allsings)
+
+  # get all non-singleton iters
+  nonsinglvars = setdiff(alliter, singletonvars)
+
+  # sort nonsingletons ascending number of factors
+  mat = getCliqMat(cliq)
+  lenfcts = sum(mat, dims=1)
+  nonslen = zeros(length(nonsinglvars))
+  for i in 1:length(nonsinglvars)
+    varid = nonsinglvars[i]
+    varidx = getCliqMatVarIdx(cliq, varid)
+    nonslen[i] = lenfcts[varidx]
+  end
+  p = sortperm(nonslen)
+  ascnons = nonsinglvars[p]
+
+  # sort singleton vars ascending number of factors
+  singslen = zeros(length(singletonvars))
+  for i in 1:length(singletonvars)
+    varid = singletonvars[i]
+    varidx = getCliqMatVarIdx(cliq, varid)
+    singslen[i] = lenfcts[varidx]
+  end
+  p = sortperm(singslen)
+  ascsing = singletonvars[p]
+
+  return [ascnons; ascsing]
 end
 
 """
@@ -591,18 +762,15 @@ Prepare the variable IDs for nested clique Gibbs mini-batch calculations, by ass
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
   getData(cliq).directPriorMsgIDs = directPriorMsgIDs(cliq)
 
-  # NOTE -- combined larger iter group
+  # NOTE -- directvarIDs are combined into itervarIDs
   getData(cliq).directvarIDs = directAssignmentIDs(cliq)
-  # getData(cliq).itervarIDs = mcmcIterationIDs(cliq)
-  # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
-  # NOTE -- using direct then mcmcIter ordering to prioritize non-msg vars first
-  usset = union(directAssignmentIDs(cliq), mcmcIterationIDs(cliq))
-  getData(cliq).itervarIDs = setdiff(usset, getData(cliq).directPriorMsgIDs)
+  # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
+  getData(cliq).itervarIDs = mcmcIterationIdsOrdered(cliq)  #mcmcIterationIDs(cliq)
+
   getData(cliq).msgskipIDs = skipThroughMsgsIDs(cliq)
   getData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
 
-  # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
-  
+  # TODO add initialization sequence var id list too
 
   nothing
 end

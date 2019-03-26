@@ -5,6 +5,8 @@ SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTr
 
 """
 $(TYPEDEF)
+
+Most basic continuous scalar variable a `::FactorGraph` object.
 """
 struct ContinuousScalar <: InferenceVariable
   dims::Int
@@ -15,6 +17,8 @@ end
 
 """
 $(TYPEDEF)
+
+Continuous variable of dimension `.dims` on manifold `.manifolds`.
 """
 struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
   dims::Int
@@ -46,6 +50,8 @@ getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 """
 $(TYPEDEF)
+
+Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
 """
 struct PartialPrior{T,P} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief, P <: Tuple}
   Z::T
@@ -58,6 +64,8 @@ getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 """
 $(TYPEDEF)
+
+Default linear offset between two scalar variables.
 """
 struct LinearConditional{T} <: IncrementalInference.FunctorPairwise where T <: SamplableBelief
   Z::T
@@ -77,6 +85,8 @@ end
 
 """
 $(TYPEDEF)
+
+Define a categorical mixture of prior beliefs on a variable.
 """
 struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
   Z::Vector{T}
@@ -92,6 +102,8 @@ getSample(s::MixturePrior, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C
 
 """
 $(TYPEDEF)
+
+Define a categorical mixture of (relative) likelihood beliefs between any two variables.
 """
 struct MixtureLinearConditional{T} <: IncrementalInference.FunctorPairwise
   Z::Vector{T}
@@ -120,6 +132,8 @@ end
 
 """
 $(TYPEDEF)
+
+Serialization type for Prior.
 """
 mutable struct PackedPrior <: PackedInferenceType
   Z::String
@@ -136,6 +150,8 @@ end
 
 """
 $(TYPEDEF)
+
+Serialization type for `PartialPrior`.
 """
 mutable struct PackedPartialPrior <: PackedInferenceType
   Z::String
@@ -169,6 +185,8 @@ end
 
 """
 $(TYPEDEF)
+
+Serialization type for `MixtureLinearConditional`.
 """
 mutable struct PackedMixtureLinearConditional <: PackedInferenceType
   strs::Vector{String}
@@ -187,6 +205,8 @@ end
 
 """
 $(TYPEDEF)
+
+Serialization type for `MixedPrior`.
 """
 mutable struct PackedMixturePrior <: PackedInferenceType
   strs::Vector{String}
