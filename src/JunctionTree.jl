@@ -502,10 +502,82 @@ function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
   end
   return allseps
 end
+function getCliqAssocMat(cliq::Graphs.ExVertex)
+  getData(cliq).cliqAssocMat
+end
+function getCliqMsgMat(cliq::Graphs.ExVertex)
+  getData(cliq).cliqMsgMat
+end
+function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
+  assocMat = getCliqAssocMat(cliq)
+  msgMat = getCliqMsgMat(cliq)
+  mat = showmsg ? [assocMat;msgMat] : assocMat
+  return mat
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` frontal variable ids`::Int`.
+"""
+function getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  getData(cliq).frontalIDs
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` separator (a.k.a. conditional) variable ids`::Int`.
+"""
+function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  getData(cliq).conditIDs
+end
+
+
+"""
+    $SIGNATURES
+
+Get all `cliq` variable ids`::Int`.
+"""
+function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+  frtl = getCliqFrontalVarIds(cliq)
+  cond = getCliqSeparatorVarIds(cliq)
+  [frtl;cond]
+end
+
+"""
+    $SIGNATURES
+
+Get variable ids`::Int` with prior factors associated with this `cliq`.
+"""
+function getCliqVarIdsPriors(cliq::Graphs.ExVertex, allids::Vector{Int}=getCliqAllVarIds(cliq))::Vector{Int}
+  # get ids with prior factors associated with this cliq
+  amat = getCliqAssocMat(cliq)
+  prfcts = sum(amat, dims=2) .== 1
+  allids[sum(amat[prfcts[:],:], dims=1)[:] .> 0]
+end
+
+"""
+    $SIGNATURES
+
+Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and up messages.
+"""
+function getCliqVarSingletons(cliq::Graphs.ExVertex, allids::Vector{Int}=getCliqAllVarIds(cliq))::Vector{Int}
+  # get incoming upward messages (known singletons)
+  mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
+  upmsgids = allids[mask]
+
+  # get ids with prior factors associated with this cliq
+  prids = getCliqVarIdsPriors(cliq)
+
+  # return union of both lists
+  return union(upmsgids, prids)
+end
+
 
 function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
-  frtl = cliq.attributes["data"].frontalIDs
-  cond = cliq.attributes["data"].conditIDs
+  frtl = getCliqFrontalVarIds(cliq)
+  cond = getCliqSeparatorVarIds(cliq)
   inmsgIDs = collectSeparators(bt, cliq)
   potIDs = cliqPotentialIDs(cliq)
   # Construct associations matrix here
@@ -540,19 +612,6 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
   cliq.attributes["data"].cliqAssocMat = cliqAssocMat
   cliq.attributes["data"].cliqMsgMat = cliqMsgMat
   nothing
-end
-
-function getCliqAssocMat(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].cliqAssocMat
-end
-function getCliqMsgMat(cliq::Graphs.ExVertex)
-  cliq.attributes["data"].cliqMsgMat
-end
-function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
-  assocMat = getCliqAssocMat(cliq)
-  msgMat = getCliqMsgMat(cliq)
-  mat = showmsg ? [assocMat;msgMat] : assocMat
-  return mat
 end
 
 
@@ -622,16 +681,71 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
 end
 
 function mcmcIterationIDs(cliq::Graphs.ExVertex)
-  assocMat = getData(cliq).cliqAssocMat
-  msgMat = getData(cliq).cliqMsgMat
-  mat = [assocMat;msgMat];
+  mat = getCliqMat(cliq)
+  # assocMat = getData(cliq).cliqAssocMat
+  # msgMat = getData(cliq).cliqMsgMat
+  # mat = [assocMat;msgMat];
+
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
-  frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  cols = getCliqAllVarIds(cliq)
 
-  return cols[vec(collect(mab))]
+  # must also include "direct variables" connected through projection only
+  directvars = directAssignmentIDs(cliq)
+  usset = union(directvars, cols[vec(collect(mab))])
+  # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
+  # NOTE -- using direct then mcmcIter ordering to prioritize non-msg vars first
+  return setdiff(usset, getData(cliq).directPriorMsgIDs)
+end
+
+function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Int, allids=getCliqAllVarIds(cliq) )
+  len = length(allids)
+  [1:len;][allids .== varid][1]
+end
+
+"""
+    $SIGNATURES
+
+Determine and return order list of variable ids required for minibatch Gibbs iteration inside `cliq`.
+
+Notes
+* Singleton factors (priors and up messages) back of the list
+* least number of associated factor variables earlier in list
+"""
+function mcmcIterationIdsOrdered(cliq::Graphs.ExVertex)
+  # get unordered iter list
+  alliter = mcmcIterationIDs(cliq)
+
+  # get all singletons
+  allsings = getCliqVarSingletons(cliq)
+  singletonvars = intersect(alliter, allsings)
+
+  # get all non-singleton iters
+  nonsinglvars = setdiff(alliter, singletonvars)
+
+  # sort nonsingletons ascending number of factors
+  mat = getCliqMat(cliq)
+  lenfcts = sum(mat, dims=1)
+  nonslen = zeros(length(nonsinglvars))
+  for i in 1:length(nonsinglvars)
+    varid = nonsinglvars[i]
+    varidx = getCliqMatVarIdx(cliq, varid)
+    nonslen[i] = lenfcts[varidx]
+  end
+  p = sortperm(nonslen)
+  ascnons = nonsinglvars[p]
+
+  # sort singleton vars ascending number of factors
+  singslen = zeros(length(singletonvars))
+  for i in 1:length(singletonvars)
+    varid = singletonvars[i]
+    varidx = getCliqMatVarIdx(cliq, varid)
+    singslen[i] = lenfcts[varidx]
+  end
+  p = sortperm(singslen)
+  ascsing = singletonvars[p]
+
+  return [ascnons; ascsing]
 end
 
 """
@@ -648,18 +762,15 @@ Prepare the variable IDs for nested clique Gibbs mini-batch calculations, by ass
 function setCliqMCIDs!(cliq::Graphs.ExVertex)
   getData(cliq).directPriorMsgIDs = directPriorMsgIDs(cliq)
 
-  # NOTE -- combined larger iter group
+  # NOTE -- directvarIDs are combined into itervarIDs
   getData(cliq).directvarIDs = directAssignmentIDs(cliq)
-  # getData(cliq).itervarIDs = mcmcIterationIDs(cliq)
-  # NOTE -- fix direct vs itervar issue, DirectVarIDs against Iters should also Iter
-  # NOTE -- using direct then mcmcIter ordering to prioritize non-msg vars first
-  usset = union(directAssignmentIDs(cliq), mcmcIterationIDs(cliq))
-  getData(cliq).itervarIDs = setdiff(usset, getData(cliq).directPriorMsgIDs)
+  # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
+  getData(cliq).itervarIDs = mcmcIterationIdsOrdered(cliq)  #mcmcIterationIDs(cliq)
+
   getData(cliq).msgskipIDs = skipThroughMsgsIDs(cliq)
   getData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
 
-  # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
-
+  # TODO add initialization sequence var id list too
 
   nothing
 end

@@ -139,26 +139,35 @@ end
 function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataLayerAPI=localapi)
   setVal!(api.getvertex(fg, sym), val)
 end
-function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2})
+
+"""
+    $SIGNATURES
+
+Set the point centers and bandwidth parameters of a variable node, also set `isInitialized=true` if `setinit::Bool=true` (as per default).
+"""
+function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2}, setinit::Bool=true)
   # recover softtype information
   sty = getSofttype(v)
   # @show sty.manifolds
   #
   p = AMP.manikde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
+  setinit ? (getData(v).initialized = true) : nothing
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, em::EasyMessage)
+function setValKDE!(v::Graphs.ExVertex, em::EasyMessage, setinit::Bool=true)
   setVal!(v, em.pts, em.bws ) # getBW(p)[:,1]
+  setinit ? (getData(v).initialized = true) : nothing
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity)
+function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity, setinit::Bool=true)
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
+  setinit ? (getData(v).initialized = true) : nothing
   nothing
 end
-function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity; api::DataLayerAPI=dlapi)
-  setValKDE!(getVert(fgl, sym, api=api), p)
+function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity; api::DataLayerAPI=dlapi, setinit::Bool=true)
+  setValKDE!(getVert(fgl, sym, api=api), p, setinit)
   nothing
 end
 setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
@@ -612,11 +621,22 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol})
+function manualinit!(fgl::FactorGraph, vert::Graphs.ExVertex, pX::BallTreeDensity)::Nothing
+  setValKDE!(vert, pX)
+  getData(vert).initialized = true
+  # TODO must still update back to server is using api=dlapi
+  nothing
+end
+function manualinit!(fgl::FactorGraph, sym::Symbol, pX::BallTreeDensity; api::DataLayerAPI=localapi)::Nothing
+  vert = getVert(fgl, sym, api=api)
+  manualinit!(fgl, vert, pX)
+  nothing
+end
+function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol}; api::DataLayerAPI=localapi)::Nothing
   global localapi
   @warn "manual_init being used as a workaround for temporary autoinit issues."
   pts = predictbelief(fgl, sym, usefcts)
-  vert = getVert(fgl, sym, api=localapi)
+  vert = getVert(fgl, sym, api=api)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
   setValKDE!(vert, Xpre) # fgl, sym
   getData(fgl, sym).initialized = true
