@@ -42,6 +42,8 @@ include("testFactorMetadata.jl")
 
 include("testExplicitMultihypo.jl")
 
+include("testMultiHypo2Door.jl")
+
 include("testMultithreaded.jl")
 
 println("[TEST] partial constraints...")
