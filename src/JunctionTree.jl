@@ -194,14 +194,28 @@ end
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/bt.pdf",
-                  viewerapp::String="evince"  )
+                  viewerapp::String="evince",
+                  imgs::Bool=false )
   #
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
+
+  # modify a deepcopy
+  btc = deepcopy(treel)
+  for (cid, cliq) in btc.cliques
+    if imgs
+      firstlabel = split(cliq.attributes["label"],',')[1]
+      spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/$firstlabel.png")
+      cliq.attributes["image"] = "/tmp/$firstlabel.png"
+      cliq.attributes["label"] = ""
+    end
+    delete!(cliq.attributes, "data")
+  end
+
   fid = IOStream("")
   try
     fid = open("$(fpwoext).dot","w+")
-    write(fid,to_dot(treel.bt))
+    write(fid,to_dot(btc.bt))
     close(fid)
     run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
   catch ex
@@ -222,7 +236,8 @@ function prepBatchTree!(fg::FactorGraph;
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/bt.pdf",
-                        viewerapp::String="evince"  )
+                        viewerapp::String="evince",
+                        imgs::Bool=false  )
   #
   p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
   println()
@@ -239,15 +254,6 @@ function prepBatchTree!(fg::FactorGraph;
   #write(fid,to_dot(fge.bn))
   #close(fid)
 
-  # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
-  println("Bayes Tree")
-  if drawpdf
-    drawTree(tree, show=show, filepath=filepath, viewerapp=viewerapp)
-  end
-
-  # GraphViz.Graph(to_dot(tree.bt))
-  #Michael reference 3sig -- x2l1x4x3    x1|x2
-
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
   buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
@@ -255,6 +261,14 @@ function prepBatchTree!(fg::FactorGraph;
   # now update all factor graph vertices used for this tree
   for (id,v) in fg.g.vertices
     dlapi.updatevertex!(fg, v)
+  end
+
+  # GraphViz.Graph(to_dot(tree.bt))
+  # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
+  #Michael reference 3sig -- x2l1x4x3    x1|x2
+  println("Bayes Tree")
+  if drawpdf
+    drawTree(tree, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs)
   end
 
   return tree
@@ -292,10 +306,11 @@ function wipeBuildNewTree!(fg::FactorGraph;
                            drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
-                           viewerapp::String="evince"  )::BayesTree
+                           viewerapp::String="evince",
+                           imgs::Bool=false  )::BayesTree
   #
   resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp);
+  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
 end
 
 """
