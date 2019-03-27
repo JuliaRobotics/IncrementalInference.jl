@@ -3,6 +3,7 @@ module IncrementalInference
 @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
 using Distributed
+using Requires
 using Reexport
 
 @reexport using Distributions
@@ -331,6 +332,56 @@ end
 function getSerializationModules()::Dict{String, Module}
   global serializationnamespace
   return serializationnamespace
+end
+
+exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
+function __init__()
+    @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
+      @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Juntion) tree"
+
+      exportimg(pl) = Gadfly.PNG(pl)
+
+      export spyCliqMat
+
+      """
+          $SIGNATURES
+
+      Draw the clique association matrix, with keyword arguments for more or less console print outs.
+
+      Notes
+      * Columns are variables, rows are factors.
+      * Drawn from up message passing perspective.
+      * Blue color implies no factor association.
+      * Frontal, separator, and upmessages are all drawn at different intensity of red.
+      * Downward messages not shown, as they would just be singletons of the full separator set.
+      """
+      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+        mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
+        # TODO -- add improved visualization here, iter vs skip
+        mat = map(Float64, mat)*2.0.-1.0
+        numlcl = size(getCliqAssocMat(cliq),1)
+        mat[(numlcl+1):end,:] *= 0.9
+        mat[(numlcl+1):end,:] .-= 0.1
+        numfrtl1 = floor(Int,length(getData(cliq).frontalIDs) + 1)
+        mat[:,numfrtl1:end] *= 0.9
+        mat[:,numfrtl1:end] .-= 0.1
+        if !suppressprint
+          @show getData(cliq).itervarIDs
+          @show getData(cliq).directvarIDs
+          @show getData(cliq).msgskipIDs
+          @show getData(cliq).directFrtlMsgIDs
+          @show getData(cliq).directPriorMsgIDs
+        end
+        sp = Gadfly.spy(mat)
+        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
+        return sp
+      end
+      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+        spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
+      end
+    end
 end
 
 # Old code that might be used again
