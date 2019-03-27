@@ -574,6 +574,25 @@ function getCliqVarSingletons(cliq::Graphs.ExVertex, allids::Vector{Int}=getCliq
   return union(upmsgids, prids)
 end
 
+function getCliqInitVarOrder(cliq::Graphs.ExVertex)
+
+  # partial priors alone on variable (unlikely, but rather safe)
+
+  # lonely priors and singleton messages first
+
+  # in ascending order of number of factors
+
+  # what if not possible to initialize/any all variables in clique?
+
+  @warn "getCliqInitVarOrder not implemented yet"
+  prids = getCliqVarIdsPriors(cliq)
+  Int[]
+end
+
+function doCliqAutoInit!(fgl::FactorGraph, cliq::Graphs.ExVertex)
+  error("doCliqAutoInit! not implmented yet")
+end
+
 
 function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
   frtl = getCliqFrontalVarIds(cliq)
