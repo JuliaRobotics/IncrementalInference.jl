@@ -343,6 +343,18 @@ function __init__()
 
       export spyCliqMat
 
+      """
+          $SIGNATURES
+
+      Draw the clique association matrix, with keyword arguments for more or less console print outs.
+
+      Notes
+      * Columns are variables, rows are factors.
+      * Drawn from up message passing perspective.
+      * Blue color implies no factor association.
+      * Frontal, separator, and upmessages are all drawn at different intensity of red.
+      * Downward messages not shown, as they would just be singletons of the full separator set.
+      """
       function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
