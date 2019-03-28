@@ -343,13 +343,17 @@ function lsRear(fgl::FactorGraph, n::Int=1)
   union(lsf.(fgl, syms)[:]...)
 end
 
+"""
+    $SIGNATURES
 
-hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
+Return `::Bool` on whether `fg::FactorGraph` has orphaned nodes or graph fragments. 
+"""
+hasOrphans(fg::FactorGraph) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 
 """
-    landmarks(fgl::FactorGraph, vsym::Symbol)
+    $SIGNATURES
 
-Return Vector{Symbol} of landmarks attached to vertex vsym in fgl.
+Return `Vector{Symbol}` of landmarks attached to vertex vsym in `fgl::FactorGraph`.
 """
 function landmarks(fgl::FactorGraph, vsym::Symbol)
   fsyms = ls(fgl, vsym)
@@ -447,23 +451,9 @@ end
 
 
 """
-    $SIGNATURES
-
-Return the user factor identified by tag name.
-"""
-getFactor(fgl::FactorGraph, fsym::Symbol) = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
-
-"""
-    $SIGNATURES
-
-Display and return to console the user factor identified by tag name.
-"""
-showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getFactor(fgl,fsym)
-
-"""
    $SIGNATURES
 
-Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`. 
+Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
 """
 function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   vert = getVert(fg, vsym, api=api)

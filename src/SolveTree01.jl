@@ -181,7 +181,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
       dbg::Bool=false)
   #
 
-  for idfct in cliq.attributes["data"].potentials
+  for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
@@ -688,7 +688,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
 
   priorprods = Vector{CliqGibbsMC}()
 
-  cliqdata = inp.cliq.attributes["data"]
+  cliqdata = getData(inp.cliq)
 
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
@@ -722,12 +722,16 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
     end
   end
 
+  # prepare and convert upward belief messages
   upmsgs = Dict{Symbol, BallTreeDensity}()
   for (ke, va) in m.p
     msgsym = Symbol(inp.fg.g.vertices[ke].label)
     upmsgs[msgsym] = convert(BallTreeDensity, va)
   end
   setUpMsg!(inp.cliq, upmsgs)
+
+  # flag cliq as definitely being initialized
+  cliqdata.upsolved = true
 
   mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
   return UpReturnBPType(m, mdbg, d, upmsgs)
@@ -763,7 +767,7 @@ function downGibbsCliqueDensity(fg::FactorGraph,
     #
     # TODO standardize function call to have similar stride to upGibbsCliqueDensity
     @info "dwn"
-    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["data"].frontalIDs, N, MCMCIter, dbg)
+    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
     outmsglbl = Dict{Symbol, Int}()
@@ -780,6 +784,9 @@ function downGibbsCliqueDensity(fg::FactorGraph,
       dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
     end
     setDwnMsg!(cliq, dwnkeepmsgs)
+
+    # down solving complete, set flag
+    getData(cliq).downsolved = true
 
     mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
     return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
@@ -1290,17 +1297,51 @@ end
 """
     $SIGNATURES
 
+Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
+"""
+function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
+  for (id, cliq) in treel.cliques
+    cliqdata = getData(cliq)
+    cliqdata.initialized = to
+    cliqdata.upsolved = to
+    cliqdata.downsolved = to
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Perform tree based initialization of all variables not yet initialized in factor graph.
+
+Notes
+* Still in initial development stages.
+"""
+function initOnTree!(treel::BayesTree)::Nothing
+  @info "Work in progress, initOnTree! just a cover plate at this stage."
+  for (ids, cliq) in treel.cliques
+    getData(cliq).initialized = true
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
 function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
-    @info "Ensure all nodes are initialized"
-    ensureAllInitialized!(fgl)
-    @info "Do multi-process inference over tree"
-    cliq = bt.cliques[1]
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-    cliq = bt.cliques[1]
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-    nothing
+  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
+  setAllSolveFlags!(bt, false)
+  @info "Ensure all nodes are initialized"
+  ensureAllInitialized!(fgl)
+  initOnTree!(bt)
+  @info "Do multi-process inference over tree"
+  cliq = bt.cliques[1]
+  upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  cliq = bt.cliques[1]
+  downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  nothing
 end
 
 """
@@ -1309,12 +1350,15 @@ end
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
 function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
-    @info "Ensure all nodes are initialized"
-    ensureAllInitialized!(fgl)
-    @info "Do recursive inference over tree"
-    cliq = bt.cliques[1]
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-    cliq = bt.cliques[1]
-    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-    nothing
+  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
+  setAllSolveFlags!(bt, false)
+  @info "Ensure all nodes are initialized"
+  ensureAllInitialized!(fgl)
+  initOnTree!(bt)
+  @info "Do recursive inference over tree"
+  cliq = bt.cliques[1]
+  upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  cliq = bt.cliques[1]
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  nothing
 end

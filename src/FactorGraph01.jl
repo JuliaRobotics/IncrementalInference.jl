@@ -24,12 +24,29 @@ Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
 """
 getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
 
+# """
+#     $SIGNATURES
+#
+# Return reference to a factor in `::FactorGraph` identified by
+# """
+# getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api, nt=:fct)
+
 """
     $SIGNATURES
 
-Return reference to a factor in `::FactorGraph` identified by `::Symbol`.
+Return the user factor identified by `fsym::Symbol`.
 """
-getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api, nt=:fct)
+getFactor(vert::Graphs.ExVertex) = getData(vert).fnc.usrfnc!
+getFactor(fgl::FactorGraph, fsym::Symbol, api::DataLayerAPI=localapi) = getData(fgl, fsym, api=api, nt=:fct).fnc.usrfnc!
+getFactor(fgl::FactorGraph, idx::Int, api::DataLayerAPI=localapi) = getData(fgl, idx, api=api).fnc.usrfnc!
+
+"""
+    $SIGNATURES
+
+Display and return to console the user factor identified by tag name.
+"""
+showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getFactor(fgl,fsym)
+
 
 """
     $SIGNATURES
@@ -592,12 +609,6 @@ function doautoinit!(fgl::FactorGraph,
   nothing
 end
 
-"""
-    $(SIGNATURES)
-
-Initialize destination variable nodes based on this factor in factor graph, fg, generally called
-during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
-"""
 function doautoinit!(fgl::FactorGraph,
                      xsyms::Vector{Symbol};
                      api::DataLayerAPI=dlapi,
