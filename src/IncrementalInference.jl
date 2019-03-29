@@ -210,6 +210,7 @@ export
   predictbelief,
   getCliq,
   getCliqMat,
+  getCliqAssocMat,
   getCliqMsgMat,
   getCliqFrontalVarIds,
   getCliqSeparatorVarIds,
@@ -256,6 +257,7 @@ export
   compareAll,
   getIdx,
   showFactor,
+  showVariable,
 
   # For 1D example,
 

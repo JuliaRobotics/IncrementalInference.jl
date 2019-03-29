@@ -159,7 +159,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
       N::Int,
       dbg::Bool=false )
   #
-  for idfct in cliq.attributes["data"].potentials
+  for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
@@ -806,6 +806,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
       cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
     end
     setDwnMsg!(cliq, ddt.keepdwnmsgs)
+    # TODO move to drawTree
     if fillcolor != ""
       cliq.attributes["fillcolor"] = fillcolor
       cliq.attributes["style"] = "filled"
@@ -836,6 +837,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
       cliq.attributes["debug"] = deepcopy(urt.dbgUp)
     end
     setUpMsg!(cliq, urt.keepupmsgs)
+    # move to drawTree
     if fillcolor != ""
       cliq.attributes["fillcolor"] = fillcolor
       cliq.attributes["style"] = "filled"
@@ -927,7 +929,15 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   urt
 end
 
+"""
+    $SIGNATURES
 
+Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
+
+Notes
+=====
+- `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
+"""
 function doCliqInferenceUp!(fgl::FactorGraph,
                             treel::BayesTree,
                             csym::Symbol,

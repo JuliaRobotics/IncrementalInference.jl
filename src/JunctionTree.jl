@@ -83,7 +83,8 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
 
   clq.attributes["label"] = ""
   # Specific data container
-  clq.attributes["data"] = emptyBTNodeData()
+  setData!(clq, emptyBTNodeData())
+  # clq.attributes["data"] = emptyBTNodeData()
 
   appendClique!(bt, bt.btid, fg, varID, condIDs)
   return clq
@@ -311,7 +312,8 @@ end
 """
     $(SIGNATURES)
 
-Build a completely new Bayes (Junction) tree, after first wiping clean all temporary state in fg from a possibly pre-existing tree.
+Build a completely new Bayes (Junction) tree, after first wiping clean all
+temporary state in fg from a possibly pre-existing tree.
 """
 function wipeBuildNewTree!(fg::FactorGraph;
                            ordering::Symbol=:qr,
@@ -328,7 +330,8 @@ end
 """
     $(SIGNATURES)
 
-Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
+Return the Graphs.ExVertex node object that represents a clique in the Bayes
+(Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
 """
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
   bt.cliques[bt.frontals[frt]]
@@ -338,7 +341,8 @@ whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 """
     $SIGNATURES
 
-Return the Graphs.ExVertex node object that represents a clique in the Bayes (Junction) tree, as defined by one of the frontal variables `frt`.
+Return the Graphs.ExVertex node object that represents a clique in the Bayes
+(Junction) tree, as defined by one of the frontal variables `frt::Symbol`.
 """
 getCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
@@ -419,7 +423,8 @@ end
 """
     $SIGNATURES
 
-Return list of factors which depend only on variables in variable list in factor graph -- i.e. among variables.
+Return list of factors which depend only on variables in variable list in factor
+graph -- i.e. among variables.
 
 Notes
 -----
@@ -461,7 +466,7 @@ end
 """
     $SIGNATURES
 
-Return `::Bool` on whether factor `fct` is a partial constraint.
+Return `::Bool` on whether factor `fct<:FunctorInferenceType` is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
 function isPartial(fct::Graphs.ExVertex)
@@ -554,13 +559,35 @@ function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
   end
   return allseps
 end
+
+"""
+    $SIGNATURES
+
+Return boolean matrix of factor by variable (row by column) associations within
+clique, corresponds to order presented by `getCliqFactorIds` and `getCliqAllVarIds`.
+"""
 function getCliqAssocMat(cliq::Graphs.ExVertex)
   getData(cliq).cliqAssocMat
 end
+
+"""
+    $SIGNATURES
+
+Return boolean matrix of upward message singletons (i.e. marginal priors) from
+child cliques.  Variable order corresponds to `getCliqAllVarIds`.
+"""
 function getCliqMsgMat(cliq::Graphs.ExVertex)
   getData(cliq).cliqMsgMat
 end
-function getCliqMat(cliq::Graphs.ExVertex; showmsg=true)
+
+"""
+    $SIGNATURES
+
+Return boolean matrix of factor variable associations for a clique, optionally
+including (`showmsg::Bool=true`) the upward message singletons.  Variable order
+corresponds to `getCliqAllVarIds`.
+"""
+function getCliqMat(cliq::Graphs.ExVertex; showmsg::Bool=true)
   assocMat = getCliqAssocMat(cliq)
   msgMat = getCliqMsgMat(cliq)
   mat = showmsg ? [assocMat;msgMat] : assocMat
@@ -616,14 +643,22 @@ function getCliqVarIdsPriors(cliq::Graphs.ExVertex,
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
   prfcts = sum(amat, dims=2) .== 1
-  mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
-  ret = allids[mask]
 
-  # remove partial priors as requested
-  # if !partials
-  #   ::
-  # end
-  return ret
+  # remove partials as per request
+  !partials ? nothing : (prfcts .&= getData(cliq).partialpotential)
+
+  # return variable ids in `mask`
+  mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
+  return allids[mask]
+end
+
+"""
+    $SIGNATURES
+
+Return the number of factors associated with each variable in `cliq`.
+"""
+function getNumCliqFactorsForVars(cliq::Graphs.ExVertex)::Vector{Int}
+  getCliqAssocMat(cliq)
 end
 
 """
@@ -632,28 +667,37 @@ end
 Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and up messages.
 """
 function getCliqVarSingletons(cliq::Graphs.ExVertex,
-                              allids::Vector{Int}=getCliqAllVarIds(cliq))::Vector{Int}
+                              allids::Vector{Int}=getCliqAllVarIds(cliq),
+                              partials::Bool=true  )::Vector{Int}
   # get incoming upward messages (known singletons)
   mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
   upmsgids = allids[mask]
 
   # get ids with prior factors associated with this cliq
-  prids = getCliqVarIdsPriors(cliq)
+  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
 
   # return union of both lists
   return union(upmsgids, prids)
 end
 
-function getCliqInitVarOrder(cliq::Graphs.ExVertex)
+function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
 
-  # priors and singleton messages first
+  # get priors and singleton message variables (without partials)
+  prids = getCliqVarSingletons(cliq, getCliqAllVarIds(cliq), false)
 
   # in ascending order of number of factors
+
 
   # what if not possible to initialize/any all variables in clique?
 
   @warn "getCliqInitVarOrder not implemented yet"
   prids = getCliqVarIdsPriors(cliq)
+  Int[]
+end
+
+function getCliqInitVarOrderDwn(cliq::Graphs.ExVertex)
+  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
+  @warn "getCliqInitVarOrder not implemented yet"
   Int[]
 end
 
