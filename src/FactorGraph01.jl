@@ -562,6 +562,31 @@ function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
 end
 
 """
+    $SIGNATURES
+
+Return `::Bool` on whether all other variables (besides `loovar::Symbol`)
+attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
+"""
+function factorOtherVarsInit(fgl::FactorGraph,
+                             fct::Symbol,
+                             loovar::Symbol;
+                             api::DataLayerAPI=localapi  )
+  #
+  varsyms = lsf(fgl, fct)
+  Xi = getVert.(fgl, varsyms, api=api)
+
+  useinitfct = Symbol[]
+  for xi in Xi
+    if !isInitialized(xi)
+      vsym = Symbol(xi.label)
+      push!(useinitfct, xifct)
+    end
+  end
+
+
+end
+
+"""
     $(SIGNATURES)
 
 EXPERIMENTAL: initialize destination variable nodes based on this factor in factor graph, fg, generally called

@@ -46,6 +46,7 @@ mutable struct UpReturnBPType
     dbgUp::DebugCliqMCMC
     IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
     keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+    totalsolve::Bool
 end
 
 """
@@ -734,7 +735,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
   cliqdata.upsolved = true
 
   mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
-  return UpReturnBPType(m, mdbg, d, upmsgs)
+  return UpReturnBPType(m, mdbg, d, upmsgs, true)
 end
 
 

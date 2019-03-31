@@ -28,7 +28,8 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
-                                x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],x[21])
+                                x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
+                                x[21] )
 end
 
 # TODO -- this should be a constructor
@@ -69,11 +70,20 @@ function emptyBayesTree()
 end
 
 """
+    $SIGNATURES
+
+Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
+"""
+getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Int} = getData(cliq).frontalIDs
+
+"""
     $(TYPEDSIGNATURES)
 
-Get the frontal variable IDs `::Int` for a given Bayes (Junction) tree clique.
+Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getFrontals(cliql::Graphs.ExVertex) = getData(cliql).frontalIDs
+getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
+
+
 
 # create a new clique
 function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])
@@ -91,15 +101,15 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
 end
 
 # generate the label for particular clique -- graphviz drawing
-function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int)
+function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int, api::DataLayerAPI=localapi)
   clq = bt.cliques[clqID]
   flbl = ""
   clbl = ""
-  for fr in clq.attributes["data"].frontalIDs
-    flbl = string(flbl,localapi.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
+  for fr in getData(clq).frontalIDs
+    flbl = string(flbl, api.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
   end
-  for cond in clq.attributes["data"].conditIDs
-    clbl = string(clbl, localapi.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
+  for cond in getData(clq).conditIDs
+    clbl = string(clbl, api.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -107,18 +117,21 @@ end
 # add a conditional ID to clique
 function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Int,1})
   clq = bt.cliques[clqID]
-  clq.attributes["data"].conditIDs = union(clq.attributes["data"].conditIDs, condIDs)
+  getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
 end
 
 # Add a new frontal variable to clique
 function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
   clq = bt.cliques[clqID]
-  var = localapi.getvertex(fg, varID) # fg.v[varID]
-  # add frontal variable
-  push!(clq.attributes["data"].frontalIDs,varID)
-  # total dictionary of frontals for easy access
-  bt.frontals[var.attributes["label"]] = clqID#bt.btid
+  var = localapi.getvertex(fg, varID)
 
+  # add frontal variable
+  push!(getData(clq).frontalIDs, varID)
+
+  # total dictionary of frontals for easy access
+  bt.frontals[var.attributes["label"]] = clqID
+
+  # append to cliq conditionals
   appendConditional(bt, clqID, condIDs)
   makeCliqueLabel(fg, bt, clqID)
   nothing
@@ -141,7 +154,7 @@ function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
   for cliqPair in bt.cliques
     id = cliqPair[1]
     cliq = cliqPair[2]
-    for frtl in cliq.attributes["data"].frontalIDs
+    for frtl in getFrontals(cliq)
       if frtl == frtlID
         return cliq
       end
@@ -173,7 +186,7 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
       felbl = localapi.getvertex(fg, p[firstelim]).attributes["label"]
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
-      unFC = union(tree.cliques[CpID].attributes["data"].frontalIDs, tree.cliques[CpID].attributes["data"].conditIDs)
+      unFC = union(getCliqFrontalVarIds(tree.cliques[CpID]), getCliqSeparatorVarIds(tree.cliques[CpID]))
       if (sort(unFC) == sort(Sj))
         appendClique!(tree, CpID, fg, var)
       else
@@ -594,14 +607,6 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg::Bool=true)
   return mat
 end
 
-"""
-    $SIGNATURES
-
-Get `cliq` frontal variable ids`::Int`.
-"""
-function getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Int}
-  getData(cliq).frontalIDs
-end
 
 """
     $SIGNATURES
@@ -657,9 +662,9 @@ end
 
 Return the number of factors associated with each variable in `cliq`.
 """
-function getNumCliqFactorsForVars(cliq::Graphs.ExVertex)::Vector{Int}
-  getCliqAssocMat(cliq)
-end
+getCliqNumAssocFactorsPerVar(cliq::Graphs.ExVertex)::Vector{Int} = sum(getCliqAssocMat(cliq), dims=1)[:]
+
+
 
 """
     $SIGNATURES
@@ -680,29 +685,111 @@ function getCliqVarSingletons(cliq::Graphs.ExVertex,
   return union(upmsgids, prids)
 end
 
+"""
+    $SIGNATURES
+
+Based on a push model from child cliques that should have already completed their computation.
+"""
+function getInitUpMsgs(cliq::Graphs.ExVertex)
+  getData(cliq).incomingupinitmsgs
+end
+
+"""
+    $SIGNATURES
+
+Return the most likely  ordering for initializing factor (assuming up solve
+sequence).
+"""
 function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
+  # rules to explore dimension from one to the other?
+
+  # get all variable ids and number of associated factors
+  allids = getCliqAllVarIds(cliq)
+  nfcts = getCliqNumAssocFactorsPerVar(cliq)
 
   # get priors and singleton message variables (without partials)
-  prids = getCliqVarSingletons(cliq, getCliqAllVarIds(cliq), false)
+  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
+  # get current up msgs in the init process (now have all singletons)
+  upmsgs = getInitUpMsgs(cliq)
+  upmsgids = collect(keys(upmsgs))
+
+  # all singleton variables
+  singids = union(prids, upmsgids)
+
+  # add msg marginal prior (singletons) to number of factors
+  for msid in upmsgids
+    nfcts[msid .== allids] .+= 1
+  end
+  nfcts
+
+  # sort permutation order for increasing number of factor association
+  nfctsp = sortperm(nfcts)
+  sortedids = allids[nfctsp]
+
+  # organize the prior variables separately with asceding factor count
+  initorder = zeros(Int, 0)
+  for id in sortedids
+    if id in singids
+      push!(initorder, id)
+    end
+  end
   # in ascending order of number of factors
-
-
-  # what if not possible to initialize/any all variables in clique?
-
-  @warn "getCliqInitVarOrder not implemented yet"
-  prids = getCliqVarIdsPriors(cliq)
-  Int[]
+  for id in sortedids
+    if !(id in initorder)
+      push!(initorder, id)
+    end
+  end
+  return initorder
 end
 
-function getCliqInitVarOrderDwn(cliq::Graphs.ExVertex)
-  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
-  @warn "getCliqInitVarOrder not implemented yet"
-  Int[]
-end
+"""
+    $SIGNATURES
 
-function doCliqAutoInit!(fgl::FactorGraph, cliq::Graphs.ExVertex)
+Perform cliq initalization calculation based on current state of the tree and factor graph,
+using upward message passing logic.
+
+> NOTE WORK IN PROGRESS
+"""
+function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Nothing
+  # # structure for all up message densities computed during this initialization procedure.
+  # msg = Dict{Symbol, BallTreeDensity}()
+
+  # call doAuto
+
+
   error("doCliqAutoInit! not implmented yet")
+  # put the init result in the parent cliq.
+  prnt = getParent(tree, cliq)
+  setUpInitMsg!(prnt, cliq.index, msg)
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Determine if a clique Chapman-Kolmogorov computation can be achieved,
+alongide additional message singletons that might be available from caller.
+"""
+function calcCliqTotalSolvePossible(cliq::Graphs.ExVertex;
+                                    allids::Vector{Int}=getCliqAllVarIds(cliq),
+                                    availablemsgs::Vector{Bool}=zeros(Bool,length(allids)) )::Tuple{Bool, Vector{Bool}}
+  # return list of all initable variables in cliq (default is false)
+  initable = zeros(Bool, length(allids))
+
+  # what is the initialization order
+  initorder = getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
+
+  # check if all variables can be initialized
+  for i in 1:length(allids)
+    if allids[i] in initorder
+      initable[i] = true
+    end
+  end
+
+  # would be fully initializable if all initable are true
+  return sum(initable)==length(allids), initable
 end
 
 
@@ -714,8 +801,8 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
   # Construct associations matrix here
   # matrix has variables are columns, and messages/constraints as rows
   cols = [frtl;cond]
-  cliq.attributes["data"].inmsgIDs = inmsgIDs
-  cliq.attributes["data"].potIDs = potIDs
+  getData(cliq).inmsgIDs = inmsgIDs
+  getData(cliq).potIDs = potIDs
   cliqAssocMat = Array{Bool,2}(undef, length(potIDs), length(cols))
   cliqMsgMat = Array{Bool,2}(undef, length(inmsgIDs), length(cols))
   fill!(cliqAssocMat, false)
@@ -727,7 +814,7 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
       end
     end
     for i in 1:length(potIDs)
-      idfct = cliq.attributes["data"].potentials[i]
+      idfct = getData(cliq).potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         for vertidx in getData(getVert(fgl, idfct, api=localapi)).fncargvID
         # for vertidx in getData(getVertNode(fgl, idfct)).fncargvID
@@ -962,4 +1049,4 @@ end
 
 Return `cliq`'s parent clique.
 """
-getParent(treel::BayesTree, afrontal::Symbol) = parentCliq(treel, afrontal)
+getParent(treel::BayesTree, afrontal::Union{Symbol, Graphs.ExVertex}) = parentCliq(treel, afrontal)

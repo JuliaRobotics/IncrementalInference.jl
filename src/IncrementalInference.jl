@@ -176,6 +176,8 @@ export
 
   #development interface
   getCliqOrderUpSolve,
+  getCliqInitVarOrderUp,
+  getCliqNumAssocFactorsPerVar,
   upMsgPassingRecursive,
 
   # Inference types
@@ -213,6 +215,7 @@ export
   getCliqAssocMat,
   getCliqMsgMat,
   getCliqFrontalVarIds,
+  getFrontals,                     # duplicate
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
   getCliqVarIdsPriors,
@@ -246,7 +249,6 @@ export
   dwnMsg,
   getDwnMsgs,
 
-  getFrontals,
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
