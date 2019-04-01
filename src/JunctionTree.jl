@@ -768,8 +768,8 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
   while count > 0
     count = 0
     for vid in varorder
-      var = getVariable(fgl, vid, localapi)
-      isinit = isInitialized(var)
+      @show var = getVariable(fgl, vid, localapi)
+      @show isinit = isInitialized(var)
       doautoinit!(fgl, ExVertex[var;], api=localapi)
       isinit == isInitialized(var) ? nothing : (count += 1)
     end

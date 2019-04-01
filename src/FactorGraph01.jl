@@ -568,6 +568,9 @@ end
 
 Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
 attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
+
+Development Notes
+* TODO get faster version of isInitialized for database version
 """
 function factorCanInitFromOtherVars(fgl::FactorGraph,
                                     fct::Symbol,
@@ -580,74 +583,104 @@ function factorCanInitFromOtherVars(fgl::FactorGraph,
   # list of factors to use in init operation
   useinitfct = Symbol[]
   faillist = Symbol[]
-  for vsym2 in varsyms
-    # println("find all variables that are initialized for $vsym2")
-    xi = getVert(fgl, vsym, api=api)
+  for vsym in varsyms
+    @show xi = getVert(fgl, vsym, api=api)
+    @show isInitialized(xi), fct, sum(useinitfct .== fct) == 0, varsyms
     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-      # OR singleton  TODO get faster version of isInitialized for database version
-      # println("adding $fct to init factors list")
       push!(useinitfct, fct)
+      @show useinitfct
     end
   end
 
+  @show length(useinitfct), length(varsyms), length(faillist)
   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
           useinitfct,
-          faillist )
+          faillist   )
 end
 
 """
     $(SIGNATURES)
 
-EXPERIMENTAL: initialize destination variable nodes based on this factor in factor graph, fg, generally called
-during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+EXPERIMENTAL: initialize target variable `xi` based on connceted factors in the
+factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!`.
+
+Development Notes:
+> Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
+* TODO use DFG properly with local operations and DB update at end.
+* TODO get faster version of `isInitialized` for database version.
 """
 function doautoinit!(fgl::FactorGraph,
-                     Xi::Vector{Graphs.ExVertex};
+                     xi::Graphs.ExVertex;
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)::Nothing
-  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
-  # do double depth search for variable nodes
-  # TODO this should maybe stay localapi only...
-  for xi in Xi
-    if !isInitialized(xi)
-      vsym = Symbol(xi.label)
-      neinodes = ls(fgl, vsym)
-      if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
-        # Which of the factors can be used for initialization
-        useinitfct = Symbol[]
-        # println("Consider all pairwise factors connected to $vsym...")
-        for xifct in neinodes #potntlfcts
-          xfneivarnodes = lsf(fgl, xifct)
-          for vsym2 in xfneivarnodes
-            # println("find all variables that are initialized for $vsym2")
-            vert2 = getVert(fgl, vsym2)
-            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
-              # OR singleton  TODO get faster version of isInitialized for database version
-              # println("adding $xifct to init factors list")
-              push!(useinitfct, xifct)
-            end
-          end
-        end
-        # println("Consider all singleton (unary) factors to $vsym...")
-
-        # calculate the predicted belief over $vsym
+                     N::Int=100)::Bool
+  #
+  didinit = false
+  # don't initialize a variable more than once
+  if !isInitialized(xi)
+    # get factors attached to this variable xi
+    vsym = Symbol(xi.label)
+    neinodes = ls(fgl, vsym)
+    # proceed if has more than one neighbor OR even if single factor
+    if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+      # Which of the factors can be used for initialization
+      useinitfct = Symbol[]
+      # Consider factors connected to $vsym...
+      for xifct in neinodes
+          # if true
+        canuse, usefct, notusevars = factorCanInitFromOtherVars(fgl, xifct, vsym)
+        useinitfct = union(useinitfct, usefct)
+          # else
+          # xfneivarnodes = lsf(fgl, xifct)
+          # for vsym2 in xfneivarnodes
+          #   # println("find all variables that are initialized for $vsym2")
+          #   vert2 = getVert(fgl, vsym2)
+          #   if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
+          #     # OR singleton
+          #     # println("adding $xifct to init factors list")
+          #     push!(useinitfct, xifct)
+          #   end
+          # end
+          # end
+      end
+      # println("Consider all singleton (unary) factors to $vsym...")
+      # calculate the predicted belief over $vsym
+      if length(useinitfct) > 0
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
         setValKDE!(xi, pts)
         getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
+        didinit = true
       end
     end
   end
+  return didinit
+end
 
-  nothing
+function doautoinit!(fgl::FactorGraph,
+                     Xi::Vector{Graphs.ExVertex};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)::Bool
+  #
+  #
+  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
+  # do double depth search for variable nodes
+
+  didinit = true
+
+  # loop over all requested variables that must be initialized
+  for xi in Xi
+    didinit &= doautoinit!(fgl, xi, api=api, singles=singles, N=N)
+  end
+  return didinit
 end
 
 function doautoinit!(fgl::FactorGraph,
                      xsyms::Vector{Symbol};
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)
+                     N::Int=100)::Bool
   #
   verts = getVert.(fgl, xsyms, api=api)
   doautoinit!(fgl, verts, api=api, singles=singles, N=N)
@@ -656,7 +689,7 @@ function doautoinit!(fgl::FactorGraph,
                      xsym::Symbol;
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)
+                     N::Int=100)::Bool
   #
   doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
 end
