@@ -584,15 +584,12 @@ function factorCanInitFromOtherVars(fgl::FactorGraph,
   useinitfct = Symbol[]
   faillist = Symbol[]
   for vsym in varsyms
-    @show xi = getVert(fgl, vsym, api=api)
-    @show isInitialized(xi), fct, sum(useinitfct .== fct) == 0, varsyms
+    xi = getVert(fgl, vsym, api=api)
     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
       push!(useinitfct, fct)
-      @show useinitfct
     end
   end
 
-  @show length(useinitfct), length(varsyms), length(faillist)
   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
           useinitfct,
           faillist   )
@@ -627,21 +624,8 @@ function doautoinit!(fgl::FactorGraph,
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
-          # if true
         canuse, usefct, notusevars = factorCanInitFromOtherVars(fgl, xifct, vsym)
         useinitfct = union(useinitfct, usefct)
-          # else
-          # xfneivarnodes = lsf(fgl, xifct)
-          # for vsym2 in xfneivarnodes
-          #   # println("find all variables that are initialized for $vsym2")
-          #   vert2 = getVert(fgl, vsym2)
-          #   if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
-          #     # OR singleton
-          #     # println("adding $xifct to init factors list")
-          #     push!(useinitfct, xifct)
-          #   end
-          # end
-          # end
       end
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
