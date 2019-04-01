@@ -23,6 +23,8 @@ getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
 Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
 """
 getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
+getVariable(fgl::FactorGraph, idx::Int, api::DataLayerAPI=dlapi) = getVert(fgl, idx, api=api)
+
 
 # """
 #     $SIGNATURES
@@ -230,7 +232,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     #   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
     #   pN = resample(p,N)
     # if size(initval,2) < N && size(initval, 1) != dims
-      @info "Node value memory allocated but not initialized"
+      # @info "Node value memory allocated but not initialized"
       pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
     # else
     #   pN = AMP.manikde!(initval, softtype.manifolds)
@@ -564,26 +566,33 @@ end
 """
     $SIGNATURES
 
-Return `::Bool` on whether all other variables (besides `loovar::Symbol`)
+Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
 attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
 """
-function factorOtherVarsInit(fgl::FactorGraph,
-                             fct::Symbol,
-                             loovar::Symbol;
-                             api::DataLayerAPI=localapi  )
+function factorCanInitFromOtherVars(fgl::FactorGraph,
+                                    fct::Symbol,
+                                    loovar::Symbol;
+                                    api::DataLayerAPI=localapi  )::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
   #
+  # all variables attached to this factor
   varsyms = lsf(fgl, fct)
-  Xi = getVert.(fgl, varsyms, api=api)
 
+  # list of factors to use in init operation
   useinitfct = Symbol[]
-  for xi in Xi
-    if !isInitialized(xi)
-      vsym = Symbol(xi.label)
-      push!(useinitfct, xifct)
+  faillist = Symbol[]
+  for vsym2 in varsyms
+    # println("find all variables that are initialized for $vsym2")
+    xi = getVert(fgl, vsym, api=api)
+    if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+      # OR singleton  TODO get faster version of isInitialized for database version
+      # println("adding $fct to init factors list")
+      push!(useinitfct, fct)
     end
   end
 
-
+  return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+          useinitfct,
+          faillist )
 end
 
 """
@@ -596,7 +605,7 @@ function doautoinit!(fgl::FactorGraph,
                      Xi::Vector{Graphs.ExVertex};
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)
+                     N::Int=100)::Nothing
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
   # do double depth search for variable nodes
   # TODO this should maybe stay localapi only...

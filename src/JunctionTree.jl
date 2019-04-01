@@ -22,6 +22,7 @@ mutable struct BayesTreeNodeData
   debugDwn
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
+  upInitMsg::Dict{Int, Dict{Symbol, BallTreeDensity}}
   allmarginalized::Bool
   initialized::Bool
   upsolved::Bool
@@ -29,7 +30,7 @@ mutable struct BayesTreeNodeData
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21] )
+                                x[21], x[22] )
 end
 
 # TODO -- this should be a constructor
@@ -43,6 +44,7 @@ function emptyBTNodeData()
                     nothing, nothing,
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
+                    Dict{Int, Dict{Symbol, BallTreeDensity}}(),
                     false, false,
                     false, false  )
 end
@@ -690,8 +692,12 @@ end
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-function getInitUpMsgs(cliq::Graphs.ExVertex)
-  getData(cliq).incomingupinitmsgs
+function getCliqInitUpMsgs(cliq::Graphs.ExVertex)
+  getData(cliq).upInitMsg
+end
+
+function setCliqUpInitMsg!(cliq::Graphs.ExVertex, childid::Int, msg::Dict{})
+  getData(cliq).upInitMsg[childid] = msg
 end
 
 """
@@ -711,7 +717,7 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getInitUpMsgs(cliq)
+  upmsgs = getCliqInitUpMsgs(cliq)
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -721,7 +727,6 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   for msid in upmsgids
     nfcts[msid .== allids] .+= 1
   end
-  nfcts
 
   # sort permutation order for increasing number of factor association
   nfctsp = sortperm(nfcts)
@@ -752,45 +757,83 @@ using upward message passing logic.
 > NOTE WORK IN PROGRESS
 """
 function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Nothing
-  # # structure for all up message densities computed during this initialization procedure.
-  # msg = Dict{Symbol, BallTreeDensity}()
+  # init up msg has special procedure for incomplete messages
+  msg = Dict{Symbol, BallTreeDensity}()
 
-  # call doAuto
+  # structure for all up message densities computed during this initialization procedure.
+  varorder = getCliqInitVarOrderUp(cliq)
 
+  # do physical inits
+  count = 1
+  while count > 0
+    count = 0
+    for vid in varorder
+      var = getVariable(fgl, vid, localapi)
+      isinit = isInitialized(var)
+      doautoinit!(fgl, ExVertex[var;], api=localapi)
+      isinit == isInitialized(var) ? nothing : (count += 1)
+    end
+  end
 
-  error("doCliqAutoInit! not implmented yet")
+  # collect separator variables that are initialized
+  for vid in getCliqSeparatorVarIds(cliq)
+    var = getVariable(fgl, vid, localapi)
+    if isInitialized(var)
+      @show getKDE(var)
+      msg[Symbol(var.label)] = getKDE(var)
+    end
+  end
+
   # put the init result in the parent cliq.
   prnt = getParent(tree, cliq)
-  setUpInitMsg!(prnt, cliq.index, msg)
+  if length(prnt) > 0
+    setCliqUpInitMsg!(prnt[1], cliq.index, msg)
+  end
+
   nothing
 end
 
 
-"""
-    $SIGNATURES
 
-Determine if a clique Chapman-Kolmogorov computation can be achieved,
-alongide additional message singletons that might be available from caller.
-"""
-function calcCliqTotalSolvePossible(cliq::Graphs.ExVertex;
-                                    allids::Vector{Int}=getCliqAllVarIds(cliq),
-                                    availablemsgs::Vector{Bool}=zeros(Bool,length(allids)) )::Tuple{Bool, Vector{Bool}}
-  # return list of all initable variables in cliq (default is false)
-  initable = zeros(Bool, length(allids))
+# """
+#     $SIGNATURES
+#
+# Based on current status in factor graph, determine if initialization of requested
+# variable is possible.
+# """
+# function getCliqInitVarPossible(cliq::Graphs.ExVertex, varid::Int)
+#
+#   factorCanInitFromOtherVars(cliq, fctid)
+#
+# end
 
-  # what is the initialization order
-  initorder = getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
-
-  # check if all variables can be initialized
-  for i in 1:length(allids)
-    if allids[i] in initorder
-      initable[i] = true
-    end
-  end
-
-  # would be fully initializable if all initable are true
-  return sum(initable)==length(allids), initable
-end
+# """
+#     $SIGNATURES
+#
+# Determine if a clique Chapman-Kolmogorov computation can be achieved,
+# alongide additional message singletons that might be available from caller.
+# """
+# function calcCliqTotalSolvePossible(cliq::Graphs.ExVertex;
+#                                     allids::Vector{Int}=getCliqAllVarIds(cliq),
+#                                     availablemsgs::Vector{Bool}=zeros(Bool,length(allids)) )::Tuple{Bool, Vector{Bool}}
+#   # return list of all initable variables in cliq (default is false)
+#   initable = zeros(Bool, length(allids))
+#
+#   # what is the initialization order
+#   initorder = getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
+#
+#   # check if all variables can be initialized
+#   for i in 1:length(allids)
+#     if allids[i] in initorder
+#       if getCliqInitVarPossible(cliq, allids[i])
+#         initable[i] = true
+#       end
+#     end
+#   end
+#
+#   # would be fully initializable if all initable are true
+#   return sum(initable)==length(allids), initable
+# end
 
 
 function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
