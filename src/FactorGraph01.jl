@@ -555,6 +555,14 @@ end
 addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
+"""
+    $SIGNATURES
+
+Returns state of vertex data `.initialized` flag.
+
+Notes:
+- used by both factor graph variable and Bayes tree clique logic. 
+"""
 function isInitialized(vert::Graphs.ExVertex)::Bool
   return getData(vert).initialized
 end

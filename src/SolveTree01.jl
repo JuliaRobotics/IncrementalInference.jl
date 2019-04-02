@@ -264,7 +264,7 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
-    @show (manis[dimnum],)
+    # @show (manis[dimnum],)
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
   productpartials!(pGM, dummy, partials, manis)
@@ -671,7 +671,18 @@ end
     $(SIGNATURES)
 
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
-This function is usually called as part via remote_call for multiprocess dispatch.
+This function is usually called as via remote_call for multiprocess dispatch.
+
+Example
+```julia
+inp = ExploreTreeType(fg,tree,cliq,parent,childmsgs)
+urt = upGibbsCliqueDensity(inp)
+```
+- `fg` factor graph,
+- `tree` Bayes tree,
+- `cliq` which cliq to perform the computation on,
+- `parent` the parent clique to where the upward message will be sent,
+- `childmsgs` is for any incoming messages from child cliques.
 """
 function upGibbsCliqueDensity(inp::ExploreTreeType{T},
                               N::Int=100,
@@ -878,6 +889,23 @@ function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=
     return ddt
 end
 
+"""
+    $SIGNATURES
+
+Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
+"""
+function getCliqChildMsgsUp(treel::BayesTree, EasyMessage, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+  childmsgs = NBPMessage[]
+  for child in getChildren(treel, cliq)
+    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
+    for (key, bel) in getUpMsgs(child)
+      id = fg_.IDs[key]
+      nbpchild.p[id] = IIF.convert(EasyMessage, bel)
+    end
+    push!(childmsgs, nbpchild)
+  end
+  return childmsgs
+end
 
 
 """
@@ -886,7 +914,7 @@ end
 Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
 
 Notes
-=====
+-----
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
 function approxCliqMarginalUp!(fgl::FactorGraph,
@@ -896,11 +924,12 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
-                               drawpdf::Bool=false   )
+                               drawpdf::Bool=false  )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
   tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
 
   # copy up and down msgs that may already exists
   if onduplicate
@@ -911,15 +940,11 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   end
 
   cliq = whichCliq(tree_, csym)
-  childmsgs = NBPMessage[]
-  for child in getChildren(tree_, cliq)
-    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
-    for (key, bel) in getUpMsgs(child)
-      id = fg_.IDs[key]
-      nbpchild.p[id] = IIF.convert(EasyMessage, bel)
-    end
-    push!(childmsgs, nbpchild)
-  end
+  cliq.attributes["fillcolor"] = "red"
+  cliq.attributes["style"] = "filled"
+
+  # get incoming cliq messaged upward from child cliques
+  childmsgs = getCliqChildMsgsUp(tree_, cliq, EasyMessage)
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
   ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
@@ -1165,7 +1190,11 @@ function prepPostOrderUpPassStacks!(bt::BayesTree,
   nothing
 end
 
-# for up message passing
+"""
+    $SIGNATURES
+
+Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
+"""
 function asyncProcessPostStacks!(fgl::FactorGraph,
                                  bt::BayesTree,
                                  chldstk::Vector{Graphs.ExVertex},
@@ -1239,7 +1268,6 @@ function processPostOrderStacks!(fg::FactorGraph,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  )
   #
-
   refdict = Dict{Int,Future}()
 
   stkcnt = length(childStack)
@@ -1288,19 +1316,18 @@ end
     $SIGNATURES
 
 Perform upward message passing (multi-process) algorithm for sum-product solution from leaves to root of the tree.
+
+Notes:
+* inspired by http://www.geeksforgeeks.org/iterative-postorder-traversal/
+* this is where downward iteration process is launched from.
 """
-function upMsgPassingIterative!(startett::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
-
+function upMsgPassingIterative!(startett::ExploreTreeType{T};
+                                N::Int=200,
+                                dbg::Bool=false,
+                                drawpdf::Bool=false  ) where {T}
+  #
   childStack = getCliqOrderUpSolve(startett.bt, startett.cliq)
-  # # http://www.geeksforgeeks.org/iterative-postorder-traversal/
-  # # this is where we launch the downward iteration process from
-  # parentStack = Array{Graphs.ExVertex,1}()
-  # childStack = Array{Graphs.ExVertex,1}()
-  # #Loop while first stack is not empty
-  # push!(parentStack, startett.cliq )
-  # # Starting at the root means we have a top down view of the tree
-  # prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
-
+  # Starting at the root means we have a top down view of the tree
   processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
   nothing
 end
@@ -1330,6 +1357,13 @@ Notes
 """
 function initOnTree!(treel::BayesTree)::Nothing
   @info "Work in progress, initOnTree! just a cover plate at this stage."
+
+  # Get up message passing order
+
+  # trigger upward init on asyncs (whom each might choose to wait until certain conditions have been met)
+
+  # TODO ensure full initialization is achieved
+
   for (ids, cliq) in treel.cliques
     getData(cliq).initialized = true
   end

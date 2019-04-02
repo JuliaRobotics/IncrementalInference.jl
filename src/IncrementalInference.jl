@@ -121,6 +121,8 @@ export
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  getCliqChildMsgsUp,
+  isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
   parentCliq,

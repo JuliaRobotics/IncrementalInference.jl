@@ -749,14 +749,33 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
 end
 
 """
+   $SIGNATURES
+
+Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
+"""
+function isCliqReadyInferenceUp(cliq::Graphs.ExVertex)
+  isallinit = true
+  for vid in varorder
+    var = getVariable(fgl, vid, localapi)
+    isinit &= isInitialized(var)
+  end
+
+  # check that all child cliques have also completed full up inference.
+  for chl in getChildren(cliq)
+    isallinit &= isInitialized(chl)
+  end
+  return isallinit
+end
+
+"""
     $SIGNATURES
 
 Perform cliq initalization calculation based on current state of the tree and factor graph,
-using upward message passing logic.
+using upward message passing logic.  Return `(init'ed, caninfer)::Tuple{Bool, Bool}`
 
 > NOTE WORK IN PROGRESS
 """
-function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Nothing
+function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
   # init up msg has special procedure for incomplete messages
   msg = Dict{Symbol, BallTreeDensity}()
 
@@ -790,7 +809,14 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
     setCliqUpInitMsg!(prnt[1], cliq.index, msg)
   end
 
-  nothing
+  # cant do this here since initialization might fail while waiting for other cliques to initialize.
+  # # set clique is initialized flag
+  # # getData(cliq).initialized = true
+
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  isreadyinf = isCliqReadyInferenceUp(cliq)
+
+  return isinit, isreadyinf
 end
 
 
