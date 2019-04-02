@@ -248,7 +248,7 @@ function prepBatchTree!(fg::FactorGraph;
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
 
-  println("Bayes Net")
+  # println("Bayes Net")
   # sleep(0.1)
   #fid = open("bn.dot","w+")
   #write(fid,to_dot(fge.bn))
