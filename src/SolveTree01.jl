@@ -483,7 +483,9 @@ end
 """
     $(SIGNATURES)
 
-Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov trasit integral -- here involving separate approximate functional convolution and product operations.
+Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov
+trasit integral -- here involving separate approximate functional convolution and
+product operations.
 """
 function cliqGibbs(fg::FactorGraph,
                    cliq::Graphs.ExVertex,
@@ -946,10 +948,12 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   # get incoming cliq messaged upward from child cliques
   childmsgs = getCliqChildMsgsUp(tree_, cliq, EasyMessage)
 
+  # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
+
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
   ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
   urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="red")
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt

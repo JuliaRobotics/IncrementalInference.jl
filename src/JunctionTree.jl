@@ -771,7 +771,7 @@ end
     $SIGNATURES
 
 Perform cliq initalization calculation based on current state of the tree and factor graph,
-using upward message passing logic.  Return `(init'ed, caninfer)::Tuple{Bool, Bool}`
+using upward message passing logic.
 
 > NOTE WORK IN PROGRESS
 """
@@ -787,8 +787,8 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
   while count > 0
     count = 0
     for vid in varorder
-      @show var = getVariable(fgl, vid, localapi)
-      @show isinit = isInitialized(var)
+      var = getVariable(fgl, vid, localapi)
+      isinit = isInitialized(var)
       doautoinit!(fgl, ExVertex[var;], api=localapi)
       isinit == isInitialized(var) ? nothing : (count += 1)
     end
@@ -798,7 +798,6 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
   for vid in getCliqSeparatorVarIds(cliq)
     var = getVariable(fgl, vid, localapi)
     if isInitialized(var)
-      @show getKDE(var)
       msg[Symbol(var.label)] = getKDE(var)
     end
   end
@@ -814,9 +813,10 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
   # # getData(cliq).initialized = true
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
-  isreadyinf = isCliqReadyInferenceUp(cliq)
+  # isreadyinf = isCliqReadyInferenceUp(cliq)
 
-  return isinit, isreadyinf
+  # Return `(init'ed, caninfer)::Tuple{Bool, Bool}`
+  return nothing
 end
 
 
