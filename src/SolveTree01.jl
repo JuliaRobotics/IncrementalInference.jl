@@ -804,7 +804,7 @@ end
 
 Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
 """
-function getCliqChildMsgsUp(treel::BayesTree, EasyMessage, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
     nbpchild = NBPMessage(Dict{Int,EasyMessage}())

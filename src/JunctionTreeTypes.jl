@@ -25,7 +25,7 @@ mutable struct BayesTreeNodeData
   dwnMsg::Dict{Symbol, BallTreeDensity}
   upInitMsg::Dict{Int, Dict{Symbol, BallTreeDensity}}
   allmarginalized::Bool
-  initialized::Bool
+  initialized::Symbol
   upsolved::Bool
   downsolved::Bool
   BayesTreeNodeData() = new()
@@ -46,7 +46,7 @@ function emptyBTNodeData()
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Int, Dict{Symbol, BallTreeDensity}}(),
-                    false, false,
+                    false, :null,
                     false, false  )
 end
 

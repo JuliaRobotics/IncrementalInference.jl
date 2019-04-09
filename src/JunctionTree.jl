@@ -407,6 +407,46 @@ function getFactorsAmongVariablesOnly(fgl::FactorGraph,
   return usefcts
 end
 
+# function getCliqFactorsFromFrontals(fgl::FactorGraph,
+#                                     varlist::Vector{Symbol};
+#                                     unused::Bool=true,
+#                                     api::DataLayerAPI=localapi )
+#   #
+#   frtl = getData(cliq).frontalIDs
+#   cond = getData(cliq).conditIDs
+#   allids = [frtl;cond]
+#
+#   usefcts = Int[]
+#   for fid in frtl
+#     usefcts = Int[]
+#     for fct in api.outneighbors(fgl, getVert(fg,fid, api=api))
+# #         if getData(fct).potentialused!=tfrue
+# #             loutn = localapi.outneighbors(fg, fct)
+# #             if length(loutn)==1
+# #                 appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
+# #                 fct.attributes["data"].potentialused = true
+# #                 localapi.updatevertex!(fg, fct)
+# #             end
+# #             for sepSearch in loutn
+# #                 sslbl = Symbol(sepSearch.label)
+# #                 if (fg.IDs[sslbl] == fid)
+# #                     continue # skip the fid itself
+# #                 end
+# #                 sea = findmin(abs.(allids .- fg.IDs[sslbl]))
+# #                 if sea[1]==0.0
+# #                     appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
+# #                     fct.attributes["data"].potentialused = true
+# #                     localapi.updatevertex!(fg, fct)
+# #                 end
+# #             end
+# #         end
+#     end
+# #     getData(cliq).potentials = union(getData(cliq).potentials, usefcts)
+#   end
+#
+#   return usefcts
+# end
+
 """
     $SIGNATURES
 
@@ -444,32 +484,9 @@ function getCliquePotentials!(fg::FactorGraph,
       push!(getData(cliq).partialpotential, isPartial(fct))
     end
   # else
-    # for fid in frtl
-    #     usefcts = []
-    #     for fct in localapi.outneighbors(fg, localapi.getvertex(fg,fid))
-    #         if getData(fct).potentialused!=true
-    #             loutn = localapi.outneighbors(fg, fct)
-    #             if length(loutn)==1
-    #                 appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
-    #                 fct.attributes["data"].potentialused = true
-    #                 localapi.updatevertex!(fg, fct)
-    #             end
-    #             for sepSearch in loutn
-    #                 sslbl = Symbol(sepSearch.label)
-    #                 if (fg.IDs[sslbl] == fid)
-    #                     continue # skip the fid itself
-    #                 end
-    #                 sea = findmin(abs.(allids .- fg.IDs[sslbl]))
-    #                 if sea[1]==0.0
-    #                     appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
-    #                     fct.attributes["data"].potentialused = true
-    #                     localapi.updatevertex!(fg, fct)
-    #                 end
-    #             end
-    #         end
-    #     end
-    #     getData(cliq).potentials = union(getData(cliq).potentials, usefcts)
-    # end
+  #   frontal only factor approach
+  # end
+
   end
 
   # check if any of the factors are partial constraints
@@ -629,6 +646,10 @@ function setCliqUpInitMsg!(cliq::Graphs.ExVertex, childid::Int, msg::Dict{})
   getData(cliq).upInitMsg[childid] = msg
 end
 
+function isCliqInitialized(cliq::Graphs.ExVertex)::Bool
+  return getData(cliq).initialized in [:initialized; :upsolved]
+end
+
 """
     $SIGNATURES
 
@@ -678,23 +699,38 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
 end
 
 """
+    $SIGNATURES
+
+Return true if clique has completed the local upward direction inference procedure.
+"""
+isUpInferenceComplete(cliq::Graphs.ExVertex) = getData(cliq).upsolved
+
+function areCliqVariablesInitialized(fgl::FactorGraph, cliq::Graphs.ExVertex)
+  allids = getCliqAllVarIds(cliq)
+  isallinit = true
+  for vid in allids
+    var = getVariable(fgl, vid, localapi)
+    isallinit &= isInitialized(var)
+  end
+  isallinit
+end
+
+"""
    $SIGNATURES
 
 Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
 """
-function isCliqReadyInferenceUp(cliq::Graphs.ExVertex)
-  isallinit = true
-  for vid in varorder
-    var = getVariable(fgl, vid, localapi)
-    isinit &= isInitialized(var)
-  end
+function isCliqReadyInferenceUp(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
+  isallinit = areCliqVariablesInitialized(fgl, cliq)
 
   # check that all child cliques have also completed full up inference.
-  for chl in getChildren(cliq)
-    isallinit &= isInitialized(chl)
+  for chl in getChildren(tree, cliq)
+    @show isallinit &= isUpInferenceComplete(chl)
   end
   return isallinit
 end
+
+
 
 """
     $SIGNATURES
@@ -703,9 +739,17 @@ Perform cliq initalization calculation based on current state of the tree and fa
 using upward message passing logic.
 
 > NOTE WORK IN PROGRESS
+
+Notes
+- Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 """
-function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
+function doCliqAutoInitUp!(fgl::FactorGraph,
+                           tree::BayesTree,
+                           cliq::Graphs.ExVertex;
+                           up_solve_if_able::Bool=true  )::Symbol
+  #
   # init up msg has special procedure for incomplete messages
+  retmsg = :badinit
   msg = Dict{Symbol, BallTreeDensity}()
 
   # structure for all up message densities computed during this initialization procedure.
@@ -723,7 +767,22 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
     end
   end
 
-  # collect separator variables that are initialized
+  # next default return type
+  retmsg = :needdownmsg
+
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  isinit = areCliqVariablesInitialized(fgl, cliq)
+  # might fail while waiting for other cliques to initialize.
+  if isinit
+    retmsg = :initialized
+    if up_solve_if_able
+      csym = Symbol(getVariable(fgl,getCliqFrontalVarIds(cliq)[1],localapi).label)
+      approxCliqMarginalUp!(fgl, tree, csym, false)
+      retmsg = :solved
+    end
+  end
+
+  # construct init msg to place in parent as initialized separator variables
   for vid in getCliqSeparatorVarIds(cliq)
     var = getVariable(fgl, vid, localapi)
     if isInitialized(var)
@@ -733,19 +792,13 @@ function doCliqAutoInitUp!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVer
 
   # put the init result in the parent cliq.
   prnt = getParent(tree, cliq)
+  # not a root clique
   if length(prnt) > 0
     setCliqUpInitMsg!(prnt[1], cliq.index, msg)
   end
 
-  # cant do this here since initialization might fail while waiting for other cliques to initialize.
-  # # set clique is initialized flag
-  # # getData(cliq).initialized = true
-
-  # check if all cliq vars have been initialized so that full inference can occur on clique
-  # isreadyinf = isCliqReadyInferenceUp(cliq)
-
-  # Return `(init'ed, caninfer)::Tuple{Bool, Bool}`
-  return nothing
+  getData(cliq).initialized = retmsg
+  return retmsg
 end
 
 

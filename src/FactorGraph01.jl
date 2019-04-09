@@ -561,7 +561,7 @@ addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, 
 Returns state of vertex data `.initialized` flag.
 
 Notes:
-- used by both factor graph variable and Bayes tree clique logic. 
+- used by both factor graph variable and Bayes tree clique logic.
 """
 function isInitialized(vert::Graphs.ExVertex)::Bool
   return getData(vert).initialized
@@ -1170,43 +1170,43 @@ end
 
 # TODO -- convert to use add_vertex! instead, since edges type must be made also
 function addVerticesSubgraph(fgl::FactorGraph,
-    fgseg::FactorGraph,
-    vertdict::Dict{Int,Graphs.ExVertex})
-
-    for vert in vertdict
+                             fgseg::FactorGraph,
+                             vertdict::Dict{Int,Graphs.ExVertex}  )
+  #
+  for vert in vertdict
+    fgseg.g.vertices[vert[1]] = vert[2]
+    if haskey(fgl.g.vertices, vert[1])
       fgseg.g.vertices[vert[1]] = vert[2]
-      if haskey(fgl.v,vert[1])
-        fgseg.g.vertices[vert[1]] = vert[2]
-        fgseg.IDs[Symbol(vert[2].label)] = vert[1]
+      fgseg.IDs[Symbol(vert[2].label)] = vert[1]
 
-        # add edges going in opposite direction
-        elr = Graphs.out_edges(vert[2], fgl.g)
-        len = length(elr)
-        keeprm = trues(len)
-        j = 0
-        for i in 1:len
-          if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
-            keeprm[i] = false
-            j+=1
-          end
+      # add edges going in opposite direction
+      elr = Graphs.out_edges(vert[2], fgl.g)
+      len = length(elr)
+      keeprm = trues(len)
+      j = 0
+      for i in 1:len
+        if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
+          keeprm[i] = false
+          j+=1
         end
-        if j < len
-          elridx = elr[1].source.index
-          fgseg.g.inclist[elridx] = elr[keeprm]
-        end
-      elseif haskey(fgl.f, vert[1])
-        fgseg.f[vert[1]] = vert[2] # adding element to subgraph
-        fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
-        # get edges associated with function nodes and push edges onto incidence list
-        el = Graphs.out_edges(vert[2], fgl.g)
-        elidx = el[1].source.index
-        fgseg.g.inclist[elidx] = el # okay because treating function nodes only
-        fgseg.g.nedges += length(el)
-      else
-        error("Unknown type factor graph vertex type, something is wrong")
       end
+      if j < len
+        elridx = elr[1].source.index
+        fgseg.g.inclist[elridx] = elr[keeprm]
+      end
+    elseif haskey(fgl.fIDs, vert[1])
+      fgseg.f[vert[1]] = vert[2] # adding element to subgraph
+      fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
+      # get edges associated with function nodes and push edges onto incidence list
+      el = Graphs.out_edges(vert[2], fgl.g)
+      elidx = el[1].source.index
+      fgseg.g.inclist[elidx] = el # okay because treating function nodes only
+      fgseg.g.nedges += length(el)
+    else
+      error("Unknown type factor graph vertex type, something is wrong")
     end
-    nothing
+  end
+  nothing
 end
 
 # NOTICE, nodeIDs and factorIDs are not brough over by this method yet
@@ -1215,17 +1215,17 @@ function genSubgraph(fgl::FactorGraph,
     vertdict::Dict{Int,Graphs.ExVertex})
     # edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
 
-  fgseg = FactorGraph() # new handle for just a segment of the graph
-  fgseg.g = Graphs.inclist(Graphs.ExVertex,is_directed=false)
-
-  fgseg.v = Dict{Int,Graphs.ExVertex}()
-  fgseg.f = Dict{Int,Graphs.ExVertex}()
-  fgseg.IDs = Dict{AbstractString,Int}()
-  fgseg.fIDs = Dict{AbstractString,Int}()
-
-  # TODO -- convert to use empty constructor since Graphs.incdict now works
-  fgseg.g.vertices = Array{Graphs.ExVertex,1}(length(fgl.g.vertices))
-  fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(length(fgl.g.inclist))
+  fgseg = FactorGraph(is_directed=false) # new handle for just a segment of the graph
+  # fgseg.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  #
+  # # fgseg.v = Dict{Int,Graphs.ExVertex}()
+  # # fgseg.f = Dict{Int,Graphs.ExVertex}()
+  # fgseg.IDs = Dict{AbstractString,Int}()
+  # fgseg.fIDs = Dict{AbstractString,Int}()
+  #
+  # # TODO -- convert to use empty constructor since Graphs.incdict now works
+  # fgseg.g.vertices = Array{Graphs.ExVertex,1}(undef, length(fgl.g.vertices))
+  # fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(undef, length(fgl.g.inclist))
 
   addVerticesSubgraph(fgl, fgseg, vertdict)
 
@@ -1263,8 +1263,8 @@ end
 
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Dict{Int,Graphs.ExVertex};
-    neighbors::Int=0  )
+                           verts::Dict{Int,Graphs.ExVertex};
+                           neighbors::Int=0  )
 
     allverts = Dict{Int,Graphs.ExVertex}()
     allkeys = collect(keys(verts))
@@ -1287,8 +1287,8 @@ end
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 # Using unique index into graph data structure
 function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{Int,1};
-    neighbors::Int=0  )
+                           verts::Array{Int,1};
+                           neighbors::Int=0  )
 
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts

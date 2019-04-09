@@ -68,8 +68,8 @@ mutable struct FactorGraph
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
+  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
                       #  Dict{Int,Graphs.ExVertex}(),
                       #  Dict{Int,Graphs.ExVertex}(),
                       Dict{Symbol,Int}(),
