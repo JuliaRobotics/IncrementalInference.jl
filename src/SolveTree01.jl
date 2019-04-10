@@ -1243,6 +1243,19 @@ function upMsgPassingIterative!(startett::ExploreTreeType{T};
   processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
   nothing
 end
+# for (ids, cliq) in treel.cliques
+#   getData(cliq).initialized = :initialized
+# end
+
+function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
+  for (id, cliq) in treel.cliques
+    cliqdata = getData(cliq)
+    cliqdata.initialized = :null
+    cliqdata.upsolved = to
+    cliqdata.downsolved = to
+  end
+  nothing
+end
 
 """
     $SIGNATURES
