@@ -252,6 +252,13 @@ export
   compareField,
   compareFields,
   compareAll,
+  compareVariable,
+  compareFactor,
+  compareAllVariables,
+  compareSimilarVariables,
+  compareSubsetFactorGraph,
+  compareSimilarFactors,
+  compareFactorGraphs,
   getIdx,
   showFactor,
 
