@@ -81,10 +81,176 @@ function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[]
   return TP
 end
 
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
+  #
+  TP = true
+  TP = TP && length(Al) == length(Bl)
+  !TP ? (return false) : nothing
+  for (id, val) in Al
+    compareAll(val, Bl[id], show=show, skip=skip)
+  end
+  return true
+end
 
 function compare(p1::BallTreeDensity, p2::BallTreeDensity)::Bool
   return compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) &&
          compareAll(p1,p2, skip=[:calcStatsHandle; :bt])
+end
+
+"""
+    $SIGNATURES
+
+Compare that all fields are the same in a `::FactorGraph` variable.
+"""
+function compareVariable(A::Graphs.ExVertex, B::Graphs.ExVertex; show::Bool=true)::Bool
+  Ad = getData(A)
+  Bd = getData(B)
+  compareAll(A, B, skip=[:attributes;], show=show) &&
+  compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show) &&
+  typeof(Ad.softtype) == typeof(Bd.softtype) &&
+  compareAll(Ad.softtype, Bd.softtype, show=show)
+end
+
+"""
+    $SIGNATURES
+
+Compare that all fields are the same in a `::FactorGraph` factor.
+"""
+function compareFactor(A::Graphs.ExVertex, B::Graphs.ExVertex, show::Bool=true)
+  Ad = getData(A)
+  Bd = getData(B)
+  compareAll(A, B, show=show)
+end
+
+"""
+    $SIGNATURES
+
+Compare all variables in both `::FactorGraph`s A and B.
+
+Notes
+- A and B should all the same variables and factors.
+
+Related:
+
+`compareFactorGraphs`, `compareSimilarVariables`, `compareVariable`, `ls`
+"""
+function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true, api::DataLayerAPI=localapi)::Bool
+  # get all the variables in A or B
+  xlA = union(ls(fgA, api=localapi)...)
+  xlB = union(ls(fgB, api=localapi)...)
+  vars = union(xlA, xlB)
+
+  # compare all variables exist in both A and B
+  TP = length(xlA) == length(xlB)
+  for xla in xlA
+    TP &= xla in xlB
+  end
+  # slightly redundant, but repeating opposite direction anyway
+  for xlb in xlB
+    TP &= xlb in xlA
+  end
+
+  # compare each variable is the same in both A and B
+  for var in vars
+    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+  end
+
+  # return comparison result
+  return TP
+end
+
+"""
+    $SIGNATURES
+
+Compare similar labels between `::FactorGraph`s A and B.
+
+Notes
+- At least one variable label should exist in both A and B.
+
+Related:
+
+`compareFactorGraphs`, `compareAllVariables`, `compareSimilarFactors`, `compareVariable`, `ls`.
+"""
+function compareSimilarVariables(fgA::FactorGraph,
+                                 fgB::FactorGraph;
+                                 show::Bool=true,
+                                 api::DataLayerAPI=localapi  )::Bool
+  #
+  xlA = union(ls(fgA, api=localapi)...)
+  xlB = union(ls(fgB, api=localapi)...)
+
+  # find common variables
+  xlAB = intersect(xlA, xlB)
+  TP = length(xlAB) > 0
+
+  # compare the common set
+  for var in xlAB
+    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+  end
+
+  # return comparison result
+  return TP
+end
+
+"""
+    $SIGNATURES
+
+Determine if and compare `fgS::FactorGraph` is a subset with similar content to `fgA`.
+
+Notes
+- `fgS` ⊆ `fgA`.
+
+Related:
+
+`compareFactorGraphs`, `compareSimilarVariables`, `compareSimilarFactors`, `ls`.
+"""
+function compareSubsetFactorGraph(fgS::FactorGraph, fgA::FactorGraph; api::DataLayerAPI=localapi)
+  error("not implemented yet")
+  return false
+end
+
+"""
+    $SIGNATURES
+
+Compare similar factors between `::FactorGraph`s A and B.
+
+Related:
+
+`compareFactorGraphs`, `compareSimilarVariables`, `compareAllVariables`, `ls`.
+"""
+function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=localapi)
+  xlA = lsf(fgA, api=localapi)
+  xlB = lsf(fgB, api=localapi)
+
+  # find common variables
+  xlAB = intersect(xlA, xlB)
+  TP = length(xlAB) > 0
+
+  # compare the common set
+  for var in xlAB
+    TP &= compareFactor(getFactor(fgA, var, api=api), getFactor(fgB, var, api=api))
+  end
+
+  # return comparison result
+  return TP
+end
+
+"""
+    $SIGNATURES
+
+Compare and return if two factor graph objects are the same, by comparing similar variables and factors.
+
+Related:
+
+`compareSimilarVariables`, `compareSimilarFactors`, `compareAllVariables`, `ls`.
+"""
+function compareFactorGraphs(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=api)
+  TP = compareSimilarVariables(fgA, fgB, api=api)
+  TP &= compareSimilarFactors(fgA, fgB, api=api)
+  return TP
 end
 
 """
@@ -463,7 +629,7 @@ showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getF
 """
    $SIGNATURES
 
-Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`. 
+Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
 """
 function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   vert = getVert(fg, vsym, api=api)
