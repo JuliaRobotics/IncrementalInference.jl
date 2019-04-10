@@ -1,4 +1,3 @@
-using Revise
 using IncrementalInference
 using Test
 
