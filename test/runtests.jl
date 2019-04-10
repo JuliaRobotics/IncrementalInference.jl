@@ -8,6 +8,8 @@ println("[TEST] out of module evalPotential...")
 include("TestModuleFunctions.jl")
 println("Success")
 
+include("testCompareVariablesFactors.jl")
+
 print("[TEST] Ensure memory return is working properly...")
 include("typeReturnMemRef.jl")
 println("Success")
