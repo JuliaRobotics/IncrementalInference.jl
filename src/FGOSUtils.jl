@@ -40,6 +40,14 @@ function compareFields(Al::T,
   return Al == Bl
 end
 
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Array}
+  #
+  return Al == Bl
+end
+
 """
     $(SIGNATURES)
 
@@ -55,9 +63,9 @@ function compareAll(Al::T,
   TP = true
   TP = TP && length(Al) == length(Bl)
   for i in 1:length(Al)
-    compareAll(Al[i], Bl[i], show=show, skip=skip)
+    TP &= compareAll(Al[i], Bl[i], show=show, skip=skip)
   end
-  return true
+  return TP
 end
 
 function compareAll(Al::T,
@@ -84,12 +92,15 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict{String}}
   #
   TP = true
   TP = TP && length(Al) == length(Bl)
   !TP ? (return false) : nothing
   for (id, val) in Al
+    if Symbol(id) in skip
+      continue
+    end
     compareAll(val, Bl[id], show=show, skip=skip)
   end
   return true
@@ -105,7 +116,9 @@ end
 
 Compare that all fields are the same in a `::FactorGraph` variable.
 """
-function compareVariable(A::Graphs.ExVertex, B::Graphs.ExVertex; show::Bool=true)::Bool
+function compareVariable(A::Graphs.ExVertex,
+                         B::Graphs.ExVertex;
+                         show::Bool=true)::Bool
   Ad = getData(A)
   Bd = getData(B)
   compareAll(A, B, skip=[:attributes;], show=show) &&
@@ -114,16 +127,52 @@ function compareVariable(A::Graphs.ExVertex, B::Graphs.ExVertex; show::Bool=true
   compareAll(Ad.softtype, Bd.softtype, show=show)
 end
 
+function compareAllSpecial(A::T1,
+                           B::T2;
+                           skip=Symbol[],
+                           show::Bool=true) where {T1 <: GenericFunctionNodeData, T2 <: GenericFunctionNodeData}
+  if T1 != T2
+    return false
+  else
+    return compareAll(A, B, skip=skip, show=show)
+  end
+end
+
+function compareAllSpecial(A::T1, B::T2;
+                    skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
+  #
+  if T1 != T2
+    return false
+  else
+    return compareAll(A, B, skip=skip, show=show)
+  end
+end
+
 """
     $SIGNATURES
 
 Compare that all fields are the same in a `::FactorGraph` factor.
 """
-function compareFactor(A::Graphs.ExVertex, B::Graphs.ExVertex, show::Bool=true)
-  Ad = getData(A)
-  Bd = getData(B)
-  compareAll(A, B, show=show)
+function compareFactor(A::Graphs.ExVertex,
+                       B::Graphs.ExVertex;
+                       show::Bool=true,
+                       skipsamples::Bool=true )
+  #
+  TP =  compareAll(A, B, skip=[:attributes;:data], show=show)
+  TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
+  TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;], show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement], show=show)
+  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
+
+  return TP
 end
+  # Ad = getData(A)
+  # Bd = getData(B)
+  # TP =  compareAll(A, B, skip=[:attributes;:data], show=show)
+  # TP &= compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
+  # TP &= compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;], show=show)
+  # TP &= compareAll(getData(A).fnc.cpt, getData(B).fnc.cpt, show=show)
+
 
 """
     $SIGNATURES

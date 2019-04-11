@@ -252,6 +252,7 @@ export
   compareField,
   compareFields,
   compareAll,
+  compareAllSpecial,
   compareVariable,
   compareFactor,
   compareAllVariables,
