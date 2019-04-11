@@ -68,4 +68,11 @@ end
 
 
 
+compareSimilarFactors(fg, fg)
+
+
+
+
+
+
 #

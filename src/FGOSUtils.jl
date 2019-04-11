@@ -298,7 +298,7 @@ function compareSimilarFactors(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP = TP && compareFactor(getFactor(fgA, var, api), getFactor(fgB, var, api), skipsamples=skipsamples, skipcompute=skipcompute)
+    TP = TP && compareFactor(getVert(fgA, var, nt=:fct, api=api), getVert(fgB, var, nt=:fct, api=api), skipsamples=skipsamples, skipcompute=skipcompute)
   end
 
   # return comparison result
