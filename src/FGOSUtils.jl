@@ -139,8 +139,8 @@ Related:
 """
 function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true, api::DataLayerAPI=localapi)::Bool
   # get all the variables in A or B
-  xlA = union(ls(fgA, api=localapi)...)
-  xlB = union(ls(fgB, api=localapi)...)
+  xlA = union(ls(fgA)...)
+  xlB = union(ls(fgB)...)
   vars = union(xlA, xlB)
 
   # compare all variables exist in both A and B
@@ -155,7 +155,7 @@ function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true
 
   # compare each variable is the same in both A and B
   for var in vars
-    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api))
   end
 
   # return comparison result
@@ -179,8 +179,8 @@ function compareSimilarVariables(fgA::FactorGraph,
                                  show::Bool=true,
                                  api::DataLayerAPI=localapi  )::Bool
   #
-  xlA = union(ls(fgA, api=localapi)...)
-  xlB = union(ls(fgB, api=localapi)...)
+  xlA = union(ls(fgA)...)
+  xlB = union(ls(fgB)...)
 
   # find common variables
   xlAB = intersect(xlA, xlB)
@@ -188,7 +188,7 @@ function compareSimilarVariables(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api))
   end
 
   # return comparison result
@@ -221,9 +221,9 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareAllVariables`, `ls`.
 """
-function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=localapi)
-  xlA = lsf(fgA, api=localapi)
-  xlB = lsf(fgB, api=localapi)
+function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph; api::DataLayerAPI=localapi)
+  xlA = lsf(fgA)
+  xlB = lsf(fgB)
 
   # find common variables
   xlAB = intersect(xlA, xlB)
@@ -231,7 +231,7 @@ function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph, api::DataLaye
 
   # compare the common set
   for var in xlAB
-    TP &= compareFactor(getFactor(fgA, var, api=api), getFactor(fgB, var, api=api))
+    TP &= compareFactor(getFactor(fgA, var, api), getFactor(fgB, var, api))
   end
 
   # return comparison result
@@ -247,7 +247,7 @@ Related:
 
 `compareSimilarVariables`, `compareSimilarFactors`, `compareAllVariables`, `ls`.
 """
-function compareFactorGraphs(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=api)
+function compareFactorGraphs(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=localapi)
   TP = compareSimilarVariables(fgA, fgB, api=api)
   TP &= compareSimilarFactors(fgA, fgB, api=api)
   return TP
@@ -418,6 +418,8 @@ function ls(fgl::FactorGraph; key1='x', key2='l')
   return xx, ll #return poses, landmarks
 end
 
+lsf(fgl::FactorGraph) = collect(keys(fgl.fIDs))
+
 """
     $(SIGNATURES)
 
@@ -442,6 +444,7 @@ function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   end
   return lsa
 end
+
 
 """
     $(SIGNATURES)

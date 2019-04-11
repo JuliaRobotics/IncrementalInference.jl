@@ -1,3 +1,5 @@
+using Revise
+
 using IncrementalInference
 using Test
 
@@ -20,11 +22,23 @@ v2 = addVariable!(fg, :x1, ContinuousScalar)
 
 f2 = addFactor!(fg, [:x0;:x1], LinearConditional(Normal(2.0, 0.1)))
 
-
 @test !compareVariable(v1,v2)
 
 @test !compareFactor(f1,f2)
 
+@test compareAllVariables(fg, fg)
+
+fg2 = deepcopy(fg)
+@test compareAllVariables(fg, fg2)
+
+@test compareSimilarVariables(fg, fg)
+@test compareSimilarVariables(fg, fg2)
+
+@test compareSimilarFactors(fg, fg)
+@test compareSimilarFactors(fg, fg2)
+
+@test compareFactorGraphs(fg, fg)
+@test compareFactorGraphs(fg, fg2)
 
 end
 
