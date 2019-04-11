@@ -1,4 +1,4 @@
-using Revise
+# using Revise
 
 using IncrementalInference
 using Test
@@ -38,9 +38,31 @@ fg2 = deepcopy(fg)
 @test compareFactorGraphs(fg, fg)
 @test compareFactorGraphs(fg, fg2)
 
+batchSolve!(fg)
+
+x1a = getVert(fg, :x0)
+x1b = getVert(fg2, :x0)
+
+@test !compareVariable(x1a, x1b, skipsamples=false)
+
+@test !compareSimilarVariables(fg, fg2, skipsamples=false)
+@test !compareSimilarFactors(fg, fg2, skipsamples=false)
+@test compareFactorGraphs(fg, fg)
+@test !compareFactorGraphs(fg, fg2, skipsamples=false)
+
+ensureAllInitialized!(fg2)
+
+@test compareSimilarVariables(fg, fg2, skipsamples=true)
+
+tree = wipeBuildNewTree!(fg2)
+
+@test compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=true)
+
+@test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
+
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true)
+
 end
-
-
 
 
 

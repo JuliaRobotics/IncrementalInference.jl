@@ -118,13 +118,18 @@ Compare that all fields are the same in a `::FactorGraph` variable.
 """
 function compareVariable(A::Graphs.ExVertex,
                          B::Graphs.ExVertex;
-                         show::Bool=true)::Bool
+                         show::Bool=true,
+                         skipsamples::Bool=true  )::Bool
   Ad = getData(A)
   Bd = getData(B)
-  compareAll(A, B, skip=[:attributes;], show=show) &&
-  compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show) &&
-  typeof(Ad.softtype) == typeof(Bd.softtype) &&
-  compareAll(Ad.softtype, Bd.softtype, show=show)
+
+  TP = compareAll(A, B, skip=[:attributes;], show=show)
+  TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
+  varskiplist = skipsamples ? [:val; :bw] : Symbol[]
+  @show varskiplist = union(varskiplist, [:softtype;])
+  TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
+  TP = TP && typeof(Ad.softtype) == typeof(Bd.softtype)
+  TP = TP && compareAll(Ad.softtype, Bd.softtype, show=show)
 end
 
 function compareAllSpecial(A::T1,
@@ -156,13 +161,16 @@ Compare that all fields are the same in a `::FactorGraph` factor.
 function compareFactor(A::Graphs.ExVertex,
                        B::Graphs.ExVertex;
                        show::Bool=true,
-                       skipsamples::Bool=true )
+                       skipsamples::Bool=true,
+                       skipcompute::Bool=true  )
   #
   TP =  compareAll(A, B, skip=[:attributes;:data], show=show)
   TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
   TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;], show=show)
-  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement], show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx], show=show)
   TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show))
 
   return TP
 end
@@ -186,7 +194,11 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareVariable`, `ls`
 """
-function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true, api::DataLayerAPI=localapi)::Bool
+function compareAllVariables(fgA::FactorGraph,
+                             fgB::FactorGraph;
+                             show::Bool=true,
+                             api::DataLayerAPI=localapi,
+                             skipsamples::Bool=true )::Bool
   # get all the variables in A or B
   xlA = union(ls(fgA)...)
   xlB = union(ls(fgB)...)
@@ -204,7 +216,7 @@ function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true
 
   # compare each variable is the same in both A and B
   for var in vars
-    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api))
+    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -226,7 +238,8 @@ Related:
 function compareSimilarVariables(fgA::FactorGraph,
                                  fgB::FactorGraph;
                                  show::Bool=true,
-                                 api::DataLayerAPI=localapi  )::Bool
+                                 api::DataLayerAPI=localapi,
+                                 skipsamples::Bool=true )::Bool
   #
   xlA = union(ls(fgA)...)
   xlB = union(ls(fgB)...)
@@ -237,7 +250,7 @@ function compareSimilarVariables(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api))
+    TP = TP && compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -270,7 +283,12 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareAllVariables`, `ls`.
 """
-function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph; api::DataLayerAPI=localapi)
+function compareSimilarFactors(fgA::FactorGraph,
+                               fgB::FactorGraph;
+                               api::DataLayerAPI=localapi,
+                               skipsamples::Bool=true,
+                               skipcompute::Bool=true  )
+  #
   xlA = lsf(fgA)
   xlB = lsf(fgB)
 
@@ -280,7 +298,7 @@ function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph; api::DataLaye
 
   # compare the common set
   for var in xlAB
-    TP &= compareFactor(getFactor(fgA, var, api), getFactor(fgB, var, api))
+    TP = TP && compareFactor(getFactor(fgA, var, api), getFactor(fgB, var, api), skipsamples=skipsamples, skipcompute=skipcompute)
   end
 
   # return comparison result
@@ -296,9 +314,14 @@ Related:
 
 `compareSimilarVariables`, `compareSimilarFactors`, `compareAllVariables`, `ls`.
 """
-function compareFactorGraphs(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=localapi)
-  TP = compareSimilarVariables(fgA, fgB, api=api)
-  TP &= compareSimilarFactors(fgA, fgB, api=api)
+function compareFactorGraphs(fgA::FactorGraph,
+                             fgB::FactorGraph;
+                             api::DataLayerAPI=localapi,
+                             skipsamples::Bool=true,
+                             skipcompute::Bool=true  )
+  #
+  TP = compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples)
+  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute )
   return TP
 end
 
