@@ -263,9 +263,10 @@ export
   # some utils
   compareField,
   compareFields,
+  compareAll,
+  compareAllSpecial,
   compareVariable,
   compareFactor,
-  compareVariable,
   compareAllVariables,
   compareSimilarVariables,
   compareSubsetFactorGraph,

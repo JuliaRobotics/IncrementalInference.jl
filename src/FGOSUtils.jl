@@ -40,6 +40,14 @@ function compareFields(Al::T,
   return Al == Bl
 end
 
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Array}
+  #
+  return Al == Bl
+end
+
 """
     $(SIGNATURES)
 
@@ -55,9 +63,9 @@ function compareAll(Al::T,
   TP = true
   TP = TP && length(Al) == length(Bl)
   for i in 1:length(Al)
-    compareAll(Al[i], Bl[i], show=show, skip=skip)
+    TP &= compareAll(Al[i], Bl[i], show=show, skip=skip)
   end
-  return true
+  return TP
 end
 
 function compareAll(Al::T,
@@ -84,12 +92,15 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict{String}}
   #
   TP = true
   TP = TP && length(Al) == length(Bl)
   !TP ? (return false) : nothing
   for (id, val) in Al
+    if Symbol(id) in skip
+      continue
+    end
     compareAll(val, Bl[id], show=show, skip=skip)
   end
   return true
@@ -105,13 +116,41 @@ end
 
 Compare that all fields are the same in a `::FactorGraph` variable.
 """
-function compareVariable(A::Graphs.ExVertex, B::Graphs.ExVertex; show::Bool=true)::Bool
+function compareVariable(A::Graphs.ExVertex,
+                         B::Graphs.ExVertex;
+                         show::Bool=true,
+                         skipsamples::Bool=true  )::Bool
   Ad = getData(A)
   Bd = getData(B)
-  compareAll(A, B, skip=[:attributes;], show=show) &&
-  compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show) &&
-  typeof(Ad.softtype) == typeof(Bd.softtype) &&
-  compareAll(Ad.softtype, Bd.softtype, show=show)
+
+  TP = compareAll(A, B, skip=[:attributes;], show=show)
+  TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
+  varskiplist = skipsamples ? [:val; :bw] : Symbol[]
+  varskiplist = union(varskiplist, [:softtype;])
+  TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
+  TP = TP && typeof(Ad.softtype) == typeof(Bd.softtype)
+  TP = TP && compareAll(Ad.softtype, Bd.softtype, show=show)
+end
+
+function compareAllSpecial(A::T1,
+                           B::T2;
+                           skip=Symbol[],
+                           show::Bool=true) where {T1 <: GenericFunctionNodeData, T2 <: GenericFunctionNodeData}
+  if T1 != T2
+    return false
+  else
+    return compareAll(A, B, skip=skip, show=show)
+  end
+end
+
+function compareAllSpecial(A::T1, B::T2;
+                    skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
+  #
+  if T1 != T2
+    return false
+  else
+    return compareAll(A, B, skip=skip, show=show)
+  end
 end
 
 """
@@ -119,11 +158,29 @@ end
 
 Compare that all fields are the same in a `::FactorGraph` factor.
 """
-function compareFactor(A::Graphs.ExVertex, B::Graphs.ExVertex, show::Bool=true)
-  Ad = getData(A)
-  Bd = getData(B)
-  compareAll(A, B, show=show)
+function compareFactor(A::Graphs.ExVertex,
+                       B::Graphs.ExVertex;
+                       show::Bool=true,
+                       skipsamples::Bool=true,
+                       skipcompute::Bool=true  )
+  #
+  TP =  compareAll(A, B, skip=[:attributes;:data], show=show)
+  TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
+  TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;], show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx], show=show)
+  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show))
+
+  return TP
 end
+  # Ad = getData(A)
+  # Bd = getData(B)
+  # TP =  compareAll(A, B, skip=[:attributes;:data], show=show)
+  # TP &= compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
+  # TP &= compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;], show=show)
+  # TP &= compareAll(getData(A).fnc.cpt, getData(B).fnc.cpt, show=show)
+
 
 """
     $SIGNATURES
@@ -137,10 +194,14 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareVariable`, `ls`
 """
-function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true, api::DataLayerAPI=localapi)::Bool
+function compareAllVariables(fgA::FactorGraph,
+                             fgB::FactorGraph;
+                             show::Bool=true,
+                             api::DataLayerAPI=localapi,
+                             skipsamples::Bool=true )::Bool
   # get all the variables in A or B
-  xlA = union(ls(fgA, api=localapi)...)
-  xlB = union(ls(fgB, api=localapi)...)
+  xlA = union(ls(fgA)...)
+  xlB = union(ls(fgB)...)
   vars = union(xlA, xlB)
 
   # compare all variables exist in both A and B
@@ -155,7 +216,7 @@ function compareAllVariables(fgA::FactorGraph, fgB::FactorGraph; show::Bool=true
 
   # compare each variable is the same in both A and B
   for var in vars
-    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+    TP = TP && compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -177,10 +238,11 @@ Related:
 function compareSimilarVariables(fgA::FactorGraph,
                                  fgB::FactorGraph;
                                  show::Bool=true,
-                                 api::DataLayerAPI=localapi  )::Bool
+                                 api::DataLayerAPI=localapi,
+                                 skipsamples::Bool=true )::Bool
   #
-  xlA = union(ls(fgA, api=localapi)...)
-  xlB = union(ls(fgB, api=localapi)...)
+  xlA = union(ls(fgA)...)
+  xlB = union(ls(fgB)...)
 
   # find common variables
   xlAB = intersect(xlA, xlB)
@@ -188,7 +250,7 @@ function compareSimilarVariables(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP &= compareVariable(getVariable(fgA, var, api=api), getVariable(fgB, var, api=api))
+    TP = TP && compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -221,9 +283,14 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareAllVariables`, `ls`.
 """
-function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=localapi)
-  xlA = lsf(fgA, api=localapi)
-  xlB = lsf(fgB, api=localapi)
+function compareSimilarFactors(fgA::FactorGraph,
+                               fgB::FactorGraph;
+                               api::DataLayerAPI=localapi,
+                               skipsamples::Bool=true,
+                               skipcompute::Bool=true  )
+  #
+  xlA = lsf(fgA)
+  xlB = lsf(fgB)
 
   # find common variables
   xlAB = intersect(xlA, xlB)
@@ -231,7 +298,7 @@ function compareSimilarFactors(fgA::FactorGraph, fgB::FactorGraph, api::DataLaye
 
   # compare the common set
   for var in xlAB
-    TP &= compareFactor(getFactor(fgA, var, api=api), getFactor(fgB, var, api=api))
+    TP = TP && compareFactor(getFactor(fgA, var, api), getFactor(fgB, var, api), skipsamples=skipsamples, skipcompute=skipcompute)
   end
 
   # return comparison result
@@ -247,9 +314,14 @@ Related:
 
 `compareSimilarVariables`, `compareSimilarFactors`, `compareAllVariables`, `ls`.
 """
-function compareFactorGraphs(fgA::FactorGraph, fgB::FactorGraph, api::DataLayerAPI=api)
-  TP = compareSimilarVariables(fgA, fgB, api=api)
-  TP &= compareSimilarFactors(fgA, fgB, api=api)
+function compareFactorGraphs(fgA::FactorGraph,
+                             fgB::FactorGraph;
+                             api::DataLayerAPI=localapi,
+                             skipsamples::Bool=true,
+                             skipcompute::Bool=true  )
+  #
+  TP = compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples)
+  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute )
   return TP
 end
 
@@ -421,6 +493,8 @@ function ls(fgl::FactorGraph; key1='x', key2='l')
   return xx, ll #return poses, landmarks
 end
 
+lsf(fgl::FactorGraph) = collect(keys(fgl.fIDs))
+
 """
     $(SIGNATURES)
 
@@ -446,6 +520,17 @@ function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   return lsa
 end
 
+
+"""
+    $(SIGNATURES)
+
+List factors in a factor graph.
+
+# Examples
+```julia-repl
+lsf(fg)
+```
+"""
 lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
 function lsf(fgl::FactorGraph,
