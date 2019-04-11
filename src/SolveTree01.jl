@@ -1247,6 +1247,11 @@ end
 #   getData(cliq).initialized = :initialized
 # end
 
+"""
+    $SIGNATURES
+
+Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
+"""
 function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
   for (id, cliq) in treel.cliques
     cliqdata = getData(cliq)
@@ -1257,20 +1262,6 @@ function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
   nothing
 end
 
-"""
-    $SIGNATURES
-
-Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
-"""
-function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
-  for (id, cliq) in treel.cliques
-    cliqdata = getData(cliq)
-    cliqdata.initialized = to
-    cliqdata.upsolved = to
-    cliqdata.downsolved = to
-  end
-  nothing
-end
 
 """
     $SIGNATURES
