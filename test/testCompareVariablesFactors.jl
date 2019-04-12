@@ -68,10 +68,6 @@ end
 
 
 
-compareSimilarFactors(fg, fg)
-
-
-
 
 
 
