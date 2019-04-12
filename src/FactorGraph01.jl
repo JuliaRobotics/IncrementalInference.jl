@@ -16,21 +16,6 @@ Get the `::Symbol` name for a node with `id::Int`.
 """
 getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
 
-
-"""
-    $SIGNATURES
-
-Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
-"""
-getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
-
-"""
-    $SIGNATURES
-
-Return reference to a factor in `::FactorGraph` identified by `::Symbol`.
-"""
-getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api, nt=:fct)
-
 """
     $SIGNATURES
 

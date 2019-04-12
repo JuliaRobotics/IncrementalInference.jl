@@ -40,29 +40,70 @@ function addVerticesSubgraph(fgl::FactorGraph,
     nothing
 end
 
+"""
+    $SIGNATURES
+
+Construct a new factor graph object as a subgraph of `fgl::FactorGraph` based on the
+variable labels `syms::Vector{Symbols}`.
+"""
+function buildSubgraphFromLabels(fgl::FactorGraph, syms::Vector{Symbol})
+  fgseg = initfg(sessionname=fgl.sessionname, robotname=fgl.robotname)
+
+  for sym in syms
+    vert = getVert(fgl, sym, api=localapi)
+    st = getSofttype(vert)
+    addVariable!(fgseg, sym, st, uid=vert.index)
+    manualinit!(fgseg, sym, getKDE(vert))
+  end
+
+  for sym in syms
+    for fct in ls(fgl, sym)
+      if !hasFactor(fgseg, fct)
+        # check all variables are in desired variable set
+        possibleVars = lsf(fgl, fct)
+        ivars = intersect(possibleVars, syms)
+        if length(ivars) == length(possibleVars)
+          fvert = getVert(fgl, fct, api=localapi, nt=:fct)
+          ufc = getFactor(fvert)
+          addFactor!(fgseg, possibleVars, ufc, autoinit=false, uid=fvert.index)
+        end
+      end
+    end
+  end
+
+  return fgseg
+end
+
+
+
 # NOTICE, nodeIDs and factorIDs are not brough over by this method yet
 # must sort out for incremental updates
 function genSubgraph(fgl::FactorGraph,
-                    vertdict::Dict{Int,Graphs.ExVertex})
-    # edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
+                     vertdict::Dict{Int,Graphs.ExVertex})
+  # edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
+  #
 
-  fgseg = FactorGraph() # new handle for just a segment of the graph
-  fgseg.g = Graphs.inclist(Graphs.ExVertex,is_directed=false)
+  fgseg = initfg(sessionname=fgl.sessionname, robotname=fgl.robotname)
 
-  fgseg.v = Dict{Int,Graphs.ExVertex}()
-  fgseg.f = Dict{Int,Graphs.ExVertex}()
-  fgseg.IDs = Dict{AbstractString,Int}()
-  fgseg.fIDs = Dict{AbstractString,Int}()
+  error("genSubgraph() is obsolete")
 
-  # TODO -- convert to use empty constructor since Graphs.incdict now works
-  fgseg.g.vertices = Array{Graphs.ExVertex,1}(length(fgl.g.vertices))
-  fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(length(fgl.g.inclist))
-
-  addVerticesSubgraph(fgl, fgseg, vertdict)
-
-  fgseg.id = fgl.id
-  fgseg.bnid = fgl.bnid
-  fgseg.dimID = fgl.dimID
+  # fgseg = FactorGraph() # new handle for just a segment of the graph
+  # fgseg.g = Graphs.inclist(Graphs.ExVertex, is_directed=false)
+  #
+  # fgseg.v = Dict{Int,Graphs.ExVertex}()
+  # fgseg.f = Dict{Int,Graphs.ExVertex}()
+  # fgseg.IDs = Dict{AbstractString,Int}()
+  # fgseg.fIDs = Dict{AbstractString,Int}()
+  #
+  # # TODO -- convert to use empty constructor since Graphs.incdict now works
+  # fgseg.g.vertices = Array{Graphs.ExVertex,1}(length(fgl.g.vertices))
+  # fgseg.g.inclist = Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}(length(fgl.g.inclist))
+  #
+  # addVerticesSubgraph(fgl, fgseg, vertdict)
+  #
+  # fgseg.id = fgl.id
+  # fgseg.bnid = fgl.bnid
+  # fgseg.dimID = fgl.dimID
 
   return fgseg
 end
@@ -115,13 +156,6 @@ function subGraphFromVerts(fgl::FactorGraph,
   return genSubgraph(fgl, allverts)
 end
 
-function subgraphFromVerts(fgl::FactorGraph,
-                           verts::Dict{Int,Graphs.ExVertex};
-                           neighbors::Int=0  )
-  #
-  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
-  subGraphFromVerts(fgl, verts, neighbors=neighbors)
-end
 
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 # Using unique index into graph data structure
@@ -143,10 +177,10 @@ end
 Explore all shortest paths combinations in verts, add neighbors and reference
 subgraph using unique index into graph data structure.
 """
-function subgraphFromVerts(fgl::FactorGraph,
-                           verts::Union{Vector{String},Vector{Symbol}};
-                           neighbors::Int=0  )
-
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
+  #
   vertdict = Dict{Int,Graphs.ExVertex}()
   for vert in verts
     id = -1
@@ -160,4 +194,13 @@ function subgraphFromVerts(fgl::FactorGraph,
   end
 
   return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+
+function subgraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,Graphs.ExVertex}}}
+  #
+  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
+  subGraphFromVerts(fgl, verts, neighbors=neighbors)
 end
