@@ -1280,9 +1280,9 @@ function initOnTree!(treel::BayesTree)::Nothing
 
   # TODO ensure full initialization is achieved
 
-  for (ids, cliq) in treel.cliques
-    getData(cliq).initialized = true
-  end
+  # for (ids, cliq) in treel.cliques
+  #   getData(cliq).initialized = :initialized
+  # end
   nothing
 end
 
