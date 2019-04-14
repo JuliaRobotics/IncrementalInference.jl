@@ -169,6 +169,8 @@ end
 
 """
 $(TYPEDEF)
+
+Serialization type for `LinearConditional` binary factor.
 """
 mutable struct PackedLinearConditional <: PackedInferenceType
   Z::String
