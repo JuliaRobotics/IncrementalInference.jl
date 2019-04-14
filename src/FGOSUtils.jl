@@ -77,6 +77,8 @@ function compareAll(Al::T,
 end
 
 function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
+  @show Al
+  @show Bl
   TP = compareFields(Al, Bl, show=show, skip=skip)
   for field in fieldnames(T)
     if field in skip
@@ -92,7 +94,7 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict{String}}
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
   #
   TP = true
   TP = TP && length(Al) == length(Bl)
@@ -287,7 +289,8 @@ function compareSimilarFactors(fgA::FactorGraph,
                                fgB::FactorGraph;
                                api::DataLayerAPI=localapi,
                                skipsamples::Bool=true,
-                               skipcompute::Bool=true  )
+                               skipcompute::Bool=true,
+                               show::Bool=true  )
   #
   xlA = lsf(fgA)
   xlB = lsf(fgB)
@@ -298,7 +301,7 @@ function compareSimilarFactors(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP = TP && compareFactor(getVert(fgA, var, nt=:fct, api=api), getVert(fgB, var, nt=:fct, api=api), skipsamples=skipsamples, skipcompute=skipcompute)
+    TP = TP && compareFactor(getVert(fgA, var, nt=:fct, api=api), getVert(fgB, var, nt=:fct, api=api), skipsamples=skipsamples, skipcompute=skipcompute, show=show)
   end
 
   # return comparison result
@@ -323,14 +326,15 @@ function compareFactorGraphs(fgA::FactorGraph,
                              api::DataLayerAPI=localapi,
                              skipsamples::Bool=true,
                              skipcompute::Bool=true,
-                             skip::Vector{Symbol}=Symbol[]  )
+                             skip::Vector{Symbol}=Symbol[],
+                             show::Bool=true  )
   #
   skiplist = Symbol[:g;:bn;:IDs;:fIDs;:id;:nodeIDs;:factorIDs;:fifo]
   skiplist = union(skiplist, skip)
 
   TP = compareAll(fgA, fgB, skip=skiplist, show=show)
-  TP = TP && compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples)
-  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute )
+  TP = TP && compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples, show=show )
+  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute, show=show )
   return TP
 end
 
