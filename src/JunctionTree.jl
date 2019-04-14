@@ -709,7 +709,7 @@ function areCliqVariablesInitialized(fgl::FactorGraph, cliq::Graphs.ExVertex)
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
-    var = getVariable(fgl, vid, localapi)
+    var = getVert(fgl, vid, api=localapi)
     isallinit &= isInitialized(var)
   end
   isallinit
@@ -760,7 +760,7 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
   while count > 0
     count = 0
     for vid in varorder
-      var = getVariable(fgl, vid, localapi)
+      var = getVert(fgl, vid, api=localapi)
       isinit = isInitialized(var)
       doautoinit!(fgl, ExVertex[var;], api=localapi)
       isinit == isInitialized(var) ? nothing : (count += 1)
@@ -776,7 +776,7 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
   if isinit
     retmsg = :initialized
     if up_solve_if_able
-      csym = Symbol(getVariable(fgl,getCliqFrontalVarIds(cliq)[1],localapi).label)
+      csym = Symbol(getVert(fgl,getCliqFrontalVarIds(cliq)[1],api=localapi).label)
       approxCliqMarginalUp!(fgl, tree, csym, false)
       retmsg = :solved
     end
@@ -784,7 +784,7 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
 
   # construct init msg to place in parent as initialized separator variables
   for vid in getCliqSeparatorVarIds(cliq)
-    var = getVariable(fgl, vid, localapi)
+    var = getVert(fgl, vid, api=localapi)
     if isInitialized(var)
       msg[Symbol(var.label)] = getKDE(var)
     end

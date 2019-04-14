@@ -120,6 +120,7 @@ export
   subgraphShortestPath,
   subgraphFromVerts,
   subGraphFromVerts,
+  transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
   emptyBayesTree,
@@ -158,6 +159,8 @@ export
   sortnestedperm,
   getfnctype,
   drawCopyFG,
+  isVariable,
+  isFactor,
 
   # Bayes (Junction) Tree
   evalPotential,

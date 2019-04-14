@@ -204,3 +204,22 @@ function subgraphFromVerts(fgl::FactorGraph,
   @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
   subGraphFromVerts(fgl, verts, neighbors=neighbors)
 end
+
+
+"""
+    $SIGNATURES
+
+Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
+"""
+function transferUpdateSubGraph!(src::FactorGraph,
+                                dest::FactorGraph,
+                                syms::Vector{Symbol}=union(ls(src)...);
+                                srcapi::DataLayerAPI=localapi,
+                                destapi::DataLayerAPI=dlapi   )
+  #
+  for sym in syms
+    vert = getVert(src, sym, api=srcapi)
+    destapi.updatevertex!(dest, vert)
+  end
+  nothing
+end

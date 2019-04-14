@@ -705,6 +705,20 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
   return getIdx(pp.dimtype, sym)
 end
 
+"""
+    $SIGNATURES
+
+Return whether `sym::Symbol` represents a variable vertex in the graph.
+"""
+isVariable(fgl::FactorGraph, sym::Symbol) = haskey(fgl.IDs, sym)
+
+"""
+    $SIGNATURES
+
+Return whether `sym::Symbol` represents a factor vertex in the graph.
+"""
+isFactor(fgl::FactorGraph, sym::Symbol) = haskey(fgl.fIDs, sym)
+
 
 """
     $SIGNATURES
