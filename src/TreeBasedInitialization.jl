@@ -187,27 +187,45 @@ end
 """
     $SIGNATURES
 
-Block the thread until child cliques of `prnt::Graphs.ExVertex` have been initialized.
-Return `::Symbol` indicating whether next action that should be taken, namely:
+Return `::Symbol` status a particular clique is in, with specific regard to solution
+or numerical initialization status:
 - :needdownmsg
-- :ready_upsolve
-- :ready_initialization
-- :unknown
+- :upsolved
+- :initialized
+- :marginalized
+- :null
 
 Notes:
+- `:null` represents the first uninitialized state of a cliq.
+"""
+getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getData(cliq).initialized
+
+"""
+    $SIGNATURES
+
+Block the thread until child cliques of `prnt::Graphs.ExVertex` have finished
+attempting upward initialization -- i.e. have status result.
+Return `::Dict{Symbol}` indicating whether next action that should be taken
+for each child clique.
+
+Notes:
+- See status options at `getCliqStatusUp(..)`.
 - Can be called multiple times
 """
-function blockUntilCliqChildrenUpInit(tree::BayesTree, prnt::Graphs.ExVertex)
-  retmsg = :unknown
+function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
+                                          prnt::Graphs.ExVertex)::Dict{Int, Symbol}
+  #
+  ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
   for ch in chlr
-    if !isready(getData(ch).initUpChannel) && isCliqInitialized(ch)
-
+    # either wait to fetch new result, or report or result
+    if !isready(getData(ch).initUpChannel) && getCliqStatusUp(ch) != :null
+      ret[ch.index] = getCliqStatusUp(ch)
+    else
+      ret[ch.index] = take!(getData(ch).initUpChannel)
     end
-
   end
-
-  return
+  return ret
 end
 
 """
@@ -219,9 +237,9 @@ it is possible that none of the child cliq variables have been initialized.
 function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
   #
   # get the parent cliq
-  prnt = getParent(tree, cliq)
+  prnt = getParent(tree, cliq)[1]
   # get the current messages stored in the parent
-  currmsgs = getCliqInitUpMsgs(pcliq)
+  currmsgs = getCliqInitUpMsgs(prnt)
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()

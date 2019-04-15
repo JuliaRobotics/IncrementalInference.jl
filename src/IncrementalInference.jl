@@ -196,6 +196,9 @@ export
   #development interface
   getCliqOrderUpSolve,
   getCliqInitVarOrderUp,
+  getCliqStatusUp,
+  getCliqInitDownMsgs,
+  blockCliqUntilChildrenHaveUpStatus,
   getCliqNumAssocFactorsPerVar,
   upMsgPassingRecursive,
 
