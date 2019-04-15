@@ -36,8 +36,8 @@ function uppA()
 end
 
 
-function packFromIncomingDensities!(dens::Array{BallTreeDensity,1},
-                                    wfac::Vector{AbstractString},
+function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
+                                    wfac::Vector{<:AbstractString},
                                     vertid::Int,
                                     inmsgs::Array{NBPMessage,1},
                                     manis::T ) where {T <: Tuple}
@@ -46,7 +46,7 @@ function packFromIncomingDensities!(dens::Array{BallTreeDensity,1},
     for idx in keys(m.p)
       if idx == vertid
         pdi = m.p[vertid]
-        push!(dens, kde!(pdi) ) # kde!(pdi.pts, pdi.bws)
+        push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, "msg")
       end
       # TODO -- we can inprove speed of search for inner loop

@@ -93,6 +93,7 @@ export
   getData,
   setData!,
   getSofttype,
+  getManifolds,
   getVarNode,
   getVal,
   getBW,

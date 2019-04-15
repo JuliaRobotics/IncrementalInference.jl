@@ -65,7 +65,7 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)))
 
 
 ## Solve graph
-tree = batchSolve!(fg)
+tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
 
 
 @test abs(getKDEMean(getKDE(fg, :x0))[1]) < 1.0
