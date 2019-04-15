@@ -45,6 +45,14 @@ function getSofttype(v::ExVertex)
 end
 
 """
+    $SIGNATURES
+Return the manifolds on which variable `sym::Symbol` is defined.
+"""
+function getManifolds(fgl::FactorGraph, sym::Symbol)
+  getSofttype(getVert(fgl, sym)).manifolds
+end
+
+"""
     $(SIGNATURES)
 
 Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
