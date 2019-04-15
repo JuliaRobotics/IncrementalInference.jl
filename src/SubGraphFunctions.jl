@@ -53,7 +53,9 @@ function buildSubgraphFromLabels(fgl::FactorGraph, syms::Vector{Symbol})
     vert = getVert(fgl, sym, api=localapi)
     st = getSofttype(vert)
     addVariable!(fgseg, sym, st, uid=vert.index)
-    manualinit!(fgseg, sym, getKDE(vert))
+    if isInitialized(fgl,sym)
+      manualinit!(fgseg, sym, getKDE(vert))
+    end
   end
 
   for sym in syms

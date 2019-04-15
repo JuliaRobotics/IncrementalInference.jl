@@ -23,15 +23,18 @@ mutable struct BayesTreeNodeData
   debugDwn
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
-  upInitMsg::Dict{Int, Dict{Symbol, BallTreeDensity}}
+  upInitMsgs::Dict{Int, Dict{Symbol, BallTreeDensity}}
+  downInitMsg::Dict{Symbol, BallTreeDensity}
   allmarginalized::Bool
   initialized::Symbol
   upsolved::Bool
   downsolved::Bool
+  initUpChannel::Channel{Symbol}
+  initDownChannel::Channel{Symbol}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22] )
+                                x[21], x[22], x[23], x[24], x[25])
 end
 
 # TODO -- this should be a constructor
@@ -46,8 +49,10 @@ function emptyBTNodeData()
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Int, Dict{Symbol, BallTreeDensity}}(),
+                    Dict{Symbol, BallTreeDensity}(),
                     false, :null,
-                    false, false  )
+                    false, false,
+                    Channel{Symbol}(1), Channel{Symbol}(1)  )
 end
 
 # BayesTree declarations

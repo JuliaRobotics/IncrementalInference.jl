@@ -101,13 +101,18 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  setCliqUpInitMsg!,
   isPartial,
   isInitialized,
   isUpInferenceComplete,
+  isCliqInitialized,
   isCliqReadyInferenceUp,
+  isCliqUpSolved,
   areCliqVariablesInitialized,
   ensureAllInitialized!,
   doCliqAutoInitUp!,
+  getCliqInitUpMsgs,
+  prepCliqInitMsgsDown!,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
@@ -316,6 +321,7 @@ include("FGOSUtils.jl")
 
 include("JunctionTreeTypes.jl")
 include("JunctionTree.jl")
+include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
