@@ -33,6 +33,9 @@ lastCliqCalculatedInitDownMsgs(cliq::Graphs.ExVertex) = getData(cliq).downInitMs
 
 Return the most likely  ordering for initializing factor (assuming up solve
 sequence).
+
+Notes:
+- sorts id for increasing number of connected factors.
 """
 function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   # rules to explore dimension from one to the other?
@@ -281,33 +284,41 @@ variables can be initialized.  Relies on outside down messages.
 
 Notes:
 - assumed this `cliq` is being initialized from a previous `:needdownmsg` status.
-- will use all local factors in initilization process
+- will use all possible local factors of cliquq in initilization process
+- similar to upward initialization, but uses different message structure
+  - first draft assumes upward messages will not be used,
+  - full up solve still required which explicitly depends on upward messages.
 """
 function getCliqInitVarOrderDown(fgl::FactorGraph,
                                  cliq::Graphs.ExVertex,
                                  downmsgs::Dict{Symbol, BallTreeDensity}  )
   #
-  # convert input var symbols to integers (also assumed as prior beliefs)
+
+  allids = getCliqAllVarIds(cliq)
+  # convert input downmsg var symbols to integers (also assumed as prior beliefs)
+  # make sure ids are in the clique set, since parent may have more variables.
+  dwnvarids = intersect(allids, map(x -> fgl.IDs[x], collect(keys(downmsgs)) ) )
 
   # find any other prior factors (might have partials)
-
-  # Get all other variable factor counts
+  prvarids = getCliqVarIdsPriors(cliq, allids, true)
+  hassinglids = union(dwnvarids, prvarids)
 
   # sort variables with singleton priors for increasing factors
+
+
+  # Get all other variable factor counts
 
   # sort remaining variables for increasing associated factors
 
   # combine sorted prior and remaing lists, and try initialization process
 
-  # check if subset of children have initialized or solved.
-  # check if any child cliques `:needdownmsg`, and prepare accordingly
-
+  # return variable order
 end
 
 """
     $SIGNATURES
 
-Initialization requires down message passing of more specialize down init msgs.
+Initialization requires down message passing of more specialized down init msgs.
 This function performs any possible initialization of variables and retriggers
 children cliques that have not yet initialized.
 
@@ -320,7 +331,6 @@ Notes:
 
 Algorithm:
 - determine which downward messages influence initialization order
-- ...
 """
 function doCliqAutoInitDown!(fgl::FactorGraph,
                              tree::BayesTree,
@@ -332,7 +342,12 @@ function doCliqAutoInitDown!(fgl::FactorGraph,
   prnt = getParent(tree, cliq)
   # cliqd = getData(cliq)
 
-  initorder =
+  # get down variable initialization order
+  # initorder =
+
+  # check if subset of children have initialized or solved.
+
+  # check if any child cliques `:needdownmsg`, and prepare accordingly
 
   @warn "work in progress"
 

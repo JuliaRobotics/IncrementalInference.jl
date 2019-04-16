@@ -28,6 +28,7 @@ getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fg
 # see JuliaArchive/Graphs.jl#233
 
 function setData!(v::Graphs.ExVertex, data)
+  # this is a memory gulp without replacement, old attr["data"] object is left to gc 
   v.attributes["data"] = data
   nothing
 end

@@ -594,6 +594,9 @@ end
     $SIGNATURES
 
 Get variable ids`::Int` with prior factors associated with this `cliq`.
+
+Notes:
+- does not include any singleton messages from upward or downward message passing.
 """
 function getCliqVarIdsPriors(cliq::Graphs.ExVertex,
                              allids::Vector{Int}=getCliqAllVarIds(cliq),
