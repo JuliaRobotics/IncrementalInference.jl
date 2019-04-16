@@ -20,7 +20,12 @@ function isCliqUpSolved(cliq::Graphs.ExVertex)::Bool
   return getData(cliq).initialized == :upsolved
 end
 
-getCliqInitDownMsgs(cliq::Graphs.ExVertex) = getData(cliq).downInitMsg
+"""
+    $SIGNATURES
+
+Fetch last calculated down initialization message.
+"""
+lastCliqCalculatedInitDownMsgs(cliq::Graphs.ExVertex) = getData(cliq).downInitMsg
 
 
 """
@@ -123,6 +128,7 @@ using upward message passing logic.
 
 Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
+- must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
 function doCliqAutoInitUp!(fgl::FactorGraph,
                            tree::BayesTree,
@@ -143,6 +149,7 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
     for vid in varorder
       var = getVert(fgl, vid, api=localapi)
       isinit = isInitialized(var)
+      # TODO -- must use factors and values in cliq (assume subgraph?)
       doautoinit!(fgl, ExVertex[var;], api=localapi)
       isinit == isInitialized(var) ? nothing : (count += 1)
     end
@@ -233,13 +240,15 @@ end
 
 Initialization downward message passing is different from regular inference since
 it is possible that none of the child cliq variables have been initialized.
+
+Notes
+- init msgs from child upward passes are individually stored in this `cliq`.
+- fresh product of overlapping beliefs are calculated on each function call.
 """
 function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
   #
-  # get the parent cliq
-  prnt = getParent(tree, cliq)[1]
   # get the current messages stored in the parent
-  currmsgs = getCliqInitUpMsgs(prnt)
+  currmsgs = getCliqInitUpMsgs(cliq)
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
@@ -265,16 +274,65 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
   return products
 end
 
+"""
+
+Special function to do initialization in downward direction, assuming that not all
+variables can be initialized.  Relies on outside down messages.
+
+Notes:
+- assumed this `cliq` is being initialized from a previous `:needdownmsg` status.
+- will use all local factors in initilization process
+"""
+function getCliqInitVarOrderDown(fgl::FactorGraph,
+                                 cliq::Graphs.ExVertex,
+                                 downmsgs::Dict{Symbol, BallTreeDensity}  )
+  #
+  # convert input var symbols to integers (also assumed as prior beliefs)
+
+  # find any other prior factors (might have partials)
+
+  # Get all other variable factor counts
+
+  # sort variables with singleton priors for increasing factors
+
+  # sort remaining variables for increasing associated factors
+
+  # combine sorted prior and remaing lists, and try initialization process
+
+  # check if subset of children have initialized or solved.
+  # check if any child cliques `:needdownmsg`, and prepare accordingly
+
+end
+
+"""
+    $SIGNATURES
+
+Initialization requires down message passing of more specialize down init msgs.
+This function performs any possible initialization of variables and retriggers
+children cliques that have not yet initialized.
+
+Notes:
+- Assumed this function is only called after status from child clique up inits completed.
+- Will perform down initialization if status == `:needdownmsg`.
+- might be necessary to pass furhter down messges to child cliques that also `:needdownmsg`.
+- Will not complete cliq solve unless all children are `:upsolved` (upward is priority).
+- `dwinmsgs` assumed to come from parent initialization process.
+
+Algorithm:
+- determine which downward messages influence initialization order
+- ...
+"""
 function doCliqAutoInitDown!(fgl::FactorGraph,
                              tree::BayesTree,
-                             cliq::Graphs.ExVertex   )
+                             cliq::Graphs.ExVertex,
+                             dwinmsgs::Dict{Symbol, BallTreeDensity}  )
   #
   status = :starting
   # get down messages from parent
   prnt = getParent(tree, cliq)
-  msgs = getCliqInitDownMsgs(prnt)
-  cliqd = getData(cliq)
+  # cliqd = getData(cliq)
 
+  initorder =
 
   @warn "work in progress"
 
