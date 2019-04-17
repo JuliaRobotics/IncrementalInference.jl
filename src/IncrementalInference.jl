@@ -112,6 +112,8 @@ export
   areCliqVariablesInitialized,
   ensureAllInitialized!,
   doCliqAutoInitUp!,
+  cycleInitByVarOrder!,
+  attemptCliqUpSolve!,
   getCliqInitUpMsgs,
   prepCliqInitMsgsDown!,
   updateFullVert!,

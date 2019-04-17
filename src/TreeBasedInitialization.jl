@@ -120,6 +120,52 @@ function getCliqInitUpResultFromChannel(cliq::Graphs.ExVertex)
   take!(getData(cliq).initUpChannel)
 end
 
+"""
+    $SIGNATURES
+
+Cycle through var order and initialize variables as possible in `subfg::FactorGraph`.
+
+Notes:
+- assumed `subfg` is a subgraph containing only the factors that can be used.
+"""
+function cycleInitByVarOrder!(subfg::FactorGraph, varorder::Vector{Int})
+  count = 1
+  while count > 0
+    count = 0
+    for vid in varorder
+      var = getVert(fgl, vid, api=localapi)
+      isinit = isInitialized(var)
+      # TODO -- must use factors and values in cliq (assume subgraph?)
+      doautoinit!(fgl, ExVertex[var;], api=localapi)
+      isinit == isInitialized(var) ? nothing : (count += 1)
+    end
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Return (:badinit, :initialized, upsolved) whether a cliq has been upsolved
+(possibly even before this call), and update `subfg::FactorGraph` according to
+internal computations from this function.
+"""
+function attemptCliqUpSolve!(subfg::FactorGraph,
+                             tree::BayesTree,
+                             cliq::Graphs.ExVertex)::Symbol
+  #
+  retmsg = :badinit
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  isinit = areCliqVariablesInitialized(subfg, cliq)
+  # might fail while waiting for other cliques to initialize.
+  if isinit
+    retmsg = :initialized
+    csym = Symbol(getVert(subfg, getCliqFrontalVarIds(cliq)[1],api=localapi).label)
+    approxCliqMarginalUp!(subfg, tree, csym, false)
+    retmsg = :upsolved
+  end
+  return retmsg
+end
 
 """
     $SIGNATURES
@@ -146,34 +192,15 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
   varorder = getCliqInitVarOrderUp(cliq)
 
   # do physical inits
-  count = 1
-  while count > 0
-    count = 0
-    for vid in varorder
-      var = getVert(fgl, vid, api=localapi)
-      isinit = isInitialized(var)
-      # TODO -- must use factors and values in cliq (assume subgraph?)
-      doautoinit!(fgl, ExVertex[var;], api=localapi)
-      isinit == isInitialized(var) ? nothing : (count += 1)
-    end
-  end
+  cycleInitByVarOrder!(fgl, varorder)
 
   # next default return type
   retmsg = :needdownmsg
 
-  # check if all cliq vars have been initialized so that full inference can occur on clique
-  isinit = areCliqVariablesInitialized(fgl, cliq)
-  # might fail while waiting for other cliques to initialize.
-  if isinit
-    retmsg = :initialized
-    if up_solve_if_able
-      csym = Symbol(getVert(fgl,getCliqFrontalVarIds(cliq)[1],api=localapi).label)
-      approxCliqMarginalUp!(fgl, tree, csym, false)
-      retmsg = :upsolved
-    end
-  end
+  # # check if all cliq vars have been initialized so that full inference can occur on clique
+  retmsg = attemptCliqUpSolve!(fgl, tree, cliq)
 
-  # construct init msg to place in parent as initialized separator variables
+  # construct init's up msg to place in parent from initialized separator variables
   for vid in getCliqSeparatorVarIds(cliq)
     var = getVert(fgl, vid, api=localapi)
     if isInitialized(var)
@@ -312,6 +339,8 @@ function getCliqInitVarOrderDown(fgl::FactorGraph,
 
   # combine sorted prior and remaing lists, and try initialization process
 
+  @warn "work in progress"
+
   # return variable order
 end
 
@@ -343,7 +372,9 @@ function doCliqAutoInitDown!(fgl::FactorGraph,
   # cliqd = getData(cliq)
 
   # get down variable initialization order
-  # initorder =
+  initorder = getCliqInitVarOrderDown(fgl, cliq, dwinmsgs)
+
+  # cycle through vars and attempt init
 
   # check if subset of children have initialized or solved.
 
