@@ -20,13 +20,6 @@ function isCliqUpSolved(cliq::Graphs.ExVertex)::Bool
   return getData(cliq).initialized == :upsolved
 end
 
-"""
-    $SIGNATURES
-
-Fetch last calculated down initialization message.
-"""
-lastCliqCalculatedInitDownMsgs(cliq::Graphs.ExVertex) = getData(cliq).downInitMsg
-
 
 """
     $SIGNATURES
@@ -127,16 +120,17 @@ Cycle through var order and initialize variables as possible in `subfg::FactorGr
 
 Notes:
 - assumed `subfg` is a subgraph containing only the factors that can be used.
+- intended for both up and down initialization operations.
 """
 function cycleInitByVarOrder!(subfg::FactorGraph, varorder::Vector{Int})
   count = 1
   while count > 0
     count = 0
     for vid in varorder
-      var = getVert(fgl, vid, api=localapi)
+      var = getVert(subfg, vid, api=localapi)
       isinit = isInitialized(var)
       # TODO -- must use factors and values in cliq (assume subgraph?)
-      doautoinit!(fgl, ExVertex[var;], api=localapi)
+      doautoinit!(subfg, ExVertex[var;], api=localapi)
       isinit == isInitialized(var) ? nothing : (count += 1)
     end
   end
@@ -154,13 +148,13 @@ function attemptCliqUpSolve!(subfg::FactorGraph,
                              tree::BayesTree,
                              cliq::Graphs.ExVertex)::Symbol
   #
-  retmsg = :badinit
+  retmsg = :needdownmsg
   # check if all cliq vars have been initialized so that full inference can occur on clique
   isinit = areCliqVariablesInitialized(subfg, cliq)
   # might fail while waiting for other cliques to initialize.
   if isinit
     retmsg = :initialized
-    csym = Symbol(getVert(subfg, getCliqFrontalVarIds(cliq)[1],api=localapi).label)
+    csym = Symbol(getVert(subfg, getCliqFrontalVarIds(cliq)[1], api=localapi).label)
     approxCliqMarginalUp!(subfg, tree, csym, false)
     retmsg = :upsolved
   end
@@ -193,9 +187,6 @@ function doCliqAutoInitUp!(fgl::FactorGraph,
 
   # do physical inits
   cycleInitByVarOrder!(fgl, varorder)
-
-  # next default return type
-  retmsg = :needdownmsg
 
   # # check if all cliq vars have been initialized so that full inference can occur on clique
   retmsg = attemptCliqUpSolve!(fgl, tree, cliq)
@@ -320,28 +311,47 @@ function getCliqInitVarOrderDown(fgl::FactorGraph,
                                  cliq::Graphs.ExVertex,
                                  downmsgs::Dict{Symbol, BallTreeDensity}  )
   #
-
   allids = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnvarids = intersect(allids, map(x -> fgl.IDs[x], collect(keys(downmsgs)) ) )
+  dwnmsgsym = intersect(collect(keys(downmsgs)), collect(keys(fgl.IDs)))
+  dwnmsgids =  map(x -> fgl.IDs[x], dwnmsgsym )
+  dwnvarids = intersect(allids, dwnmsgids)
 
   # find any other prior factors (might have partials)
   prvarids = getCliqVarIdsPriors(cliq, allids, true)
   hassinglids = union(dwnvarids, prvarids)
 
-  # sort variables with singleton priors for increasing factors
-
-
   # Get all other variable factor counts
+  nfcts = getCliqNumAssocFactorsPerVar(cliq)
+  # add msg marginal prior (singletons) to number of factors
+  for msid in dwnmsgids
+    nfcts[msid .== allids] .+= 1
+  end
 
+  # sort permutation order for increasing number of factor association
+  nfctsp = sortperm(nfcts)
+  sortedids = allids[nfctsp]
+
+  # all singleton variables
+  singids = union(prvarids, dwnvarids)
+
+  # organize the prior variables separately with asceding factor count
+  initorder = zeros(Int, 0)
+  for id in sortedids
+    if id in singids
+      push!(initorder, id)
+    end
+  end
   # sort remaining variables for increasing associated factors
-
-  # combine sorted prior and remaing lists, and try initialization process
-
-  @warn "work in progress"
+  for id in sortedids
+    if !(id in initorder)
+      push!(initorder, id)
+    end
+  end
 
   # return variable order
+  return initorder
 end
 
 """
@@ -363,26 +373,30 @@ Algorithm:
 """
 function doCliqAutoInitDown!(fgl::FactorGraph,
                              tree::BayesTree,
-                             cliq::Graphs.ExVertex,
-                             dwinmsgs::Dict{Symbol, BallTreeDensity}  )
+                             cliq::Graphs.ExVertex  )
   #
-  status = :starting
+  status = :badinit
   # get down messages from parent
-  prnt = getParent(tree, cliq)
-  # cliqd = getData(cliq)
+  @show prnt = getParent(tree, cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(fgl, tree, prnt)
 
   # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(fgl, cliq, dwinmsgs)
+  @show initorder = getCliqInitVarOrderDown(fgl, cliq, dwinmsgs)
 
   # cycle through vars and attempt init
+  cycleInitByVarOrder!(fgl, initorder)
+
+  # check if cliq variables have been initialized
+  @show tempstatus = areCliqVariablesInitialized(fgl, cliq)
 
   # check if subset of children have initialized or solved.
+
 
   # check if any child cliques `:needdownmsg`, and prepare accordingly
 
   @warn "work in progress"
 
-  put!(cliqd.initDownChannel, status)
+  # put!(cliqd.initDownChannel, status)
   return status
 end
 

@@ -112,6 +112,7 @@ export
   areCliqVariablesInitialized,
   ensureAllInitialized!,
   doCliqAutoInitUp!,
+  doCliqAutoInitDown!,
   cycleInitByVarOrder!,
   attemptCliqUpSolve!,
   getCliqInitUpMsgs,
@@ -137,7 +138,6 @@ export
   wipeBuildNewTree!,
   whichCliq,
   getCliqChildMsgsUp,
-  lastCliqCalculatedInitDownMsgs,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
@@ -199,6 +199,7 @@ export
   #development interface
   getCliqOrderUpSolve,
   getCliqInitVarOrderUp,
+  getCliqInitVarOrderDown,
   getCliqStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
   getCliqNumAssocFactorsPerVar,
