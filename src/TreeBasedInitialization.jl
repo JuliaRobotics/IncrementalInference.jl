@@ -205,11 +205,12 @@ end
 Update `subfg::FactorGraph` according to internal computations for a full upsolve.
 """
 function doCliqUpSolve!(subfg::FactorGraph,
-                             tree::BayesTree,
-                             cliq::Graphs.ExVertex)::Symbol
+                        tree::BayesTree,
+                        cliq::Graphs.ExVertex  )::Symbol
   #
   csym = Symbol(getVert(subfg, getCliqFrontalVarIds(cliq)[1], api=localapi).label)
   approxCliqMarginalUp!(subfg, tree, csym, false)
+  getData(cliq).upsolved = true
   return :upsolved
 end
 
@@ -445,6 +446,20 @@ function deleteMsgFactors!(subfg::FactorGraph, fcts::Vector{Graphs.ExVertex})
   end
 end
 
+
+"""
+    $SIGNATURES
+
+Return true or false depending on whether child cliques are all up solved.
+"""
+function areCliqChildrenAllUpSolved(treel::BayesTree, prnt::Graphs.ExVertex)::Bool
+  for ch in getChildren(treel, cliq)
+    if !isCliqUpSolved(ch)
+      return false
+    end
+  end
+  return true
+end
 
 
 """
