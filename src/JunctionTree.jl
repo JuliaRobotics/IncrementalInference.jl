@@ -593,6 +593,16 @@ end
 """
     $SIGNATURES
 
+Get all `cliq` variable labels as `::Symbol`.
+"""
+function getCliqAllVarSyms(fgl::FactorGraph, cliq::Graphs.ExVertex)::Vector{Symbol}
+  Symbol[getSym(fgl, varid) for varid in getCliqAllVarIds(cliq)]
+end
+
+
+"""
+    $SIGNATURES
+
 Get variable ids`::Int` with prior factors associated with this `cliq`.
 
 Notes:

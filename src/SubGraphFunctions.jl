@@ -212,12 +212,15 @@ end
     $SIGNATURES
 
 Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
+
+Notes
+- Approximately like `dest` = `src`, for all `syms`
 """
-function transferUpdateSubGraph!(src::FactorGraph,
-                                dest::FactorGraph,
-                                syms::Vector{Symbol}=union(ls(src)...);
-                                srcapi::DataLayerAPI=localapi,
-                                destapi::DataLayerAPI=dlapi   )
+function transferUpdateSubGraph!(dest::FactorGraph,
+                                 src::FactorGraph,
+                                 syms::Vector{Symbol}=union(ls(src)...);
+                                 srcapi::DataLayerAPI=localapi,
+                                 destapi::DataLayerAPI=dlapi   )
   #
   for sym in syms
     vert = getVert(src, sym, api=srcapi)
