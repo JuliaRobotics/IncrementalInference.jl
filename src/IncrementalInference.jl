@@ -119,6 +119,8 @@ export
   cycleInitByVarOrder!,
   doCliqUpSolve!,
   getCliqInitUpMsgs,
+  getCliqStatus,
+  getMaxVertId,
   prepCliqInitMsgsUp!,
   prepCliqInitMsgsDown!,
   updateFullVert!,

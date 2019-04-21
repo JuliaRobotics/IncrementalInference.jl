@@ -75,6 +75,9 @@ end
 function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   cd = getData(cliq)
   cd.initialized = status
+  if isready(cd.initUpChannel)
+    @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initUpChannel)), replacing with $(status)"
+  end
   put!(cd.initUpChannel, status)
 end
 
@@ -140,6 +143,7 @@ Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
 getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getData(cliq).initialized
+getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatusUp(cliq)
 
 """
     $SIGNATURES
@@ -156,6 +160,7 @@ Notes:
 function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
                                           prnt::Graphs.ExVertex)::Dict{Int, Symbol}
   #
+  @warn "in blockCliqUntilChildrenHaveUpStatus"
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
   for ch in chlr
@@ -256,6 +261,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   upmsgs = getCliqInitUpMsgs(cliq)
 
   # add incoming up messages as priors to subfg
+  @info "adding up message factors"
   msgfcts = addMsgFactors!(subfg, upmsgs)
 
     # TEMP
@@ -266,28 +272,32 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqInitVarOrderUp(cliq)
     # do physical inits, ignore cycle return value
+    @show "going for up cycle order"
     cycleInitByVarOrder!(subfg, varorder)
+    @show "finished with up cycle order"
   end
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
-    status = doCliqUpSolve!(subfg, tree, cliq)
+    @show status = doCliqUpSolve!(subfg, tree, cliq)
   end
 
   # construct init's up msg to place in parent from initialized separator variables
   msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
 
   # put the init result in the parent cliq.
-  prnt = getParent(tree, cliq)
+  @show prnt = getParent(tree, cliq)
   if length(prnt) > 0
     # not a root clique
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
+  @info "removing up message factors, length=$(length(msgfcts))"
   deleteMsgFactors!(subfg, msgfcts)
 
   # set flags in clique for multicore sequencing
+  @info "sending notification of up init status"
   notifyCliqUpInitStatus!(cliq, status)
   return status
 end
@@ -322,10 +332,18 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
   # multiply multiple messages together
   products = getData(cliq).downInitMsg # Dict{Symbol, BallTreeDensity}()
   for (msgsym, msgs) in msgspervar
-    if length(msgspervar[msgsym]) > 1
-      products[msgsym] = manifoldProduct(msgs, getManifolds(fgl, msgsym))
+    # check if this particular down message requires msgsym
+    if haskey(fgl.IDs, msgsym)
+      if length(msgspervar[msgsym]) > 1
+        products[msgsym] = manifoldProduct(msgs, getManifolds(fgl, msgsym))
+      else
+        products[msgsym] = msgs[1]
+      end
     else
-      products[msgsym] = msgs[1]
+      # not required, therefore remove from message to avoid confusion
+      if haskey(products, msgsym)
+        delete!(products, msgsym)
+      end
     end
   end
 
@@ -410,10 +428,12 @@ function addMsgFactors!(subfg::FactorGraph,
   # add messages as priors to this sub factor graph
   msgfcts = Graphs.ExVertex[]
   svars = union(ls(subfg)...)
+  mvid = getMaxVertId(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # @show "adding down msg $msym"
-      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false)
+      mvid += 1
+      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false, uid=mvid)
       push!(msgfcts, fc)
     end
   end
@@ -421,11 +441,13 @@ function addMsgFactors!(subfg::FactorGraph,
 end
 
 function addMsgFactors!(subfg::FactorGraph,
-                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{ExVertex}
+                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{Graphs.ExVertex}
   #
   allfcts = Graphs.ExVertex[]
   for (cliqid, msgs) in allmsgs
-    push!(allfcts, msgs)
+    # do each dict in array separately
+    newfcts = addMsgFactors!(subfg, msgs)
+    union!( allfcts, newfcts )
   end
   return allfcts
 end
@@ -453,7 +475,7 @@ end
 Return true or false depending on whether child cliques are all up solved.
 """
 function areCliqChildrenAllUpSolved(treel::BayesTree, prnt::Graphs.ExVertex)::Bool
-  for ch in getChildren(treel, cliq)
+  for ch in getChildren(treel, prnt)
     if !isCliqUpSolved(ch)
       return false
     end
@@ -472,6 +494,7 @@ children cliques that have not yet initialized.
 Notes:
 - Assumed this function is only called after status from child clique up inits completed.
 - Will perform down initialization if status == `:needdownmsg`.
+  - will fetch message from parent
 - might be necessary to pass furhter down messges to child cliques that also `:needdownmsg`.
 - Will not complete cliq solve unless all children are `:upsolved` (upward is priority).
 - `dwinmsgs` assumed to come from parent initialization process.
@@ -486,25 +509,26 @@ function doCliqInitDown!(subfg::FactorGraph,
                          tree::BayesTree,
                          cliq::Graphs.ExVertex  )
   #
+  @warn "entering doCliqInitDown"
   status = :badinit
   # get down messages from parent
-  prnt = getParent(tree, cliq)[1]
+  @show prnt = getParent(tree, cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
 
   # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
+  @show initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
 
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
   # cycle through vars and attempt init
   if cycleInitByVarOrder!(subfg, initorder)
-    status = :initialized
+    @show status = :initialized
   end
 
   # check if all cliq variables have been initialized
   if !areCliqVariablesAllInitialized(subfg, cliq)
-    status = :needdownmsg
+    @show status = :needdownmsg
   end
 
   # remove msg factors previously added

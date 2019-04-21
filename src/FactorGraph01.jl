@@ -28,7 +28,7 @@ getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fg
 # see JuliaArchive/Graphs.jl#233
 
 function setData!(v::Graphs.ExVertex, data)
-  # this is a memory gulp without replacement, old attr["data"] object is left to gc 
+  # this is a memory gulp without replacement, old attr["data"] object is left to gc
   v.attributes["data"] = data
   nothing
 end
@@ -45,13 +45,14 @@ function getSofttype(v::ExVertex)
   getSofttype(getData(v))
 end
 
+
 """
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-function getManifolds(fgl::FactorGraph, sym::Symbol)
-  getSofttype(getVert(fgl, sym)).manifolds
-end
+getManifolds(vert::Graphs.ExVertex) =   getSofttype(vert).manifolds
+getManifolds(fgl::FactorGraph, vid::Int) = getManifolds(getVert(fgl, vid))
+getManifolds(fgl::FactorGraph, sym::Symbol) = getManifolds(getVert(fgl, sym))
 
 """
     $(SIGNATURES)
@@ -510,6 +511,16 @@ function setDefaultFactorNode!(
   # vert.attributes["data"] = data
 
   nothing
+end
+
+"""
+    $SIGNATURES
+
+Return the current maximum vertex ID number in the factor graph fragment `fgl`.
+"""
+function getMaxVertId(fgl::FactorGraph)
+  ids = collect(keys(fgl.g.vertices))
+  return maximum(ids)
 end
 
 function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)

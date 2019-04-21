@@ -804,13 +804,14 @@ end
 
 Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
 """
-function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
     nbpchild = NBPMessage(Dict{Int,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       id = fg_.IDs[key]
-      nbpchild.p[id] = IIF.convert(EasyMessage, bel)
+      manis = getManifolds(fg_, id)
+      nbpchild.p[id] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end
@@ -854,7 +855,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   cliq.attributes["style"] = "filled"
 
   # get incoming cliq messaged upward from child cliques
-  childmsgs = getCliqChildMsgsUp(tree_, cliq, EasyMessage)
+  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, EasyMessage)
 
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
