@@ -604,7 +604,7 @@ end
 
 Return array of all variable vertices in a clique.
 """
-function getCliqVars(subfg::FactorGraphs, cliq::Graphs.ExVertex)
+function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
   verts = Graphs.ExVertex[]
   for vid in getCliqVars(subfg, cliq)
     push!(verts, getVert(subfg, vid, api=localapi))

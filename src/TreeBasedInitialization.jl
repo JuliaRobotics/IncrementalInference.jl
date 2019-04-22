@@ -569,7 +569,7 @@ function cliqInitSolveUp!(fgl::FactorGraph,
   # check clique status
   cliqst = getCliqStatus(cliq)
 
-  if incremenal && cliqst in [:upsolved; :downsolved; :marginalized]
+  if incremental && cliqst in [:upsolved; :downsolved; :marginalized]
     return cliqst
   end
 

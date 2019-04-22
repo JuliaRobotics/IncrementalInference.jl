@@ -1355,11 +1355,14 @@ Perform tree based initialization of all variables not yet initialized in factor
 """
 function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100)
   alltasks = Vector{Task}(undef, length(treel.cliques))
-  if !isTreeInitialized(treel)
-    for i in 1:length(treel.cliques)
-      alltasks[i] = @async begin
-        cliq = treel.cliques[i]
-        while :upsolved != cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree );
+  @sync begin
+    if !isTreeInitialized(treel)
+      for i in 1:length(treel.cliques)
+        alltasks[i] = @async begin
+          cliq = treel.cliques[i]
+          while :upsolved != cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree );
+            @error "looping cliqInitSolveUp!"
+          end
         end
       end
     end
@@ -1377,12 +1380,11 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=f
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
+  inittasks = Vector{Task}()
   if treeinit
     @info "Do tree based init-inference on tree"
-    @sync begin
-      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-    end
-
+    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    @info "Finished tree based upward init-inference"
   else
     ensureAllInitialized!(fgl)
   end
@@ -1405,9 +1407,7 @@ function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
   if treeinit
-    @sync begin
-      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-    end
+    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
   else
     ensureAllInitialized!(fgl)
   end
