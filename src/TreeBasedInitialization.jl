@@ -158,7 +158,7 @@ Notes:
 - Can be called multiple times
 """
 function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
-                                          prnt::Graphs.ExVertex)::Dict{Int, Symbol}
+                                            prnt::Graphs.ExVertex)::Dict{Int, Symbol}
   #
   @warn "in blockCliqUntilChildrenHaveUpStatus"
   ret = Dict{Int, Symbol}()
@@ -168,7 +168,7 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     if !isready(getData(ch).initUpChannel) && getCliqStatusUp(ch) != :null
       ret[ch.index] = getCliqStatusUp(ch)
     else
-      ret[ch.index] = take!(getData(ch).initUpChannel)
+      ret[ch.index] = fetch(getData(ch).initUpChannel) # take!
     end
   end
   return ret
@@ -538,6 +538,93 @@ function doCliqInitDown!(subfg::FactorGraph,
   notifyCliqDownInitStatus!(cliq, status)
   return status
 end
+
+
+"""
+    $SIGNATURES
+
+Major upward initialization / solve inference function.
+
+Notes:
+- will call on values from children or parent cliques
+- can be called multiple times
+"""
+function cliqInitSolveUp!(fgl::FactorGraph,
+                          tree::BayesTree,
+                          cliq::Graphs.ExVertex;
+                          drawtree::Bool=false,
+                          show::Bool=false  )
+  #
+  cliqst = :none
+  syms = getCliqAllVarSyms(fgl, cliq)
+  # build a local subgraph for inference operations
+  sfg = buildSubgraphFromLabels(fgl, syms)
+
+  # get parent cliq
+  prnt = getParent(tree, cliq)
+
+  tryonce = true
+  # upsolve delay loop
+  while tryonce || !areCliqChildrenAllUpSolved(tree, cliq)
+    tryonce = false
+    cliqst = getCliqStatus(cliq)
+
+    @info "clique $(cliq.index), status $cliqst -- top of while loop"
+    if cliqst == :needdownmsg && length(prnt) > 0
+      # wait here until all children have a valid status
+      @info "clique $(cliq.index), blocking on parent until sibling cliques have valid status"
+      setCliqDrawColor(cliq, "turquoise")
+      drawtree ? drawTree(tree, show=show) : nothing
+      stdict = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
+      @info "clique $(cliq.index), siblings have status"
+    end
+
+    # Determine if child clique processes all completed with status :upsolved
+    @info "blocking on clique $(cliq.index) until child cliques have status"
+    stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
+    @info "clique $(cliq.index) continue, children all have status"
+
+    # hard assumption here on upsolve from leaves to root
+    proceed = true
+    for (clid, clst) in stdict
+      # :needdownmsg # 'send' downward init msg direction
+      # :initialized # @warn "something might not be right with init of clid=$clid"
+      clst != :upsolved ? (proceed = false) : nothing
+    end
+
+    # if all children are ready, proceed with this cliq initialization
+    if proceed
+      # start computations
+      setCliqDrawColor(cliq, "red")
+      drawtree ? drawTree(tree, show=show) : nothing
+      # evaluate according to cliq status
+      if cliqst == :needdownmsg
+        # initialize clique in downward direction
+        @info "this clique needs down message information and will now try do down init."
+        cliqst = doCliqInitDown!(sfg, tree, cliq)
+      end
+      if cliqst in [:initialized; :null]
+        @info "going for doCliqAutoInitUp!"
+        cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
+      end
+      if cliqst == :upsolved
+        @info "going for transferUpdateSubGraph!"
+        frsyms = Symbol[getSym(sfg, varid) for varid in getCliqFrontalVarIds(cliq)]
+        transferUpdateSubGraph!(fgl, sfg, frsyms)
+      else
+        @info "clique $(cliq.index), init waiting since it cannot fully up solve yet."
+        setCliqDrawColor(cliq, "green")
+        tryonce = true
+      end
+      drawtree ? drawTree(tree, show=show) : nothing
+    end
+    @info "clique $(cliq.index), bottom of while -- test: "
+    @show areCliqChildrenAllUpSolved(tree, cliq)
+  end # while
+  return cliqst
+end
+
+
 
 # """
 #     $SIGNATURES

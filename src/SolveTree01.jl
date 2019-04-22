@@ -715,6 +715,17 @@ function downGibbsCliqueDensity(fg::FactorGraph,
 end
 
 """
+    $SIGNATURES
+
+Set the color of a cliq in the Bayes (Junction) tree.
+"""
+function setCliqDrawColor(cliq::Graphs.ExVertex, fillcolor::String)::Nothing
+  cliq.attributes["fillcolor"] = fillcolor
+  cliq.attributes["style"] = "filled"
+  nothing
+end
+
+"""
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
@@ -783,7 +794,7 @@ function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=
 
     mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
     rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="pink")
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
     drawpdf ? drawTree(inp.bt) : nothing
 
     # rr = Array{Future,1}()
@@ -851,8 +862,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   end
 
   cliq = whichCliq(tree_, csym)
-  cliq.attributes["fillcolor"] = "red"
-  cliq.attributes["style"] = "filled"
+  # setCliqDrawColor(cliq, "red")
 
   # get incoming cliq messaged upward from child cliques
   childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, EasyMessage)
@@ -862,7 +872,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
   ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
   urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="red")
+  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="pink")
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt

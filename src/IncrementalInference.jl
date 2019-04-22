@@ -105,6 +105,7 @@ export
   setBW!,
   setValKDE!,
   setCliqUpInitMsgs!,
+  cliqInitSolveUp!,
   isPartial,
   isInitialized,
   isUpInferenceComplete,
@@ -270,6 +271,7 @@ export
   savejld,
   loadjld,
   landmarks,
+  setCliqDrawColor,
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
