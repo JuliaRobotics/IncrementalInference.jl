@@ -148,6 +148,16 @@ getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatusUp(cliq)
 """
     $SIGNATURES
 
+Set up initialization or solve status of this `cliq`.
+"""
+function setCliqStatus!(cliq::Graphs.ExVertex, status::Symbol)
+  getData(cliq).initialized = status
+end
+
+
+"""
+    $SIGNATURES
+
 Block the thread until child cliques of `prnt::Graphs.ExVertex` have finished
 attempting upward initialization -- i.e. have status result.
 Return `::Dict{Symbol}` indicating whether next action that should be taken
@@ -569,27 +579,27 @@ function cliqInitSolveUp!(fgl::FactorGraph,
     tryonce = false
     cliqst = getCliqStatus(cliq)
 
-    @info "clique $(cliq.index), status $cliqst -- top of while loop"
+    # @info "clique $(cliq.index), status $cliqst -- top of while loop"
     if cliqst == :needdownmsg && length(prnt) > 0
       # wait here until all children have a valid status
       @info "clique $(cliq.index), blocking on parent until sibling cliques have valid status"
       setCliqDrawColor(cliq, "turquoise")
       drawtree ? drawTree(tree, show=show) : nothing
       stdict = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
-      @info "clique $(cliq.index), siblings have status"
+      # @info "clique $(cliq.index), siblings have status"
     end
 
     # Determine if child clique processes all completed with status :upsolved
     @info "blocking on clique $(cliq.index) until child cliques have status"
     stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
-    @info "clique $(cliq.index) continue, children all have status"
+    # @info "clique $(cliq.index) continue, children all have status"
 
     # hard assumption here on upsolve from leaves to root
     proceed = true
     for (clid, clst) in stdict
       # :needdownmsg # 'send' downward init msg direction
       # :initialized # @warn "something might not be right with init of clid=$clid"
-      clst != :upsolved ? (proceed = false) : nothing
+      !(clst in [:initialized;:upsolved]) ? (proceed = false) : nothing
     end
 
     # if all children are ready, proceed with this cliq initialization
@@ -618,8 +628,6 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       end
       drawtree ? drawTree(tree, show=show) : nothing
     end
-    @info "clique $(cliq.index), bottom of while -- test: "
-    @show areCliqChildrenAllUpSolved(tree, cliq)
   end # while
   return cliqst
 end

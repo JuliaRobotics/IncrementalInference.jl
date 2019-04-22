@@ -683,7 +683,7 @@ end
 function downGibbsCliqueDensity(fg::FactorGraph,
                                 cliq::Graphs.ExVertex,
                                 dwnMsgs::Array{NBPMessage,1},
-                                N::Int=200,
+                                N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false  )
     #
@@ -789,25 +789,27 @@ end
 
 Pass NBPMessages back down the tree -- pre order tree traversal.
 """
-function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
-    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
+  @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
-    mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
-    rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+  mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
+  rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
+  updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+  setCliqStatus!(inp.cliq, :downsolved)
+  drawpdf ? drawTree(inp.bt) : nothing
+
+  # rr = Array{Future,1}()
+  # pcs = procs()
+
+  ddt=Union{}
+  for child in out_neighbors(inp.cliq, inp.bt.bt)
+    ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
+    ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
     drawpdf ? drawTree(inp.bt) : nothing
+  end
 
-    # rr = Array{Future,1}()
-    pcs = procs()
-
-    ddt=Union{}
-    for child in out_neighbors(inp.cliq, inp.bt.bt)
-        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
-        ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
-    end
-
-    # return modifications to factorgraph to calling process
-    return ddt
+  # return modifications to factorgraph to calling process
+  return ddt
 end
 
 """
@@ -940,7 +942,7 @@ end
 
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
+function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
@@ -965,7 +967,7 @@ function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=fa
 end
 
 
-function downGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=200, dbg::Bool=false) where {T}
+function downGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=100, dbg::Bool=false) where {T}
   @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
   mcmciter = inp.prnt != Union{} ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
@@ -1022,7 +1024,7 @@ function dispatchNewDwnProc!(fg::FactorGraph,
                              parentStack::Array{Graphs.ExVertex,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
-                             N::Int=200,
+                             N::Int=100,
                              dbg::Bool=false,
                              drawpdf::Bool=false  )
   #
@@ -1053,7 +1055,7 @@ function processPreOrderStack!(fg::FactorGraph,
                                bt::BayesTree,
                                parentStack::Array{Graphs.ExVertex,1},
                                refdict::Dict{Int,Future};
-                               N::Int=200,
+                               N::Int=100,
                                dbg::Bool=false,
                                drawpdf::Bool=false )
   #
@@ -1070,7 +1072,7 @@ function processPreOrderStack!(fg::FactorGraph,
 end
 
 function downMsgPassingIterative!(startett::ExploreTreeType{T};
-                                  N::Int=200,
+                                  N::Int=100,
                                   dbg::Bool=false,
                                   drawpdf::Bool=false  ) where {T}
   #
@@ -1123,7 +1125,7 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
                                  chldstk::Vector{Graphs.ExVertex},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
-                                 N::Int=200,
+                                 N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  )
   #
@@ -1187,7 +1189,7 @@ end
 function processPostOrderStacks!(fg::FactorGraph,
                                  bt::BayesTree,
                                  childStack::Array{Graphs.ExVertex,1};
-                                 N::Int=200,
+                                 N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  )
   #
@@ -1245,7 +1247,7 @@ Notes:
 * this is where downward iteration process is launched from.
 """
 function upMsgPassingIterative!(startett::ExploreTreeType{T};
-                                N::Int=200,
+                                N::Int=100,
                                 dbg::Bool=false,
                                 drawpdf::Bool=false  ) where {T}
   #
@@ -1273,46 +1275,74 @@ function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Return true or false depending on whether the tree has been fully initialized.
+"""
+function isTreeInitialized(treel::BayesTree)::Bool
+  for (clid, cliq) in treel.cliques
+    if !(getCliqStatus(cliq) in [:upsolved; :initialized])
+      return false
+    end
+  end
+  return true
+end
+
+function isTreeSolvedUp(treel::BayesTree)::Bool
+  for (clid, cliq) in treel.cliques
+    if getCliqStatus(cliq) != :upsolved
+      return false
+    end
+  end
+  return true
+end
+
 
 """
     $SIGNATURES
 
 Perform tree based initialization of all variables not yet initialized in factor graph.
-
-Notes
-* Still in initial development stages.
 """
-function initOnTree!(treel::BayesTree)::Nothing
-  @info "Work in progress, initOnTree! just a cover plate at this stage."
-
-  # Get up message passing order
-
-  # trigger upward init on asyncs (whom each might choose to wait until certain conditions have been met)
-
-  # TODO ensure full initialization is achieved
-
-  # for (ids, cliq) in treel.cliques
-  #   getData(cliq).initialized = :initialized
-  # end
-  nothing
+function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100)
+  alltasks = Vector{Task}(undef, length(treel.cliques))
+  if !isTreeInitialized(treel)
+    for i in 1:length(treel.cliques)
+      alltasks[i] = @async begin
+        cliq = treel.cliques[i]
+        while :upsolved != cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree );
+        end
+      end
+    end
+  end
+  return alltasks
 end
+
 
 """
     $SIGNATURES
 
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
+function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=false, drawpdf::Bool=false, treeinit::Bool=true)::Nothing
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
-  ensureAllInitialized!(fgl)
-  initOnTree!(bt)
-  @info "Do multi-process inference over tree"
-  cliq = bt.cliques[1]
-  upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  cliq = bt.cliques[1]
-  downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  if treeinit
+    @info "Do tree based init-inference on tree"
+    @sync begin
+      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    end
+
+  else
+    ensureAllInitialized!(fgl)
+  end
+  if !isTreeSolvedUp(bt)
+    @info "Do multi-process upward pass of inference on tree"
+    upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  end
+  @info "Do multi-process downward pass of inference on tree"
+  downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   nothing
 end
 
@@ -1321,16 +1351,21 @@ end
 
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
+function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=false, drawpdf::Bool=false, treeinit::Bool=true)::Nothing
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
-  ensureAllInitialized!(fgl)
-  initOnTree!(bt)
-  @info "Do recursive inference over tree"
-  cliq = bt.cliques[1]
-  upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  cliq = bt.cliques[1]
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  if treeinit
+    @sync begin
+      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    end
+  else
+    ensureAllInitialized!(fgl)
+  end
+  if isTreeSolvedUp(bt)
+    @info "Do recursive inference over tree"
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  end
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   nothing
 end

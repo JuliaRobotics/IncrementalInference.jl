@@ -86,7 +86,7 @@ export
   factorCanInitFromOtherVars,
   doautoinit!,
   manualinit!,
-  initOnTree!,
+  initInferTreeUp!,
   resetData!,
   getFactor,
   hasFactor,
@@ -108,6 +108,7 @@ export
   cliqInitSolveUp!,
   isPartial,
   isInitialized,
+  isTreeInitialized,
   isUpInferenceComplete,
   isCliqInitialized,
   isCliqReadyInferenceUp,
@@ -121,6 +122,7 @@ export
   doCliqUpSolve!,
   getCliqInitUpMsgs,
   getCliqStatus,
+  setCliqStatus!,
   getMaxVertId,
   prepCliqInitMsgsUp!,
   prepCliqInitMsgsDown!,
@@ -212,6 +214,10 @@ export
   blockCliqUntilChildrenHaveUpStatus,
   getCliqNumAssocFactorsPerVar,
   upMsgPassingRecursive,
+  downMsgPassingRecursive,
+
+  upMsgPassingIterative!,
+  downMsgPassingIterative!,
 
   # Inference types
   InferenceType,
