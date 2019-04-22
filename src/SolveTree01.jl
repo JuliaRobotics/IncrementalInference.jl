@@ -680,6 +680,14 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     return m
 end
 
+"""
+    $SIGNATURES
+
+Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
+
+Note
+- Only update frontal variables of the clique.
+"""
 function downGibbsCliqueDensity(fg::FactorGraph,
                                 cliq::Graphs.ExVertex,
                                 dwnMsgs::Array{NBPMessage,1},
@@ -688,7 +696,7 @@ function downGibbsCliqueDensity(fg::FactorGraph,
                                 dbg::Bool=false  )
     #
     # TODO standardize function call to have similar stride to upGibbsCliqueDensity
-    @info "dwn"
+    @info "down"
     mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
@@ -730,10 +738,13 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false, fillcolor::String="")
-    # if dlapi.cgEnabled
-    #   return nothing
-    # end
+function updateFGBT!(fg::FactorGraph,
+                     bt::BayesTree,
+                     cliqID::Int,
+                     ddt::DownReturnBPType;
+                     dbg::Bool=false,
+                     fillcolor::String=""  )
+    #
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
@@ -741,14 +752,12 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownRetur
     setDwnMsg!(cliq, ddt.keepdwnmsgs)
     # TODO move to drawTree
     if fillcolor != ""
-      cliq.attributes["fillcolor"] = fillcolor
-      cliq.attributes["style"] = "filled"
+      setCliqDrawColor(cliq, fillcolor)
     end
     for dat in ddt.IDvals
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # updvert.attributes["latestEst"] = Statistics.mean(dat[2],2)
         dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
@@ -772,8 +781,7 @@ function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnB
     setUpMsg!(cliq, urt.keepupmsgs)
     # move to drawTree
     if fillcolor != ""
-      cliq.attributes["fillcolor"] = fillcolor
-      cliq.attributes["style"] = "filled"
+      setCliqDrawColor(cliq, fillcolor)
     end
     for dat in urt.IDvals
       updvert = dlapi.getvertex(fg,dat[1])
@@ -1034,10 +1042,11 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   end
 
   rDDT = fetch(refdict[cliq.index]) #nodedata.cliq
-  delete!(refdict,cliq.index) # nodedata
+  delete!(refdict, cliq.index) # nodedata
 
   if rDDT != Union{}
     updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+    setCliqStatus!(inp.cliq, :downsolved)
     drawpdf ? drawTree(bt) : nothing
   end
 
@@ -1051,6 +1060,14 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Downward message passing on Bayes (Junction) tree.
+
+Notes
+- Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
+"""
 function processPreOrderStack!(fg::FactorGraph,
                                bt::BayesTree,
                                parentStack::Array{Graphs.ExVertex,1},
@@ -1278,11 +1295,13 @@ end
 """
     $SIGNATURES
 
-Return true or false depending on whether the tree has been fully initialized.
+Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
 """
-function isTreeInitialized(treel::BayesTree)::Bool
+function isTreeSolved(treel::BayesTree; skipinitialized::Bool=false)::Bool
+  acclist = Symbol[:upsolved; :downsolved; :marginalized]
+  skipinitialized ? nothing : push!(acclist, :initialized)
   for (clid, cliq) in treel.cliques
-    if !(getCliqStatus(cliq) in [:upsolved; :initialized])
+    if !(getCliqStatus(cliq) in acclist)
       return false
     end
   end
@@ -1339,7 +1358,7 @@ Run through entire tree and set cliques as marginalized if all clique variables 
 Notes:
 - TODO can be made fully parallel, consider converting for use with `@threads` `for`.
 """
-function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::BayesTree)
+function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::BayesTree)::Nothing
   for (clid, cliq) in tree.cliques
     if isCliqMarginalizedFromVars(fgl, cliq)
       setCliqAsMarginalized!(cliq, true)
@@ -1351,17 +1370,43 @@ end
 """
     $SIGNATURES
 
+Reset the Bayes (Junction) tree so that a new upsolve can be performed.
+
+Notes
+- Will change previous clique status from `:downsolved` to `:initialized` only.
+- Sets the color of tree clique to `lightgreen`.
+"""
+function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
+  acclist = Symbol[:downsolved;]
+  for (clid, cliq) in treel.cliques
+    if getCliqStatus(cliq) in acclist
+      setCliqStatus!(cliq, :initialized)
+      setCliqDrawColor(cliq, "sienna")
+    end
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
 function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100)
+  # revert :downsolved status to :initialized in preparation for new upsolve
+  resetTreeCliquesForUpSolve!(treel)
+  drawtree ? drawTree(treel, show=false) : nothing
+
+  # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
   @sync begin
-    if !isTreeInitialized(treel)
+    if !isTreeSolved(treel, skipinitialized=true)
       for i in 1:length(treel.cliques)
         alltasks[i] = @async begin
           cliq = treel.cliques[i]
-          while :upsolved != cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree );
-            @error "looping cliqInitSolveUp!"
+          clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree )
+          if !(clst in [:upsolved; :downsolved; :marginalized])
+            error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
           end
         end
       end

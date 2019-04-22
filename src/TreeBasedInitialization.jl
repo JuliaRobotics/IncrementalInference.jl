@@ -573,8 +573,8 @@ function cliqInitSolveUp!(fgl::FactorGraph,
     return cliqst
   end
 
-  syms = getCliqAllVarSyms(fgl, cliq)
   # build a local subgraph for inference operations
+  syms = getCliqAllVarSyms(fgl, cliq)
   sfg = buildSubgraphFromLabels(fgl, syms)
 
   # get parent cliq
@@ -582,7 +582,7 @@ function cliqInitSolveUp!(fgl::FactorGraph,
 
   tryonce = true
   # upsolve delay loop
-  while tryonce || !areCliqChildrenAllUpSolved(tree, cliq)
+  while tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized])  # !areCliqChildrenAllUpSolved(tree, cliq)
     tryonce = false
     cliqst = getCliqStatus(cliq)
 
@@ -629,9 +629,9 @@ function cliqInitSolveUp!(fgl::FactorGraph,
         frsyms = Symbol[getSym(sfg, varid) for varid in getCliqFrontalVarIds(cliq)]
         transferUpdateSubGraph!(fgl, sfg, frsyms)
       else
-        @info "clique $(cliq.index), init waiting since it cannot fully up solve yet."
+        @info "clique $(cliq.index), init not complete and should wait on init down message."
         setCliqDrawColor(cliq, "green")
-        tryonce = true
+        tryonce = true # TODO, potential problem with trying to downsolve
       end
       drawtree ? drawTree(tree, show=show) : nothing
     end
