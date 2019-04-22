@@ -1302,6 +1302,55 @@ end
 """
     $SIGNATURES
 
+Return `::Bool` on whether all variables in this `cliq` are marginalzed.
+"""
+function isCliqMarginalizedFromVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
+  for vert in getCliqVars(subfg, cliq)
+    if !isMarginalized(vert)
+      return false
+    end
+  end
+  return true
+end
+
+"""
+    $SIGNATURES
+
+Set the marginalized status of a clique.
+"""
+function setCliqAsMarginalized!(cliq::Graphs.ExVertex, status::Bool)
+  if status
+    getData(cliq).initialized = :marginalized
+  else
+    if getData(cliq).initialized == :marginalized
+      @info "Reverting clique $(cliq.index) to assumed :downsolved status"
+      getData(cliq).initialized = :downsolved
+    else
+      error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
+    end
+  end
+end
+
+"""
+    $SIGNATURES
+
+Run through entire tree and set cliques as marginalized if all clique variables are marginalized.
+
+Notes:
+- TODO can be made fully parallel, consider converting for use with `@threads` `for`.
+"""
+function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::BayesTree)
+  for (clid, cliq) in tree.cliques
+    if isCliqMarginalizedFromVars(fgl, cliq)
+      setCliqAsMarginalized!(cliq, true)
+    end
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
 function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100)

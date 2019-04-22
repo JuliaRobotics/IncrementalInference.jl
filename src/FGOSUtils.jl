@@ -767,6 +767,11 @@ function hasFactor(fgl::FactorGraph, sym::Symbol)
   return ret
 end
 
+"""
+    $SIGNATURES
 
+Return `::Bool` on whether this variable has been marginalized.
+"""
+isMarginalized(vert::Graphs.ExVertex) = getData(vert).ismargin
 
 #

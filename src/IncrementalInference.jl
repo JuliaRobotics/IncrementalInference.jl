@@ -188,9 +188,13 @@ export
   approxConvBinary,
 
   # more debugging tools
-  localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
+  localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
+  isMarginalized,
+  isCliqMarginalizedFromVars,
+  setCliqAsMarginalized!,
+  updateTreeCliquesAsMarginalizedFromVars!,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -257,6 +261,7 @@ export
   getFrontals,                     # duplicate
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
+  getCliqVars,
   getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,

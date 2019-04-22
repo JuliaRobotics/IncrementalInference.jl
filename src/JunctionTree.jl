@@ -599,6 +599,18 @@ function getCliqAllVarSyms(fgl::FactorGraph, cliq::Graphs.ExVertex)::Vector{Symb
   Symbol[getSym(fgl, varid) for varid in getCliqAllVarIds(cliq)]
 end
 
+"""
+    $SIGNATURES
+
+Return array of all variable vertices in a clique.
+"""
+function getCliqVars(subfg::FactorGraphs, cliq::Graphs.ExVertex)
+  verts = Graphs.ExVertex[]
+  for vid in getCliqVars(subfg, cliq)
+    push!(verts, getVert(subfg, vid, api=localapi))
+  end
+  return verts
+end
 
 """
     $SIGNATURES

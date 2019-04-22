@@ -563,9 +563,16 @@ function cliqInitSolveUp!(fgl::FactorGraph,
                           tree::BayesTree,
                           cliq::Graphs.ExVertex;
                           drawtree::Bool=false,
-                          show::Bool=false  )
+                          show::Bool=false,
+                          incremental::Bool=true  )
   #
-  cliqst = :none
+  # check clique status
+  cliqst = getCliqStatus(cliq)
+
+  if incremenal && cliqst in [:upsolved; :downsolved; :marginalized]
+    return cliqst
+  end
+
   syms = getCliqAllVarSyms(fgl, cliq)
   # build a local subgraph for inference operations
   sfg = buildSubgraphFromLabels(fgl, syms)
