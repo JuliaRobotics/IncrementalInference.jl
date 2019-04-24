@@ -8,7 +8,7 @@ function getCliqInitUpMsgs(cliq::Graphs.ExVertex)
   getData(cliq).upInitMsgs
 end
 
-function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict{})
+function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict)
   getData(cliq).upInitMsgs[childid] = msg
 end
 
@@ -82,8 +82,12 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
 end
 
 function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
+  @info "Clique $(cliq.index), norify down init status=$(status)"
   cd = getData(cliq)
   cd.initialized = status
+  if isready(cd.initDownChannel)
+    @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
+  end
   put!(cd.initDownChannel, status)
 end
 
@@ -125,7 +129,9 @@ end
 Blocking call until `cliq` upInit processes has arrived at a result.
 """
 function getCliqInitUpResultFromChannel(cliq::Graphs.ExVertex)
-  take!(getData(cliq).initUpChannel)
+  status = take!(getData(cliq).initUpChannel)
+  @info "Clique $(cliq.index), dumping initUpChannel status, $status"
+  return status
 end
 
 """
@@ -176,7 +182,6 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
   for ch in chlr
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
-    @show ch.index, chst
     if chst != :null && !isready(getData(ch).initUpChannel)
       ret[ch.index] = chst
     else
@@ -184,6 +189,46 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     end
   end
   return ret
+end
+
+"""
+    $SIGNATURES
+
+Wait here if all siblings and the parent status are `:needdownmsg`.
+Return true when parent is `:initialized` after all were `:needdownmsg`
+
+Notes
+- used for regulating long need down message chains.
+- exit strategy is parent becomes status `:initialized`.
+"""
+function blockCliqSiblingsParentNeedDown(tree::BayesTree,
+                                         cliq::Graphs.ExVertex)
+  #
+  # ret = Dict{Int, Symbol}()
+  prnt = getParent(tree, cliq)
+  allneeddwn = true
+  if length(prnt) > 0
+    prstat = getCliqStatus(prnt[1])
+    if prstat == :needdownmsg
+      for ch in getChildren(tree, prnt[1])
+        chst = getCliqStatusUp(ch)
+        if chst != :needdownmsg
+          allneeddwn = false
+        end
+      end
+      if allneeddwn
+        @warn "Clique $(cliq.index), block since all siblings/parent needdownmsg."
+        prmsg = fetch(getData(prnt[1]).initDownChannel)
+        if prtmsg == :initialized
+          return true
+        else
+          @warn "Clique $(prnt[1].index), maybe clear down init message $prtmsg"
+          # take!(getData(prnt[1]).initDownChannel)
+        end
+      end
+    end
+  end
+  return false
 end
 
 """
@@ -198,6 +243,7 @@ Notes:
 - intended for both up and down initialization operations.
 """
 function cycleInitByVarOrder!(subfg::FactorGraph, varorder::Vector{Int})::Bool
+  @info "cycleInitByVarOrder! -- varorder=$(varorder)"
   retval = false
   count = 1
   while count > 0
@@ -205,6 +251,7 @@ function cycleInitByVarOrder!(subfg::FactorGraph, varorder::Vector{Int})::Bool
     for vid in varorder
       var = getVert(subfg, vid, api=localapi)
       isinit = isInitialized(var)
+      @info "going for doautoinit!, var.label=$(var.label), isinit=$(isinit)"
       # TODO -- must use factors and values in cliq (assume subgraph?)
       doautoinit!(subfg, ExVertex[var;], api=localapi)
       if isinit != isInitialized(var)
@@ -213,6 +260,7 @@ function cycleInitByVarOrder!(subfg::FactorGraph, varorder::Vector{Int})::Bool
       end
     end
   end
+  @info "cycleInitByVarOrder!, retval=$(retval)"
   return retval
 end
 
@@ -273,7 +321,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   upmsgs = getCliqInitUpMsgs(cliq)
 
   # add incoming up messages as priors to subfg
-  @info "adding up message factors"
+  @info "Clique $(cliq.index), doCliqAutoInitUp! -- adding up message factors"
   msgfcts = addMsgFactors!(subfg, upmsgs)
 
     # TEMP
@@ -284,9 +332,9 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqInitVarOrderUp(cliq)
     # do physical inits, ignore cycle return value
-    @show "going for up cycle order"
+    @info "Clique $(cliq.index), doCliqAutoInitUp! -- going for up cycle order"
     cycleInitByVarOrder!(subfg, varorder)
-    @show "finished with up cycle order"
+    @info "Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
   end
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
@@ -301,15 +349,16 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   @show prnt = getParent(tree, cliq)
   if length(prnt) > 0
     # not a root clique
+    @info "Clique $(cliq.index), doCliqAutoInitUp! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
-  @info "removing up message factors, length=$(length(msgfcts))"
+  @info "Clique $(cliq.index), doCliqAutoInitUp! -- removing up message factors, length=$(length(msgfcts))"
   deleteMsgFactors!(subfg, msgfcts)
 
   # set flags in clique for multicore sequencing
-  @info "sending notification of up init status"
+  @info "Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status"
   notifyCliqUpInitStatus!(cliq, status)
   return status
 end
@@ -327,8 +376,10 @@ Notes
 """
 function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
   #
+  @info "Clique $(cliq.index), prepCliqInitMsgsDown!"
   # get the current messages stored in the parent
   currmsgs = getCliqInitUpMsgs(cliq)
+  @info "Clique $(cliq.index), msg keys=$(collect(keys(currmsgs)))"
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
@@ -341,8 +392,11 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
     end
   end
 
-  # multiply multiple messages together
+  @info "Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
+
+  # use default allocated dict
   products = getData(cliq).downInitMsg # Dict{Symbol, BallTreeDensity}()
+  # multiply multiple messages together
   for (msgsym, msgs) in msgspervar
     # check if this particular down message requires msgsym
     if haskey(fgl.IDs, msgsym)
@@ -359,6 +413,7 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
     end
   end
 
+  @info "Clique $(cliq.index), product keys=$(collect(keys(products)))"
   return products
 end
 
@@ -521,33 +576,62 @@ function doCliqInitDown!(subfg::FactorGraph,
                          tree::BayesTree,
                          cliq::Graphs.ExVertex  )
   #
-  @warn "entering doCliqInitDown"
+  @info "Clique $(cliq.index), doCliqInitDown! -- 1"
   status = :badinit
   # get down messages from parent
   prnt = getParent(tree, cliq)[1]
+  @info "Clique $(cliq.index), doCliqInitDown! -- 2"
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-
+  @info "Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
+  @show initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
+  @show map(x->getSym(subfg, x), initorder)
 
+  @info "Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
+  @info "Clique $(cliq.index), doCliqInitDown! -- 5"
   # cycle through vars and attempt init
   if cycleInitByVarOrder!(subfg, initorder)
     @show status = :initialized
   end
 
+  @info "Clique $(cliq.index), doCliqInitDown! -- 6"
   # check if all cliq variables have been initialized
   if !areCliqVariablesAllInitialized(subfg, cliq)
-    status = :needdownmsg
+    # first check if more information is available from child cliques
+    revertdnst = true
+    for ch in getChildren(tree, cliq)
+      if getCliqStatus(ch) == :needdownmsg
+        revertdnst = false
+      end
+    end
+    if revertdnst
+      # only if no children that needdownmsg
+      @show status = :needdownmsg
+    else
+      @info "Clique $(cliq.index), doCliqInitDown! -- staying with current status: $status"
+    end
   end
 
+  @info "Clique $(cliq.index), doCliqInitDown! -- 7"
   # remove msg factors previously added
   deleteMsgFactors!(subfg, msgfcts)
 
+  if areCliqChildrenNeedDownMsg(tree, cliq)
+    # set messages if children :needdownmsg
+    @warn "Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
+    # construct init's up msg to place in parent from initialized separator variables
+    msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
+    @info "Clique $(cliq.index), putting upinitmsg back in cliq, with msgs for $(collect(keys(msg)))"
+    setCliqUpInitMsgs!(cliq, cliq.index, msg)
+  end
+
+  @info "Clique $(cliq.index), doCliqInitDown! -- 8"
   # queue the response in a channel to signal waiting tasks
   notifyCliqDownInitStatus!(cliq, status)
+  @info "Clique $(cliq.index), doCliqInitDown! -- 9, $status"
   return status
 end
 
@@ -565,6 +649,21 @@ function areCliqChildrenNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)::Boo
   return false
 end
 
+"""
+    $SIGNATURES
+
+Return true if has parent with status `:needdownmsg`.
+"""
+function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)
+  prnt = getParent(tree, cliq)
+  if length(prnt) == 0
+    return false
+  end
+  prstat = getCliqStatus(prnt[1])
+  @info "Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
+  return prstat == :needdownmsg
+end
+
 
 """
     $SIGNATURES
@@ -580,7 +679,8 @@ function cliqInitSolveUp!(fgl::FactorGraph,
                           cliq::Graphs.ExVertex;
                           drawtree::Bool=false,
                           show::Bool=false,
-                          incremental::Bool=true  )
+                          incremental::Bool=true,
+                          limititers::Int=-1 )
   #
   # check clique status
   cliqst = getCliqStatus(cliq)
@@ -596,12 +696,17 @@ function cliqInitSolveUp!(fgl::FactorGraph,
   # get parent cliq
   prnt = getParent(tree, cliq)
 
+  countiters = 0
   tryonce = true
   # upsolve delay loop
-  while tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized])  # !areCliqChildrenAllUpSolved(tree, cliq)
-    @show "Clique $(cliq.index), top of while"
+  while (0 < limititers || limititers == -1) && (tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized]))  # !areCliqChildrenAllUpSolved(tree, cliq)
+    countiters += 1
+    @info "Clique $(cliq.index), #$countiters, top of while"
+    limititers != -1 ? (limititers -= 1) : nothing
     tryonce = false
+    forceproceed = false
     cliqst = getCliqStatus(cliq)
+    stdictprnt = Dict{Int, Symbol}()
 
     # @info "clique $(cliq.index), status $cliqst -- top of while loop"
     if cliqst == :needdownmsg && length(prnt) > 0
@@ -610,19 +715,19 @@ function cliqInitSolveUp!(fgl::FactorGraph,
         @info "clique $(cliq.index), blocking on parent until all sibling cliques have valid status"
         setCliqDrawColor(cliq, "turquoise")
         drawtree ? drawTree(tree, show=show) : nothing
-        stdict = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
+        stdictprnt = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
       else
         @warn "WIP must deal with child :needdownmsg"
-
+        forceproceed = true
       end
     end
 
     # Determine if child clique processes all completed with status :upsolved
-    @info "blocking on clique $(cliq.index) until child cliques have status, cliqst=$(cliqst)"
+    @info "Clique $(cliq.index), cliqInitSolveUp! -- blocking until child cliques have status, cliqst=$(cliqst)"
     stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
     # @info "clique $(cliq.index) continue, children all have status"
 
-    # also need a catch if longer down chain of :needdownmsg
+    # also need a catch/promote if longer down chain of :needdownmsg
     if cliqst == :null
       chstatus = collect(values(stdict))
       len = length(chstatus)
@@ -645,39 +750,61 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       # :initialized # @warn "something might not be right with init of clid=$clid"
       !(clst in [:initialized;:upsolved]) ? (proceed = false) : nothing
     end
-    @show "Clique $(cliq.index), proceed=$(proceed), tryonce=$tryonce"
+    @info "Clique $(cliq.index), proceed=$(proceed), tryonce=$tryonce, clst=$(cliqst)"
+
+    # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
+    @info "Clique $(cliq.index), check block on siblings, parent :needdownmsg status, clst=$(cliqst), proceed=$proceed, forceproceed=$forceproceed."
+    blockCliqSiblingsParentNeedDown(tree, cliq)
+
+    # add case for if children are blocked on need down msg
+      # if !proceed && cliqst == :needdownmsg
+      #   # check with siblings of cliq
+      #   for (clid, clst) in stdictprnt
+      #     @show clid, clst
+      #     # try get this clique unstuck
+      #     (clst in [:upsolved;]) ? (proceed = true) : nothing
+      #   end
+      # end
+      # need new status perhaps  :needdownpass
 
     # if all children are ready, proceed with this cliq initialization
-    if proceed
+    if proceed || forceproceed
       # start computations
       setCliqDrawColor(cliq, "red")
       drawtree ? drawTree(tree, show=show) : nothing
       # evaluate according to cliq status
-      if cliqst == :needdownmsg
+      isprntnddw = isCliqParentNeedDownMsg(tree, cliq)
+      @info "clique $(cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(tree, cliq))"
+      if cliqst == :needdownmsg && !isprntnddw
         # initialize clique in downward direction
-        @info "this clique needs down message information and will now try do down init."
+        # not if parent also needs downward init message
+        @info "clique $(cliq.index), needs down message -- attempt down init"
         cliqst = doCliqInitDown!(sfg, tree, cliq)
+        @info "clique $(cliq.index), after down init attempt, $cliqst."
       end
-      if cliqst in [:initialized; :null]
-        @info "going for doCliqAutoInitUp!"
+      if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
+        @info "clique $(cliq.index), going for doCliqAutoInitUp!"
         cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
       end
       if cliqst == :upsolved
-        @info "going for transferUpdateSubGraph!"
+        @info "clique $(cliq.index), going for transferUpdateSubGraph!"
         frsyms = Symbol[getSym(sfg, varid) for varid in getCliqFrontalVarIds(cliq)]
         transferUpdateSubGraph!(fgl, sfg, frsyms)
+      elseif cliqst == :initialized
+        # @info "clique $(cliq.index), update down init messages"  # OBSOLETE
+        setCliqDrawColor(cliq, "sienna")
       else
-        @info "clique $(cliq.index), init not complete and should wait on init down message."
+        @info "Clique $(cliq.index), init not complete and should wait on init down message."
         setCliqDrawColor(cliq, "green")
         tryonce = true # TODO, potential problem with trying to downsolve
       end
       drawtree ? drawTree(tree, show=show) : nothing
     end
-    @show "Clique $(cliq.index), bottom of while"
+    @info "Clique $(cliq.index), #$countiters, bottom of while, cliqst=$(cliqst)"
   end # while
+  @info "clique $(cliq.index), total #$countiters, after while completed up inference."
   return cliqst
 end
-# @info "Clique $(cliq.index), after while completed up inference."
 
 
 # """

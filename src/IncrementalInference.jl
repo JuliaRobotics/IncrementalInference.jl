@@ -195,6 +195,7 @@ export
   approxCliqMarginalUp!,
   isMarginalized,
   isCliqMarginalizedFromVars,
+  isCliqParentNeedDownMsg,
   setCliqAsMarginalized!,
   updateTreeCliquesAsMarginalizedFromVars!,
 
@@ -218,6 +219,7 @@ export
   getCliqInitVarOrderDown,
   getCliqStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
+  blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
   upMsgPassingRecursive,
   downMsgPassingRecursive,
