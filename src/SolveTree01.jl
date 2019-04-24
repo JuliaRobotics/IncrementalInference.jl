@@ -61,12 +61,12 @@ end
 Add all potentials associated with this clique and vertid to dens.
 """
 function packFromLocalPotentials!(fgl::FactorGraph,
-      dens::Vector{BallTreeDensity},
-      wfac::Vector{AbstractString},
-      cliq::Graphs.ExVertex,
-      vertid::Int,
-      N::Int,
-      dbg::Bool=false )
+                                  dens::Vector{BallTreeDensity},
+                                  wfac::Vector{AbstractString},
+                                  cliq::Graphs.ExVertex,
+                                  vertid::Int,
+                                  N::Int,
+                                  dbg::Bool=false )
   #
   for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
@@ -200,7 +200,6 @@ function productbelief(fg::FactorGraph,
                        N::Int;
                        dbg::Bool=false )
   #
-
   vert = getVert(fg, vertid, api=localapi)
   manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
@@ -975,7 +974,10 @@ function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=fa
 end
 
 
-function downGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=100, dbg::Bool=false) where {T}
+function downGibbsCliqueDensity(inp::ExploreTreeType{T},
+                                N::Int=100,
+                                dbg::Bool=false  ) where {T}
+  #
   @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
   mcmciter = inp.prnt != Union{} ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
@@ -1102,7 +1104,7 @@ function downMsgPassingIterative!(startett::ExploreTreeType{T};
                                         startett.prnt, startett.sendmsgs)
   refdict[startett.cliq.index] = remotecall(downGibbsCliqueDensity, upp2(), pett, N)  # for Julia 0.5
 
-  push!(parentStack, startett.cliq ) # r
+  push!(parentStack, startett.cliq )
 
   prepDwnPreOrderStack!(startett.bt, parentStack)
   processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg, drawpdf=drawpdf )
@@ -1201,8 +1203,15 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
   nothing
 end
 
+"""
+    $SIGNATURES
 
-# upward belief propagation message passing function
+Multiprocess upward belief propagation message passing function, using async tasks.
+
+Notes
+- asyncs used to wrap remotecall for multicore.
+- separate multithreaded calls can occur on each separate process.
+"""
 function processPostOrderStacks!(fg::FactorGraph,
                                  bt::BayesTree,
                                  childStack::Array{Graphs.ExVertex,1};
@@ -1421,7 +1430,13 @@ end
 
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=false, drawpdf::Bool=false, treeinit::Bool=true)::Nothing
+function inferOverTree!(fgl::FactorGraph,
+                        bt::BayesTree;
+                        N::Int=100,
+                        dbg::Bool=false,
+                        drawpdf::Bool=false,
+                        treeinit::Bool=false  )::Nothing
+  #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
@@ -1433,7 +1448,7 @@ function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=f
   else
     ensureAllInitialized!(fgl)
   end
-  if !isTreeSolvedUp(bt)
+  if !treeinit # !isTreeSolvedUp(bt)
     @info "Do multi-process upward pass of inference on tree"
     upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
@@ -1447,7 +1462,13 @@ end
 
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=false, drawpdf::Bool=false, treeinit::Bool=true)::Nothing
+function inferOverTreeR!(fgl::FactorGraph,
+                         bt::BayesTree;
+                         N::Int=100,
+                         dbg::Bool=false,
+                         drawpdf::Bool=false,
+                         treeinit::Bool=false  )::Nothing
+  #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
@@ -1456,7 +1477,7 @@ function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=100, dbg::Bool=
   else
     ensureAllInitialized!(fgl)
   end
-  if isTreeSolvedUp(bt)
+  if !treeinit # !isTreeSolvedUp(bt)
     @info "Do recursive inference over tree"
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   end

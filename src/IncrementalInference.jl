@@ -115,6 +115,7 @@ export
   isCliqReadyInferenceUp,
   isCliqUpSolved,
   areCliqVariablesAllInitialized,
+  areCliqChildrenNeedDownMsg,
   areCliqChildrenAllUpSolved,
   ensureAllInitialized!,
   doCliqAutoInitUp!,
