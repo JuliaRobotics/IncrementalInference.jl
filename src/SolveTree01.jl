@@ -1404,6 +1404,7 @@ Perform tree based initialization of all variables not yet initialized in factor
 function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100, limititers::Int=-1)
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
+  setTreeCliquesMarginalized!(fgl, treel)
   drawtree ? drawTree(treel, show=false) : nothing
 
   # queue all the tasks
@@ -1475,12 +1476,11 @@ function inferOverTreeR!(fgl::FactorGraph,
   if treeinit
     inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
   else
+    @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
-  end
-  if !treeinit # !isTreeSolvedUp(bt)
-    @info "Do recursive inference over tree"
     upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   end
+  @info "Do recursive down inference over tree"
   downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   nothing
 end

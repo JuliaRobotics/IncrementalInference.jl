@@ -269,6 +269,8 @@ export
   getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,
+  areCliqVariablesAllMarginalized,
+  setTreeCliquesMarginalized!,
 
   # generic marginal used during elimitation game
   GenericMarginal,
