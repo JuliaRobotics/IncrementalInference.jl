@@ -218,7 +218,8 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
       end
       if allneeddwn
         @warn "$(current_task()) Clique $(cliq.index), block since all siblings/parent needdownmsg."
-        prmsg = fetch(getData(prnt[1]).initDownChannel)
+        prtmsg = fetch(getData(prnt[1]).initDownChannel)
+        @info "Clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
         if prtmsg == :initialized
           return true
         else
@@ -634,11 +635,13 @@ function doCliqInitDown!(subfg::FactorGraph,
     @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
     #fake up message
     setCliqUpInitMsgs!(cliq, cliq.index, msg)
+    setCliqStatus!(cliq, status)
+    setCliqDrawColor(cliq, "sienna")
+    notifyCliqDownInitStatus!(cliq, status)
   end
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
   # queue the response in a channel to signal waiting tasks
-  notifyCliqDownInitStatus!(cliq, status)
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
   return status
 end
