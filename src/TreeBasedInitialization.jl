@@ -82,7 +82,7 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
 end
 
 function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
-  @info "Clique $(cliq.index), norify down init status=$(status)"
+  @info "$(current_task()) Clique $(cliq.index), notify down init status=$(status)"
   cd = getData(cliq)
   cd.initialized = status
   if isready(cd.initDownChannel)
@@ -118,7 +118,7 @@ function isCliqReadyInferenceUp(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.
 
   # check that all child cliques have also completed full up inference.
   for chl in getChildren(tree, cliq)
-    @show isallinit &= isUpInferenceComplete(chl)
+    isallinit &= isUpInferenceComplete(chl)
   end
   return isallinit
 end
@@ -130,7 +130,7 @@ Blocking call until `cliq` upInit processes has arrived at a result.
 """
 function getCliqInitUpResultFromChannel(cliq::Graphs.ExVertex)
   status = take!(getData(cliq).initUpChannel)
-  @info "Clique $(cliq.index), dumping initUpChannel status, $status"
+  @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
   return status
 end
 
@@ -217,7 +217,7 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
         end
       end
       if allneeddwn
-        @warn "Clique $(cliq.index), block since all siblings/parent needdownmsg."
+        @warn "$(current_task()) Clique $(cliq.index), block since all siblings/parent needdownmsg."
         prmsg = fetch(getData(prnt[1]).initDownChannel)
         if prtmsg == :initialized
           return true
@@ -321,7 +321,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   upmsgs = getCliqInitUpMsgs(cliq)
 
   # add incoming up messages as priors to subfg
-  @info "Clique $(cliq.index), doCliqAutoInitUp! -- adding up message factors"
+  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- adding up message factors"
   msgfcts = addMsgFactors!(subfg, upmsgs)
 
     # TEMP
@@ -332,33 +332,35 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqInitVarOrderUp(cliq)
     # do physical inits, ignore cycle return value
-    @info "Clique $(cliq.index), doCliqAutoInitUp! -- going for up cycle order"
+    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- going for up cycle order"
     cycleInitByVarOrder!(subfg, varorder)
-    @info "Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
+    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
   end
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
-    @show status = doCliqUpSolve!(subfg, tree, cliq)
+    status = doCliqUpSolve!(subfg, tree, cliq)
+    @info "$(current_task()) Clique $(cliq.index), status = doCliqUpSolve! = $(status)"
   end
 
   # construct init's up msg to place in parent from initialized separator variables
   msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
 
   # put the init result in the parent cliq.
-  @show prnt = getParent(tree, cliq)
+  prnt = getParent(tree, cliq)
+  @info "$(current_task()) Clique $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
   if length(prnt) > 0
     # not a root clique
-    @info "Clique $(cliq.index), doCliqAutoInitUp! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
-  @info "Clique $(cliq.index), doCliqAutoInitUp! -- removing up message factors, length=$(length(msgfcts))"
+  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- removing up message factors, length=$(length(msgfcts))"
   deleteMsgFactors!(subfg, msgfcts)
 
   # set flags in clique for multicore sequencing
-  @info "Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status"
+  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status"
   notifyCliqUpInitStatus!(cliq, status)
   return status
 end
@@ -376,14 +378,15 @@ Notes
 """
 function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
   #
-  @info "Clique $(cliq.index), prepCliqInitMsgsDown!"
+  @info "$(current_task()) Clique $(cliq.index), prepCliqInitMsgsDown!"
   # get the current messages stored in the parent
   currmsgs = getCliqInitUpMsgs(cliq)
-  @info "Clique $(cliq.index), msg keys=$(collect(keys(currmsgs)))"
+  @info "$(current_task()) Clique $(cliq.index), msg keys=$(collect(keys(currmsgs)))"
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
   for (cliqid, msgs) in currmsgs
+    @show cliqid, length(msgs)
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
         msgspervar[msgsym] = Vector{BallTreeDensity}()
@@ -392,7 +395,7 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
     end
   end
 
-  @info "Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
+  @info "$(current_task()) Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
 
   # use default allocated dict
   products = getData(cliq).downInitMsg # Dict{Symbol, BallTreeDensity}()
@@ -413,7 +416,7 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
     end
   end
 
-  @info "Clique $(cliq.index), product keys=$(collect(keys(products)))"
+  @info "$(current_task()) Clique $(cliq.index), product keys=$(collect(keys(products)))"
   return products
 end
 
@@ -571,67 +574,72 @@ Notes:
 Algorithm:
 - determine which downward messages influence initialization order
 - initialize from singletons to most connected non-singletons
+- revert back to needdownmsg if cycleInit does nothing
+- can only ever return :initialized or :needdownmsg status
 """
 function doCliqInitDown!(subfg::FactorGraph,
                          tree::BayesTree,
                          cliq::Graphs.ExVertex  )
   #
-  @info "Clique $(cliq.index), doCliqInitDown! -- 1"
-  status = :badinit
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1"
+  status = :needdownmsg #:badinit
   # get down messages from parent
   prnt = getParent(tree, cliq)[1]
-  @info "Clique $(cliq.index), doCliqInitDown! -- 2"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 2"
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  @info "Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # get down variable initialization order
   @show initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
   @show map(x->getSym(subfg, x), initorder)
 
-  @info "Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
-  @info "Clique $(cliq.index), doCliqInitDown! -- 5"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5"
   # cycle through vars and attempt init
   if cycleInitByVarOrder!(subfg, initorder)
-    @show status = :initialized
+    # if areCliqVariablesAllInitialized(subfg, cliq)
+    status = :initialized
+    # end
   end
 
-  @info "Clique $(cliq.index), doCliqInitDown! -- 6"
-  # check if all cliq variables have been initialized
-  if !areCliqVariablesAllInitialized(subfg, cliq)
-    # first check if more information is available from child cliques
-    revertdnst = true
-    for ch in getChildren(tree, cliq)
-      if getCliqStatus(ch) == :needdownmsg
-        revertdnst = false
-      end
-    end
-    if revertdnst
-      # only if no children that needdownmsg
-      @show status = :needdownmsg
-    else
-      @info "Clique $(cliq.index), doCliqInitDown! -- staying with current status: $status"
-    end
-  end
-
-  @info "Clique $(cliq.index), doCliqInitDown! -- 7"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 6, current status: $status"
   # remove msg factors previously added
   deleteMsgFactors!(subfg, msgfcts)
 
+  # # check if all cliq variables have been initialized
+  # if !areCliqVariablesAllInitialized(subfg, cliq)
+  #   # first check if more information is available from child cliques
+  #   revertdnst = true
+  #   for ch in getChildren(tree, cliq)
+  #     if getCliqStatus(ch) == :needdownmsg
+  #       revertdnst = false
+  #     end
+  #   end
+  #   if revertdnst
+  #     # only if no children that needdownmsg
+  #     @show status = :needdownmsg
+  #   end
+  # end
+
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
+
   if areCliqChildrenNeedDownMsg(tree, cliq)
+    # status = :initialized
     # set messages if children :needdownmsg
-    @warn "Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
+    @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
     # construct init's up msg to place in parent from initialized separator variables
     msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
-    @info "Clique $(cliq.index), putting upinitmsg back in cliq, with msgs for $(collect(keys(msg)))"
+    @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
+    #fake up message
     setCliqUpInitMsgs!(cliq, cliq.index, msg)
   end
 
-  @info "Clique $(cliq.index), doCliqInitDown! -- 8"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
   # queue the response in a channel to signal waiting tasks
   notifyCliqDownInitStatus!(cliq, status)
-  @info "Clique $(cliq.index), doCliqInitDown! -- 9, $status"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
   return status
 end
 
@@ -660,7 +668,7 @@ function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)
     return false
   end
   prstat = getCliqStatus(prnt[1])
-  @info "Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
+  @info "$(current_task()) Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
   return prstat == :needdownmsg
 end
 
@@ -701,31 +709,31 @@ function cliqInitSolveUp!(fgl::FactorGraph,
   # upsolve delay loop
   while (0 < limititers || limititers == -1) && (tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized]))  # !areCliqChildrenAllUpSolved(tree, cliq)
     countiters += 1
-    @info "Clique $(cliq.index), #$countiters, top of while"
+    @info "$(current_task()) Clique $(cliq.index), #$countiters, top of while"
     limititers != -1 ? (limititers -= 1) : nothing
     tryonce = false
     forceproceed = false
     cliqst = getCliqStatus(cliq)
     stdictprnt = Dict{Int, Symbol}()
 
-    # @info "clique $(cliq.index), status $cliqst -- top of while loop"
+    # @info "$(current_task()) Clique $(cliq.index), status $cliqst -- top of while loop"
     if cliqst == :needdownmsg && length(prnt) > 0
       # wait here until all children have a valid status
       if !areCliqChildrenNeedDownMsg(tree, cliq)
-        @info "clique $(cliq.index), blocking on parent until all sibling cliques have valid status"
+        @info "$(current_task()) Clique $(cliq.index), blocking on parent until all sibling cliques have valid status"
         setCliqDrawColor(cliq, "turquoise")
         drawtree ? drawTree(tree, show=show) : nothing
         stdictprnt = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
       else
-        @warn "WIP must deal with child :needdownmsg"
+        @warn "$(current_task()) Clique $(cliq.index), WIP must deal with child :needdownmsg"
         forceproceed = true
       end
     end
 
     # Determine if child clique processes all completed with status :upsolved
-    @info "Clique $(cliq.index), cliqInitSolveUp! -- blocking until child cliques have status, cliqst=$(cliqst)"
+    @info "$(current_task()) Clique $(cliq.index), cliqInitSolveUp! -- blocking until child cliques have status, cliqst=$(cliqst)"
     stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
-    # @info "clique $(cliq.index) continue, children all have status"
+    # @info "$(current_task()) Clique $(cliq.index) continue, children all have status"
 
     # also need a catch/promote if longer down chain of :needdownmsg
     if cliqst == :null
@@ -734,8 +742,9 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       if len > 0 && sum(chstatus .== :needdownmsg) == len
         # TODO maybe can happen where some children need more information?
         lbl = cliq.attributes["label"]
-        @info "Clique $(cliq.index) |  $lbl | escalating to :needdownmsg since all children :needdownmsg"
+        @info "$(current_task()) Clique $(cliq.index) |  $lbl | escalating to :needdownmsg since all children :needdownmsg"
         setCliqStatus!(cliq, :needdownmsg)
+        cliqst = getCliqStatus(cliq)
         setCliqDrawColor(cliq, "green")
         tryonce = true
       end
@@ -745,15 +754,15 @@ function cliqInitSolveUp!(fgl::FactorGraph,
     proceed = true
     # TODO not sure if we want stdict from cliq or prnt???
     for (clid, clst) in stdict
-      @show clid, clst
+      @info "$(current_task()) Clique $(cliq.index), check stdict: clid=$(clid), clst=$(clst)"
       # :needdownmsg # 'send' downward init msg direction
       # :initialized # @warn "something might not be right with init of clid=$clid"
       !(clst in [:initialized;:upsolved]) ? (proceed = false) : nothing
     end
-    @info "Clique $(cliq.index), proceed=$(proceed), tryonce=$tryonce, clst=$(cliqst)"
+    @info "$(current_task()) Clique $(cliq.index), proceed=$(proceed), tryonce=$tryonce, clst=$(cliqst)"
 
     # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-    @info "Clique $(cliq.index), check block on siblings, parent :needdownmsg status, clst=$(cliqst), proceed=$proceed, forceproceed=$forceproceed."
+    @info "$(current_task()) Clique $(cliq.index), check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$proceed, forceproceed=$forceproceed."
     blockCliqSiblingsParentNeedDown(tree, cliq)
 
     # add case for if children are blocked on need down msg
@@ -774,35 +783,35 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       drawtree ? drawTree(tree, show=show) : nothing
       # evaluate according to cliq status
       isprntnddw = isCliqParentNeedDownMsg(tree, cliq)
-      @info "clique $(cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(tree, cliq))"
+      @info "$(current_task()) Clique $(cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(tree, cliq))"
       if cliqst == :needdownmsg && !isprntnddw
         # initialize clique in downward direction
         # not if parent also needs downward init message
-        @info "clique $(cliq.index), needs down message -- attempt down init"
+        @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
         cliqst = doCliqInitDown!(sfg, tree, cliq)
-        @info "clique $(cliq.index), after down init attempt, $cliqst."
+        @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
       end
       if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
-        @info "clique $(cliq.index), going for doCliqAutoInitUp!"
+        @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
         cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
       end
       if cliqst == :upsolved
-        @info "clique $(cliq.index), going for transferUpdateSubGraph!"
+        @info "$(current_task()) Clique $(cliq.index), going for transferUpdateSubGraph!"
         frsyms = Symbol[getSym(sfg, varid) for varid in getCliqFrontalVarIds(cliq)]
         transferUpdateSubGraph!(fgl, sfg, frsyms)
       elseif cliqst == :initialized
-        # @info "clique $(cliq.index), update down init messages"  # OBSOLETE
+        # @info "$(current_task()) Clique $(cliq.index), set update down init messages: "  # OBSOLETE
         setCliqDrawColor(cliq, "sienna")
       else
-        @info "Clique $(cliq.index), init not complete and should wait on init down message."
+        @info "$(current_task()) Clique $(cliq.index), init not complete and should wait on init down message."
         setCliqDrawColor(cliq, "green")
         tryonce = true # TODO, potential problem with trying to downsolve
       end
       drawtree ? drawTree(tree, show=show) : nothing
     end
-    @info "Clique $(cliq.index), #$countiters, bottom of while, cliqst=$(cliqst)"
+    @info "$(current_task()) Clique $(cliq.index), #$countiters, bottom of while, cliqst=$(cliqst)"
   end # while
-  @info "clique $(cliq.index), total #$countiters, after while completed up inference."
+  @info "$(current_task()) Clique $(cliq.index), total #$countiters, after while completed up inference."
   return cliqst
 end
 
