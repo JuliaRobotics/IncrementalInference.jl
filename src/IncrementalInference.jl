@@ -11,6 +11,7 @@ using Reexport
 @reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
+@reexport using DistributedFactorGraphs
 
 using
   Statistics,
@@ -22,8 +23,6 @@ using
   ProgressMeter,
   DocStringExtensions,
   Optim # might be deprecated in favor for only NLsolve dependency
-
-
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
@@ -63,7 +62,7 @@ export
   PackedMixtureLinearConditional,
 
   # using either dictionary or cloudgraphs
-  VariableNodeData,
+  # VariableNodeData,
   PackedVariableNodeData,
   FactorMetadata,
   encodePackedType,
