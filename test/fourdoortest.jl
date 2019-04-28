@@ -73,7 +73,7 @@ gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 global tree = prepBatchTree!(fg, drawpdf=false);
 
 # list vertices in fg
-@show xx,ll = ls(fg)
+@show xx,ll = IncrementalInference.ls(fg)
 
 # do belief propagation inference over tree once
 # using recursive single core approach (better stack trace for development)
