@@ -738,6 +738,25 @@ end
 #
 # end
 
+
+function doCliqInitUpOrDown!(sfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex, isprntnddw::Bool)
+  @show cliqst = getCliqStatus(cliq)
+  if cliqst == :needdownmsg && !isprntnddw
+    # initialize clique in downward direction
+    # not if parent also needs downward init message
+    @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
+    cliqst = doCliqInitDown!(sfg, tree, cliq)
+    @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
+  end
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
+    @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
+    cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
+  end
+  return (sfg, cliq, cliqst)
+end
+
+
+
 """
     $SIGNATURES
 
@@ -864,17 +883,18 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       # evaluate according to cliq status
       isprntnddw = isCliqParentNeedDownMsg(tree, cliq)
       @info "$(current_task()) Clique $(cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(tree, cliq))"
-      if cliqst == :needdownmsg && !isprntnddw
-        # initialize clique in downward direction
-        # not if parent also needs downward init message
-        @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
-        cliqst = doCliqInitDown!(sfg, tree, cliq)
-        @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
-      end
-      if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
-        @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
-        cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
-      end
+      d1,d2,cliqst = doCliqInitUpOrDown!(sfg, tree, cliq, isprntnddw)
+      # if cliqst == :needdownmsg && !isprntnddw
+      #   # initialize clique in downward direction
+      #   # not if parent also needs downward init message
+      #   @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
+      #   cliqst = doCliqInitDown!(sfg, tree, cliq)
+      #   @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
+      # end
+      # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
+      #   @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
+      #   cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
+      # end
       if cliqst == :upsolved
         @info "$(current_task()) Clique $(cliq.index), going for transferUpdateSubGraph!"
         frsyms = Symbol[getSym(sfg, varid) for varid in getCliqFrontalVarIds(cliq)]
