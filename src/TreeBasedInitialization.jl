@@ -458,7 +458,7 @@ function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.E
   @info "$(current_task()) Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
 
   # use default allocated dict
-  products = getData(cliq).downInitMsg # Dict{Symbol, BallTreeDensity}()
+  products = getData(cliq).downInitMsg
   # multiply multiple messages together
   for (msgsym, msgs) in msgspervar
     # check if this particular down message requires msgsym
@@ -685,6 +685,7 @@ function doCliqInitDown!(subfg::FactorGraph,
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
 
+  # TODO move out
   if areCliqChildrenNeedDownMsg(tree, cliq)
     # status = :initialized
     # set messages if children :needdownmsg
@@ -738,7 +739,14 @@ end
 #
 # end
 
+"""
+    $SIGNATURES
 
+Separated function for likely multicore processing, focussed on upward or downward direction initialization of cliques.
+
+Development
+- Make multicore with `remotecall` methods.
+"""
 function doCliqInitUpOrDown!(sfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex, isprntnddw::Bool)
   @show cliqst = getCliqStatus(cliq)
   if cliqst == :needdownmsg && !isprntnddw
