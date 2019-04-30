@@ -67,6 +67,36 @@ end
 
 
 
+@testset "test subgraph functions..." begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addFactor!(fg, [:x0;], Prior(Normal()))
+
+addVariable!(fg, :x1, ContinuousScalar)
+addFactor!(fg, [:x0;:x1], LinearConditional(Normal(2.0, 0.1)))
+
+addVariable!(fg, :x2, ContinuousScalar)
+addFactor!(fg, [:x1;:x2], LinearConditional(Normal(4.0, 0.1)))
+
+addVariable!(fg, :l1, ContinuousScalar)
+addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
+
+
+
+sfg = buildSubgraphFromLabels(fg, [:x0;:x1])
+
+
+@test compareFactorGraphs(fg, sfg)
+
+
+# writeGraphPdf(sfg)
+
+end
+
+
+
 
 
 

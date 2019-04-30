@@ -77,6 +77,8 @@ function compareAll(Al::T,
 end
 
 function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
+  @show Al
+  @show Bl
   TP = compareFields(Al, Bl, show=show, skip=skip)
   for field in fieldnames(T)
     if field in skip
@@ -92,7 +94,7 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict{String}}
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
   #
   TP = true
   TP = TP && length(Al) == length(Bl)
@@ -126,7 +128,7 @@ function compareVariable(A::Graphs.ExVertex,
   TP = compareAll(A, B, skip=[:attributes;], show=show)
   TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
   varskiplist = skipsamples ? [:val; :bw] : Symbol[]
-  @show varskiplist = union(varskiplist, [:softtype;])
+  varskiplist = union(varskiplist, [:softtype;])
   TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
   TP = TP && typeof(Ad.softtype) == typeof(Bd.softtype)
   TP = TP && compareAll(Ad.softtype, Bd.softtype, show=show)
@@ -216,7 +218,7 @@ function compareAllVariables(fgA::FactorGraph,
 
   # compare each variable is the same in both A and B
   for var in vars
-    TP &= compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
+    TP = TP && compareVariable(getVert(fgA, var, api=api), getVert(fgB, var, api=api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -250,7 +252,7 @@ function compareSimilarVariables(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP = TP && compareVariable(getVariable(fgA, var, api), getVariable(fgB, var, api), skipsamples=skipsamples)
+    TP = TP && compareVariable(getVert(fgA, var, api=api), getVert(fgB, var, api=api), skipsamples=skipsamples)
   end
 
   # return comparison result
@@ -287,7 +289,8 @@ function compareSimilarFactors(fgA::FactorGraph,
                                fgB::FactorGraph;
                                api::DataLayerAPI=localapi,
                                skipsamples::Bool=true,
-                               skipcompute::Bool=true  )
+                               skipcompute::Bool=true,
+                               show::Bool=true  )
   #
   xlA = lsf(fgA)
   xlB = lsf(fgB)
@@ -298,7 +301,7 @@ function compareSimilarFactors(fgA::FactorGraph,
 
   # compare the common set
   for var in xlAB
-    TP = TP && compareFactor(getVert(fgA, var, nt=:fct, api=api), getVert(fgB, var, nt=:fct, api=api), skipsamples=skipsamples, skipcompute=skipcompute)
+    TP = TP && compareFactor(getVert(fgA, var, nt=:fct, api=api), getVert(fgB, var, nt=:fct, api=api), skipsamples=skipsamples, skipcompute=skipcompute, show=show)
   end
 
   # return comparison result
@@ -310,6 +313,10 @@ end
 
 Compare and return if two factor graph objects are the same, by comparing similar variables and factors.
 
+Notes:
+- Default items to skip with `skipsamples`, `skipcompute`.
+- User defined fields to skip can be specified with `skip::Vector{Symbol}`.
+
 Related:
 
 `compareSimilarVariables`, `compareSimilarFactors`, `compareAllVariables`, `ls`.
@@ -318,10 +325,16 @@ function compareFactorGraphs(fgA::FactorGraph,
                              fgB::FactorGraph;
                              api::DataLayerAPI=localapi,
                              skipsamples::Bool=true,
-                             skipcompute::Bool=true  )
+                             skipcompute::Bool=true,
+                             skip::Vector{Symbol}=Symbol[],
+                             show::Bool=true  )
   #
-  TP = compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples)
-  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute )
+  skiplist = Symbol[:g;:bn;:IDs;:fIDs;:id;:nodeIDs;:factorIDs;:fifo]
+  skiplist = union(skiplist, skip)
+
+  TP = compareAll(fgA, fgB, skip=skiplist, show=show)
+  TP = TP && compareSimilarVariables(fgA, fgB, api=api, skipsamples=skipsamples, show=show )
+  TP = TP && compareSimilarFactors(fgA, fgB, api=api, skipsamples=skipsamples, skipcompute=skipcompute, show=show )
   return TP
 end
 
@@ -690,9 +703,17 @@ end
 """
     $SIGNATURES
 
-Return the user factor identified by tag name.
+Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
 """
-getFactor(fgl::FactorGraph, fsym::Symbol) = getData(fgl, fsym, nt=:fct).fnc.usrfnc!
+getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
+
+"""
+    $SIGNATURES
+
+Return reference to the user factor in `::FactorGraph` identified by `::Symbol`.
+"""
+getFactor(fvert::Graphs.ExVertex) = getData(fvert).fnc.usrfnc!
+getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getFactor(getVert(fgl, lbl, api=api, nt=:fct))
 
 """
     $SIGNATURES
@@ -718,5 +739,14 @@ function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   println()
   vnd
 end
+
+
+function hasFactor(fgl::FactorGraph, sym::Symbol)
+  allf = collect(keys(fgl.fIDs))
+  ret = sym in allf
+  return ret
+end
+
+
 
 #
