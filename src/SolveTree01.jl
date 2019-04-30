@@ -829,6 +829,7 @@ function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExV
   for child in getChildren(treel, cliq)
     nbpchild = NBPMessage(Dict{Int,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
+      @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
       id = fg_.IDs[key]
       manis = getManifolds(fg_, id)
       nbpchild.p[id] = convert(EasyMessage, bel, manis)

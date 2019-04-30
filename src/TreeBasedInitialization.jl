@@ -188,12 +188,23 @@ Set all Bayes (Junction) tree cliques that have all marginalized and initialized
 function setTreeCliquesMarginalized!(fgl::FactorGraph, tree::BayesTree)
   for (cliid, cliq) in tree.cliques
     if areCliqVariablesAllMarginalized(fgl, cliq)
+      # need to set the upward messages
+      msgs = prepCliqInitMsgsUp!(fgl, cliq)
+      setUpMsg!(cliq, msgs)
+
+      prnt = getParent(tree, cliq)
+      if length(prnt) > 0
+        # THIS IS FOR INIT PASSES ONLY
+        setCliqUpInitMsgs!(prnt[1], cliq.index, msgs)
+      end
+
       setCliqStatus!(cliq, :marginalized)
       setCliqDrawColor(cliq, "blue")
     end
   end
   nothing
 end
+
 
 
 
@@ -215,15 +226,17 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
-  for ch in chlr
-    # either wait to fetch new result, or report or result
-    chst = getCliqStatusUp(ch)
-    if chst != :null && !isready(getData(ch).initUpChannel)
-      ret[ch.index] = chst
-    else
-      ret[ch.index] = fetch(getData(ch).initUpChannel) # take!
+  # @sync begin
+    for ch in chlr
+      # either wait to fetch new result, or report or result
+      chst = getCliqStatusUp(ch)
+      # if chst != :null && !isready(getData(ch).initUpChannel)
+      #   ret[ch.index] = chst
+      # else
+        ret[ch.index] = fetch(getData(ch).initUpChannel)
+      # end
     end
-  end
+  # end
   return ret
 end
 
@@ -321,7 +334,9 @@ end
 
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
-function prepCliqInitMsgsUp!(subfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
+function prepCliqInitMsgsUp!(subfg::FactorGraph,
+                             cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
+  #
   # construct init's up msg to place in parent from initialized separator variables
   msg = Dict{Symbol, BallTreeDensity}()
   for vid in getCliqSeparatorVarIds(cliq)
@@ -331,6 +346,11 @@ function prepCliqInitMsgsUp!(subfg::FactorGraph, tree::BayesTree, cliq::Graphs.E
     end
   end
   return msg
+end
+
+function prepCliqInitMsgsUp!(subfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
+  @warn "deprecated, use prepCliqInitMsgsUp!(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
+  prepCliqInitMsgsUp!(subfg, cliq)
 end
 
 """
@@ -376,11 +396,14 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
+    @info "$(current_task()) Clique $(cliq.index), going for doCliqUpSolve!, clique status = $(status)"
     status = doCliqUpSolve!(subfg, tree, cliq)
-    @info "$(current_task()) Clique $(cliq.index), status = doCliqUpSolve! = $(status)"
+  else
+    @info "$(current_task()) Clique $(cliq.index), all varialbes not initialized, status = $(status)"
   end
 
   # construct init's up msg to place in parent from initialized separator variables
+  @info "$(current_task()) Clique $(cliq.index), going to prepCliqInitMsgsUp!"
   msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
 
   # put the init result in the parent cliq.
@@ -735,6 +758,7 @@ function cliqInitSolveUp!(fgl::FactorGraph,
   #
   # check clique status
   cliqst = getCliqStatus(cliq)
+  lbl = cliq.attributes["label"]
 
   if incremental && cliqst in [:upsolved; :downsolved; :marginalized]
     # prep and send upward message
@@ -761,7 +785,7 @@ function cliqInitSolveUp!(fgl::FactorGraph,
   tryonce = true
   countiters = 0
   # upsolve delay loop
-  while (0 < limititers || limititers == -1) && (tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized]))  # !areCliqChildrenAllUpSolved(tree, cliq)
+  while (0 < limititers || limititers == -1) && (tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized]))
     countiters += 1
     @info "$(current_task()) Clique $(cliq.index), #$countiters, top of while"
     limititers != -1 ? (limititers -= 1) : nothing
@@ -789,18 +813,23 @@ function cliqInitSolveUp!(fgl::FactorGraph,
     stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
     # @info "$(current_task()) Clique $(cliq.index) continue, children all have status"
 
-    # also need a catch/promote if longer down chain of :needdownmsg
+    # promote if longer down chain of :needdownmsg
     if cliqst == :null
       chstatus = collect(values(stdict))
       len = length(chstatus)
       if len > 0 && sum(chstatus .== :needdownmsg) == len
         # TODO maybe can happen where some children need more information?
-        lbl = cliq.attributes["label"]
-        @info "$(current_task()) Clique $(cliq.index) |  $lbl | escalating to :needdownmsg since all children :needdownmsg"
+        @info "$(current_task()) Clique $(cliq.index) | $lbl | escalating to :needdownmsg since all children :needdownmsg"
         setCliqStatus!(cliq, :needdownmsg)
         cliqst = getCliqStatus(cliq)
         setCliqDrawColor(cliq, "green")
         tryonce = true
+      end
+
+      # wait if child branches still solving -- must eventually upsolve this clique
+      if len > 0 && sum(chstatus .!= :upsolved) > 0
+        @info "$(current_task()) Clique $(cliq.index) | $lbl | sleeping until all children finish upward inference"
+        sleep(0.1)
       end
     end
 
