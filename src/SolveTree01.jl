@@ -1049,7 +1049,7 @@ function dispatchNewDwnProc!(fg::FactorGraph,
 
   if rDDT != Union{}
     updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
-    setCliqStatus!(inp.cliq, :downsolved)
+    setCliqStatus!(cliq, :downsolved)
     drawpdf ? drawTree(bt) : nothing
   end
 
@@ -1085,7 +1085,13 @@ function processPreOrderStack!(fg::FactorGraph,
     @sync begin
       sendcnt = 1:length(parentStack) # separate memory for remote calls
       for i in 1:sendcnt[end]
-          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
+          @async try
+            dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
+          catch err
+            bt = catch_backtrace()
+            println()
+            showerror(stderr, err, bt)
+          end
       end
     end
     nothing
@@ -1414,15 +1420,24 @@ function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=fal
     if !isTreeSolved(treel, skipinitialized=true)
       for i in 1:length(treel.cliques)
         alltasks[i] = @async begin
-          cliq = treel.cliques[i]
-          clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+          clst = :na
+          try
+            cliq = treel.cliques[i]
+            clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+          catch err
+            bt = catch_backtrace()
+            println()
+            showerror(stderr, err, bt)
+            error(err)
+          end
           if !(clst in [:upsolved; :downsolved; :marginalized])
             error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
           end
-        end
-      end
-    end
+        end # async
+      end # for
+    end #if
   end
+
   return alltasks
 end
 

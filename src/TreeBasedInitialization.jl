@@ -734,6 +734,9 @@ function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)
   return prstat == :needdownmsg
 end
 
+# function doCliqRemoteInitSolve(subfg::FactorGraph)
+#
+# end
 
 """
     $SIGNATURES
