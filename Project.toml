@@ -26,6 +26,18 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
+Graphs = "0.10.2"
+Reexport = "0.2.0"
+NLsolve = "3.0.0"
+Optim = "0.16.0"
+Distributions = "0.16.4"
+StatsBase = "0.25.0"
+KernelDensityEstimate = "0.5.0"
+ApproxManifoldProducts = "0.0.3"
+JLD2 = "0.1.2"
+FileIO = "1.0.2"
+ProgressMeter = "0.6.0"
+DocStringExtensions = "0.5.0"
 julia = "0.7, 1"
 
 [extras]
