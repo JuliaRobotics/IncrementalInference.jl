@@ -36,7 +36,7 @@ KernelDensityEstimate = "0.5"
 ApproxManifoldProducts = "0.0.3"
 JLD2 = "0.1"
 FileIO = "1.0.2"
-ProgressMeter = "0.6"
+ProgressMeter = "0.6, 0.9"
 DocStringExtensions = "0.7"
 julia = "0.7, 1"
 
