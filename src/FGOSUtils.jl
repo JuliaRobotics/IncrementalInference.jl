@@ -520,7 +520,6 @@ lsf(fg, :x1)
 """
 function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  # v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
   else

@@ -145,6 +145,7 @@ export
   buildBayesNet!,
   emptyBayesTree,
   buildTree!,
+  buildTreeFromOrdering!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
@@ -214,6 +215,7 @@ export
   inferOverTreeR!,
 
   #development interface
+  getTreeCliqSolveOrderUp,
   getCliqOrderUpSolve,
   getCliqInitVarOrderUp,
   getCliqInitVarOrderDown,

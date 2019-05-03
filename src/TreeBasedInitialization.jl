@@ -76,7 +76,8 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   cd = getData(cliq)
   cd.initialized = status
   if isready(cd.initUpChannel)
-    @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initUpChannel)), replacing with $(status)"
+    tkst = take!(cd.initUpChannel)
+    @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
 end
@@ -230,6 +231,7 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     for ch in chlr
       # either wait to fetch new result, or report or result
       chst = getCliqStatusUp(ch)
+      @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
       # if chst != :null && !isready(getData(ch).initUpChannel)
       #   ret[ch.index] = chst
       # else
@@ -268,11 +270,11 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
       if allneeddwn
         @warn "$(current_task()) Clique $(cliq.index), block since all siblings/parent needdownmsg."
         prtmsg = fetch(getData(prnt[1]).initDownChannel)
-        @info "Clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
+        @info "$(current_task()) Clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
         if prtmsg == :initialized
           return true
         else
-          @warn "Clique $(prnt[1].index), maybe clear down init message $prtmsg"
+          @warn "$(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
           # take!(getData(prnt[1]).initDownChannel)
         end
       end
@@ -841,7 +843,7 @@ function cliqInitSolveUp!(fgl::FactorGraph,
     # Determine if child clique processes all completed with status :upsolved
     @info "$(current_task()) Clique $(cliq.index), cliqInitSolveUp! -- blocking until child cliques have status, cliqst=$(cliqst)"
     stdict = blockCliqUntilChildrenHaveUpStatus(tree, cliq)
-    # @info "$(current_task()) Clique $(cliq.index) continue, children all have status"
+    @info "$(current_task()) Clique $(cliq.index) continue, children all have status"
 
     # promote if longer down chain of :needdownmsg
     if cliqst == :null
@@ -850,7 +852,8 @@ function cliqInitSolveUp!(fgl::FactorGraph,
       if len > 0 && sum(chstatus .== :needdownmsg) == len
         # TODO maybe can happen where some children need more information?
         @info "$(current_task()) Clique $(cliq.index) | $lbl | escalating to :needdownmsg since all children :needdownmsg"
-        setCliqStatus!(cliq, :needdownmsg)
+        notifyCliqUpInitStatus!(cliq, :needdownmsg)
+        # setCliqStatus!(cliq, :needdownmsg)
         cliqst = getCliqStatus(cliq)
         setCliqDrawColor(cliq, "green")
         tryonce = true

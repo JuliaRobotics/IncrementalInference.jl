@@ -185,35 +185,58 @@ function drawTree(treel::BayesTree;
   show ? showTree(viewerapp=viewerapp, filepath=filepath) : nothing
 end
 
+"""
+    $SIGNATURES
 
-
-## Find batch belief propagation solution
-function prepBatchTree!(fg::FactorGraph;
-                        ordering::Symbol=:qr,
-                        drawpdf::Bool=false,
-                        show::Bool=false,
-                        filepath::String="/tmp/bt.pdf",
-                        viewerapp::String="evince",
-                        imgs::Bool=false  )
+Build Bayes/Junction/Elimination tree from a given variable ordering.
+"""
+function buildTreeFromOrdering!(fgl::FactorGraph,
+                                p::Vector{Int};
+                                drawbayesnet::Bool=false)
   #
-  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
   println()
-  fge = deepcopy(fg)
+  fge = deepcopy(fgl)
   println("Building Bayes net...")
   buildBayesNet!(fge, p)
 
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
 
-  # println("Bayes Net")
-  # sleep(0.1)
-  #fid = open("bn.dot","w+")
-  #write(fid,to_dot(fge.bn))
-  #close(fid)
+  if drawbayesnet
+    println("Bayes Net")
+    sleep(0.1)
+    fid = open("bn.dot","w+")
+    write(fid,to_dot(fge.bn))
+    close(fid)
+  end
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
+  buildCliquePotentials!(fgl, tree, cliq); # fg does not have the marginals as fge does
+
+  return tree
+end
+
+"""
+    $SIGNATURES
+
+Build Bayes/Junction/Elimination tree.
+
+Notes
+- Default to free qr factorization for variable elimination order.
+"""
+function prepBatchTree!(fg::FactorGraph;
+                        ordering::Symbol=:qr,
+                        drawpdf::Bool=false,
+                        show::Bool=false,
+                        filepath::String="/tmp/bt.pdf",
+                        viewerapp::String="evince",
+                        imgs::Bool=false,
+                        drawbayesnet::Bool=false  )
+  #
+  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
+
+  tree = buildTreeFromOrdering!(fg, p, drawbayesnet=drawbayesnet)
 
   # now update all factor graph vertices used for this tree
   for (id,v) in fg.g.vertices
