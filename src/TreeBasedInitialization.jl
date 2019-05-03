@@ -384,7 +384,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   msgfcts = addMsgFactors!(subfg, upmsgs)
 
     # TEMP
-    writeGraphPdf(subfg, show=true)
+    # writeGraphPdf(subfg, show=true)
 
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)

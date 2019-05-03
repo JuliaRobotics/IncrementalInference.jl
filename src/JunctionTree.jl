@@ -212,7 +212,7 @@ function buildTreeFromOrdering!(fgl::FactorGraph,
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials!(fgl, tree, cliq); # fg does not have the marginals as fge does
+  buildCliquePotentials(fgl, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end
