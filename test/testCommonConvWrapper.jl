@@ -11,6 +11,7 @@ mutable struct FunctorWorks
   a::Array{Float64,2}
 end
 
+
 @testset "FunctorWorks" begin
 
 function (fw::FunctorWorks)(x)

@@ -81,9 +81,14 @@ export
   deleteVariable!,
   addFactor!,
   deleteFactor!,
+  addMsgFactors!,
+  deleteMsgFactors!,
+  factorCanInitFromOtherVars,
   doautoinit!,
   manualinit!,
+  initInferTreeUp!,
   resetData!,
+  resetTreeCliquesForUpSolve!,
   getFactor,
   hasFactor,
   getVariable,
@@ -100,8 +105,29 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  setCliqUpInitMsgs!,
+  cliqInitSolveUp!,
+  isPartial,
   isInitialized,
+  isTreeSolved,
+  isUpInferenceComplete,
+  isCliqInitialized,
+  isCliqReadyInferenceUp,
+  isCliqUpSolved,
+  areCliqVariablesAllInitialized,
+  areCliqChildrenNeedDownMsg,
+  areCliqChildrenAllUpSolved,
   ensureAllInitialized!,
+  doCliqAutoInitUp!,
+  doCliqInitDown!,
+  cycleInitByVarOrder!,
+  doCliqUpSolve!,
+  getCliqInitUpMsgs,
+  getCliqStatus,
+  setCliqStatus!,
+  getMaxVertId,
+  prepCliqInitMsgsUp!,
+  prepCliqInitMsgsDown!,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
@@ -114,13 +140,17 @@ export
   subgraphShortestPath,
   subgraphFromVerts,
   subGraphFromVerts,
+  transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
   emptyBayesTree,
   buildTree!,
+  buildTreeFromOrdering!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  getCliqChildMsgsUp,
+  isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
   parentCliq,
@@ -139,6 +169,7 @@ export
 
   #Visualization
   writeGraphPdf,
+  drawTree,
   ls,
   lsf,
   ls2,
@@ -150,6 +181,8 @@ export
   sortnestedperm,
   getfnctype,
   drawCopyFG,
+  isVariable,
+  isFactor,
 
   # Bayes (Junction) Tree
   evalPotential,
@@ -158,9 +191,14 @@ export
   approxConvBinary,
 
   # more debugging tools
-  localProduct,  # TODO remove from Caesar docs make.jl import list v0.4.4+
+  localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
+  isMarginalized,
+  isCliqMarginalizedFromVars,
+  isCliqParentNeedDownMsg,
+  setCliqAsMarginalized!,
+  updateTreeCliquesAsMarginalizedFromVars!,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -177,8 +215,19 @@ export
   inferOverTreeR!,
 
   #development interface
+  getTreeCliqSolveOrderUp,
   getCliqOrderUpSolve,
+  getCliqInitVarOrderUp,
+  getCliqInitVarOrderDown,
+  getCliqStatusUp,
+  blockCliqUntilChildrenHaveUpStatus,
+  blockCliqSiblingsParentNeedDown,
+  getCliqNumAssocFactorsPerVar,
   upMsgPassingRecursive,
+  downMsgPassingRecursive,
+
+  upMsgPassingIterative!,
+  downMsgPassingIterative!,
 
   # Inference types
   InferenceType,
@@ -212,12 +261,18 @@ export
   predictbelief,
   getCliq,
   getCliqMat,
+  getCliqAssocMat,
   getCliqMsgMat,
   getCliqFrontalVarIds,
+  getFrontals,                     # duplicate
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
+  getCliqVars,
+  getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,
+  areCliqVariablesAllMarginalized,
+  setTreeCliquesMarginalized!,
 
   # generic marginal used during elimitation game
   GenericMarginal,
@@ -235,6 +290,7 @@ export
   savejld,
   loadjld,
   landmarks,
+  setCliqDrawColor,
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
@@ -247,7 +303,6 @@ export
   dwnMsg,
   getDwnMsgs,
 
-  getFrontals,
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
@@ -266,6 +321,7 @@ export
   compareFactorGraphs,
   getIdx,
   showFactor,
+  showVariable,
 
   # For 1D example,
 
@@ -299,7 +355,9 @@ include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 
+include("JunctionTreeTypes.jl")
 include("JunctionTree.jl")
+include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")

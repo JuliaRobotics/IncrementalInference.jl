@@ -344,6 +344,9 @@ end
 Save mostly complete Factor Graph type by converting complicated FunctionNodeData
 types to 'Packed' types using user supplied converters. Ground truth can also be
 saved and recovered by the associated loadjld(file="tempfg.jld2") method.
+
+Notes:
+- Must use `.jld2` since Julia 1.0 (previous version was deprecated).
 """
 function savejld(fgl::FactorGraph;
       file::AbstractString="tempfg.jld2",
@@ -512,12 +515,11 @@ List factors in a factor graph.
 
 # Examples
 ```julia-repl
-lsf(fg)
+lsf(fg, :x1)
 ```
 """
 function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
   lsa = Symbol[]
-  # v = Union{}
   if haskey(fgl.fIDs, lbl)
     id = fgl.fIDs[lbl]
   else
@@ -543,19 +545,9 @@ lsf(fg)
 """
 lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
-"""
-    $(SIGNATURES)
-
-List factors in a factor graph.
-
-# Examples
-```julia-repl
-lsf(fg)
-```
-"""
 function lsf(fgl::FactorGraph,
-      mt::Type{T};
-      api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
+             mt::Type{T};
+             api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
   #
   syms = Symbol[]
   for (fsym,fid) in fgl.fIDs
@@ -566,6 +558,15 @@ function lsf(fgl::FactorGraph,
   return syms
 end
 
+function lsf(fgl::FactorGraph)
+  collect(keys(fgl.fIDs))
+end
+
+"""
+    $SIGNATURES
+
+List vertices two neighbors deep.
+"""
 function ls2(fgl::FactorGraph, vsym::Symbol)
   xxf = ls(fgl, vsym)
   xlxl = Symbol[]
@@ -597,13 +598,17 @@ function lsRear(fgl::FactorGraph, n::Int=1)
   union(lsf.(fgl, syms)[:]...)
 end
 
+"""
+    $SIGNATURES
 
-hasOrphans(fg) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
+Return `::Bool` on whether `fg::FactorGraph` has orphaned nodes or graph fragments.
+"""
+hasOrphans(fg::FactorGraph) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
 
 """
-    landmarks(fgl::FactorGraph, vsym::Symbol)
+    $SIGNATURES
 
-Return Vector{Symbol} of landmarks attached to vertex vsym in fgl.
+Return `Vector{Symbol}` of landmarks attached to vertex vsym in `fgl::FactorGraph`.
 """
 function landmarks(fgl::FactorGraph, vsym::Symbol)
   fsyms = ls(fgl, vsym)
@@ -699,6 +704,20 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
   return getIdx(pp.dimtype, sym)
 end
 
+"""
+    $SIGNATURES
+
+Return whether `sym::Symbol` represents a variable vertex in the graph.
+"""
+isVariable(fgl::FactorGraph, sym::Symbol) = haskey(fgl.IDs, sym)
+
+"""
+    $SIGNATURES
+
+Return whether `sym::Symbol` represents a factor vertex in the graph.
+"""
+isFactor(fgl::FactorGraph, sym::Symbol) = haskey(fgl.fIDs, sym)
+
 
 """
     $SIGNATURES
@@ -747,6 +766,12 @@ function hasFactor(fgl::FactorGraph, sym::Symbol)
   return ret
 end
 
+"""
+    $SIGNATURES
 
+Return `::Bool` on whether this variable has been marginalized.
+"""
+isMarginalized(vert::Graphs.ExVertex) = getData(vert).ismargin
+isMarginalized(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=localapi) = isMarginalized(getVert(fg, sym, api=api))
 
 #

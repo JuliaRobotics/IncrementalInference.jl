@@ -53,7 +53,9 @@ function buildSubgraphFromLabels(fgl::FactorGraph, syms::Vector{Symbol})
     vert = getVert(fgl, sym, api=localapi)
     st = getSofttype(vert)
     addVariable!(fgseg, sym, st, uid=vert.index)
-    manualinit!(fgseg, sym, getKDE(vert))
+    if isInitialized(fgl,sym)
+      manualinit!(fgseg, sym, getKDE(vert))
+    end
   end
 
   for sym in syms
@@ -203,4 +205,26 @@ function subgraphFromVerts(fgl::FactorGraph,
   #
   @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
   subGraphFromVerts(fgl, verts, neighbors=neighbors)
+end
+
+
+"""
+    $SIGNATURES
+
+Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
+
+Notes
+- Approximately like `dest` = `src`, for all `syms`
+"""
+function transferUpdateSubGraph!(dest::FactorGraph,
+                                 src::FactorGraph,
+                                 syms::Vector{Symbol}=union(ls(src)...);
+                                 srcapi::DataLayerAPI=localapi,
+                                 destapi::DataLayerAPI=dlapi   )
+  #
+  for sym in syms
+    vert = getVert(src, sym, api=srcapi)
+    destapi.updatevertex!(dest, vert)
+  end
+  nothing
 end
