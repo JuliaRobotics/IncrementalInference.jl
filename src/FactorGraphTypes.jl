@@ -68,8 +68,8 @@ mutable struct FactorGraph
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
+  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
                       #  Dict{Int,Graphs.ExVertex}(),
                       #  Dict{Int,Graphs.ExVertex}(),
                       Dict{Symbol,Int}(),
@@ -388,12 +388,25 @@ getVertNode(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) wher
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::FactorGraph,
-    nv::Graphs.ExVertex;
-    updateMAPest::Bool=false )
+                             nv::Graphs.ExVertex;
+                             updateMAPest::Bool=false )
   #
 
-  # not required, since we using reference -- placeholder function CloudGraphs interface
-  # getVertNode(fgl, nv.index).attributes["data"] = nv.attributes["data"]
+  sym = Symbol(nv.label)
+  isvar = isVariable(fgl, sym)
+
+  lvert = isvar ? getVert(fgl, sym, api=localapi) : getVert(fgl, sym, api=localapi, nt=:fct)
+  lvd = getData(lvert)
+  nvd = getData(nv)
+
+  if isvar
+    lvd.val[:,:] = nvd.val[:,:]
+    lvd.bw[:] = nvd.bw[:]
+    lvd.initialized = nvd.initialized
+  else
+    # assuming nothing to be done
+  end
+
   nothing
 end
 

@@ -28,6 +28,7 @@ getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fg
 # see JuliaArchive/Graphs.jl#233
 
 function setData!(v::Graphs.ExVertex, data)
+  # this is a memory gulp without replacement, old attr["data"] object is left to gc
   v.attributes["data"] = data
   nothing
 end
@@ -44,13 +45,14 @@ function getSofttype(v::ExVertex)
   getSofttype(getData(v))
 end
 
+
 """
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-function getManifolds(fgl::FactorGraph, sym::Symbol)
-  getSofttype(getVert(fgl, sym)).manifolds
-end
+getManifolds(vert::Graphs.ExVertex) =   getSofttype(vert).manifolds
+getManifolds(fgl::FactorGraph, vid::Int) = getManifolds(getVert(fgl, vid))
+getManifolds(fgl::FactorGraph, sym::Symbol) = getManifolds(getVert(fgl, sym))
 
 """
     $(SIGNATURES)
@@ -206,7 +208,7 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     #   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
     #   pN = resample(p,N)
     # if size(initval,2) < N && size(initval, 1) != dims
-      @info "Node value memory allocated but not initialized"
+      # @info "Node value memory allocated but not initialized"
       pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
     # else
     #   pN = AMP.manikde!(initval, softtype.manifolds)
@@ -511,6 +513,16 @@ function setDefaultFactorNode!(
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Return the current maximum vertex ID number in the factor graph fragment `fgl`.
+"""
+function getMaxVertId(fgl::FactorGraph)
+  ids = collect(keys(fgl.g.vertices))
+  return maximum(ids)
+end
+
 function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
   vert.attributes["label"] = lbl #fg.v[fg.id]
@@ -529,6 +541,14 @@ end
 addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
+"""
+    $SIGNATURES
+
+Returns state of vertex data `.initialized` flag.
+
+Notes:
+- used by both factor graph variable and Bayes tree clique logic.
+"""
 function isInitialized(vert::Graphs.ExVertex)::Bool
   return getData(vert).initialized
 end
@@ -538,64 +558,107 @@ function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
 end
 
 """
-    $(SIGNATURES)
+    $SIGNATURES
 
-EXPERIMENTAL: initialize destination variable nodes based on this factor in factor graph, fg, generally called
-during addFactor!. Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
+attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
+
+Development Notes
+* TODO get faster version of isInitialized for database version
 """
-function doautoinit!(fgl::FactorGraph,
-                     Xi::Vector{Graphs.ExVertex};
-                     api::DataLayerAPI=dlapi,
-                     singles::Bool=true,
-                     N::Int=100)
-  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
-  # do double depth search for variable nodes
-  # TODO this should maybe stay localapi only...
-  for xi in Xi
-    if !isInitialized(xi)
-      vsym = Symbol(xi.label)
-      neinodes = ls(fgl, vsym)
-      if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
-        # Which of the factors can be used for initialization
-        useinitfct = Symbol[]
-        # println("Consider all pairwise factors connected to $vsym...")
-        for xifct in neinodes #potntlfcts
-          xfneivarnodes = lsf(fgl, xifct)
-          for vsym2 in xfneivarnodes
-            # println("find all variables that are initialized for $vsym2")
-            vert2 = getVert(fgl, vsym2)
-            if (isInitialized(vert2) && sum(useinitfct .== xifct) == 0 ) || length(xfneivarnodes) == 1
-              # OR singleton  TODO get faster version of isInitialized for database version
-              # println("adding $xifct to init factors list")
-              push!(useinitfct, xifct)
-            end
-          end
-        end
-        # println("Consider all singleton (unary) factors to $vsym...")
+function factorCanInitFromOtherVars(fgl::FactorGraph,
+                                    fct::Symbol,
+                                    loovar::Symbol;
+                                    api::DataLayerAPI=localapi  )::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
+  #
+  # all variables attached to this factor
+  varsyms = lsf(fgl, fct)
 
-        # calculate the predicted belief over $vsym
-        pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        setValKDE!(xi, pts)
-        getData(xi).initialized = true
-        api.updatevertex!(fgl, xi, updateMAPest=false)
-      end
+  # list of factors to use in init operation
+  useinitfct = Symbol[]
+  faillist = Symbol[]
+  for vsym in varsyms
+    xi = getVert(fgl, vsym, api=api)
+    if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+      push!(useinitfct, fct)
     end
   end
 
-  nothing
+  return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+          useinitfct,
+          faillist   )
 end
 
 """
     $(SIGNATURES)
 
-Initialize destination variable nodes based on this factor in factor graph, fg, generally called
-during addFactor!.  Destination factor is first (singletons) or second (dim 2 pairwise) variable vertex in Xi.
+EXPERIMENTAL: initialize target variable `xi` based on connceted factors in the
+factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!`.
+
+Development Notes:
+> Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
+* TODO use DFG properly with local operations and DB update at end.
+* TODO get faster version of `isInitialized` for database version.
 """
+function doautoinit!(fgl::FactorGraph,
+                     xi::Graphs.ExVertex;
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)::Bool
+  #
+  didinit = false
+  # don't initialize a variable more than once
+  if !isInitialized(xi)
+    # get factors attached to this variable xi
+    vsym = Symbol(xi.label)
+    neinodes = ls(fgl, vsym)
+    # proceed if has more than one neighbor OR even if single factor
+    if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+      # Which of the factors can be used for initialization
+      useinitfct = Symbol[]
+      # Consider factors connected to $vsym...
+      for xifct in neinodes
+        canuse, usefct, notusevars = factorCanInitFromOtherVars(fgl, xifct, vsym)
+        useinitfct = union(useinitfct, usefct)
+      end
+      # println("Consider all singleton (unary) factors to $vsym...")
+      # calculate the predicted belief over $vsym
+      if length(useinitfct) > 0
+        pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        setValKDE!(xi, pts)
+        getData(xi).initialized = true
+        api.updatevertex!(fgl, xi, updateMAPest=false)
+        didinit = true
+      end
+    end
+  end
+  return didinit
+end
+
+function doautoinit!(fgl::FactorGraph,
+                     Xi::Vector{Graphs.ExVertex};
+                     api::DataLayerAPI=dlapi,
+                     singles::Bool=true,
+                     N::Int=100)::Bool
+  #
+  #
+  # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
+  # do double depth search for variable nodes
+
+  didinit = true
+
+  # loop over all requested variables that must be initialized
+  for xi in Xi
+    didinit &= doautoinit!(fgl, xi, api=api, singles=singles, N=N)
+  end
+  return didinit
+end
+
 function doautoinit!(fgl::FactorGraph,
                      xsyms::Vector{Symbol};
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)
+                     N::Int=100)::Bool
   #
   verts = getVert.(fgl, xsyms, api=api)
   doautoinit!(fgl, verts, api=api, singles=singles, N=N)
@@ -604,7 +667,7 @@ function doautoinit!(fgl::FactorGraph,
                      xsym::Symbol;
                      api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)
+                     N::Int=100)::Bool
   #
   doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
 end

@@ -1,4 +1,4 @@
-julia 0.7 1.1
+julia 0.7 1.2
 Graphs 0.10.2
 Reexport 0.2.0
 NLsolve 3.0.0

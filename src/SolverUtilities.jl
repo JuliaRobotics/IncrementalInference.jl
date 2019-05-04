@@ -169,7 +169,8 @@ function batchSolve!(fgl::FactorGraph;
                      show::Bool=false,
                      N::Int=100,
                      recursive::Bool=false,
-                     dbg::Bool=false  )
+                     dbg::Bool=false,
+                     treeinit::Bool=false  )
   #
   if fgl.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -180,9 +181,9 @@ function batchSolve!(fgl::FactorGraph;
 
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
-    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg)
+    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg)
+    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   end
   tree
 end

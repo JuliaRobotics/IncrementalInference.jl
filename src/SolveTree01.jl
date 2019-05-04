@@ -1,96 +1,5 @@
 
 
-"""
-$(TYPEDEF)
-"""
-mutable struct NBPMessage <: Singleton
-  p::Dict{Int,EasyMessage}
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct PotProd
-    Xi::Int
-    prev::Array{Float64,2}
-    product::Array{Float64,2}
-    potentials::Array{BallTreeDensity,1}
-    potentialfac::Vector{AbstractString}
-end
-"""
-$(TYPEDEF)
-"""
-mutable struct CliqGibbsMC
-    prods::Array{PotProd,1}
-    lbls::Vector{Symbol}
-    CliqGibbsMC() = new()
-    CliqGibbsMC(a,b) = new(a,b)
-end
-"""
-$(TYPEDEF)
-"""
-mutable struct DebugCliqMCMC
-    mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-    outmsg::NBPMessage
-    outmsglbls::Dict{Symbol, Int}
-    priorprods::Vector{CliqGibbsMC} #Union{Nothing, Dict{Symbol, Vector{EasyMessage}}}
-    DebugCliqMCMC() = new()
-    DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct UpReturnBPType
-    upMsgs::NBPMessage
-    dbgUp::DebugCliqMCMC
-    IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
-    keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct DownReturnBPType
-    dwnMsg::NBPMessage
-    dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
-    keepdwnmsgs::Dict{Symbol, BallTreeDensity}
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct ExploreTreeType{T}
-  fg::FactorGraph
-  bt::BayesTree
-  cliq::Graphs.ExVertex
-  prnt::T
-  sendmsgs::Array{NBPMessage,1}
-end
-
-function ExploreTreeType(fgl::FactorGraph,
-                btl::BayesTree,
-                vertl::Graphs.ExVertex,
-                prt::T,
-                msgs::Array{NBPMessage,1} ) where {T}
-  #
-  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct MsgPassType
-  fg::FactorGraph
-  cliq::Graphs.ExVertex
-  vid::Int
-  msgs::Array{NBPMessage,1}
-  N::Int
-end
-
-
-
 
 #global pidx
 pidx = 1
@@ -152,14 +61,14 @@ end
 Add all potentials associated with this clique and vertid to dens.
 """
 function packFromLocalPotentials!(fgl::FactorGraph,
-      dens::Vector{BallTreeDensity},
-      wfac::Vector{AbstractString},
-      cliq::Graphs.ExVertex,
-      vertid::Int,
-      N::Int,
-      dbg::Bool=false )
+                                  dens::Vector{BallTreeDensity},
+                                  wfac::Vector{AbstractString},
+                                  cliq::Graphs.ExVertex,
+                                  vertid::Int,
+                                  N::Int,
+                                  dbg::Bool=false )
   #
-  for idfct in cliq.attributes["data"].potentials
+  for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
@@ -181,7 +90,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
       dbg::Bool=false)
   #
 
-  for idfct in cliq.attributes["data"].potentials
+  for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
@@ -263,7 +172,7 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
-    @show (manis[dimnum],)
+    # @show (manis[dimnum],)
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
   productpartials!(pGM, dummy, partials, manis)
@@ -291,7 +200,6 @@ function productbelief(fg::FactorGraph,
                        N::Int;
                        dbg::Bool=false )
   #
-
   vert = getVert(fg, vertid, api=localapi)
   manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
@@ -321,7 +229,7 @@ function productbelief(fg::FactorGraph,
     # @info "[drct]"
     pGM = getPoints(dens[1])
   else
-    @warn "Unknown density product on vertid=$(vertid), lennonp=$(lennonp), lenpart=$(lenpart)"
+    @warn "Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)"
     pGM = Array{Float64,2}(undef, 0,1)
   end
 
@@ -482,7 +390,9 @@ end
 """
     $(SIGNATURES)
 
-Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov trasit integral -- here involving separate approximate functional convolution and product operations.
+Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov
+trasit integral -- here involving separate approximate functional convolution and
+product operations.
 """
 function cliqGibbs(fg::FactorGraph,
                    cliq::Graphs.ExVertex,
@@ -670,7 +580,18 @@ end
     $(SIGNATURES)
 
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
-This function is usually called as part via remote_call for multiprocess dispatch.
+This function is usually called as via remote_call for multiprocess dispatch.
+
+Example
+```julia
+inp = ExploreTreeType(fg,tree,cliq,parent,childmsgs)
+urt = upGibbsCliqueDensity(inp)
+```
+- `fg` factor graph,
+- `tree` Bayes tree,
+- `cliq` which cliq to perform the computation on,
+- `parent` the parent clique to where the upward message will be sent,
+- `childmsgs` is for any incoming messages from child cliques.
 """
 function upGibbsCliqueDensity(inp::ExploreTreeType{T},
                               N::Int=100,
@@ -688,7 +609,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
 
   priorprods = Vector{CliqGibbsMC}()
 
-  cliqdata = inp.cliq.attributes["data"]
+  cliqdata = getData(inp.cliq)
 
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
@@ -722,6 +643,7 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
     end
   end
 
+  # prepare and convert upward belief messages
   upmsgs = Dict{Symbol, BallTreeDensity}()
   for (ke, va) in m.p
     msgsym = Symbol(inp.fg.g.vertices[ke].label)
@@ -729,8 +651,11 @@ function upGibbsCliqueDensity(inp::ExploreTreeType{T},
   end
   setUpMsg!(inp.cliq, upmsgs)
 
+  # flag cliq as definitely being initialized
+  cliqdata.upsolved = true
+
   mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
-  return UpReturnBPType(m, mdbg, d, upmsgs)
+  return UpReturnBPType(m, mdbg, d, upmsgs, true)
 end
 
 
@@ -754,16 +679,24 @@ function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NB
     return m
 end
 
+"""
+    $SIGNATURES
+
+Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
+
+Note
+- Only update frontal variables of the clique.
+"""
 function downGibbsCliqueDensity(fg::FactorGraph,
                                 cliq::Graphs.ExVertex,
                                 dwnMsgs::Array{NBPMessage,1},
-                                N::Int=200,
+                                N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false  )
     #
     # TODO standardize function call to have similar stride to upGibbsCliqueDensity
-    @info "dwn"
-    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, cliq.attributes["data"].frontalIDs, N, MCMCIter, dbg)
+    @info "down"
+    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
     m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
     outmsglbl = Dict{Symbol, Int}()
@@ -781,8 +714,22 @@ function downGibbsCliqueDensity(fg::FactorGraph,
     end
     setDwnMsg!(cliq, dwnkeepmsgs)
 
+    # down solving complete, set flag
+    getData(cliq).downsolved = true
+
     mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
     return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+end
+
+"""
+    $SIGNATURES
+
+Set the color of a cliq in the Bayes (Junction) tree.
+"""
+function setCliqDrawColor(cliq::Graphs.ExVertex, fillcolor::String)::Nothing
+  cliq.attributes["fillcolor"] = fillcolor
+  cliq.attributes["style"] = "filled"
+  nothing
 end
 
 """
@@ -790,24 +737,26 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, ddt::DownReturnBPType; dbg::Bool=false, fillcolor::String="")
-    # if dlapi.cgEnabled
-    #   return nothing
-    # end
+function updateFGBT!(fg::FactorGraph,
+                     bt::BayesTree,
+                     cliqID::Int,
+                     ddt::DownReturnBPType;
+                     dbg::Bool=false,
+                     fillcolor::String=""  )
+    #
     cliq = bt.cliques[cliqID]
     if dbg
       cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
     end
     setDwnMsg!(cliq, ddt.keepdwnmsgs)
+    # TODO move to drawTree
     if fillcolor != ""
-      cliq.attributes["fillcolor"] = fillcolor
-      cliq.attributes["style"] = "filled"
+      setCliqDrawColor(cliq, fillcolor)
     end
     for dat in ddt.IDvals
       #TODO -- should become an update call
         updvert = dlapi.getvertex(fg,dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # updvert.attributes["latestEst"] = Statistics.mean(dat[2],2)
         dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
@@ -818,28 +767,29 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph, bt::BayesTree, cliqID::Int, urt::UpReturnBPType; dbg::Bool=false, fillcolor::String="")
-# TODO -- use Union{} for two types, rather than separate functions
-    # if dlapi.cgEnabled
-    #   return nothing
-    # end
-    cliq = bt.cliques[cliqID]
-    cliq = bt.cliques[cliqID]
-    if dbg
-      cliq.attributes["debug"] = deepcopy(urt.dbgUp)
-    end
-    setUpMsg!(cliq, urt.keepupmsgs)
-    if fillcolor != ""
-      cliq.attributes["fillcolor"] = fillcolor
-      cliq.attributes["style"] = "filled"
-    end
-    for dat in urt.IDvals
-      updvert = dlapi.getvertex(fg,dat[1])
-      setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-      dlapi.updatevertex!(fg, updvert, updateMAPest=true)
-    end
-    @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
-    nothing
+function updateFGBT!(fg::FactorGraph,
+                     bt::BayesTree,
+                     cliqID::Int,
+                     urt::UpReturnBPType;
+                     dbg::Bool=false, fillcolor::String="" )
+  #
+  cliq = bt.cliques[cliqID]
+  cliq = bt.cliques[cliqID]
+  if dbg
+    cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+  end
+  setUpMsg!(cliq, urt.keepupmsgs)
+  # move to drawTree
+  if fillcolor != ""
+    setCliqDrawColor(cliq, fillcolor)
+  end
+  for dat in urt.IDvals
+    updvert = dlapi.getvertex(fg,dat[1])
+    setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
+    dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+  end
+  @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
+  nothing
 end
 
 """
@@ -847,27 +797,48 @@ end
 
 Pass NBPMessages back down the tree -- pre order tree traversal.
 """
-function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
-    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
+  @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
 
-    mcmciter = inp.prnt != Union{} ? 3 : 0; # skip mcmc in root on dwn pass
-    rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="pink")
+  mcmciter = inp.prnt != nothing ? 3 : 0; # skip mcmc in root on dwn pass
+  rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
+  updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+  setCliqStatus!(inp.cliq, :downsolved)
+  drawpdf ? drawTree(inp.bt) : nothing
+
+  # rr = Array{Future,1}()
+  # pcs = procs()
+
+  ddt=nothing
+  for child in out_neighbors(inp.cliq, inp.bt.bt)
+    ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
+    ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
     drawpdf ? drawTree(inp.bt) : nothing
+  end
 
-    # rr = Array{Future,1}()
-    pcs = procs()
-
-    ddt=Union{}
-    for child in out_neighbors(inp.cliq, inp.bt.bt)
-        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
-        ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
-    end
-
-    # return modifications to factorgraph to calling process
-    return ddt
+  # return modifications to factorgraph to calling process
+  return ddt
 end
 
+"""
+    $SIGNATURES
+
+Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
+"""
+function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+  childmsgs = NBPMessage[]
+  for child in getChildren(treel, cliq)
+    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
+    for (key, bel) in getUpMsgs(child)
+      @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
+      id = fg_.IDs[key]
+      manis = getManifolds(fg_, id)
+      nbpchild.p[id] = convert(EasyMessage, bel, manis)
+    end
+    push!(childmsgs, nbpchild)
+  end
+  return childmsgs
+end
 
 
 """
@@ -876,7 +847,7 @@ end
 Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
 
 Notes
-=====
+-----
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
 function approxCliqMarginalUp!(fgl::FactorGraph,
@@ -886,11 +857,12 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
-                               drawpdf::Bool=false   )
+                               drawpdf::Bool=false  )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
   tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
 
   # copy up and down msgs that may already exists
   if onduplicate
@@ -901,26 +873,31 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   end
 
   cliq = whichCliq(tree_, csym)
-  childmsgs = NBPMessage[]
-  for child in getChildren(tree_, cliq)
-    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
-    for (key, bel) in getUpMsgs(child)
-      id = fg_.IDs[key]
-      nbpchild.p[id] = IIF.convert(EasyMessage, bel)
-    end
-    push!(childmsgs, nbpchild)
-  end
+  # setCliqDrawColor(cliq, "red")
+
+  # get incoming cliq messaged upward from child cliques
+  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, EasyMessage)
+
+  # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
   ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
   urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="pink")
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt
 end
 
+"""
+    $SIGNATURES
 
+Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
+
+Notes
+=====
+- `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
+"""
 function doCliqInferenceUp!(fgl::FactorGraph,
                             treel::BayesTree,
                             csym::Symbol,
@@ -974,14 +951,14 @@ end
 
 
 # post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
+function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
     @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
     childMsgs = Array{NBPMessage,1}()
 
     outnei = out_neighbors(inp.cliq, inp.bt.bt)
     len = length(outnei)
     for child in outnei
-        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[]) # ,Union{})
+        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[])
         @info "upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])"
         newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
         @info "upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))"
@@ -989,7 +966,7 @@ function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=fa
     end
 
     @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
-    ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, Union{}, childMsgs)
+    ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, nothing, childMsgs)
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
@@ -999,27 +976,30 @@ function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=200, dbg::Bool=fa
 end
 
 
-function downGibbsCliqueDensity(inp::ExploreTreeType{T}, N::Int=200, dbg::Bool=false) where {T}
+function downGibbsCliqueDensity(inp::ExploreTreeType{T},
+                                N::Int=100,
+                                dbg::Bool=false  ) where {T}
+  #
   @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
-  mcmciter = inp.prnt != Union{} ? 3 : 0
+  mcmciter = inp.prnt != nothing ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
 end
 
 function prepDwnPreOrderStack!(bt::BayesTree, parentStack::Array{Graphs.ExVertex,1})
   # dwn message passing function
-  nodedata = Union{}
+  nodedata = nothing
   tempStack = Array{Graphs.ExVertex,1}()
   push!(tempStack, parentStack[1])
 
-  while ( length(tempStack) != 0 || nodedata != Union{} )
-    if nodedata != Union{}
+  while ( length(tempStack) != 0 || nodedata != nothing )
+    if nodedata != nothing
       for child in out_neighbors(nodedata, bt.bt) #nodedata.cliq, nodedata.bt.bt
           ## TODO -- don't yet have the NBPMessage results to propagate belief
           ## should only construct ett during processing
           push!(parentStack, child) #ett
           push!(tempStack, child) #ett
       end
-      nodedata = Union{} # its over but we still need to complete computation in each of the leaves of the tree
+      nodedata = nothing # its over but we still need to complete computation in each of the leaves of the tree
     else
       nodedata = tempStack[1]
       deleteat!(tempStack, 1)
@@ -1056,7 +1036,7 @@ function dispatchNewDwnProc!(fg::FactorGraph,
                              parentStack::Array{Graphs.ExVertex,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
-                             N::Int=200,
+                             N::Int=100,
                              dbg::Bool=false,
                              drawpdf::Bool=false  )
   #
@@ -1066,14 +1046,15 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   end
 
   rDDT = fetch(refdict[cliq.index]) #nodedata.cliq
-  delete!(refdict,cliq.index) # nodedata
+  delete!(refdict, cliq.index) # nodedata
 
-  if rDDT != Union{}
+  if rDDT != nothing
     updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+    setCliqStatus!(cliq, :downsolved)
     drawpdf ? drawTree(bt) : nothing
   end
 
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
 
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
       haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
@@ -1083,11 +1064,19 @@ function dispatchNewDwnProc!(fg::FactorGraph,
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Downward message passing on Bayes (Junction) tree.
+
+Notes
+- Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
+"""
 function processPreOrderStack!(fg::FactorGraph,
                                bt::BayesTree,
                                parentStack::Array{Graphs.ExVertex,1},
                                refdict::Dict{Int,Future};
-                               N::Int=200,
+                               N::Int=100,
                                dbg::Bool=false,
                                drawpdf::Bool=false )
   #
@@ -1097,14 +1086,20 @@ function processPreOrderStack!(fg::FactorGraph,
     @sync begin
       sendcnt = 1:length(parentStack) # separate memory for remote calls
       for i in 1:sendcnt[end]
-          @async dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
+          @async try
+            dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
+          catch err
+            bt = catch_backtrace()
+            println()
+            showerror(stderr, err, bt)
+          end
       end
     end
     nothing
 end
 
 function downMsgPassingIterative!(startett::ExploreTreeType{T};
-                                  N::Int=200,
+                                  N::Int=100,
                                   dbg::Bool=false,
                                   drawpdf::Bool=false  ) where {T}
   #
@@ -1117,7 +1112,7 @@ function downMsgPassingIterative!(startett::ExploreTreeType{T};
                                         startett.prnt, startett.sendmsgs)
   refdict[startett.cliq.index] = remotecall(downGibbsCliqueDensity, upp2(), pett, N)  # for Julia 0.5
 
-  push!(parentStack, startett.cliq ) # r
+  push!(parentStack, startett.cliq )
 
   prepDwnPreOrderStack!(startett.bt, parentStack)
   processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg, drawpdf=drawpdf )
@@ -1147,13 +1142,17 @@ function prepPostOrderUpPassStacks!(bt::BayesTree,
   nothing
 end
 
-# for up message passing
+"""
+    $SIGNATURES
+
+Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
+"""
 function asyncProcessPostStacks!(fgl::FactorGraph,
                                  bt::BayesTree,
                                  chldstk::Vector{Graphs.ExVertex},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
-                                 N::Int=200,
+                                 N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  )
   #
@@ -1187,8 +1186,8 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
 
   end
   @info "====================== Clique $(cliq.attributes["label"]) ============================="
-  emptr = BayesTree(Union{}, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
-  pett = partialExploreTreeType(fgl, emptr, cliq, Union{}, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
+  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+  pett = partialExploreTreeType(fgl, emptr, cliq, nothing, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
   if haskey(cliq.attributes, "remoteref")
       @info "asyncProcessPostStacks! -- WHY YOU ALREADY HAVE REMOTEREF?"
@@ -1212,16 +1211,22 @@ function asyncProcessPostStacks!(fgl::FactorGraph,
   nothing
 end
 
+"""
+    $SIGNATURES
 
-# upward belief propagation message passing function
+Multiprocess upward belief propagation message passing function, using async tasks.
+
+Notes
+- asyncs used to wrap remotecall for multicore.
+- separate multithreaded calls can occur on each separate process.
+"""
 function processPostOrderStacks!(fg::FactorGraph,
                                  bt::BayesTree,
                                  childStack::Array{Graphs.ExVertex,1};
-                                 N::Int=200,
+                                 N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  )
   #
-
   refdict = Dict{Int,Future}()
 
   stkcnt = length(childStack)
@@ -1269,38 +1274,212 @@ end
 """
     $SIGNATURES
 
-Perform upward message passing (multi-process) algorithm for sum-product solution from leaves to root of the tree.
+Return clique pointers for the given order in which they will be solved (sequentially).
 """
-function upMsgPassingIterative!(startett::ExploreTreeType{T}; N::Int=200, dbg::Bool=false, drawpdf::Bool=false) where {T}
+getTreeCliqSolveOrderUp(treel::BayesTree, startcliq=treel.cliques[1]) = getCliqOrderUpSolve(treel, startcliq)
 
+"""
+    $SIGNATURES
+
+Perform upward message passing (multi-process) algorithm for sum-product solution from leaves to root of the tree.
+
+Notes:
+* inspired by http://www.geeksforgeeks.org/iterative-postorder-traversal/
+* this is where downward iteration process is launched from.
+"""
+function upMsgPassingIterative!(startett::ExploreTreeType{T};
+                                N::Int=100,
+                                dbg::Bool=false,
+                                drawpdf::Bool=false  ) where {T}
+  #
   childStack = getCliqOrderUpSolve(startett.bt, startett.cliq)
-  # # http://www.geeksforgeeks.org/iterative-postorder-traversal/
-  # # this is where we launch the downward iteration process from
-  # parentStack = Array{Graphs.ExVertex,1}()
-  # childStack = Array{Graphs.ExVertex,1}()
-  # #Loop while first stack is not empty
-  # push!(parentStack, startett.cliq )
-  # # Starting at the root means we have a top down view of the tree
-  # prepPostOrderUpPassStacks!(startett.bt, parentStack, childStack)
-
+  # Starting at the root means we have a top down view of the tree
   processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
+  nothing
+end
+# for (ids, cliq) in treel.cliques
+#   getData(cliq).initialized = :initialized
+# end
+
+"""
+    $SIGNATURES
+
+Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
+"""
+function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
+  for (id, cliq) in treel.cliques
+    cliqdata = getData(cliq)
+    cliqdata.initialized = :null
+    cliqdata.upsolved = to
+    cliqdata.downsolved = to
+  end
   nothing
 end
 
 """
     $SIGNATURES
 
+Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
+"""
+function isTreeSolved(treel::BayesTree; skipinitialized::Bool=false)::Bool
+  acclist = Symbol[:upsolved; :downsolved; :marginalized]
+  skipinitialized ? nothing : push!(acclist, :initialized)
+  for (clid, cliq) in treel.cliques
+    if !(getCliqStatus(cliq) in acclist)
+      return false
+    end
+  end
+  return true
+end
+
+function isTreeSolvedUp(treel::BayesTree)::Bool
+  for (clid, cliq) in treel.cliques
+    if getCliqStatus(cliq) != :upsolved
+      return false
+    end
+  end
+  return true
+end
+
+
+"""
+    $SIGNATURES
+
+Return `::Bool` on whether all variables in this `cliq` are marginalzed.
+"""
+function isCliqMarginalizedFromVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
+  for vert in getCliqVars(subfg, cliq)
+    if !isMarginalized(vert)
+      return false
+    end
+  end
+  return true
+end
+
+"""
+    $SIGNATURES
+
+Set the marginalized status of a clique.
+"""
+function setCliqAsMarginalized!(cliq::Graphs.ExVertex, status::Bool)
+  if status
+    getData(cliq).initialized = :marginalized
+  else
+    if getData(cliq).initialized == :marginalized
+      @info "Reverting clique $(cliq.index) to assumed :downsolved status"
+      getData(cliq).initialized = :downsolved
+    else
+      error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
+    end
+  end
+end
+
+"""
+    $SIGNATURES
+
+Run through entire tree and set cliques as marginalized if all clique variables are marginalized.
+
+Notes:
+- TODO can be made fully parallel, consider converting for use with `@threads` `for`.
+"""
+function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::BayesTree)::Nothing
+  for (clid, cliq) in tree.cliques
+    if isCliqMarginalizedFromVars(fgl, cliq)
+      setCliqAsMarginalized!(cliq, true)
+    end
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Reset the Bayes (Junction) tree so that a new upsolve can be performed.
+
+Notes
+- Will change previous clique status from `:downsolved` to `:initialized` only.
+- Sets the color of tree clique to `lightgreen`.
+"""
+function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
+  acclist = Symbol[:downsolved;]
+  for (clid, cliq) in treel.cliques
+    if getCliqStatus(cliq) in acclist
+      setCliqStatus!(cliq, :initialized)
+      setCliqDrawColor(cliq, "sienna")
+    end
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Perform tree based initialization of all variables not yet initialized in factor graph.
+"""
+function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100, limititers::Int=-1)
+  # revert :downsolved status to :initialized in preparation for new upsolve
+  resetTreeCliquesForUpSolve!(treel)
+  setTreeCliquesMarginalized!(fgl, treel)
+  drawtree ? drawTree(treel, show=false) : nothing
+
+  # queue all the tasks
+  alltasks = Vector{Task}(undef, length(treel.cliques))
+  @sync begin
+    if !isTreeSolved(treel, skipinitialized=true)
+      for i in 1:length(treel.cliques)
+        alltasks[i] = @async begin
+          clst = :na
+          try
+            cliq = treel.cliques[i]
+            clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+          catch err
+            bt = catch_backtrace()
+            println()
+            showerror(stderr, err, bt)
+            error(err)
+          end
+          if !(clst in [:upsolved; :downsolved; :marginalized])
+            error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+          end
+        end # async
+      end # for
+    end #if
+  end
+
+  return alltasks
+end
+
+
+"""
+    $SIGNATURES
+
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTree!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
-    @info "Ensure all nodes are initialized"
+function inferOverTree!(fgl::FactorGraph,
+                        bt::BayesTree;
+                        N::Int=100,
+                        dbg::Bool=false,
+                        drawpdf::Bool=false,
+                        treeinit::Bool=false  )::Nothing
+  #
+  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
+  setAllSolveFlags!(bt, false)
+  @info "Ensure all nodes are initialized"
+  inittasks = Vector{Task}()
+  if treeinit
+    @info "Do tree based init-inference on tree"
+    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    @info "Finished tree based upward init-inference"
+  else
     ensureAllInitialized!(fgl)
-    @info "Do multi-process inference over tree"
-    cliq = bt.cliques[1]
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-    cliq = bt.cliques[1]
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-    nothing
+  end
+  if !treeinit # !isTreeSolvedUp(bt)
+    @info "Do multi-process upward pass of inference on tree"
+    upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  end
+  @info "Do multi-process downward pass of inference on tree"
+  downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  nothing
 end
 
 """
@@ -1308,13 +1487,24 @@ end
 
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTreeR!(fgl::FactorGraph, bt::BayesTree; N::Int=200, dbg::Bool=false, drawpdf::Bool=false)::Nothing
-    @info "Ensure all nodes are initialized"
+function inferOverTreeR!(fgl::FactorGraph,
+                         bt::BayesTree;
+                         N::Int=100,
+                         dbg::Bool=false,
+                         drawpdf::Bool=false,
+                         treeinit::Bool=false  )::Nothing
+  #
+  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
+  setAllSolveFlags!(bt, false)
+  @info "Ensure all nodes are initialized"
+  if treeinit
+    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+  else
+    @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
-    @info "Do recursive inference over tree"
-    cliq = bt.cliques[1]
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-    cliq = bt.cliques[1]
-    downMsgPassingRecursive(ExploreTreeType(fgl, bt, cliq, Union{}, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-    nothing
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  end
+  @info "Do recursive down inference over tree"
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  nothing
 end
