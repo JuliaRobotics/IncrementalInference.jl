@@ -1,36 +1,37 @@
 
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
-# function reshapeVec2Mat(vec::Vector, rows::Int)
-#   M = reshape(vec, rows, round(Int,length(vec)/rows))
-#   return ndims(M) < 2 ? (M')' : M
-# end
 
 # get vertex from factor graph according to label symbol "x1"
-getVert(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt::Symbol=:var) = api.getvertex(fgl, lbl, nt=nt)
-getVert(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = api.getvertex(fgl, id)
+# getVert(dfg::FactorGraph, lbl::Symbol;, nt::Symbol=:var) = api.getvertex(fgl, lbl, nt=nt)
+# Replacing with DFG.getVariable and DFG.getFactor
 
-"""
-    $(TYPEDSIGNATURES)
-
-Get the `::Symbol` name for a node with `id::Int`.
-"""
-getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
+# """
+#     $(TYPEDSIGNATURES)
+#
+# Get the `::Symbol` name for a node with `id::Int`.
+# """
+# getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
 
 """
     $SIGNATURES
 
 Retrieve data structure stored in a node.
 """
-getData(v::Graphs.ExVertex) = v.attributes["data"]
-getData(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, nt=:var) = getData(getVert(fgl, lbl, api=api, nt=nt))
-getData(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi) = getData(getVert(fgl, id, api=api))
+getData(v::DFGFactor)::GenericFunctionNodeData = v.data
+getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
+getVariableData(dfg::T, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData where T <: DistributedFactorGraph = getData(getVariable(dfg, lbl, solveKey=solveKey))
+getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where T <: DistributedFactorGraph = getData(getFactor(dfg, lbl))
 # TODO -- upgrade to dedicated memory location in Graphs.jl
 # see JuliaArchive/Graphs.jl#233
 
-function setData!(v::Graphs.ExVertex, data)
-  # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  v.attributes["data"] = data
-  nothing
+# TODO: Intermediate for refactor. I'm sure we'll see this in 2024 though, it being 'temporary' and all :P
+function setData!(v::DFGVariable, data::VariableNodeData; solveKey::Symbol=:default)::Void
+  v.solverDataDict[solveKey] = data
+  return nothing
+end
+function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Void
+  f.data = data
+  return nothing
 end
 
 """
@@ -41,8 +42,8 @@ Variable nodes softtype information holding a variety of meta data associated wi
 function getSofttype(vnd::VariableNodeData)
   return vnd.softtype
 end
-function getSofttype(v::ExVertex)
-  getSofttype(getData(v))
+function getSofttype(v::DFGVariable; solveKey::Symbol=:default)
+  getSofttype(getData(v, solveKey=solveKey))
 end
 
 
@@ -50,58 +51,44 @@ end
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-getManifolds(vert::Graphs.ExVertex) =   getSofttype(vert).manifolds
-getManifolds(fgl::FactorGraph, vid::Int) = getManifolds(getVert(fgl, vid))
-getManifolds(fgl::FactorGraph, sym::Symbol) = getManifolds(getVert(fgl, sym))
+getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getSofttype(v, solveKey=solveKey).manifolds
+getManifolds(dfg::T, sym::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph = getManifolds(getVariable(fgl, sym), solveKey=solveKey))
 
 """
     $(SIGNATURES)
 
 Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
 """
+getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val
+getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
 getVal(vnd::VariableNodeData) = vnd.val
-getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:,idx]
-function getVal(v::Graphs.ExVertex)
-  return getVal(getData(v))
-end
-function getVal(v::Graphs.ExVertex, idx::Int)
-  return getVal(getData(v),idx)
-end
-function getVal(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  #getVal(dlapi.getvertex(fgl, lbl))
-  getVal(getVert(fgl, lbl, api=api))
-end
-function getVal(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
-  # getVal(dlapi.getvertex(fgl, exvertid))
-  getVal(getVert(fgl, exvertid, api=api))
-end
+getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
+getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph = getVariable(dfg, lbl).solverDataDict[solveKey]
 
 """
     $(SIGNATURES)
 
 Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
 """
-function getNumPts(v::Graphs.ExVertex)
-  return size(getData(v).val,2)
+function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Tuple{Int64,Int64}
+  return size(getData(v, solveKey=solveKey).val,2)
 end
 
-function getfnctype(data)
+# TODO: Refactor - was is das?
+function getfnctype(data::GenericFunctionNodeData)::Type
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData
   end
-  data.fnc.usrfnc!
+  return data.fnc.usrfnc!
 end
 
-function getfnctype(vertl::Graphs.ExVertex)
-  data = getData(vertl)
-  getfnctype(data)
+function getfnctype(f::DFGFactor; solveKey::Symbol=:default)::Type
+  data = getData(vertl, solveKey=solveKey)
+  return getfnctype(data)
 end
 
-function getfnctype(fgl::FactorGraph, exvertid::Int; api::DataLayerAPI=dlapi)
-  #
-  # data = getData(fgl, exvertid, api=api)
-  # data.fnc.usrfnc!
-  getfnctype(getVert(fgl, exvertid, api=api))
+function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph
+  getfnctype(getFactor(dfg, exvertid, api=api))
 end
 
 function getBW(vnd::VariableNodeData)
@@ -109,30 +96,28 @@ function getBW(vnd::VariableNodeData)
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
-function setVal!(v::Graphs.ExVertex, val::Array{Float64,2})
-  getData(v).val = val
-  # v.attributes["data"].val = val
+function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Void
+  getData(v, solveKey=solveKey).val = val
   nothing
 end
-function getBWVal(v::Graphs.ExVertex)
-  return getData(v).bw
+function getBWVal(v::DFGVariable; solveKey::Symbol=:default)
+  return getData(v, solveKey=solveKey).bw
 end
-function setBW!(v::Graphs.ExVertex, bw::Array{Float64,2})
-  getData(v).bw = bw
-  # v.attributes["data"].bw = bw
+function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Void
+  getData(v, solveKey=solveKey).bw = bw
   nothing
 end
-function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Array{Float64,2})
-  setVal!(v,val)
-  setBW!(v,bw)
+function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Array{Float64,2}; solveKey::Symbol=:default)::Void
+  setVal!(v, val, solveKey=solveKey)
+  setBW!(v, bw, solveKey=solveKey)
   nothing
 end
-function setVal!(v::Graphs.ExVertex, val::Array{Float64,2}, bw::Vector{Float64})
-  setVal!(v,val,reshape(bw,length(bw),1)) #(bw')')
+function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
+  setVal!(v, val, reshape(bw,length(bw),1), solveKey=solveKey)
   nothing
 end
-function setVal!(fg::FactorGraph, sym::Symbol, val::Array{Float64,2}; api::DataLayerAPI=localapi)
-  setVal!(api.getvertex(fg, sym), val)
+function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: DistributedFactorGraph
+  setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
 """
@@ -140,33 +125,33 @@ end
 
 Set the point centers and bandwidth parameters of a variable node, also set `isInitialized=true` if `setinit::Bool=true` (as per default).
 """
-function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2}, setinit::Bool=true)
+function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; solveKey::Symbol=:default)::Void
   # recover softtype information
-  sty = getSofttype(v)
+  sty = getSofttype(v, solveKey=solveKey)
   # @show sty.manifolds
   #
   p = AMP.manikde!(val, sty.manifolds)
-  setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
-  setinit ? (getData(v).initialized = true) : nothing
+  setVal!(v,val,getBW(p)[:,1], solveKey=solveKey) # TODO -- this can be little faster
+  setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, em::EasyMessage, setinit::Bool=true)
-  setVal!(v, em.pts, em.bws ) # getBW(p)[:,1]
-  setinit ? (getData(v).initialized = true) : nothing
+function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true; solveKey::Symbol=:default)::Void
+  setVal!(v, em.pts, em.bws, solveKey=solveKey) # getBW(p)[:,1]
+  setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity, setinit::Bool=true)
+function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true; solveKey::Symbol=:default)
   pts = getPoints(p)
-  setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
-  setinit ? (getData(v).initialized = true) : nothing
+  setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
+  setinit ? (getData(v, solveKey==solveKey).initialized = true) : nothing
   nothing
 end
-function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity; api::DataLayerAPI=dlapi, setinit::Bool=true)
-  setValKDE!(getVert(fgl, sym, api=api), p, setinit)
+function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: DistributedFactorGraph
+  setValKDE!(getVert(dfg, sym), p, setinit, solveKey=solveKey)
   nothing
 end
-setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
-setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
+setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default) = setValKDE!(v, em, solveKey=solveKey)
+setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default) = setValKDE!(v, p, solveKey=solveKey)
 
 """
     $(SIGNATURES)
@@ -179,8 +164,12 @@ end
 
 
 # TODO -- there should be a better way, without retrieving full vertex
-getOutNeighbors(fgl::FactorGraph, v::ExVertex; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
-getOutNeighbors(fgl::FactorGraph, vertid::Int; api::DataLayerAPI=dlapi, needdata::Bool=false, ready::Int=1,backendset::Int=1 ) = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
+function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Int=1, backendset::Int=1 ) where {T <: DistributedFactorGraph, V <: DFGNode}
+  = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
+end
+function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 ) where T <: DistributedFactorGraph
+  = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
+end
 
 function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
             api::DataLayerAPI=IncrementalInference.dlapi,
@@ -191,14 +180,14 @@ function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
 end
 
 
-function setDefaultNodeData!(v::Graphs.ExVertex,
+function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
                              dims::Int;
                              gt=nothing,
                              initialized::Bool=true,
                              dontmargin::Bool=false,
-                             softtype=nothing)
+                             softtype=nothing)::Void
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -220,23 +209,16 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     #initval, stdev
-    data = VariableNodeData(pNpts,
+    setSolverData(v, VariableNodeData(pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false, dontmargin))
   else
-      sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-      data = VariableNodeData(zeros(dims, N),
-                              zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
+    sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    setSolverData(v, VariableNodeData(zeros(dims, N),
+                            zeros(dims,1), Int[], sp,
+                            dims, false, 0, Int[], gt, softtype, false, false, dontmargin))
   end
-  #
-  setData!(v, data)
-  # v.attributes["data"] = data
-
-  # what about dedicated user variable metadata
-  # p.factormetadata
-
-  nothing
+  return nothing
 end
 
 """
@@ -250,18 +232,19 @@ function addNewVarVertInGraph!(fgl::FactorGraph,
             lbl::Symbol,
             ready::Int,
             smalldata  )
+  @error("NEIN NEIN ES IS VERBOTEN! DEPRECATED JA")
   #
-  vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-  vert.attributes["label"] = string(lbl) #fg.v[fg.id]
-  fgl.IDs[lbl] = id
-
-  # used for cloudgraph solving
-  vert.attributes["ready"] = ready
-  vert.attributes["backendset"] = 0
-
-  # store user metadata
-  vert.attributes["smalldata"] = smalldata
-  nothing
+  # vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
+  # vert.attributes["label"] = string(lbl) #fg.v[fg.id]
+  # fgl.IDs[lbl] = id
+  #
+  # # used for cloudgraph solving
+  # vert.attributes["ready"] = ready
+  # vert.attributes["backendset"] = 0
+  #
+  # # store user metadata
+  # vert.attributes["smalldata"] = smalldata
+  # nothing
 end
 
 
@@ -290,46 +273,52 @@ function addVariable!(fg::FactorGraph,
                       api::DataLayerAPI=dlapi,
                       uid::Int=-1,
                       smalldata="",
-                      checkduplicates::Bool=true  ) where {T <:InferenceVariable}
+                      checkduplicates::Bool=true  )::DFGVariable where {T <:InferenceVariable}
   #
-  if checkduplicates
-    if haskey(fg.IDs, lbl)
-      @warn "Variable $lbl already exists in fg.sessionname=$(fg.sessionname).  Igoring this addVariable! call."
-      return getVert(fg, lbl, api=api)
-    end
-  end
+  # if checkduplicates
+  #   if haskey(fg.IDs, lbl)
+  #     @warn "Variable $lbl already exists in fg.sessionname=$(fg.sessionname).  Igoring this addVariable! call."
+  #     return getVert(fg, lbl, api=api)
+  #   end
+  # end
 
-  currid = fg.id+1
-  if uid==-1
-    fg.id=currid
-  else
-    currid = uid
-  end
+  # currid = fg.id+1
+  # if uid==-1
+  #   fg.id=currid
+  # else
+  #   currid = uid
+  # end
+  v = DFGVariable(lbl)
+  v.ready = ready
+  v.backendset = backendset
+  v.tags = union(labels, softtype.labels, [:VARIABLE])
+  v.smalldata = smalldata
   # dims = dims != -1 ? dims : st.dims
-  lblstr = string(lbl)
-  vert = ExVertex(currid,lblstr)
-  addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
+  # lblstr = string(lbl)
+  # vert = ExVertex(currid,lblstr)
+  # addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   # dodims = fg.dimID+1
   setDefaultNodeData!(vert, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+  Graphs.addVariable!(dfg, v)
 
-  vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
-  push!(vnlbls, fg.sessionname)
+  # vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
+  # push!(vnlbls, fg.sessionname)
 
-  api.addvertex!(fg, vert, labels=vnlbls)
-
-  # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
-  push!(fg.nodeIDs, currid)
+  # api.addvertex!(fg, vert, labels=vnlbls)
+  #
+  # # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
+  # push!(fg.nodeIDs, currid)
 
   # keep a fifo queue of incoming symbols
   push!(fg.fifo, lbl)
 
-  vert
+  return v
 end
 
 function addVariable!(fg::FactorGraph,
                       lbl::Symbol,
-                      softtype::Type{<:InferenceVariable};
+                      softtype::T;
                       N::Int=100,
                       autoinit::Bool=true,
                       ready::Int=1,
@@ -338,13 +327,14 @@ function addVariable!(fg::FactorGraph,
                       api::DataLayerAPI=dlapi,
                       uid::Int=-1,
                       # dims::Int=-1,
-                      smalldata=""  )
+                      smalldata=""  )::DFGVariable where T <: InferenceVariable
   #
   sto = softtype()
+  #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
-  addVariable!(fg,
+  return addVariable!(fg,
                lbl,
                sto,
                N=N,
@@ -364,7 +354,7 @@ end
 
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
-function getVal(vA::Array{Graphs.ExVertex,1})
+function getVal(vA::Vector{DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
   @warn "getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
@@ -372,7 +362,7 @@ function getVal(vA::Array{Graphs.ExVertex,1})
   push!(cols,0)
   rows = Array{Int,1}()
   for v in vA
-      push!(vals, getVal(v))
+      push!(vals, getVal(v, solveKey=solveKey))
       c = size(vals[end],2)
       r = size(vals[end],1)
       push!(cols, floor(Int,c))

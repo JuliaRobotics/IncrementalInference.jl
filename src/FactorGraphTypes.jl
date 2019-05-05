@@ -1,3 +1,5 @@
+using DistributedFactorGraphs.GraphsJl
+
 import Base: convert
 import Base: ==
 
@@ -98,14 +100,16 @@ end
 
 Initialize an empty `::FactorGraph` object while initializing `sessionname`, `robotname`, and `cloudgraph`.
 """
-function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)
+function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: DistributedFactorGraph
+  dfg = GraphsDFG()
+
   # fgl = RoME.initfg(sessionname=sessionname)
-  fgl = FactorGraph()
-  fgl.sessionname = sessionname
-  fgl.robotname = robotname
-  fgl.username = username
-  fgl.cg = cloudgraph
-  return fgl
+  # fgl = FactorGraph()
+  # fgl.sessionname = sessionname
+  # fgl.robotname = robotname
+  # fgl.username = username
+  # fgl.cg = cloudgraph
+  return dfg
 end
 
 """
