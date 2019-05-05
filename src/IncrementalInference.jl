@@ -194,6 +194,8 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
+  unmarginalizeVariablesAll!,
+  resetVariableAllInitializations!,
   isMarginalized,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,
