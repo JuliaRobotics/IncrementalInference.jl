@@ -602,35 +602,36 @@ Development Notes:
 > Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
 * TODO use DFG properly with local operations and DB update at end.
 * TODO get faster version of `isInitialized` for database version.
+* TODO: Persist this back if we want to here.
 """
-function doautoinit!(fgl::FactorGraph,
-                     xi::Graphs.ExVertex;
-                     api::DataLayerAPI=dlapi,
+function doautoinit!(dfg::T,
+                     xi::DFGVariable;
                      singles::Bool=true,
-                     N::Int=100)::Bool
+                     N::Int=100)::Bool where T <: DistributedFactorGraph
   #
   didinit = false
   # don't initialize a variable more than once
   if !isInitialized(xi)
     # get factors attached to this variable xi
     vsym = Symbol(xi.label)
-    neinodes = ls(fgl, vsym)
+    neinodes = ls(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
     if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
       # Which of the factors can be used for initialization
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
-        canuse, usefct, notusevars = factorCanInitFromOtherVars(fgl, xifct, vsym)
+        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym)
         useinitfct = union(useinitfct, usefct)
       end
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        pts = predictbelief(fgl, vsym, useinitfct, api=api)
+        pts = predictbelief(dfg, vsym, useinitfct, api=api)
         setValKDE!(xi, pts)
         getData(xi).initialized = true
-        api.updatevertex!(fgl, xi, updateMAPest=false)
+        # TODO: Persist this back if we want to here.
+        # api.updatevertex!(dfg, xi, updateMAPest=false)
         didinit = true
       end
     end
@@ -638,11 +639,10 @@ function doautoinit!(fgl::FactorGraph,
   return didinit
 end
 
-function doautoinit!(fgl::FactorGraph,
-                     Xi::Vector{Graphs.ExVertex};
-                     api::DataLayerAPI=dlapi,
+function doautoinit!(dfg::T,
+                     Xi::Vector{DFGVariable};
                      singles::Bool=true,
-                     N::Int=100)::Bool
+                     N::Int=100)::Bool where T <: DistributedFactorGraph
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -652,27 +652,25 @@ function doautoinit!(fgl::FactorGraph,
 
   # loop over all requested variables that must be initialized
   for xi in Xi
-    didinit &= doautoinit!(fgl, xi, api=api, singles=singles, N=N)
+    didinit &= doautoinit!(dfg, xi, singles=singles, N=N)
   end
   return didinit
 end
 
-function doautoinit!(fgl::FactorGraph,
+function doautoinit!(dfg::T,
                      xsyms::Vector{Symbol};
-                     api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)::Bool
+                     N::Int=100)::Bool where T <: DistributedFactorGraph
   #
-  verts = getVert.(fgl, xsyms, api=api)
-  doautoinit!(fgl, verts, api=api, singles=singles, N=N)
+  verts = getVariable.(dfg, xsyms)
+  return doautoinit!(dfg, verts, singles=singles, N=N)
 end
-function doautoinit!(fgl::FactorGraph,
+function doautoinit!(dfg::T,
                      xsym::Symbol;
-                     api::DataLayerAPI=dlapi,
                      singles::Bool=true,
-                     N::Int=100)::Bool
+                     N::Int=100)::Bool where T <: DistributedFactorGraph
   #
-  doautoinit!(fgl, [getVert(fgl, xsym, api=api);], api=api, singles=singles, N=N)
+  return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N)
 end
 
 """
@@ -680,48 +678,47 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(fgl::FactorGraph, vert::Graphs.ExVertex, pX::BallTreeDensity)::Nothing
+function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: DistributedFactorGraph
   setValKDE!(vert, pX)
   getData(vert).initialized = true
-  # TODO must still update back to server is using api=dlapi
-  nothing
+  return nothing
 end
-function manualinit!(fgl::FactorGraph, sym::Symbol, pX::BallTreeDensity; api::DataLayerAPI=localapi)::Nothing
-  vert = getVert(fgl, sym, api=api)
-  manualinit!(fgl, vert, pX)
-  nothing
+function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: DistributedFactorGraph
+  vert = getVariable(dfg, sym)
+  manualinit!(dfg, vert, pX)
+  return nothing
 end
-function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol}; api::DataLayerAPI=localapi)::Nothing
-  global localapi
+function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing where T <: DistributedFactorGraph
   @warn "manual_init being used as a workaround for temporary autoinit issues."
-  pts = predictbelief(fgl, sym, usefcts)
-  vert = getVert(fgl, sym, api=api)
+  pts = predictbelief(dfg, sym, usefcts)
+  vert = getVert(dfg, sym, api=api)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
-  setValKDE!(vert, Xpre) # fgl, sym
-  getData(fgl, sym).initialized = true
-  nothing
+  setValKDE!(vert, Xpre) # dfg, sym
+  getData(dfg, sym).initialized = true
+  return nothing
 end
 
-function ensureAllInitialized!(fgl::FactorGraph; api::DataLayerAPI=dlapi)
-  xx, xl = ls(fgl)
-  allvarnodes = union(xx, xl)
+function ensureAllInitialized!(dfg::T) where T <: DistributedFactorGraph
+  allvarnodes = getVariables(dfg)
   for vsym in allvarnodes
-    if !isInitialized(fgl, vsym)
+    if !isInitialized(dfg, vsym)
       @info "$vsym is not initialized, and will do so now..."
-      doautoinit!(fgl, Graphs.ExVertex[getVert(fgl, vsym, api=api);], api=api, singles=true)
+      doautoinit!(dfg, [getVariable(dfg, vsym);], singles=true)
     end
   end
   nothing
 end
 
-function assembleFactorName(fgl::FactorGraph, Xi::Vector{Graphs.ExVertex}; maxparallel::Int=50)
+function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::String where T <: DistributedFactorGraph
+  existingFactorLabels = map(f -> f.label, getFactors(dfg))
+  existingFactorLabelDict = existingFactorLabels .=> existingFactorLabels
   namestring = ""
   for vert in Xi #f.Xi
-    namestring = string(namestring,vert.attributes["label"])
+    namestring = string(namestring,vert.label)
   end
   for i in 1:maxparallel
     tempnm = string(namestring, "f$i")
-    if !haskey(fgl.fIDs, Symbol(tempnm))
+    if !haskey(existingFactorLabelDict, Symbol(tempnm))
       namestring = tempnm
       break
     end
