@@ -150,6 +150,7 @@ function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:d
   setValKDE!(getVert(dfg, sym), p, setinit, solveKey=solveKey)
   nothing
 end
+# TODO: Confirm this is supposed to be a variable?
 setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default) = setValKDE!(v, em, solveKey=solveKey)
 setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default) = setValKDE!(v, p, solveKey=solveKey)
 
@@ -164,20 +165,24 @@ end
 
 
 # TODO -- there should be a better way, without retrieving full vertex
-function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Int=1, backendset::Int=1 ) where {T <: DistributedFactorGraph, V <: DFGNode}
-  = api.outneighbors(fgl, v, needdata=needdata, ready=ready, backendset=backendset )
+function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Union{Nothing, Int}=nothing, backendset::Union{Nothing, Int}=nothing)::Vector{Symbol} where {T <: DistributedFactorGraph, V <: DFGNode}
+  @warn "TODO: needdata is currently ignored. Symbols are returned."
+  nodes = getNeighbors(dfg, v, ready=ready, backendset=backendset)
+  return nodes
 end
-function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 ) where T <: DistributedFactorGraph
-  = api.outneighbors(fgl, api.getvertex(fgl,vertid), needdata=needdata, ready=ready, backendset=backendset )
+function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 )::Vector{Symbol} where {T <: DistributedFactorGraph, V <: DFGNode}
+  @warn "TODO: needdata is currently ignored. Symbols are returned."
+  nodes = getNeighbors(dfg, vertSym, ready=ready, backendset=backendset)
+  return nodes
 end
 
-function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
-            api::DataLayerAPI=IncrementalInference.dlapi,
-            updateMAPest::Bool=false  )
-  #
-  @warn "use of updateFullVert! should be clarified for local or remote operations."
-  api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
-end
+# function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
+#             api::DataLayerAPI=IncrementalInference.dlapi,
+#             updateMAPest::Bool=false  )
+#   #
+#   @warn "use of updateFullVert! should be clarified for local or remote operations."
+#   api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
+# end
 
 
 function setDefaultNodeData!(v::DFGVariable,
@@ -221,31 +226,31 @@ function setDefaultNodeData!(v::DFGVariable,
   return nothing
 end
 
-"""
-    $(SIGNATURES)
-
-Initialize a new Graphs.ExVertex which will be added to some factor graph.
-"""
-function addNewVarVertInGraph!(fgl::FactorGraph,
-            vert::Graphs.ExVertex,
-            id::Int,
-            lbl::Symbol,
-            ready::Int,
-            smalldata  )
-  @error("NEIN NEIN ES IS VERBOTEN! DEPRECATED JA")
-  #
-  # vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-  # vert.attributes["label"] = string(lbl) #fg.v[fg.id]
-  # fgl.IDs[lbl] = id
-  #
-  # # used for cloudgraph solving
-  # vert.attributes["ready"] = ready
-  # vert.attributes["backendset"] = 0
-  #
-  # # store user metadata
-  # vert.attributes["smalldata"] = smalldata
-  # nothing
-end
+# """
+#     $(SIGNATURES)
+#
+# Initialize a new Graphs.ExVertex which will be added to some factor graph.
+# """
+# function addNewVarVertInGraph!(fgl::FactorGraph,
+#             vert::Graphs.ExVertex,
+#             id::Int,
+#             lbl::Symbol,
+#             ready::Int,
+#             smalldata  )
+#   @error("NEIN NEIN ES IS VERBOTEN! DEPRECATED JA")
+#   #
+#   # vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
+#   # vert.attributes["label"] = string(lbl) #fg.v[fg.id]
+#   # fgl.IDs[lbl] = id
+#   #
+#   # # used for cloudgraph solving
+#   # vert.attributes["ready"] = ready
+#   # vert.attributes["backendset"] = 0
+#   #
+#   # # store user metadata
+#   # vert.attributes["smalldata"] = smalldata
+#   # nothing
+# end
 
 
 
@@ -383,10 +388,16 @@ end
 """
     $(SIGNATURES)
 
-Prepare the particle arrays `ARR` to be used for approximate convolution.  This function ensures that ARR has te same dimensions among all the parameters.  Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the existing values in getVal(Xi[.index==solvefor]).  Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and `maxlen` is length of all (possibly resampled) `ARR` contained particles.  Note `Xi` is order sensitive.
+Prepare the particle arrays `ARR` to be used for approximate convolution.
+This function ensures that ARR has te same dimensions among all the parameters.
+Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
+existing values in getVal(Xi[.index==solvefor]).
+Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and
+`maxlen` is length of all (possibly resampled) `ARR` contained particles.
+Note `Xi` is order sensitive.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-            Xi::Vector{Graphs.ExVertex},
+            Xi::Vector{DFGVariable},
             N::Int,
             solvefor::Int  )
   #
@@ -443,7 +454,7 @@ end
 # import IncrementalInference: prepgenericconvolution, convert
 
 function prepgenericconvolution(
-            Xi::Vector{Graphs.ExVertex},
+            Xi::Vector{DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
@@ -503,33 +514,33 @@ function setDefaultFactorNode!(
   nothing
 end
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Return the current maximum vertex ID number in the factor graph fragment `fgl`.
+# """
+# function getMaxVertId(fgl::FactorGraph)
+#   ids = collect(keys(fgl.g.vertices))
+#   return maximum(ids)
+# end
 
-Return the current maximum vertex ID number in the factor graph fragment `fgl`.
-"""
-function getMaxVertId(fgl::FactorGraph)
-  ids = collect(keys(fgl.g.vertices))
-  return maximum(ids)
-end
-
-function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
-  vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-  vert.attributes["label"] = lbl #fg.v[fg.id]
-  # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
-  fgl.fIDs[lbl] = id # fg.id,
-
-  # used for cloudgraph solving
-  vert.attributes["ready"] = ready
-  vert.attributes["backendset"] = 0
-
-  # for graphviz drawing
-  vert.attributes["shape"] = "point"
-  vert.attributes["width"] = 0.2
-  nothing
-end
-addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
-    addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
+# function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
+#   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
+#   vert.attributes["label"] = lbl #fg.v[fg.id]
+#   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
+#   fgl.fIDs[lbl] = id # fg.id,
+#
+#   # used for cloudgraph solving
+#   vert.attributes["ready"] = ready
+#   vert.attributes["backendset"] = 0
+#
+#   # for graphviz drawing
+#   vert.attributes["shape"] = "point"
+#   vert.attributes["width"] = 0.2
+#   nothing
+# end
+# addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
+#     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 """
     $SIGNATURES
@@ -538,13 +549,16 @@ Returns state of vertex data `.initialized` flag.
 
 Notes:
 - used by both factor graph variable and Bayes tree clique logic.
+TODO: Refactor
 """
 function isInitialized(vert::Graphs.ExVertex)::Bool
   return getData(vert).initialized
 end
-function isInitialized(fgl::FactorGraph, vsym::Symbol)::Bool
-  # TODO, make cloudgraphs work and make faster by avoiding all the getVerts
-  isInitialized(getVert(fgl, vsym))
+function isInitialized(vert::DFGVariable)::Bool
+  return getData(vert).initialized
+end
+function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: DistributedFactorGraph
+  return isInitialized(getVariable(dfg, vsym))
 end
 
 """
@@ -556,19 +570,18 @@ attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
 Development Notes
 * TODO get faster version of isInitialized for database version
 """
-function factorCanInitFromOtherVars(fgl::FactorGraph,
+function factorCanInitFromOtherVars(dfg::T,
                                     fct::Symbol,
-                                    loovar::Symbol;
-                                    api::DataLayerAPI=localapi  )::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
+                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: DistributedFactorGraph
   #
   # all variables attached to this factor
-  varsyms = lsf(fgl, fct)
+  varsyms = ls(dfg, fct)
 
   # list of factors to use in init operation
   useinitfct = Symbol[]
   faillist = Symbol[]
   for vsym in varsyms
-    xi = getVert(fgl, vsym, api=api)
+    xi = getVariable(fgl, vsym)
     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
       push!(useinitfct, fct)
     end
@@ -582,7 +595,7 @@ end
 """
     $(SIGNATURES)
 
-EXPERIMENTAL: initialize target variable `xi` based on connceted factors in the
+EXPERIMENTAL: initialize target variable `xi` based on connected factors in the
 factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!`.
 
 Development Notes:
