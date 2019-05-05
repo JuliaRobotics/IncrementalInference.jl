@@ -139,8 +139,12 @@ end
     $SIGNATURES
 
 Set the point centers and bandwidth parameters of a variable node, also set `isInitialized=true` if `setinit::Bool=true` (as per default).
+
+Notes
+- `initialized` is used for initial solve of factor graph where variables are not yet initialized.
+- `partialinit` is used to identify if the initialized was only partial.
 """
-function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2}, setinit::Bool=true)
+function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2}, setinit::Bool=true, partialinit::Bool=false)
   # recover softtype information
   sty = getSofttype(v)
   # @show sty.manifolds
@@ -148,17 +152,20 @@ function setValKDE!(v::Graphs.ExVertex, val::Array{Float64,2}, setinit::Bool=tru
   p = AMP.manikde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1]) # TODO -- this can be little faster
   setinit ? (getData(v).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, em::EasyMessage, setinit::Bool=true)
+function setValKDE!(v::Graphs.ExVertex, em::EasyMessage, setinit::Bool=true, partialinit::Bool=false)
   setVal!(v, em.pts, em.bws ) # getBW(p)[:,1]
   setinit ? (getData(v).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
-function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity, setinit::Bool=true)
+function setValKDE!(v::Graphs.ExVertex, p::BallTreeDensity, setinit::Bool=true, partialinit::Bool=false)
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1]) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   setinit ? (getData(v).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
 function setValKDE!(fgl::FactorGraph, sym::Symbol, p::BallTreeDensity; api::DataLayerAPI=dlapi, setinit::Bool=true)
@@ -222,12 +229,12 @@ function setDefaultNodeData!(v::Graphs.ExVertex,
     #initval, stdev
     data = VariableNodeData(pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true, false, dontmargin) #initialized
+                            dims, false, 0, Int[], gt, softtype, true, false, false, dontmargin) #initialized
   else
       sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
       data = VariableNodeData(zeros(dims, N),
                               zeros(dims,1), Int[], sp,
-                              dims, false, 0, Int[], gt, softtype, false, false, dontmargin) #initialized
+                              dims, false, 0, Int[], gt, softtype, false, false, false, dontmargin) #initialized
   end
   #
   setData!(v, data)
@@ -625,8 +632,8 @@ function doautoinit!(fgl::FactorGraph,
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
         pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        setValKDE!(xi, pts)
-        getData(xi).initialized = true
+        setValKDE!(xi, pts, true)
+        # getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
         didinit = true
       end
@@ -678,8 +685,8 @@ end
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
 function manualinit!(fgl::FactorGraph, vert::Graphs.ExVertex, pX::BallTreeDensity)::Nothing
-  setValKDE!(vert, pX)
-  getData(vert).initialized = true
+  setValKDE!(vert, pX, true)
+  # getData(vert).initialized = true
   # TODO must still update back to server is using api=dlapi
   nothing
 end
@@ -694,8 +701,8 @@ function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol}; api
   pts = predictbelief(fgl, sym, usefcts)
   vert = getVert(fgl, sym, api=api)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
-  setValKDE!(vert, Xpre) # fgl, sym
-  getData(fgl, sym).initialized = true
+  setValKDE!(vert, Xpre, true) # fgl, sym
+  # getData(fgl, sym).initialized = true
   nothing
 end
 
