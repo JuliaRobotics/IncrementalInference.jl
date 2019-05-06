@@ -77,7 +77,7 @@ Prepare a common functor computation object `prepareCommonConvWrapper{T}` contai
 """
 function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    Xi::Vector{Graphs.ExVertex},
-                                   solvefor::Int,
+                                   solvefor::Symbol,
                                    N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
@@ -193,7 +193,7 @@ Planned changes will fold null hypothesis in as a standard feature and no longer
 """
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Int;
+                               solvefor::Symbol;
                                N::Int=100,
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorPairwiseNH}
@@ -212,7 +212,7 @@ end
 
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Int;
+                               solvefor::Symbol;
                                N::Int=100,
                                dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
@@ -231,7 +231,7 @@ end
 
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Int;
+                               solvefor::Symbol;
                                N::Int=0,
                                dbg::Bool=false ) where {T <: FunctorSingleton}
   #
@@ -254,7 +254,7 @@ end
 
 function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Int;
+                               solvefor::Symbol;
                                N::Int=100,
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorSingletonNH}
@@ -291,7 +291,7 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 """
 function evalFactor2(fgl::FactorGraph,
                      fct::Graphs.ExVertex,
-                     solvefor::Int;
+                     solvefor::Symbol;
                      N::Int=100,
                      dbg::Bool=false,
                      api::DataLayerAPI=dlapi  )

@@ -100,7 +100,7 @@ end
 
 Initialize an empty `::FactorGraph` object while initializing `sessionname`, `robotname`, and `cloudgraph`.
 """
-function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: DistributedFactorGraph
+function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::AbstractDFG
   dfg = GraphsDFG()
 
   # fgl = RoME.initfg(sessionname=sessionname)

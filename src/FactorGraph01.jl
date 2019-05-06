@@ -1,3 +1,7 @@
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
+
 
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
@@ -19,8 +23,24 @@ Retrieve data structure stored in a node.
 """
 getData(v::DFGFactor)::GenericFunctionNodeData = v.data
 getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
-getVariableData(dfg::T, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData where T <: DistributedFactorGraph = getData(getVariable(dfg, lbl, solveKey=solveKey))
-getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where T <: DistributedFactorGraph = getData(getFactor(dfg, lbl))
+
+"""
+    $SIGNATURES
+
+Retrieve data structure stored in a variable.
+"""
+function getVariableData(dfg::T, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData where {T <: AbstractDFG}
+  return getData(getVariable(dfg, lbl, solveKey=solveKey))
+end
+
+"""
+    $SIGNATURES
+
+Retrieve data structure stored in a factor.
+"""
+function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
+  return getData(getFactor(dfg, lbl))
+end
 # TODO -- upgrade to dedicated memory location in Graphs.jl
 # see JuliaArchive/Graphs.jl#233
 
@@ -43,7 +63,7 @@ function getSofttype(vnd::VariableNodeData)
   return vnd.softtype
 end
 function getSofttype(v::DFGVariable; solveKey::Symbol=:default)
-  getSofttype(getData(v, solveKey=solveKey))
+  return getSofttype(getData(v, solveKey=solveKey))
 end
 
 
@@ -52,7 +72,9 @@ end
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getSofttype(v, solveKey=solveKey).manifolds
-getManifolds(dfg::T, sym::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph = getManifolds(getVariable(fgl, sym), solveKey=solveKey))
+function getManifolds(dfg::T, sym::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
+  return getManifolds(getVariable(fgl, sym), solveKey=solveKey)
+end
 
 """
     $(SIGNATURES)
@@ -63,7 +85,9 @@ getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].v
 getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
 getVal(vnd::VariableNodeData) = vnd.val
 getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
-getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph = getVariable(dfg, lbl).solverDataDict[solveKey]
+function getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
+  return getVariable(dfg, lbl).solverDataDict[solveKey]
+end
 
 """
     $(SIGNATURES)
@@ -87,7 +111,7 @@ function getfnctype(f::DFGFactor; solveKey::Symbol=:default)::Type
   return getfnctype(data)
 end
 
-function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: DistributedFactorGraph
+function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
   getfnctype(getFactor(dfg, exvertid, api=api))
 end
 
@@ -116,7 +140,7 @@ function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; sol
   setVal!(v, val, reshape(bw,length(bw),1), solveKey=solveKey)
   nothing
 end
-function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: DistributedFactorGraph
+function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: AbstractDFG
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -146,7 +170,7 @@ function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true; solv
   setinit ? (getData(v, solveKey==solveKey).initialized = true) : nothing
   nothing
 end
-function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: DistributedFactorGraph
+function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: AbstractDFG
   setValKDE!(getVert(dfg, sym), p, setinit, solveKey=solveKey)
   nothing
 end
@@ -165,12 +189,12 @@ end
 
 
 # TODO -- there should be a better way, without retrieving full vertex
-function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Union{Nothing, Int}=nothing, backendset::Union{Nothing, Int}=nothing)::Vector{Symbol} where {T <: DistributedFactorGraph, V <: DFGNode}
+function getOutNeighbors(dfg::T, v::V; needdata::Bool=false, ready::Union{Nothing, Int}=nothing, backendset::Union{Nothing, Int}=nothing)::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
   @warn "TODO: needdata is currently ignored. Symbols are returned."
   nodes = getNeighbors(dfg, v, ready=ready, backendset=backendset)
   return nodes
 end
-function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 )::Vector{Symbol} where {T <: DistributedFactorGraph, V <: DFGNode}
+function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::Int=1, backendset::Int=1 )::Vector{Symbol} where {T <: AbstractDFG, V <: DFGNode}
   @warn "TODO: needdata is currently ignored. Symbols are returned."
   nodes = getNeighbors(dfg, vertSym, ready=ready, backendset=backendset)
   return nodes
@@ -192,7 +216,7 @@ function setDefaultNodeData!(v::DFGVariable,
                              gt=nothing,
                              initialized::Bool=true,
                              dontmargin::Bool=false,
-                             softtype=nothing)::Void
+                             softtype=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -267,18 +291,18 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(fg::FactorGraph,
+function addVariable!(dfg::G,
                       lbl::Symbol,
                       softtype::T;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
                       ready::Int=1,
                       dontmargin::Bool=false,
-                      labels::Vector{<:AbstractString}=String[],
-                      api::DataLayerAPI=dlapi,
-                      uid::Int=-1,
+                      labels::Vector{Symbol}=Symbol[],
                       smalldata="",
-                      checkduplicates::Bool=true  )::DFGVariable where {T <:InferenceVariable}
+                      checkduplicates::Bool=true  )::DFGVariable where
+                      {G <: AbstractDFG,
+                       T <: InferenceVariable}
   #
   # if checkduplicates
   #   if haskey(fg.IDs, lbl)
@@ -295,17 +319,18 @@ function addVariable!(fg::FactorGraph,
   # end
   v = DFGVariable(lbl)
   v.ready = ready
-  v.backendset = backendset
-  v.tags = union(labels, softtype.labels, [:VARIABLE])
-  v.smalldata = smalldata
+  # v.backendset = backendset
+  v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
+  v.smallData = smalldata
   # dims = dims != -1 ? dims : st.dims
   # lblstr = string(lbl)
   # vert = ExVertex(currid,lblstr)
   # addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
   # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
   # dodims = fg.dimID+1
-  setDefaultNodeData!(vert, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
-  Graphs.addVariable!(dfg, v)
+  setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+  # TODO: Make generic
+  DFGGraphs.addVariable!(dfg, v)
 
   # vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
   # push!(vnlbls, fg.sessionname)
@@ -316,30 +341,29 @@ function addVariable!(fg::FactorGraph,
   # push!(fg.nodeIDs, currid)
 
   # keep a fifo queue of incoming symbols
-  push!(fg.fifo, lbl)
+  # NOTE: Now using getAddHistory(dfg) for this - it's done internally
+  # push!(fg.fifo, lbl)
 
   return v
 end
 
-function addVariable!(fg::FactorGraph,
+
+function addVariable!(dfg::G,
                       lbl::Symbol,
-                      softtype::T;
+                      softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Bool=true,
                       ready::Int=1,
                       dontmargin::Bool=false,
-                      labels::Vector{<:AbstractString}=String[],
-                      api::DataLayerAPI=dlapi,
-                      uid::Int=-1,
-                      # dims::Int=-1,
-                      smalldata=""  )::DFGVariable where T <: InferenceVariable
-  #
+                      labels::Vector{Symbol}=Symbol[],
+                      smalldata="")::DFGVariable where
+                      {G <: AbstractDFG} #
   sto = softtype()
   #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
-  return addVariable!(fg,
+  return addVariable!(dfg,
                lbl,
                sto,
                N=N,
@@ -347,8 +371,6 @@ function addVariable!(fg::FactorGraph,
                ready=ready,
                dontmargin=dontmargin,
                labels=labels,
-               api=api,
-               uid=uid,
                smalldata=smalldata  )
 end
 
@@ -391,15 +413,16 @@ end
 Prepare the particle arrays `ARR` to be used for approximate convolution.
 This function ensures that ARR has te same dimensions among all the parameters.
 Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
-existing values in getVal(Xi[.index==solvefor]).
-Return values `sfidx` is the element in ARR where `Xi.index==solvefor` and
+existing values in getVal(Xi[.label==solvefor]).
+Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
 `maxlen` is length of all (possibly resampled) `ARR` contained particles.
 Note `Xi` is order sensitive.
+Note for initialization, solveFor = Nothing.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
             Xi::Vector{DFGVariable},
             N::Int,
-            solvefor::Int  )
+            solvefor::Union{Nothing, Symbol}  ) # TODO: Confirm we can use symbols here
   #
   LEN = Int[]
   maxlen = N
@@ -414,7 +437,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
       maxlen = len
     end
     count += 1
-    if xi.index == solvefor
+    if xi.label == solvefor
       sfidx = count #xi.index
     end
   end
@@ -461,7 +484,7 @@ function prepgenericconvolution(
       # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, 0)
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
   zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
@@ -488,30 +511,29 @@ function prepgenericconvolution(
 end
 
 function setDefaultFactorNode!(
-      fgl::FactorGraph,
-      vert::Graphs.ExVertex,
-      Xi::Vector{Graphs.ExVertex},
+      dfg::G,
+      factor::DFGFactor,
+      Xi::Vector{DFGVariable},
       usrfnc::T;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      threadmodel=SingleThreaded  ) where {T <: Union{FunctorInferenceType, InferenceType}}
+      threadmodel=SingleThreaded  )::GenericFunctionNodeData where
+      {G <: AbstractDFG, T <: Union{FunctorInferenceType, InferenceType}}
   #
-  ftyp = typeof(usrfnc) # maybe this can be T
+  ftyp = T # typeof(usrfnc) # maybe this can be T
   # @show "setDefaultFactorNode!", usrfnc, ftyp, T
   mhcat = parseusermultihypo(multihypo)
   # gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
-  m = Symbol(ftyp.name.module)
-
   # experimental wip
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], m, ccw)
-  vert.attributes["data"] = data_ccw
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(ftyp.name.module), ccw)
+  factor.data = data_ccw
 
   # existing interface
   # data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
   # vert.attributes["data"] = data
 
-  nothing
+  return factor.data
 end
 
 # """
@@ -557,7 +579,7 @@ end
 function isInitialized(vert::DFGVariable)::Bool
   return getData(vert).initialized
 end
-function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: DistributedFactorGraph
+function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: AbstractDFG
   return isInitialized(getVariable(dfg, vsym))
 end
 
@@ -572,7 +594,7 @@ Development Notes
 """
 function factorCanInitFromOtherVars(dfg::T,
                                     fct::Symbol,
-                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: DistributedFactorGraph
+                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
   #
   # all variables attached to this factor
   varsyms = ls(dfg, fct)
@@ -607,14 +629,14 @@ Development Notes:
 function doautoinit!(dfg::T,
                      xi::DFGVariable;
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: DistributedFactorGraph
+                     N::Int=100)::Bool where T <: AbstractDFG
   #
   didinit = false
   # don't initialize a variable more than once
   if !isInitialized(xi)
     # get factors attached to this variable xi
     vsym = Symbol(xi.label)
-    neinodes = ls(dfg, vsym)
+    neinodes = DFGGraphs.getNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
     if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
       # Which of the factors can be used for initialization
@@ -627,7 +649,7 @@ function doautoinit!(dfg::T,
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        pts = predictbelief(dfg, vsym, useinitfct, api=api)
+        pts = predictbelief(dfg, vsym, useinitfct)
         setValKDE!(xi, pts)
         getData(xi).initialized = true
         # TODO: Persist this back if we want to here.
@@ -642,7 +664,7 @@ end
 function doautoinit!(dfg::T,
                      Xi::Vector{DFGVariable};
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: DistributedFactorGraph
+                     N::Int=100)::Bool where T <: AbstractDFG
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -660,7 +682,7 @@ end
 function doautoinit!(dfg::T,
                      xsyms::Vector{Symbol};
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: DistributedFactorGraph
+                     N::Int=100)::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, singles=singles, N=N)
@@ -668,7 +690,7 @@ end
 function doautoinit!(dfg::T,
                      xsym::Symbol;
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: DistributedFactorGraph
+                     N::Int=100)::Bool where T <: AbstractDFG
   #
   return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N)
 end
@@ -678,17 +700,17 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: DistributedFactorGraph
+function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
   setValKDE!(vert, pX)
   getData(vert).initialized = true
   return nothing
 end
-function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: DistributedFactorGraph
+function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
   vert = getVariable(dfg, sym)
   manualinit!(dfg, vert, pX)
   return nothing
 end
-function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing where T <: DistributedFactorGraph
+function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing where T <: AbstractDFG
   @warn "manual_init being used as a workaround for temporary autoinit issues."
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVert(dfg, sym, api=api)
@@ -698,7 +720,7 @@ function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing wher
   return nothing
 end
 
-function ensureAllInitialized!(dfg::T) where T <: DistributedFactorGraph
+function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)
   for vsym in allvarnodes
     if !isInitialized(dfg, vsym)
@@ -709,9 +731,9 @@ function ensureAllInitialized!(dfg::T) where T <: DistributedFactorGraph
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::String where T <: DistributedFactorGraph
-  existingFactorLabels = map(f -> f.label, getFactors(dfg))
-  existingFactorLabelDict = existingFactorLabels .=> existingFactorLabels
+function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::String where T <: AbstractDFG
+  existingFactorLabels = getFactorIds(dfg)
+  existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.label)
@@ -730,128 +752,108 @@ end
 """
     $(SIGNATURES)
 
-Add factor with user defined type <: FunctorInferenceType to the factor graph object.  Define whether the automatic initialization of variables should be performed.  Use order sensitive `multihypo` keyword argument to define if any variables are related to data association uncertainty.
+Add factor with user defined type <: FunctorInferenceType to the factor graph
+object. Define whether the automatic initialization of variables should be
+performed.  Use order sensitive `multihypo` keyword argument to define if any
+variables are related to data association uncertainty.
 """
-function addFactor!(fgl::FactorGraph,
-      Xi::Vector{Graphs.ExVertex},
+function addFactor!(
+      dfg::G,
+      Xi::Vector{DFGVariable},
       usrfnc::R;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
-      api::DataLayerAPI=dlapi,
-      labels::Vector{T}=String[],
-      uid::Int=-1,
+      labels::Vector{Symbol}=Symbol[],
       autoinit::Bool=true,
       threadmodel=SingleThreaded  ) where
-        {R <: Union{FunctorInferenceType, InferenceType},
-         T <: AbstractString}
+        {G <: AbstractDFG,
+         R <: Union{FunctorInferenceType, InferenceType}}
   #
-  currid = fgl.id+1
-  if uid==-1
-    fgl.id=currid
-  else
-    currid = uid
-  end
-  namestring = assembleFactorName(fgl, Xi)
-  # fgl.id+=1
-  newvert = ExVertex(currid,namestring)
-  addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
-  setDefaultFactorNode!(fgl, newvert, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
-  push!(fgl.factorIDs,currid)
+  namestring = assembleFactorName(dfg, Xi)
+  newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
+  newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
+  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
+  newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
 
-  # TODO -- evaluate and streamline
+  # TODO: Need to remove this...
   for vert in Xi
-    push!(getData(newvert).fncargvID, vert.index)
-    # push!(newvert.attributes["data"].fncargvID, vert.index)
+    push!(newData.fncargvID, vert._internalId) # YUCK :/
   end
 
-  fnlbls = deepcopy(labels)
-  fnlbls = union(fnlbls, String["FACTOR";])
-  push!(fnlbls, fgl.sessionname)
-  # TODO -- multiple accesses to DB with this method, must refactor!
-  newvert = api.addvertex!(fgl, newvert, labels=fnlbls)  # used to be two be three lines up ##fgl.g
-  for vert in Xi
-    api.makeaddedge!(fgl, vert, newvert)
-  end
+  success = DFGGraphs.addFactor!(dfg, Xi, newFactor)
 
-  # TODO change this operation to update a conditioning variable
-  if autoinit
-    doautoinit!(fgl, Xi, api=api, singles=false)
-  end
+  # TODO: change this operation to update a conditioning variable
+  autoinit && doautoinit!(dfg, Xi, singles=false)
 
-  return newvert
+  return newFactor
 end
 function addFactor!(
-      fgl::FactorGraph,
+      dfg::G,
       xisyms::Vector{Symbol},
       usrfnc::R;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
-      api::DataLayerAPI=dlapi,
-      labels::Vector{T}=String[],
-      uid::Int=-1,
+      labels::Vector{Symbol}=Symbol[],
       autoinit::Bool=true,
       threadmodel=SingleThreaded  ) where
-        {R <: Union{FunctorInferenceType, InferenceType},
-         T <: AbstractString}
+        {G <: AbstractDFG,
+         R <: Union{FunctorInferenceType, InferenceType}}
   #
-  verts = Vector{Graphs.ExVertex}()
-  for xi in xisyms
-      push!( verts, api.getvertex(fgl,xi) )
-  end
-  addFactor!(fgl, verts, usrfnc, multihypo=multihypo, ready=ready, api=api, labels=labels, uid=uid, autoinit=autoinit, threadmodel=threadmodel )
+  verts = map(vid -> DFGGraphs.getVariable(dfg, vid), xisyms)
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel )
 end
 
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Delete factor and its edges.
+# """
+# function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
+#   fid = fgl.fIDs[fsym]
+#   eds = fgl.g.inclist[fid]
+#   alledsids = Int[]
+#   nedges = length(eds)
+#   for eds in fgl.g.inclist[fid]
+#     union!(alledsids, [eds.source.index; eds.target.index])
+#   end
+#   for edids in setdiff!(alledsids, fid)
+#     count = 0
+#     for eds in fgl.g.inclist[edids]
+#       count += 1
+#       if fid == eds.source.index || fid == eds.target.index
+#         deleteat!(fgl.g.inclist[edids], count)
+#         break
+#       end
+#     end
+#   end
+#   delete!(fgl.g.inclist, fid)
+#   fgl.g.nedges -= nedges
+#   delete!(fgl.g.vertices, fid)
+#   delete!(fgl.fIDs, fsym)
+#   deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
+#   nothing
+# end
 
-Delete factor and its edges.
-"""
-function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
-  fid = fgl.fIDs[fsym]
-  eds = fgl.g.inclist[fid]
-  alledsids = Int[]
-  nedges = length(eds)
-  for eds in fgl.g.inclist[fid]
-    union!(alledsids, [eds.source.index; eds.target.index])
-  end
-  for edids in setdiff!(alledsids, fid)
-    count = 0
-    for eds in fgl.g.inclist[edids]
-      count += 1
-      if fid == eds.source.index || fid == eds.target.index
-        deleteat!(fgl.g.inclist[edids], count)
-        break
-      end
-    end
-  end
-  delete!(fgl.g.inclist, fid)
-  fgl.g.nedges -= nedges
-  delete!(fgl.g.vertices, fid)
-  delete!(fgl.fIDs, fsym)
-  deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
-  nothing
-end
-
-"""
-    $SIGNATURES
-
-Delete variables, and also the factors+edges if `andfactors=true` (default).
-"""
-function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
-  vid = fgl.IDs[vsym]
-  vert = fgl.g.vertices[vid]
-  if andfactors
-    for ne in Graphs.out_neighbors(vert, fgl.g)
-      deleteFactor!(fgl, Symbol(ne.label))
-    end
-  end
-  delete!(fgl.g.vertices, vid)
-  delete!(fgl.IDs, vsym)
-  deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
-  nothing
-end
+# """
+#     $SIGNATURES
+#
+# Delete variables, and also the factors+edges if `andfactors=true` (default).
+# """
+# function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
+#   vid = fgl.IDs[vsym]
+#   vert = fgl.g.vertices[vid]
+#   if andfactors
+#     for ne in Graphs.out_neighbors(vert, fgl.g)
+#       deleteFactor!(fgl, Symbol(ne.label))
+#     end
+#   end
+#   delete!(fgl.g.vertices, vid)
+#   delete!(fgl.IDs, vsym)
+#   deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
+#   nothing
+# end
 
 
 function prtslperr(s)
@@ -860,50 +862,55 @@ function prtslperr(s)
   error(s)
 end
 
+### TODO: TO BE REFACTORED FOR DFG
+
 # for computing the Bayes Net-----------------------------------------------------
-function getEliminationOrder(fg::FactorGraph; ordering::Symbol=:qr)
-    s = fg.nodeIDs
-    lens = length(s)
-    sf = fg.factorIDs
-    lensf = length(sf)
-    adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
-    permuteds = Vector{Int}(undef, lens)
-    permutedsf = Vector{Int}(undef, lensf)
-    for j in 1:length(dictpermu)
-      semap = 0
-      for i in 1:lens
-        if dictpermu[j] == s[i]
-          permuteds[i] = j#dictpermu[j]
-          semap += 1
-          if semap >= 2  break; end
-        end
-      end
-      for i in 1:lensf
-        if dictpermu[j] == sf[i]
-          permutedsf[i] = j#dictpermu[j]
-          semap += 1
-          if semap >= 2  break; end
-        end
+function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
+  s = getVariableIds(dfg)
+  lens = length(s)
+  sf = getFactorIds(dfg)
+  lensf = length(sf)
+  # adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
+  @show adjm = getAdjacencyMatrix(dfg)
+  @error "Getting adjacency matrix here and it's new behavior, this is probably going to break!"
+  permuteds = Vector{Int}(undef, lens)
+  permutedsf = Vector{Int}(undef, lensf)
+  for j in 1:length(dictpermu)
+    semap = 0
+    for i in 1:lens
+      if dictpermu[j] == s[i]
+        permuteds[i] = j#dictpermu[j]
+        semap += 1
+        if semap >= 2  break; end
       end
     end
-
-      A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
-      p = Int[]
-      if ordering==:chol
-        p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
-      elseif ordering==:qr
-        q,r,p = qr(A, Val(true))
-      else
-        prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+    for i in 1:lensf
+      if dictpermu[j] == sf[i]
+        permutedsf[i] = j#dictpermu[j]
+        semap += 1
+        if semap >= 2  break; end
       end
+    end
+  end
 
-    # we need the IDs associated with the Graphs.jl and our Type fg
-    return  dictpermu[permuteds[p]] # fg.nodeIDs[p]
+  A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
+  p = Int[]
+  if ordering==:chol
+    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+  elseif ordering==:qr
+    q,r,p = qr(A, Val(true))
+  else
+    prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
+  end
+
+  # we need the IDs associated with the Graphs.jl and our Type fg
+  return dictpermu[permuteds[p]] # fg.nodeIDs[p]
 end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(fg::FactorGraph, elimOrder::Array{Int,1})
+function addBayesNetVerts!(dfg::G, elimOrder::Array{Int,1}) where G <: AbstractDFG
+  @error "This method works on ID's, we should use labels, needs a refactor."
   for p in elimOrder
     vert = getVert(fg, p, api=localapi)
     # @show vert.label, getData(vert).BayesNetVertID
@@ -1014,7 +1021,7 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       end
 
       tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
-      tuv.attributes["data"].eliminated = true # fg.v[v].
+      getData(tuv).eliminated = true # fg.v[v].
       localapi.updatevertex!(fg, tuv)
 
       # TODO -- remove links from current vertex to any marginals
@@ -1027,6 +1034,8 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
     end
     nothing
 end
+
+### TODO: TO BE REFACTORED FOR DFG
 
 # some plotting functions on the factor graph
 function stackVertXY(fg::FactorGraph, lbl::String)
@@ -1089,20 +1098,21 @@ end
 
 Export a dot and pdf file drawn by Graphviz showing the factor graph.
 """
-function writeGraphPdf(fgl::FactorGraph;
+function writeGraphPdf(dfg::G;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",
                        engine::AS="sfdp",
-                       show::Bool=true ) where {AS <: AbstractString}
+                       show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
   #
-  fgd = drawCopyFG(fgl)
+  # fgd = drawCopyFG(fgl)
   @info "Writing factor graph file"
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
-  fid = open(dotfile,"w")
-  write(fid,Graphs.to_dot(fgd.g))
-  close(fid)
+  # fid = open(dotfile,"w")
+  # write(fid,Graphs.to_dot(fgd.g))
+  # close(fid)
+  toDotFile(dfg, dotfile)
   show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
 
   try
