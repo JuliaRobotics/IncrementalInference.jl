@@ -46,6 +46,10 @@ export
   setdatalayerAPI!,
   DataLayerAPI,
 
+  # state machine methods
+  StateMachine,
+  exitStateMachine,
+
   # general types for softtyping of variable nodes
   InferenceVariable,
   ContinuousScalar,
@@ -345,6 +349,7 @@ const NothingUnion{T} = Union{Nothing, T}
 include("ccolamd.jl")
 
 # regular
+include("StateMachine.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
