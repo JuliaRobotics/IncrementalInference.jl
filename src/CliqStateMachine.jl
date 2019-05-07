@@ -87,7 +87,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
       notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
       # setCliqStatus!(cliq, :needdownmsg)
       cliqst = getCliqStatus(csmc.cliq) ## TODO: likely not required since cliqst already exists
-      setCliqDrawColor(cliq, "green")
+      setCliqDrawColor(csmc.cliq, "green")
       csmc.tryonce = true
     end
 
