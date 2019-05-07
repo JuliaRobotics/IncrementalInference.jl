@@ -35,7 +35,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     setCliqDrawColor(csmc.cliq, "green")
     csmc.tryonce = true # TODO, potential problem with trying to downsolve
   end
-  csmc.drawtree ? drawTree(csmc.tree, show=show) : nothing
+  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   return whileCliqNotSolved_StateMachine
 end
@@ -49,7 +49,8 @@ Notes
 """
 function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
-  csmc.drawtree ? drawTree(csmc.tree, show=show) : nothing
+  cliqst = getCliqStatus(csmc.cliq)
+  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
   # evaluate according to cliq status
   isprntnddw = isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
@@ -68,12 +69,14 @@ Notes
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   cliqst = getCliqStatus(csmc.cliq)
-  lbl = csmc.attributes["label"]
+  lbl = csmc.cliq.attributes["label"]
+  stdict = Dict{Int, Symbol}()
 
   # promote if longer down chain of :needdownmsg
   if cliqst == :null
     @info "$(current_task()) Clique $(csmc.cliq.index), determineCliqNeedDownMsg -- blocking until child cliques have status, cliqst=$(cliqst)"
     stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
+    # TODO stdict here is just to get the status of child cliques
     @info "$(current_task()) Clique $(csmc.cliq.index) continue, children all have status"
 
     chstatus = collect(values(stdict))
@@ -132,7 +135,7 @@ Notes
 function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), blockUntilChildrenStatus_StateMachine -- blocking until child cliques have status, cliqst=$(cliqst)"
-  blockCliqUntilChildrenHaveUpStatus(csmc.tree, csm.cliq)
+  blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index) continue, children all have status"
 
   return determineCliqNeedDownMsg_StateMachine
@@ -174,7 +177,7 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
     if !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
       @info "$(current_task()) Clique $(csmc.cliq.index), blocking on parent until all sibling cliques have valid status"
       setCliqDrawColor(csmc.cliq, "turquoise")
-      csmc.drawtree ? drawTree(csmc.tree, show=show) : nothing
+      csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
       return blockUntilSiblingsStatus_StateMachine
       # stdictprnt = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
     else
@@ -256,20 +259,31 @@ end
 EXPERIMENTAL: perform upward inference using a state machine solution approach.
 
 Notes:
+- will call on values from children or parent cliques
+- can be called multiple times
 - Assumes all cliques in tree are being solved simultaneously and in similar manner.
 - State machine rev.1 -- copied from first TreeBasedInitialization.jl.
 - Doesn't do partial initialized state properly yet.
 """
-function solveCliqUpByStateMachine!(fg::FactorGraph,
-                                    tree::BayesTree,
-                                    cliq::Graphs.ExVertex )
+function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
+                                        tree::BayesTree,
+                                        cliq::Graphs.ExVertex;
+                                        drawtree::Bool=false,
+                                        show::Bool=false,
+                                        incremental::Bool=true,
+                                        limititers::Int=-1,
+                                        recordhistory::Bool=false  )
   #
-  csmc = CliqStateMachineContainer(fg, tree, cliq, initfg(), true, false, false, true, true)
+  csmc = CliqStateMachineContainer(fg, tree, cliq, initfg(), true, false, false, incremental, drawtree)
 
-  statemachine = StateMachine(next=foo!)
-  while statemachine(nothing, verbose=true); end
-
+  statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+  while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
+  statemachine.history
 end
+
+
+
+
 
 
 #

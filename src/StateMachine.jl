@@ -17,10 +17,11 @@ while st(usrdata); end
 Notes
 - Also see IncrementalInference/test/testStateMachine.jl
 """
-mutable struct StateMachine
+mutable struct StateMachine{T}
   next::Function
   iter::Int
-  StateMachine(;next=emptyState, iter::Int=0) = new(next, iter)
+  history::Vector{Tuple{Int, Function, T}}
+  StateMachine{T}(;next=emptyState, iter::Int=0) where T = new{T}(next, iter, Vector{Tuple{Int, Function, T}}())
 end
 
 """
@@ -38,14 +39,16 @@ usrdata = nothing
 while st(usrdata); end
 ```
 """
-function (st::StateMachine)(userdata::T=nothing;
-                            breakafter::Function=exitStateMachine,
-                            verbose::Bool=false,
-                            iterlimit::Int=-1  ) where {T}
+function (st::StateMachine{T})(userdata::T=nothing;
+                               breakafter::Function=exitStateMachine,
+                               verbose::Bool=false,
+                               iterlimit::Int=-1,
+                               recordhistory::Bool=false  ) where {T}
   #
   st.iter += 1
   !verbose ? nothing : println("State machine iter=$(st.iter)")
   retval = st.next != breakafter && (iterlimit == -1 || st.iter < iterlimit)
+  recordhistory ? push!(st.history, (st.iter, deepcopy(st.next), deepcopy(userdata))) : nothing
   st.next = st.next(userdata)
   return retval
 end
