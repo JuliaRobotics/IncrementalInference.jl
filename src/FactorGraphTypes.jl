@@ -161,13 +161,10 @@ mutable struct VariableNodeData
   groundtruth::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } } # not packed yet
   softtype
   initialized::Bool
+  partialinit::Bool
   ismargin::Bool
   dontmargin::Bool
   VariableNodeData() = new()
-  # function VariableNodeData(x1,x2,x3,x4,x5,x6,x7,x8,x9)
-  #   @warn "Deprecated use of VariableNodeData(11 param), use 13 parameters instead"
-  #   new(x1,x2,x3,x4,x5,x6,x7,x8,x9, nothing, true, false, false) # TODO ensure this is initialized true is working for most cases
-  # end
   VariableNodeData(x1::Array{Float64,2},
                    x2::Array{Float64,2},
                    x3::Vector{Int},
@@ -180,8 +177,9 @@ mutable struct VariableNodeData
                    x10,
                    x11::Bool,
                    x12::Bool,
-                   x13::Bool) =
-    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13)
+                   x13::Bool,
+                   x14::Bool) =
+    new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14)
 end
 
 """

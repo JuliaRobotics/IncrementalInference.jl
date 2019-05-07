@@ -17,6 +17,7 @@ mutable struct PackedVariableNodeData
   # groundtruth::NothingUnion{ Dict{ Tuple{Symbol, Vector{Float64}} } }
   softtype::String
   initialized::Bool
+  partialinit::Bool
   ismargin::Bool
   dontmargin::Bool
   PackedVariableNodeData() = new()
@@ -33,7 +34,8 @@ mutable struct PackedVariableNodeData
                          x15::String,
                          x16::Bool,
                          x17::Bool,
-                         x18::Bool ) = new(x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18)
+                         x18::Bool,
+                         x19::Bool) = new(x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18,x19)
 end
 
 
@@ -102,7 +104,7 @@ function convert(::Type{PackedVariableNodeData}, d::VariableNodeData)
                                 d.BayesNetOutVertIDs,
                                 d.dimIDs, d.dims, d.eliminated,
                                 d.BayesNetVertID, d.separator,
-                                string(d.softtype), d.initialized, d.ismargin, d.dontmargin)
+                                string(d.softtype), d.initialized, d.partialinit, d.ismargin, d.dontmargin)
 end
 function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
@@ -143,7 +145,7 @@ function convert(::Type{VariableNodeData}, d::PackedVariableNodeData)
 
   return VariableNodeData(M3,M4, d.BayesNetOutVertIDs,
     d.dimIDs, d.dims, d.eliminated, d.BayesNetVertID, d.separator,
-    nothing, st, d.initialized, d.ismargin, d.dontmargin )
+    nothing, st, d.initialized, d.partialinit, d.ismargin, d.dontmargin )
 end
 
 

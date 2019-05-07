@@ -1416,7 +1416,11 @@ end
 
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
-function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100, limititers::Int=-1)
+function initInferTreeUp!(fgl::FactorGraph,
+                          treel::BayesTree;
+                          drawtree::Bool=false,
+                          N::Int=100,
+                          limititers::Int=-1  )
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(fgl, treel)
@@ -1431,7 +1435,9 @@ function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=fal
           clst = :na
           try
             cliq = treel.cliques[i]
-            clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+            clst = getCliqStatus(cliq)
+            # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
           catch err
             bt = catch_backtrace()
             println()
@@ -1443,8 +1449,8 @@ function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=fal
           end
         end # async
       end # for
-    end #if
-  end
+    end # if
+  end # sync
 
   return alltasks
 end

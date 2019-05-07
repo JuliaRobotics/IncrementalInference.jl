@@ -50,8 +50,8 @@ end
 
 @testset "test backwards compatibility of loadjld from previous versions of IIF (from an existing test data file)..." begin
 
-
 global filename = joinpath(dirname(pathof(IncrementalInference)), "..", "test","testdata","compatibility_test_fg.jld2")
+# savejld(fgt, file=filename)  # when changing to a new compat test file (human required)
 global fgprev, = loadjld(file=filename )
 
 global fc = getData(getVert(fgprev, :x1x2f1, nt=:fnc))
