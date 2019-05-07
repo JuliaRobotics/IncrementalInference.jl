@@ -45,11 +45,11 @@ end
 # see JuliaArchive/Graphs.jl#233
 
 # TODO: Intermediate for refactor. I'm sure we'll see this in 2024 though, it being 'temporary' and all :P
-function setData!(v::DFGVariable, data::VariableNodeData; solveKey::Symbol=:default)::Void
+function setData!(v::DFGVariable, data::VariableNodeData; solveKey::Symbol=:default)::Nothing
   v.solverDataDict[solveKey] = data
   return nothing
 end
-function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Void
+function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   f.data = data
   return nothing
 end
@@ -120,18 +120,18 @@ function getBW(vnd::VariableNodeData)
 end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
-function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Void
+function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
   getData(v, solveKey=solveKey).val = val
   nothing
 end
 function getBWVal(v::DFGVariable; solveKey::Symbol=:default)
   return getData(v, solveKey=solveKey).bw
 end
-function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Void
+function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
   getData(v, solveKey=solveKey).bw = bw
   nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Array{Float64,2}; solveKey::Symbol=:default)::Void
+function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
   setVal!(v, val, solveKey=solveKey)
   setBW!(v, bw, solveKey=solveKey)
   nothing
@@ -149,7 +149,7 @@ end
 
 Set the point centers and bandwidth parameters of a variable node, also set `isInitialized=true` if `setinit::Bool=true` (as per default).
 """
-function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; solveKey::Symbol=:default)::Void
+function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; solveKey::Symbol=:default)::Nothing
   # recover softtype information
   sty = getSofttype(v, solveKey=solveKey)
   # @show sty.manifolds
@@ -159,7 +159,7 @@ function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; s
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   nothing
 end
-function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true; solveKey::Symbol=:default)::Void
+function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true; solveKey::Symbol=:default)::Nothing
   setVal!(v, em.pts, em.bws, solveKey=solveKey) # getBW(p)[:,1]
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   nothing
@@ -597,13 +597,13 @@ function factorCanInitFromOtherVars(dfg::T,
                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
   #
   # all variables attached to this factor
-  varsyms = ls(dfg, fct)
+  varsyms = getNeighbors(dfg, fct)
 
   # list of factors to use in init operation
   useinitfct = Symbol[]
   faillist = Symbol[]
   for vsym in varsyms
-    xi = getVariable(fgl, vsym)
+    xi = DFGGraphs.getVariable(dfg, vsym)
     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
       push!(useinitfct, fct)
     end

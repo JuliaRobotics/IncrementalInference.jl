@@ -1,3 +1,6 @@
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 
 
@@ -193,14 +196,14 @@ Future
 ------
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
-function productbelief(fg::FactorGraph,
-                       vertid::Int,
+function productbelief(dfg::G,
+                       vertlabel::Symbol,
                        dens::Vector{BallTreeDensity},
                        partials::Dict{Int, Vector{BallTreeDensity}},
                        N::Int;
-                       dbg::Bool=false )
+                       dbg::Bool=false ) where {G <: AbstractDFG}
   #
-  vert = getVert(fg, vertid, api=localapi)
+  vert = DFGGraphs.getVariable(dfg, vertlabel)
   manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
@@ -236,18 +239,17 @@ function productbelief(fg::FactorGraph,
   return pGM
 end
 
-function proposalbeliefs!(fgl::FactorGraph,
-                          destvertid::Int,
-                          factors::Vector{Graphs.ExVertex},
+function proposalbeliefs!(dfg::G,
+                          destvertlabel::Symbol,
+                          factors::Vector{F},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
-                          dbg::Bool=false,
-                          api::DataLayerAPI=dlapi  )::Nothing
+                          dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
   #
   for fct in factors
     data = getData(fct)
-    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
+    p = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -264,13 +266,13 @@ function proposalbeliefs!(fgl::FactorGraph,
   nothing
 end
 
-function predictbelief(fgl::FactorGraph,
-                       destvert::ExVertex,
-                       factors::Vector{Graphs.ExVertex};
+function predictbelief(dfg::G,
+                       destvert::DFGVariable,
+                       factors::Vector{F};
                        N::Int=0,
-                       dbg::Bool=false )
+                       dbg::Bool=false ) where {G <: AbstractDFG, F <: DFGNode}
   #
-  destvertid = destvert.index
+  destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
 
@@ -278,42 +280,38 @@ function predictbelief(fgl::FactorGraph,
   nn = N != 0 ? N : size(getVal(destvert),2)
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
+  pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
   return pGM
 end
 
-function predictbelief(fgl::FactorGraph,
+function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Vector{Symbol};
                        N::Int=0,
-                       dbg::Bool=false,
-                       api::DataLayerAPI=IncrementalInference.localapi  )
+                       dbg::Bool=false) where G <: AbstractDFG
   #
-  factors = Graphs.ExVertex[]
-  for fsym in factorsyms
-    push!(factors, getVert(fgl, fgl.fIDs[fsym], api=api))
-  end
-  vert = getVert(fgl, destvertsym, api=api)
+  factors = map(fsym -> DFGGraphs.getFactor(dfg, fsym), factorsyms)
+
+  vert = DFGGraphs.getVariable(dfg, destvertsym)
 
   # determine the number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(vert),2)
 
   # do the belief prediction
-  predictbelief(fgl, vert, factors, N=nn, dbg=dbg)
+  predictbelief(dfg, vert, factors, N=nn, dbg=dbg)
 end
 
-function predictbelief(fgl::FactorGraph,
+function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Colon;
                        N::Int=0,
-                       dbg::Bool=false,
-                       api::DataLayerAPI=IncrementalInference.localapi  )
+                       dbg::Bool=false) where G <: AbstractDFG
   #
-  predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api, dbg=dbg )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg )
 end
 
 """

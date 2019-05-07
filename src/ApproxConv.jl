@@ -1,4 +1,6 @@
-
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 
 """
@@ -76,7 +78,7 @@ end
 Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
 """
 function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
-                                   Xi::Vector{Graphs.ExVertex},
+                                   Xi::Vector{DFGVariable},
                                    solvefor::Symbol,
                                    N::Int  ) where {T <: FunctorInferenceType}
   ARR = Array{Array{Float64,2},1}()
@@ -191,7 +193,7 @@ Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute 
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
-function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol;
                                N::Int=100,
@@ -210,7 +212,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol;
                                N::Int=100,
@@ -229,7 +231,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   return ccwl.params[ccwl.varidx]
 end
 
-function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol;
                                N::Int=0,
@@ -252,7 +254,7 @@ function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
   end
 end
 
-function evalPotentialSpecific(Xi::Vector{Graphs.ExVertex},
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol;
                                N::Int=100,
@@ -289,32 +291,31 @@ end
 
 Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
 """
-function evalFactor2(fgl::FactorGraph,
-                     fct::Graphs.ExVertex,
+function evalFactor2(dfg::G,
+                     fct::DFGFactor,
                      solvefor::Symbol;
                      N::Int=100,
-                     dbg::Bool=false,
-                     api::DataLayerAPI=dlapi  )
+                     dbg::Bool=false) where G <: AbstractDFG
   #
 
   ccw = getData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
-  Xi = Graphs.ExVertex[]
+  Xi = DFGVariable[]
   count = 0
   variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
-    xi = getVert(fgl, id, api=api)
-    push!(Xi, xi ) # TODO localapi
+    xi = DFGGraphs.getVariable(dfg, id)
+    push!(Xi, xi )
     # push!(Xi, dlapi.getvertex(fgl,id))
 
     # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
-    variablelist[count] = Symbol(xi.label)
+    variablelist[count] = xi.label
 
     # TODO bad way to search for `solvefor`
-    if xi.index == solvefor
+    if xi.label == solvefor
       for i in 1:Threads.nthreads()
-        ccw.cpt[i].factormetadata.solvefor = Symbol(xi.label)
+        ccw.cpt[i].factormetadata.solvefor = xi.label
       end
     end
   end
@@ -329,16 +330,15 @@ end
 
 Draw samples from the approximate convolution of `towards` symbol using factor `fct` relative to the other variables.  In addition the `api` can be adjusted to recover the data from elsewhere (likely to be replaced/removed in the future).
 """
-function approxConv(fgl::FactorGraph,
+function approxConv(fgl::G,
                     fct::Symbol,
                     towards::Symbol;
-                    api::DataLayerAPI=localapi,
-                    N::Int=-1  )
+                    N::Int=-1  ) where G <: AbstractDFG
   #
-  fc = getVert(fgl, fct, nt=:fct, api=api)
-  v1 = getVert(fgl, towards, api=api)
+  fc = getFactor(dfg, fct)
+  v1 = getVariable(dfg, towards)
   N = N == -1 ? getNumPts(v1) : N
-  return evalFactor2(fgl, fc, v1.index, N=N, api=api)
+  return evalFactor2(dfg, fc, v1.label, N=N)
 end
 
 
@@ -367,21 +367,20 @@ Compute proposal belief on `vertid` through `idfct` representing some constraint
 Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
 The remaining dimensions will keep pre-existing variable values.
 """
-function findRelatedFromPotential(fg::FactorGraph,
-                                  idfct::Graphs.ExVertex,
-                                  vertid::Int,
+function findRelatedFromPotential(dfg::G,
+                                  idfct::DFGFactor,
+                                  vertlabel::Symbol,
                                   N::Int,
-                                  dbg::Bool=false;
-                                  api::DataLayerAPI=dlapi  ) # vert
+                                  dbg::Bool=false) where G <: AbstractDFG
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(fg, idfct, vertid, N=N, dbg=dbg, api=api );
+  ptsbw = evalFactor2(dfg, idfct, vertlabel, N=N, dbg=dbg);
   # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
 
   # TODO -- better to upsample before the projection
   Ndim = size(ptsbw,1)
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  manis = getSofttype(DFGGraphs.getVariable(dfg, vertlabel)).manifolds
   p = AMP.manikde!(ptsbw, manis)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
