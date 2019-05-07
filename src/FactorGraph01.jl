@@ -722,10 +722,10 @@ end
 
 function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)
-  for vsym in allvarnodes
-    if !isInitialized(dfg, vsym)
-      @info "$vsym is not initialized, and will do so now..."
-      doautoinit!(dfg, [getVariable(dfg, vsym);], singles=true)
+  for var in allvarnodes
+    if !isInitialized(var)
+      @info "$(var.label) is not initialized, and will do so now..."
+      doautoinit!(dfg, [var;], singles=true)
     end
   end
   nothing
