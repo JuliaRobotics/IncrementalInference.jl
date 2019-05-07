@@ -94,6 +94,8 @@ export
   resetData!,
   resetTreeCliquesForUpSolve!,
   getFactor,
+  getFactorDim,
+  getVariableDim,
   hasFactor,
   getVariable,
   getVert,

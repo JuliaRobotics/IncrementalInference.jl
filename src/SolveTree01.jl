@@ -73,7 +73,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -94,7 +94,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -259,7 +259,7 @@ function proposalbeliefs!(fgl::FactorGraph,
   for fct in factors
     count += 1
     data = getData(fct)
-    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
+    p,fulld = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -272,7 +272,7 @@ function proposalbeliefs!(fgl::FactorGraph,
       fulldimproposal[count] = false
     else # full density
       push!(dens, p)
-      fulldimproposal[count] = true
+      fulldimproposal[count] = fulld
     end
   end
   nothing
@@ -300,7 +300,7 @@ function predictbelief(fgl::FactorGraph,
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
 
-  return pGM
+  return pGM, sum(fulldim) > 0
 end
 
 function predictbelief(fgl::FactorGraph,
