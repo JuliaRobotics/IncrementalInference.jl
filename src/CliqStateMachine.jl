@@ -44,8 +44,12 @@ end
 """
     $SIGNATURES
 
+Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
+either up or downward direction, although some caveats on when which occurs.
+
 Notes
 - State machine function nr. 8
+- Used both during downward initialization and upward initialization / full-solve.
 """
 function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
@@ -54,7 +58,10 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   # evaluate according to cliq status
   isprntnddw = isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+  # TODO 2: change to remotecall_fetch here.
   d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
+
+  # TODO 1: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
   return finishCliqSolveCheck_StateMachine
 end

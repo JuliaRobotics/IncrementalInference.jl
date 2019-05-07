@@ -236,16 +236,28 @@ function productbelief(fg::FactorGraph,
   return pGM
 end
 
+"""
+    $SIGNATURES
+
+Compute the proposals of a destination vertex for each of `factors` and place the result
+as belief estimates in both `dens` and `partials` respectively.
+
+Notes
+- TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
+"""
 function proposalbeliefs!(fgl::FactorGraph,
                           destvertid::Int,
                           factors::Vector{Graphs.ExVertex},
+                          fulldimproposal::Vector{Bool},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
                           dbg::Bool=false,
                           api::DataLayerAPI=dlapi  )::Nothing
   #
+  count = 0
   for fct in factors
+    count += 1
     data = getData(fct)
     p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
     if data.fnc.partial   # partial density
@@ -257,8 +269,10 @@ function proposalbeliefs!(fgl::FactorGraph,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
+      fulldimproposal[count] = false
     else # full density
       push!(dens, p)
+      fulldimproposal[count] = true
     end
   end
   nothing
@@ -277,8 +291,11 @@ function predictbelief(fgl::FactorGraph,
   # determine number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(destvert),2)
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(factors))
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(fgl, destvertid, factors, fulldim, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
@@ -343,8 +360,11 @@ function localProduct(fgl::FactorGraph,
     push!(lb, vert.label)
   end
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(fcts))
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(fgl, destvertid, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
