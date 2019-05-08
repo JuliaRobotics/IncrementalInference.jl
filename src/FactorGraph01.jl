@@ -646,8 +646,8 @@ function doautoinit!(fgl::FactorGraph,
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        pts, = predictbelief(fgl, vsym, useinitfct, api=api)
-        setValKDE!(xi, pts, true)
+        pts,fulldim = predictbelief(fgl, vsym, useinitfct, api=api)
+        setValKDE!(xi, pts, true, !fulldim)
         # getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
         didinit = true
