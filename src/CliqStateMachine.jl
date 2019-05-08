@@ -70,6 +70,7 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   # evaluate according to cliq status
   isprntnddw = isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+
   # TODO 2: change to remotecall_fetch here.
   d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
 

@@ -690,26 +690,26 @@ function doCliqInitDown!(subfg::FactorGraph,
                          tree::BayesTree,
                          cliq::Graphs.ExVertex  )
   #
+  @warn "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
   prnt = getParent(tree, cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
   status = doCliqInitDown!(subfg, cliq, dwinmsgs)
 
-  children = getChildren(tree, cliq)
-
-  # TODO move out
-  if areCliqChildrenNeedDownMsg(children) # tree, cliq
-    # status = :initialized
-    # set messages if children :needdownmsg
-    @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
-    # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp(subfg, cliq) # , tree,
-    @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
-    #fake up message
-    setCliqUpInitMsgs!(cliq, cliq.index, msg)
-    setCliqStatus!(cliq, status)
-    setCliqDrawColor(cliq, "sienna")
-    notifyCliqDownInitStatus!(cliq, status)
-  end
+  # # TODO move out
+  # children = getChildren(tree, cliq)
+  # if areCliqChildrenNeedDownMsg(children) # tree, cliq
+  #   # status = :initialized
+  #   # set messages if children :needdownmsg
+  #   @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
+  #   # construct init's up msg to place in parent from initialized separator variables
+  #   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree,
+  #   @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
+  #   #fake up message
+  #   setCliqUpInitMsgs!(cliq, cliq.index, msg)
+  #   setCliqStatus!(cliq, status)
+  #   setCliqDrawColor(cliq, "sienna")
+  #   notifyCliqDownInitStatus!(cliq, status)
+  # end
 
   return status
 end
@@ -760,13 +760,36 @@ Separated function for likely multicore processing, focussed on upward or downwa
 Development
 - Make multicore with `remotecall` methods.
 """
-function doCliqInitUpOrDown!(sfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex, isprntnddw::Bool)
-  @show cliqst = getCliqStatus(cliq)
+function doCliqInitUpOrDown!(sfg::FactorGraph,
+                             tree::BayesTree,
+                             cliq::Graphs.ExVertex,
+                             isprntnddw::Bool  )
+  #
+  cliqst = getCliqStatus(cliq)
+  # TODO: split if into two states
   if cliqst == :needdownmsg && !isprntnddw
     # initialize clique in downward direction
     # not if parent also needs downward init message
     @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
-    cliqst = doCliqInitDown!(sfg, tree, cliq)
+    prnt = getParent(tree, cliq)[1]
+    dwinmsgs = prepCliqInitMsgsDown!(sfg, tree, prnt)
+    cliqst = doCliqInitDown!(sfg, cliq, dwinmsgs)
+    # cliqst = doCliqInitDown!(sfg, tree, cliq)
+
+    # TODO move out
+    children = getChildren(tree, cliq)
+    if areCliqChildrenNeedDownMsg(children) # tree, cliq
+      # set messages if children :needdownmsg
+      @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
+      # construct init's up msg to place in parent from initialized separator variables
+      msg = prepCliqInitMsgsUp(sfg, cliq) # , tree,
+      @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
+      # set fake up and notify down status
+      setCliqUpInitMsgs!(cliq, cliq.index, msg)
+      setCliqStatus!(cliq, cliqst)
+      setCliqDrawColor(cliq, "sienna")
+      notifyCliqDownInitStatus!(cliq, cliqst)
+    end
     @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
   end
   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
