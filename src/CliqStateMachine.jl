@@ -1,10 +1,21 @@
 # clique state machine for tree based initialization and inference
 
+"""
+    $TYPEDEF
+
+Container for upward tree solve / initialization.
+
+TODO
+- remove proceed
+- more direct clique access (cliq, parent, children), for multi-process solves
+"""
 mutable struct CliqStateMachineContainer
   fg::FactorGraph
+  cliqSubFg::FactorGraph
   tree::BayesTree
   cliq::Graphs.ExVertex
-  cliqSubFg::FactorGraph
+  parentCliq::Vector{Graphs.ExVertex}
+  childCliqs::Vector{Graphs.ExVertex}
   # TODO: bad flags that must be removed
   proceed::Bool
   forceproceed::Bool
@@ -50,6 +61,7 @@ either up or downward direction, although some caveats on when which occurs.
 Notes
 - State machine function nr. 8
 - Used both during downward initialization and upward initialization / full-solve.
+- TODO: Make multi-core
 """
 function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
@@ -249,7 +261,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     if length(prnt) > 0
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp!(csmc.fg, csmc.tree, csmc.cliq)
+      msg = prepCliqInitMsgsUp(csmc.fg, csmc.tree, csmc.cliq)
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst)
       # @info "$(current_task()) Clique $(csmc.cliq.index), skip computation on status=$(cliqst), but did prepare/notify upward message"
@@ -281,7 +293,16 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
                                         limititers::Int=-1,
                                         recordhistory::Bool=false  )
   #
-  csmc = CliqStateMachineContainer(fg, tree, cliq, initfg(), true, false, false, incremental, drawtree)
+  # prnt = getParent(tree, cliq)
+  # parent = length(prnt) > 0 ? prnt : ExVertex()
+  # children = collect(Graphs.out_neighbors(cliq, tree.bt))
+  children = Graphs.ExVertex[]
+  for ch in Graphs.out_neighbors(cliq, tree.bt)
+    push!(children, ch)
+  end
+  prnt = getParent(tree, cliq)
+
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, true, false, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end

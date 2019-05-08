@@ -190,7 +190,7 @@ function setTreeCliquesMarginalized!(fgl::FactorGraph, tree::BayesTree)
   for (cliid, cliq) in tree.cliques
     if areCliqVariablesAllMarginalized(fgl, cliq)
       # need to set the upward messages
-      msgs = prepCliqInitMsgsUp!(fgl, cliq)
+      msgs = prepCliqInitMsgsUp(fgl, cliq)
       setUpMsg!(cliq, msgs)
 
       prnt = getParent(tree, cliq)
@@ -336,7 +336,7 @@ end
 
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
-function prepCliqInitMsgsUp!(subfg::FactorGraph,
+function prepCliqInitMsgsUp(subfg::FactorGraph,
                              cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
   #
   # construct init's up msg to place in parent from initialized separator variables
@@ -350,9 +350,9 @@ function prepCliqInitMsgsUp!(subfg::FactorGraph,
   return msg
 end
 
-function prepCliqInitMsgsUp!(subfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
-  @warn "deprecated, use prepCliqInitMsgsUp!(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
-  prepCliqInitMsgsUp!(subfg, cliq)
+function prepCliqInitMsgsUp(subfg::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}
+  @warn "deprecated, use prepCliqInitMsgsUp(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
+  prepCliqInitMsgsUp(subfg, cliq)
 end
 
 """
@@ -405,8 +405,8 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
   end
 
   # construct init's up msg to place in parent from initialized separator variables
-  @info "$(current_task()) Clique $(cliq.index), going to prepCliqInitMsgsUp!"
-  msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
+  @info "$(current_task()) Clique $(cliq.index), going to prepCliqInitMsgsUp"
+  msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
   # put the init result in the parent cliq.
   prnt = getParent(tree, cliq)
@@ -438,7 +438,9 @@ Notes
 - init msgs from child upward passes are individually stored in this `cliq`.
 - fresh product of overlapping beliefs are calculated on each function call.
 """
-function prepCliqInitMsgsDown!(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
+function prepCliqInitMsgsDown!(fgl::FactorGraph,
+                               tree::BayesTree,
+                               cliq::Graphs.ExVertex )
   #
   @info "$(current_task()) Clique $(cliq.index), prepCliqInitMsgsDown!"
   # get the current messages stored in the parent
@@ -625,13 +627,19 @@ children cliques that have not yet initialized.
 
 Notes:
 - Assumed this function is only called after status from child clique up inits completed.
-- Will perform down initialization if status == `:needdownmsg`.
+- Assumes cliq has parent.
   - will fetch message from parent
+- Will perform down initialization if status == `:needdownmsg`.
 - might be necessary to pass furhter down messges to child cliques that also `:needdownmsg`.
 - Will not complete cliq solve unless all children are `:upsolved` (upward is priority).
 - `dwinmsgs` assumed to come from parent initialization process.
 - assume `subfg` as a subgraph that can be modified by this function (add message factors)
-  - should remove message factors from subgraph before returning.
+  - should remove message prior factors from subgraph before returning.
+- May modify `cliq` values.
+  - `setCliqUpInitMsgs!(cliq, cliq.index, msg)`
+  - `setCliqStatus!(cliq, status)`
+  - `setCliqDrawColor(cliq, "sienna")`
+  - `notifyCliqDownInitStatus!(cliq, status)`
 
 Algorithm:
 - determine which downward messages influence initialization order
@@ -640,15 +648,15 @@ Algorithm:
 - can only ever return :initialized or :needdownmsg status
 """
 function doCliqInitDown!(subfg::FactorGraph,
-                         tree::BayesTree,
-                         cliq::Graphs.ExVertex  )
+                         cliq::Graphs.ExVertex,
+                         dwinmsgs::Dict{Symbol,BallTreeDensity})
   #
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1"
   status = :needdownmsg #:badinit
   # get down messages from parent
-  prnt = getParent(tree, cliq)[1]
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 2"
-  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
+  # prnt = getParent(tree, cliq)[1]
+  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 2"
+  # dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # get down variable initialization order
   @show initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
@@ -670,30 +678,31 @@ function doCliqInitDown!(subfg::FactorGraph,
   # remove msg factors previously added
   deleteMsgFactors!(subfg, msgfcts)
 
-  # # check if all cliq variables have been initialized
-  # if !areCliqVariablesAllInitialized(subfg, cliq)
-  #   # first check if more information is available from child cliques
-  #   revertdnst = true
-  #   for ch in getChildren(tree, cliq)
-  #     if getCliqStatus(ch) == :needdownmsg
-  #       revertdnst = false
-  #     end
-  #   end
-  #   if revertdnst
-  #     # only if no children that needdownmsg
-  #     @show status = :needdownmsg
-  #   end
-  # end
-
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
 
+  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
+  # queue the response in a channel to signal waiting tasks
+  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
+  return status
+end
+
+function doCliqInitDown!(subfg::FactorGraph,
+                         tree::BayesTree,
+                         cliq::Graphs.ExVertex  )
+  #
+  prnt = getParent(tree, cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
+  status = doCliqInitDown!(subfg, cliq, dwinmsgs)
+
+  children = getChildren(tree, cliq)
+
   # TODO move out
-  if areCliqChildrenNeedDownMsg(tree, cliq)
+  if areCliqChildrenNeedDownMsg(children) # tree, cliq
     # status = :initialized
     # set messages if children :needdownmsg
     @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
     # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp!(subfg, tree, cliq)
+    msg = prepCliqInitMsgsUp(subfg, cliq) # , tree,
     @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
     #fake up message
     setCliqUpInitMsgs!(cliq, cliq.index, msg)
@@ -702,9 +711,6 @@ function doCliqInitDown!(subfg::FactorGraph,
     notifyCliqDownInitStatus!(cliq, status)
   end
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
-  # queue the response in a channel to signal waiting tasks
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
   return status
 end
 
@@ -713,14 +719,19 @@ end
 
 Return `true` if any of the children cliques have status `:needdownmsg`.
 """
-function areCliqChildrenNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)::Bool
-  for ch in getChildren(tree, cliq)
+function areCliqChildrenNeedDownMsg(children::Vector{Graphs.ExVertex})::Bool
+  for ch in children
     if getCliqStatus(ch) == :needdownmsg
       return true
     end
   end
   return false
 end
+
+function areCliqChildrenNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)::Bool
+  areCliqChildrenNeedDownMsg( getChildren(tree, cliq) )
+end
+
 
 """
     $SIGNATURES
@@ -798,7 +809,7 @@ end
 #     if length(prnt) > 0
 #       # not a root clique
 #       # construct init's up msg to place in parent from initialized separator variables
-#       msg = prepCliqInitMsgsUp!(fgl, tree, cliq)
+#       msg = prepCliqInitMsgsUp(fgl, tree, cliq)
 #       setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
 #       notifyCliqUpInitStatus!(cliq, cliqst)
 #       @info "$(current_task()) Clique $(cliq.index), skip computation on status=$cliqst, but did prepare/notify upward message"
@@ -926,7 +937,7 @@ end
 #   return cliqst
 # end
 #
-# 
+#
 # """
 #     $SIGNATURES
 #
