@@ -752,52 +752,30 @@ end
 #
 # end
 
-"""
-    $SIGNATURES
-
-Separated function for likely multicore processing, focussed on upward or downward direction initialization of cliques.
-
-Development
-- Make multicore with `remotecall` methods.
-"""
-function doCliqInitUpOrDown!(sfg::FactorGraph,
-                             tree::BayesTree,
-                             cliq::Graphs.ExVertex,
-                             isprntnddw::Bool  )
-  #
-  cliqst = getCliqStatus(cliq)
-  # TODO: split if into two states
-  if cliqst == :needdownmsg && !isprntnddw
-    # initialize clique in downward direction
-    # not if parent also needs downward init message
-    @info "$(current_task()) Clique $(cliq.index), needs down message -- attempt down init"
-    prnt = getParent(tree, cliq)[1]
-    dwinmsgs = prepCliqInitMsgsDown!(sfg, tree, prnt)
-    cliqst = doCliqInitDown!(sfg, cliq, dwinmsgs)
-    # cliqst = doCliqInitDown!(sfg, tree, cliq)
-
-    # TODO move out
-    children = getChildren(tree, cliq)
-    if areCliqChildrenNeedDownMsg(children) # tree, cliq
-      # set messages if children :needdownmsg
-      @warn "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- must set messages for future down init"
-      # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(sfg, cliq) # , tree,
-      @info "$(current_task()) Clique $(cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
-      # set fake up and notify down status
-      setCliqUpInitMsgs!(cliq, cliq.index, msg)
-      setCliqStatus!(cliq, cliqst)
-      setCliqDrawColor(cliq, "sienna")
-      notifyCliqDownInitStatus!(cliq, cliqst)
-    end
-    @info "$(current_task()) Clique $(cliq.index), after down init attempt, $cliqst."
-  end
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
-    @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
-    cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
-  end
-  return (sfg, cliq, cliqst)
-end
+# """
+#     $SIGNATURES
+#
+# Separated function for likely multicore processing, focussed on upward or downward direction initialization of cliques.
+#
+# Development
+# - Make multicore with `remotecall` methods.
+# """
+# function doCliqInitUpOrDown!(sfg::FactorGraph,
+#                              tree::BayesTree,
+#                              cliq::Graphs.ExVertex,
+#                              isprntnddw::Bool  )
+#   #
+#   cliqst = getCliqStatus(cliq)
+#   # TODO: split if into two states
+#   if cliqst == :needdownmsg && !isprntnddw
+#     error("obsolete")
+#   end
+#   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
+#     @info "$(current_task()) Clique $(cliq.index), going for doCliqAutoInitUp!"
+#     cliqst = doCliqAutoInitUp!(sfg, tree, cliq)
+#   end
+#   return (sfg, cliq, cliqst)
+# end
 
 
 
