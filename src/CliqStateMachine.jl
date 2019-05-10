@@ -57,9 +57,9 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
   cliqst = getCliqStatus(csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), status=$cliqst, test if should doCliqAutoInitUp!"
-  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
-  # end
+  end
 
   return finishCliqSolveCheck_StateMachine
 end

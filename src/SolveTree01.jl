@@ -1504,7 +1504,7 @@ function inferOverTree!(fgl::FactorGraph,
                         dbg::Bool=false,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
-                        limititers::Int=100,
+                        limititers::Int=1000,
                         recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
