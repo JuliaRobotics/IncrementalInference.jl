@@ -278,7 +278,13 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
                                         limititers::Int=-1,
                                         recordhistory::Bool=false  )
   #
-  csmc = CliqStateMachineContainer(fg, tree, cliq, initfg(), true, false, false, incremental, drawtree)
+  children = Graphs.ExVertex[]
+  for ch in Graphs.out_neighbors(cliq, tree.bt)
+    push!(children, ch)
+  end
+  prnt = getParent(tree, cliq)
+
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, true, false, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
