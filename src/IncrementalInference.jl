@@ -49,6 +49,7 @@ export
   # state machine methods
   StateMachine,
   exitStateMachine,
+  getCliqSolveHistory,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -215,6 +216,8 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
+  unmarginalizeVariablesAll!,
+  resetVariableAllInitializations!,
   isMarginalized,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,

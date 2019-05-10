@@ -1,28 +1,17 @@
 # clique state machine for tree based initialization and inference
 
-"""
-    $TYPEDEF
-
-Container for upward tree solve / initialization.
-
-TODO
-- remove proceed
-- more direct clique access (cliq, parent, children), for multi-process solves
-"""
-mutable struct CliqStateMachineContainer
-  fg::FactorGraph
-  cliqSubFg::FactorGraph
-  tree::BayesTree
-  cliq::Graphs.ExVertex
-  parentCliq::Vector{Graphs.ExVertex}
-  childCliqs::Vector{Graphs.ExVertex}
-  # TODO: bad flags that must be removed
-  proceed::Bool
-  forceproceed::Bool
-  tryonce::Bool
-  incremental::Bool
-  drawtree::Bool
-end
+# mutable struct CliqStateMachineContainer
+#   fg::FactorGraph
+#   tree::BayesTree
+#   cliq::Graphs.ExVertex
+#   cliqSubFg::FactorGraph
+#   # TODO: bad flags that must be removed
+#   proceed::Bool
+#   forceproceed::Bool
+#   tryonce::Bool
+#   incremental::Bool
+#   drawtree::Bool
+# end
 
 
 """
@@ -50,6 +39,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 
   return whileCliqNotSolved_StateMachine
 end
+
 
 
 """
@@ -294,9 +284,6 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
                                         limititers::Int=-1,
                                         recordhistory::Bool=false  )
   #
-  # prnt = getParent(tree, cliq)
-  # parent = length(prnt) > 0 ? prnt : ExVertex()
-  # children = collect(Graphs.out_neighbors(cliq, tree.bt))
   children = Graphs.ExVertex[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
     push!(children, ch)
@@ -311,8 +298,18 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
 end
 
 
+"""
+    $SIGNATURES
 
+Return clique state machine history from `tree` if it was solved with `recordcliqs`.
 
+Notes
+- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
+"""
+function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
+  cliq = whichCliq(tree, frntal)
+  getData(cliq).statehistory
+end
 
 
 #
