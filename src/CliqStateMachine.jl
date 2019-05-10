@@ -110,7 +110,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
     @info "$(current_task()) Clique $(csmc.cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
     # set fake up and notify down status
-    setCliqUpInitMsgs!(csmc.cliq, cliq.index, msg)
+    setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
     notifyCliqDownInitStatus!(csmc.cliq, cliqst)
