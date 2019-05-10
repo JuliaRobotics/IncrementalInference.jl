@@ -1,17 +1,17 @@
 # clique state machine for tree based initialization and inference
 
-mutable struct CliqStateMachineContainer
-  fg::FactorGraph
-  tree::BayesTree
-  cliq::Graphs.ExVertex
-  cliqSubFg::FactorGraph
-  # TODO: bad flags that must be removed
-  proceed::Bool
-  forceproceed::Bool
-  tryonce::Bool
-  incremental::Bool
-  drawtree::Bool
-end
+# mutable struct CliqStateMachineContainer
+#   fg::FactorGraph
+#   tree::BayesTree
+#   cliq::Graphs.ExVertex
+#   cliqSubFg::FactorGraph
+#   # TODO: bad flags that must be removed
+#   proceed::Bool
+#   forceproceed::Bool
+#   tryonce::Bool
+#   incremental::Bool
+#   drawtree::Bool
+# end
 
 
 """
