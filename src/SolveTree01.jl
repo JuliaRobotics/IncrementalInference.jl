@@ -1420,7 +1420,9 @@ function initInferTreeUp!(fgl::FactorGraph,
                           treel::BayesTree;
                           drawtree::Bool=false,
                           N::Int=100,
-                          limititers::Int=-1  )
+                          limititers::Int=-1,
+                          recordcliqs::Vector{Symbol}=Symbol[] )
+  #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(fgl, treel)
@@ -1428,14 +1430,20 @@ function initInferTreeUp!(fgl::FactorGraph,
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
+  cliqHistories = Dict{Int,Vector{Tuple{Int, Function, CliqStateMachineContainer}}}()
   @sync begin
     if !isTreeSolved(treel, skipinitialized=true)
+      # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         alltasks[i] = @async begin
           clst = :na
+          cliq = treel.cliques[i]
+          ids = getCliqFrontalVarIds(cliq)
+          syms = map(d->getSym(fgl, d), ids)
+          recordthiscliq = length(intersect(recordcliqs,syms)) > 0
           try
-            cliq = treel.cliques[i]
-            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+            cliqHistories[i] = history
             clst = getCliqStatus(cliq)
             # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
           catch err
@@ -1444,13 +1452,20 @@ function initInferTreeUp!(fgl::FactorGraph,
             showerror(stderr, err, bt)
             error(err)
           end
-          if !(clst in [:upsolved; :downsolved; :marginalized])
-            error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-          end
+          # if !(clst in [:upsolved; :downsolved; :marginalized])
+          #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+          # end
         end # async
       end # for
     end # if
   end # sync
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  for i in 1:length(treel.cliques)
+    if haskey(cliqHistories, i)
+      getData(treel.cliques[i]).statehistory=cliqHistories[i]
+    end
+  end
 
   return alltasks
 end
@@ -1464,27 +1479,35 @@ Perform up and down message passing (multi-process) algorithm for full sum-produ
 function inferOverTree!(fgl::FactorGraph,
                         bt::BayesTree;
                         N::Int=100,
+                        upsolve::Bool=true,
+                        downsolve::Bool=true,
                         dbg::Bool=false,
                         drawpdf::Bool=false,
-                        treeinit::Bool=false  )::Nothing
+                        treeinit::Bool=false,
+                        limititers::Int=100,
+                        recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
   inittasks = Vector{Task}()
-  if treeinit
-    @info "Do tree based init-inference on tree"
-    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-    @info "Finished tree based upward init-inference"
-  else
-    ensureAllInitialized!(fgl)
+  if upsolve
+    if treeinit
+      @info "Do tree based init-inference on tree"
+      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
+      @info "Finished tree based upward init-inference"
+    else
+      ensureAllInitialized!(fgl)
+    end
+    if !treeinit # !isTreeSolvedUp(bt)
+      @info "Do multi-process upward pass of inference on tree"
+      upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+    end
   end
-  if !treeinit # !isTreeSolvedUp(bt)
-    @info "Do multi-process upward pass of inference on tree"
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  if downsolve
+    @info "Do multi-process downward pass of inference on tree"
+    downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
-  @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   nothing
 end
 

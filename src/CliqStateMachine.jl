@@ -1,17 +1,17 @@
 # clique state machine for tree based initialization and inference
 
-mutable struct CliqStateMachineContainer
-  fg::FactorGraph
-  tree::BayesTree
-  cliq::Graphs.ExVertex
-  cliqSubFg::FactorGraph
-  # TODO: bad flags that must be removed
-  proceed::Bool
-  forceproceed::Bool
-  tryonce::Bool
-  incremental::Bool
-  drawtree::Bool
-end
+# mutable struct CliqStateMachineContainer
+#   fg::FactorGraph
+#   tree::BayesTree
+#   cliq::Graphs.ExVertex
+#   cliqSubFg::FactorGraph
+#   # TODO: bad flags that must be removed
+#   proceed::Bool
+#   forceproceed::Bool
+#   tryonce::Bool
+#   incremental::Bool
+#   drawtree::Bool
+# end
 
 
 """
@@ -41,8 +41,12 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
+
 """
     $SIGNATURES
+
+Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
+either up or downward direction, although some caveats on when which occurs.
 
 Notes
 - State machine function nr. 8
@@ -274,7 +278,13 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
                                         limititers::Int=-1,
                                         recordhistory::Bool=false  )
   #
-  csmc = CliqStateMachineContainer(fg, tree, cliq, initfg(), true, false, false, incremental, drawtree)
+  children = Graphs.ExVertex[]
+  for ch in Graphs.out_neighbors(cliq, tree.bt)
+    push!(children, ch)
+  end
+  prnt = getParent(tree, cliq)
+
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, true, false, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
@@ -282,8 +292,18 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
 end
 
 
+"""
+    $SIGNATURES
 
+Return clique state machine history from `tree` if it was solved with `recordcliqs`.
 
+Notes
+- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
+"""
+function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
+  cliq = whichCliq(tree, frntal)
+  getData(cliq).statehistory
+end
 
 
 #

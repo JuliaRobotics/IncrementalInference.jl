@@ -165,12 +165,16 @@ end
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
 function batchSolve!(fgl::FactorGraph;
+                     upsolve::Bool=true,
+                     downsolve::Bool=true,
                      drawpdf::Bool=false,
                      show::Bool=false,
                      N::Int=100,
                      recursive::Bool=false,
                      dbg::Bool=false,
-                     treeinit::Bool=false  )
+                     treeinit::Bool=false,
+                     limititers::Int=100,
+                     recordcliqs::Vector{Symbol}=Symbol[] )
   #
   if fgl.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -183,7 +187,7 @@ function batchSolve!(fgl::FactorGraph;
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
     inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
+    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve)
   end
   tree
 end
