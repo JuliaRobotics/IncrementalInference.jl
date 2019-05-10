@@ -41,8 +41,12 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
+
 """
     $SIGNATURES
+
+Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
+either up or downward direction, although some caveats on when which occurs.
 
 Notes
 - State machine function nr. 8
@@ -282,8 +286,18 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
 end
 
 
+"""
+    $SIGNATURES
 
+Return clique state machine history from `tree` if it was solved with `recordcliqs`.
 
+Notes
+- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
+"""
+function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
+  cliq = whichCliq(tree, frntal)
+  getData(cliq).statehistory
+end
 
 
 #

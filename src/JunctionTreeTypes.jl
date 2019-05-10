@@ -1,5 +1,53 @@
 
 
+# BayesTree declarations
+"""
+$(TYPEDEF)
+
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
+"""
+mutable struct BayesTree
+  bt
+  btid::Int
+  cliques::Dict{Int,Graphs.ExVertex}
+  frontals::Dict{String,Int}
+end
+
+function emptyBayesTree()
+    bt =   BayesTree(Graphs.inclist(Graphs.ExVertex,is_directed=true),
+                     0,
+                     Dict{Int,Graphs.ExVertex}(),
+                     #[],
+                     Dict{AbstractString, Int}())
+    return bt
+end
+
+"""
+    $TYPEDEF
+
+Container for upward tree solve / initialization.
+
+TODO
+- remove proceed
+- more direct clique access (cliq, parent, children), for multi-process solves
+"""
+mutable struct CliqStateMachineContainer
+  fg::FactorGraph
+  cliqSubFg::FactorGraph
+  tree::BayesTree
+  cliq::Graphs.ExVertex
+  parentCliq::Vector{Graphs.ExVertex}
+  childCliqs::Vector{Graphs.ExVertex}
+  # TODO: bad flags that must be removed
+  proceed::Bool
+  forceproceed::Bool
+  tryonce::Bool
+  incremental::Bool
+  drawtree::Bool
+  CliqStateMachineContainer() = new()
+  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
+end
+
 """
 $(TYPEDEF)
 
@@ -31,10 +79,12 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   initUpChannel::Channel{Symbol}
   initDownChannel::Channel{Symbol}
+  statehistory::Vector{Tuple{Int, Function, CliqStateMachineContainer}}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25])
+                                x[21], x[22], x[23], x[24], x[25],
+                                Vector{Tuple{Int, Function, CliqStateMachineContainer}}() )
 end
 
 # TODO -- this should be a constructor
@@ -55,27 +105,6 @@ function emptyBTNodeData()
                     Channel{Symbol}(1), Channel{Symbol}(1)  )
 end
 
-# BayesTree declarations
-"""
-$(TYPEDEF)
-
-Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
-"""
-mutable struct BayesTree
-  bt
-  btid::Int
-  cliques::Dict{Int,Graphs.ExVertex}
-  frontals::Dict{String,Int}
-end
-
-function emptyBayesTree()
-    bt =   BayesTree(Graphs.inclist(Graphs.ExVertex,is_directed=true),
-                     0,
-                     Dict{Int,Graphs.ExVertex}(),
-                     #[],
-                     Dict{AbstractString, Int}())
-    return bt
-end
 
 
 """
