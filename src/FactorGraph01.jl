@@ -176,6 +176,21 @@ setVal!(v::Graphs.ExVertex, em::EasyMessage) = setValKDE!(v, em)
 setVal!(v::Graphs.ExVertex, p::BallTreeDensity) = setValKDE!(v, p)
 
 """
+    $SIGNATURES
+
+Return the number of dimensions this factor vertex `fc` influences.
+"""
+getFactorDim(fc::Graphs.ExVertex)::Int = getData(fc).fnc.zDim
+
+"""
+    $SIGNATURES
+
+Return the number of dimensions this variable vertex `var` contains.
+"""
+getVariableDim(var::Graphs.ExVertex)::Int = getData(var).dims
+
+
+"""
     $(SIGNATURES)
 
 Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
@@ -631,8 +646,8 @@ function doautoinit!(fgl::FactorGraph,
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        pts = predictbelief(fgl, vsym, useinitfct, api=api)
-        setValKDE!(xi, pts, true)
+        pts,fulldim = predictbelief(fgl, vsym, useinitfct, api=api)
+        setValKDE!(xi, pts, true, !fulldim)
         # getData(xi).initialized = true
         api.updatevertex!(fgl, xi, updateMAPest=false)
         didinit = true
@@ -698,7 +713,7 @@ end
 function manualinit!(fgl::FactorGraph, sym::Symbol, usefcts::Vector{Symbol}; api::DataLayerAPI=localapi)::Nothing
   global localapi
   @warn "manual_init being used as a workaround for temporary autoinit issues."
-  pts = predictbelief(fgl, sym, usefcts)
+  pts, = predictbelief(fgl, sym, usefcts)
   vert = getVert(fgl, sym, api=api)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
   setValKDE!(vert, Xpre, true) # fgl, sym

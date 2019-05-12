@@ -173,7 +173,7 @@ function batchSolve!(fgl::FactorGraph;
                      recursive::Bool=false,
                      dbg::Bool=false,
                      treeinit::Bool=false,
-                     limititers::Int=100,
+                     limititers::Int=1000,
                      recordcliqs::Vector{Symbol}=Symbol[] )
   #
   if fgl.isfixedlag

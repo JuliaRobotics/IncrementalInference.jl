@@ -73,7 +73,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -94,7 +94,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -236,18 +236,30 @@ function productbelief(fg::FactorGraph,
   return pGM
 end
 
+"""
+    $SIGNATURES
+
+Compute the proposals of a destination vertex for each of `factors` and place the result
+as belief estimates in both `dens` and `partials` respectively.
+
+Notes
+- TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
+"""
 function proposalbeliefs!(fgl::FactorGraph,
                           destvertid::Int,
                           factors::Vector{Graphs.ExVertex},
+                          fulldimproposal::Vector{Bool},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
                           dbg::Bool=false,
                           api::DataLayerAPI=dlapi  )::Nothing
   #
+  count = 0
   for fct in factors
+    count += 1
     data = getData(fct)
-    p = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
+    p,fulld = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -257,8 +269,10 @@ function proposalbeliefs!(fgl::FactorGraph,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
+      fulldimproposal[count] = false
     else # full density
       push!(dens, p)
+      fulldimproposal[count] = fulld
     end
   end
   nothing
@@ -277,13 +291,16 @@ function predictbelief(fgl::FactorGraph,
   # determine number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(destvert),2)
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(factors))
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(fgl, destvertid, factors, fulldim, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
 
-  return pGM
+  return pGM, sum(fulldim) > 0
 end
 
 function predictbelief(fgl::FactorGraph,
@@ -343,8 +360,11 @@ function localProduct(fgl::FactorGraph,
     push!(lb, vert.label)
   end
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(fcts))
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(fgl, destvertid, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
   pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
@@ -1484,7 +1504,7 @@ function inferOverTree!(fgl::FactorGraph,
                         dbg::Bool=false,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
-                        limititers::Int=100,
+                        limititers::Int=1000,
                         recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
