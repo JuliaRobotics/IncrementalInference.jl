@@ -575,6 +575,25 @@ function addMsgFactors!(subfg::FactorGraph,
 end
 
 function addMsgFactors!(subfg::FactorGraph,
+                        msgs::Dict{Symbol, Vector{BallTreeDensity}})::Vector{ExVertex}
+  # add messages as priors to this sub factor graph
+  msgfcts = Graphs.ExVertex[]
+  svars = union(ls(subfg)...)
+  mvid = getMaxVertId(subfg)
+  for (msym, dms) in msgs
+    for dm in dms
+      if msym in svars
+        # @show "adding down msg $msym"
+        mvid += 1
+        fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false, uid=mvid)
+        push!(msgfcts, fc)
+      end
+    end
+  end
+  return msgfcts
+end
+
+function addMsgFactors!(subfg::FactorGraph,
                         allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{Graphs.ExVertex}
   #
   allfcts = Graphs.ExVertex[]
