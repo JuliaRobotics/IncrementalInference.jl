@@ -358,6 +358,12 @@ Return the last up message stored in `cliq` of Bayes (Junction) tree.
 getUpMsgs(btl::BayesTree, sym::Symbol) = upMsg(btl, sym)
 getUpMsgs(cliql::Graphs.ExVertex) = upMsg(cliql)
 
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
 
 
 """
@@ -379,6 +385,13 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
 getDwnMsgs(btl::BayesTree, sym::Symbol) = dwnMsg(btl, sym)
 getDwnMsgs(cliql::Graphs.ExVertex) = dwnMsg(cliql)
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsDown(cliql::Graphs.ExVertex) = dwnMsg(cliql)
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)

@@ -329,6 +329,8 @@ export
   setDwnMsg!,
   dwnMsg,
   getDwnMsgs,
+  getCliqMsgsUp,
+  getCliqMsgsDown,
 
   getSym,
   doCliqInferenceUp!,
