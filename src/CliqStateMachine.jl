@@ -45,28 +45,123 @@ end
 """
     $SIGNATURES
 
+Do up initialization calculations, loosely translates to solving Chapman-Kolmogorov
+transit integral in upward direction.
+
+Notes
+- State machine function nr. 8b
+- Includes initialization routines.
+- TODO: Make multi-core
+"""
+function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
+
+  cliqst = getCliqStatus(csmc.cliq)
+  @info "$(current_task()) Clique $(csmc.cliq.index), status=$cliqst, test if should doCliqAutoInitUp!"
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+    cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
+  end
+
+  return finishCliqSolveCheck_StateMachine
+end
+
+# function determineCliqIfAttemptUp_StateMachine()
+#
+#   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(tree, cliq)
+#     return attemptCliqInitUp_StateMachine
+#   else
+#     return finishCliqSolveCheck_StateMachine
+#   end
+# end
+
+"""
+    $SIGNATURES
+
+Do down initialization calculations, loosely translates to solving Chapman-Kolmogorov
+transit integral in downward direction.
+
+Notes
+- State machine function nr. 8a
+- Includes initialization routines.
+- TODO: Make multi-core
+"""
+function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
+  #
+
+
+  # initialize clique in downward direction
+  # not if parent also needs downward init message
+  @info "$(current_task()) Clique $(csmc.cliq.index), needs down message -- attempt down init"
+  prnt = getParent(csmc.tree, csmc.cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
+
+  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
+  # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
+
+  # TODO: maybe this should be here?
+  setCliqStatus!(csmc.cliq, cliqst)
+
+  # TODO move out
+  children = getChildren(csmc.tree, csmc.cliq)
+  if areCliqChildrenNeedDownMsg(children)
+    # set messages if children :needdownmsg
+    @warn "$(current_task()) Clique $(csmc.cliq.index), doCliqInitDown! -- must set messages for future down init"
+    # construct init's up msg to place in parent from initialized separator variables
+    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq) # , tree,
+
+    @info "$(current_task()) Clique $(csmc.cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
+    # set fake up and notify down status
+    setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
+    # setCliqStatus!(csmc.cliq, cliqst)
+    setCliqDrawColor(csmc.cliq, "sienna")
+    notifyCliqDownInitStatus!(csmc.cliq, cliqst)
+
+    @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+  end
+
+  # repeat the if a second time, is bad TODO
+  @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+    return attemptCliqInitUp_StateMachine
+  end
+  return finishCliqSolveCheck_StateMachine
+
+  # return attemptCliqInitUp_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
 Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
 either up or downward direction, although some caveats on when which occurs.
 
 Notes
 - State machine function nr. 8
 - Used both during downward initialization and upward initialization / full-solve.
-- TODO: Make multi-core
 """
 function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
+  # visualization and debugging
   setCliqDrawColor(csmc.cliq, "red")
-  cliqst = getCliqStatus(csmc.cliq)
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
   # evaluate according to cliq status
-  isprntnddw = isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index), proceed: $(cliqst), isCliqParentNeedDownMsg(tree, cliq)=$(isprntnddw), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+  cliqst = getCliqStatus(csmc.cliq)
 
-  # TODO 2: change to remotecall_fetch here.
-  d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
+  @info "$(current_task()) Clique $(csmc.cliq.index), status=$(cliqst), before attemptCliqInitDown_StateMachine"
+  # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
+  if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
+    return attemptCliqInitDown_StateMachine
+  end
 
-  # TODO 1: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
-
+  # cliqst = getCliqStatus(csmc.cliq)
+  @info "$(current_task()) Clique $(csmc.cliq.index), status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+    return attemptCliqInitUp_StateMachine
+  end
+  # either finished or going around again
   return finishCliqSolveCheck_StateMachine
+
+  # return attemptCliqInitUp_StateMachine
 end
 
 
