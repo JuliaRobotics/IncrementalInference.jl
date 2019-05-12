@@ -153,7 +153,7 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
     return attemptCliqInitDown_StateMachine
   end
 
-  cliqst = getCliqStatus(csmc.cliq)
+  # cliqst = getCliqStatus(csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     return attemptCliqInitUp_StateMachine
