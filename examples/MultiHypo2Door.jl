@@ -171,14 +171,14 @@ setValKDE!(fg, :l1, L1)
 
 # get factors for :x0 in clique2:
 # :x0l0l1f1, :x0x1f1
-ptsX0 = predictbelief(fg, :x0, [:x0l0l1f1; :x0x1f1])
+ptsX0, = predictbelief(fg, :x0, [:x0l0l1f1; :x0x1f1])
 X0 = manikde!(ptsX0, (:Euclid,))
 plotKDE([X0; getKDE(fg, :x0)], c=["red";"green"])
 setValKDE!(fg, :x0, X0)
 
 # get factors for :x1 in clique2:
 # :x1l0l1f1, :x0x1f1
-ptsX1 = predictbelief(fg, :x1, [:x1l0l1f1, :x0x1f1])
+ptsX1, = predictbelief(fg, :x1, [:x1l0l1f1, :x0x1f1])
 X1 = manikde!(ptsX1, (:Euclid,))
 plotKDE([X1; getKDE(fg, :x1)], c=["red";"green"])
 setValKDE!(fg, :x1, X1)
@@ -186,7 +186,7 @@ setValKDE!(fg, :x1, X1)
 
 # get factors for :l0
 # :x0l0l1f1, :x1l0l1f1, :l0f1
-ptsL0 = predictbelief(fg, :l0, [:x0l0l1f1, :x1l0l1f1, :l0f1])
+ptsL0, = predictbelief(fg, :l0, [:x0l0l1f1, :x1l0l1f1, :l0f1])
 L0 = manikde!(ptsL0, (:Euclid,))
 plotKDE([L0; getKDE(fg, :l0)], c=["red";"green"])
 setValKDE!(fg, :l0, L0)
@@ -194,7 +194,7 @@ setValKDE!(fg, :l0, L0)
 
 # get factors for :l1
 # :x0l0l1f1, :x1l0l1f1, :l1f1
-ptsL1 = predictbelief(fg, :l1, [:x0l0l1f1, :x1l0l1f1, :l1f1])
+ptsL1, = predictbelief(fg, :l1, [:x0l0l1f1, :x1l0l1f1, :l1f1])
 L1 = manikde!(ptsL1, (:Euclid,))
 plotKDE([L1; getKDE(fg, :l1)], c=["red";"green"])
 setValKDE!(fg, :l1, L1)

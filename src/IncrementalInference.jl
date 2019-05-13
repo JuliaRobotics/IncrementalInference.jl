@@ -46,6 +46,11 @@ export
   setdatalayerAPI!,
   DataLayerAPI,
 
+  # state machine methods
+  StateMachine,
+  exitStateMachine,
+  getCliqSolveHistory,
+
   # general types for softtyping of variable nodes
   InferenceVariable,
   ContinuousScalar,
@@ -91,6 +96,8 @@ export
   resetData!,
   resetTreeCliquesForUpSolve!,
   getFactor,
+  getFactorDim,
+  getVariableDim,
   hasFactor,
   getVariable,
   getVert,
@@ -106,8 +113,24 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
+  buildCliqSubgraphUp,
+  buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUp!,
+  cliqInitSolveUpByStateMachine!,
+
+  # state machine functions
+  finishCliqSolveCheck_StateMachine,
+  doCliqInferAttempt_StateMachine,
+  determineCliqNeedDownMsg_StateMachine,
+  blockUntilChildrenStatus_StateMachine,
+  blockUntilSiblingsStatus_StateMachine,
+  doesCliqNeeddownmsg_StateMachine,
+  whileCliqNotSolved_StateMachine,
+  buildCliqSubgraph_StateMachine,
+  isCliqUpSolved_StateMachine,
+
+  #
   isPartial,
   isInitialized,
   isTreeSolved,
@@ -127,7 +150,7 @@ export
   getCliqStatus,
   setCliqStatus!,
   getMaxVertId,
-  prepCliqInitMsgsUp!,
+  prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
   getOutNeighbors,
@@ -151,6 +174,7 @@ export
   wipeBuildNewTree!,
   whichCliq,
   getCliqChildMsgsUp,
+  getCliqParentMsgDown,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
@@ -159,6 +183,7 @@ export
   getKDE,
   getVertKDE,
   initializeNode!,
+  CliqStateMachineContainer,
   batchSolve!,
   fifoFreeze!,
   getCurrentWorkspaceFactors,
@@ -195,6 +220,8 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
+  unmarginalizeVariablesAll!,
+  resetVariableAllInitializations!,
   isMarginalized,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,
@@ -303,6 +330,8 @@ export
   setDwnMsg!,
   dwnMsg,
   getDwnMsgs,
+  getCliqMsgsUp,
+  getCliqMsgsDown,
 
   getSym,
   doCliqInferenceUp!,
@@ -346,6 +375,7 @@ const NothingUnion{T} = Union{Nothing, T}
 include("ccolamd.jl")
 
 # regular
+include("StateMachine.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -364,6 +394,7 @@ include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
+include("CliqStateMachine.jl")
 
 include("Deprecated.jl")
 

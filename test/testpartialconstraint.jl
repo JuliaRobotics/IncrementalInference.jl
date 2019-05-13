@@ -120,7 +120,7 @@ end
 @testset "test findRelatedFromPotential..." begin
 
 global X2pts = getVal(v2)
-global p3 = findRelatedFromPotential(fg, f3, v2.index, N)
+global p3, = findRelatedFromPotential(fg, f3, v2.index, N)
 @test Ndim(p3) == 2
 global pts = KernelDensityEstimate.getPoints(p3)
 @test size(pts,2) == N
@@ -134,7 +134,7 @@ global memcheck = getVal(v2)
 
 
 global X2pts = getVal(v2)
-global p4 = findRelatedFromPotential(fg, f4, v2.index, N)
+global p4, = findRelatedFromPotential(fg, f4, v2.index, N)
 @test Ndim(p4) == 2
 global pts = KernelDensityEstimate.getPoints(p3)
 @test size(pts,2) == N
@@ -152,7 +152,7 @@ end
 
 # partial prior
 global X2pts = getVal(v2)
-global val = predictbelief(fg, v2, [f4], N=N)
+global val, = predictbelief(fg, v2, [f4], N=N)
 @test norm(X2pts[2,:] - val[2,:]) < 1e-10
 @test 0.0 < norm(X2pts[1,:] - val[1,:])
 @test norm(Statistics.mean(val[1,:]) .+ 20.0) < 0.75
@@ -160,14 +160,14 @@ global val = predictbelief(fg, v2, [f4], N=N)
 
 # partial pairwise
 global X2pts = getVal(v2)
-global val = predictbelief(fg, v2, [f3], N=N)
+global val, = predictbelief(fg, v2, [f3], N=N)
 @test norm(X2pts[1,:] - val[1,:]) < 1e-10
 @test 0.0 < norm(X2pts[2,:] - val[2,:])
 @test abs(Statistics.mean(val[2,:] - getVal(v1)[2,:]) .- 10.0) < 0.75
 
 
 # combination of partials
-global val = predictbelief(fg, v2, [f3;f4], N=N)
+global val, = predictbelief(fg, v2, [f3;f4], N=N)
 # plotKDE(kde!(val),levels=3)
 @test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 2.0
 @test norm(Statistics.mean(val,dims=2)[2] .- [10.0]) < 2.0

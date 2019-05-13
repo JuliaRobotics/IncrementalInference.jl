@@ -6,6 +6,9 @@ using Test
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
 end
+
+include("testStateMachine.jl")
+
 include("testCompareVariablesFactors.jl")
 
 @testset "Ensure memory return is working properly..." begin

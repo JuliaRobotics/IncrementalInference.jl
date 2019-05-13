@@ -774,4 +774,39 @@ Return `::Bool` on whether this variable has been marginalized.
 isMarginalized(vert::Graphs.ExVertex) = getData(vert).ismargin
 isMarginalized(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=localapi) = isMarginalized(getVert(fg, sym, api=api))
 
+
+
+"""
+    $SIGNATURES
+
+Free all variables from marginalization.
+"""
+function unmarginalizeVariablesAll!(fgl::FactorGraph)
+  fgl.isfixedlag = false
+  fgl.qfl = 9999999999
+  vsyms = union(ls(fgl)...)
+  for sym in vsyms
+    getData(fgl, sym).ismargin = false
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Reset initialization flag on all variables in `::FactorGraphs`.
+
+Notes
+- Numerical values remain, but inference will overwrite since init flags are now `false`.
+"""
+function resetVariableAllInitializations!(fgl::FactorGraph)
+  vsyms = union(ls(fgl)...)
+  for sym in vsyms
+    getData(fgl, sym).initialized = false
+  end
+  nothing
+end
+
+
+
 #

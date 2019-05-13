@@ -1,3 +1,6 @@
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 
 """
@@ -225,23 +228,18 @@ Build Bayes/Junction/Elimination tree.
 Notes
 - Default to free qr factorization for variable elimination order.
 """
-function prepBatchTree!(fg::FactorGraph;
+function prepBatchTree!(dfg::G;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false  )
+                        drawbayesnet::Bool=false  ) where G <: AbstractDFG
   #
-  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
+  p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(fg, p, drawbayesnet=drawbayesnet)
-
-  # now update all factor graph vertices used for this tree
-  for (id,v) in fg.g.vertices
-    dlapi.updatevertex!(fg, v)
-  end
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -273,10 +271,18 @@ function resetData!(vdata::FunctionNodeData)::Nothing
   nothing
 end
 
-function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
-  for (id, v) in fgl.g.vertices
+"""
+    $SIGNATURES
+
+Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Elimination tree
+can be constructed.
+"""
+function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
+  for v in DFGGraphs.ls(dfg)
     resetData!(getData(v))
-    localapi.updatevertex!(fgl, v)
+  end
+  for f in DFGGraphs.lsf(dfg)
+    resetData!(getData(f))
   end
   nothing
 end
@@ -287,16 +293,16 @@ end
 Build a completely new Bayes (Junction) tree, after first wiping clean all
 temporary state in fg from a possibly pre-existing tree.
 """
-function wipeBuildNewTree!(fg::FactorGraph;
+function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
                            drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
                            viewerapp::String="evince",
-                           imgs::Bool=false  )::BayesTree
+                           imgs::Bool=false  )::BayesTree where G <: AbstractDFG
   #
-  resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
+  resetFactorGraphNewTree!(dfg);
+  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
 end
 
 """
@@ -358,6 +364,12 @@ Return the last up message stored in `cliq` of Bayes (Junction) tree.
 getUpMsgs(btl::BayesTree, sym::Symbol) = upMsg(btl, sym)
 getUpMsgs(cliql::Graphs.ExVertex) = upMsg(cliql)
 
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
 
 
 """
@@ -369,7 +381,7 @@ function dwnMsg(cliq::Graphs.ExVertex)
   getData(cliq).dwnMsg
 end
 function dwnMsg(btl::BayesTree, sym::Symbol)
-  upMsg(whichCliq(btl, sym))
+  dwnMsg(whichCliq(btl, sym))
 end
 
 """
@@ -379,6 +391,13 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
 getDwnMsgs(btl::BayesTree, sym::Symbol) = dwnMsg(btl, sym)
 getDwnMsgs(cliql::Graphs.ExVertex) = dwnMsg(cliql)
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsDown(cliql::Graphs.ExVertex) = dwnMsg(cliql)
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -634,6 +653,56 @@ function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
   end
   return verts
 end
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphUp(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarSyms(fgl, cliq)
+  subfg = buildSubgraphFromLabels(fgl,syms)
+
+  # add upward messages to subgraph
+  msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarSyms(fgl, cliq)
+  subfg = buildSubgraphFromLabels(fgl,syms)
+
+  # add upward messages to subgraph
+  msgs = getCliqParentMsgDown(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
 
 """
     $SIGNATURES

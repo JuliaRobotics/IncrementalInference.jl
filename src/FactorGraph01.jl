@@ -148,8 +148,12 @@ end
     $SIGNATURES
 
 Set the point centers and bandwidth parameters of a variable node, also set `isInitialized=true` if `setinit::Bool=true` (as per default).
+
+Notes
+- `initialized` is used for initial solve of factor graph where variables are not yet initialized.
+- `partialinit` is used to identify if the initialized was only partial.
 """
-function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; solveKey::Symbol=:default)::Nothing
+function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)::Nothing
   # recover softtype information
   sty = getSofttype(v, solveKey=solveKey)
   # @show sty.manifolds
@@ -157,17 +161,20 @@ function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true; s
   p = AMP.manikde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1], solveKey=solveKey) # TODO -- this can be little faster
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
-function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true; solveKey::Symbol=:default)::Nothing
+function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)::Nothing
   setVal!(v, em.pts, em.bws, solveKey=solveKey) # getBW(p)[:,1]
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
-function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true; solveKey::Symbol=:default)
+function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   setinit ? (getData(v, solveKey==solveKey).initialized = true) : nothing
+  getData(v).partialinit = partialinit
   nothing
 end
 function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: AbstractDFG
@@ -177,6 +184,21 @@ end
 # TODO: Confirm this is supposed to be a variable?
 setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default) = setValKDE!(v, em, solveKey=solveKey)
 setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default) = setValKDE!(v, p, solveKey=solveKey)
+
+"""
+    $SIGNATURES
+
+Return the number of dimensions this factor vertex `fc` influences.
+"""
+getFactorDim(fc::DFGFactor)::Int = getData(fc).fnc.zDim
+
+"""
+    $SIGNATURES
+
+Return the number of dimensions this variable vertex `var` contains.
+"""
+getVariableDim(var::DFGVariable)::Int = getData(var).dims
+
 
 """
     $(SIGNATURES)
@@ -240,43 +262,15 @@ function setDefaultNodeData!(v::DFGVariable,
     #initval, stdev
     setSolverData(v, VariableNodeData(pNpts,
                             gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true, false, dontmargin))
+                            dims, false, 0, Int[], gt, softtype, true, false, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, false, false, dontmargin))
+                            dims, false, 0, Int[], gt, softtype, false, false, false, dontmargin))
   end
   return nothing
 end
-
-# """
-#     $(SIGNATURES)
-#
-# Initialize a new Graphs.ExVertex which will be added to some factor graph.
-# """
-# function addNewVarVertInGraph!(fgl::FactorGraph,
-#             vert::Graphs.ExVertex,
-#             id::Int,
-#             lbl::Symbol,
-#             ready::Int,
-#             smalldata  )
-#   @error("NEIN NEIN ES IS VERBOTEN! DEPRECATED JA")
-#   #
-#   # vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-#   # vert.attributes["label"] = string(lbl) #fg.v[fg.id]
-#   # fgl.IDs[lbl] = id
-#   #
-#   # # used for cloudgraph solving
-#   # vert.attributes["ready"] = ready
-#   # vert.attributes["backendset"] = 0
-#   #
-#   # # store user metadata
-#   # vert.attributes["smalldata"] = smalldata
-#   # nothing
-# end
-
-
 
 """
 $(SIGNATURES)
@@ -649,9 +643,9 @@ function doautoinit!(dfg::T,
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        pts = predictbelief(dfg, vsym, useinitfct)
-        setValKDE!(xi, pts)
-        getData(xi).initialized = true
+        pts,fulldim = predictbelief(dfg, vsym, useinitfct)
+        setValKDE!(xi, pts, true, !fulldim)
+        # getData(xi).initialized = true
         # TODO: Persist this back if we want to here.
         # api.updatevertex!(dfg, xi, updateMAPest=false)
         didinit = true
@@ -701,8 +695,8 @@ end
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
 function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
-  setValKDE!(vert, pX)
-  getData(vert).initialized = true
+  setValKDE!(vert, pX, true)
+  # getData(vert).initialized = true
   return nothing
 end
 function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
@@ -715,8 +709,8 @@ function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing wher
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVert(dfg, sym, api=api)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
-  setValKDE!(vert, Xpre) # dfg, sym
-  getData(dfg, sym).initialized = true
+  setValKDE!(vert, Xpre, true) # dfg, sym
+  # getData(dfg, sym).initialized = true
   return nothing
 end
 
@@ -864,15 +858,31 @@ end
 
 ### TODO: TO BE REFACTORED FOR DFG
 
-# for computing the Bayes Net-----------------------------------------------------
+"""
+    $SIGNATURES
+
+Determine the variable ordering used to construct both the Bayes Net and Bayes/Junction/Elimination tree.
+
+Notes
+- Heuristic method -- equivalent to QR or Cholesky.
+- Are using Blas `QR` function to extract variable ordering.
+- **NOT USING SUITE SPARSE** -- which would requires commercial license.
+- For now `A::Array{<:Number,2}` as a dense matrix.
+- Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
+
+Future
+- TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
+"""
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
   s = getVariableIds(dfg)
   lens = length(s)
   sf = getFactorIds(dfg)
   lensf = length(sf)
+
   # adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
+  # SAM ignore this piece and focus on A
   @show adjm = getAdjacencyMatrix(dfg)
-  @error "Getting adjacency matrix here and it's new behavior, this is probably going to break!"
+  error("Getting adjacency matrix here and it's new behavior, this is probably going to break!")
   permuteds = Vector{Int}(undef, lens)
   permutedsf = Vector{Int}(undef, lensf)
   for j in 1:length(dictpermu)
@@ -892,12 +902,14 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDF
       end
     end
   end
-
   A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
+  # SAM compare here A as an adjacency matrix
+
   p = Int[]
   if ordering==:chol
     p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
   elseif ordering==:qr
+    # this is the default
     q,r,p = qr(A, Val(true))
   else
     prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")

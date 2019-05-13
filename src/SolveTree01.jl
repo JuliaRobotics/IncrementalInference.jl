@@ -76,7 +76,7 @@ function packFromLocalPotentials!(fgl::FactorGraph,
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -97,7 +97,7 @@ function packFromLocalPartials!(fgl::FactorGraph,
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
     if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
+      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -239,17 +239,29 @@ function productbelief(dfg::G,
   return pGM
 end
 
+"""
+    $SIGNATURES
+
+Compute the proposals of a destination vertex for each of `factors` and place the result
+as belief estimates in both `dens` and `partials` respectively.
+
+Notes
+- TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
+"""
 function proposalbeliefs!(dfg::G,
                           destvertlabel::Symbol,
                           factors::Vector{F},
+                          fulldimproposal::Vector{Bool},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
                           dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
   #
+  count = 0
   for fct in factors
+    count += 1
     data = getData(fct)
-    p = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
+    p,fulld = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -259,8 +271,10 @@ function proposalbeliefs!(dfg::G,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
+      fulldimproposal[count] = false
     else # full density
       push!(dens, p)
+      fulldimproposal[count] = fulld
     end
   end
   nothing
@@ -279,13 +293,16 @@ function predictbelief(dfg::G,
   # determine number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(destvert),2)
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(factors))
+
   # get proposal beliefs
-  proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(dfg, destvertlabel, factors, fulldim, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
-  return pGM
+  return pGM, sum(fulldim) > 0
 end
 
 function predictbelief(dfg::G,
@@ -317,41 +334,43 @@ end
 """
     $(SIGNATURES)
 
-Using factor graph object `fg`, project belief through connected factors
+Using factor graph object `dfg`, project belief through connected factors
 (convolution with conditional) to variable `sym` followed by a approximate functional product.
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
-function localProduct(fgl::FactorGraph,
+function localProduct(dfg::G,
                       sym::Symbol;
                       N::Int=100,
-                      dbg::Bool=false,
-                      api::DataLayerAPI=IncrementalInference.dlapi  )
+                      dbg::Bool=false) where G <: AbstractDFG
+  #
   # TODO -- converge this function with predictbelief for this node
-  # TODO -- update to use getVertId
-  destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   lb = String[]
-  fcts = Vector{Graphs.ExVertex}()
-  cf = ls(fgl, sym, api=api)
+  fcts = Vector{DFGFactor}()
+  # vector of all neighbors as Symbols
+  cf = getNeighbors(dfg, sym)
   for f in cf
-    vert = getVert(fgl, f, nt=:fnc, api=api)
+    vert = DFGGraphs.getFactor(dfg, f)
     push!(fcts, vert)
     push!(lb, vert.label)
   end
 
+  # memory for if proposals are full dimension
+  fulldim = Vector{Bool}(undef, length(fcts))
+
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
-  vert = getVert(fgl, sym, api=api)
+  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
+  vert = DFGGraphs.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb
 end
-localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
+localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
@@ -822,6 +841,9 @@ end
     $SIGNATURES
 
 Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
+
+Notes
+- Use last parameter to select the return format.
 """
 function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
   childmsgs = NBPMessage[]
@@ -836,6 +858,43 @@ function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExV
     push!(childmsgs, nbpchild)
   end
   return childmsgs
+end
+
+function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{BallTreeDensity})
+  childmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  for child in getChildren(treel, cliq)
+    for (key, bel) in getUpMsgs(child)
+      # id = fg_.IDs[key]
+      # manis = getManifolds(fg_, id)
+      if !haskey(childmsgs, key)
+        childmsgs[key] = BallTreeDensity[]
+      end
+      push!(childmsgs[key], bel)
+    end
+  end
+  return childmsgs
+end
+
+"""
+    $SIGNATURES
+
+Get the latest down message from the parent node (without calculating anything).
+
+Notes
+- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+"""
+function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
+  downmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  for prnt in getParent(treel, cliq)
+    for (key, bel) in getDwnMsgs(prnt)
+      if !haskey(downmsgs, key)
+        downmsgs[key] = BallTreeDensity[]
+      end
+      push!(downmsgs[key], bel)
+    end
+  end
+  return downmsgs
 end
 
 
@@ -1414,7 +1473,13 @@ end
 
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
-function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=false, N::Int=100, limititers::Int=-1)
+function initInferTreeUp!(fgl::FactorGraph,
+                          treel::BayesTree;
+                          drawtree::Bool=false,
+                          N::Int=100,
+                          limititers::Int=-1,
+                          recordcliqs::Vector{Symbol}=Symbol[] )
+  #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(fgl, treel)
@@ -1422,26 +1487,41 @@ function initInferTreeUp!(fgl::FactorGraph, treel::BayesTree; drawtree::Bool=fal
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
+  cliqHistories = Dict{Int,Vector{Tuple{Int, Function, CliqStateMachineContainer}}}()
   @sync begin
     if !isTreeSolved(treel, skipinitialized=true)
+      # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         alltasks[i] = @async begin
           clst = :na
+          cliq = treel.cliques[i]
+          ids = getCliqFrontalVarIds(cliq)
+          syms = map(d->getSym(fgl, d), ids)
+          recordthiscliq = length(intersect(recordcliqs,syms)) > 0
           try
-            cliq = treel.cliques[i]
-            clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+            cliqHistories[i] = history
+            clst = getCliqStatus(cliq)
+            # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
           catch err
             bt = catch_backtrace()
             println()
             showerror(stderr, err, bt)
             error(err)
           end
-          if !(clst in [:upsolved; :downsolved; :marginalized])
-            error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-          end
+          # if !(clst in [:upsolved; :downsolved; :marginalized])
+          #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+          # end
         end # async
       end # for
-    end #if
+    end # if
+  end # sync
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  for i in 1:length(treel.cliques)
+    if haskey(cliqHistories, i)
+      getData(treel.cliques[i]).statehistory=cliqHistories[i]
+    end
   end
 
   return alltasks
@@ -1456,27 +1536,35 @@ Perform up and down message passing (multi-process) algorithm for full sum-produ
 function inferOverTree!(fgl::FactorGraph,
                         bt::BayesTree;
                         N::Int=100,
+                        upsolve::Bool=true,
+                        downsolve::Bool=true,
                         dbg::Bool=false,
                         drawpdf::Bool=false,
-                        treeinit::Bool=false  )::Nothing
+                        treeinit::Bool=false,
+                        limititers::Int=1000,
+                        recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
   inittasks = Vector{Task}()
-  if treeinit
-    @info "Do tree based init-inference on tree"
-    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-    @info "Finished tree based upward init-inference"
-  else
-    ensureAllInitialized!(fgl)
+  if upsolve
+    if treeinit
+      @info "Do tree based init-inference on tree"
+      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
+      @info "Finished tree based upward init-inference"
+    else
+      ensureAllInitialized!(fgl)
+    end
+    if !treeinit # !isTreeSolvedUp(bt)
+      @info "Do multi-process upward pass of inference on tree"
+      upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+    end
   end
-  if !treeinit # !isTreeSolvedUp(bt)
-    @info "Do multi-process upward pass of inference on tree"
-    upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  if downsolve
+    @info "Do multi-process downward pass of inference on tree"
+    downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
-  @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   nothing
 end
 
