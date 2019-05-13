@@ -15,8 +15,11 @@ Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tr
 getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
 
 
+"""
+    $SIGNATURES
 
-# create a new clique
+Create a new clique.
+"""
 function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
@@ -31,7 +34,11 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
   return clq
 end
 
-# generate the label for particular clique -- graphviz drawing
+"""
+    $SIGNATURES
+
+Generate the label for particular clique (used by graphviz for visualization).
+"""
 function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int, api::DataLayerAPI=localapi)
   clq = bt.cliques[clqID]
   flbl = ""
@@ -51,7 +58,11 @@ function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Int,1})
   getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
 end
 
-# Add a new frontal variable to clique
+"""
+    $SIGNATURES
+
+Add a new frontal variable to clique.
+"""
 function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
   clq = bt.cliques[clqID]
   var = localapi.getvertex(fg, varID)
@@ -68,8 +79,11 @@ function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, c
   nothing
 end
 
+"""
+    $SIGNATURES
 
-# instantiate a new child clique in the tree
+Instantiate a new child clique in the tree.
+"""
 function newChildClique!(bt::BayesTree, fg::FactorGraph, CpID::Int, varID::Int, Sepj::Array{Int,1})
   chclq = addClique!(bt, fg, varID, Sepj)
   parent = bt.cliques[CpID]
@@ -80,7 +94,11 @@ function newChildClique!(bt::BayesTree, fg::FactorGraph, CpID::Int, varID::Int, 
   return chclq
 end
 
-# post order tree traversal and build potential functions
+"""
+    $SIGNATURES
+
+Post order tree traversal and build potential functions
+"""
 function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
   for cliqPair in bt.cliques
     id = cliqPair[1]
@@ -95,7 +113,11 @@ function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
 end
 
 
-# eliminate a variable for new
+"""
+    $SIGNATURES
+
+Eliminate a variable and add to tree cliques accordingly.
+"""
 function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
     firvert = localapi.getvertex(fg,var)
     if (length(getData(firvert).separator) == 0)
@@ -126,7 +148,11 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
     end
 end
 
-# build the whole tree in batch format
+"""
+    $SIGNATURES
+
+Build the whole tree in batch format.
+"""
 function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
   rp = reverse(p,dims=1) # flipdim(p, 1)
   prevVar = 0
@@ -136,6 +162,12 @@ function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
   end
 end
 
+"""
+    $SIGNATURES
+
+Open view to see the graphviz exported Bayes tree, assuming default location and
+viewer app.  See keyword arguments for more details.
+"""
 function showTree(;filepath::String="/tmp/bt.pdf",
                    viewerapp::String="evince"  )
   #
@@ -148,6 +180,15 @@ function showTree(;filepath::String="/tmp/bt.pdf",
   end
 end
 
+"""
+    $SIGNATURES
+
+Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
+
+Notes
+- Uses system install of graphviz.org.
+- Can also use Linux tool `xdot`.
+"""
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/bt.pdf",
@@ -273,12 +314,27 @@ function resetData!(vdata::FunctionNodeData)::Nothing
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Reset the entire factor graph state as required for construction a new Bayes (Junction) tree.
+"""
 function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
   for (id, v) in fgl.g.vertices
     resetData!(getData(v))
     localapi.updatevertex!(fgl, v)
   end
   nothing
+end
+
+"""
+    $SIGNATURES
+
+Reset factor graph and build a new tree from the provided variable ordering `p`.
+"""
+function resetBuildTreeFromOrder!(fgl::FactorGraph, p::Vector{Int})::BayesTree
+  resetFactorGraphNewTree!(fgl)
+  return buildTreeFromOrdering!(fgl, p)
 end
 
 """
