@@ -371,10 +371,13 @@ function findRelatedFromPotential(dfg::G,
                                   idfct::DFGFactor,
                                   vertlabel::Symbol,
                                   N::Int,
-                                  dbg::Bool=false) where G <: AbstractDFG
+                                  dbg::Bool=false)::Tuple{BallTreeDensity,Bool} where G <: AbstractDFG
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(dfg, idfct, vertlabel, N=N, dbg=dbg);
-  # sum(abs(ptsbw)) < 1e-14 ? error("findRelatedFromPotential -- an input is zero") : nothing  # NOTE -- disable this validation test
+  # determine if evaluation is "dimension-deficient"
+  zdim = getFactorDim(idfct)
+  vdim = getVariableDim(getVert(fg, vertid, api=localapi))
+  fulldim = vdim <= zdim
 
   # TODO -- better to upsample before the projection
   Ndim = size(ptsbw,1)
@@ -385,7 +388,7 @@ function findRelatedFromPotential(dfg::G,
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
   end
-  return p
+  return p, fulldim
 end
 
 
