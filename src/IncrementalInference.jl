@@ -169,6 +169,7 @@ export
   emptyBayesTree,
   buildTree!,
   buildTreeFromOrdering!,
+  resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,

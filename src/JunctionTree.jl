@@ -282,6 +282,16 @@ function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
 end
 
 """
+    $SIGNATURES
+
+Reset factor graph and build a new tree provided the variable ordering `p`.
+"""
+function resetBuildTreeFromOrder!(fgl::FactorGraph, p::Vector{Int})
+ IncrementalInference.resetFactorGraphNewTree!(fgl)
+ buildTreeFromOrdering!(fgl, p)
+end
+
+"""
     $(SIGNATURES)
 
 Build a completely new Bayes (Junction) tree, after first wiping clean all
