@@ -44,8 +44,9 @@ mutable struct CliqStateMachineContainer
   tryonce::Bool
   incremental::Bool
   drawtree::Bool
+  refactoring::Dict{Symbol, String}
   CliqStateMachineContainer() = new()
-  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11)
+  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,Dict{Symbol,String}())
 end
 
 """

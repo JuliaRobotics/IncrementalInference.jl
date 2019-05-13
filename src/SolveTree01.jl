@@ -1545,16 +1545,16 @@ function inferOverTree!(fgl::FactorGraph,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
                         limititers::Int=1000,
-                        recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
+                        recordcliqs::Vector{Symbol}=Symbol[]  )::Vector{Task}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
-  inittasks = Vector{Task}()
+  smtasks=Vector{Task}()
   if upsolve
     if treeinit
       @info "Do tree based init-inference on tree"
-      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
+      smtasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
       @info "Finished tree based upward init-inference"
     else
       ensureAllInitialized!(fgl)
@@ -1568,7 +1568,7 @@ function inferOverTree!(fgl::FactorGraph,
     @info "Do multi-process downward pass of inference on tree"
     downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
-  nothing
+  return smtasks
 end
 
 """
@@ -1581,13 +1581,14 @@ function inferOverTreeR!(fgl::FactorGraph,
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Nothing
+                         treeinit::Bool=false  )::Vector{Task}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
+  smtasks = Vector{Task}()
   if treeinit
-    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    smtasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
   else
     @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
@@ -1595,5 +1596,5 @@ function inferOverTreeR!(fgl::FactorGraph,
   end
   @info "Do recursive down inference over tree"
   downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  nothing
+  return smtasks
 end
