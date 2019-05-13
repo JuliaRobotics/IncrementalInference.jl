@@ -22,6 +22,7 @@ Notes
 """
 function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
+  @info "$(current_task()) Clique $(csmc.cliq.index), 9, status=$(cliqst), finishing"
   if cliqst == :upsolved
     @info "$(current_task()) Clique $(csmc.cliq.index), going for transferUpdateSubGraph!"
     frsyms = Symbol[getSym(csmc.cliqSubFg, varid) for varid in getCliqFrontalVarIds(csmc.cliq)]
@@ -56,7 +57,13 @@ Notes
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
   cliqst = getCliqStatus(csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index), status=$cliqst, test if should doCliqAutoInitUp!"
+
+  # validate from previous state
+  @assert csmc.refactoring[:state8_cliqst] == string(cliqst)
+  @assert csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] == string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
+
+  @info "$(current_task()) Clique $(csmc.cliq.index), 8b, status=$cliqst, test if should doCliqAutoInitUp!"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 8b, !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
   end
@@ -90,7 +97,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # initialize clique in downward direction
   # not if parent also needs downward init message
-  @info "$(current_task()) Clique $(csmc.cliq.index), needs down message -- attempt down init"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 8a, needs down message -- attempt down init"
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
@@ -104,28 +111,31 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   children = getChildren(csmc.tree, csmc.cliq)
   if areCliqChildrenNeedDownMsg(children)
     # set messages if children :needdownmsg
-    @warn "$(current_task()) Clique $(csmc.cliq.index), doCliqInitDown! -- must set messages for future down init"
+    @warn "$(current_task()) Clique $(csmc.cliq.index), 8a, doCliqInitDown! -- must set messages for future down init"
     # construct init's up msg to place in parent from initialized separator variables
     msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq) # , tree,
 
-    @info "$(current_task()) Clique $(csmc.cliq.index), putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
+    @info "$(current_task()) Clique $(csmc.cliq.index), 8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))"
     # set fake up and notify down status
     setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
     notifyCliqDownInitStatus!(csmc.cliq, cliqst)
 
-    @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+    @info "$(current_task()) Clique $(csmc.cliq.index), 8a, after down init attempt, $cliqst."
   end
 
   # repeat the if a second time, is bad TODO
-  @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-    return attemptCliqInitUp_StateMachine
-  end
-  return finishCliqSolveCheck_StateMachine
+  csmc.refactoring[:state8_cliqst] = string(cliqst)
+  csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
 
-  # return attemptCliqInitUp_StateMachine
+  # @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  #   return attemptCliqInitUp_StateMachine
+  # end
+  # return finishCliqSolveCheck_StateMachine
+
+  return attemptCliqInitUp_StateMachine
 end
 
 
@@ -147,14 +157,17 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   # evaluate according to cliq status
   cliqst = getCliqStatus(csmc.cliq)
 
-  @info "$(current_task()) Clique $(csmc.cliq.index), status=$(cliqst), before attemptCliqInitDown_StateMachine"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), before attemptCliqInitDown_StateMachine"
   # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
   if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
     return attemptCliqInitDown_StateMachine
   end
 
+  csmc.refactoring[:state8_cliqst] = string(cliqst)
+  csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
+
   # cliqst = getCliqStatus(csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index), status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
   if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     return attemptCliqInitUp_StateMachine
   end
@@ -179,16 +192,16 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # promote if longer down chain of :needdownmsg
   if cliqst == :null
-    @info "$(current_task()) Clique $(csmc.cliq.index), determineCliqNeedDownMsg -- blocking until child cliques have status, cliqst=$(cliqst)"
+    @info "$(current_task()) Clique $(csmc.cliq.index), 7, determineCliqNeedDownMsg -- blocking until child cliques have status, cliqst=$(cliqst)"
     stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
     # TODO stdict here is just to get the status of child cliques
-    @info "$(current_task()) Clique $(csmc.cliq.index) continue, children all have status"
+    @info "$(current_task()) Clique $(csmc.cliq.index) 7, continue, children all have status"
 
     chstatus = collect(values(stdict))
     len = length(chstatus)
     if len > 0 && sum(chstatus .== :needdownmsg) == len
       # TODO maybe can happen where some children need more information?
-      @info "$(current_task()) Clique $(csmc.cliq.index) | $lbl | escalating to :needdownmsg since all children :needdownmsg"
+      @info "$(current_task()) Clique $(csmc.cliq.index) 7, | $lbl | escalating to :needdownmsg since all children :needdownmsg"
       notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
       # setCliqStatus!(cliq, :needdownmsg)
       cliqst = getCliqStatus(csmc.cliq) ## TODO: likely not required since cliqst already exists
@@ -198,7 +211,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
     # wait if child branches still solving -- must eventually upsolve this clique
     if len > 0 && sum(chstatus .!= :upsolved) > 0
-      @info "$(current_task()) Clique $(csmc.cliq.index) | $lbl | sleeping until all children finish upward inference"
+      @info "$(current_task()) Clique $(csmc.cliq.index) 7, | $lbl | sleeping until all children finish upward inference"
       sleep(0.1)
     end
   end
@@ -207,15 +220,15 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # TODO not sure if we want stdict from cliq or prnt???
   for (clid, clst) in stdict
-    @info "$(current_task()) Clique $(csmc.cliq.index), check stdict: clid=$(clid), clst=$(clst)"
+    @info "$(current_task()) Clique $(csmc.cliq.index), 7, check stdict: clid=$(clid), clst=$(clst)"
     # :needdownmsg # 'send' downward init msg direction
     # :initialized # @warn "something might not be right with init of clid=$clid"
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (csmc.proceed = false) : nothing
   end
-  @info "$(current_task()) Clique $(csmc.cliq.index), proceed=$(csmc.proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 7, proceed=$(csmc.proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
 
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  @info "$(current_task()) Clique $(csmc.cliq.index), check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(csmc.proceed), forceproceed=$(csmc.forceproceed)."
+  @info "$(current_task()) Clique $(csmc.cliq.index), 7, check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(csmc.proceed), forceproceed=$(csmc.forceproceed)."
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   # add case for if children are blocked on need down msg
@@ -239,9 +252,9 @@ Notes
 """
 function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index), blockUntilChildrenStatus_StateMachine -- blocking until child cliques have status, cliqst=$(cliqst)"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 6, blockUntilChildrenStatus_StateMachine -- blocking until child cliques have status, cliqst=$(cliqst)"
   blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index) continue, children all have status"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 6, continue, children all have status"
 
   return determineCliqNeedDownMsg_StateMachine
 end
@@ -253,8 +266,11 @@ Notes
 - State machine function nr. 5
 """
 function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
+  cliqst = getCliqStatus(csmc.cliq)
+  @info "$(current_task()) Clique $(csmc.cliq.index), 5, block on siblings cliq status=$(cliqst)"
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
+    @info "$(current_task()) Clique $(csmc.cliq.index), 5, has parent clique=$(prnt[1].index)"
     blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1])
   end
   return blockUntilChildrenStatus_StateMachine
@@ -272,6 +288,8 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   csmc.tryonce = false
   csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
+
+  @info "$(current_task()) Clique $(csmc.cliq.index), 4, cliq status is $(cliqst)"
   # stdictprnt = Dict{Int, Symbol}()
   # get parent cliq
   prnt = getParent(csmc.tree, csmc.cliq)
@@ -280,13 +298,13 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst == :needdownmsg && length(prnt) > 0
     # wait here until all children have a valid status
     if !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-      @info "$(current_task()) Clique $(csmc.cliq.index), blocking on parent until all sibling cliques have valid status"
+      @info "$(current_task()) Clique $(csmc.cliq.index), 4, blocking on parent until all sibling cliques have valid status"
       setCliqDrawColor(csmc.cliq, "turquoise")
       csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
       return blockUntilSiblingsStatus_StateMachine
       # stdictprnt = blockCliqUntilChildrenHaveUpStatus(tree, prnt[1])
     else
-      @warn "$(current_task()) Clique $(csmc.cliq.index), WIP must deal with child :needdownmsg"
+      @warn "$(current_task()) Clique $(csmc.cliq.index), 4, WIP must deal with child :needdownmsg"
       csmc.forceproceed = true
     end
   end
@@ -304,6 +322,8 @@ Notes
 """
 function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
+  @info "$(current_task()) Clique $(csmc.cliq.index), 3, cliq status is $(cliqst)"
+
   if csmc.tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized])
     return doesCliqNeeddownmsg_StateMachine
   else
@@ -337,7 +357,7 @@ Notes
 - State machine function nr.1
 """
 function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
-  @info "$(current_task()) Clique $(csmc.cliq.index), isCliqUpSolved_StateMachine"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 1, isCliqUpSolved_StateMachine"
   cliqst = getCliqStatus(csmc.cliq)
   # lbl = cliq.attributes["label"]
 
