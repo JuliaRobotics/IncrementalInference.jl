@@ -1,3 +1,6 @@
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 
 """
@@ -225,23 +228,18 @@ Build Bayes/Junction/Elimination tree.
 Notes
 - Default to free qr factorization for variable elimination order.
 """
-function prepBatchTree!(fg::FactorGraph;
+function prepBatchTree!(dfg::G;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false  )
+                        drawbayesnet::Bool=false  ) where G <: AbstractDFG
   #
-  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
+  p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(fg, p, drawbayesnet=drawbayesnet)
-
-  # now update all factor graph vertices used for this tree
-  for (id,v) in fg.g.vertices
-    dlapi.updatevertex!(fg, v)
-  end
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -273,10 +271,18 @@ function resetData!(vdata::FunctionNodeData)::Nothing
   nothing
 end
 
-function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
-  for (id, v) in fgl.g.vertices
+"""
+    $SIGNATURES
+
+Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Elimination tree
+can be constructed.
+"""
+function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
+  for v in DFGGraphs.ls(dfg)
     resetData!(getData(v))
-    localapi.updatevertex!(fgl, v)
+  end
+  for f in DFGGraphs.lsf(dfg)
+    resetData!(getData(f))
   end
   nothing
 end
@@ -287,16 +293,16 @@ end
 Build a completely new Bayes (Junction) tree, after first wiping clean all
 temporary state in fg from a possibly pre-existing tree.
 """
-function wipeBuildNewTree!(fg::FactorGraph;
+function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
                            drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
                            viewerapp::String="evince",
-                           imgs::Bool=false  )::BayesTree
+                           imgs::Bool=false  )::BayesTree where G <: AbstractDFG
   #
-  resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
+  resetFactorGraphNewTree!(dfg);
+  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
 end
 
 """

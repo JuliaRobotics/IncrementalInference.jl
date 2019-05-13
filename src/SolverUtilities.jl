@@ -1,3 +1,6 @@
+# TODO: Remove this in time
+import DistributedFactorGraphs.GraphsJl
+const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 function fastnorm(u)
   # dest[1] = ...
@@ -176,18 +179,18 @@ function batchSolve!(dfg::G;
                      limititers::Int=1000,
                      recordcliqs::Vector{Symbol}=Symbol[]   ) where G <: AbstractDFG
   #
-  if fgl.isfixedlag
+  if DFGGraphs.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
-      fifoFreeze!(fgl)
+      fifoFreeze!(dfg)
   end
   tree = wipeBuildNewTree!(dfg, drawpdf=drawpdf)
   show ? showTree() : nothing
 
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
-    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
+    inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve)
+    inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve)
   end
   tree
 end
@@ -197,20 +200,19 @@ end
 
 Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
-function setfreeze!(fgl::FactorGraph, sym::Symbol)
-  if !isInitialized(fgl, sym)
+function setfreeze!(dfg::G, sym::Symbol) where G <: AbstractDFG
+  if !isInitialized(dfg, sym)
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
-  vert = getVert(fgl, sym)
+  vert = GraphsDFG.getVariable(fgl, sym)
   data = getData(vert)
   data.ismargin = true
-
   nothing
 end
-function setfreeze!(fgl::FactorGraph, syms::Vector{Symbol})
+function setfreeze!(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
   for sym in syms
-    setfreeze!(fgl, sym)
+    setfreeze!(dfg, sym)
   end
 end
 
@@ -222,18 +224,18 @@ Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`,
 Future:
 - Allow different freezing strategies beyond fifo.
 """
-function fifoFreeze!(fgl::FactorGraph)
-  if fgl.qfl == 0
+function fifoFreeze!(dfg::G) where G <: AbstractDFG
+  if DFGGraphsfgl.getSolverParams(dfg).qfl == 0
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
-  tofreeze = fgl.fifo[1:(end-fgl.qfl)]
+  tofreeze = DFGGraphs.getAddHistory(dfg)[1:(end-DFGGraphsfgl.getSolverParams(dfg).qfl)]
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
       return nothing
   end
   @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
-  setfreeze!(fgl, tofreeze)
+  setfreeze!(dfg, tofreeze)
   nothing
 end
 

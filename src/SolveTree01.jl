@@ -334,26 +334,25 @@ end
 """
     $(SIGNATURES)
 
-Using factor graph object `fg`, project belief through connected factors
+Using factor graph object `dfg`, project belief through connected factors
 (convolution with conditional) to variable `sym` followed by a approximate functional product.
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
-function localProduct(fgl::FactorGraph,
+function localProduct(dfg::G,
                       sym::Symbol;
                       N::Int=100,
-                      dbg::Bool=false,
-                      api::DataLayerAPI=IncrementalInference.dlapi  )
+                      dbg::Bool=false) where G <: AbstractDFG
+  #
   # TODO -- converge this function with predictbelief for this node
-  # TODO -- update to use getVertId
-  destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   lb = String[]
-  fcts = Vector{Graphs.ExVertex}()
-  cf = ls(fgl, sym, api=api)
+  fcts = Vector{DFGFactor}()
+  # vector of all neighbors as Symbols
+  cf = getNeighbors(dfg, sym)
   for f in cf
-    vert = getVert(fgl, f, nt=:fnc, api=api)
+    vert = DFGGraphs.getFactor(dfg, f)
     push!(fcts, vert)
     push!(lb, vert.label)
   end
@@ -362,16 +361,16 @@ function localProduct(fgl::FactorGraph,
   fulldim = Vector{Bool}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
-  vert = getVert(fgl, sym, api=api)
+  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
+  vert = DFGGraphs.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb
 end
-localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
+localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
 
 
 """

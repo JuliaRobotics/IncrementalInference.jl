@@ -190,14 +190,14 @@ setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default) = setValK
 
 Return the number of dimensions this factor vertex `fc` influences.
 """
-getFactorDim(fc::Graphs.ExVertex)::Int = getData(fc).fnc.zDim
+getFactorDim(fc::DFGFactor)::Int = getData(fc).fnc.zDim
 
 """
     $SIGNATURES
 
 Return the number of dimensions this variable vertex `var` contains.
 """
-getVariableDim(var::Graphs.ExVertex)::Int = getData(var).dims
+getVariableDim(var::DFGVariable)::Int = getData(var).dims
 
 
 """
@@ -858,15 +858,31 @@ end
 
 ### TODO: TO BE REFACTORED FOR DFG
 
-# for computing the Bayes Net-----------------------------------------------------
+"""
+    $SIGNATURES
+
+Determine the variable ordering used to construct both the Bayes Net and Bayes/Junction/Elimination tree.
+
+Notes
+- Heuristic method -- equivalent to QR or Cholesky.
+- Are using Blas `QR` function to extract variable ordering.
+- **NOT USING SUITE SPARSE** -- which would requires commercial license.
+- For now `A::Array{<:Number,2}` as a dense matrix.
+- Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
+
+Future
+- TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
+"""
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
   s = getVariableIds(dfg)
   lens = length(s)
   sf = getFactorIds(dfg)
   lensf = length(sf)
+
   # adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
+  # SAM ignore this piece and focus on A
   @show adjm = getAdjacencyMatrix(dfg)
-  @error "Getting adjacency matrix here and it's new behavior, this is probably going to break!"
+  error("Getting adjacency matrix here and it's new behavior, this is probably going to break!")
   permuteds = Vector{Int}(undef, lens)
   permutedsf = Vector{Int}(undef, lensf)
   for j in 1:length(dictpermu)
@@ -886,12 +902,14 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDF
       end
     end
   end
-
   A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
+  # SAM compare here A as an adjacency matrix
+
   p = Int[]
   if ordering==:chol
     p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
   elseif ordering==:qr
+    # this is the default
     q,r,p = qr(A, Val(true))
   else
     prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")

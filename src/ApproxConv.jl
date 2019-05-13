@@ -376,7 +376,7 @@ function findRelatedFromPotential(dfg::G,
   ptsbw = evalFactor2(dfg, idfct, vertlabel, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
   zdim = getFactorDim(idfct)
-  vdim = getVariableDim(getVert(fg, vertid, api=localapi))
+  vdim = getVariableDim(DFGGraphs.getVariable(dfg, vertlabel))
   fulldim = vdim <= zdim
 
   # TODO -- better to upsample before the projection
