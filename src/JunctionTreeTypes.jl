@@ -39,14 +39,14 @@ mutable struct CliqStateMachineContainer
   parentCliq::Vector{Graphs.ExVertex}
   childCliqs::Vector{Graphs.ExVertex}
   # TODO: bad flags that must be removed
-  proceed::Bool
+  # proceed::Bool
   forceproceed::Bool
   tryonce::Bool
   incremental::Bool
   drawtree::Bool
   refactoring::Dict{Symbol, String}
   CliqStateMachineContainer() = new()
-  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,Dict{Symbol,String}())
+  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}())
 end
 
 """

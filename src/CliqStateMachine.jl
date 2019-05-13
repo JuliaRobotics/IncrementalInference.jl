@@ -203,27 +203,28 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     end
   end
   # hard assumption here on upsolve from leaves to root
-  csmc.proceed = true
+  proceed = true
 
   # TODO not sure if we want stdict from cliq or prnt???
   for (clid, clst) in stdict
     @info "$(current_task()) Clique $(csmc.cliq.index), check stdict: clid=$(clid), clst=$(clst)"
     # :needdownmsg # 'send' downward init msg direction
     # :initialized # @warn "something might not be right with init of clid=$clid"
-    !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (csmc.proceed = false) : nothing
+    !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
   end
-  @info "$(current_task()) Clique $(csmc.cliq.index), proceed=$(csmc.proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
+  @info "$(current_task()) Clique $(csmc.cliq.index), proceed=$(proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
 
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  @info "$(current_task()) Clique $(csmc.cliq.index), check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(csmc.proceed), forceproceed=$(csmc.forceproceed)."
+  @info "$(current_task()) Clique $(csmc.cliq.index), check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(proceed), forceproceed=$(csmc.forceproceed)."
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   # add case for if children are blocked on need down msg
+  # TODO: remove as soon possible
   if getCliqStatus(csmc.cliq) == :initialized && areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     sleep(0.1)
   end
 
-  if csmc.proceed || csmc.forceproceed
+  if proceed || csmc.forceproceed
     return doCliqInferAttempt_StateMachine
   else
     return whileCliqNotSolved_StateMachine
@@ -385,7 +386,7 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, true, false, false, incremental, drawtree)
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
