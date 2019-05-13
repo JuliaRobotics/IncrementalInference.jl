@@ -358,6 +358,12 @@ Return the last up message stored in `cliq` of Bayes (Junction) tree.
 getUpMsgs(btl::BayesTree, sym::Symbol) = upMsg(btl, sym)
 getUpMsgs(cliql::Graphs.ExVertex) = upMsg(cliql)
 
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
 
 
 """
@@ -369,7 +375,7 @@ function dwnMsg(cliq::Graphs.ExVertex)
   getData(cliq).dwnMsg
 end
 function dwnMsg(btl::BayesTree, sym::Symbol)
-  upMsg(whichCliq(btl, sym))
+  dwnMsg(whichCliq(btl, sym))
 end
 
 """
@@ -379,6 +385,13 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
 getDwnMsgs(btl::BayesTree, sym::Symbol) = dwnMsg(btl, sym)
 getDwnMsgs(cliql::Graphs.ExVertex) = dwnMsg(cliql)
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsDown(cliql::Graphs.ExVertex) = dwnMsg(cliql)
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -634,6 +647,56 @@ function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
   end
   return verts
 end
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphUp(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarSyms(fgl, cliq)
+  subfg = buildSubgraphFromLabels(fgl,syms)
+
+  # add upward messages to subgraph
+  msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarSyms(fgl, cliq)
+  subfg = buildSubgraphFromLabels(fgl,syms)
+
+  # add upward messages to subgraph
+  msgs = getCliqParentMsgDown(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
 
 """
     $SIGNATURES

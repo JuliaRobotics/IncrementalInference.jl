@@ -69,10 +69,12 @@ mutable struct BayesTreeNodeData
   directPriorMsgIDs::Vector{Int}
   debug
   debugDwn
+  # future might concentrate these four fields down to two
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
   upInitMsgs::Dict{Int, Dict{Symbol, BallTreeDensity}}
   downInitMsg::Dict{Symbol, BallTreeDensity}
+
   allmarginalized::Bool
   initialized::Symbol
   upsolved::Bool

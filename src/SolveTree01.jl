@@ -844,6 +844,9 @@ end
     $SIGNATURES
 
 Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
+
+Notes
+- Use last parameter to select the return format.
 """
 function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
   childmsgs = NBPMessage[]
@@ -858,6 +861,43 @@ function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExV
     push!(childmsgs, nbpchild)
   end
   return childmsgs
+end
+
+function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{BallTreeDensity})
+  childmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  for child in getChildren(treel, cliq)
+    for (key, bel) in getUpMsgs(child)
+      # id = fg_.IDs[key]
+      # manis = getManifolds(fg_, id)
+      if !haskey(childmsgs, key)
+        childmsgs[key] = BallTreeDensity[]
+      end
+      push!(childmsgs[key], bel)
+    end
+  end
+  return childmsgs
+end
+
+"""
+    $SIGNATURES
+
+Get the latest down message from the parent node (without calculating anything).
+
+Notes
+- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+"""
+function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
+  downmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  for prnt in getParent(treel, cliq)
+    for (key, bel) in getDwnMsgs(prnt)
+      if !haskey(downmsgs, key)
+        downmsgs[key] = BallTreeDensity[]
+      end
+      push!(downmsgs[key], bel)
+    end
+  end
+  return downmsgs
 end
 
 
