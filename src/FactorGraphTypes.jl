@@ -44,9 +44,24 @@ end
 EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = EasyMessage{T}(a, b, manis)
 EasyMessage(p::BallTreeDensity, manis::T) where {T <: Tuple} = EasyMessage{T}(p, manis)
 
+"""
+$(TYPEDEF)
+
+Solver parameters for the DistributedFactoGraph.
+"""
+mutable struct SolverParams
+  dimID::Int
+  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
+  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  stateless::Bool
+  qfl::Int # Quasi fixed length
+  isfixedlag::Bool # true when adhering to qfl window size for solves
+end
 
 """
 $(TYPEDEF)
+
+NOTE: Deprecated for DistributedFactoGraph.
 """
 mutable struct FactorGraph
   g::FGGdict
@@ -98,11 +113,12 @@ end
 """
     $SIGNATURES
 
-Initialize an empty `::FactorGraph` object while initializing `sessionname`, `robotname`, and `cloudgraph`.
+Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
 function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::AbstractDFG
   dfg = GraphsDFG()
-
+  solverParams = SolverParams(0, nothing, nothing, false, 0, false)
+  setSolverParams(dfg, solverParams)
   # fgl = RoME.initfg(sessionname=sessionname)
   # fgl = FactorGraph()
   # fgl.sessionname = sessionname
@@ -112,41 +128,41 @@ function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::
   return dfg
 end
 
-"""
-    $(SIGNATURES)
-
-Construct an empty FactorGraph object with the minimum amount of information / memory populated.
-
-@warn DEPRECATED, use initfg instead.
-"""
-function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
-    fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                     Graphs.incdict(Graphs.ExVertex,is_directed=true),
-                    #  Dict{Int,Graphs.ExVertex}(),
-                    #  Dict{Int,Graphs.ExVertex}(),
-                     Dict{Symbol,Int}(),
-                     Dict{Symbol,Int}(),
-                     0,
-                     [],
-                     [],
-                     Dict{Int,Graphs.ExVertex}(),
-                     0,
-                     0,
-                     nothing,
-                     Dict{Int,Int}(),
-                     "",
-                     "",
-                     "",
-                     Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                     reference,
-                     false,
-                     Symbol[],
-                     0,
-                     false  )
-    #
-    @warn "emptyFactorGraph(;reference=) is deprecated, use FactorGraph(;reference=) instead."
-    return fg
-end
+# """
+#     $(SIGNATURES)
+#
+# Construct an empty FactorGraph object with the minimum amount of information / memory populated.
+#
+# @warn DEPRECATED, use initfg instead.
+# """
+# function emptyFactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing)
+#     fg = FactorGraph(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+#                      Graphs.incdict(Graphs.ExVertex,is_directed=true),
+#                     #  Dict{Int,Graphs.ExVertex}(),
+#                     #  Dict{Int,Graphs.ExVertex}(),
+#                      Dict{Symbol,Int}(),
+#                      Dict{Symbol,Int}(),
+#                      0,
+#                      [],
+#                      [],
+#                      Dict{Int,Graphs.ExVertex}(),
+#                      0,
+#                      0,
+#                      nothing,
+#                      Dict{Int,Int}(),
+#                      "",
+#                      "",
+#                      "",
+#                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
+#                      reference,
+#                      false,
+#                      Symbol[],
+#                      0,
+#                      false  )
+#     #
+#     @warn "emptyFactorGraph(;reference=) is deprecated, use FactorGraph(;reference=) instead."
+#     return fg
+# end
 
 # """
 # $(TYPEDEF)

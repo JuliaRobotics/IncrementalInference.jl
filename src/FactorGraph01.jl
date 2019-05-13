@@ -1056,7 +1056,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-function getKDE(v::Graphs.ExVertex)
+function getKDE(v::DFGVariable)
   return getKDE(getData(v))
 end
 
@@ -1065,19 +1065,19 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-function getVertKDE(v::Graphs.ExVertex)
+function getVertKDE(v::DFGVariable)
   return getKDE(v)
 end
-function getVertKDE(fgl::FactorGraph, id::Int; api::DataLayerAPI=dlapi)
-  v = api.getvertex(fgl,id)
+function getVertKDE(dfg::G, id::Int) where G <: AbstractDFG
+  v = DFGGraphs.getVariable(dfg, id)
   return getKDE(v)
 end
-function getVertKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  v = api.getvertex(fgl,lbl)
+function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
+  v = DFGGraphs.getVariable(dfg, lbl)
   return getKDE(v)
 end
-function getKDE(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  return getVertKDE(fgl, lbl, api=api)
+function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
+  return getVertKDE(dfg, lbl)
 end
 
 function drawCopyFG(fgl::FactorGraph)
@@ -1093,35 +1093,35 @@ function drawCopyFG(fgl::FactorGraph)
   return fgd
 end
 
-"""
-    $(SIGNATURES)
-
-Export a dot and pdf file drawn by Graphviz showing the factor graph.
-"""
-function writeGraphPdf(dfg::G;
-                       viewerapp::String="evince",
-                       filepath::AS="/tmp/fg.pdf",
-                       engine::AS="sfdp",
-                       show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
-  #
-  # fgd = drawCopyFG(fgl)
-  @info "Writing factor graph file"
-  fext = split(filepath, '.')[end]
-  fpwoext = split(filepath, '.')[end-1]
-  dotfile = fpwoext*".dot"
-  # fid = open(dotfile,"w")
-  # write(fid,Graphs.to_dot(fgd.g))
-  # close(fid)
-  toDotFile(dfg, dotfile)
-  show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
-
-  try
-    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
-  catch e
-    @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
-  end
-  nothing
-end
+# """
+#     $(SIGNATURES)
+#
+# Export a dot and pdf file drawn by Graphviz showing the factor graph.
+# """
+# function writeGraphPdf(dfg::G;
+#                        viewerapp::String="evince",
+#                        filepath::AS="/tmp/fg.pdf",
+#                        engine::AS="sfdp",
+#                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
+#   #
+#   # fgd = drawCopyFG(fgl)
+#   @info "Writing factor graph file"
+#   fext = split(filepath, '.')[end]
+#   fpwoext = split(filepath, '.')[end-1]
+#   dotfile = fpwoext*".dot"
+#   # fid = open(dotfile,"w")
+#   # write(fid,Graphs.to_dot(fgd.g))
+#   # close(fid)
+#   toDotFile(dfg, dotfile)
+#   show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
+#
+#   try
+#     viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+#   catch e
+#     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
+#   end
+#   nothing
+# end
 
 
 function expandEdgeListNeigh!(fgl::FactorGraph,

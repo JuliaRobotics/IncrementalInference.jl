@@ -22,7 +22,8 @@ using
   FileIO,
   ProgressMeter,
   DocStringExtensions,
-  Optim # might be deprecated in favor for only NLsolve dependency
+  Optim, # might be deprecated in favor for only NLsolve dependency
+  JSON2
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
@@ -75,6 +76,7 @@ export
   extractdistribution,
 
   FactorGraph,
+  SolverParams,
   addNode!,
   addVariable!,
   deleteVariable!,
@@ -364,6 +366,10 @@ include("ApproxConv.jl")
 include("SolveTree01.jl")
 
 include("Deprecated.jl")
+
+# Serialization
+include("serialization/models/distributions.jl")
+include("serialization/services/distributions.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
