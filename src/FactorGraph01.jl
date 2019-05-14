@@ -874,40 +874,41 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
-  s = getVariableIds(dfg)
-  lens = length(s)
-  sf = getFactorIds(dfg)
-  lensf = length(sf)
-
+  # s = getVariableIds(dfg)
+  # lens = length(s)
+  # sf = getFactorIds(dfg)
+  # lensf = length(sf)
+  #
   # adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
   # SAM ignore this piece and focus on A
-  @show adjm = getAdjacencyMatrix(dfg)
-  error("Getting adjacency matrix here and it's new behavior, this is probably going to break!")
-  permuteds = Vector{Int}(undef, lens)
-  permutedsf = Vector{Int}(undef, lensf)
-  for j in 1:length(dictpermu)
-    semap = 0
-    for i in 1:lens
-      if dictpermu[j] == s[i]
-        permuteds[i] = j#dictpermu[j]
-        semap += 1
-        if semap >= 2  break; end
-      end
-    end
-    for i in 1:lensf
-      if dictpermu[j] == sf[i]
-        permutedsf[i] = j#dictpermu[j]
-        semap += 1
-        if semap >= 2  break; end
-      end
-    end
-  end
-  A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
+  @show adjMat = DFGGraphs.getAdjacencyMatrix(dfg)
+  # error("Getting adjacency matrix here and it's new behavior, this is probably going to break!")
+  permutedsf = Symbol.(adjMat[2:end, 1])
+  permuteds = Symbol.(adjMat[1, 2:end])
+  # for j in 1:length(dictpermu)
+  #   semap = 0
+  #   for i in 1:lens
+  #     if dictpermu[j] == s[i]
+  #       permuteds[i] = j#dictpermu[j]
+  #       semap += 1
+  #       if semap >= 2  break; end
+  #     end
+  #   end
+  #   for i in 1:lensf
+  #     if dictpermu[j] == sf[i]
+  #       permutedsf[i] = j#dictpermu[j]
+  #       semap += 1
+  #       if semap >= 2  break; end
+  #     end
+  #   end
+  # end
+  # A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
   # SAM compare here A as an adjacency matrix
+  @show A = Int.(adjMat[2:end, 2:end] .!= nothing)
 
   p = Int[]
   if ordering==:chol
-    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+      p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
   elseif ordering==:qr
     # this is the default
     q,r,p = qr(A, Val(true))
@@ -916,7 +917,8 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDF
   end
 
   # we need the IDs associated with the Graphs.jl and our Type fg
-  return dictpermu[permuteds[p]] # fg.nodeIDs[p]
+  @show varIndices = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
+  return varIndices
 end
 
 
@@ -963,12 +965,12 @@ function addChainRuleMarginal!(fg::FactorGraph, Si)
 end
 
 # TODO -- Cannot have any CloudGraph calls at this level, must refactor
-function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Graphs.ExVertex,1})
+function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::DFGFactor[])
   for m in gm
     # get all out edges
     # get neighbors
-    for n in localapi.outneighbors(fgl, m)
-      if n.index == fromvert.index
+    for n in DFGGraphs.getNeighbors(dfg, m)
+      if n.label == fromvert.label
         alleids = m.attributes["data"].edgeIDs
         i = 0
         for id in alleids
@@ -994,8 +996,8 @@ function rmVarFromMarg(fgl::FactorGraph, fromvert::Graphs.ExVertex, gm::Array{Gr
   nothing
 end
 
-function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
-    addBayesNetVerts!(fg, p)
+function buildBayesNet!(dfg::G, p::Array{Int,1}) where G <: AbstractDFG
+    addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
       @info "Eliminating $(v)"
@@ -1006,20 +1008,21 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
       # all factors adjacent to this variable
       fi = Int[]
       Si = Int[]
-      gm = ExVertex[]
+      gm = DFGFactor[]
       # TODO -- optimize outneighbor calls like this
-      vert = localapi.getvertex(fg,v)
-      for fct in localapi.outneighbors(fg, vert)
+      vert = DFGGraphs.getVariable(dfg, v)
+      for fct in DFGGraphs.getNeighbors(dfg, vert)
         if (getData(fct).eliminated != true)
           push!(fi, fct.index)
-          for sepNode in localapi.outneighbors(fg, fct)
+          for sepNode in DFGGraphs.getNeighbors(dfg, fct)
             # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
             if sepNode.index != v && !(sepNode.index in Si) # length(findin(sepNode.index, Si)) == 0
               push!(Si,sepNode.index)
             end
           end
           getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
-          localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
+          # TODO: Shouldn't be here?
+          # localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
         if typeof(getData(fct).fnc) == GenericMarginal
@@ -1032,16 +1035,16 @@ function buildBayesNet!(fg::FactorGraph, p::Array{Int,1})
         # not yet inserting the new prior p(Si) back into the factor graph
       end
 
-      tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
+      # tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
       getData(tuv).eliminated = true # fg.v[v].
-      localapi.updatevertex!(fg, tuv)
+      # localapi.updatevertex!(fg, tuv)
 
       # TODO -- remove links from current vertex to any marginals
-      rmVarFromMarg(fg, vert, gm)
+      rmVarFromMarg(dfg, vert, gm)
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si
-      addChainRuleMarginal!(fg, Si)
+      addChainRuleMarginal!(dfg, Si)
 
     end
     nothing

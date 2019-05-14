@@ -5,10 +5,10 @@ const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 
 #global pidx
-pidx = 1
-pidl = 1
-pidA = 1
-thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
+global pidx = 1
+global pidl = 1
+global pidA = 1
+global thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
 
 # upploc to control processes done local to this machine and separated from other
 # highly loaded processes. upploc() should be used for dispatching short and burst

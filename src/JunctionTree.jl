@@ -193,12 +193,12 @@ end
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
-function buildTreeFromOrdering!(fgl::FactorGraph,
+function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Int};
-                                drawbayesnet::Bool=false)
+                                drawbayesnet::Bool=false) where G <: AbstractDFG
   #
   println()
-  fge = deepcopy(fgl)
+  fge = deepcopy(dfg)
   println("Building Bayes net...")
   buildBayesNet!(fge, p)
 
@@ -215,7 +215,7 @@ function buildTreeFromOrdering!(fgl::FactorGraph,
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(fgl, tree, cliq); # fg does not have the marginals as fge does
+  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end
@@ -237,7 +237,7 @@ function prepBatchTree!(dfg::G;
                         imgs::Bool=false,
                         drawbayesnet::Bool=false  ) where G <: AbstractDFG
   #
-  p = getEliminationOrder(dfg, ordering=ordering)
+  @show p = getEliminationOrder(dfg, ordering=ordering)
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
