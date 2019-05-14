@@ -39,7 +39,6 @@ mutable struct CliqStateMachineContainer
   parentCliq::Vector{Graphs.ExVertex}
   childCliqs::Vector{Graphs.ExVertex}
   # TODO: bad flags that must be removed
-  # proceed::Bool
   forceproceed::Bool
   tryonce::Bool
   incremental::Bool
