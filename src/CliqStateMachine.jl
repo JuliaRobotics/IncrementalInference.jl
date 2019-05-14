@@ -225,10 +225,10 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     # :initialized # @warn "something might not be right with init of clid=$clid"
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
   end
-  @info "$(current_task()) Clique $(csmc.cliq.index), 7, proceed=$(csmc.proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 7, proceed=$(proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
 
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  @info "$(current_task()) Clique $(csmc.cliq.index), 7, check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(csmc.proceed), forceproceed=$(csmc.forceproceed)."
+  @info "$(current_task()) Clique $(csmc.cliq.index), 7, check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(proceed), forceproceed=$(csmc.forceproceed)."
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   # add case for if children are blocked on need down msg
