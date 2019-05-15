@@ -50,6 +50,9 @@ export
   StateMachine,
   exitStateMachine,
   getCliqSolveHistory,
+  printCliqHistorySummary,
+  sandboxStateMachineStep,
+  sandboxCliqResolveStep,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
