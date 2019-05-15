@@ -72,7 +72,18 @@ function exitStateMachine(dummy)
   return emptyState
 end
 
+"""
+  $SIGNATURES
 
+Repeat a state machine step without changing history or primary values.
+"""
+function sandboxStateMachineStep(hist::Vector{Tuple{Int, <:Function, T}},
+                                 step::Int  ) where T
+  #
+  usrdata = deepcopy(hist[step][3])
+  nextfnc = hist[step][2](usrdata)
+  return (step+1, nextfnc, usrdata)
+end
 
 
 #
