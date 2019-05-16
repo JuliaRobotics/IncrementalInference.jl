@@ -131,13 +131,13 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   csmc.refactoring[:state8_cliqst] = string(cliqst)
   csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
 
-  # @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
-  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-  #   return attemptCliqInitUp_StateMachine
-  # end
-  # return finishCliqSolveCheck_StateMachine
+  @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+    return attemptCliqInitUp_StateMachine
+  end
+  return finishCliqSolveCheck_StateMachine
 
-  return attemptCliqInitUp_StateMachine
+  # return attemptCliqInitUp_StateMachine
 end
 
 
@@ -440,19 +440,35 @@ Print a short summary of state machine history for a clique solve.
 function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
   hist = getCliqSolveHistory(tree, frontal)
   for hi in hist
-    first = string(hi[1])
+    first = (split(string(hi[1]), 'T')[end])*" "
     len = length(first)
-    for i in len:3  first = first*" "; end
-    first = first*string(getCliqStatus(hi[3].cliq))
+    for i in len:13  first = first*" "; end
+    first = first*string(hi[2])
     len = length(first)
-    for i in len:15  first = first*" "; end
-    first = first*split(split(string(hi[2]),'.')[end], '_')[1]
+    for i in len:17  first = first*" "; end
+    first = first*string(getCliqStatus(hi[4].cliq))
     len = length(first)
-    for i in len:40  first = first*" "; end
-    first = first*string(hi[3].forceproceed)
+    for i in len:30  first = first*" "; end
+    nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
+    lenf = length(nextfn)
+    nextfn = 20 < lenf ? nextfn[1:20]*"." : nextfn
+    first = first*nextfn
     len = length(first)
-    for i in len:46  first = first*" "; end
-    first = first*string(hi[3].tryonce)
+    for i in len:52  first = first*" "; end
+    first = first*string(hi[4].forceproceed)
+    len = length(first)
+    for i in len:58  first = first*" "; end
+    if 0 < length(hi[4].parentCliq)
+      first = first*string(getCliqStatus(hi[4].parentCliq[1]))
+    else
+      first = first*"----"
+    end
+    first = first*" | "
+    if 0 < length(hi[4].childCliqs)
+      for ch in hi[4].childCliqs
+        first = first*string(getCliqStatus(ch))*" "
+      end
+    end
     println(first)
   end
   nothing

@@ -1490,7 +1490,7 @@ function initInferTreeUp!(fgl::FactorGraph,
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
-  cliqHistories = Dict{Int,Vector{Tuple{Int, Function, CliqStateMachineContainer}}}()
+  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   @sync begin
     if !isTreeSolved(treel, skipinitialized=true)
       # duplicate int i into async (important for concurrency)

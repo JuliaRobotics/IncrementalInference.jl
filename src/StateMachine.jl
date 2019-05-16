@@ -20,8 +20,8 @@ Notes
 mutable struct StateMachine{T}
   next::Function
   iter::Int
-  history::Vector{Tuple{Int, Function, T}}
-  StateMachine{T}(;next=emptyState, iter::Int=0) where T = new{T}(next, iter, Vector{Tuple{Int, Function, T}}())
+  history::Vector{Tuple{DateTime, Int, Function, T}}
+  StateMachine{T}(;next=emptyState, iter::Int=0) where T = new{T}(next, iter, Vector{Tuple{DateTime, Int, Function, T}}())
 end
 
 """
@@ -48,7 +48,7 @@ function (st::StateMachine{T})(userdata::T=nothing;
   st.iter += 1
   !verbose ? nothing : println("State machine iter=$(st.iter)")
   retval = st.next != breakafter && (iterlimit == -1 || st.iter < iterlimit)
-  recordhistory ? push!(st.history, (st.iter, deepcopy(st.next), deepcopy(userdata))) : nothing
+  recordhistory ? push!(st.history, (Dates.now(), st.iter, deepcopy(st.next), deepcopy(userdata))) : nothing
   st.next = st.next(userdata)
   return retval
 end
@@ -77,12 +77,12 @@ end
 
 Repeat a state machine step without changing history or primary values.
 """
-function sandboxStateMachineStep(hist::Vector{Tuple{Int, <:Function, T}},
+function sandboxStateMachineStep(hist::Vector{Tuple{DateTime, Int, <:Function, T}},
                                  step::Int  ) where T
   #
-  usrdata = deepcopy(hist[step][3])
-  nextfnc = hist[step][2](usrdata)
-  return (step+1, nextfnc, usrdata)
+  usrdata = deepcopy(hist[step][4])
+  nextfnc = hist[step][3](usrdata)
+  return (hist[step][1], step+1, nextfnc, usrdata)
 end
 
 
