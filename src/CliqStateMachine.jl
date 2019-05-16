@@ -131,13 +131,13 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   csmc.refactoring[:state8_cliqst] = string(cliqst)
   csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
 
-  @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-    return attemptCliqInitUp_StateMachine
-  end
-  return finishCliqSolveCheck_StateMachine
+  # @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
+  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  #   return attemptCliqInitUp_StateMachine
+  # end
+  # return finishCliqSolveCheck_StateMachine
 
-  # return attemptCliqInitUp_StateMachine
+  return attemptCliqInitUp_StateMachine
 end
 
 
@@ -168,15 +168,14 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   csmc.refactoring[:state8_cliqst] = string(cliqst)
   csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
 
-  # cliqst = getCliqStatus(csmc.cliq)
-  @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-    return attemptCliqInitUp_StateMachine
-  end
-  # either finished or going around again
-  return finishCliqSolveCheck_StateMachine
+  # @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  #   return attemptCliqInitUp_StateMachine
+  # end
+  # # either finished or going around again
+  # return finishCliqSolveCheck_StateMachine
 
-  # return attemptCliqInitUp_StateMachine
+  return attemptCliqInitUp_StateMachine
 end
 
 
@@ -230,7 +229,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     # :initialized # @warn "something might not be right with init of clid=$clid"
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
   end
-  @info "$(current_task()) Clique $(csmc.cliq.index), 7, proceed=$(proceed), tryonce=$(csmc.tryonce), clst=$(cliqst)"
+  @info "$(current_task()) Clique $(csmc.cliq.index), 7, proceed=$(proceed), clst=$(cliqst)"
 
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
   @info "$(current_task()) Clique $(csmc.cliq.index), 7, check block if siblings & parent have :needdownmsg status? clst=$(cliqst), proceed=$(proceed), forceproceed=$(csmc.forceproceed)."
@@ -291,7 +290,7 @@ Notes
 - State machine function nr.4
 """
 function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
-  csmc.tryonce = false
+  # csmc.tryonce = false
   csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -330,7 +329,7 @@ function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
   @info "$(current_task()) Clique $(csmc.cliq.index), 3, cliq status is $(cliqst)"
 
-  if csmc.tryonce || !(cliqst in [:upsolved; :downsolved; :marginalized])
+  if !(cliqst in [:upsolved; :downsolved; :marginalized])  # csmc.tryonce ||
     return doesCliqNeeddownmsg_StateMachine
   else
     @info "Exit cliq state machine at whileCliqNotSolved_StateMachine"
@@ -411,7 +410,7 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, false, incremental, drawtree)
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end

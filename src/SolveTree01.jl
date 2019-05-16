@@ -1481,6 +1481,7 @@ function initInferTreeUp!(fgl::FactorGraph,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
+                          skipcliqids::Vector{Int}=Int[],
                           recordcliqs::Vector{Symbol}=Symbol[] )
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
@@ -1495,27 +1496,29 @@ function initInferTreeUp!(fgl::FactorGraph,
     if !isTreeSolved(treel, skipinitialized=true)
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        alltasks[i] = @async begin
-          clst = :na
-          cliq = treel.cliques[i]
-          ids = getCliqFrontalVarIds(cliq)
-          syms = map(d->getSym(fgl, d), ids)
-          recordthiscliq = length(intersect(recordcliqs,syms)) > 0
-          try
-            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
-            cliqHistories[i] = history
-            clst = getCliqStatus(cliq)
-            # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
-          catch err
-            bt = catch_backtrace()
-            println()
-            showerror(stderr, err, bt)
-            error(err)
-          end
-          # if !(clst in [:upsolved; :downsolved; :marginalized])
-          #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-          # end
-        end # async
+        if !(i in skipcliqids)
+          alltasks[i] = @async begin
+            clst = :na
+            cliq = treel.cliques[i]
+            ids = getCliqFrontalVarIds(cliq)
+            syms = map(d->getSym(fgl, d), ids)
+            recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+            try
+              history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+              cliqHistories[i] = history
+              clst = getCliqStatus(cliq)
+              # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+            catch err
+              bt = catch_backtrace()
+              println()
+              showerror(stderr, err, bt)
+              error(err)
+            end
+            # if !(clst in [:upsolved; :downsolved; :marginalized])
+            #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+            # end
+          end # async
+        end # if
       end # for
     end # if
   end # sync
@@ -1545,6 +1548,7 @@ function inferOverTree!(fgl::FactorGraph,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
                         limititers::Int=1000,
+                        skipcliqids::Vector{Int}=Int[],
                         recordcliqs::Vector{Symbol}=Symbol[]  )::Vector{Task}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
@@ -1554,7 +1558,7 @@ function inferOverTree!(fgl::FactorGraph,
   if upsolve
     if treeinit
       @info "Do tree based init-inference on tree"
-      smtasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
+      smtasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
       @info "Finished tree based upward init-inference"
     else
       ensureAllInitialized!(fgl)

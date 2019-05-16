@@ -373,7 +373,8 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
                            up_solve_if_able::Bool=true, )::Symbol
   #
   # init up msg has special procedure for incomplete messages
-  status = :needdownmsg
+  cliqst = getCliqStatus(cliq)
+  status = cliqst == :initialized ? cliqst : :needdownmsg
   varorder = Int[]
 
   # get incoming clique up messages
