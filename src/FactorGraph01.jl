@@ -1110,6 +1110,10 @@ end
     $(SIGNATURES)
 
 Export a dot and pdf file drawn by Graphviz showing the factor graph.
+
+Related
+
+drawCliqSubgraphUp, drawTree
 """
 function writeGraphPdf(fgl::FactorGraph;
                        viewerapp::String="evince",

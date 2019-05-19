@@ -53,6 +53,14 @@ export
   printCliqHistorySummary,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
+  # draw and animate state machine
+  getStateLabel,
+  histStateMachineTransitions,
+  histGraphStateMachineTransitions,
+  drawStateTransitionStep,
+  drawStateMachineHistory,
+  animateStateMachineHistoryByTime,
+  animateCliqStateMachines,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -128,6 +136,7 @@ export
   blockUntilChildrenStatus_StateMachine,
   blockUntilSiblingsStatus_StateMachine,
   doesCliqNeeddownmsg_StateMachine,
+  slowCliqIfChildrenNotUpsolved_StateMachine,
   whileCliqNotSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
@@ -198,6 +207,7 @@ export
 
   #Visualization
   writeGraphPdf,
+  drawCliqSubgraphUp,
   drawTree,
   ls,
   lsf,
@@ -379,6 +389,7 @@ include("ccolamd.jl")
 
 # regular
 include("StateMachine.jl")
+include("StateMachineAnimation.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -398,6 +409,8 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")
+include("AdditionalUtils.jl")
+
 
 include("Deprecated.jl")
 
