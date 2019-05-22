@@ -261,13 +261,13 @@ function setDefaultNodeData!(v::DFGVariable,
     pNpts = getPoints(pN)
     #initval, stdev
     setSolverData(v, VariableNodeData(pNpts,
-                            gbw2, Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, true, false, false, dontmargin))
+                            gbw2, Symbol[], sp,
+                            dims, false, nothing, Symbol[], gt, softtype, true, false, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData(v, VariableNodeData(zeros(dims, N),
-                            zeros(dims,1), Int[], sp,
-                            dims, false, 0, Int[], gt, softtype, false, false, false, dontmargin))
+                            zeros(dims,1), Symbol[], sp,
+                            dims, false, nothing, Symbol[], gt, softtype, false, false, false, dontmargin))
   end
   return nothing
 end
@@ -917,86 +917,95 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDF
   end
 
   # we need the IDs associated with the Graphs.jl and our Type fg
-  @show varIndices = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
-  return varIndices
+  @show permuteds[p]# = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
+  # @show varIndices = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
+  return permuteds[p]
 end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::G, elimOrder::Array{Int,1}) where G <: AbstractDFG
-  @error "This method works on ID's, we should use labels, needs a refactor."
-  for p in elimOrder
-    vert = getVert(fg, p, api=localapi)
+function addBayesNetVerts!(dfg::G, elimOrder::Array{Symbol,1}) where G <: AbstractDFG
+  for pId in elimOrder
+    vert = DFGGraphs.getVariable(dfg, pId)
     # @show vert.label, getData(vert).BayesNetVertID
-    if getData(vert).BayesNetVertID == 0
-      fg.bnid+=1
-      vert.attributes["data"].BayesNetVertID = p
-      localapi.updatevertex!(fg, vert)
+    if getData(vert).BayesNetVertID == nothing
+      # fg.bnid+=1
+      getData(vert).BayesNetVertID = pId
     else
       @warn "addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex"
     end
   end
 end
 
-function addConditional!(fg::FactorGraph, vertID::Int, lbl, Si)
-  bnv = getVert(fg, vertID, api=localapi) #fg.v[vertID]
+function addConditional!(dfg::G, vertId::Symbol, Si::Vector{Symbol})::Nothing where G <: AbstractDFG
+  bnv = DFGGraphs.getVariable(dfg, vertId)
   bnvd = getData(bnv) # bnv.attributes["data"]
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
   end
-  localapi.updatevertex!(fg, bnv)
-  nothing
+  return nothing
 end
 
-function addChainRuleMarginal!(fg::FactorGraph, Si)
+function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDFG
+  @show Si
   lbls = String[]
   genmarg = GenericMarginal()
-  Xi = Graphs.ExVertex[]
-  for s in Si
-    push!(Xi, getVert(fg, s, api=localapi))
-  end
+  # TODO: Surely we have this already?
+  Xi = map(v -> DFGGraphs.getVariable(dfg, v), Si)
   # @info "adding marginal to"
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(fg, Xi, genmarg, api=localapi, autoinit=false)
+  addFactor!(dfg, Xi, genmarg, autoinit=false)
   nothing
 end
 
-# TODO -- Cannot have any CloudGraph calls at this level, must refactor
-function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::DFGFactor[])
+function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor}) where G <: AbstractDFG
+  # fromvert = x1
   for m in gm
-    # get all out edges
-    # get neighbors
-    for n in DFGGraphs.getNeighbors(dfg, m)
-      if n.label == fromvert.label
-        alleids = m.attributes["data"].edgeIDs
-        i = 0
-        for id in alleids
-          i+=1
-          edge = localapi.getedge(fgl, id)
-          if edge != nothing # hack to avoid dictionary use case
-            if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
-              @warn "removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)"
-              localapi.deleteedge!(fgl, edge)
-              m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
-              localapi.updatevertex!(fgl, m)
-            end
-          end
+    # https://github.com/JuliaRobotics/IncrementalInference.jl/issues/27
+    for n in DFGGraphs.getNeighbors(dfg, m) #x1, x2
+      if n.label == fromvert.label # n.label ==? x1
+        remvars = setdiff(DFGGraphs.ls(dfg, m), [fromvert.label])
+        DFGGraphs.deleteFactor(dfg, m) # Remove it
+        if length(remvars) > 0
+          addFactor!(dfg, m, remvars)
         end
+
+        # alleids = m.attributes["data"].edgeIDs # x1 === edge === x1x2f1
+        # i = 0
+        # deleteFactor m (with all it's variable relationships)
+        # remvars = setdiff(DFGGraphs.ls(dfg, m), fromvert.label) to get all variables related to m, excepting fromvert
+        # if length(remvars) > 0
+        #   addFactor(dfg, m, remvars)
+        # end
+        # https://github.com/JuliaRobotics/IncrementalInference.jl/issues/27
+
+        # for id in alleids
+        #   i+=1
+        #   edge = localapi.getedge(fgl, id)
+        #   if edge != nothing # hack to avoid dictionary use case
+        #     if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
+        #       @warn "removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)"
+        #       localapi.deleteedge!(fgl, edge)
+        #       m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
+        #       localapi.updatevertex!(fgl, m)
+        #     end
+        #   end
+        # end
       end
     end
     # if 0 edges, delete the marginal
-    if length(localapi.outneighbors(fgl, m)) <= 1
+    if length(DFGGraphs.getNeighbors(dfg, m)) <= 1
       @warn "removing vertex id=$(m.index)"
-      localapi.deletevertex!(fgl,m)
+      DFGGraphs.deleteVariable!(dfg, m)
     end
   end
   nothing
 end
 
-function buildBayesNet!(dfg::G, p::Array{Int,1}) where G <: AbstractDFG
+function buildBayesNet!(dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
     addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
@@ -1006,18 +1015,19 @@ function buildBayesNet!(dfg::G, p::Array{Int,1}) where G <: AbstractDFG
       # which variable are we eliminating
 
       # all factors adjacent to this variable
-      fi = Int[]
-      Si = Int[]
+      fi = Symbol[]
+      Si = Symbol[]
       gm = DFGFactor[]
-      # TODO -- optimize outneighbor calls like this
+
       vert = DFGGraphs.getVariable(dfg, v)
-      for fct in DFGGraphs.getNeighbors(dfg, vert)
+      for fctId in DFGGraphs.getNeighbors(dfg, vert)
+        fct = DFGGraphs.getFactor(dfg, fctId)
         if (getData(fct).eliminated != true)
-          push!(fi, fct.index)
+          push!(fi, fctId)
           for sepNode in DFGGraphs.getNeighbors(dfg, fct)
             # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
-            if sepNode.index != v && !(sepNode.index in Si) # length(findin(sepNode.index, Si)) == 0
-              push!(Si,sepNode.index)
+            if sepNode != v && !(sepNode in Si) # Symbol comparison!
+              push!(Si,sepNode)
             end
           end
           getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
@@ -1031,12 +1041,12 @@ function buildBayesNet!(dfg::G, p::Array{Int,1}) where G <: AbstractDFG
       end
 
       if v != p[end]
-        addConditional!(fg, v, "", Si)
+        addConditional!(dfg, v, Si)
         # not yet inserting the new prior p(Si) back into the factor graph
       end
 
-      # tuv = localapi.getvertex(fg, v) # TODO -- This may well through away valuable data
-      getData(tuv).eliminated = true # fg.v[v].
+      # tuv = localapi.getvertex(fg, v) # TODO -- This may well throw away valuable data
+      getData(vert).eliminated = true # fg.v[v].
       # localapi.updatevertex!(fg, tuv)
 
       # TODO -- remove links from current vertex to any marginals
