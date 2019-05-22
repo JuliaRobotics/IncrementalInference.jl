@@ -189,7 +189,7 @@ function batchSolve!(fgl::FactorGraph;
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
     inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    smtasks = inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve)
+    smtasks, ch = inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve )
   end
 
   # later development allows tasks for each cliq state machine to be returned also
