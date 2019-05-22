@@ -342,6 +342,10 @@ end
 
 Build a completely new Bayes (Junction) tree, after first wiping clean all
 temporary state in fg from a possibly pre-existing tree.
+
+Related:
+
+buildTreeFromOrdering!
 """
 function wipeBuildNewTree!(fg::FactorGraph;
                            ordering::Symbol=:qr,
