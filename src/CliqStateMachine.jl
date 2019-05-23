@@ -171,7 +171,7 @@ end
 function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
-  tps = Vector{Bool}(len)
+  tps = Vector{Bool}(undef, len)
   fill!(tps, false)
   for i in 1:len
     ch = childs[i]
@@ -430,9 +430,12 @@ Return clique state machine history from `tree` if it was solved with `recordcli
 Notes
 - Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
 """
+function getCliqSolveHistory(cliq::Graphs.ExVertex)
+  getData(cliq).statehistory
+end
 function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
   cliq = whichCliq(tree, frntal)
-  getData(cliq).statehistory
+  getCliqSolveHistory(cliq)
 end
 
 """
@@ -440,8 +443,7 @@ end
 
 Print a short summary of state machine history for a clique solve.
 """
-function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
-  hist = getCliqSolveHistory(tree, frontal)
+function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
   for hi in hist
     first = (split(string(hi[1]), 'T')[end])*" "
     len = length(first)
@@ -477,6 +479,16 @@ function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
   nothing
 end
 
+function printCliqHistorySummary(cliq::Graphs.ExVertex)
+  hist = getCliqSolveHistory(cliq)
+  printCliqHistorySummary(hist)
+end
+
+function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
+  hist = getCliqSolveHistory(tree, frontal)
+  printCliqHistorySummary(hist)
+end
+
 
 """
   $SIGNATURES
@@ -505,7 +517,7 @@ Notes
 
 Related
 
-printCliqHistorySummary 
+printCliqHistorySummary
 """
 function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; frames::Int=100)
 
