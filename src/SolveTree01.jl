@@ -1471,6 +1471,36 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
+function tryCliqStateMachineSolve!(fgl::FactorGraph,
+                                   treel::BayesTree,
+                                   i::Int,
+                                   cliqHistories;
+                                   drawtree::Bool=false,
+                                   N::Int=100,
+                                   limititers::Int=-1,
+                                   recordcliqs::Vector{Symbol}=Symbol[])
+  #
+  clst = :na
+  cliq = treel.cliques[i]
+  ids = getCliqFrontalVarIds(cliq)
+  syms = map(d->getSym(fgl, d), ids)
+  recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+  try
+    history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+    cliqHistories[i] = history
+    clst = getCliqStatus(cliq)
+    # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+  catch err
+    bt = catch_backtrace()
+    println()
+    showerror(stderr, err, bt)
+    error(err)
+  end
+  # if !(clst in [:upsolved; :downsolved; :marginalized])
+  #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+  # end
+end
+
 """
     $SIGNATURES
 
@@ -1492,36 +1522,16 @@ function initInferTreeUp!(fgl::FactorGraph,
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
-  @sync begin
-    if !isTreeSolved(treel, skipinitialized=true)
+  if !isTreeSolved(treel, skipinitialized=true)
+    @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async begin
-            clst = :na
-            cliq = treel.cliques[i]
-            ids = getCliqFrontalVarIds(cliq)
-            syms = map(d->getSym(fgl, d), ids)
-            recordthiscliq = length(intersect(recordcliqs,syms)) > 0
-            try
-              history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
-              cliqHistories[i] = history
-              clst = getCliqStatus(cliq)
-              # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
-            catch err
-              bt = catch_backtrace()
-              println()
-              showerror(stderr, err, bt)
-              error(err)
-            end
-            # if !(clst in [:upsolved; :downsolved; :marginalized])
-            #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-            # end
-          end # async
+          alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
         end # if
       end # for
-    end # if
-  end # sync
+    end # sync
+  end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   for i in 1:length(treel.cliques)

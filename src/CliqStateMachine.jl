@@ -85,7 +85,8 @@ Notes
 """
 function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
-  setCliqDrawColor(csmc.cliq, "red")
+  # should never happen to
+  setCliqDrawColor(csmc.cliq, "green")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   # initialize clique in downward direction
@@ -119,10 +120,6 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
     infocsm(csmc, "8a, after down init attempt, $cliqst.")
   end
-
-  # repeat the if a second time, is bad TODO
-  csmc.refactoring[:state8_cliqst] = string(cliqst)
-  csmc.refactoring[:state8_areCliqChildrenNeedDownMsg] = string(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))
 
   # @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
   # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
@@ -167,7 +164,15 @@ function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
   return attemptCliqInitUp_StateMachine
 end
 
+"""
+    $SIGNATURES
 
+Delay loop if waiting on upsolves to complete.
+
+Notes
+- State machine 7b
+- TODO: Still a HACK, convert to conditional wait instead.
+"""
 function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
@@ -212,7 +217,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
       infocsm(csmc, "7, escalating to :needdownmsg since all children :needdownmsg")
       notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
       # setCliqStatus!(cliq, :needdownmsg)
-      cliqst = getCliqStatus(csmc.cliq) ## TODO: likely not required since cliqst already exists
+      cliqst = getCliqStatus(csmc.cliq)
       setCliqDrawColor(csmc.cliq, "green")
       csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
@@ -246,7 +251,14 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   # end
 
   if proceed || csmc.forceproceed
-    return doCliqInferAttempt_StateMachine
+    # return doCliqInferAttempt_StateMachine
+    cliqst = getCliqStatus(csmc.cliq)
+    infocsm(csmc, "7, status=$(cliqst), before attemptCliqInitDown_StateMachine")
+    # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
+    if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
+      return attemptCliqInitDown_StateMachine
+    end
+    return attemptCliqInitUp_StateMachine
   else
     return slowCliqIfChildrenNotUpsolved_StateMachine
   end
