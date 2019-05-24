@@ -856,8 +856,6 @@ function prtslperr(s)
   error(s)
 end
 
-### TODO: TO BE REFACTORED FOR DFG
-
 """
     $SIGNATURES
 
@@ -961,16 +959,27 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDF
   nothing
 end
 
-function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor}) where G <: AbstractDFG
+function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::Nothing where G <: AbstractDFG
   # fromvert = x1
+  # @info " - Removing $(fromvert.label)"
+  # @show gm
   for m in gm
+    # @info "Looking at $(m.label)"
     # https://github.com/JuliaRobotics/IncrementalInference.jl/issues/27
     for n in DFGGraphs.getNeighbors(dfg, m) #x1, x2
-      if n.label == fromvert.label # n.label ==? x1
+      if n == fromvert.label # n.label ==? x1
+        # @info "   - Breaking link $(m.label)->$(fromvert.label)..."
+        # @info "     - Original links: $(DFGGraphs.ls(dfg, m))"
         remvars = setdiff(DFGGraphs.ls(dfg, m), [fromvert.label])
-        DFGGraphs.deleteFactor(dfg, m) # Remove it
+        # @info "     - New links: $remvars"
+
+        DFGGraphs.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
-          addFactor!(dfg, m, remvars)
+          remvars = map(vId -> DFGGraphs.getVariable(dfg, vId), remvars)
+          @info "$(m.label) still has links to other variables, readding it back..."
+          DFGGraphs.addFactor!(dfg, remvars, m) # Using DFG so it keeps its name
+        else
+          @info "$(m.label) doesn't have any other links, not adding it back..."
         end
 
         # alleids = m.attributes["data"].edgeIDs # x1 === edge === x1x2f1
@@ -997,15 +1006,15 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor}) whe
       end
     end
     # if 0 edges, delete the marginal
-    if length(DFGGraphs.getNeighbors(dfg, m)) <= 1
-      @warn "removing vertex id=$(m.index)"
-      DFGGraphs.deleteVariable!(dfg, m)
+    if DFGGraphs.exists(dfg, m) && length(DFGGraphs.getNeighbors(dfg, m)) <= 1
+      @warn "removing vertex id=$(m.label)"
+      DFGGraphs.deleteFactor!(dfg, m)
     end
   end
-  nothing
+  return nothing
 end
 
-function buildBayesNet!(dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
+function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: AbstractDFG
     addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
@@ -1035,7 +1044,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
           # localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
-        if typeof(getData(fct).fnc) == GenericMarginal
+        if typeof(getData(fct).fnc) == CommonConvWrapper{GenericMarginal}
           push!(gm, fct)
         end
       end
@@ -1046,7 +1055,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
       end
 
       # tuv = localapi.getvertex(fg, v) # TODO -- This may well throw away valuable data
-      getData(vert).eliminated = true # fg.v[v].
+      getData(vert).eliminated = true
       # localapi.updatevertex!(fg, tuv)
 
       # TODO -- remove links from current vertex to any marginals
@@ -1057,7 +1066,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
       addChainRuleMarginal!(dfg, Si)
 
     end
-    nothing
+    return nothing
 end
 
 ### TODO: TO BE REFACTORED FOR DFG
@@ -1070,6 +1079,8 @@ function stackVertXY(fg::FactorGraph, lbl::String)
     Y=vec(vals[2,:])
     return X,Y
 end
+
+### TODO: TO BE REFACTORED FOR DFG
 
 function getKDE(vnd::VariableNodeData)
   AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
@@ -1103,19 +1114,6 @@ function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
   return getVertKDE(dfg, lbl)
-end
-
-function drawCopyFG(fgl::FactorGraph)
-  fgd = deepcopy(fgl)
-  for (sym,vid) in fgd.IDs
-    delete!(fgd.g.vertices[vid].attributes,"data")
-    !haskey(fgd.g.vertices[vid].attributes,"frtend") ? nothing : delete!(fgd.g.vertices[vid].attributes,"frtend")
-  end
-  for (sym,vid) in fgd.fIDs
-    delete!(fgd.g.vertices[vid].attributes,"data")
-    !haskey(fgd.g.vertices[vid].attributes,"frtend") ? nothing : delete!(fgd.g.vertices[vid].attributes,"frtend")
-  end
-  return fgd
 end
 
 # """
