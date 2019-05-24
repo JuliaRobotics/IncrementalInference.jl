@@ -122,10 +122,10 @@ uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.3"
 
 [[Graphs]]
-deps = ["DataStructures", "SparseArrays", "Test"]
-git-tree-sha1 = "a24615c2bcd4535126c99a120691fbf765489259"
+deps = ["DataStructures", "SparseArrays"]
+git-tree-sha1 = "9409e40f53532c45f2478c33531aa7a65ec4e2de"
 uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
-version = "0.10.2"
+version = "0.10.3"
 
 [[InteractiveUtils]]
 deps = ["LinearAlgebra", "Markdown"]
