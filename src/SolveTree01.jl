@@ -1471,6 +1471,36 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
+function tryCliqStateMachineSolve!(fgl::FactorGraph,
+                                   treel::BayesTree,
+                                   i::Int,
+                                   cliqHistories;
+                                   drawtree::Bool=false,
+                                   N::Int=100,
+                                   limititers::Int=-1,
+                                   recordcliqs::Vector{Symbol}=Symbol[])
+  #
+  clst = :na
+  cliq = treel.cliques[i]
+  ids = getCliqFrontalVarIds(cliq)
+  syms = map(d->getSym(fgl, d), ids)
+  recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+  try
+    history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+    cliqHistories[i] = history
+    clst = getCliqStatus(cliq)
+    # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+  catch err
+    bt = catch_backtrace()
+    println()
+    showerror(stderr, err, bt)
+    error(err)
+  end
+  # if !(clst in [:upsolved; :downsolved; :marginalized])
+  #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+  # end
+end
+
 """
     $SIGNATURES
 
@@ -1481,6 +1511,7 @@ function initInferTreeUp!(fgl::FactorGraph,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
+                          skipcliqids::Vector{Int}=Int[],
                           recordcliqs::Vector{Symbol}=Symbol[] )
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
@@ -1490,35 +1521,17 @@ function initInferTreeUp!(fgl::FactorGraph,
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
-  cliqHistories = Dict{Int,Vector{Tuple{Int, Function, CliqStateMachineContainer}}}()
-  @sync begin
-    if !isTreeSolved(treel, skipinitialized=true)
+  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  if !isTreeSolved(treel, skipinitialized=true)
+    @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        alltasks[i] = @async begin
-          clst = :na
-          cliq = treel.cliques[i]
-          ids = getCliqFrontalVarIds(cliq)
-          syms = map(d->getSym(fgl, d), ids)
-          recordthiscliq = length(intersect(recordcliqs,syms)) > 0
-          try
-            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
-            cliqHistories[i] = history
-            clst = getCliqStatus(cliq)
-            # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
-          catch err
-            bt = catch_backtrace()
-            println()
-            showerror(stderr, err, bt)
-            error(err)
-          end
-          # if !(clst in [:upsolved; :downsolved; :marginalized])
-          #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-          # end
-        end # async
+        if !(i in skipcliqids)
+          alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+        end # if
       end # for
-    end # if
-  end # sync
+    end # sync
+  end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   for i in 1:length(treel.cliques)
@@ -1583,12 +1596,13 @@ function inferOverTreeR!(fgl::FactorGraph,
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Vector{Task}
+                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
   smtasks = Vector{Task}()
+  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   if treeinit
     smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
   else
@@ -1598,5 +1612,5 @@ function inferOverTreeR!(fgl::FactorGraph,
   end
   @info "Do recursive down inference over tree"
   downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  return smtasks
+  return smtasks, ch
 end

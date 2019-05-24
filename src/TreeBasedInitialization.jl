@@ -373,7 +373,8 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
                            up_solve_if_able::Bool=true, )::Symbol
   #
   # init up msg has special procedure for incomplete messages
-  status = :needdownmsg
+  cliqst = getCliqStatus(cliq)
+  status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
   varorder = Int[]
 
   # get incoming clique up messages
@@ -401,7 +402,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
     @info "$(current_task()) Clique $(cliq.index), going for doCliqUpSolve!, clique status = $(status)"
     status = doCliqUpSolve!(subfg, tree, cliq)
   else
-    @info "$(current_task()) Clique $(cliq.index), all varialbes not initialized, status = $(status)"
+    @info "$(current_task()) Clique $(cliq.index), all variables not initialized, status = $(status)"
   end
 
   # construct init's up msg to place in parent from initialized separator variables

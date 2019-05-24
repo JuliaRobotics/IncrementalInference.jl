@@ -40,12 +40,12 @@ mutable struct CliqStateMachineContainer
   childCliqs::Vector{Graphs.ExVertex}
   # TODO: bad flags that must be removed
   forceproceed::Bool
-  tryonce::Bool
+  # tryonce::Bool
   incremental::Bool
   drawtree::Bool
   refactoring::Dict{Symbol, String}
   CliqStateMachineContainer() = new()
-  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}())
+  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,Dict{Symbol,String}())
 end
 
 """
@@ -81,12 +81,12 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   initUpChannel::Channel{Symbol}
   initDownChannel::Channel{Symbol}
-  statehistory::Vector{Tuple{Int, Function, CliqStateMachineContainer}}
+  statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
                                 x[21], x[22], x[23], x[24], x[25],
-                                Vector{Tuple{Int, Function, CliqStateMachineContainer}}() )
+                                Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
 # TODO -- this should be a constructor

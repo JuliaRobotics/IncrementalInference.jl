@@ -174,6 +174,7 @@ function batchSolve!(fgl::FactorGraph;
                      dbg::Bool=false,
                      treeinit::Bool=false,
                      limititers::Int=1000,
+                     skipcliqids::Vector{Int}=Int[],
                      recordcliqs::Vector{Symbol}=Symbol[],
                      returntasks::Bool=false  )
   #
@@ -186,10 +187,12 @@ function batchSolve!(fgl::FactorGraph;
 
   smtasks = Vector{Task}()
   if recursive
-    # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
-    inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
+    # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging -- NEAR OBSOLETE
+    smtasks, ch = inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    smtasks, ch = inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve )
+    smtasks, ch = inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+                                  limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
+                                  downsolve=downsolve, skipcliqids=skipcliqids  )
   end
 
   # later development allows tasks for each cliq state machine to be returned also
