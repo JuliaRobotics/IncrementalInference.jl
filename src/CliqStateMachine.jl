@@ -121,48 +121,42 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8a, after down init attempt, $cliqst.")
   end
 
-  # @info "$(current_task()) Clique $(csmc.cliq.index), after down init attempt, $cliqst."
-  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-  #   return attemptCliqInitUp_StateMachine
-  # end
-  # return finishCliqSolveCheck_StateMachine
-
   return attemptCliqInitUp_StateMachine
 end
 
 
-"""
-    $SIGNATURES
-
-Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
-either up or downward direction, although some caveats on when which occurs.
-
-Notes
-- State machine function nr. 8
-- Used both during downward initialization and upward initialization / full-solve.
-"""
-function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
-  # visualization and debugging
-  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-
-  # evaluate according to cliq status
-  cliqst = getCliqStatus(csmc.cliq)
-
-  infocsm(csmc, "8, status=$(cliqst), before attemptCliqInitDown_StateMachine")
-  # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
-  if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
-    return attemptCliqInitDown_StateMachine
-  end
-
-  # @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
-  # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-  #   return attemptCliqInitUp_StateMachine
-  # end
-  # # either finished or going around again
-  # return finishCliqSolveCheck_StateMachine
-
-  return attemptCliqInitUp_StateMachine
-end
+# """
+#     $SIGNATURES
+#
+# Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
+# either up or downward direction, although some caveats on when which occurs.
+#
+# Notes
+# - State machine function nr. 8
+# - Used both during downward initialization and upward initialization / full-solve.
+# """
+# function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
+#   # visualization and debugging
+#   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+#
+#   # evaluate according to cliq status
+#   cliqst = getCliqStatus(csmc.cliq)
+#
+#   infocsm(csmc, "8, status=$(cliqst), before attemptCliqInitDown_StateMachine")
+#   # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
+#   if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
+#     return attemptCliqInitDown_StateMachine
+#   end
+#
+#   # @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
+#   # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+#   #   return attemptCliqInitUp_StateMachine
+#   # end
+#   # # either finished or going around again
+#   # return finishCliqSolveCheck_StateMachine
+#
+#   return attemptCliqInitUp_StateMachine
+# end
 
 """
     $SIGNATURES
@@ -199,41 +193,41 @@ Notes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
-  infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine start")
-  cliqst = getCliqStatus(csmc.cliq)
-  lbl = csmc.cliq.attributes["label"]
-  stdict = Dict{Int, Symbol}()
-
-  # promote if longer down chain of :needdownmsg
-  if cliqst == :null
-    infocsm(csmc, "7, determineCliqNeedDownMsg -- blocking until child cliques have status")
-    stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-    # TODO stdict here is just to get the status of child cliques
-
-    chstatus = collect(values(stdict))
-    len = length(chstatus)
-    if len > 0 && sum(chstatus .== :needdownmsg) == len
-      # TODO maybe can happen where some children need more information?
-      infocsm(csmc, "7, escalating to :needdownmsg since all children :needdownmsg")
-      notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
-      # setCliqStatus!(cliq, :needdownmsg)
-      cliqst = getCliqStatus(csmc.cliq)
-      setCliqDrawColor(csmc.cliq, "green")
-      csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-
-      return blockUntilSiblingsStatus_StateMachine
-    end
-
-    # TODO: REMOVE
-    # if len > 0 && sum(chstatus .!= :upsolved) > 0
-
-  end
+  # infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine start")
+  # cliqst = getCliqStatus(csmc.cliq)
+  # lbl = csmc.cliq.attributes["label"]
+  # stdict = Dict{Int, Symbol}()
+  #
+  # # promote if longer down chain of :needdownmsg
+  # if cliqst == :null
+  #   # infocsm(csmc, "7, determineCliqNeedDownMsg -- blocking until child cliques have status")
+  #   # stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
+  #   # TODO stdict here is just to get the status of child cliques
+  #
+  #   chstatus = collect(values(stdict))
+  #   len = length(chstatus)
+  #   if len > 0 && sum(chstatus .== :needdownmsg) == len
+  #     # TODO maybe can happen where some children need more information?
+  #     infocsm(csmc, "7, escalating to :needdownmsg since all children :needdownmsg")
+  #     notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
+  #     # setCliqStatus!(cliq, :needdownmsg)
+  #     cliqst = getCliqStatus(csmc.cliq)
+  #     setCliqDrawColor(csmc.cliq, "green")
+  #     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+  #
+  #     return blockUntilSiblingsStatus_StateMachine
+  #   end
+  #
+  #   # TODO: REMOVE
+  #   # if len > 0 && sum(chstatus .!= :upsolved) > 0
+  #
+  # end
 
   # hard assumption here on upsolve from leaves to root
   proceed = true
 
-  # TODO not sure if we want stdict from cliq or prnt???
-  for (clid, clst) in stdict
+  # fetch status from children (should already be available -- i.e. should not block)
+  for (clid, clst) in blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq) # stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
     # :needdownmsg # 'send' downward init msg direction
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
@@ -264,6 +258,43 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   end
 end
 
+"""
+    $SIGNATURES
+
+Notes
+- Cliq state machine 6b
+"""
+function determineAllChildrenNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "6b, determineCliqNeedDownMsg_StateMachine start")
+  cliqst = getCliqStatus(csmc.cliq)
+  # lbl = csmc.cliq.attributes["label"]
+
+  # promote if longer down chain of :needdownmsg
+  if cliqst == :null
+    infocsm(csmc, "6b, determineCliqNeedDownMsg -- blocking until child cliques have status")
+    # stdict here is just to get the status of child cliques
+    stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
+    chstatus = collect(values(stdict))
+    len = length(chstatus)
+    if len > 0 && sum(chstatus .== :needdownmsg) == len
+      # TODO maybe can happen where some children need more information?
+      infocsm(csmc, "6b, escalating to :needdownmsg since all children :needdownmsg")
+      notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
+      # setCliqStatus!(cliq, :needdownmsg)
+      cliqst = getCliqStatus(csmc.cliq)
+      setCliqDrawColor(csmc.cliq, "green")
+      csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
+      return blockUntilSiblingsStatus_StateMachine
+    end
+
+    # TODO: REMOVE
+    # if len > 0 && sum(chstatus .!= :upsolved) > 0
+  end
+
+  return determineCliqNeedDownMsg_StateMachine
+end
+
 
 """
     $SIGNATURES
@@ -277,7 +308,7 @@ function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
   infocsm(csmc, "6, continue, children all have status")
 
-  return determineCliqNeedDownMsg_StateMachine
+  return determineAllChildrenNeedDownMsg_StateMachine # determineCliqNeedDownMsg_StateMachine
 end
 
 """

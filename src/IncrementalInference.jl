@@ -141,6 +141,7 @@ export
   whileCliqNotSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
+  determineAllChildrenNeedDownMsg_StateMachine,
 
   #
   isPartial,
