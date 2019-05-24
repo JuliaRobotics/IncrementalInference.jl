@@ -946,10 +946,9 @@ function addConditional!(dfg::G, vertId::Symbol, Si::Vector{Symbol})::Nothing wh
 end
 
 function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDFG
-  @show Si
+    @show Si
   lbls = String[]
   genmarg = GenericMarginal()
-  # TODO: Surely we have this already?
   Xi = map(v -> DFGGraphs.getVariable(dfg, v), Si)
   # @info "adding marginal to"
   # for x in Xi
@@ -975,9 +974,10 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
 
         DFGGraphs.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
-          remvars = map(vId -> DFGGraphs.getVariable(dfg, vId), remvars)
           @info "$(m.label) still has links to other variables, readding it back..."
-          DFGGraphs.addFactor!(dfg, remvars, m) # Using DFG so it keeps its name
+          addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false)
+          # remvars = map(vId -> DFGGraphs.getVariable(dfg, vId), remvars)
+          # DFGGraphs.addFactor!(dfg, remvars, m) # Using DFG so it keeps its name
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1005,7 +1005,7 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
         # end
       end
     end
-    # if 0 edges, delete the marginal
+    # Added back in chain rule.
     if DFGGraphs.exists(dfg, m) && length(DFGGraphs.getNeighbors(dfg, m)) <= 1
       @warn "removing vertex id=$(m.label)"
       DFGGraphs.deleteFactor!(dfg, m)
@@ -1062,8 +1062,8 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: Abstract
       rmVarFromMarg(dfg, vert, gm)
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
-      # new function between all Si
-      addChainRuleMarginal!(dfg, Si)
+      # new function between all Si (round the outside, right the outside)
+      length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
 
     end
     return nothing
