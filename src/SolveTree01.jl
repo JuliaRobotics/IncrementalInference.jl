@@ -1596,7 +1596,7 @@ function inferOverTreeR!(fgl::FactorGraph,
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Vector{Task}
+                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
