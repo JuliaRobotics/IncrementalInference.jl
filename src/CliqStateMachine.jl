@@ -193,56 +193,21 @@ Notes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
-  # infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine start")
-  # cliqst = getCliqStatus(csmc.cliq)
-  # lbl = csmc.cliq.attributes["label"]
-  # stdict = Dict{Int, Symbol}()
-  #
-  # # promote if longer down chain of :needdownmsg
-  # if cliqst == :null
-  #   # infocsm(csmc, "7, determineCliqNeedDownMsg -- blocking until child cliques have status")
-  #   # stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-  #   # TODO stdict here is just to get the status of child cliques
-  #
-  #   chstatus = collect(values(stdict))
-  #   len = length(chstatus)
-  #   if len > 0 && sum(chstatus .== :needdownmsg) == len
-  #     # TODO maybe can happen where some children need more information?
-  #     infocsm(csmc, "7, escalating to :needdownmsg since all children :needdownmsg")
-  #     notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
-  #     # setCliqStatus!(cliq, :needdownmsg)
-  #     cliqst = getCliqStatus(csmc.cliq)
-  #     setCliqDrawColor(csmc.cliq, "green")
-  #     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-  #
-  #     return blockUntilSiblingsStatus_StateMachine
-  #   end
-  #
-  #   # TODO: REMOVE
-  #   # if len > 0 && sum(chstatus .!= :upsolved) > 0
-  #
-  # end
+  # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
+  infocsm(csmc, "7, check/block sibl&prnt :needdownmsg")
+  blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
+
 
   # hard assumption here on upsolve from leaves to root
   proceed = true
-
   # fetch status from children (should already be available -- i.e. should not block)
   for (clid, clst) in blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq) # stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
     # :needdownmsg # 'send' downward init msg direction
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
   end
-  infocsm(csmc, "7, proceed=$(proceed)")
+  infocsm(csmc, "7, proceed=$(proceed), forceproceed=$(csmc.forceproceed)")
 
-  # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  infocsm(csmc, "7, check/block sibl&prnt :needdownmsg, proceed=$(proceed), forceproceed=$(csmc.forceproceed).")
-  blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
-
-  # # add case for if children are blocked on need down msg
-  # # TODO: remove as soon possible
-  # if getCliqStatus(csmc.cliq) == :initialized && areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-  #   sleep(0.1)
-  # end
 
   if proceed || csmc.forceproceed
     # return doCliqInferAttempt_StateMachine
