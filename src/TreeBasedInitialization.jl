@@ -227,18 +227,12 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
-  # @sync begin
-    for ch in chlr
-      # either wait to fetch new result, or report or result
-      chst = getCliqStatusUp(ch)
-      @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
-      # if chst != :null && !isready(getData(ch).initUpChannel)
-      #   ret[ch.index] = chst
-      # else
-        ret[ch.index] = fetch(getData(ch).initUpChannel)
-      # end
-    end
-  # end
+  for ch in chlr
+    # either wait to fetch new result, or report or result
+    chst = getCliqStatusUp(ch)
+    @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+    ret[ch.index] = fetch(getData(ch).initUpChannel)
+  end
   return ret
 end
 
