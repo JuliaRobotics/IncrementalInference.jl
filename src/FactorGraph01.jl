@@ -5,17 +5,6 @@ const DFGGraphs = DistributedFactorGraphs.GraphsJl
 
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
-# get vertex from factor graph according to label symbol "x1"
-# getVert(dfg::FactorGraph, lbl::Symbol;, nt::Symbol=:var) = api.getvertex(fgl, lbl, nt=nt)
-# Replacing with DFG.getVariable and DFG.getFactor
-
-# """
-#     $(TYPEDSIGNATURES)
-#
-# Get the `::Symbol` name for a node with `id::Int`.
-# """
-# getSym(fgl::FactorGraph, id::Int) = Symbol(fgl.g.vertices[id].label)
-
 """
     $SIGNATURES
 
@@ -222,15 +211,6 @@ function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::I
   return nodes
 end
 
-# function updateFullVert!(fgl::FactorGraph, exvert::ExVertex;
-#             api::DataLayerAPI=IncrementalInference.dlapi,
-#             updateMAPest::Bool=false  )
-#   #
-#   @warn "use of updateFullVert! should be clarified for local or remote operations."
-#   api.updatevertex!(fgl, exvert, updateMAPest=updateMAPest)
-# end
-
-
 function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
@@ -297,46 +277,14 @@ function addVariable!(dfg::G,
                       checkduplicates::Bool=true  )::DFGVariable where
                       {G <: AbstractDFG,
                        T <: InferenceVariable}
-  #
-  # if checkduplicates
-  #   if haskey(fg.IDs, lbl)
-  #     @warn "Variable $lbl already exists in fg.sessionname=$(fg.sessionname).  Igoring this addVariable! call."
-  #     return getVert(fg, lbl, api=api)
-  #   end
-  # end
-
-  # currid = fg.id+1
-  # if uid==-1
-  #   fg.id=currid
-  # else
-  #   currid = uid
-  # end
   v = DFGVariable(lbl)
   v.ready = ready
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
-  # dims = dims != -1 ? dims : st.dims
-  # lblstr = string(lbl)
-  # vert = ExVertex(currid,lblstr)
-  # addNewVarVertInGraph!(fg, vert, currid, lbl, ready, smalldata)
-  # dlapi.setupvertgraph!(fg, vert, currid, lbl) #fg.v[currid]
-  # dodims = fg.dimID+1
   setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
-  # TODO: Make generic
+  # TODO: Make generic, not DFGGraphs
   DFGGraphs.addVariable!(dfg, v)
-
-  # vnlbls = union(string.(labels), softtype.labels, String["VARIABLE";])
-  # push!(vnlbls, fg.sessionname)
-
-  # api.addvertex!(fg, vert, labels=vnlbls)
-  #
-  # # fg.dimID+=dims # DONE -- drop this, rows indicate dimensions, move to last dimension
-  # push!(fg.nodeIDs, currid)
-
-  # keep a fifo queue of incoming symbols
-  # NOTE: Now using getAddHistory(dfg) for this - it's done internally
-  # push!(fg.fifo, lbl)
 
   return v
 end
@@ -513,50 +461,16 @@ function setDefaultFactorNode!(
       threadmodel=SingleThreaded  )::GenericFunctionNodeData where
       {G <: AbstractDFG, T <: Union{FunctorInferenceType, InferenceType}}
   #
-  ftyp = T # typeof(usrfnc) # maybe this can be T
-  # @show "setDefaultFactorNode!", usrfnc, ftyp, T
+  ftyp = T
   mhcat = parseusermultihypo(multihypo)
-  # gwpf = prepgenericwrapper(Xi, usrfnc, getSample, multihypo=mhcat)
+
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
-  # experimental wip
   data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(ftyp.name.module), ccw)
   factor.data = data_ccw
 
-  # existing interface
-  # data = FunctionNodeData{GenericWrapParam{T}}(Int[], false, false, Int[], m, gwpf)
-  # vert.attributes["data"] = data
-
   return factor.data
 end
-
-# """
-#     $SIGNATURES
-#
-# Return the current maximum vertex ID number in the factor graph fragment `fgl`.
-# """
-# function getMaxVertId(fgl::FactorGraph)
-#   ids = collect(keys(fgl.g.vertices))
-#   return maximum(ids)
-# end
-
-# function addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::Symbol, ready::Int)
-#   vert.attributes = Graphs.AttributeDict() #fg.v[fg.id]
-#   vert.attributes["label"] = lbl #fg.v[fg.id]
-#   # fgl.f[id] = vert #  -- not sure if this is required, using fg.g.vertices
-#   fgl.fIDs[lbl] = id # fg.id,
-#
-#   # used for cloudgraph solving
-#   vert.attributes["ready"] = ready
-#   vert.attributes["backendset"] = 0
-#
-#   # for graphviz drawing
-#   vert.attributes["shape"] = "point"
-#   vert.attributes["width"] = 0.2
-#   nothing
-# end
-# addNewFncVertInGraph!(fgl::FactorGraph, vert::Graphs.ExVertex, id::Int, lbl::T, ready::Int) where {T <: AbstractString} =
-#     addNewFncVertInGraph!(fgl,vert, id, Symbol(lbl), ready)
 
 """
     $SIGNATURES
@@ -872,37 +786,12 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
-  # s = getVariableIds(dfg)
-  # lens = length(s)
-  # sf = getFactorIds(dfg)
-  # lensf = length(sf)
-  #
-  # adjm, dictpermu = adjacency_matrix(fg.g,returnpermutation=true)
-  # SAM ignore this piece and focus on A
-  @show adjMat = DFGGraphs.getAdjacencyMatrix(dfg)
-  # error("Getting adjacency matrix here and it's new behavior, this is probably going to break!")
+  adjMat = DFGGraphs.getAdjacencyMatrix(dfg)
+  # Get the variable and factor IDs
   permutedsf = Symbol.(adjMat[2:end, 1])
   permuteds = Symbol.(adjMat[1, 2:end])
-  # for j in 1:length(dictpermu)
-  #   semap = 0
-  #   for i in 1:lens
-  #     if dictpermu[j] == s[i]
-  #       permuteds[i] = j#dictpermu[j]
-  #       semap += 1
-  #       if semap >= 2  break; end
-  #     end
-  #   end
-  #   for i in 1:lensf
-  #     if dictpermu[j] == sf[i]
-  #       permutedsf[i] = j#dictpermu[j]
-  #       semap += 1
-  #       if semap >= 2  break; end
-  #     end
-  #   end
-  # end
-  # A=convert(Array{Int},adjm[permutedsf,permuteds]) # TODO -- order seems brittle
-  # SAM compare here A as an adjacency matrix
-  @show A = Int.(adjMat[2:end, 2:end] .!= nothing)
+  # Create true/false adjacency matrix
+  A = Int.(adjMat[2:end, 2:end] .!= nothing)
 
   p = Int[]
   if ordering==:chol
@@ -914,9 +803,7 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDF
     prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
   end
 
-  # we need the IDs associated with the Graphs.jl and our Type fg
-  @show permuteds[p]# = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
-  # @show varIndices = map(vSym -> DFGGraphs.getVariable(dfg, vSym)._internalId, permuteds[p])
+  # Return the variable ordering that we should use for the Bayes map
   return permuteds[p]
 end
 
@@ -959,50 +846,23 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDF
 end
 
 function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::Nothing where G <: AbstractDFG
-  # fromvert = x1
-  # @info " - Removing $(fromvert.label)"
-  # @show gm
+  @info " - Removing $(fromvert.label)"
   for m in gm
-    # @info "Looking at $(m.label)"
-    # https://github.com/JuliaRobotics/IncrementalInference.jl/issues/27
+    @info "Looking at $(m.label)"
     for n in DFGGraphs.getNeighbors(dfg, m) #x1, x2
       if n == fromvert.label # n.label ==? x1
-        # @info "   - Breaking link $(m.label)->$(fromvert.label)..."
-        # @info "     - Original links: $(DFGGraphs.ls(dfg, m))"
+        @info "   - Breaking link $(m.label)->$(fromvert.label)..."
+        @info "     - Original links: $(DFGGraphs.ls(dfg, m))"
         remvars = setdiff(DFGGraphs.ls(dfg, m), [fromvert.label])
-        # @info "     - New links: $remvars"
+        @info "     - New links: $remvars"
 
         DFGGraphs.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
           addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false)
-          # remvars = map(vId -> DFGGraphs.getVariable(dfg, vId), remvars)
-          # DFGGraphs.addFactor!(dfg, remvars, m) # Using DFG so it keeps its name
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
-
-        # alleids = m.attributes["data"].edgeIDs # x1 === edge === x1x2f1
-        # i = 0
-        # deleteFactor m (with all it's variable relationships)
-        # remvars = setdiff(DFGGraphs.ls(dfg, m), fromvert.label) to get all variables related to m, excepting fromvert
-        # if length(remvars) > 0
-        #   addFactor(dfg, m, remvars)
-        # end
-        # https://github.com/JuliaRobotics/IncrementalInference.jl/issues/27
-
-        # for id in alleids
-        #   i+=1
-        #   edge = localapi.getedge(fgl, id)
-        #   if edge != nothing # hack to avoid dictionary use case
-        #     if edge.SourceVertex.exVertexId == m.index || edge.DestVertex.exVertexId == m.index
-        #       @warn "removing edge $(edge.neo4jEdgeId), between $(m.index) and $(n.index)"
-        #       localapi.deleteedge!(fgl, edge)
-        #       m.attributes["data"].edgeIDs = alleids[[collect(1:(i-1));collect((i+1):length(alleids))]]
-        #       localapi.updatevertex!(fgl, m)
-        #     end
-        #   end
-        # end
       end
     end
     # Added back in chain rule.
@@ -1040,8 +900,6 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: Abstract
             end
           end
           getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
-          # TODO: Shouldn't be here?
-          # localapi.updatevertex!(fg, fct) # TODO -- this might be a premature statement
         end
 
         if typeof(getData(fct).fnc) == CommonConvWrapper{GenericMarginal}
@@ -1115,37 +973,6 @@ end
 function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
   return getVertKDE(dfg, lbl)
 end
-
-# """
-#     $(SIGNATURES)
-#
-# Export a dot and pdf file drawn by Graphviz showing the factor graph.
-# """
-# function writeGraphPdf(dfg::G;
-#                        viewerapp::String="evince",
-#                        filepath::AS="/tmp/fg.pdf",
-#                        engine::AS="sfdp",
-#                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
-#   #
-#   # fgd = drawCopyFG(fgl)
-#   @info "Writing factor graph file"
-#   fext = split(filepath, '.')[end]
-#   fpwoext = split(filepath, '.')[end-1]
-#   dotfile = fpwoext*".dot"
-#   # fid = open(dotfile,"w")
-#   # write(fid,Graphs.to_dot(fgd.g))
-#   # close(fid)
-#   toDotFile(dfg, dotfile)
-#   show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
-#
-#   try
-#     viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
-#   catch e
-#     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
-#   end
-#   nothing
-# end
-
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
                               vertdict::Dict{Int,Graphs.ExVertex},

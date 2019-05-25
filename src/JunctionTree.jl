@@ -20,7 +20,7 @@ getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
 
 
 # create a new clique
-function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])
+function addClique!(bt::BayesTree, dfg::G, varID::Int, condIDs::Array{Int}=Int[])::ExVertex where G <: AbstractDFG
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
@@ -30,20 +30,20 @@ function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{I
   setData!(clq, emptyBTNodeData())
   # clq.attributes["data"] = emptyBTNodeData()
 
-  appendClique!(bt, bt.btid, fg, varID, condIDs)
+  appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
 
 # generate the label for particular clique -- graphviz drawing
-function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int, api::DataLayerAPI=localapi)
+function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: AbstractDFG
   clq = bt.cliques[clqID]
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
-    flbl = string(flbl, api.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
+    flbl = string(flbl, DFGGraphs.getVariable(dfg,fr).label, ",") #fgl.v[fr].
   end
   for cond in getData(clq).conditIDs
-    clbl = string(clbl, api.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
+    clbl = string(clbl, DFGGraphs.getVariable(dfg,cond).label, ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -55,26 +55,26 @@ function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Int,1})
 end
 
 # Add a new frontal variable to clique
-function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
+function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Int, condIDs::Array{Int,1}=Int[])::Nothing where G <: AbstractDFG
   clq = bt.cliques[clqID]
-  var = localapi.getvertex(fg, varID)
+  var = DFGGraphs.getVariable(dfg, varID)
 
   # add frontal variable
   push!(getData(clq).frontalIDs, varID)
 
   # total dictionary of frontals for easy access
-  bt.frontals[var.attributes["label"]] = clqID
+  bt.frontals[var.label] = clqID
 
   # append to cliq conditionals
   appendConditional(bt, clqID, condIDs)
-  makeCliqueLabel(fg, bt, clqID)
-  nothing
+  # makeCliqueLabel(dfg, bt, clqID)
+  return nothing
 end
 
 
 # instantiate a new child clique in the tree
-function newChildClique!(bt::BayesTree, fg::FactorGraph, CpID::Int, varID::Int, Sepj::Array{Int,1})
-  chclq = addClique!(bt, fg, varID, Sepj)
+function newChildClique!(bt::BayesTree, CpID::Int, varID::Int, Sepj::Array{Int,1}) where G <: AbstractDFG
+  chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
   # Staying with Graphs.jl for tree in first stage
   edge = Graphs.make_edge(bt.bt, parent, chclq)
@@ -99,13 +99,14 @@ end
 
 
 # eliminate a variable for new
-function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
-    firvert = localapi.getvertex(fg,var)
+# function newPotential(tree::BayesTree, dfg::G, var::Symbol, prevVar::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
+function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
+    firvert = DFGGraphs.getVariable(dfg,var)
     if (length(getData(firvert).separator) == 0)
-      if (length(tree.cliques) == 0)
-        addClique!(tree, fg, var)
+      if (length(tree.cliques)0)
+        addClique!(tree, dfg, var)
       else
-        appendClique!(tree, 1, fg, var) # add to root
+        appendClique!(tree, 1, dfg, var) # add to root
       end
     else
       Sj = getData(firvert).separator
@@ -117,24 +118,24 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
           firstelim = temp
         end
       end
-      felbl = localapi.getvertex(fg, p[firstelim]).attributes["label"]
+      felbl = DFGGraphs.getVariable(dfg, p[firstelim]).label
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       unFC = union(getCliqFrontalVarIds(tree.cliques[CpID]), getCliqSeparatorVarIds(tree.cliques[CpID]))
       if (sort(unFC) == sort(Sj))
-        appendClique!(tree, CpID, fg, var)
+        appendClique!(tree, CpID, dfg, var)
       else
-        newChildClique!(tree, fg, CpID, var, Sj)
+        newChildClique!(tree, dfg, CpID, var, Sj)
       end
     end
 end
 
 # build the whole tree in batch format
-function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
+function buildTree!(tree::BayesTree, dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
   rp = reverse(p,dims=1) # flipdim(p, 1)
-  prevVar = 0
+  # prevVar = 0
   for var in rp
-    newPotential(tree, fg, var, prevVar, p)
+    newPotential(tree, dfg, var, p)
     prevVar = var
   end
 end
@@ -194,7 +195,7 @@ end
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
 function buildTreeFromOrdering!(dfg::G,
-                                p::Vector{Int};
+                                p::Vector{Symbol};
                                 drawbayesnet::Bool=false) where G <: AbstractDFG
   #
   println()
