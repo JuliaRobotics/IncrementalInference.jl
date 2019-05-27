@@ -40,7 +40,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     return isCliqNull_StateMachine # doesCliqNeeddownmsg_StateMachine
   end
 
-  return whileCliqNotSolved_StateMachine
+  return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
 end
 
 
@@ -182,7 +182,7 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
     infocsm(csmc, "7b, delay 0.2s since not all children are yet upsolved (hack).")
     sleep(0.2)
   end
-  return whileCliqNotSolved_StateMachine
+  return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
 end
 
 """
@@ -388,27 +388,27 @@ end
 # end
 
 
-"""
-    $SIGNATURES
-
-Determine if necessary to continue with solve attempt of this `csmc.cliq`.
-
-Notes
-- State machine function nr.3
-- TODO: LIKELY MISSING A NOTIFY STEP -- should probably point at `isCliqUpSolved_StateMachine`.
-"""
-function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
-  cliqst = getCliqStatus(csmc.cliq)
-  infocsm(csmc, "3, whileCliqNotSolved_StateMachine")
-
-  if cliqst in [:upsolved; :downsolved; :marginalized]
-    infocsm(csmc, "3, Exit cliq state machine at whileCliqNotSolved_StateMachine")
-    return IncrementalInference.exitStateMachine
-  else
-    # go to 4
-    return isCliqNull_StateMachine # blockUntilChildrenStatus_StateMachine
-  end
-end
+# """
+#     $SIGNATURES
+#
+# Determine if necessary to continue with solve attempt of this `csmc.cliq`.
+#
+# Notes
+# - State machine function nr.3
+# - TODO: LIKELY MISSING A NOTIFY STEP -- should probably point at `isCliqUpSolved_StateMachine`.
+# """
+# function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
+#   cliqst = getCliqStatus(csmc.cliq)
+#   infocsm(csmc, "3, whileCliqNotSolved_StateMachine")
+#
+#   if cliqst in [:upsolved; :downsolved; :marginalized]
+#     infocsm(csmc, "3, Exit cliq state machine at whileCliqNotSolved_StateMachine")
+#     return IncrementalInference.exitStateMachine
+#   else
+#     # go to 4
+#     return isCliqNull_StateMachine # blockUntilChildrenStatus_StateMachine
+#   end
+# end
 
 """
     $SIGNATURES
@@ -423,7 +423,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "2, build subgraph")
   syms = getCliqAllVarSyms(csmc.fg, csmc.cliq)
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.fg, syms)
-  return whileCliqNotSolved_StateMachine
+  return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
 end
 
 
