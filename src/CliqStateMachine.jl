@@ -239,43 +239,6 @@ function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMac
   return determineCliqNeedDownMsg_StateMachine
 end
 
-"""
-    $SIGNATURES
-
-Notes
-- Cliq state machine 6b
-"""
-function determineAllChildrenNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "6b, determineAllChildrenNeedDownMsg_StateMachine start")
-  cliqst = getCliqStatus(csmc.cliq)
-  # lbl = csmc.cliq.attributes["label"]
-
-  # promote if longer down chain of :needdownmsg
-  # if cliqst == :null
-    infocsm(csmc, "6b, determineCliqNeedDownMsg -- blocking until child cliques have status")
-    # stdict here is just to get the status of child cliques
-    stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-    chstatus = collect(values(stdict))
-    len = length(chstatus)
-    if len > 0 && sum(chstatus .== :needdownmsg) == len
-      # TODO maybe can happen where some children need more information?
-      infocsm(csmc, "6b, escalating to :needdownmsg since all children :needdownmsg")
-      notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
-      # setCliqStatus!(cliq, :needdownmsg)
-      cliqst = getCliqStatus(csmc.cliq)
-      setCliqDrawColor(csmc.cliq, "green")
-      csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-
-      return blockUntilSiblingsStatus_StateMachine
-    end
-
-    # TODO: REMOVE
-    # if len > 0 && sum(chstatus .!= :upsolved) > 0
-  # end
-
-  return blockCliqSiblingsParentChildrenNeedDown_StateMachine
-end
-
 
 """
     $SIGNATURES
@@ -301,6 +264,39 @@ function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
 
+
+"""
+    $SIGNATURES
+
+Notes
+- Cliq state machine 6b
+"""
+function determineAllChildrenNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "6b, determineAllChildrenNeedDownMsg_StateMachine start")
+  cliqst = getCliqStatus(csmc.cliq)
+
+  # promote if longer down chain of :needdownmsg
+  infocsm(csmc, "6b, determineCliqNeedDownMsg -- blocking until child cliques have status")
+  # stdict here is just to get the status of child cliques
+  stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
+  chstatus = collect(values(stdict))
+  len = length(chstatus)
+  if len > 0 && sum(chstatus .== :needdownmsg) == len
+    # TODO maybe can happen where some children need more information?
+    infocsm(csmc, "6b, escalating to :needdownmsg since all children :needdownmsg")
+    notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
+    # setCliqStatus!(cliq, :needdownmsg)
+    cliqst = getCliqStatus(csmc.cliq)
+    setCliqDrawColor(csmc.cliq, "green")
+    csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
+    return blockUntilSiblingsStatus_StateMachine
+  end
+
+  return blockCliqSiblingsParentChildrenNeedDown_StateMachine
+end
+
+
 """
     $SIGNATURES
 
@@ -308,6 +304,9 @@ Notes
 - State machine function nr. 4
 """
 function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
+
+  stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
+
   csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -315,6 +314,8 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
     # go to 6b
     return determineAllChildrenNeedDownMsg_StateMachine
   end
+
+  # go to 4b
   return doesCliqNeeddownmsg_StateMachine
 end
 
@@ -330,16 +331,10 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   # csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
-  # if cliqst == :null
-  #   # go to 6b
-  #   return determineAllChildrenNeedDownMsg_StateMachine
-  # end
-
   infocsm(csmc, "4b, get parent")
   # get parent cliq
   prnt = getParent(csmc.tree, csmc.cliq)
 
-  # @info "$(current_task()) Clique $(cliq.index), status $cliqst -- top of while loop"
   if cliqst == :needdownmsg && length(prnt) > 0
     # wait here until all children have a valid status
     if !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
@@ -360,7 +355,6 @@ end
 
 Notes
 - Now State machine function nr. 3b
-- NO LONGER State machine function nr. 6
 """
 function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
@@ -369,7 +363,7 @@ function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "3b, continue, children all have status")
 
   # go to 4
-  return isCliqNull_StateMachine #doesCliqNeeddownmsg_StateMachine # determineAllChildrenNeedDownMsg_StateMachine
+  return isCliqNull_StateMachine
 end
 
 
@@ -381,18 +375,17 @@ Determine if necessary to continue with solve attempt of this `csmc.cliq`.
 Notes
 - State machine function nr.3
 - TODO: LIKELY MISSING A NOTIFY STEP -- should probably point at `isCliqUpSolved_StateMachine`.
-- Now pointing at `blockUntilChildrenStatus_StateMachine`
 """
 function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
   infocsm(csmc, "3, whileCliqNotSolved_StateMachine")
 
-  if !(cliqst in [:upsolved; :downsolved; :marginalized])
-    # go to 3b (not 4)
-    return blockUntilChildrenStatus_StateMachine  # doesCliqNeeddownmsg_StateMachine
-  else
+  if cliqst in [:upsolved; :downsolved; :marginalized]
     infocsm(csmc, "3, Exit cliq state machine at whileCliqNotSolved_StateMachine")
     return IncrementalInference.exitStateMachine
+  else
+    # go to 4
+    return isCliqNull_StateMachine # blockUntilChildrenStatus_StateMachine
   end
 end
 
