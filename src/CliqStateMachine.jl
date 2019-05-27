@@ -33,13 +33,16 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   elseif cliqst == :initialized
     setCliqDrawColor(csmc.cliq, "sienna")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+    # go to 7
+    return determineCliqNeedDownMsg_StateMachine
   else
     infocsm(csmc, "9, init not complete and should wait on init down message.")
     setCliqDrawColor(csmc.cliq, "green")
     # TODO, potential problem with trying to downsolve
-    return isCliqNull_StateMachine # doesCliqNeeddownmsg_StateMachine
+    # return isCliqNull_StateMachine # doesCliqNeeddownmsg_StateMachine
   end
 
+  # go to 4
   return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
 end
 
