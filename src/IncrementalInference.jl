@@ -411,6 +411,7 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")
+include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
 
 
