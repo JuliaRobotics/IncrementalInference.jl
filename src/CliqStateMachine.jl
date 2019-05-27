@@ -1,6 +1,11 @@
 # clique state machine for tree based initialization and inference
 
+"""
+    $SIGNATURES
 
+Specialized info logger print function to show clique state machine information
+in a standardized form.
+"""
 function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractString}
 
   tm = string(Dates.now())
@@ -128,39 +133,6 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-# """
-#     $SIGNATURES
-#
-# Do actual inference calculations, loosely translates to solving Chapman-Kolmogorov transit integral in
-# either up or downward direction, although some caveats on when which occurs.
-#
-# Notes
-# - State machine function nr. 8
-# - Used both during downward initialization and upward initialization / full-solve.
-# """
-# function doCliqInferAttempt_StateMachine(csmc::CliqStateMachineContainer)
-#   # visualization and debugging
-#   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-#
-#   # evaluate according to cliq status
-#   cliqst = getCliqStatus(csmc.cliq)
-#
-#   infocsm(csmc, "8, status=$(cliqst), before attemptCliqInitDown_StateMachine")
-#   # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
-#   if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq)
-#     return attemptCliqInitDown_StateMachine
-#   end
-#
-#   # @info "$(current_task()) Clique $(csmc.cliq.index), 8, status=$(cliqst), areCliqChildrenNeedDownMsg(tree, cliq)=$(areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))"
-#   # if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-#   #   return attemptCliqInitUp_StateMachine
-#   # end
-#   # # either finished or going around again
-#   # return finishCliqSolveCheck_StateMachine
-#
-#   return attemptCliqInitUp_StateMachine
-# end
-
 """
     $SIGNATURES
 
@@ -185,7 +157,7 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
     infocsm(csmc, "7b, delay 0.2s since not all children are yet upsolved (hack).")
     sleep(0.2)
   end
-  return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
+  return isCliqNull_StateMachine
 end
 
 """
@@ -195,10 +167,6 @@ Notes
 - State machine function nr. 7
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
-
-  # # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  # infocsm(csmc, "7, check/block sibl&prnt :needdownmsg")
-  # blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   # fetch children status
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
@@ -268,37 +236,6 @@ function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-# """
-#     $SIGNATURES
-#
-# Notes
-# - Cliq state machine 6b
-# """
-# function determineAllChildrenNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
-#   infocsm(csmc, "6b, determineAllChildrenNeedDownMsg_StateMachine start")
-#   cliqst = getCliqStatus(csmc.cliq)
-#
-#   # promote if longer down chain of :needdownmsg
-#   infocsm(csmc, "6b, determineCliqNeedDownMsg -- blocking until child cliques have status")
-#   # stdict here is just to get the status of child cliques
-#   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-#   chstatus = collect(values(stdict))
-#   len = length(chstatus)
-#   if len > 0 && sum(chstatus .== :needdownmsg) == len
-#     # TODO maybe can happen where some children need more information?
-#     infocsm(csmc, "6b, escalating to :needdownmsg since all children :needdownmsg")
-#     notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
-#     # setCliqStatus!(cliq, :needdownmsg)
-#     # cliqst = getCliqStatus(csmc.cliq)
-#     setCliqDrawColor(csmc.cliq, "green")
-#     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-#
-#     return blockUntilSiblingsStatus_StateMachine
-#   end
-#
-#   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
-# end
-
 
 """
     $SIGNATURES
@@ -314,10 +251,7 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
-  if cliqst == :null
-    # # go to 6b
-    # return determineAllChildrenNeedDownMsg_StateMachine
-  else
+  if cliqst != :null
     # go to 4b
     return doesCliqNeeddownmsg_StateMachine
   end
@@ -328,16 +262,13 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   # if all children needdownmsg
   if len > 0 && sum(chstatus .== :needdownmsg) == len
     # TODO maybe can happen where some children need more information?
-    infocsm(csmc, "4, escalating to :needdownmsg since all children :needdownmsg") # not 6b
+    infocsm(csmc, "4, escalating to :needdownmsg since all children :needdownmsg")
     notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
     setCliqDrawColor(csmc.cliq, "green")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
     return blockUntilSiblingsStatus_StateMachine
   end
-
-  # # go to 4b
-  # return doesCliqNeeddownmsg_StateMachine
 
   # go to 6c
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
@@ -374,44 +305,6 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
 
-# """
-#     $SIGNATURES
-#
-# Notes
-# - Now State machine function nr. 3b
-# """
-# function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
-#   cliqst = getCliqStatus(csmc.cliq)
-#   infocsm(csmc, "3b, blockUntilChildrenStatus_StateMachine -- blocking until child cliques have status")
-#   blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-#   infocsm(csmc, "3b, continue, children all have status")
-#
-#   # go to 4
-#   return isCliqNull_StateMachine
-# end
-
-
-# """
-#     $SIGNATURES
-#
-# Determine if necessary to continue with solve attempt of this `csmc.cliq`.
-#
-# Notes
-# - State machine function nr.3
-# - TODO: LIKELY MISSING A NOTIFY STEP -- should probably point at `isCliqUpSolved_StateMachine`.
-# """
-# function whileCliqNotSolved_StateMachine(csmc::CliqStateMachineContainer)
-#   cliqst = getCliqStatus(csmc.cliq)
-#   infocsm(csmc, "3, whileCliqNotSolved_StateMachine")
-#
-#   if cliqst in [:upsolved; :downsolved; :marginalized]
-#     infocsm(csmc, "3, Exit cliq state machine at whileCliqNotSolved_StateMachine")
-#     return IncrementalInference.exitStateMachine
-#   else
-#     # go to 4
-#     return isCliqNull_StateMachine # blockUntilChildrenStatus_StateMachine
-#   end
-# end
 
 """
     $SIGNATURES
@@ -426,7 +319,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "2, build subgraph")
   syms = getCliqAllVarSyms(csmc.fg, csmc.cliq)
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.fg, syms)
-  return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
+  return isCliqNull_StateMachine
 end
 
 
@@ -452,7 +345,6 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
       msg = prepCliqInitMsgsUp(csmc.fg, csmc.tree, csmc.cliq)
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst)
-      # @info "$(current_task()) Clique $(csmc.cliq.index), skip computation on status=$(cliqst), but did prepare/notify upward message"
     end
     return IncrementalInference.exitStateMachine
   end
@@ -492,135 +384,6 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
-end
-
-
-"""
-    $SIGNATURES
-
-Return clique state machine history from `tree` if it was solved with `recordcliqs`.
-
-Notes
-- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
-"""
-function getCliqSolveHistory(cliq::Graphs.ExVertex)
-  getData(cliq).statehistory
-end
-function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
-  cliq = whichCliq(tree, frntal)
-  getCliqSolveHistory(cliq)
-end
-
-"""
-    $SIGNATURES
-
-Print a short summary of state machine history for a clique solve.
-"""
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
-  for hi in hist
-    first = (split(string(hi[1]), 'T')[end])*" "
-    len = length(first)
-    for i in len:13  first = first*" "; end
-    first = first*string(hi[2])
-    len = length(first)
-    for i in len:17  first = first*" "; end
-    first = first*string(getCliqStatus(hi[4].cliq))
-    len = length(first)
-    for i in len:30  first = first*" "; end
-    nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-    lenf = length(nextfn)
-    nextfn = 20 < lenf ? nextfn[1:20]*"." : nextfn
-    first = first*nextfn
-    len = length(first)
-    for i in len:52  first = first*" "; end
-    first = first*string(hi[4].forceproceed)
-    len = length(first)
-    for i in len:58  first = first*" "; end
-    if 0 < length(hi[4].parentCliq)
-      first = first*string(getCliqStatus(hi[4].parentCliq[1]))
-    else
-      first = first*"----"
-    end
-    first = first*" | "
-    if 0 < length(hi[4].childCliqs)
-      for ch in hi[4].childCliqs
-        first = first*string(getCliqStatus(ch))*" "
-      end
-    end
-    println(first)
-  end
-  nothing
-end
-
-function printCliqHistorySummary(cliq::Graphs.ExVertex)
-  hist = getCliqSolveHistory(cliq)
-  printCliqHistorySummary(hist)
-end
-
-function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
-  hist = getCliqSolveHistory(tree, frontal)
-  printCliqHistorySummary(hist)
-end
-
-
-"""
-  $SIGNATURES
-
-Repeat a solver state machine step without changing history or primary values.
-"""
-function sandboxCliqResolveStep(tree::BayesTree,
-                                frontal::Symbol,
-                                step::Int  )
-  #
-  hist = getCliqSolveHistory(tree, frontal)
-  return sandboxStateMachineStep(hist, step)
-end
-
-
-
-
-"""
-    $SIGNATURES
-
-Draw many images in '/tmp/?/csm_%d.png' representing time synchronized state machine
-events for cliques `cliqsyms::Vector{Symbol}`.
-
-Notes
-- State history must have previously been recorded (stored in tree cliques).
-
-Related
-
-printCliqHistorySummary
-"""
-function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; frames::Int=100)
-
-  startT = Dates.now()
-  stopT = Dates.now()
-
-  # get start and stop times across all cliques
-  first = true
-  for sym in cliqsyms
-    hist = getCliqSolveHistory(tree, sym)
-    if hist[1][1] < startT
-      startT = hist[1][1]
-    end
-    if first
-      stopT = hist[end][1]
-    end
-    if stopT < hist[end][1]
-      stopT= hist[end][1]
-    end
-  end
-
-  # export all figures
-  folders = String[]
-  for sym in cliqsyms
-    hist = getCliqSolveHistory(tree, sym)
-    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="cliq$sym", title="$sym", startT=startT, stopT=stopT)
-    push!(folders, "cliq$sym")
-  end
-
-  return folders
 end
 
 
