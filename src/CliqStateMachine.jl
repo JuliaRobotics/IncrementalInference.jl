@@ -37,7 +37,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "9, init not complete and should wait on init down message.")
     setCliqDrawColor(csmc.cliq, "green")
     # TODO, potential problem with trying to downsolve
-    return doesCliqNeeddownmsg_StateMachine
+    return isCliqNull_StateMachine # doesCliqNeeddownmsg_StateMachine
   end
 
   return whileCliqNotSolved_StateMachine
@@ -304,12 +304,10 @@ end
 """
     $SIGNATURES
 
-Determine if any down messages are required.
-
 Notes
-- State machine function nr.4
+- State machine function nr. 4
 """
-function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
+function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -317,9 +315,27 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
     # go to 6b
     return determineAllChildrenNeedDownMsg_StateMachine
   end
+  return doesCliqNeeddownmsg_StateMachine
+end
 
+"""
+    $SIGNATURES
 
-  infocsm(csmc, "4, get parent")
+Determine if any down messages are required.
+
+Notes
+- State machine function nr.4b
+"""
+function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
+  # csmc.forceproceed = false
+  cliqst = getCliqStatus(csmc.cliq)
+
+  # if cliqst == :null
+  #   # go to 6b
+  #   return determineAllChildrenNeedDownMsg_StateMachine
+  # end
+
+  infocsm(csmc, "4b, get parent")
   # get parent cliq
   prnt = getParent(csmc.tree, csmc.cliq)
 
@@ -353,7 +369,7 @@ function blockUntilChildrenStatus_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "3b, continue, children all have status")
 
   # go to 4
-  return doesCliqNeeddownmsg_StateMachine # determineAllChildrenNeedDownMsg_StateMachine
+  return isCliqNull_StateMachine #doesCliqNeeddownmsg_StateMachine # determineAllChildrenNeedDownMsg_StateMachine
 end
 
 
