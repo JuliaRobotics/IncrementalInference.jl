@@ -391,8 +391,6 @@ const NothingUnion{T} = Union{Nothing, T}
 include("ccolamd.jl")
 
 # regular
-# include("StateMachine.jl")
-# include("StateMachineAnimation.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
