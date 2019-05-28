@@ -165,6 +165,7 @@ export
   getCliqInitUpMsgs,
   getCliqStatus,
   setCliqStatus!,
+  getSolveCondition,
   getMaxVertId,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,

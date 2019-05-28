@@ -1097,3 +1097,11 @@ function getTreeAllFrontalSyms(fgl::FactorGraph, tree::BayesTree)
   end
   return syms
 end
+
+"""
+    $SIGNATURES
+
+Get the `::Condition` variable for a clique, likely used for delaying state transitions in
+state machine solver.
+"""
+getSolveCondition(cliq::Graphs.ExVertex) = getData(cliq).solveCondition
