@@ -22,6 +22,7 @@ using
   FileIO,
   ProgressMeter,
   DocStringExtensions,
+  FunctionalStateMachine,
   Optim # might be deprecated in favor for only NLsolve dependency
 
 
@@ -390,8 +391,8 @@ const NothingUnion{T} = Union{Nothing, T}
 include("ccolamd.jl")
 
 # regular
-include("StateMachine.jl")
-include("StateMachineAnimation.jl")
+# include("StateMachine.jl")
+# include("StateMachineAnimation.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
