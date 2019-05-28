@@ -241,6 +241,7 @@ export
   treeProductUp,
   approxCliqMarginalUp!,
   unmarginalizeVariablesAll!,
+  unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
   isCliqMarginalizedFromVars,

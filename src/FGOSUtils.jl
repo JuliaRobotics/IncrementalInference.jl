@@ -794,6 +794,17 @@ end
 """
     $SIGNATURES
 
+Free all variables from marginalization.
+
+Related
+
+unmarginalizeVariablesAll!
+"""
+unfreezeVariablesAll!(fgl::FactorGraph) = unmarginalizeVariablesAll!(fgl)
+
+"""
+    $SIGNATURES
+
 Reset initialization flag on all variables in `::FactorGraphs`.
 
 Notes
