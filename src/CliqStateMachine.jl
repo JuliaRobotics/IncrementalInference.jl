@@ -70,7 +70,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
 
   infocsm(csmc, "8b, doCliqAutoInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
@@ -247,13 +247,24 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-
   csmc.forceproceed = false
+
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if 0 == length(prnt)
+    # go to 7
+    return determineCliqNeedDownMsg_StateMachine
+  end
+
   cliqst = getCliqStatus(csmc.cliq)
 
   if cliqst != :null
-    # go to 4b
-    return doesCliqNeeddownmsg_StateMachine
+    if cliqst == :needdownmsg
+      # go to 4b
+      return doesCliqNeeddownmsg_StateMachine
+    else
+      # go to 6c
+      return blockCliqSiblingsParentChildrenNeedDown_StateMachine
+    end
   end
 
   chstatus = collect(values(stdict))
@@ -274,6 +285,7 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
 
+
 """
     $SIGNATURES
 
@@ -286,18 +298,17 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   # csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
-  infocsm(csmc, "4b, get parent")
-  # get parent cliq
-  prnt = getParent(csmc.tree, csmc.cliq)
+  # infocsm(csmc, "4b, get parent")
+  # # get parent cliq
+  # prnt = getParent(csmc.tree, csmc.cliq)
 
-  if cliqst == :needdownmsg && length(prnt) > 0
-    # wait here until all children have a valid status
-    if !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-      return blockUntilSiblingsStatus_StateMachine
-    else
-      infocsm(csmc, "4, WIP must deal with child :needdownmsg")
+  if cliqst == :needdownmsg
+    if areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+      infocsm(csmc, "4, must deal with child :needdownmsg")
       csmc.forceproceed = true
-      # return
+    else
+      # go to 5
+      return blockUntilSiblingsStatus_StateMachine
     end
   end
 
