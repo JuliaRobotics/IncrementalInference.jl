@@ -247,13 +247,24 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
-
   csmc.forceproceed = false
+
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if 0 == length(prnt)
+    # go to 7
+    return determineCliqNeedDownMsg_StateMachine
+  end
+
   cliqst = getCliqStatus(csmc.cliq)
 
   if cliqst != :null
-    # go to 4b
-    return doesCliqNeeddownmsg_StateMachine
+    if cliqst == :needdownmsg
+      # go to 4b
+      return doesCliqNeeddownmsg_StateMachine
+    else
+      # go to 6c
+      return blockCliqSiblingsParentChildrenNeedDown_StateMachine
+    end
   end
 
   chstatus = collect(values(stdict))
@@ -274,6 +285,7 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
 
+
 """
     $SIGNATURES
 
@@ -286,11 +298,11 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
   # csmc.forceproceed = false
   cliqst = getCliqStatus(csmc.cliq)
 
-  infocsm(csmc, "4b, get parent")
-  # get parent cliq
-  prnt = getParent(csmc.tree, csmc.cliq)
+  # infocsm(csmc, "4b, get parent")
+  # # get parent cliq
+  # prnt = getParent(csmc.tree, csmc.cliq)
 
-  if cliqst == :needdownmsg && length(prnt) > 0
+  if cliqst == :needdownmsg # && length(prnt) > 0
     # wait here until all children have a valid status
     if !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
       return blockUntilSiblingsStatus_StateMachine
