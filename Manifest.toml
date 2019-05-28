@@ -70,10 +70,10 @@ deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffEqDiffTools]]
-deps = ["LinearAlgebra", "Test"]
-git-tree-sha1 = "30f82c63cb9d293513b360572e283c19577fcf82"
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "07991282c76bcd9331f96f786acbeb1775f1f8d5"
 uuid = "01453d9d-ee7c-5054-8395-0335cb756afa"
-version = "0.8.1"
+version = "0.10.0"
 
 [[DiffResults]]
 deps = ["Compat", "StaticArrays"]
@@ -120,6 +120,12 @@ deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", 
 git-tree-sha1 = "4c4d727f1b7e0092134fabfab6396b8945c1ea5b"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.3"
+
+[[FunctionalStateMachine]]
+deps = ["Dates", "DocStringExtensions", "Requires"]
+git-tree-sha1 = "cd78ec4b7f75085ab6231676c8c35ccf93638b22"
+uuid = "3e9e306e-7e3c-11e9-12d2-8f8f67a2f951"
+version = "0.1.0"
 
 [[Graphs]]
 deps = ["DataStructures", "SparseArrays"]
