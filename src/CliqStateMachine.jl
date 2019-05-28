@@ -70,7 +70,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
 
   infocsm(csmc, "8b, doCliqAutoInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
-  if cliqst in [:initialized; :null] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
