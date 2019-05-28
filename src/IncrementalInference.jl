@@ -52,6 +52,8 @@ export
   StateMachine,
   exitStateMachine,
   getCliqSolveHistory,
+  filterHistAllToArray,
+  cliqHistFilterTransitions,
   printCliqHistorySummary,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,

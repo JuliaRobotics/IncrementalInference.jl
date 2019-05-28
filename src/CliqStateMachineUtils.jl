@@ -71,6 +71,8 @@ end
   $SIGNATURES
 
 Repeat a solver state machine step without changing history or primary values.
+
+printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::BayesTree,
                                 frontal::Symbol,
@@ -125,4 +127,44 @@ function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; fra
   end
 
   return folders
+end
+
+"""
+    $SIGNATURES
+
+Return state machine transition steps from history such that the `nextfnc::Function`.
+
+Related:
+
+getCliqSolveHistory, printCliqHistorySummary, filterHistAllToArray, sandboxCliqResolveStep
+"""
+function cliqHistFilterTransitions(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}, nextfnc::Function)
+  ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  for hi in hist
+    if hi[3] == nextfnc
+      push!(ret, hi)
+    end
+  end
+  return ret
+end
+
+"""
+    $SIGNATURES
+
+Return state machine transition steps from all cliq histories with transition `nextfnc::Function`.
+
+Related:
+
+getCliqSolveHistory, printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
+"""
+function filterHistAllToArray(tree::BayesTree, frontals::Vector{Symbol}, nextfnc::Function)
+  ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  for sym in frontals
+    hist = getCliqSolveHistory(tree, sym)
+    fih = cliqHistFilterTransitions(hist, nextfnc)
+    for fi in fih
+      push!(ret, fi)
+    end
+   end
+  return ret
 end
