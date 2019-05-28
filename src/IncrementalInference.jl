@@ -190,6 +190,7 @@ export
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
   getCliqParentMsgDown,
   isReadyCliqInferenceUp,

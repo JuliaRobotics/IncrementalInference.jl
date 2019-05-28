@@ -19,6 +19,10 @@ end
     $SIGNATURES
 
 Print a short summary of state machine history for a clique solve.
+
+Related:
+
+getTreeAllFrontalSyms, getCliqSolveHistory, animateCliqStateMachines
 """
 function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
   for hi in hist
