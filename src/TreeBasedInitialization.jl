@@ -80,6 +80,8 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
+  notify(getSolveCondition(cliq))
+  nothing
 end
 
 function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
@@ -90,6 +92,8 @@ function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
   end
   put!(cd.initDownChannel, status)
+  notify(getSolveCondition(cliq))
+  nothing
 end
 
 """

@@ -364,6 +364,13 @@ end
 
 Return the Graphs.ExVertex node object that represents a clique in the Bayes
 (Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
+
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+getTreeAllFrontalSyms
 """
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
   bt.cliques[bt.frontals[frt]]
@@ -1068,3 +1075,33 @@ end
 Return `cliq`'s parent clique.
 """
 getParent(treel::BayesTree, afrontal::Union{Symbol, Graphs.ExVertex}) = parentCliq(treel, afrontal)
+
+"""
+    $SIGNATURES
+
+Return one symbol (a frontal variable) from each clique in the `::BayesTree`.
+
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+whichCliq, printCliqHistorySummary
+"""
+function getTreeAllFrontalSyms(fgl::FactorGraph, tree::BayesTree)
+  cliqs = tree.cliques
+  syms = Vector{Symbol}(undef, length(cliqs))
+  for (id,cliq) in cliqs
+    sym = getSym(fgl, getCliqFrontalVarIds(cliq)[1])
+    syms[id] = sym
+  end
+  return syms
+end
+
+"""
+    $SIGNATURES
+
+Get the `::Condition` variable for a clique, likely used for delaying state transitions in
+state machine solver.
+"""
+getSolveCondition(cliq::Graphs.ExVertex) = getData(cliq).solveCondition

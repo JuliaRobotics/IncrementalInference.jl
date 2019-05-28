@@ -140,23 +140,26 @@ Delay loop if waiting on upsolves to complete.
 
 Notes
 - State machine 7b
-- TODO: Still a HACK, convert to conditional wait instead.
 """
 function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
+
+  # special case short cut
+  cliqst = getCliqStatus(csmc.cliq)
+  if cliqst == :needdownmsg
+    infocsm(csmc, "7b, shortcut on cliq is a needdownmsg status.")
+    return isCliqNull_StateMachine
+  end
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
-  tps = Vector{Bool}(undef, len)
-  fill!(tps, false)
-  for i in 1:len
-    ch = childs[i]
-    if getCliqStatus(ch) == :upsolved
-      tps[i] = true
+  @inbounds for i in 1:len
+    if getCliqStatus(childs[i]) != :upsolved
+      infocsm(csmc, "7b, wait condition on upsolve, i=$i.")
+      wait(getSolveCondition(childs[i]))
+      break
     end
   end
-  if sum(tps) != len
-    infocsm(csmc, "7b, delay 0.2s since not all children are yet upsolved (hack).")
-    sleep(0.2)
-  end
+
+  # go to 4
   return isCliqNull_StateMachine
 end
 

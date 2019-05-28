@@ -81,11 +81,12 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   initUpChannel::Channel{Symbol}
   initDownChannel::Channel{Symbol}
+  solveCondition::Condition
   statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25],
+                                x[21], x[22], x[23], x[24], x[25], x[26],
                                 Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
@@ -104,7 +105,7 @@ function emptyBTNodeData()
                     Dict{Symbol, BallTreeDensity}(),
                     false, :null,
                     false, false,
-                    Channel{Symbol}(1), Channel{Symbol}(1)  )
+                    Channel{Symbol}(1), Channel{Symbol}(1), Condition()  )
 end
 
 
