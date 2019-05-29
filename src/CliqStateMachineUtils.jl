@@ -172,3 +172,31 @@ function filterHistAllToArray(tree::BayesTree, frontals::Vector{Symbol}, nextfnc
    end
   return ret
 end
+
+"""
+    $SIGNATURES
+
+Standalone state machine solution for a single clique.
+
+Related:
+
+initInferTreeUp!
+"""
+function solveCliqWithStateMachine!(fg::FactorGraph,
+                                    tree::BayesTree,
+                                    frontal::Symbol;
+                                    iters::Int=200,
+                                    recordhistory::Bool=false,
+                                    verbose::Bool=false  )
+  #
+  cliq = whichCliq(tree, frontal)
+  children = Graphs.ExVertex[]
+  for ch in Graphs.out_neighbors(cliq, tree.bt)
+    push!(children, ch)
+  end
+  prnt = getParent(tree, cliq)
+  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, true, true)
+  statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+  while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
+  statemachine, csmc
+end

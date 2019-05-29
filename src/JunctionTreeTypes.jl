@@ -152,11 +152,13 @@ end
 $(TYPEDEF)
 """
 mutable struct UpReturnBPType
-    upMsgs::NBPMessage
-    dbgUp::DebugCliqMCMC
-    IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
-    keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
-    totalsolve::Bool
+  upMsgs::NBPMessage
+  dbgUp::DebugCliqMCMC
+  IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
+  keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  totalsolve::Bool
+  UpReturnBPType() = new()
+  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
 end
 
 """
@@ -172,13 +174,17 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct ExploreTreeType{T}
+mutable struct FullExploreTreeType{T, T2}
   fg::FactorGraph
-  bt::BayesTree
+  bt::T2
   cliq::Graphs.ExVertex
   prnt::T
-  sendmsgs::Array{NBPMessage,1}
+  sendmsgs::Vector{NBPMessage}
 end
+
+const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
+const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+
 
 function ExploreTreeType(fgl::FactorGraph,
                 btl::BayesTree,
