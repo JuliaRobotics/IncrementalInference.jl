@@ -324,12 +324,14 @@ function encodefg(fgl::FactorGraph;
   fgs.cg = nothing
   fgs.registeredModuleFunctions = nothing
   fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
-  @showprogress 1 "Encoding variables..." for (vsym,vid) in fgl.IDs
+  # @showprogress 1 "Encoding variables..."
+for (vsym,vid) in fgl.IDs
     cpvert = deepcopy(getVert(fgl, vid, api=api))
     api.addvertex!(fgs, cpvert) #, labels=vnlbls)  # currently losing labels
   end
 
-  @showprogress 1 "Encoding factors..." for (fsym,fid) in fgs.fIDs
+  # @showprogress 1 "Encoding factors..."
+for (fsym,fid) in fgs.fIDs
     data,ftyp = convert2packedfunctionnode(fgl, fsym)
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
     newvert = ExVertex(fid,string(fsym))
@@ -343,7 +345,8 @@ function encodefg(fgl::FactorGraph;
   fgs.g.inclist = typeof(fgl.g.inclist)()
 
   # iterated over all edges
-  @showprogress 1 "Encoding edges..." for (eid, edges) in fgl.g.inclist
+  # @showprogress 1 "Encoding edges..."
+for (eid, edges) in fgl.g.inclist
     fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
     for ed in edges
       newed = Graphs.Edge(ed.index,
