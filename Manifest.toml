@@ -1,3 +1,5 @@
+# This file is machine-generated - editing it directly is not advised
+
 [[ApproxManifoldProducts]]
 deps = ["CoordinateTransformations", "DocStringExtensions", "KernelDensityEstimate", "LinearAlgebra", "NLsolve", "Optim", "Random", "Reexport", "Requires", "Test", "TransformUtils"]
 git-tree-sha1 = "36785cdeec03d39366e6f79d6828579a20c5acfb"
@@ -94,7 +96,7 @@ uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 version = "0.8.0"
 
 [[Distributed]]
-deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
+deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
@@ -134,7 +136,7 @@ uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
 version = "0.10.3"
 
 [[InteractiveUtils]]
-deps = ["LinearAlgebra", "Markdown"]
+deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[JLD2]]
@@ -363,7 +365,7 @@ uuid = "30578b45-9adc-5946-b283-645ec420af67"
 version = "0.4.0"
 
 [[UUIDs]]
-deps = ["Random"]
+deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
