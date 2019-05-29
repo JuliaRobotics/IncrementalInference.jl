@@ -186,6 +186,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
 
   if proceed || csmc.forceproceed
+    csmc.forceproceed = false
     # return doCliqInferAttempt_StateMachine
     cliqst = getCliqStatus(csmc.cliq)
     infocsm(csmc, "7, status=$(cliqst), before attemptCliqInitDown_StateMachine")

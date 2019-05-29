@@ -964,7 +964,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
     cliqcd.solveCondition = Condition()
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
-    urt = remotecall_fetch(upGibbsCliqueDensity, upploc(), ett, N, dbg, iters)
+    urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
   else
     urt = upGibbsCliqueDensity(ett, N, dbg, iters)
   end
