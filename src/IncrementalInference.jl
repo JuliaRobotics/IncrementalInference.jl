@@ -107,6 +107,7 @@ export
   doautoinit!,
   manualinit!,
   initInferTreeUp!,
+  solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
   getFactor,

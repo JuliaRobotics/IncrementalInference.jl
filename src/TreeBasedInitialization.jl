@@ -368,7 +368,8 @@ Notes
 function doCliqAutoInitUp!(subfg::FactorGraph,
                            tree::BayesTree,
                            cliq::Graphs.ExVertex;
-                           up_solve_if_able::Bool=true, )::Symbol
+                           up_solve_if_able::Bool=true,
+                           multiprocess::Bool=true )::Symbol
   #
   # init up msg has special procedure for incomplete messages
   cliqst = getCliqStatus(cliq)

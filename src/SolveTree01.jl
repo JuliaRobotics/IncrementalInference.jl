@@ -613,10 +613,10 @@ urt = upGibbsCliqueDensity(inp)
 - `parent` the parent clique to where the upward message will be sent,
 - `childmsgs` is for any incoming messages from child cliques.
 """
-function upGibbsCliqueDensity(inp::ExploreTreeType{T},
+function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
                               N::Int=100,
                               dbg::Bool=false,
-                              iters::Int=3) where {T}
+                              iters::Int=3) where {T, T2}
   #
   @info "up w $(length(inp.sendmsgs)) msgs"
   # Local mcmc over belief functions
@@ -917,7 +917,8 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
-                               drawpdf::Bool=false  )
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
@@ -941,8 +942,14 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
-  ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
-  urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+  ett = ExploreTreeTypeLight(fg_, nothing, cliq, nothing, childmsgs)
+  urt = UpReturnBPType()
+  if multiproc
+    @info "GOING MULTIPROC"
+    urt = remotecall_fetch(upGibbsCliqueDensity, upploc(), ett, N, dbg, iters)
+  else
+    urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+  end
   updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="pink")
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
