@@ -788,13 +788,11 @@ end
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
 function updateFGBT!(fg::FactorGraph,
-                     bt::BayesTree,
-                     cliqID::Int,
+                     cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="" )
+                     dbg::Bool=false, fillcolor::String="",
+                     api::DataLayerAPI=dlapi  )
   #
-  cliq = bt.cliques[cliqID]
-  cliq = bt.cliques[cliqID]
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
   end
@@ -804,12 +802,24 @@ function updateFGBT!(fg::FactorGraph,
     setCliqDrawColor(cliq, fillcolor)
   end
   for dat in urt.IDvals
-    updvert = dlapi.getvertex(fg,dat[1])
+    updvert = api.getvertex(fg,dat[1])
     setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-    dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+    api.updatevertex!(fg, updvert, updateMAPest=true)
   end
   @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
   nothing
+end
+
+function updateFGBT!(fg::FactorGraph,
+                     bt::BayesTree,
+                     cliqID::Int,
+                     urt::UpReturnBPType;
+                     dbg::Bool=false, fillcolor::String="",
+                     api::DataLayerAPI=dlapi  )
+  #
+  cliq = bt.cliques[cliqID]
+  cliq = bt.cliques[cliqID]
+  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor, api=api )
 end
 
 """
@@ -942,15 +952,23 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
-  ett = ExploreTreeTypeLight(fg_, nothing, cliq, nothing, childmsgs)
+  ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
   urt = UpReturnBPType()
   if multiproc
     @info "GOING MULTIPROC"
+    cliqc = deepcopy(cliq)
+    cliqcd = getData(cliqc)
+    # redirect to new unused so that CAN be serialized
+    cliqcd.initUpChannel = Channel{Symbol}(1)
+    cliqcd.initDownChannel = Channel{Symbol}(1)
+    cliqcd.solveCondition = Condition()
+    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    ett.cliq = cliqc
     urt = remotecall_fetch(upGibbsCliqueDensity, upploc(), ett, N, dbg, iters)
   else
     urt = upGibbsCliqueDensity(ett, N, dbg, iters)
   end
-  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="pink")
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="pink") # ett.bt, ett.cliq.index
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt

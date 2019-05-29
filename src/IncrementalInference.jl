@@ -175,6 +175,7 @@ export
   BayesTree,
   EasyMessage,
   NBPMessage,
+  FullExploreTreeType,
   ExploreTreeType,
   FactorGraph,
   initfg,
