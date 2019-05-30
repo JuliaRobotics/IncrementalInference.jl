@@ -10,7 +10,7 @@ mutable struct BayesTree
   bt
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
-  frontals::Dict{String,Int}
+  frontals::Dict{Symbol,Int}
 end
 
 function emptyBayesTree()
@@ -54,11 +54,11 @@ $(TYPEDEF)
 Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
-  frontalIDs::Vector{Int}
-  conditIDs::Vector{Int}
+  frontalIDs::Vector{Symbol}
+  conditIDs::Vector{Symbol}
   inmsgIDs::Vector{Int}
   potIDs::Vector{Int} # this is likely redundant TODO -- remove
-  potentials::Vector{Int}
+  potentials::Vector{Symbol}
   partialpotential::Vector{Bool}
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}

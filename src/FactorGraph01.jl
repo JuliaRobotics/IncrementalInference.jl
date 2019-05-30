@@ -12,7 +12,8 @@ Retrieve data structure stored in a node.
 """
 getData(v::DFGFactor)::GenericFunctionNodeData = v.data
 getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
-
+# For Bayes tree
+getData(v::Graphs.ExVertex) = v.attributes["data"]
 """
     $SIGNATURES
 
@@ -41,6 +42,12 @@ end
 function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   f.data = data
   return nothing
+end
+# For Bayes tree
+function setData!(v::Graphs.ExVertex, data)
+  # this is a memory gulp without replacement, old attr["data"] object is left to gc
+  v.attributes["data"] = data
+  nothing
 end
 
 """
