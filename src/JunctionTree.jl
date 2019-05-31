@@ -18,8 +18,11 @@ Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tr
 getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
 
 
+"""
+    $SIGNATURES
 
-# create a new clique
+Create a new clique.
+"""
 function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::ExVertex where G <: AbstractDFG
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
@@ -35,7 +38,11 @@ function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}
   return clq
 end
 
-# generate the label for particular clique -- graphviz drawing
+"""
+    $SIGNATURES
+
+Generate the label for particular clique (used by graphviz for visualization).
+"""
 function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: AbstractDFG
   clq = bt.cliques[clqID]
   flbl = ""
@@ -55,7 +62,11 @@ function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
   getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
 end
 
-# Add a new frontal variable to clique
+"""
+    $SIGNATURES
+
+Add a new frontal variable to clique.
+"""
 function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs::Array{Symbol,1}=Symbol[])::Nothing where G <: AbstractDFG
   clq = bt.cliques[clqID]
   var = DFGGraphs.getVariable(dfg, varID)
@@ -73,8 +84,11 @@ function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs
   return nothing
 end
 
+"""
+    $SIGNATURES
 
-# instantiate a new child clique in the tree
+Instantiate a new child clique in the tree.
+"""
 function newChildClique!(bt::BayesTree, dfg::G, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1}) where G <: AbstractDFG
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
@@ -85,7 +99,11 @@ function newChildClique!(bt::BayesTree, dfg::G, CpID::Int, varID::Symbol, Sepj::
   return chclq
 end
 
-# post order tree traversal and build potential functions
+"""
+    $SIGNATURES
+
+Post order tree traversal and build potential functions
+"""
 function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
   for cliqPair in bt.cliques
     id = cliqPair[1]
@@ -100,8 +118,11 @@ function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
 end
 
 
-# eliminate a variable for new
-# function newPotential(tree::BayesTree, dfg::G, var::Symbol, prevVar::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
+"""
+    $SIGNATURES
+
+Eliminate a variable and add to tree cliques accordingly.
+"""
 function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFGGraphs.getVariable(dfg,var)
     if (length(getData(firvert).separator) == 0)
@@ -132,7 +153,11 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) 
     end
 end
 
-# build the whole tree in batch format
+"""
+    $SIGNATURES
+
+Build the whole tree in batch format.
+"""
 function buildTree!(tree::BayesTree, dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
   rp = reverse(p,dims=1) # flipdim(p, 1)
   # prevVar = 0
@@ -142,6 +167,12 @@ function buildTree!(tree::BayesTree, dfg::G, p::Array{Symbol,1}) where G <: Abst
   end
 end
 
+"""
+    $SIGNATURES
+
+Open view to see the graphviz exported Bayes tree, assuming default location and
+viewer app.  See keyword arguments for more details.
+"""
 function showTree(;filepath::String="/tmp/bt.pdf",
                    viewerapp::String="evince"  )
   #
@@ -154,6 +185,15 @@ function showTree(;filepath::String="/tmp/bt.pdf",
   end
 end
 
+"""
+    $SIGNATURES
+
+Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
+
+Notes
+- Uses system install of graphviz.org.
+- Can also use Linux tool `xdot`.
+"""
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/bt.pdf",
@@ -291,10 +331,24 @@ function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
 end
 
 """
+    $SIGNATURES
+
+Reset factor graph and build a new tree from the provided variable ordering `p`.
+"""
+function resetBuildTreeFromOrder!(fgl::FactorGraph, p::Vector{Int})::BayesTree
+  resetFactorGraphNewTree!(fgl)
+  return buildTreeFromOrdering!(fgl, p)
+end
+
+"""
     $(SIGNATURES)
 
 Build a completely new Bayes (Junction) tree, after first wiping clean all
 temporary state in fg from a possibly pre-existing tree.
+
+Related:
+
+buildTreeFromOrdering!
 """
 function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
@@ -313,6 +367,13 @@ end
 
 Return the Graphs.ExVertex node object that represents a clique in the Bayes
 (Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
+
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+getTreeAllFrontalSyms
 """
 function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
   bt.cliques[bt.frontals[frt]]
@@ -1017,3 +1078,33 @@ end
 Return `cliq`'s parent clique.
 """
 getParent(treel::BayesTree, afrontal::Union{Symbol, Graphs.ExVertex}) = parentCliq(treel, afrontal)
+
+"""
+    $SIGNATURES
+
+Return one symbol (a frontal variable) from each clique in the `::BayesTree`.
+
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+whichCliq, printCliqHistorySummary
+"""
+function getTreeAllFrontalSyms(fgl::FactorGraph, tree::BayesTree)
+  cliqs = tree.cliques
+  syms = Vector{Symbol}(undef, length(cliqs))
+  for (id,cliq) in cliqs
+    sym = getSym(fgl, getCliqFrontalVarIds(cliq)[1])
+    syms[id] = sym
+  end
+  return syms
+end
+
+"""
+    $SIGNATURES
+
+Get the `::Condition` variable for a clique, likely used for delaying state transitions in
+state machine solver.
+"""
+getSolveCondition(cliq::Graphs.ExVertex) = getData(cliq).solveCondition

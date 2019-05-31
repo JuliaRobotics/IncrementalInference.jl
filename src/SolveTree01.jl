@@ -610,10 +610,10 @@ urt = upGibbsCliqueDensity(inp)
 - `parent` the parent clique to where the upward message will be sent,
 - `childmsgs` is for any incoming messages from child cliques.
 """
-function upGibbsCliqueDensity(inp::ExploreTreeType{T},
+function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
                               N::Int=100,
                               dbg::Bool=false,
-                              iters::Int=3) where {T}
+                              iters::Int=3) where {T, T2}
   #
   @info "up w $(length(inp.sendmsgs)) msgs"
   # Local mcmc over belief functions
@@ -785,13 +785,11 @@ end
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
 function updateFGBT!(fg::FactorGraph,
-                     bt::BayesTree,
-                     cliqID::Int,
+                     cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="" )
+                     dbg::Bool=false, fillcolor::String="",
+                     api::DataLayerAPI=dlapi  )
   #
-  cliq = bt.cliques[cliqID]
-  cliq = bt.cliques[cliqID]
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
   end
@@ -801,12 +799,24 @@ function updateFGBT!(fg::FactorGraph,
     setCliqDrawColor(cliq, fillcolor)
   end
   for dat in urt.IDvals
-    updvert = dlapi.getvertex(fg,dat[1])
+    updvert = api.getvertex(fg,dat[1])
     setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-    dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+    api.updatevertex!(fg, updvert, updateMAPest=true)
   end
   @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
   nothing
+end
+
+function updateFGBT!(fg::FactorGraph,
+                     bt::BayesTree,
+                     cliqID::Int,
+                     urt::UpReturnBPType;
+                     dbg::Bool=false, fillcolor::String="",
+                     api::DataLayerAPI=dlapi  )
+  #
+  cliq = bt.cliques[cliqID]
+  cliq = bt.cliques[cliqID]
+  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor, api=api )
 end
 
 """
@@ -914,7 +924,8 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
-                               drawpdf::Bool=false  )
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
@@ -938,9 +949,23 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   @info "=== start Clique $(cliq.attributes["label"]) ======================"
-  ett = ExploreTreeType(fg_, tree_, cliq, nothing, childmsgs)
-  urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-  updateFGBT!(ett.fg, ett.bt, ett.cliq.index, urt, dbg=dbg, fillcolor="pink")
+  ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
+  urt = UpReturnBPType()
+  if multiproc
+    @info "GOING MULTIPROC"
+    cliqc = deepcopy(cliq)
+    cliqcd = getData(cliqc)
+    # redirect to new unused so that CAN be serialized
+    cliqcd.initUpChannel = Channel{Symbol}(1)
+    cliqcd.initDownChannel = Channel{Symbol}(1)
+    cliqcd.solveCondition = Condition()
+    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    ett.cliq = cliqc
+    urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+  else
+    urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+  end
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="pink") # ett.bt, ett.cliq.index
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt
@@ -1468,6 +1493,36 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
+function tryCliqStateMachineSolve!(fgl::FactorGraph,
+                                   treel::BayesTree,
+                                   i::Int,
+                                   cliqHistories;
+                                   drawtree::Bool=false,
+                                   N::Int=100,
+                                   limititers::Int=-1,
+                                   recordcliqs::Vector{Symbol}=Symbol[])
+  #
+  clst = :na
+  cliq = treel.cliques[i]
+  ids = getCliqFrontalVarIds(cliq)
+  syms = map(d->getSym(fgl, d), ids)
+  recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+  try
+    history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+    cliqHistories[i] = history
+    clst = getCliqStatus(cliq)
+    # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+  catch err
+    bt = catch_backtrace()
+    println()
+    showerror(stderr, err, bt)
+    error(err)
+  end
+  # if !(clst in [:upsolved; :downsolved; :marginalized])
+  #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+  # end
+end
+
 """
     $SIGNATURES
 
@@ -1478,6 +1533,7 @@ function initInferTreeUp!(fgl::FactorGraph,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
+                          skipcliqids::Vector{Int}=Int[],
                           recordcliqs::Vector{Symbol}=Symbol[] )
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
@@ -1487,35 +1543,17 @@ function initInferTreeUp!(fgl::FactorGraph,
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
-  cliqHistories = Dict{Int,Vector{Tuple{Int, Function, CliqStateMachineContainer}}}()
-  @sync begin
-    if !isTreeSolved(treel, skipinitialized=true)
+  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  if !isTreeSolved(treel, skipinitialized=true)
+    @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        alltasks[i] = @async begin
-          clst = :na
-          cliq = treel.cliques[i]
-          ids = getCliqFrontalVarIds(cliq)
-          syms = map(d->getSym(fgl, d), ids)
-          recordthiscliq = length(intersect(recordcliqs,syms)) > 0
-          try
-            history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
-            cliqHistories[i] = history
-            clst = getCliqStatus(cliq)
-            # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
-          catch err
-            bt = catch_backtrace()
-            println()
-            showerror(stderr, err, bt)
-            error(err)
-          end
-          # if !(clst in [:upsolved; :downsolved; :marginalized])
-          #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
-          # end
-        end # async
+        if !(i in skipcliqids)
+          alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+        end # if
       end # for
-    end # if
-  end # sync
+    end # sync
+  end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   for i in 1:length(treel.cliques)
@@ -1524,7 +1562,7 @@ function initInferTreeUp!(fgl::FactorGraph,
     end
   end
 
-  return alltasks
+  return alltasks, cliqHistories
 end
 
 
@@ -1542,16 +1580,18 @@ function inferOverTree!(fgl::FactorGraph,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
                         limititers::Int=1000,
-                        recordcliqs::Vector{Symbol}=Symbol[]  )::Nothing
+                        skipcliqids::Vector{Int}=Int[],
+                        recordcliqs::Vector{Symbol}=Symbol[]  )
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
-  inittasks = Vector{Task}()
+  smtasks=Vector{Task}()
+  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   if upsolve
     if treeinit
       @info "Do tree based init-inference on tree"
-      inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers )
+      smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
       @info "Finished tree based upward init-inference"
     else
       ensureAllInitialized!(fgl)
@@ -1565,7 +1605,7 @@ function inferOverTree!(fgl::FactorGraph,
     @info "Do multi-process downward pass of inference on tree"
     downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
-  nothing
+  return smtasks, ch
 end
 
 """
@@ -1578,13 +1618,15 @@ function inferOverTreeR!(fgl::FactorGraph,
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Nothing
+                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
   @info "Ensure all nodes are initialized"
+  smtasks = Vector{Task}()
+  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   if treeinit
-    inittasks = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
+    smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
   else
     @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
@@ -1592,5 +1634,5 @@ function inferOverTreeR!(fgl::FactorGraph,
   end
   @info "Do recursive down inference over tree"
   downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  nothing
+  return smtasks, ch
 end
