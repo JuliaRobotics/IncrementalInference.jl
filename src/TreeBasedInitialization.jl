@@ -80,6 +80,8 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
+  notify(getSolveCondition(cliq))
+  nothing
 end
 
 function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
@@ -90,6 +92,8 @@ function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
   end
   put!(cd.initDownChannel, status)
+  notify(getSolveCondition(cliq))
+  nothing
 end
 
 """
@@ -227,18 +231,12 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
-  # @sync begin
-    for ch in chlr
-      # either wait to fetch new result, or report or result
-      chst = getCliqStatusUp(ch)
-      @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
-      # if chst != :null && !isready(getData(ch).initUpChannel)
-      #   ret[ch.index] = chst
-      # else
-        ret[ch.index] = fetch(getData(ch).initUpChannel)
-      # end
-    end
-  # end
+  for ch in chlr
+    # either wait to fetch new result, or report or result
+    chst = getCliqStatusUp(ch)
+    @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+    ret[ch.index] = fetch(getData(ch).initUpChannel)
+  end
   return ret
 end
 
@@ -370,10 +368,12 @@ Notes
 function doCliqAutoInitUp!(subfg::FactorGraph,
                            tree::BayesTree,
                            cliq::Graphs.ExVertex;
-                           up_solve_if_able::Bool=true, )::Symbol
+                           up_solve_if_able::Bool=true,
+                           multiprocess::Bool=true )::Symbol
   #
   # init up msg has special procedure for incomplete messages
-  status = :needdownmsg
+  cliqst = getCliqStatus(cliq)
+  status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
   varorder = Int[]
 
   # get incoming clique up messages
@@ -401,7 +401,7 @@ function doCliqAutoInitUp!(subfg::FactorGraph,
     @info "$(current_task()) Clique $(cliq.index), going for doCliqUpSolve!, clique status = $(status)"
     status = doCliqUpSolve!(subfg, tree, cliq)
   else
-    @info "$(current_task()) Clique $(cliq.index), all varialbes not initialized, status = $(status)"
+    @info "$(current_task()) Clique $(cliq.index), all variables not initialized, status = $(status)"
   end
 
   # construct init's up msg to place in parent from initialized separator variables

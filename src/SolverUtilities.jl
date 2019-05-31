@@ -177,7 +177,9 @@ function batchSolve!(dfg::G;
                      dbg::Bool=false,
                      treeinit::Bool=false,
                      limititers::Int=1000,
-                     recordcliqs::Vector{Symbol}=Symbol[]   ) where G <: AbstractDFG
+                     skipcliqids::Vector{Int}=Int[],
+                     recordcliqs::Vector{Symbol}=Symbol[],
+                     returntasks::Bool=false  ) where G <: AbstractDFG
   #
   if DFGGraphs.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -186,13 +188,23 @@ function batchSolve!(dfg::G;
   tree = wipeBuildNewTree!(dfg, drawpdf=drawpdf)
   show ? showTree() : nothing
 
+  smtasks = Vector{Task}()
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
-    inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
+    smtasks, ch = inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit, limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve, downsolve=downsolve)
+    smtasks, ch = inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+                                  limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
+                                  downsolve=downsolve, skipcliqids=skipcliqids  )
   end
-  tree
+
+  # later development allows tasks for each cliq state machine to be returned also
+  if returntasks
+    return tree, smtasks
+  else
+    # legacy option as default
+    return tree
+  end
 end
 
 """

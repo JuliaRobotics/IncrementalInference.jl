@@ -14,6 +14,7 @@ using Reexport
 @reexport using DistributedFactorGraphs
 
 using
+  Dates,
   Statistics,
   Random,
   NLsolve,
@@ -22,6 +23,7 @@ using
   FileIO,
   ProgressMeter,
   DocStringExtensions,
+  FunctionalStateMachine,
   Optim, # might be deprecated in favor for only NLsolve dependency
   JSON2
 
@@ -50,6 +52,19 @@ export
   StateMachine,
   exitStateMachine,
   getCliqSolveHistory,
+  filterHistAllToArray,
+  cliqHistFilterTransitions,
+  printCliqHistorySummary,
+  sandboxStateMachineStep,
+  sandboxCliqResolveStep,
+  # draw and animate state machine
+  getStateLabel,
+  histStateMachineTransitions,
+  histGraphStateMachineTransitions,
+  drawStateTransitionStep,
+  drawStateMachineHistory,
+  animateStateMachineHistoryByTime,
+  animateCliqStateMachines,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -93,6 +108,7 @@ export
   doautoinit!,
   manualinit!,
   initInferTreeUp!,
+  solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
   getFactor,
@@ -126,9 +142,11 @@ export
   blockUntilChildrenStatus_StateMachine,
   blockUntilSiblingsStatus_StateMachine,
   doesCliqNeeddownmsg_StateMachine,
+  slowCliqIfChildrenNotUpsolved_StateMachine,
   whileCliqNotSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
+  determineAllChildrenNeedDownMsg_StateMachine,
 
   #
   isPartial,
@@ -149,6 +167,7 @@ export
   getCliqInitUpMsgs,
   getCliqStatus,
   setCliqStatus!,
+  getSolveCondition,
   getMaxVertId,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
@@ -157,6 +176,7 @@ export
   BayesTree,
   EasyMessage,
   NBPMessage,
+  FullExploreTreeType,
   ExploreTreeType,
   FactorGraph,
   initfg,
@@ -170,9 +190,11 @@ export
   emptyBayesTree,
   buildTree!,
   buildTreeFromOrdering!,
+  resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
   whichCliq,
+  getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
   getCliqParentMsgDown,
   isReadyCliqInferenceUp,
@@ -195,6 +217,7 @@ export
 
   #Visualization
   writeGraphPdf,
+  drawCliqSubgraphUp,
   drawTree,
   ls,
   lsf,
@@ -221,6 +244,7 @@ export
   treeProductUp,
   approxCliqMarginalUp!,
   unmarginalizeVariablesAll!,
+  unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
   isCliqMarginalizedFromVars,
@@ -375,7 +399,6 @@ const NothingUnion{T} = Union{Nothing, T}
 include("ccolamd.jl")
 
 # regular
-include("StateMachine.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -395,6 +418,9 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")
+include("CliqStateMachineUtils.jl")
+include("AdditionalUtils.jl")
+
 
 include("Deprecated.jl")
 

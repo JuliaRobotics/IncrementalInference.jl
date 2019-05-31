@@ -72,8 +72,8 @@ tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
 @test abs(getKDEMean(getKDE(fg, :x1))[1]-10) < 1.0
 @test abs(getKDEMean(getKDE(fg, :x2))[1]-20) < 1.0
 
-@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 1.5
-@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 1.5
+@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 2.0
+@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 2.0
 
 
 end
