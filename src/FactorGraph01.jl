@@ -961,6 +961,17 @@ function getKDE(v::DFGVariable)
   return getKDE(getData(v))
 end
 
+function getVert(dfg::G, sym::Symbol, nt::Symbol=:var) where G <: AbstractDFG
+  @warn "IIF.getVert is deprecated, use DFG.getVariable or DFG.getFactor instead."
+  if nt == :var
+    return DFGGraphs.getVariable(dfg, sym)
+  elseif nt == :fct
+    return DFGGraphs.getFactor(dfg, sym)
+  else
+    error("unknown getVert request nt=$nt")
+  end
+end
+
 """
     $(SIGNATURES)
 

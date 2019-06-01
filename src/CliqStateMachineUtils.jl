@@ -182,12 +182,12 @@ Related:
 
 initInferTreeUp!
 """
-function solveCliqWithStateMachine!(fg::FactorGraph,
+function solveCliqWithStateMachine!(dfg::G,
                                     tree::BayesTree,
                                     frontal::Symbol;
                                     iters::Int=200,
                                     recordhistory::Bool=false,
-                                    verbose::Bool=false  )
+                                    verbose::Bool=false  ) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
   children = Graphs.ExVertex[]
@@ -195,7 +195,7 @@ function solveCliqWithStateMachine!(fg::FactorGraph,
     push!(children, ch)
   end
   prnt = getParent(tree, cliq)
-  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, true, true)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc

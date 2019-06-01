@@ -700,8 +700,9 @@ end
 
 Get all `cliq` variable labels as `::Symbol`.
 """
-function getCliqAllVarSyms(fgl::FactorGraph, cliq::Graphs.ExVertex)::Vector{Symbol}
-  Symbol[getSym(fgl, varid) for varid in getCliqAllVarIds(cliq)]
+function getCliqAllVarSyms(dfg::G, cliq::Graphs.ExVertex)::Vector{Symbol} where G <: AbstractDFG
+  # Symbol[getSym(dfg, varid) for varid in getCliqAllVarIds(cliq)]
+  getCliqAllVarIds(cliq)
 end
 
 """

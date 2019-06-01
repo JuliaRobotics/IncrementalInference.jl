@@ -32,8 +32,8 @@ TODO
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
 mutable struct CliqStateMachineContainer
-  fg::FactorGraph
-  cliqSubFg::FactorGraph
+  dfg::DistributedFactorGraphs.GraphsJl.GraphsDFG
+  cliqSubFg::DistributedFactorGraphs.GraphsJl.GraphsDFG
   tree::BayesTree
   cliq::Graphs.ExVertex
   parentCliq::Vector{Graphs.ExVertex}

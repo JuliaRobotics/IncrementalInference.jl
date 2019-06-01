@@ -1493,19 +1493,19 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
-function tryCliqStateMachineSolve!(fgl::FactorGraph,
+function tryCliqStateMachineSolve!(dfg::G,
                                    treel::BayesTree,
                                    i::Int,
                                    cliqHistories;
                                    drawtree::Bool=false,
                                    N::Int=100,
                                    limititers::Int=-1,
-                                   recordcliqs::Vector{Symbol}=Symbol[])
+                                   recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   clst = :na
   cliq = treel.cliques[i]
-  ids = getCliqFrontalVarIds(cliq)
-  syms = map(d->getSym(fgl, d), ids)
+  syms = getCliqFrontalVarIds(cliq) # ids =
+  # syms = map(d->getSym(fgl, d), ids)
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
     history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )

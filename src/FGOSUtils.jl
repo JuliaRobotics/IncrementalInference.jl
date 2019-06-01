@@ -771,8 +771,8 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::Graphs.ExVertex) = getData(vert).ismargin
-isMarginalized(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=localapi) = isMarginalized(getVert(fg, sym, api=api))
+isMarginalized(vert::DFGVariable) = getData(vert).ismargin
+isMarginalized(dfg::G, sym::Symbol; api::DataLayerAPI=localapi) where G <: AbstractDFG = isMarginalized(DFGGraphs.getVariable(fg, sym))
 
 
 

@@ -55,17 +55,39 @@ end
 # buildTree!(tree, dfgPrime, p)
 
 ## End-to-end
-@info "...Righto!"
 @info "Time to build the Bayes Tree..."
-# resetFactorGraphNewTree!(dfg)
-dfgPrime = deepcopy(dfg)
-prepBatchTree!(dfgPrime)
-
+tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
 # drawTree(tree, show=true)
 
 
+## Upward solve steps with clique state machine
+# @info "Complete upward solve..."
+# smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
 
-getData(cliq)
+# @info "solve leaf clique with single state machine"
+# alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+# manually
+resetTreeCliquesForUpSolve!(tree)
+setTreeCliquesMarginalized!(dfg, tree)
+
+
+
+cliq = whichCliq(tree, :x1)
+
+history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+                                         limititers=50, recordhistory=true )
+0
+
+
+
+
+
+
+
+
+
+cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+isTreeSolved(treel, skipinitialized=true)
 
 
 

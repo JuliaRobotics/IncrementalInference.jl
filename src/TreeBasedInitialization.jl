@@ -174,9 +174,11 @@ end
 
 Return true if all variables in clique are considered marginalized (and initialized).
 """
-function areCliqVariablesAllMarginalized(subfg::FactorGraph, cliq::Graphs.ExVertex)
-  for vid in getCliqAllVarIds(cliq)
-    vert = getVert(subfg, vid)
+function areCliqVariablesAllMarginalized(subfg::G,
+                                         cliq::Graphs.ExVertex) where G <: AbstractDFG
+  for vsym in getCliqAllVarIds(cliq)
+    @show vsym
+    vert = getVert(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
       return false
     end
@@ -190,11 +192,13 @@ end
 
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
-function setTreeCliquesMarginalized!(fgl::FactorGraph, tree::BayesTree)
+function setTreeCliquesMarginalized!(dfg::G,
+                                     tree::BayesTree) where G <: AbstractDFG
+  #
   for (cliid, cliq) in tree.cliques
-    if areCliqVariablesAllMarginalized(fgl, cliq)
+    if areCliqVariablesAllMarginalized(dfg, cliq)
       # need to set the upward messages
-      msgs = prepCliqInitMsgsUp(fgl, cliq)
+      msgs = prepCliqInitMsgsUp(dfg, cliq)
       setUpMsg!(cliq, msgs)
 
       prnt = getParent(tree, cliq)

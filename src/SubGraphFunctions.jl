@@ -46,27 +46,27 @@ end
 Construct a new factor graph object as a subgraph of `fgl::FactorGraph` based on the
 variable labels `syms::Vector{Symbols}`.
 """
-function buildSubgraphFromLabels(fgl::FactorGraph, syms::Vector{Symbol})
-  fgseg = initfg(sessionname=fgl.sessionname, robotname=fgl.robotname)
+function buildSubgraphFromLabels(dfg::FactorGraph, syms::Vector{Symbol})
+  fgseg = initfg(sessionname=dfg.sessionname, robotname=dfg.robotname)
 
   for sym in syms
-    vert = getVert(fgl, sym, api=localapi)
+    vert = getVariable(dfg, sym) #, api=localapi)
     st = getSofttype(vert)
     addVariable!(fgseg, sym, st, uid=vert.index)
-    if isInitialized(fgl,sym)
+    if isInitialized(dfg,sym)
       manualinit!(fgseg, sym, getKDE(vert))
     end
   end
 
   for sym in syms
-    for fct in ls(fgl, sym)
+    for fct in ls(dfg, sym)
       if !hasFactor(fgseg, fct)
         # check all variables are in desired variable set
-        possibleVars = lsf(fgl, fct)
+        possibleVars = lsf(dfg, fct)
         ivars = intersect(possibleVars, syms)
         if length(ivars) == length(possibleVars)
-          fvert = getVert(fgl, fct, api=localapi, nt=:fct)
-          ufc = getFactor(fvert)
+          # fvert = getVert(dfg, fct, api=localapi, nt=:fct)
+          ufc = getFactor(dfg, fct) # fvert
           addFactor!(fgseg, possibleVars, ufc, autoinit=false, uid=fvert.index)
         end
       end

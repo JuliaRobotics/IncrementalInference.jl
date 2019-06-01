@@ -33,7 +33,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst == :upsolved
     infocsm(csmc, "9, going for transferUpdateSubGraph!")
     frsyms = Symbol[getSym(csmc.cliqSubFg, varid) for varid in getCliqFrontalVarIds(csmc.cliq)]
-    transferUpdateSubGraph!(csmc.fg, csmc.cliqSubFg, frsyms)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
     return IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
     setCliqDrawColor(csmc.cliq, "sienna")
@@ -332,8 +332,8 @@ Notes
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   infocsm(csmc, "2, build subgraph")
-  syms = getCliqAllVarSyms(csmc.fg, csmc.cliq)
-  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.fg, syms)
+  syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
   return isCliqNull_StateMachine
 end
 
@@ -357,7 +357,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     if length(prnt) > 0
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.fg, csmc.tree, csmc.cliq)
+      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.tree, csmc.cliq)
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst)
     end
@@ -379,14 +379,14 @@ Notes:
 - State machine rev.1 -- copied from first TreeBasedInitialization.jl.
 - Doesn't do partial initialized state properly yet.
 """
-function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
+function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
                                         cliq::Graphs.ExVertex;
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
                                         limititers::Int=-1,
-                                        recordhistory::Bool=false  )
+                                        recordhistory::Bool=false  ) where G <: AbstractDFG
   #
   children = Graphs.ExVertex[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
@@ -394,7 +394,7 @@ function cliqInitSolveUpByStateMachine!(fg::FactorGraph,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(fg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
