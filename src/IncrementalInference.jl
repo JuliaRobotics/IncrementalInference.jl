@@ -111,6 +111,7 @@ export
   solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
+  resetFactorGraphNewTree!,
   getFactor,
   getFactorDim,
   getVariableDim,

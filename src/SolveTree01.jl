@@ -86,11 +86,11 @@ end
 
 
 function packFromLocalPartials!(fgl::FactorGraph,
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      cliq::Graphs.ExVertex,
-      vertid::Int,
-      N::Int,
-      dbg::Bool=false)
+                                partials::Dict{Int, Vector{BallTreeDensity}},
+                                cliq::Graphs.ExVertex,
+                                vertid::Int,
+                                N::Int,
+                                dbg::Bool=false  )
   #
 
   for idfct in getData(cliq).potentials

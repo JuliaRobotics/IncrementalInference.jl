@@ -646,7 +646,7 @@ function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::String where T <: AbstractDFG
+function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
   existingFactorLabels = getFactorIds(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
@@ -661,7 +661,7 @@ function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50
     end
     i != maxparallel ? nothing : error("Cannot currently add more than $(maxparallel) factors in parallel, please open an issue if this is too restrictive.")
   end
-  return namestring
+  return Symbol(namestring)
 end
 
 """
@@ -692,7 +692,7 @@ function addFactor!(
 
   # TODO: Need to remove this...
   for vert in Xi
-    push!(newData.fncargvID, vert._internalId) # YUCK :/
+    push!(newData.fncargvID, vert.label) # vert._internalId # YUCK :/ -- Yup, this is a problem
   end
 
   success = DFGGraphs.addFactor!(dfg, Xi, newFactor)

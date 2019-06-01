@@ -73,14 +73,13 @@ function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs
 
   # add frontal variable
   push!(getData(clq).frontalIDs, varID)
-  # push!(getData(clq).frontalIDs, varID)
 
   # total dictionary of frontals for easy access
   bt.frontals[varID] = clqID
 
   # append to cliq conditionals
   appendConditional(bt, clqID, condIDs)
-  # makeCliqueLabel(dfg, bt, clqID)
+  makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
 
@@ -280,7 +279,7 @@ function prepBatchTree!(dfg::G;
                         imgs::Bool=false,
                         drawbayesnet::Bool=false  ) where G <: AbstractDFG
   #
-  @show p = getEliminationOrder(dfg, ordering=ordering)
+  p = getEliminationOrder(dfg, ordering=ordering)
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
@@ -302,9 +301,9 @@ Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` s
 """
 function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
-  vdata.BayesNetOutVertIDs = Int[]
-  vdata.BayesNetVertID = 0
-  vdata.separator = Int[]
+  vdata.BayesNetOutVertIDs = Symbol[]
+  vdata.BayesNetVertID = nothing # TODO dont use nothing, see DFG issue #16
+  vdata.separator = Symbol[]
   nothing
 end
 
@@ -561,11 +560,11 @@ end
 """
     $SIGNATURES
 
-Return `::Bool` on whether factor `fct<:FunctorInferenceType` is a partial constraint.
+Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
-function isPartial(fct::Graphs.ExVertex)
-  fcf = getFactor(fct)
+function isPartial(fct::DFGFactor)  #fct::Graphs.ExVertex
+  fcf = getData(fct).fnc.usrfnc!
   isPartial(fcf)
 end
 
@@ -594,9 +593,6 @@ function getCliquePotentials!(dfg::G,
       getData(fct).potentialused = true
       push!(getData(cliq).partialpotential, isPartial(fct))
     end
-  # else
-  #   frontal only factor approach
-  # end
 
   end
 
@@ -617,15 +613,20 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
 end
 
 function cliqPotentialIDs(cliq::Graphs.ExVertex)
-  potIDs = Int[]
+  potIDs = Symbol[]
   for idfct in getData(cliq).potentials
-    push!(potIDs,idfct)
+    push!(potIDs, idfct)
   end
   return potIDs
 end
 
-function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
-  allseps = Int[]
+"""
+    $SIGNATURES
+
+Collect and returl all child clique separator variables.
+"""
+function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)::Vector{Symbol}
+  allseps = Symbol[]
   for child in out_neighbors(cliq, bt.bt)#tree
       allseps = [allseps; getData(child).conditIDs]
   end
@@ -820,7 +821,11 @@ function getCliqVarSingletons(cliq::Graphs.ExVertex,
 end
 
 
+"""
+    $SIGNATURES
 
+Get each clique subgraph association matrix.
+"""
 function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) where G <: AbstractDFG
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
@@ -843,9 +848,12 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
     end
     for i in 1:length(potIDs)
       idfct = getData(cliq).potentials[i]
+      @show i, potIDs[i], idfct
       if idfct == potIDs[i] # sanity check on clique potentials ordering
+        # TODO int and symbol compare is no good
         for vertidx in getData(DFGGraphs.getFactor(dfg, idfct)).fncargvID
         # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
+          @show vertidx, cols[j], i, j
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end

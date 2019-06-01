@@ -1,5 +1,5 @@
 ## Initial setup
-using Revise
+# using Revise
 using Juno
 using IncrementalInference
 using RoME
@@ -58,7 +58,62 @@ end
 @info "...Righto!"
 @info "Time to build the Bayes Tree..."
 dfgPrime = deepcopy(dfg)
+
+
+resetFactorGraphNewTree!(dfg)
+p = getEliminationOrder(dfg)
+tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=false)
+# fge = deepcopy(dfg)
+# buildBayesNet!(fge, p)
+# tree = emptyBayesTree()
+# buildTree!(tree, fge, p)
+#
+#
+# cliq = tree.cliques[3] # start at the root
+# # IIF.buildCliquePotentials(dfg, tree, cliq);
+# @info "Get potentials $(cliq.attributes["label"])"
+# IIF.getCliquePotentials!(dfg, tree, cliq)
+# IIF.compCliqAssocMatrices!(dfg, tree, cliq)
+# # frtl = getCliqFrontalVarIds(cliq)
+# # cond = getCliqSeparatorVarIds(cliq)
+# # inmsgIDs = IIF.collectSeparators(tree, cliq)
+# # potIDs = IIF.cliqPotentialIDs(cliq)
+
+getData(cliq)
+
+
+
+
+getData(DFGGraphs.getFactor(dfg, :x1l1f1)).fncargvID
+
+
+
+mat = getCliqMat(cliq)
+
+
 prepBatchTree!(dfgPrime)
+
+
+drawTree(tree, show=true)
+
+
+
+
+0
+
+import IncrementalInference: resetFactorGraphNewTree!, resetData!
+
+
+
+
+
+
+v = DFGGraphs.getVariables(dfgPrime)[1]
+getData(v).BayesNetVertID
+
+
+
+
 
 # TODO: Nary tests for factors....
 

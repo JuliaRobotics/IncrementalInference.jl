@@ -56,17 +56,17 @@ Data structure for each clique in the Bayes (Junction) tree.
 mutable struct BayesTreeNodeData
   frontalIDs::Vector{Symbol}
   conditIDs::Vector{Symbol}
-  inmsgIDs::Vector{Int}
-  potIDs::Vector{Int} # this is likely redundant TODO -- remove
+  inmsgIDs::Vector{Symbol} # Int
+  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
   partialpotential::Vector{Bool}
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Int}
-  directFrtlMsgIDs::Vector{Int}
-  msgskipIDs::Vector{Int}
-  itervarIDs::Vector{Int}
-  directPriorMsgIDs::Vector{Int}
+  directvarIDs::Vector{Symbol} # Int
+  directFrtlMsgIDs::Vector{Symbol} # Int
+  msgskipIDs::Vector{Symbol} # Int
+  itervarIDs::Vector{Symbol} # Int
+  directPriorMsgIDs::Vector{Symbol} # Int
   debug
   debugDwn
   # future might concentrate these four fields down to two
