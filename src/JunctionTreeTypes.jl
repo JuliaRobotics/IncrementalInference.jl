@@ -175,7 +175,7 @@ end
 $(TYPEDEF)
 """
 mutable struct FullExploreTreeType{T, T2}
-  fg::FactorGraph
+  fg::GraphsDFG
   bt::T2
   cliq::Graphs.ExVertex
   prnt::T

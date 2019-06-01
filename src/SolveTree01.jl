@@ -411,13 +411,13 @@ Perform one step of the minibatch clique Gibbs operation for solving the Chapman
 trasit integral -- here involving separate approximate functional convolution and
 product operations.
 """
-function cliqGibbs(fg::FactorGraph,
+function cliqGibbs(fg::G,
                    cliq::Graphs.ExVertex,
                    vertid::Int,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
                    dbg::Bool,
-                   manis::T  ) where {T <: Tuple}
+                   manis::T  ) where {G <: AbstractDFG, T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
@@ -444,14 +444,14 @@ Iterate successive approximations of clique marginal beliefs by means
 of the stipulated proposal convolutions and products of the functional objects
 for tree clique `cliq`.
 """
-function fmcmc!(fgl::FactorGraph,
+function fmcmc!(fgl::G,
                 cliq::Graphs.ExVertex,
                 fmsgs::Vector{NBPMessage},
                 IDs::Vector{Int},
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                api::DataLayerAPI=dlapi )
+                api::DataLayerAPI=dlapi ) where G <: AbstractDFG
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
@@ -855,14 +855,18 @@ Get and return upward belief messages as stored in child cliques from `treel::Ba
 Notes
 - Use last parameter to select the return format.
 """
-function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+function getCliqChildMsgsUp(fg_::G,
+                            treel::BayesTree,
+                            cliq::Graphs.ExVertex,
+                            ::Type{EasyMessage} ) where G <: AbstractDFG
+  #
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
     nbpchild = NBPMessage(Dict{Int,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
-      id = fg_.IDs[key]
-      manis = getManifolds(fg_, id)
+      # id = fg_.IDs[key]
+      manis = getManifolds(fg_, key)
       nbpchild.p[id] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
