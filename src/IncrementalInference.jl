@@ -29,6 +29,7 @@ using
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
+const DFG = DistributedFactorGraphs
 
 import Base: convert
 # import HDF5: root
@@ -42,6 +43,8 @@ KDE.setForceEvalDirect!(true)
 
 export
   KDE,
+  AMP,
+  DFG,
   dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,
@@ -221,6 +224,7 @@ export
   drawCliqSubgraphUp,
   drawTree,
   ls,
+  ls_PREVIOUS,
   lsf,
   ls2,
   lsRear,

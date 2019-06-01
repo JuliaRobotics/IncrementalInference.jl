@@ -103,11 +103,11 @@ Return true if clique has completed the local upward direction inference procedu
 """
 isUpInferenceComplete(cliq::Graphs.ExVertex) = getData(cliq).upsolved
 
-function areCliqVariablesAllInitialized(fgl::FactorGraph, cliq::Graphs.ExVertex)
+function areCliqVariablesAllInitialized(dfg::G, cliq::Graphs.ExVertex) where {G <: AbstractDFG}
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
-    var = getVert(fgl, vid, api=localapi)
+    var = DFG.getVariable(dfg, vid)
     isallinit &= isInitialized(var)
   end
   isallinit
@@ -369,11 +369,11 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUp!(subfg::FactorGraph,
+function doCliqAutoInitUp!(subfg::G,
                            tree::BayesTree,
                            cliq::Graphs.ExVertex;
                            up_solve_if_able::Bool=true,
-                           multiprocess::Bool=true )::Symbol
+                           multiprocess::Bool=true )::Symbol where {G <: AbstractDFG}
   #
   # init up msg has special procedure for incomplete messages
   cliqst = getCliqStatus(cliq)
@@ -561,8 +561,8 @@ Related
 
 `deleteMsgFactors!`
 """
-function addMsgFactors!(subfg::FactorGraph,
-                        msgs::Dict{Symbol, BallTreeDensity})::Vector{ExVertex}
+function addMsgFactors!(subfg::G,
+                        msgs::Dict{Symbol, BallTreeDensity})::Vector{ExVertex} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = Graphs.ExVertex[]
   svars = union(ls(subfg)...)
@@ -578,8 +578,8 @@ function addMsgFactors!(subfg::FactorGraph,
   return msgfcts
 end
 
-function addMsgFactors!(subfg::FactorGraph,
-                        msgs::Dict{Symbol, Vector{BallTreeDensity}})::Vector{ExVertex}
+function addMsgFactors!(subfg::G,
+                        msgs::Dict{Symbol, Vector{BallTreeDensity}})::Vector{ExVertex} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = Graphs.ExVertex[]
   svars = union(ls(subfg)...)
@@ -597,8 +597,8 @@ function addMsgFactors!(subfg::FactorGraph,
   return msgfcts
 end
 
-function addMsgFactors!(subfg::FactorGraph,
-                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{Graphs.ExVertex}
+function addMsgFactors!(subfg::G,
+                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{Graphs.ExVertex} where G <: AbstractDFG
   #
   allfcts = Graphs.ExVertex[]
   for (cliqid, msgs) in allmsgs

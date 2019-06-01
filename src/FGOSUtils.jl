@@ -759,11 +759,13 @@ function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   vnd
 end
 
+"""
+    $SIGNATURES
 
-function hasFactor(fgl::FactorGraph, sym::Symbol)
-  allf = collect(keys(fgl.fIDs))
-  ret = sym in allf
-  return ret
+Return boolean whether a factor `label` is present in `<:AbstractDFG`.
+"""
+function hasFactor(dfg::G, label::Symbol)::Bool where {G <: AbstractDFG}
+  return haskey(dfg.labelDict, label)
 end
 
 """

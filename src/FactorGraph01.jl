@@ -282,8 +282,9 @@ function addVariable!(dfg::G,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata="",
                       checkduplicates::Bool=true  )::DFGVariable where
-                      {G <: AbstractDFG,
-                       T <: InferenceVariable}
+                        {G <: AbstractDFG,
+                         T <: InferenceVariable}
+  #
   v = DFGVariable(lbl)
   v.ready = ready
   # v.backendset = backendset
@@ -495,7 +496,7 @@ function isInitialized(vert::DFGVariable)::Bool
   return getData(vert).initialized
 end
 function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: AbstractDFG
-  return isInitialized(getVariable(dfg, vsym))
+  return isInitialized(DFG.GraphsJl.getVariable(dfg, vsym))
 end
 
 """

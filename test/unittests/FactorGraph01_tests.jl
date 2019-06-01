@@ -21,8 +21,9 @@ addFactor!(dfg, [:x1], prior )
 pp = Pose2Pose2(MvNormal([10.0;0;pi/3], Matrix(Diagonal([0.1;0.1;0.1].^2))))
 p2br = Pose2Point2BearingRange(Normal(0,0.1),Normal(20.0,1.0))
 
-addFactor!(dfg, [:x1, :x2], deepcopy(pp), autoinit=false)
-addFactor!(dfg, [:x2, :x3], deepcopy(pp), autoinit=false)
+# FYI deep copies not required, since no per factor specific data in pp
+addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
+addFactor!(dfg, [:x2, :x3], pp, autoinit=false)
 addFactor!(dfg, [:x1, :l1], deepcopy(p2br), autoinit=false)
 # TODO: Ask why it can't resolve here.
 addFactor!(dfg, [:x2, :l1], deepcopy(p2br), autoinit=false)
@@ -77,9 +78,6 @@ cliq = whichCliq(tree, :x1)
 history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
                                          limititers=50, recordhistory=true )
 0
-
-
-
 
 
 
