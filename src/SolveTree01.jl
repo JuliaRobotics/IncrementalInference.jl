@@ -917,7 +917,7 @@ Notes
 -----
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
-function approxCliqMarginalUp!(fgl::FactorGraph,
+function approxCliqMarginalUp!(fgl::G,
                                treel::BayesTree,
                                csym::Symbol,
                                onduplicate=true;
@@ -925,7 +925,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                dbg::Bool=false,
                                iters::Int=3,
                                drawpdf::Bool=false,
-                               multiproc::Bool=true )
+                               multiproc::Bool=true ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing

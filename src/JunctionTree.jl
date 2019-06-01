@@ -796,7 +796,7 @@ end
 
 Return the number of factors associated with each variable in `cliq`.
 """
-getCliqNumAssocFactorsPerVar(cliq::Graphs.ExVertex)::Vector{Symbol} = sum(getCliqAssocMat(cliq), dims=1)[:]
+getCliqNumAssocFactorsPerVar(cliq::Graphs.ExVertex)::Vector{Int} = sum(getCliqAssocMat(cliq), dims=1)[:]
 
 
 
