@@ -114,7 +114,7 @@ end
 $(TYPEDEF)
 """
 mutable struct NBPMessage <: Singleton
-  p::Dict{Int,EasyMessage}
+  p::Dict{Symbol, EasyMessage}
 end
 
 """

@@ -41,14 +41,14 @@ end
 
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{<:AbstractString},
-                                    vertid::Int,
+                                    vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
                                     manis::T ) where {T <: Tuple}
   #
   for m in inmsgs
     for idx in keys(m.p)
-      if idx == vertid
-        pdi = m.p[vertid]
+      if idx == vsym
+        pdi = m.p[vsym]
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, "msg")
       end
@@ -63,20 +63,20 @@ end
 
 Add all potentials associated with this clique and vertid to dens.
 """
-function packFromLocalPotentials!(fgl::FactorGraph,
+function packFromLocalPotentials!(fgl::G,
                                   dens::Vector{BallTreeDensity},
                                   wfac::Vector{AbstractString},
                                   cliq::Graphs.ExVertex,
-                                  vertid::Int,
+                                  vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )
+                                  dbg::Bool=false ) where G <: AbstractDFG
   #
   for idfct in getData(cliq).potentials
-    vert = getVert(fgl, idfct, api=localapi)
+    vert = DFG.GraphsJl.getFactor(fgl, idfct)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
+    if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -85,19 +85,19 @@ function packFromLocalPotentials!(fgl::FactorGraph,
 end
 
 
-function packFromLocalPartials!(fgl::FactorGraph,
+function packFromLocalPartials!(fgl::G,
                                 partials::Dict{Int, Vector{BallTreeDensity}},
                                 cliq::Graphs.ExVertex,
-                                vertid::Int,
+                                vsym::Symbol,
                                 N::Int,
-                                dbg::Bool=false  )
+                                dbg::Bool=false  ) where G <: AbstractDFG
   #
 
   for idfct in getData(cliq).potentials
     vert = getVert(fgl, idfct, api=localapi)
     data = getData(vert)
-    if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
+    if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
+      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -413,7 +413,7 @@ product operations.
 """
 function cliqGibbs(fg::G,
                    cliq::Graphs.ExVertex,
-                   vertid::Int,
+                   vsym::Symbol,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
                    dbg::Bool,
@@ -425,12 +425,12 @@ function cliqGibbs(fg::G,
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{AbstractString}()
-  packFromIncomingDensities!(dens, wfac, vertid, inmsgs, manis)
-  packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
-  packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
+  packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(undef, 0,0), dens, wfac)
-  pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+  pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
   # @info " "
@@ -447,7 +447,7 @@ for tree clique `cliq`.
 function fmcmc!(fgl::G,
                 cliq::Graphs.ExVertex,
                 fmsgs::Vector{NBPMessage},
-                IDs::Vector{Int},
+                lbls::Vector{Symbol},
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
@@ -455,7 +455,7 @@ function fmcmc!(fgl::G,
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
-    if length(IDs) == 1
+    if length(lbls) == 1
         MCMCIter=1
     end
     mcmcdbg = Array{CliqGibbsMC,1}()
@@ -464,19 +464,18 @@ function fmcmc!(fgl::G,
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
       @info "#$(iter)\t -- "
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
-      # @show IDs
-      for vertid in IDs
-        vert = getVert(fgl, vertid, api=api)
-        # @show vert.index, vert.label
+      # @show lbls
+      for vsym in lbls
+        vert = DFG.GraphsJl.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+          densPts, potprod = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vsym, fmsgs, N)
           if size(densPts,1)>0
-            updvert = getVert(fgl, vertid, api=dlapi)  # TODO --  can we remove this duplicate getVert?
+            updvert = getVert(fgl, vsym, api=dlapi)  # TODO --  can we remove this duplicate getVert?
             setValKDE!(updvert, densPts)
             # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
             dlapi.updatevertex!(fgl, updvert)
-            # fgl.v[vertid].attributes["val"] = densPts
+            # fgl.v[vsym].attributes["val"] = densPts
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -491,13 +490,13 @@ function fmcmc!(fgl::G,
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
     d = Dict{Int,EasyMessage}() # Array{Float64,2}
-    for vertid in IDs
+    for vsym in lbls
       # TODO reduce to local fg only
-      vert = getVert(fgl,vertid, api=api)
+      vert = getVert(fgl,vsym, api=api)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vertid] = EasyMessage(getVal(vert), bws, manis)
+      d[vsym] = EasyMessage(getVal(vert), bws, manis)
       # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
     @info "fmcmc! -- finished on $(cliq.attributes["label"])"
@@ -929,7 +928,7 @@ function approxCliqMarginalUp!(fgl::G,
                                dbg::Bool=false,
                                iters::Int=3,
                                drawpdf::Bool=false,
-                               multiproc::Bool=true ) where G <: AbstractDFG
+                               multiproc::Bool=false ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
