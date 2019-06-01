@@ -68,6 +68,7 @@ tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
 # @info "solve leaf clique with single state machine"
 # alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
 # manually
+
 resetTreeCliquesForUpSolve!(tree)
 setTreeCliquesMarginalized!(dfg, tree)
 
@@ -114,33 +115,31 @@ statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_State
 limititers = 100
 recordhistory = true
 
-csmc.cliqSubFg
 
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-csmc.cliqSubFg.nodeCounter
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+
+
+
+
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+
+
+
 csmc.cliqSubFg.nodeCounter
 
 
 
 writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
-
-
-
-statemachine.history
-
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-csmc.cliqSubFg.nodeCounter
-
-
-
-
-
-writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
 

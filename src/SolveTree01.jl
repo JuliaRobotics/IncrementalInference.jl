@@ -40,14 +40,14 @@ end
 
 
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
-                                    wfac::Vector{<:AbstractString},
+                                    wfac::Vector{Symbol},
                                     vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
                                     manis::T ) where {T <: Tuple}
   #
   for m in inmsgs
-    for idx in keys(m.p)
-      if idx == vsym
+    for psym in keys(m.p)
+      if psym == vsym
         pdi = m.p[vsym]
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, "msg")
@@ -65,7 +65,7 @@ Add all potentials associated with this clique and vertid to dens.
 """
 function packFromLocalPotentials!(dfg::G,
                                   dens::Vector{BallTreeDensity},
-                                  wfac::Vector{AbstractString},
+                                  wfac::Vector{Symbol},
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
@@ -96,7 +96,7 @@ function packFromLocalPartials!(fgl::G,
   #
 
   for idfct in getData(cliq).potentials
-    vert = getVert(fgl, idfct, api=localapi)
+    vert = DFG.GraphsJl.getFactor(fgl, idfct)
     data = getData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
@@ -426,7 +426,7 @@ function cliqGibbs(fg::G,
   # consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
-  wfac = Vector{AbstractString}()
+  wfac = Vector{Symbol}()
   packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
   packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
@@ -473,11 +473,11 @@ function fmcmc!(fgl::G,
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
           densPts, potprod = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vsym, fmsgs, N)
           if size(densPts,1)>0
-            updvert = getVert(fgl, vsym, api=dlapi)  # TODO --  can we remove this duplicate getVert?
+            updvert = DFG.GraphsJl.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
             setValKDE!(updvert, densPts)
             # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
-            dlapi.updatevertex!(fgl, updvert)
-            # fgl.v[vsym].attributes["val"] = densPts
+              # # TODO SAM PLEASE HELPPPPPPPP
+              # dlapi.updatevertex!(fgl, updvert)
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -494,7 +494,7 @@ function fmcmc!(fgl::G,
     d = Dict{Int,EasyMessage}() # Array{Float64,2}
     for vsym in lbls
       # TODO reduce to local fg only
-      vert = getVert(fgl,vsym, api=api)
+      vert = DFG.GraphsJl.getVariable(fgl,vsym)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
