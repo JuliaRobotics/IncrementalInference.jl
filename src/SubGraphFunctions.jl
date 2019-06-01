@@ -47,35 +47,43 @@ Construct a new factor graph object as a subgraph of `fgl::FactorGraph` based on
 variable labels `syms::Vector{Symbols}`.
 """
 function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
-  fgseg = initfg() #sessionname=dfg.sessionname, robotname=dfg.robotname)
-
+  cliqSubFg = initfg()
   for sym in syms
-    vert = DFG.GraphsJl.getVariable(dfg, sym) #, api=localapi)
-    st = getSofttype(vert)
-    addVariable!(fgseg, sym, st) #, uid=vert.index)
-    if isInitialized(dfg,sym)
-      manualinit!(fgseg, sym, getKDE(vert))
-    end
+    DFG.GraphsJl.getSubgraphAroundNode(dfg, DFG.GraphsJl.getVariable(dfg, sym), 2, false, cliqSubFg)
   end
-
-  for sym in syms
-    for fct in DFG.GraphsJl.ls(dfg, :x1)
-      if !hasFactor(fgseg, fct)
-        # check all variables are in desired variable set
-        possibleVars = DFG.GraphsJl.lsf(dfg, fct)
-        ivars = intersect(possibleVars, syms)
-        if length(ivars) == length(possibleVars)
-          # fvert = getVert(dfg, fct, api=localapi, nt=:fct)
-          ufc = DFG.GraphsJl.getFactor(dfg, fct) # fvert
-
-          addFactor!(fgseg, possibleVars, getData(ufc).fnc.usrfnc!, autoinit=false) #, uid=fvert.index)
-        end
-      end
-    end
-  end
-
-  return fgseg
+  return cliqSubFg
 end
+# function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+#   fgseg = initfg() #sessionname=dfg.sessionname, robotname=dfg.robotname)
+#
+#   for sym in syms
+#     vert = DFG.GraphsJl.getVariable(dfg, sym) #, api=localapi)
+#     st = getSofttype(vert)
+#     addVariable!(fgseg, sym, st) #, uid=vert.index)
+#     if isInitialized(dfg,sym)
+#       manualinit!(fgseg, sym, getKDE(vert))
+#     end
+#   end
+#
+#   for sym in syms
+#     for fct in DFG.GraphsJl.ls(dfg, :x1)
+#       if !hasFactor(fgseg, fct)
+#         # check all variables are in desired variable set
+#         possibleVars = DFG.GraphsJl.lsf(dfg, fct)
+#         ivars = intersect(possibleVars, syms)
+#         @show length(ivars), length(possibleVars)
+#         if length(ivars) == length(possibleVars)
+#           # fvert = getVert(dfg, fct, api=localapi, nt=:fct)
+#           ufc = DFG.GraphsJl.getFactor(dfg, fct) # fvert
+#
+#           addFactor!(fgseg, possibleVars, getData(ufc).fnc.usrfnc!, autoinit=false) #, uid=fvert.index)
+#         end
+#       end
+#     end
+#   end
+#
+#   return fgseg
+# end
 
 
 

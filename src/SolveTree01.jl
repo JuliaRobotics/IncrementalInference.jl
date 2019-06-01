@@ -63,7 +63,7 @@ end
 
 Add all potentials associated with this clique and vertid to dens.
 """
-function packFromLocalPotentials!(fgl::G,
+function packFromLocalPotentials!(dfg::G,
                                   dens::Vector{BallTreeDensity},
                                   wfac::Vector{AbstractString},
                                   cliq::Graphs.ExVertex,
@@ -72,11 +72,13 @@ function packFromLocalPotentials!(fgl::G,
                                   dbg::Bool=false ) where G <: AbstractDFG
   #
   for idfct in getData(cliq).potentials
-    vert = DFG.GraphsJl.getFactor(fgl, idfct)
+    @show typeof(idfct), idfct
+    @show DFG.GraphsJl.getFactorIds(dfg)
+    @show vert = DFG.GraphsJl.getFactor(dfg, idfct)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
-      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg )
+      p, = findRelatedFromPotential(dfg, vert, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end

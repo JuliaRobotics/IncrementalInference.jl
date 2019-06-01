@@ -75,11 +75,114 @@ setTreeCliquesMarginalized!(dfg, tree)
 
 cliq = whichCliq(tree, :x1)
 
-history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         limititers=50, recordhistory=true )
+
+
+# syms = getCliqAllVarSyms(dfg, csmc.cliq)
+# cliqSubFg = buildSubgraphFromLabels(dfg, syms)
+
+# function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+#   cliqSubFg = initfg()
+#   for sym in syms
+#     DFG.GraphsJl.getSubgraphAroundNode(dfg, DFG.GraphsJl.getVariable(dfg, sym), 2, false, cliqSubFg)
+#   end
+#   return cliqSubFg
+# end
+
+
+
+
+# history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+                                         # limititers=50, recordhistory=true )
 0
 
 
+
+
+
+
+
+
+children = Graphs.ExVertex[]
+for ch in Graphs.out_neighbors(cliq, tree.bt)
+  push!(children, ch)
+end
+prnt = getParent(tree, cliq)
+csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
+statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+
+
+limititers = 100
+recordhistory = true
+
+csmc.cliqSubFg
+
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+csmc.cliqSubFg.nodeCounter
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+csmc.cliqSubFg.nodeCounter
+
+
+
+writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
+
+
+
+
+statemachine.history
+
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+csmc.cliqSubFg.nodeCounter
+
+
+
+
+
+writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
+
+
+
+addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
+DFG.GraphsJl.lsf(dfg, :x1x2f1)
+
+
+0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
+
+
+
+
+
+
+
+
+
+
+
+DFG.GraphsJl.getFactorIds(dfg)
 
 
 
@@ -91,6 +194,9 @@ isTreeSolved(treel, skipinitialized=true)
 
 # TODO: Nary tests for factors....
 
+
+
+DFG.GraphsJl.getFactor(dfg, :x1x2f1)
 
 
 
