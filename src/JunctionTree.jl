@@ -374,10 +374,8 @@ Related:
 
 getTreeAllFrontalSyms
 """
-function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
-  bt.cliques[bt.frontals[frt]]
-end
-whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+whichCliq(bt::BayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
+whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Symbol(string(frt)))
 
 """
     $SIGNATURES

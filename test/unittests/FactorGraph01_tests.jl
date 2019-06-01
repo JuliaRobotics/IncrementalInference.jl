@@ -65,6 +65,21 @@ prepBatchTree!(dfgPrime)
 
 
 
+getData(cliq)
+
+
+
 # TODO: Nary tests for factors....
+
+
+
+
+## See picture of upward clique association matrix
+
+using Gadfly
+cliq = whichCliq(tree, :x1)
+spyCliqMat(cliq)
+
+
 
 ###
