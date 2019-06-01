@@ -778,7 +778,7 @@ Notes:
 - does not include any singleton messages from upward or downward message passing.
 """
 function getCliqVarIdsPriors(cliq::Graphs.ExVertex,
-                             allids::Vector{Int}=getCliqAllVarIds(cliq),
+                             allids::Vector{Symbol}=getCliqAllVarIds(cliq),
                              partials::Bool=true  )::Vector{Symbol}
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
@@ -952,7 +952,7 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
   return setdiff(usset, getData(cliq).directPriorMsgIDs)
 end
 
-function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Int, allids=getCliqAllVarIds(cliq) )
+function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Symbol, allids=getCliqAllVarIds(cliq) )
   len = length(allids)
   [1:len;][allids .== varid][1]
 end
