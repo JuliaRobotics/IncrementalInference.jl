@@ -65,39 +65,17 @@ tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
 @info "Complete upward solve..."
 smtasks, ch = initInferTreeUp!(dfg, tree, drawtree=true, recordcliqs=[:x1;:x2;:x3] )
 
-# @info "solve leaf clique with single state machine"
-# alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
-# manually
-
-resetTreeCliquesForUpSolve!(tree)
-setTreeCliquesMarginalized!(dfg, tree)
-
-
-
-
-cliq = whichCliq(tree, :x1)
-history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         limititers=50, recordhistory=true )
-0
-
-
-
-cliq = whichCliq(tree, :x2)
-history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         limititers=50, recordhistory=true )
-0
-
-drawTree(tree, show=true)
-
-cliq = whichCliq(tree, :x3)
-history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         limititers=50, recordhistory=true )
-0
 
 
 
 
 
+
+## See results
+
+using RoMEPlotting
+
+drawPosesLandm(dfg)
 
 
 ## See picture of upward clique association matrix
