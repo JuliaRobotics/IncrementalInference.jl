@@ -1515,10 +1515,10 @@ function tryCliqStateMachineSolve!(dfg::G,
   # syms = map(d->getSym(fgl, d), ids)
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
     cliqHistories[i] = history
     clst = getCliqStatus(cliq)
-    # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+    # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     bt = catch_backtrace()
     println()

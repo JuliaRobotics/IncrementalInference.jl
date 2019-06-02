@@ -63,7 +63,7 @@ tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
 
 # Upward solve steps with clique state machine
 @info "Complete upward solve..."
-smtasks, ch = initInferTreeUp!(dfg, tree, drawtree=true, recordcliqs=true )
+smtasks, ch = initInferTreeUp!(dfg, tree, drawtree=true, recordcliqs=[:x1;:x2;:x3] )
 
 # @info "solve leaf clique with single state machine"
 # alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
