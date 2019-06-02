@@ -61,9 +61,9 @@ tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
 # drawTree(tree, show=true)
 
 
-## Upward solve steps with clique state machine
-# @info "Complete upward solve..."
-# smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
+# Upward solve steps with clique state machine
+@info "Complete upward solve..."
+smtasks, ch = initInferTreeUp!(dfg, tree, drawtree=true, recordcliqs=true )
 
 # @info "solve leaf clique with single state machine"
 # alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
@@ -83,90 +83,20 @@ history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
 
 
 cliq = whichCliq(tree, :x2)
+history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+                                         limititers=50, recordhistory=true )
+0
 
-children = Graphs.ExVertex[]
-for ch in Graphs.out_neighbors(cliq, tree.bt)
-  push!(children, ch)
-end
-prnt = getParent(tree, cliq)
-csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
-statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+drawTree(tree, show=true)
 
-limititers = 100
-recordhistory = true
-
-
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-
-
-
-
-writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
-
-
-
-
-addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
-DFG.GraphsJl.lsf(dfg, :x1x2f1)
-
-
+cliq = whichCliq(tree, :x3)
+history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+                                         limititers=50, recordhistory=true )
 0
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-
-
-
-
-
-
-
-
-
-
-
-DFG.GraphsJl.getFactorIds(dfg)
-
-
-
-
-cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
-isTreeSolved(treel, skipinitialized=true)
-
-
-
-# TODO: Nary tests for factors....
-
-
-
-DFG.GraphsJl.getFactor(dfg, :x1x2f1)
 
 
 

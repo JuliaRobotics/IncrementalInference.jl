@@ -1535,17 +1535,17 @@ end
 
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
-function initInferTreeUp!(fgl::FactorGraph,
+function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
                           skipcliqids::Vector{Int}=Int[],
-                          recordcliqs::Vector{Symbol}=Symbol[] )
+                          recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
-  setTreeCliquesMarginalized!(fgl, treel)
+  setTreeCliquesMarginalized!(dfg, treel)
   drawtree ? drawTree(treel, show=false) : nothing
 
   # queue all the tasks
@@ -1556,7 +1556,7 @@ function initInferTreeUp!(fgl::FactorGraph,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
         end # if
       end # for
     end # sync
@@ -1578,7 +1578,7 @@ end
 
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTree!(fgl::FactorGraph,
+function inferOverTree!(dfg::G,
                         bt::BayesTree;
                         N::Int=100,
                         upsolve::Bool=true,
@@ -1588,7 +1588,7 @@ function inferOverTree!(fgl::FactorGraph,
                         treeinit::Bool=false,
                         limititers::Int=1000,
                         skipcliqids::Vector{Int}=Int[],
-                        recordcliqs::Vector{Symbol}=Symbol[]  )
+                        recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
@@ -1598,19 +1598,19 @@ function inferOverTree!(fgl::FactorGraph,
   if upsolve
     if treeinit
       @info "Do tree based init-inference on tree"
-      smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
+      smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
       @info "Finished tree based upward init-inference"
     else
-      ensureAllInitialized!(fgl)
+      ensureAllInitialized!(dfg)
     end
     if !treeinit # !isTreeSolvedUp(bt)
       @info "Do multi-process upward pass of inference on tree"
-      upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+      upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     end
   end
   if downsolve
     @info "Do multi-process downward pass of inference on tree"
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+    downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
   return smtasks, ch
 end
