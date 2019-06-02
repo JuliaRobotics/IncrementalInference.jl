@@ -32,7 +32,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "9, finishingCliq")
   if cliqst == :upsolved
     infocsm(csmc, "9, going for transferUpdateSubGraph!")
-    frsyms = Symbol[getSym(csmc.cliqSubFg, varid) for varid in getCliqFrontalVarIds(csmc.cliq)]
+    frsyms = getCliqFrontalVarIds(csmc.cliq)
     transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
     return IncrementalInference.exitStateMachine
   elseif cliqst == :initialized

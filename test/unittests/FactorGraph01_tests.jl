@@ -76,11 +76,13 @@ setTreeCliquesMarginalized!(dfg, tree)
 
 
 cliq = whichCliq(tree, :x1)
-# history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         # limititers=50, recordhistory=true )
+history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+                                         limititers=50, recordhistory=true )
 0
 
 
+
+cliq = whichCliq(tree, :x2)
 
 children = Graphs.ExVertex[]
 for ch in Graphs.out_neighbors(cliq, tree.bt)
@@ -89,7 +91,6 @@ end
 prnt = getParent(tree, cliq)
 csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
 statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
-
 
 limititers = 100
 recordhistory = true
@@ -101,19 +102,10 @@ statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhisto
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-
-
-
-
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 
-
-
-csmc.cliqSubFg.nodeCounter
 
 
 

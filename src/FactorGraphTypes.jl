@@ -352,7 +352,7 @@ function updateFullVertData!(fgl::G,
   sym = Symbol(nv.label)
   isvar = isVariable(fgl, sym)
 
-  lvert = isvar ? getVert(fgl, sym, api=localapi) : getVert(fgl, sym, api=localapi, nt=:fct)
+  lvert = isvar ? DFG.GraphsJl.getVariable(fgl, sym) : DFG.GraphsJl.getFactor(fgl, sym)
   lvd = getData(lvert)
   nvd = getData(nv)
 

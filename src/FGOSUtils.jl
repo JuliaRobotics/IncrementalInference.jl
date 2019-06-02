@@ -709,45 +709,45 @@ end
 
 Return whether `sym::Symbol` represents a variable vertex in the graph.
 """
-isVariable(fgl::FactorGraph, sym::Symbol) = haskey(fgl.IDs, sym)
+isVariable(dfg::G, sym::Symbol) where G <: AbstractDFG = haskey(dfg.labelDict, sym)
 
 """
     $SIGNATURES
 
 Return whether `sym::Symbol` represents a factor vertex in the graph.
 """
-isFactor(fgl::FactorGraph, sym::Symbol) = haskey(fgl.fIDs, sym)
+isFactor(dfg::G, sym::Symbol) where G <: AbstractDFG = hasFactor(dfg, sym)
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
+# """
+# getVariable(fgl::FactorGraph, lbl::Symbol) = getVert(fgl, lbl, api=api)
 
-Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
-"""
-getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
-
-"""
-    $SIGNATURES
-
-Return reference to the user factor in `::FactorGraph` identified by `::Symbol`.
-"""
-getFactor(fvert::Graphs.ExVertex) = getData(fvert).fnc.usrfnc!
-getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getFactor(getVert(fgl, lbl, api=api, nt=:fct))
+# """
+#     $SIGNATURES
+#
+# Return reference to the user factor in `::FactorGraph` identified by `::Symbol`.
+# """
+# getFactor(fvert::Graphs.ExVertex) = getData(fvert).fnc.usrfnc!
+# getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getFactor(getVert(fgl, lbl, api=api, nt=:fct))
 
 """
     $SIGNATURES
 
 Display and return to console the user factor identified by tag name.
 """
-showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getFactor(fgl,fsym)
+showFactor(fgl::G, fsym::Symbol) where G <: AbstractDFG = @show getFactor(fgl,fsym)
 
 """
    $SIGNATURES
 
 Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
 """
-function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
-  vert = getVert(fg, vsym, api=api)
+function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
+  vert = DFG.GraphsJl.getVariable(fg, vsym)
   vnd = getData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")

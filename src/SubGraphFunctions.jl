@@ -225,15 +225,13 @@ Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `des
 Notes
 - Approximately like `dest` = `src`, for all `syms`
 """
-function transferUpdateSubGraph!(dest::FactorGraph,
-                                 src::FactorGraph,
-                                 syms::Vector{Symbol}=union(ls(src)...);
-                                 srcapi::DataLayerAPI=localapi,
-                                 destapi::DataLayerAPI=dlapi   )
+function transferUpdateSubGraph!(dest::G1,
+                                 src::G2,
+                                 syms::Vector{Symbol}=union(ls(src)...) ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
   for sym in syms
-    vert = getVert(src, sym, api=srcapi)
-    destapi.updatevertex!(dest, vert)
+    vert = DFG.GraphsJl.getVariable(src, sym)
+    updateFullVertData!(dest, vert, updateMAPest=true)
   end
   nothing
 end
