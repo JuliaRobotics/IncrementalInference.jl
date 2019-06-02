@@ -312,6 +312,19 @@ PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{I
 
 ###
 
+
+function convert(::Type{BallTreeDensity}, p::EasyMessage)
+  AMP.manikde!(p.pts, p.bws, p.manifolds)
+end
+
+function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
+  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
+end
+
+#
+
+
+
 function addGraphsVert!(fgl::FactorGraph,
             exvert::Graphs.ExVertex;
             labels::Vector{<:AbstractString}=String[])
@@ -319,21 +332,21 @@ function addGraphsVert!(fgl::FactorGraph,
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
-function getVertNode(fgl::FactorGraph, id::Int; nt::Symbol=:var, bigData::Bool=false)
+function getVertNode(fgl::G, id::Int; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
-function getVertNode(fgl::FactorGraph, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false)
+function getVertNode(fgl::G, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
   return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
-getVertNode(fgl::FactorGraph, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
+getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
 
 
 # excessive function, needs refactoring
-function updateFullVertData!(fgl::FactorGraph,
-                             nv::Graphs.ExVertex;
-                             updateMAPest::Bool=false )
+function updateFullVertData!(fgl::G,
+                             nv::N;  # nv::Graphs.ExVertex;
+                             updateMAPest::Bool=false ) where {G <: AbstractDFG, N <: DFGNode}
   #
 
   sym = Symbol(nv.label)
@@ -377,13 +390,3 @@ function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
   @warn "graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)"
   nothing
 end
-
-function convert(::Type{BallTreeDensity}, p::EasyMessage)
-  AMP.manikde!(p.pts, p.bws, p.manifolds)
-end
-
-function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
-  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
-end
-
-#

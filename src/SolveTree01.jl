@@ -506,7 +506,7 @@ function fmcmc!(fgl::G,
     return mcmcdbg, d
 end
 
-function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
+function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
   m = NBPMessage(Dict{Symbol,EasyMessage}())
@@ -664,8 +664,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # prepare and convert upward belief messages
   upmsgs = Dict{Symbol, BallTreeDensity}()
+  @show collect(keys(inp.fg.g.vertices))
   for (ke, va) in m.p
-    msgsym = Symbol(inp.fg.g.vertices[ke].label)
+    # msgsym = Symbol(inp.fg.g.vertices[ke].label)
+    @show msgsym = ke
     upmsgs[msgsym] = convert(BallTreeDensity, va)
   end
   setUpMsg!(inp.cliq, upmsgs)
@@ -756,12 +758,12 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      bt::BayesTree,
                      cliqID::Int,
                      ddt::DownReturnBPType;
                      dbg::Bool=false,
-                     fillcolor::String=""  )
+                     fillcolor::String=""  ) where G <: AbstractDFG
     #
     cliq = bt.cliques[cliqID]
     if dbg
@@ -786,11 +788,10 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="",
-                     api::DataLayerAPI=dlapi  )
+                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
   #
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
@@ -801,24 +802,24 @@ function updateFGBT!(fg::FactorGraph,
     setCliqDrawColor(cliq, fillcolor)
   end
   for dat in urt.IDvals
-    updvert = api.getvertex(fg,dat[1])
+    # TODO make symmetric for non in memory version
+    updvert = DFG.GraphsJl.getVariable(fg, dat[1])
     setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-    api.updatevertex!(fg, updvert, updateMAPest=true)
+    # api.updatevertex!(fg, updvert, updateMAPest=true)
   end
   @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
   nothing
 end
 
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      bt::BayesTree,
                      cliqID::Int,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="",
-                     api::DataLayerAPI=dlapi  )
+                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
   #
   cliq = bt.cliques[cliqID]
   cliq = bt.cliques[cliqID]
-  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor, api=api )
+  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor )
 end
 
 """

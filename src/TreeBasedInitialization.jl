@@ -344,7 +344,7 @@ function prepCliqInitMsgsUp(subfg::G,
   # construct init's up msg to place in parent from initialized separator variables
   msg = Dict{Symbol, BallTreeDensity}()
   for vid in getCliqSeparatorVarIds(cliq)
-    var = getVert(subfg, vid, api=localapi)
+    var = DFG.GraphsJl.getVariable(subfg, vid)
     if isInitialized(var)
       msg[Symbol(var.label)] = getKDE(var)
     end
