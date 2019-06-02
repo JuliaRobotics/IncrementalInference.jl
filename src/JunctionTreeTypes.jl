@@ -121,7 +121,7 @@ end
 $(TYPEDEF)
 """
 mutable struct PotProd
-    Xi::Int
+    Xi::Symbol # Int
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
@@ -142,8 +142,8 @@ $(TYPEDEF)
 mutable struct DebugCliqMCMC
     mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
-    outmsglbls::Dict{Symbol, Int}
-    priorprods::Vector{CliqGibbsMC} #Union{Nothing, Dict{Symbol, Vector{EasyMessage}}}
+    outmsglbls::Dict{Symbol, Symbol} # Int
+    priorprods::Vector{CliqGibbsMC}
     DebugCliqMCMC() = new()
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
@@ -154,7 +154,7 @@ $(TYPEDEF)
 mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
+  IDvals::Dict{Symbol, EasyMessage} # Int
   keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
@@ -167,7 +167,7 @@ $(TYPEDEF)
 mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
+    IDvals::Dict{Symbol,EasyMessage} # Int
     keepdwnmsgs::Dict{Symbol, BallTreeDensity}
 end
 
@@ -201,7 +201,7 @@ $(TYPEDEF)
 mutable struct MsgPassType
   fg::FactorGraph
   cliq::Graphs.ExVertex
-  vid::Int
+  vid::Symbol # Int
   msgs::Array{NBPMessage,1}
   N::Int
 end

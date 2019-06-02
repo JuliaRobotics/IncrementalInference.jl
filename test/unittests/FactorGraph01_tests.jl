@@ -74,32 +74,11 @@ setTreeCliquesMarginalized!(dfg, tree)
 
 
 
+
 cliq = whichCliq(tree, :x1)
-
-
-
-# syms = getCliqAllVarSyms(dfg, csmc.cliq)
-# cliqSubFg = buildSubgraphFromLabels(dfg, syms)
-
-# function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
-#   cliqSubFg = initfg()
-#   for sym in syms
-#     DFG.GraphsJl.getSubgraphAroundNode(dfg, DFG.GraphsJl.getVariable(dfg, sym), 2, false, cliqSubFg)
-#   end
-#   return cliqSubFg
-# end
-
-
-
-
 # history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
                                          # limititers=50, recordhistory=true )
 0
-
-
-
-
-
 
 
 

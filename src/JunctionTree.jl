@@ -847,7 +847,7 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
     end
     for i in 1:length(potIDs)
       idfct = getData(cliq).potentials[i]
-      @show i, potIDs[i], idfct
+      # @show i, potIDs[i], idfct
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
         for vertidx in getData(DFGGraphs.getFactor(dfg, idfct)).fncargvID

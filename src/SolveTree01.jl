@@ -491,7 +491,7 @@ function fmcmc!(fgl::G,
 
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
-    d = Dict{Int,EasyMessage}() # Array{Float64,2}
+    d = Dict{Symbol,EasyMessage}() # Array{Float64,2}
     for vsym in lbls
       # TODO reduce to local fg only
       vert = DFG.GraphsJl.getVariable(fgl,vsym)
@@ -506,10 +506,10 @@ function fmcmc!(fgl::G,
     return mcmcdbg, d
 end
 
-function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float64,2}
+function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
-  m = NBPMessage(Dict{Int,EasyMessage}())
+  m = NBPMessage(Dict{Symbol,EasyMessage}())
   for id in IDs
     m.p[id] = d[id]
   end
@@ -623,7 +623,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # TODO -- some weirdness with: d,. = d = ., nothing
   mcmcdbg = Array{CliqGibbsMC,1}()
-  d = Dict{Int,EasyMessage}()
+  d = Dict{Symbol,EasyMessage}()
 
   priorprods = Vector{CliqGibbsMC}()
 
@@ -654,7 +654,8 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
   m = upPrepOutMsg!(d, cliqdata.conditIDs)
 
-  outmsglbl = Dict{Symbol, Int}()
+  # TODO can remove this outmsglbl Symbol => Symbol
+  outmsglbl = Dict{Symbol, Symbol}()
   if dbg
     for (ke, va) in m.p
       outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
