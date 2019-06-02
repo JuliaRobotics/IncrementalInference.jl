@@ -102,8 +102,6 @@ statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhisto
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
-
-
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)

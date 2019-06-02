@@ -50,7 +50,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
       if psym == vsym
         pdi = m.p[vsym]
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
-        push!(wfac, "msg")
+        push!(wfac, :msg)
       end
       # TODO -- we can inprove speed of search for inner loop
     end
@@ -865,12 +865,12 @@ function getCliqChildMsgsUp(fg_::G,
   #
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
-    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
+    nbpchild = NBPMessage(Dict{Symbol,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
       # id = fg_.IDs[key]
       manis = getManifolds(fg_, key)
-      nbpchild.p[id] = convert(EasyMessage, bel, manis)
+      nbpchild.p[key] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end
