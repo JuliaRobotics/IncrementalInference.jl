@@ -69,7 +69,7 @@ Return the manifolds on which variable `sym::Symbol` is defined.
 """
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getSofttype(v, solveKey=solveKey).manifolds
 function getManifolds(dfg::T, sym::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
-  return getManifolds(getVariable(fgl, sym), solveKey=solveKey)
+  return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
 
 """

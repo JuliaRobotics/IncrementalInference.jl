@@ -562,16 +562,17 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, BallTreeDensity})::Vector{ExVertex} where G <: AbstractDFG
+                        msgs::Dict{Symbol, BallTreeDensity})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
-  msgfcts = Graphs.ExVertex[]
-  svars = union(ls(subfg)...)
-  mvid = getMaxVertId(subfg)
+  msgfcts = DFGFactor[]
+  svars = DFG.GraphsJl.getVariableIds(subfg)
+  # mvid = getMaxVertId(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # @show "adding down msg $msym"
-      mvid += 1
-      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false, uid=mvid)
+      # mvid += 1
+      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false)
+      @show fc
       push!(msgfcts, fc)
     end
   end
@@ -598,9 +599,9 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{Graphs.ExVertex} where G <: AbstractDFG
+                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{DFGFactor} where G <: AbstractDFG
   #
-  allfcts = Graphs.ExVertex[]
+  allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
     # do each dict in array separately
     newfcts = addMsgFactors!(subfg, msgs)
@@ -620,10 +621,10 @@ Related
 `addMsgFactors!`
 """
 function deleteMsgFactors!(subfg::G,
-                           fcts::Vector{Graphs.ExVertex}) where G <: AbstractDFG
+                           fcts::Vector{DFGFactor}) where G <: AbstractDFG
   #
   for fc in fcts
-    deleteFactor!(subfg, Symbol(fc.label))
+    deleteFactor!(subfg, fc.label)
   end
 end
 
