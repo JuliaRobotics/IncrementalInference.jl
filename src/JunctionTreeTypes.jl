@@ -186,11 +186,11 @@ const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
 const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
 
 
-function ExploreTreeType(fgl::FactorGraph,
-                btl::BayesTree,
-                vertl::Graphs.ExVertex,
-                prt::T,
-                msgs::Array{NBPMessage,1} ) where {T}
+function ExploreTreeType(fgl::G,
+                         btl::BayesTree,
+                         vertl::Graphs.ExVertex,
+                         prt::T,
+                         msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
@@ -199,7 +199,7 @@ end
 $(TYPEDEF)
 """
 mutable struct MsgPassType
-  fg::FactorGraph
+  fg::GraphsDFG
   cliq::Graphs.ExVertex
   vid::Symbol # Int
   msgs::Array{NBPMessage,1}

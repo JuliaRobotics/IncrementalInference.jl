@@ -673,7 +673,10 @@ end
 
 
 
-function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
+function dwnPrepOutMsg(fg::G,
+                       cliq::Graphs.ExVertex,
+                       dwnMsgs::Array{NBPMessage,1},
+                       d::Dict{Symbol, EasyMessage}) where G <: AbstractDFG
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
@@ -700,12 +703,12 @@ Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward
 Note
 - Only update frontal variables of the clique.
 """
-function downGibbsCliqueDensity(fg::FactorGraph,
+function downGibbsCliqueDensity(fg::G,
                                 cliq::Graphs.ExVertex,
                                 dwnMsgs::Array{NBPMessage,1},
                                 N::Int=100,
                                 MCMCIter::Int=3,
-                                dbg::Bool=false  )
+                                dbg::Bool=false  ) where G <: AbstractDFG
     #
     # TODO standardize function call to have similar stride to upGibbsCliqueDensity
     @info "down"
@@ -721,8 +724,10 @@ function downGibbsCliqueDensity(fg::FactorGraph,
 
     # Always keep dwn messages in cliq data
     dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-    for (ke, va) in m.p
-      msgsym = Symbol(fg.g.vertices[ke].label)
+    for (msgsym, va) in m.p
+      # @show ke
+      # @show collect(keys(fg.g.vertices))
+      # msgsym = Symbol(fg.g.vertices[ke].label)
       dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
     end
     setDwnMsg!(cliq, dwnkeepmsgs)
@@ -1099,7 +1104,7 @@ function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
   nothing
 end
 
-function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1})
+function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
     # info("starting pett")
     # TODO -- expand this to grab only partial subsection from the fg and bt data structures
 
@@ -1112,14 +1117,14 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
     nothing
 end
 
-function dispatchNewDwnProc!(fg::FactorGraph,
+function dispatchNewDwnProc!(fg::G,
                              bt::BayesTree,
                              parentStack::Array{Graphs.ExVertex,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
                              N::Int=100,
                              dbg::Bool=false,
-                             drawpdf::Bool=false  )
+                             drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   cliq = parentStack[stkcnt]
   while !haskey(refdict, cliq.index) # nodedata.cliq
@@ -1153,13 +1158,13 @@ Downward message passing on Bayes (Junction) tree.
 Notes
 - Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
 """
-function processPreOrderStack!(fg::FactorGraph,
+function processPreOrderStack!(fg::G,
                                bt::BayesTree,
                                parentStack::Array{Graphs.ExVertex,1},
                                refdict::Dict{Int,Future};
                                N::Int=100,
                                dbg::Bool=false,
-                               drawpdf::Bool=false )
+                               drawpdf::Bool=false ) where G <: AbstractDFG
   #
     # dwn message passing function for iterative tree exploration
     stkcnt = 0
@@ -1612,12 +1617,12 @@ end
 
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTreeR!(fgl::FactorGraph,
+function inferOverTreeR!(fgl::G,
                          bt::BayesTree;
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}
+                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}} where G <: AbstractDFG
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)

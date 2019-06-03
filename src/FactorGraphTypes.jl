@@ -328,7 +328,15 @@ function getVertNode(fgl::G, id::Int; nt::Symbol=:var, bigData::Bool=false) wher
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end
 function getVertNode(fgl::G, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
-  return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
+  @warn "getVertNode is deprecated, use DFG.getVariable or DFG.getFactor instead"
+  if nt == :var
+    return DFG.getVariable(fgl, lbl)
+  elseif nt == :fct
+    return DFG.getFactor(fgl, lbl)
+  else
+    error("unknown getVertNode request for nt=$nt")
+  end
+  # return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
 end
 getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
 
