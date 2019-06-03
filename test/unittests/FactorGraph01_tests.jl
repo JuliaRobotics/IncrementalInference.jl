@@ -6,6 +6,7 @@ using RoME
 using DistributedFactorGraphs
 using Test
 
+
 dfg = initfg()
 addVariable!(dfg, :x1, Pose2)
 addVariable!(dfg, :x2, Pose2)
@@ -75,8 +76,6 @@ drawTree(tree, show=true)
 
 
 
-
-
 ## Upward solve steps with clique state machine
 # @info "Complete upward solve..."
 # smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
@@ -126,7 +125,6 @@ lsf(csmc.cliqSubFg, :x2)
 writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
-statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 
