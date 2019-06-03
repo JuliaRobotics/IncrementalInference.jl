@@ -14,6 +14,9 @@ include("testCompareVariablesFactors.jl")
 @testset "Ensure memory return is working properly..." begin
     include("typeReturnMemRef.jl")
 end
+
+include("basicGraphsOperations.jl")
+
 include("testPartialFactors.jl")
 
 @testset "basic Bayes tree construction" begin

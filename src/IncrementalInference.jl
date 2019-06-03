@@ -207,6 +207,7 @@ export
   getChildren,
   parentCliq,
   getParent,
+  getCliqSiblings,
   getKDE,
   getVertKDE,
   initializeNode!,

@@ -1063,6 +1063,28 @@ getChildren(treel::BayesTree, frtsym::Symbol) = childCliqs(treel, frtsym)
 getChildren(treel::BayesTree, cliq::Graphs.ExVertex) = childCliqs(treel, cliq)
 
 """
+    $SIGNATURES
+
+Return a vector of all siblings to a clique, which defaults to not `inclusive` the calling `cliq`.
+"""
+function getCliqSiblings(treel::BayesTree, cliq::Graphs.ExVertex, inclusive::Bool=false)
+  prnt = getParent(treel, cliq)
+  if length(prnt) > 0
+    allch = getChildren(treel, prnt[1])
+  end
+  if inclusive
+    return allch
+  end
+  sibs = Graphs.ExVertex[]
+  for ch in allch
+    if ch.index != cliq.index
+      push!(sibs, ch)
+    end
+  end
+  return sibs
+end
+
+"""
     $(SIGNATURES)
 
 Return `cliq`'s parent clique.

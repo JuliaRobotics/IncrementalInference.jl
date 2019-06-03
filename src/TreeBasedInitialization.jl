@@ -503,27 +503,27 @@ function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
                                  downmsgs::Dict{Symbol, BallTreeDensity} )::Vector{Symbol} where G <: AbstractDFG
   #
-  allids = getCliqAllVarIds(cliq)
+  allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
   dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.getVariableIds(dfg)) #dfg.IDs
-  dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
-  dwnvarids = intersect(allids, dwnmsgids)
+  # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
+  dwnvarids = intersect(allsyms, dwnmsgsym)
 
   # find any other prior factors (might have partials)
-  prvarids = getCliqVarIdsPriors(cliq, allids, true)
+  prvarids = getCliqVarIdsPriors(cliq, allsyms, true)
   hassinglids = union(dwnvarids, prvarids)
 
   # Get all other variable factor counts
   nfcts = getCliqNumAssocFactorsPerVar(cliq)
   # add msg marginal prior (singletons) to number of factors
-  for msid in dwnmsgids
-    nfcts[msid .== allids] .+= 1
+  for msid in dwnmsgsym
+    nfcts[msid .== allsyms] .+= 1
   end
 
   # sort permutation order for increasing number of factor association
   nfctsp = sortperm(nfcts)
-  sortedids = allids[nfctsp]
+  sortedids = allsyms[nfctsp]
 
   # all singleton variables
   singids = union(prvarids, dwnvarids)
