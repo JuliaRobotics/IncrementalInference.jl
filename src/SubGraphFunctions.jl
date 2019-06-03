@@ -45,12 +45,37 @@ end
 
 Construct a new factor graph object as a subgraph of `fgl::FactorGraph` based on the
 variable labels `syms::Vector{Symbols}`.
+
+Notes
+- Slighly messy internals, but gets the job done -- some room for performance improvement.
+
+Related
+
+getVariableIds
 """
 function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+
+  # data structure for cliq sub graph
   cliqSubFg = initfg()
+
+  # add a little too many variables (since we need the factors)
   for sym in syms
     DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg)
   end
+
+  # remove excessive variables that were copied by neighbors distance 2
+  currVars = DFG.getVariableIds(cliqSubFg)
+  toDelVars = setdiff(currVars, syms)
+  for dv in toDelVars
+    # delete any neighboring factors first
+    for fc in DFG.lsf(cliqSubFg, dv)
+      DFG.deleteFactor!(cliqSubFg, fc)
+    end
+
+    # and the variable itself
+    DFG.deleteVariable!(cliqSubFg, dv)
+  end
+
   return cliqSubFg
 end
 # function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG

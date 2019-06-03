@@ -64,7 +64,7 @@ end
 ## End-to-end
 @info "Time to build the Bayes Tree..."
 tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
-# drawTree(tree, show=true)
+drawTree(tree, show=true)
 
 
 # TODO: Test
@@ -94,29 +94,9 @@ cliq = whichCliq(tree, :x1)
 
 
 
-# syms = getCliqAllVarSyms(dfg, csmc.cliq)
-# cliqSubFg = buildSubgraphFromLabels(dfg, syms)
-
-# function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
-#   cliqSubFg = initfg()
-#   for sym in syms
-#     DFG.GraphsJl.getSubgraphAroundNode(dfg, DFG.GraphsJl.getVariable(dfg, sym), 2, false, cliqSubFg)
-#   end
-#   return cliqSubFg
-# end
-
-
-
-
 # history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
-                                         # limititers=50, recordhistory=true )
-0
-
-
-
-
-
-
+#                                          limititers=50, recordhistory=true )
+# 0
 
 
 children = Graphs.ExVertex[]
@@ -141,7 +121,9 @@ statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhisto
 
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
 
+lsf(csmc.cliqSubFg, :x2)
 
+writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
 statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory)
@@ -160,7 +142,7 @@ writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
 addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
-DFG.GraphsJl.lsf(dfg, :x1x2f1)
+DFG.lsf(dfg, :x1x2f1)
 
 
 0
@@ -197,7 +179,7 @@ statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhisto
 
 
 
-DFG.GraphsJl.getFactorIds(dfg)
+DFG.getFactorIds(dfg)
 
 
 
@@ -211,7 +193,7 @@ isTreeSolved(treel, skipinitialized=true)
 
 
 
-DFG.GraphsJl.getFactor(dfg, :x1x2f1)
+DFG.getFactor(dfg, :x1x2f1)
 
 
 
