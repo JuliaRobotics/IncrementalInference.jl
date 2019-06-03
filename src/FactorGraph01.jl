@@ -490,7 +490,7 @@ function isInitialized(vert::DFGVariable)::Bool
   return getData(vert).initialized
 end
 function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: AbstractDFG
-  return isInitialized(DFG.GraphsJl.getVariable(dfg, vsym))
+  return isInitialized(DFG.getVariable(dfg, vsym))
 end
 
 """

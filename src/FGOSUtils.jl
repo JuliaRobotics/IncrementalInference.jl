@@ -573,7 +573,7 @@ showFactor(fgl::G, fsym::Symbol) where G <: AbstractDFG = @show getFactor(fgl,fs
 Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
 """
 function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
-  vert = DFG.GraphsJl.getVariable(fg, vsym)
+  vert = DFG.getVariable(fg, vsym)
   vnd = getData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
@@ -583,15 +583,6 @@ function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
   println("kde max: $(round.(getKDEMax(getKDE(vnd)),digits=4))")
   println()
   vnd
-end
-
-"""
-    $SIGNATURES
-
-Return boolean whether a factor `label` is present in `<:AbstractDFG`.
-"""
-function hasFactor(dfg::G, label::Symbol)::Bool where {G <: AbstractDFG}
-  return haskey(dfg.labelDict, label)
 end
 
 """

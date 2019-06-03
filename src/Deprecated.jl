@@ -26,7 +26,7 @@ function writeGraphPdf(fgl::G;
   # fid = open(dotfile,"w")
   # write(fid,Graphs.to_dot(fgd.g))
   # close(fid)
-  DFG.GraphsJl.toDotFile(fgl, dotfile)
+  DFG.toDotFile(fgl, dotfile)
   show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
 
   try

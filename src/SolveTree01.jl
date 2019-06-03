@@ -66,9 +66,7 @@ function packFromLocalPotentials!(dfg::G,
                                   dbg::Bool=false ) where G <: AbstractDFG
   #
   for idfct in getData(cliq).potentials
-    @show typeof(idfct), idfct
-    @show DFG.GraphsJl.getFactorIds(dfg)
-    @show vert = DFG.GraphsJl.getFactor(dfg, idfct)
+    vert = DFG.getFactor(dfg, idfct)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
@@ -90,7 +88,7 @@ function packFromLocalPartials!(fgl::G,
   #
 
   for idfct in getData(cliq).potentials
-    vert = DFG.GraphsJl.getFactor(fgl, idfct)
+    vert = DFG.getFactor(fgl, idfct)
     data = getData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
@@ -384,7 +382,7 @@ function initVariable!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
+  # @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
@@ -462,12 +460,12 @@ function fmcmc!(fgl::G,
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       # @show lbls
       for vsym in lbls
-        vert = DFG.GraphsJl.getVariable(fgl, vsym)
+        vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
           densPts, potprod = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vsym, fmsgs, N)
           if size(densPts,1)>0
-            updvert = DFG.GraphsJl.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
+            updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
             setValKDE!(updvert, densPts)
             # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
               # # TODO SAM PLEASE HELPPPPPPPP
@@ -488,7 +486,7 @@ function fmcmc!(fgl::G,
     d = Dict{Symbol,EasyMessage}() # Array{Float64,2}
     for vsym in lbls
       # TODO reduce to local fg only
-      vert = DFG.GraphsJl.getVariable(fgl,vsym)
+      vert = DFG.getVariable(fgl,vsym)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
@@ -658,10 +656,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # prepare and convert upward belief messages
   upmsgs = Dict{Symbol, BallTreeDensity}()
-  @show collect(keys(inp.fg.g.vertices))
+  # @show collect(keys(inp.fg.g.vertices))
   for (ke, va) in m.p
     # msgsym = Symbol(inp.fg.g.vertices[ke].label)
-    @show msgsym = ke
+    msgsym = ke
     upmsgs[msgsym] = convert(BallTreeDensity, va)
   end
   setUpMsg!(inp.cliq, upmsgs)
@@ -797,7 +795,7 @@ function updateFGBT!(fg::G,
   end
   for dat in urt.IDvals
     # TODO make symmetric for non in memory version
-    updvert = DFG.GraphsJl.getVariable(fg, dat[1])
+    updvert = DFG.getVariable(fg, dat[1])
     setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
     # api.updatevertex!(fg, updvert, updateMAPest=true)
   end

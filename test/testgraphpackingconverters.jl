@@ -1,7 +1,7 @@
 # packing and unpacking of Graph related types
 
 using IncrementalInference
-using DistributedFactorGraphs, DistributedFactorGraphs.GraphsJl
+using DistributedFactorGraphs
 
 using Test
 

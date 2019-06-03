@@ -230,7 +230,7 @@ function transferUpdateSubGraph!(dest::G1,
                                  syms::Vector{Symbol}=union(ls(src)...) ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
   for sym in syms
-    vert = DFG.GraphsJl.getVariable(src, sym)
+    vert = DFG.getVariable(src, sym)
     updateFullVertData!(dest, vert, updateMAPest=true)
   end
   nothing

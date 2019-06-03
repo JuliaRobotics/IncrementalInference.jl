@@ -177,7 +177,6 @@ Return true if all variables in clique are considered marginalized (and initiali
 function areCliqVariablesAllMarginalized(subfg::G,
                                          cliq::Graphs.ExVertex) where G <: AbstractDFG
   for vsym in getCliqAllVarIds(cliq)
-    @show vsym
     vert = getVert(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
       return false
@@ -344,7 +343,7 @@ function prepCliqInitMsgsUp(subfg::G,
   # construct init's up msg to place in parent from initialized separator variables
   msg = Dict{Symbol, BallTreeDensity}()
   for vid in getCliqSeparatorVarIds(cliq)
-    var = DFG.GraphsJl.getVariable(subfg, vid)
+    var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
       msg[Symbol(var.label)] = getKDE(var)
     end
@@ -454,7 +453,6 @@ function prepCliqInitMsgsDown!(fgl::G,
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
   for (cliqid, msgs) in currmsgs
-    @show cliqid, length(msgs)
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
         msgspervar[msgsym] = Vector{BallTreeDensity}()
@@ -470,7 +468,7 @@ function prepCliqInitMsgsDown!(fgl::G,
   # multiply multiple messages together
   for (msgsym, msgs) in msgspervar
     # check if this particular down message requires msgsym
-    if haskey(fgl.IDs, msgsym)
+    if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
       if length(msgspervar[msgsym]) > 1
         products[msgsym] = manifoldProduct(msgs, getManifolds(fgl, msgsym))
       else
@@ -503,12 +501,12 @@ Notes:
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
-                                 downmsgs::Dict{Symbol, BallTreeDensity}  ) where G <: AbstractDFG
+                                 downmsgs::Dict{Symbol, BallTreeDensity} )::Vector{Symbol} where G <: AbstractDFG
   #
   allids = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs)), collect(keys(dfg.IDs)))
+  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.getVariableIds(dfg)) #dfg.IDs
   dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allids, dwnmsgids)
 
@@ -531,7 +529,7 @@ function getCliqInitVarOrderDown(dfg::G,
   singids = union(prvarids, dwnvarids)
 
   # organize the prior variables separately with asceding factor count
-  initorder = zeros(Int, 0)
+  initorder = Symbol[] #zeros(Int, 0)
   for id in sortedids
     if id in singids
       push!(initorder, id)
@@ -565,14 +563,13 @@ function addMsgFactors!(subfg::G,
                         msgs::Dict{Symbol, BallTreeDensity})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  svars = DFG.GraphsJl.getVariableIds(subfg)
+  svars = DFG.getVariableIds(subfg)
   # mvid = getMaxVertId(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # @show "adding down msg $msym"
       # mvid += 1
       fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false)
-      @show fc
       push!(msgfcts, fc)
     end
   end
@@ -687,8 +684,8 @@ function doCliqInitDown!(subfg::G,
   # dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # get down variable initialization order
-  @show initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  @show map(x->getSym(subfg, x), initorder)
+  initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
+  # @show map(x->getSym(subfg, x), initorder)
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # add messages as priors to this sub factor graph
