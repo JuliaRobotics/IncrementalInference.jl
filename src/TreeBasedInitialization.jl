@@ -107,7 +107,7 @@ function areCliqVariablesAllInitialized(dfg::G, cliq::Graphs.ExVertex) where {G 
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
-    var = DFG.GraphsJl.getVariable(dfg, vid)
+    var = DFG.getVariable(dfg, vid)
     isallinit &= isInitialized(var)
   end
   isallinit
@@ -303,7 +303,7 @@ function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol})::Bool where G 
   while count > 0
     count = 0
     for vsym in varorder
-      var = DFG.GraphsJl.getVariable(subfg, vsym)
+      var = DFG.getVariable(subfg, vsym)
       isinit = isInitialized(var)
       @info "going for doautoinit!, var.label=$(var.label), isinit=$(isinit)"
       # TODO -- must use factors and values in cliq (assume subgraph?)
@@ -327,7 +327,7 @@ function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
                         cliq::Graphs.ExVertex  )::Symbol where G <: AbstractDFG
   #
-  csym = DFG.GraphsJl.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label
+  csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label
   approxCliqMarginalUp!(subfg, tree, csym, false)
   getData(cliq).upsolved = true
   return :upsolved

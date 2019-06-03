@@ -1,9 +1,3 @@
-# TODO: Remove this in time
-import DistributedFactorGraphs.GraphsJl
-const DFGGraphs = DistributedFactorGraphs.GraphsJl
-
-
-
 #global pidx
 global pidx = 1
 global pidl = 1
@@ -205,7 +199,7 @@ function productbelief(dfg::G,
                        N::Int;
                        dbg::Bool=false ) where {G <: AbstractDFG}
   #
-  vert = DFGGraphs.getVariable(dfg, vertlabel)
+  vert = DFG.getVariable(dfg, vertlabel)
   manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
@@ -313,9 +307,9 @@ function predictbelief(dfg::G,
                        N::Int=0,
                        dbg::Bool=false) where G <: AbstractDFG
   #
-  factors = map(fsym -> DFGGraphs.getFactor(dfg, fsym), factorsyms)
+  factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
 
-  vert = DFGGraphs.getVariable(dfg, destvertsym)
+  vert = DFG.getVariable(dfg, destvertsym)
 
   # determine the number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(vert),2)
@@ -354,7 +348,7 @@ function localProduct(dfg::G,
   # vector of all neighbors as Symbols
   cf = getNeighbors(dfg, sym)
   for f in cf
-    vert = DFGGraphs.getFactor(dfg, f)
+    vert = DFG.getFactor(dfg, f)
     push!(fcts, vert)
     push!(lb, vert.label)
   end
@@ -367,7 +361,7 @@ function localProduct(dfg::G,
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
-  vert = DFGGraphs.getVariable(dfg, sym)
+  vert = DFG.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb

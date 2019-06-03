@@ -1,8 +1,3 @@
-# TODO: Remove this in time
-import DistributedFactorGraphs.GraphsJl
-const DFGGraphs = DistributedFactorGraphs.GraphsJl
-
-
 """
     $SIGNATURES
 
@@ -48,10 +43,10 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
-    flbl = string(flbl, DFGGraphs.getVariable(dfg,fr).label, ",") #fgl.v[fr].
+    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",") #fgl.v[fr].
   end
   for cond in getData(clq).conditIDs
-    clbl = string(clbl, DFGGraphs.getVariable(dfg,cond).label, ",") # fgl.v[cond].
+    clbl = string(clbl, DFG.getVariable(dfg,cond).label, ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -69,7 +64,7 @@ Add a new frontal variable to clique.
 """
 function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs::Array{Symbol,1}=Symbol[])::Nothing where G <: AbstractDFG
   clq = bt.cliques[clqID]
-  var = DFGGraphs.getVariable(dfg, varID)
+  var = DFG.getVariable(dfg, varID)
 
   # add frontal variable
   push!(getData(clq).frontalIDs, varID)
@@ -123,7 +118,7 @@ end
 Eliminate a variable and add to tree cliques accordingly.
 """
 function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
-    firvert = DFGGraphs.getVariable(dfg,var)
+    firvert = DFG.getVariable(dfg,var)
     if (length(getData(firvert).separator) == 0)
       if (length(tree.cliques) == 0)
         addClique!(tree, dfg, var)
@@ -140,7 +135,7 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) 
           firstelim = temp
         end
       end
-      felbl = DFGGraphs.getVariable(dfg, p[firstelim]).label
+      felbl = DFG.getVariable(dfg, p[firstelim]).label
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       unFC = union(getCliqFrontalVarIds(tree.cliques[CpID]), getCliqSeparatorVarIds(tree.cliques[CpID]))
@@ -320,10 +315,10 @@ Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Eliminatio
 can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
-  for v in DFGGraphs.ls(dfg)
+  for v in DFG.ls(dfg)
     resetData!(getData(v))
   end
-  for f in DFGGraphs.lsf(dfg)
+  for f in DFG.lsf(dfg)
     resetData!(getData(f))
   end
   nothing
@@ -488,14 +483,14 @@ function getFactorsAmongVariablesOnly(dfg::G,
   # collect all factors attached to variables
   prefcts = Symbol[]
   for var in varlist
-    union!(prefcts, DFGGraphs.ls(dfg, var))
+    union!(prefcts, DFG.ls(dfg, var))
   end
 
   almostfcts = Symbol[]
   if unused
     # now check if those factors have already been added
     for fct in prefcts
-      vert = DFGGraphs.getFactor(dfg, fct)
+      vert = DFG.getFactor(dfg, fct)
       if !getData(vert).potentialused
         push!(almostfcts, fct)
       end
@@ -507,7 +502,7 @@ function getFactorsAmongVariablesOnly(dfg::G,
   # Select factors that have all variables in this clique var list
   usefcts = Symbol[]
   for fct in almostfcts
-    if length(setdiff(DFGGraphs.getNeighbors(dfg, fct), varlist)) == 0
+    if length(setdiff(DFG.getNeighbors(dfg, fct), varlist)) == 0
       push!(usefcts, fct)
     end
   end
@@ -587,7 +582,7 @@ function getCliquePotentials!(dfg::G,
     fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
     for fsym in fctsyms
       push!(getData(cliq).potentials, fsym)
-      fct = DFGGraphs.getFactor(dfg, fsym)
+      fct = DFG.getFactor(dfg, fsym)
       getData(fct).potentialused = true
       push!(getData(cliq).partialpotential, isPartial(fct))
     end
@@ -850,7 +845,7 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
       # @show i, potIDs[i], idfct
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in getData(DFGGraphs.getFactor(dfg, idfct)).fncargvID
+        for vertidx in getData(DFG.getFactor(dfg, idfct)).fncargvID
         # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
           @show vertidx, cols[j], i, j
           if vertidx == cols[j]

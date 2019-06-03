@@ -1,8 +1,3 @@
-# TODO: Remove this in time
-import DistributedFactorGraphs.GraphsJl
-const DFGGraphs = DistributedFactorGraphs.GraphsJl
-
-
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 """
@@ -291,8 +286,7 @@ function addVariable!(dfg::G,
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
   setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
-  # TODO: Make generic, not DFGGraphs
-  DFGGraphs.addVariable!(dfg, v)
+  DFG.addVariable!(dfg, v)
 
   return v
 end
@@ -519,7 +513,7 @@ function factorCanInitFromOtherVars(dfg::T,
   useinitfct = Symbol[]
   faillist = Symbol[]
   for vsym in varsyms
-    xi = DFGGraphs.getVariable(dfg, vsym)
+    xi = DFG.getVariable(dfg, vsym)
     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
       push!(useinitfct, fct)
     end
@@ -552,7 +546,7 @@ function doautoinit!(dfg::T,
   if !isInitialized(xi)
     # get factors attached to this variable xi
     vsym = Symbol(xi.label)
-    neinodes = DFGGraphs.getNeighbors(dfg, vsym)
+    neinodes = DFG.getNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
     if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
       # Which of the factors can be used for initialization
@@ -696,7 +690,7 @@ function addFactor!(
     push!(newData.fncargvID, vert.label) # vert._internalId # YUCK :/ -- Yup, this is a problem
   end
 
-  success = DFGGraphs.addFactor!(dfg, Xi, newFactor)
+  success = DFG.addFactor!(dfg, Xi, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   autoinit && doautoinit!(dfg, Xi, singles=false)
@@ -715,7 +709,7 @@ function addFactor!(
         {G <: AbstractDFG,
          R <: Union{FunctorInferenceType, InferenceType}}
   #
-  verts = map(vid -> DFGGraphs.getVariable(dfg, vid), xisyms)
+  verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel )
 end
 
@@ -794,7 +788,7 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
-  adjMat = DFGGraphs.getAdjacencyMatrix(dfg)
+  adjMat = DFG.getAdjacencyMatrix(dfg)
   # Get the variable and factor IDs
   permutedsf = Symbol.(adjMat[2:end, 1])
   permuteds = Symbol.(adjMat[1, 2:end])
@@ -819,7 +813,7 @@ end
 # lets create all the vertices first and then deal with the elimination variables thereafter
 function addBayesNetVerts!(dfg::G, elimOrder::Array{Symbol,1}) where G <: AbstractDFG
   for pId in elimOrder
-    vert = DFGGraphs.getVariable(dfg, pId)
+    vert = DFG.getVariable(dfg, pId)
     # @show vert.label, getData(vert).BayesNetVertID
     if getData(vert).BayesNetVertID == nothing
       # fg.bnid+=1
@@ -831,7 +825,7 @@ function addBayesNetVerts!(dfg::G, elimOrder::Array{Symbol,1}) where G <: Abstra
 end
 
 function addConditional!(dfg::G, vertId::Symbol, Si::Vector{Symbol})::Nothing where G <: AbstractDFG
-  bnv = DFGGraphs.getVariable(dfg, vertId)
+  bnv = DFG.getVariable(dfg, vertId)
   bnvd = getData(bnv) # bnv.attributes["data"]
   bnvd.separator = Si
   for s in Si
@@ -844,7 +838,7 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDF
     @show Si
   lbls = String[]
   genmarg = GenericMarginal()
-  Xi = map(v -> DFGGraphs.getVariable(dfg, v), Si)
+  Xi = map(v -> DFG.getVariable(dfg, v), Si)
   # @info "adding marginal to"
   # for x in Xi
   #   @info "x.index=",x.index
@@ -857,14 +851,14 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
-    for n in DFGGraphs.getNeighbors(dfg, m) #x1, x2
+    for n in DFG.getNeighbors(dfg, m) #x1, x2
       if n == fromvert.label # n.label ==? x1
         @info "   - Breaking link $(m.label)->$(fromvert.label)..."
-        @info "     - Original links: $(DFGGraphs.ls(dfg, m))"
-        remvars = setdiff(DFGGraphs.ls(dfg, m), [fromvert.label])
+        @info "     - Original links: $(DFG.ls(dfg, m))"
+        remvars = setdiff(DFG.ls(dfg, m), [fromvert.label])
         @info "     - New links: $remvars"
 
-        DFGGraphs.deleteFactor!(dfg, m) # Remove it
+        DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
           addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false)
@@ -874,9 +868,9 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
       end
     end
     # Added back in chain rule.
-    if DFGGraphs.exists(dfg, m) && length(DFGGraphs.getNeighbors(dfg, m)) <= 1
+    if DFG.exists(dfg, m) && length(DFG.getNeighbors(dfg, m)) <= 1
       @warn "removing vertex id=$(m.label)"
-      DFGGraphs.deleteFactor!(dfg, m)
+      DFG.deleteFactor!(dfg, m)
     end
   end
   return nothing
@@ -896,12 +890,12 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: Abstract
       Si = Symbol[]
       gm = DFGFactor[]
 
-      vert = DFGGraphs.getVariable(dfg, v)
-      for fctId in DFGGraphs.getNeighbors(dfg, vert)
-        fct = DFGGraphs.getFactor(dfg, fctId)
+      vert = DFG.getVariable(dfg, v)
+      for fctId in DFG.getNeighbors(dfg, vert)
+        fct = DFG.getFactor(dfg, fctId)
         if (getData(fct).eliminated != true)
           push!(fi, fctId)
-          for sepNode in DFGGraphs.getNeighbors(dfg, fct)
+          for sepNode in DFG.getNeighbors(dfg, fct)
             # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
             if sepNode != v && !(sepNode in Si) # Symbol comparison!
               push!(Si,sepNode)
@@ -965,9 +959,9 @@ end
 function getVert(dfg::G, sym::Symbol, nt::Symbol=:var) where G <: AbstractDFG
   @warn "IIF.getVert is deprecated, use DFG.getVariable or DFG.getFactor instead."
   if nt == :var
-    return DFGGraphs.getVariable(dfg, sym)
+    return DFG.getVariable(dfg, sym)
   elseif nt == :fct
-    return DFGGraphs.getFactor(dfg, sym)
+    return DFG.getFactor(dfg, sym)
   else
     error("unknown getVert request nt=$nt")
   end
@@ -982,11 +976,11 @@ function getVertKDE(v::DFGVariable)
   return getKDE(v)
 end
 function getVertKDE(dfg::G, id::Int) where G <: AbstractDFG
-  v = DFGGraphs.getVariable(dfg, id)
+  v = DFG.getVariable(dfg, id)
   return getKDE(v)
 end
 function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
-  v = DFGGraphs.getVariable(dfg, lbl)
+  v = DFG.getVariable(dfg, lbl)
   return getKDE(v)
 end
 function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG

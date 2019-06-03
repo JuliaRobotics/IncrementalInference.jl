@@ -1,5 +1,3 @@
-using DistributedFactorGraphs.GraphsJl
-
 import Base: convert
 import Base: ==
 
@@ -115,16 +113,9 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(;sessionname="NA",robotname="",username="",cloudgraph=nothing)::AbstractDFG
-  dfg = GraphsDFG()
+function initfg(dfg::T=GraphsDFG();sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: AbstractDFG
   solverParams = SolverParams(0, nothing, nothing, false, 0, false)
   setSolverParams(dfg, solverParams)
-  # fgl = RoME.initfg(sessionname=sessionname)
-  # fgl = FactorGraph()
-  # fgl.sessionname = sessionname
-  # fgl.robotname = robotname
-  # fgl.username = username
-  # fgl.cg = cloudgraph
   return dfg
 end
 

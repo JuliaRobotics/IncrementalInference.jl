@@ -1,8 +1,3 @@
-# TODO: Remove this in time
-import DistributedFactorGraphs.GraphsJl
-const DFGGraphs = DistributedFactorGraphs.GraphsJl
-
-
 """
     $(SIGNATURES)
 
@@ -305,7 +300,7 @@ function evalFactor2(dfg::G,
   variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
-    xi = DFGGraphs.getVariable(dfg, id)
+    xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
     # push!(Xi, dlapi.getvertex(fgl,id))
 
@@ -376,14 +371,14 @@ function findRelatedFromPotential(dfg::G,
   ptsbw = evalFactor2(dfg, idfct, vertlabel, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
   zdim = getFactorDim(idfct)
-  vdim = getVariableDim(DFGGraphs.getVariable(dfg, vertlabel))
+  vdim = getVariableDim(DFG.getVariable(dfg, vertlabel))
   fulldim = vdim <= zdim
 
   # TODO -- better to upsample before the projection
   Ndim = size(ptsbw,1)
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  manis = getSofttype(DFGGraphs.getVariable(dfg, vertlabel)).manifolds
+  manis = getSofttype(DFG.getVariable(dfg, vertlabel)).manifolds
   p = AMP.manikde!(ptsbw, manis)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)

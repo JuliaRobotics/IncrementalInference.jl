@@ -32,8 +32,8 @@ TODO
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
 mutable struct CliqStateMachineContainer
-  dfg::DistributedFactorGraphs.GraphsJl.GraphsDFG
-  cliqSubFg::DistributedFactorGraphs.GraphsJl.GraphsDFG
+  dfg::DistributedFactorGraphs.GraphsDFG
+  cliqSubFg::DistributedFactorGraphs.GraphsDFG
   tree::BayesTree
   cliq::Graphs.ExVertex
   parentCliq::Vector{Graphs.ExVertex}
@@ -175,7 +175,7 @@ end
 $(TYPEDEF)
 """
 mutable struct FullExploreTreeType{T, T2}
-  fg::GraphsDFG
+  fg::DistributedFactorGraphs.GraphsDFG
   bt::T2
   cliq::Graphs.ExVertex
   prnt::T

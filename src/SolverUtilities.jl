@@ -1,7 +1,3 @@
-# TODO: Remove this in time
-import DistributedFactorGraphs.GraphsJl
-const DFGGraphs = DistributedFactorGraphs.GraphsJl
-
 function fastnorm(u)
   # dest[1] = ...
   n = length(u)
@@ -181,7 +177,7 @@ function batchSolve!(dfg::G;
                      recordcliqs::Vector{Symbol}=Symbol[],
                      returntasks::Bool=false  ) where G <: AbstractDFG
   #
-  if DFGGraphs.getSolverParams(dfg).isfixedlag
+  if DFG.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfg)
   end
@@ -237,11 +233,11 @@ Future:
 - Allow different freezing strategies beyond fifo.
 """
 function fifoFreeze!(dfg::G) where G <: AbstractDFG
-  if DFGGraphsfgl.getSolverParams(dfg).qfl == 0
+  if DFG.getSolverParams(dfg).qfl == 0
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
-  tofreeze = DFGGraphs.getAddHistory(dfg)[1:(end-DFGGraphsfgl.getSolverParams(dfg).qfl)]
+  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
       return nothing
