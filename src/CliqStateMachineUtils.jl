@@ -24,7 +24,7 @@ Related:
 
 getTreeAllFrontalSyms, getCliqSolveHistory, animateCliqStateMachines
 """
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
+function printCliqHistorySummary(fid, hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
   for hi in hist
     first = (split(string(hi[1]), 'T')[end])*" "
     len = length(first)
@@ -55,9 +55,13 @@ function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, Cli
         first = first*string(getCliqStatus(ch))*" "
       end
     end
-    println(first)
+    println(fid, first)
   end
   nothing
+end
+
+function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
+  printCliqHistorySummary(stdout, hist)
 end
 
 function printCliqHistorySummary(cliq::Graphs.ExVertex)
