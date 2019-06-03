@@ -487,6 +487,7 @@ function prepCliqInitMsgsDown!(fgl::G,
 end
 
 """
+    $SIGNATURES
 
 Special function to do initialization in downward direction, assuming that not all
 variables can be initialized.  Relies on outside down messages.
@@ -549,7 +550,7 @@ end
 """
     $SIGNATURES
 
-Modify the subgraph`::FactorGraph` to include `msgs` as priors that are used
+Modify the `subfg::FactorGraph` to include `msgs` as priors that are used
 during clique inference.
 
 Notes
