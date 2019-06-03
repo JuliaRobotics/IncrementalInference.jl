@@ -929,7 +929,7 @@ function approxCliqMarginalUp!(fgl::G,
                                dbg::Bool=false,
                                iters::Int=3,
                                drawpdf::Bool=false,
-                               multiproc::Bool=false ) where G <: AbstractDFG
+                               multiproc::Bool=true ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing

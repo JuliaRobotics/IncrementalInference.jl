@@ -463,7 +463,7 @@ function prepCliqInitMsgsDown!(fgl::G,
 
   @info "$(current_task()) Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
 
-  # use default allocated dict
+  # reference to default allocated dict location
   products = getData(cliq).downInitMsg
   # multiply multiple messages together
   for (msgsym, msgs) in msgspervar
