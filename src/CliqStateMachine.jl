@@ -51,6 +51,25 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   return isCliqNull_StateMachine # whileCliqNotSolved_StateMachine
 end
 
+"""
+    $SIGNATURES
+
+Notes
+- State machine function nr. 8c
+"""
+function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if length(prnt) > 0
+    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, wait on parent for condition notify.")
+    wait(getSolveCondition(prnt[1]))
+  else
+    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
+    @warn "no parent!"
+  end
+
+  # go to 4
+  return isCliqNull_StateMachine
+end
 
 
 """
@@ -76,6 +95,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
   end
 
+  # go to 9
   return finishCliqSolveCheck_StateMachine
 end
 
@@ -103,6 +123,12 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
+  if length(dwinmsgs) == 0
+    infocsm(csmc, "attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
+    # go to 8c
+    return waitChangeOnParentCondition_StateMachine
+  end
+
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
@@ -126,7 +152,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
     notifyCliqDownInitStatus!(csmc.cliq, cliqst)
 
-    infocsm(csmc, "8a, after down init attempt, $cliqst.")
+    infocsm(csmc, "8a, near-end down init attempt, $cliqst.")
   end
 
   return attemptCliqInitUp_StateMachine

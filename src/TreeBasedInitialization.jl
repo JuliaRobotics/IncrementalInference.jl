@@ -10,6 +10,8 @@ end
 
 function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict)
   getData(cliq).upInitMsgs[childid] = msg
+  # notify cliq condition that there was a change
+  notify(getSolveCondition(cliq))
 end
 
 function isCliqInitialized(cliq::Graphs.ExVertex)::Bool
@@ -448,7 +450,7 @@ function prepCliqInitMsgsDown!(fgl::G,
   @info "$(current_task()) Clique $(cliq.index), prepCliqInitMsgsDown!"
   # get the current messages stored in the parent
   currmsgs = getCliqInitUpMsgs(cliq)
-  @info "$(current_task()) Clique $(cliq.index), msg keys=$(collect(keys(currmsgs)))"
+  @info "$(current_task()) Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
@@ -461,7 +463,7 @@ function prepCliqInitMsgsDown!(fgl::G,
     end
   end
 
-  @info "$(current_task()) Clique $(cliq.index), keys with msgs=$(collect(keys(msgspervar)))"
+  @info "$(current_task()) Clique $(cliq.index), vars fw/ down msgs=$(collect(keys(msgspervar)))"
 
   # reference to default allocated dict location
   products = getData(cliq).downInitMsg
@@ -723,6 +725,7 @@ function doCliqInitDown!(subfg::G,
 
   return status
 end
+
 
 """
     $SIGNATURES

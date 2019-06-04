@@ -9,11 +9,12 @@ Notes
 - Should not be calling outside programs.
 - Need long term solution
 - DFG's `toDotFile` a better solution -- view with `xdot` application.
+- also try `engine={"sfdp","fdp","dot","twopi","circo"}`
 """
 function writeGraphPdf(fgl::G;
                        viewerapp::String="evince",
                        filepath::AS="/tmp/fg.pdf",
-                       engine::AS="sfdp",
+                       engine::AS="neato", #sfdp
                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
   #
   @warn "writeGraphPdf function might changed, see DFG.toDotFile(dfg) as part of the long term solution."
