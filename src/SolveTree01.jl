@@ -1071,7 +1071,8 @@ function downGibbsCliqueDensity(inp::ExploreTreeType{T},
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
 end
 
-function prepDwnPreOrderStack!(bt::BayesTree, parentStack::Array{Graphs.ExVertex,1})
+function prepDwnPreOrderStack!(bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1})
   # dwn message passing function
   nodedata = nothing
   tempStack = Array{Graphs.ExVertex,1}()
@@ -1233,14 +1234,14 @@ end
 
 Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
 """
-function asyncProcessPostStacks!(fgl::FactorGraph,
+function asyncProcessPostStacks!(fgl::G,
                                  bt::BayesTree,
                                  chldstk::Vector{Graphs.ExVertex},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
                                  N::Int=100,
                                  dbg::Bool=false,
-                                 drawpdf::Bool=false  )
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   if stkcnt == 0
     @info "asyncProcessPostStacks! ERROR stkcnt=0"
@@ -1306,12 +1307,12 @@ Notes
 - asyncs used to wrap remotecall for multicore.
 - separate multithreaded calls can occur on each separate process.
 """
-function processPostOrderStacks!(fg::FactorGraph,
+function processPostOrderStacks!(fg::G,
                                  bt::BayesTree,
                                  childStack::Array{Graphs.ExVertex,1};
                                  N::Int=100,
                                  dbg::Bool=false,
-                                 drawpdf::Bool=false  )
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   refdict = Dict{Int,Future}()
 
