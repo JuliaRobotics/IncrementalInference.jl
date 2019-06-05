@@ -21,9 +21,9 @@ addons:
     packages:
     - hdf5-tools
 
-script:
-  - julia --color=yes -e 'using Pkg; Pkg.build()'
-  - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'
+# script:
+#   - julia --color=yes -e 'using Pkg; Pkg.build()'
+#   - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'
 
 after_success:
   - julia -e 'using Pkg; cd(Pkg.dir("IncrementalInference")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

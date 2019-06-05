@@ -408,180 +408,6 @@ end
 """
     $(SIGNATURES)
 
-Return all elements `ls(fg)` as tuples, or nodes connected to the a specific element, eg. `ls(fg, :x1)
-"""
-function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
-  # TODO ring functionality must still be implemented
-  lsa = Symbol[]
-  # v = nothing
-  if haskey(fgl.IDs, lbl)
-    id = fgl.IDs[lbl]
-  else
-    return lsa
-  end
-  # this is unnecessary
-  v = getVert(fgl,id, api=api)
-  for outn in api.outneighbors(fgl, v)
-    # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
-      push!(lsa, Symbol(outn.label))
-    # end
-  end
-  return lsa
-end
-ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
-
-"""
-    $(SIGNATURES)
-
-Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
-"""
-function ls(fgl::FactorGraph,
-            lbls::Vector{Symbol};
-            api::DataLayerAPI=dlapi,
-            ring::Int=1)
-  union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
-end
-
-"""
-    $(SIGNATURES)
-
-List the nodes in a factor graph.
-
-# Examples
-```julia-repl
-ls(fg)
-```
-"""
-function ls(fgl::FactorGraph; key1='x', key2='l')
-  k = collect(keys(fgl.IDs))
-  x, l = String[], String[]
-  xval, lval = Int[], Int[]
-  xstr, lstr = String[], String[]
-  xvalnested, lvalnested = String[], String[]
-  xstrnested, lstrnested = String[], String[]
-  canparse1, canparse2 = true,true
-  nestedparse1, nestedparse2 = true, true
-  idx = 0
-  for id in k
-    idx += 1
-    idstr = string(id)
-    # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
-    node_idx = idstr[2:end]
-    canparse = allnums(node_idx)
-    nested = isnestednum(node_idx)
-    if idstr[1] == key1
-      keystr = string(key1,node_idx)
-      if canparse
-        push!(xstr, keystr)
-        push!(xval, parse(Int, node_idx))
-      elseif nested
-        push!(xvalnested, node_idx)
-        push!(xstrnested, string(node_idx))
-      else
-        push!(x,keystr)
-      end
-    elseif idstr[1] == key2
-      keystr = string(key2,node_idx)
-      if canparse
-        push!(lstr, keystr)
-        push!(lval, parse(Int, node_idx))
-      elseif nested
-        push!(lstrnested, keystr)
-        push!(lvalnested, string(node_idx))
-      else
-        push!(l,string(key2,node_idx))
-      end
-    end
-  end
-  x1 = xstr[sortperm(xval)]
-  x2 = xstrnested[sortnestedperm(xvalnested)]
-  x = [x1; x2; sort(x)]
-
-  l1 = lstr[sortperm(lval)]
-  l2 = lstrnested[sortnestedperm(lvalnested)]
-  l = [l1; l2; sort(l)]
-
-  xx = Symbol.(x)
-  ll = Symbol.(l)
-  return xx, ll #return poses, landmarks
-end
-
-lsf(fgl::FactorGraph) = collect(keys(fgl.fIDs))
-
-"""
-    $(SIGNATURES)
-
-List factors in a factor graph.
-
-# Examples
-```julia-repl
-lsf(fg, :x1)
-```
-"""
-function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
-  lsa = Symbol[]
-  if haskey(fgl.fIDs, lbl)
-    id = fgl.fIDs[lbl]
-  else
-    return lsa
-  end
-  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
-  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    push!(lsa, Symbol(outn.label))
-  end
-  return lsa
-end
-
-
-"""
-    $(SIGNATURES)
-
-List factors in a factor graph.
-
-# Examples
-```julia-repl
-lsf(fg)
-```
-"""
-lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
-
-function lsf(fgl::FactorGraph,
-             mt::Type{T};
-             api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
-  #
-  syms = Symbol[]
-  for (fsym,fid) in fgl.fIDs
-    if typeof(getfnctype(fgl, fid, api=api))==T
-      push!(syms, fsym)
-    end
-  end
-  return syms
-end
-
-function lsf(fgl::FactorGraph)
-  collect(keys(fgl.fIDs))
-end
-
-"""
-    $SIGNATURES
-
-List vertices two neighbors deep.
-"""
-function ls2(fgl::FactorGraph, vsym::Symbol)
-  xxf = ls(fgl, vsym)
-  xlxl = Symbol[]
-  for xf in xxf
-    xx = lsf(fgl,xf)
-    xlxl = union(xlxl, xx)
-  end
-  xlxl = setdiff(xlxl, [vsym])
-  return xlxl
-end
-
-
-"""
-    $(SIGNATURES)
-
 Return array of all variable nodes connected to the last `n` many poses (`:x*`).
 
 Example:
@@ -709,45 +535,45 @@ end
 
 Return whether `sym::Symbol` represents a variable vertex in the graph.
 """
-isVariable(fgl::FactorGraph, sym::Symbol) = haskey(fgl.IDs, sym)
+isVariable(dfg::G, sym::Symbol) where G <: AbstractDFG = haskey(dfg.labelDict, sym)
 
 """
     $SIGNATURES
 
 Return whether `sym::Symbol` represents a factor vertex in the graph.
 """
-isFactor(fgl::FactorGraph, sym::Symbol) = haskey(fgl.fIDs, sym)
+isFactor(dfg::G, sym::Symbol) where G <: AbstractDFG = hasFactor(dfg, sym)
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
+# """
+# getVariable(fgl::FactorGraph, lbl::Symbol) = getVert(fgl, lbl, api=api)
 
-Return reference to a variable in `::FactorGraph` identified by `::Symbol`.
-"""
-getVariable(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getVert(fgl, lbl, api=api)
-
-"""
-    $SIGNATURES
-
-Return reference to the user factor in `::FactorGraph` identified by `::Symbol`.
-"""
-getFactor(fvert::Graphs.ExVertex) = getData(fvert).fnc.usrfnc!
-getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getFactor(getVert(fgl, lbl, api=api, nt=:fct))
+# """
+#     $SIGNATURES
+#
+# Return reference to the user factor in `::FactorGraph` identified by `::Symbol`.
+# """
+# getFactor(fvert::Graphs.ExVertex) = getData(fvert).fnc.usrfnc!
+# getFactor(fgl::FactorGraph, lbl::Symbol, api::DataLayerAPI=dlapi) = getFactor(getVert(fgl, lbl, api=api, nt=:fct))
 
 """
     $SIGNATURES
 
 Display and return to console the user factor identified by tag name.
 """
-showFactor(fgl::FactorGraph, fsym::Symbol; api::DataLayerAPI=dlapi) = @show getFactor(fgl,fsym)
+showFactor(fgl::G, fsym::Symbol) where G <: AbstractDFG = @show getFactor(fgl,fsym)
 
 """
    $SIGNATURES
 
 Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
 """
-function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
-  vert = getVert(fg, vsym, api=api)
+function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
+  vert = DFG.getVariable(fg, vsym)
   vnd = getData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
@@ -759,20 +585,13 @@ function showVariable(fgl::FactorGraph, vsym::Symbol; api::DataLayerAPI=dlapi)
   vnd
 end
 
-
-function hasFactor(fgl::FactorGraph, sym::Symbol)
-  allf = collect(keys(fgl.fIDs))
-  ret = sym in allf
-  return ret
-end
-
 """
     $SIGNATURES
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::Graphs.ExVertex) = getData(vert).ismargin
-isMarginalized(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=localapi) = isMarginalized(getVert(fg, sym, api=api))
+isMarginalized(vert::DFGVariable) = getData(vert).ismargin
+isMarginalized(dfg::G, sym::Symbol; api::DataLayerAPI=localapi) where G <: AbstractDFG = isMarginalized(DFG.getVariable(fg, sym))
 
 
 

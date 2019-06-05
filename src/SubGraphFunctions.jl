@@ -45,36 +45,70 @@ end
 
 Construct a new factor graph object as a subgraph of `fgl::FactorGraph` based on the
 variable labels `syms::Vector{Symbols}`.
+
+Notes
+- Slighly messy internals, but gets the job done -- some room for performance improvement.
+
+Related
+
+getVariableIds
 """
-function buildSubgraphFromLabels(fgl::FactorGraph, syms::Vector{Symbol})
-  fgseg = initfg(sessionname=fgl.sessionname, robotname=fgl.robotname)
+function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
 
+  # data structure for cliq sub graph
+  cliqSubFg = initfg()
+
+  # add a little too many variables (since we need the factors)
   for sym in syms
-    vert = getVert(fgl, sym, api=localapi)
-    st = getSofttype(vert)
-    addVariable!(fgseg, sym, st, uid=vert.index)
-    if isInitialized(fgl,sym)
-      manualinit!(fgseg, sym, getKDE(vert))
-    end
+    DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg)
   end
 
-  for sym in syms
-    for fct in ls(fgl, sym)
-      if !hasFactor(fgseg, fct)
-        # check all variables are in desired variable set
-        possibleVars = lsf(fgl, fct)
-        ivars = intersect(possibleVars, syms)
-        if length(ivars) == length(possibleVars)
-          fvert = getVert(fgl, fct, api=localapi, nt=:fct)
-          ufc = getFactor(fvert)
-          addFactor!(fgseg, possibleVars, ufc, autoinit=false, uid=fvert.index)
-        end
-      end
+  # remove excessive variables that were copied by neighbors distance 2
+  currVars = DFG.getVariableIds(cliqSubFg)
+  toDelVars = setdiff(currVars, syms)
+  for dv in toDelVars
+    # delete any neighboring factors first
+    for fc in DFG.lsf(cliqSubFg, dv)
+      DFG.deleteFactor!(cliqSubFg, fc)
     end
+
+    # and the variable itself
+    DFG.deleteVariable!(cliqSubFg, dv)
   end
 
-  return fgseg
+  return cliqSubFg
 end
+# function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+#   fgseg = initfg() #sessionname=dfg.sessionname, robotname=dfg.robotname)
+#
+#   for sym in syms
+#     vert = DFG.getVariable(dfg, sym) #, api=localapi)
+#     st = getSofttype(vert)
+#     addVariable!(fgseg, sym, st) #, uid=vert.index)
+#     if isInitialized(dfg,sym)
+#       manualinit!(fgseg, sym, getKDE(vert))
+#     end
+#   end
+#
+#   for sym in syms
+#     for fct in DFG.ls(dfg, :x1)
+#       if !hasFactor(fgseg, fct)
+#         # check all variables are in desired variable set
+#         possibleVars = DFG.lsf(dfg, fct)
+#         ivars = intersect(possibleVars, syms)
+#         @show length(ivars), length(possibleVars)
+#         if length(ivars) == length(possibleVars)
+#           # fvert = getVert(dfg, fct, api=localapi, nt=:fct)
+#           ufc = DFG.getFactor(dfg, fct) # fvert
+#
+#           addFactor!(fgseg, possibleVars, getData(ufc).fnc.usrfnc!, autoinit=false) #, uid=fvert.index)
+#         end
+#       end
+#     end
+#   end
+#
+#   return fgseg
+# end
 
 
 
@@ -216,15 +250,13 @@ Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `des
 Notes
 - Approximately like `dest` = `src`, for all `syms`
 """
-function transferUpdateSubGraph!(dest::FactorGraph,
-                                 src::FactorGraph,
-                                 syms::Vector{Symbol}=union(ls(src)...);
-                                 srcapi::DataLayerAPI=localapi,
-                                 destapi::DataLayerAPI=dlapi   )
+function transferUpdateSubGraph!(dest::G1,
+                                 src::G2,
+                                 syms::Vector{Symbol}=union(ls(src)...) ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
   for sym in syms
-    vert = getVert(src, sym, api=srcapi)
-    destapi.updatevertex!(dest, vert)
+    vert = DFG.getVariable(src, sym)
+    updateFullVertData!(dest, vert, updateMAPest=true)
   end
   nothing
 end

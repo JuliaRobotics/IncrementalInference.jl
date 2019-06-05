@@ -1,11 +1,9 @@
-
-
 """
     $SIGNATURES
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Int} = getData(cliq).frontalIDs
+getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getData(cliq).frontalIDs
 
 """
     $(TYPEDSIGNATURES)
@@ -20,17 +18,18 @@ getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
 
 Create a new clique.
 """
-function addClique!(bt::BayesTree, fg::FactorGraph, varID::Int, condIDs::Array{Int}=Int[])
+function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::ExVertex where G <: AbstractDFG
   bt.btid += 1
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
 
   clq.attributes["label"] = ""
+
   # Specific data container
   setData!(clq, emptyBTNodeData())
   # clq.attributes["data"] = emptyBTNodeData()
 
-  appendClique!(bt, bt.btid, fg, varID, condIDs)
+  appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
 
@@ -39,21 +38,21 @@ end
 
 Generate the label for particular clique (used by graphviz for visualization).
 """
-function makeCliqueLabel(fgl::FactorGraph, bt::BayesTree, clqID::Int, api::DataLayerAPI=localapi)
+function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: AbstractDFG
   clq = bt.cliques[clqID]
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
-    flbl = string(flbl, api.getvertex(fgl,fr).attributes["label"], ",") #fgl.v[fr].
+    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",") #fgl.v[fr].
   end
   for cond in getData(clq).conditIDs
-    clbl = string(clbl, api.getvertex(fgl,cond).attributes["label"], ",") # fgl.v[cond].
+    clbl = string(clbl, DFG.getVariable(dfg,cond).label, ",") # fgl.v[cond].
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
 
 # add a conditional ID to clique
-function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Int,1})
+function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
   clq = bt.cliques[clqID]
   getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
 end
@@ -63,20 +62,20 @@ end
 
 Add a new frontal variable to clique.
 """
-function appendClique!(bt::BayesTree, clqID::Int, fg::FactorGraph, varID::Int, condIDs::Array{Int,1}=Int[])
+function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs::Array{Symbol,1}=Symbol[])::Nothing where G <: AbstractDFG
   clq = bt.cliques[clqID]
-  var = localapi.getvertex(fg, varID)
+  var = DFG.getVariable(dfg, varID)
 
   # add frontal variable
   push!(getData(clq).frontalIDs, varID)
 
   # total dictionary of frontals for easy access
-  bt.frontals[var.attributes["label"]] = clqID
+  bt.frontals[varID] = clqID
 
   # append to cliq conditionals
   appendConditional(bt, clqID, condIDs)
-  makeCliqueLabel(fg, bt, clqID)
-  nothing
+  makeCliqueLabel(dfg, bt, clqID)
+  return nothing
 end
 
 """
@@ -84,8 +83,8 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::BayesTree, fg::FactorGraph, CpID::Int, varID::Int, Sepj::Array{Int,1})
-  chclq = addClique!(bt, fg, varID, Sepj)
+function newChildClique!(bt::BayesTree, dfg::G, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1}) where G <: AbstractDFG
+  chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
   # Staying with Graphs.jl for tree in first stage
   edge = Graphs.make_edge(bt.bt, parent, chclq)
@@ -118,13 +117,13 @@ end
 
 Eliminate a variable and add to tree cliques accordingly.
 """
-function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, p::Array{Int,1})
-    firvert = localapi.getvertex(fg,var)
+function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
+    firvert = DFG.getVariable(dfg,var)
     if (length(getData(firvert).separator) == 0)
       if (length(tree.cliques) == 0)
-        addClique!(tree, fg, var)
+        addClique!(tree, dfg, var)
       else
-        appendClique!(tree, 1, fg, var) # add to root
+        appendClique!(tree, 1, dfg, var) # add to root
       end
     else
       Sj = getData(firvert).separator
@@ -136,14 +135,14 @@ function newPotential(tree::BayesTree, fg::FactorGraph, var::Int, prevVar::Int, 
           firstelim = temp
         end
       end
-      felbl = localapi.getvertex(fg, p[firstelim]).attributes["label"]
+      felbl = DFG.getVariable(dfg, p[firstelim]).label
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       unFC = union(getCliqFrontalVarIds(tree.cliques[CpID]), getCliqSeparatorVarIds(tree.cliques[CpID]))
       if (sort(unFC) == sort(Sj))
-        appendClique!(tree, CpID, fg, var)
+        appendClique!(tree, CpID, dfg, var)
       else
-        newChildClique!(tree, fg, CpID, var, Sj)
+        newChildClique!(tree, dfg, CpID, var, Sj)
       end
     end
 end
@@ -153,11 +152,11 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::BayesTree, fg::FactorGraph, p::Array{Int,1})
+function buildTree!(tree::BayesTree, dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
   rp = reverse(p,dims=1) # flipdim(p, 1)
-  prevVar = 0
+  # prevVar = 0
   for var in rp
-    newPotential(tree, fg, var, prevVar, p)
+    newPotential(tree, dfg, var, p)
     prevVar = var
   end
 end
@@ -231,12 +230,12 @@ end
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
-function buildTreeFromOrdering!(fgl::FactorGraph,
-                                p::Vector{Int};
-                                drawbayesnet::Bool=false)
+function buildTreeFromOrdering!(dfg::G,
+                                p::Vector{Symbol};
+                                drawbayesnet::Bool=false) where G <: AbstractDFG
   #
   println()
-  fge = deepcopy(fgl)
+  fge = deepcopy(dfg)
   println("Building Bayes net...")
   buildBayesNet!(fge, p)
 
@@ -253,7 +252,7 @@ function buildTreeFromOrdering!(fgl::FactorGraph,
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(fgl, tree, cliq); # fg does not have the marginals as fge does
+  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end
@@ -266,23 +265,18 @@ Build Bayes/Junction/Elimination tree.
 Notes
 - Default to free qr factorization for variable elimination order.
 """
-function prepBatchTree!(fg::FactorGraph;
+function prepBatchTree!(dfg::G;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false  )
+                        drawbayesnet::Bool=false  ) where G <: AbstractDFG
   #
-  p = IncrementalInference.getEliminationOrder(fg, ordering=ordering)
+  p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(fg, p, drawbayesnet=drawbayesnet)
-
-  # now update all factor graph vertices used for this tree
-  for (id,v) in fg.g.vertices
-    dlapi.updatevertex!(fg, v)
-  end
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -302,9 +296,9 @@ Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` s
 """
 function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
-  vdata.BayesNetOutVertIDs = Int[]
-  vdata.BayesNetVertID = 0
-  vdata.separator = Int[]
+  vdata.BayesNetOutVertIDs = Symbol[]
+  vdata.BayesNetVertID = nothing # TODO dont use nothing, see DFG issue #16
+  vdata.separator = Symbol[]
   nothing
 end
 
@@ -317,12 +311,15 @@ end
 """
     $SIGNATURES
 
-Reset the entire factor graph state as required for construction a new Bayes (Junction) tree.
+Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Elimination tree
+can be constructed.
 """
-function resetFactorGraphNewTree!(fgl::FactorGraph)::Nothing
-  for (id, v) in fgl.g.vertices
+function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
+  for v in DFG.ls(dfg)
     resetData!(getData(v))
-    localapi.updatevertex!(fgl, v)
+  end
+  for f in DFG.lsf(dfg)
+    resetData!(getData(f))
   end
   nothing
 end
@@ -347,16 +344,16 @@ Related:
 
 buildTreeFromOrdering!
 """
-function wipeBuildNewTree!(fg::FactorGraph;
+function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
                            drawpdf::Bool=false,
                            show::Bool=false,
                            filepath::String="/tmp/bt.pdf",
                            viewerapp::String="evince",
-                           imgs::Bool=false  )::BayesTree
+                           imgs::Bool=false  )::BayesTree where G <: AbstractDFG
   #
-  resetFactorGraphNewTree!(fg);
-  return prepBatchTree!(fg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
+  resetFactorGraphNewTree!(dfg);
+  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
 end
 
 """
@@ -372,10 +369,8 @@ Related:
 
 getTreeAllFrontalSyms
 """
-function whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString}
-  bt.cliques[bt.frontals[frt]]
-end
-whichCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+whichCliq(bt::BayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
+whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Symbol(string(frt)))
 
 """
     $SIGNATURES
@@ -482,20 +477,20 @@ Notes
 -----
 * `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
 """
-function getFactorsAmongVariablesOnly(fgl::FactorGraph,
+function getFactorsAmongVariablesOnly(dfg::G,
                                       varlist::Vector{Symbol};
-                                      unused::Bool=true  )
+                                      unused::Bool=true  ) where G <: AbstractDFG
   # collect all factors attached to variables
   prefcts = Symbol[]
   for var in varlist
-    union!(prefcts, ls(fgl, var))
+    union!(prefcts, DFG.ls(dfg, var))
   end
 
   almostfcts = Symbol[]
   if unused
     # now check if those factors have already been added
     for fct in prefcts
-      vert = getVert(fgl, fct, nt=:fct)
+      vert = DFG.getFactor(dfg, fct)
       if !getData(vert).potentialused
         push!(almostfcts, fct)
       end
@@ -507,7 +502,7 @@ function getFactorsAmongVariablesOnly(fgl::FactorGraph,
   # Select factors that have all variables in this clique var list
   usefcts = Symbol[]
   for fct in almostfcts
-    if length(setdiff(lsf(fgl, fct), varlist)) == 0
+    if length(setdiff(DFG.getNeighbors(dfg, fct), varlist)) == 0
       push!(usefcts, fct)
     end
   end
@@ -558,11 +553,11 @@ end
 """
     $SIGNATURES
 
-Return `::Bool` on whether factor `fct<:FunctorInferenceType` is a partial constraint.
+Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
-function isPartial(fct::Graphs.ExVertex)
-  fcf = getFactor(fct)
+function isPartial(fct::DFGFactor)  #fct::Graphs.ExVertex
+  fcf = getData(fct).fnc.usrfnc!
   isPartial(fcf)
 end
 
@@ -571,9 +566,9 @@ end
 
 Get and set the potentials for a particular `cliq` in the Bayes (Junction) tree.
 """
-function getCliquePotentials!(fg::FactorGraph,
+function getCliquePotentials!(dfg::G,
                               bt::BayesTree,
-                              cliq::Graphs.ExVertex  )
+                              cliq::Graphs.ExVertex  ) where G <: AbstractDFG
   #
   frtl = getData(cliq).frontalIDs
   cond = getData(cliq).conditIDs
@@ -582,18 +577,15 @@ function getCliquePotentials!(fg::FactorGraph,
   if true
     varlist = Symbol[]
     for id in allids
-      push!(varlist, getSym(fg, id))
+      push!(varlist, id)
     end
-    fctsyms = getFactorsAmongVariablesOnly(fg, varlist, unused=true )
+    fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
     for fsym in fctsyms
-      push!(getData(cliq).potentials, fg.fIDs[fsym])
-      fct = getVert(fg, fsym, nt=:fct)
+      push!(getData(cliq).potentials, fsym)
+      fct = DFG.getFactor(dfg, fsym)
       getData(fct).potentialused = true
       push!(getData(cliq).partialpotential, isPartial(fct))
     end
-  # else
-  #   frontal only factor approach
-  # end
 
   end
 
@@ -614,15 +606,20 @@ function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
 end
 
 function cliqPotentialIDs(cliq::Graphs.ExVertex)
-  potIDs = Int[]
+  potIDs = Symbol[]
   for idfct in getData(cliq).potentials
-    push!(potIDs,idfct)
+    push!(potIDs, idfct)
   end
   return potIDs
 end
 
-function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)
-  allseps = Int[]
+"""
+    $SIGNATURES
+
+Collect and returl all child clique separator variables.
+"""
+function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)::Vector{Symbol}
+  allseps = Symbol[]
   for child in out_neighbors(cliq, bt.bt)#tree
       allseps = [allseps; getData(child).conditIDs]
   end
@@ -667,9 +664,9 @@ end
 """
     $SIGNATURES
 
-Get `cliq` separator (a.k.a. conditional) variable ids`::Int`.
+Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   getData(cliq).conditIDs
 end
 
@@ -678,7 +675,7 @@ end
 
 Get `cliq` potentials (factors) ids`::Int`.
 """
-function getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Int}
+function getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   getData(cliq).potentials
 end
 
@@ -687,7 +684,7 @@ end
 
 Get all `cliq` variable ids`::Int`.
 """
-function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Int}
+function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
   [frtl;cond]
@@ -698,8 +695,9 @@ end
 
 Get all `cliq` variable labels as `::Symbol`.
 """
-function getCliqAllVarSyms(fgl::FactorGraph, cliq::Graphs.ExVertex)::Vector{Symbol}
-  Symbol[getSym(fgl, varid) for varid in getCliqAllVarIds(cliq)]
+function getCliqAllVarSyms(dfg::G, cliq::Graphs.ExVertex)::Vector{Symbol} where G <: AbstractDFG
+  # Symbol[getSym(dfg, varid) for varid in getCliqAllVarIds(cliq)]
+  getCliqAllVarIds(cliq)
 end
 
 """
@@ -774,8 +772,8 @@ Notes:
 - does not include any singleton messages from upward or downward message passing.
 """
 function getCliqVarIdsPriors(cliq::Graphs.ExVertex,
-                             allids::Vector{Int}=getCliqAllVarIds(cliq),
-                             partials::Bool=true  )::Vector{Int}
+                             allids::Vector{Symbol}=getCliqAllVarIds(cliq),
+                             partials::Bool=true  )::Vector{Symbol}
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
   prfcts = sum(amat, dims=2) .== 1
@@ -803,8 +801,8 @@ getCliqNumAssocFactorsPerVar(cliq::Graphs.ExVertex)::Vector{Int} = sum(getCliqAs
 Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and up messages.
 """
 function getCliqVarSingletons(cliq::Graphs.ExVertex,
-                              allids::Vector{Int}=getCliqAllVarIds(cliq),
-                              partials::Bool=true  )::Vector{Int}
+                              allids::Vector{Symbol}=getCliqAllVarIds(cliq),
+                              partials::Bool=true  )::Vector{Symbol}
   # get incoming upward messages (known singletons)
   mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
   upmsgids = allids[mask]
@@ -817,8 +815,12 @@ function getCliqVarSingletons(cliq::Graphs.ExVertex,
 end
 
 
+"""
+    $SIGNATURES
 
-function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
+Get each clique subgraph association matrix.
+"""
+function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) where G <: AbstractDFG
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
   inmsgIDs = collectSeparators(bt, cliq)
@@ -840,9 +842,12 @@ function compCliqAssocMatrices!(fgl::FactorGraph, bt::BayesTree, cliq::Graphs.Ex
     end
     for i in 1:length(potIDs)
       idfct = getData(cliq).potentials[i]
+      # @show i, potIDs[i], idfct
       if idfct == potIDs[i] # sanity check on clique potentials ordering
-        for vertidx in getData(getVert(fgl, idfct, api=localapi)).fncargvID
-        # for vertidx in getData(getVertNode(fgl, idfct)).fncargvID
+        # TODO int and symbol compare is no good
+        for vertidx in getData(DFG.getFactor(dfg, idfct)).fncargvID
+        # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
+          @show vertidx, cols[j], i, j
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -941,7 +946,7 @@ function mcmcIterationIDs(cliq::Graphs.ExVertex)
   return setdiff(usset, getData(cliq).directPriorMsgIDs)
 end
 
-function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Int, allids=getCliqAllVarIds(cliq) )
+function getCliqMatVarIdx(cliq::Graphs.ExVertex, varid::Symbol, allids=getCliqAllVarIds(cliq) )
   len = length(allids)
   [1:len;][allids .== varid][1]
 end
@@ -1020,15 +1025,15 @@ end
 
 
 # post order tree traversal and build potential functions
-function buildCliquePotentials(fg::FactorGraph, bt::BayesTree, cliq::Graphs.ExVertex)
+function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) where G <: AbstractDFG
     for child in out_neighbors(cliq, bt.bt)#tree
-        buildCliquePotentials(fg, bt, child)
+        buildCliquePotentials(dfg, bt, child)
     end
     @info "Get potentials $(cliq.attributes["label"])"
-    getCliquePotentials!(fg, bt, cliq);
+    getCliquePotentials!(dfg, bt, cliq)
 
-    compCliqAssocMatrices!(fg, bt, cliq);
-    setCliqMCIDs!(cliq);
+    compCliqAssocMatrices!(dfg, bt, cliq)
+    setCliqMCIDs!(cliq)
 
     nothing
 end
@@ -1056,6 +1061,28 @@ Return a vector of child cliques to `cliq`.
 """
 getChildren(treel::BayesTree, frtsym::Symbol) = childCliqs(treel, frtsym)
 getChildren(treel::BayesTree, cliq::Graphs.ExVertex) = childCliqs(treel, cliq)
+
+"""
+    $SIGNATURES
+
+Return a vector of all siblings to a clique, which defaults to not `inclusive` the calling `cliq`.
+"""
+function getCliqSiblings(treel::BayesTree, cliq::Graphs.ExVertex, inclusive::Bool=false)
+  prnt = getParent(treel, cliq)
+  if length(prnt) > 0
+    allch = getChildren(treel, prnt[1])
+  end
+  if inclusive
+    return allch
+  end
+  sibs = Graphs.ExVertex[]
+  for ch in allch
+    if ch.index != cliq.index
+      push!(sibs, ch)
+    end
+  end
+  return sibs
+end
 
 """
     $(SIGNATURES)

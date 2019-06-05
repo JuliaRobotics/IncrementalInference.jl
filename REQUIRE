@@ -12,3 +12,4 @@ FileIO 1.0.2
 ProgressMeter 0.6.0
 DocStringExtensions 0.5.0
 Requires
+DistributedFactorGraphs

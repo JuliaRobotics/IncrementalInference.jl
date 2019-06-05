@@ -11,6 +11,7 @@ using Reexport
 @reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
+@reexport using DistributedFactorGraphs
 
 using
   Dates,
@@ -23,12 +24,12 @@ using
   ProgressMeter,
   DocStringExtensions,
   FunctionalStateMachine,
-  Optim # might be deprecated in favor for only NLsolve dependency
-
-
+  Optim, # might be deprecated in favor for only NLsolve dependency
+  JSON2
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
+const DFG = DistributedFactorGraphs
 
 import Base: convert
 # import HDF5: root
@@ -36,12 +37,15 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
 export
   KDE,
+  AMP,
+  DFG,
   dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,
@@ -83,8 +87,8 @@ export
   PackedMixtureLinearConditional,
 
   # using either dictionary or cloudgraphs
-  VariableNodeData,
-  PackedVariableNodeData,
+  # VariableNodeData,
+  # PackedVariableNodeData,
   FactorMetadata,
   encodePackedType,
   FunctionNodeData,
@@ -96,6 +100,7 @@ export
   extractdistribution,
 
   FactorGraph,
+  SolverParams,
   addNode!,
   addVariable!,
   deleteVariable!,
@@ -110,6 +115,7 @@ export
   solveCliqWithStateMachine!,
   resetData!,
   resetTreeCliquesForUpSolve!,
+  resetFactorGraphNewTree!,
   getFactor,
   getFactorDim,
   getVariableDim,
@@ -201,6 +207,7 @@ export
   getChildren,
   parentCliq,
   getParent,
+  getCliqSiblings,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -219,6 +226,7 @@ export
   drawCliqSubgraphUp,
   drawTree,
   ls,
+  ls_PREVIOUS,
   lsf,
   ls2,
   lsRear,
@@ -423,44 +431,9 @@ include("AdditionalUtils.jl")
 
 include("Deprecated.jl")
 
-# Hack for RoME module.
-global serializationnamespace = Dict{String, Module}()
-
-
-"""
-    $(SIGNATURES)
-
-De-serialization of IncrementalInference objects require discovery of foreign types.
-
-Example:
-
-Template to tunnel types from a user module:
-```julia
-# or more generic solution -- will always try Main if available
-IIF.setSerializationNamespace!("Main" => Main)
-
-# or a specific package such as RoME
-using RoME
-IIF.setSerializationNamespace!("RoME" => RoME)
-```
-"""
-function setSerializationNamespace!(keyval::Pair{String, Module})
-  global serializationnamespace
-  serializationnamespace[keyval[1]] = keyval[2]
-end
-
-function getSerializationModule(mod::String="Main")::Union{Module, Nothing}
-  global serializationnamespace
-  if haskey(serializationnamespace, mod)
-    return serializationnamespace[mod]
-  end
-  return nothing
-end
-
-function getSerializationModules()::Dict{String, Module}
-  global serializationnamespace
-  return serializationnamespace
-end
+# Serialization
+include("serialization/models/distributions.jl")
+include("serialization/services/distributions.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()

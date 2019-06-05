@@ -1,11 +1,8 @@
-
-
-
 #global pidx
-pidx = 1
-pidl = 1
-pidA = 1
-thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
+global pidx = 1
+global pidl = 1
+global pidA = 1
+global thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
 
 # upploc to control processes done local to this machine and separated from other
 # highly loaded processes. upploc() should be used for dispatching short and burst
@@ -37,17 +34,17 @@ end
 
 
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
-                                    wfac::Vector{<:AbstractString},
-                                    vertid::Int,
+                                    wfac::Vector{Symbol},
+                                    vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
                                     manis::T ) where {T <: Tuple}
   #
   for m in inmsgs
-    for idx in keys(m.p)
-      if idx == vertid
-        pdi = m.p[vertid]
+    for psym in keys(m.p)
+      if psym == vsym
+        pdi = m.p[vsym]
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
-        push!(wfac, "msg")
+        push!(wfac, :msg)
       end
       # TODO -- we can inprove speed of search for inner loop
     end
@@ -60,20 +57,20 @@ end
 
 Add all potentials associated with this clique and vertid to dens.
 """
-function packFromLocalPotentials!(fgl::FactorGraph,
+function packFromLocalPotentials!(dfg::G,
                                   dens::Vector{BallTreeDensity},
-                                  wfac::Vector{AbstractString},
+                                  wfac::Vector{Symbol},
                                   cliq::Graphs.ExVertex,
-                                  vertid::Int,
+                                  vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )
+                                  dbg::Bool=false ) where G <: AbstractDFG
   #
   for idfct in getData(cliq).potentials
-    vert = getVert(fgl, idfct, api=localapi)
+    vert = DFG.getFactor(dfg, idfct)
     data = getData(vert)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( findall(data.fncargvID .== vertid) ) >= 1 && !data.fnc.partial
-      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg )
+    if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+      p, = findRelatedFromPotential(dfg, vert, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, vert.label)
     end
@@ -82,19 +79,19 @@ function packFromLocalPotentials!(fgl::FactorGraph,
 end
 
 
-function packFromLocalPartials!(fgl::FactorGraph,
-      partials::Dict{Int, Vector{BallTreeDensity}},
-      cliq::Graphs.ExVertex,
-      vertid::Int,
-      N::Int,
-      dbg::Bool=false)
+function packFromLocalPartials!(fgl::G,
+                                partials::Dict{Int, Vector{BallTreeDensity}},
+                                cliq::Graphs.ExVertex,
+                                vsym::Symbol,
+                                N::Int,
+                                dbg::Bool=false  ) where G <: AbstractDFG
   #
 
   for idfct in getData(cliq).potentials
-    vert = getVert(fgl, idfct, api=localapi)
+    vert = DFG.getFactor(fgl, idfct)
     data = getData(vert)
-    if length( findall(data.fncargvID .== vertid) ) >= 1 && data.fnc.partial
-      p, = findRelatedFromPotential(fgl, vert, vertid, N, dbg)
+    if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
+      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
@@ -193,14 +190,14 @@ Future
 ------
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
-function productbelief(fg::FactorGraph,
-                       vertid::Int,
+function productbelief(dfg::G,
+                       vertlabel::Symbol,
                        dens::Vector{BallTreeDensity},
                        partials::Dict{Int, Vector{BallTreeDensity}},
                        N::Int;
-                       dbg::Bool=false )
+                       dbg::Bool=false ) where {G <: AbstractDFG}
   #
-  vert = getVert(fg, vertid, api=localapi)
+  vert = DFG.getVariable(dfg, vertlabel)
   manis = getSofttype(vert).manifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
@@ -245,21 +242,20 @@ as belief estimates in both `dens` and `partials` respectively.
 Notes
 - TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
 """
-function proposalbeliefs!(fgl::FactorGraph,
-                          destvertid::Int,
-                          factors::Vector{Graphs.ExVertex},
+function proposalbeliefs!(dfg::G,
+                          destvertlabel::Symbol,
+                          factors::Vector{F},
                           fulldimproposal::Vector{Bool},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
-                          dbg::Bool=false,
-                          api::DataLayerAPI=dlapi  )::Nothing
+                          dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
   #
   count = 0
   for fct in factors
     count += 1
     data = getData(fct)
-    p,fulld = findRelatedFromPotential(fgl, fct, destvertid, N, dbg, api=api)
+    p,fulld = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -278,13 +274,13 @@ function proposalbeliefs!(fgl::FactorGraph,
   nothing
 end
 
-function predictbelief(fgl::FactorGraph,
-                       destvert::ExVertex,
-                       factors::Vector{Graphs.ExVertex};
+function predictbelief(dfg::G,
+                       destvert::DFGVariable,
+                       factors::Vector{F};
                        N::Int=0,
-                       dbg::Bool=false )
+                       dbg::Bool=false ) where {G <: AbstractDFG, F <: DFGNode}
   #
-  destvertid = destvert.index
+  destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
 
@@ -295,67 +291,62 @@ function predictbelief(fgl::FactorGraph,
   fulldim = Vector{Bool}(undef, length(factors))
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, factors, fulldim, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(dfg, destvertlabel, factors, fulldim, dens, partials, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, nn, dbg=dbg )
+  pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
   return pGM, sum(fulldim) > 0
 end
 
-function predictbelief(fgl::FactorGraph,
+function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Vector{Symbol};
                        N::Int=0,
-                       dbg::Bool=false,
-                       api::DataLayerAPI=IncrementalInference.localapi  )
+                       dbg::Bool=false) where G <: AbstractDFG
   #
-  factors = Graphs.ExVertex[]
-  for fsym in factorsyms
-    push!(factors, getVert(fgl, fgl.fIDs[fsym], api=api))
-  end
-  vert = getVert(fgl, destvertsym, api=api)
+  factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
+
+  vert = DFG.getVariable(dfg, destvertsym)
 
   # determine the number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(vert),2)
 
   # do the belief prediction
-  predictbelief(fgl, vert, factors, N=nn, dbg=dbg)
+  predictbelief(dfg, vert, factors, N=nn, dbg=dbg)
 end
 
-function predictbelief(fgl::FactorGraph,
+function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Colon;
                        N::Int=0,
-                       dbg::Bool=false,
-                       api::DataLayerAPI=IncrementalInference.localapi  )
+                       dbg::Bool=false) where G <: AbstractDFG
   #
-  predictbelief(fgl, destvertsym, ls(fgl, destvertsym, api=api), N=N, api=api, dbg=dbg )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg )
 end
 
 """
     $(SIGNATURES)
 
-Using factor graph object `fg`, project belief through connected factors
+Using factor graph object `dfg`, project belief through connected factors
 (convolution with conditional) to variable `sym` followed by a approximate functional product.
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
-function localProduct(fgl::FactorGraph,
+function localProduct(dfg::G,
                       sym::Symbol;
                       N::Int=100,
-                      dbg::Bool=false,
-                      api::DataLayerAPI=IncrementalInference.dlapi  )
+                      dbg::Bool=false) where G <: AbstractDFG
+  #
   # TODO -- converge this function with predictbelief for this node
-  # TODO -- update to use getVertId
-  destvertid = fgl.IDs[sym] #destvert.index
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   lb = String[]
-  fcts = Vector{Graphs.ExVertex}()
-  cf = ls(fgl, sym, api=api)
+  fcts = Vector{DFGFactor}()
+  # vector of all neighbors as Symbols
+  cf = getNeighbors(dfg, sym)
   for f in cf
-    vert = getVert(fgl, f, nt=:fnc, api=api)
+    vert = DFG.getFactor(dfg, f)
     push!(fcts, vert)
     push!(lb, vert.label)
   end
@@ -364,16 +355,16 @@ function localProduct(fgl::FactorGraph,
   fulldim = Vector{Bool}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(fgl, destvertid, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
 
   # take the product
-  pGM = productbelief(fgl, destvertid, dens, partials, N, dbg=dbg )
-  vert = getVert(fgl, sym, api=api)
+  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
+  vert = DFG.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
   return pp, dens, partials, lb
 end
-localProduct(fgl::FactorGraph, lbl::T; N::Int=100, dbg::Bool=false) where {T <: AbstractString} = localProduct(fgl, Symbol(lbl), N=N, dbg=dbg)
+localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
 
 
 """
@@ -391,7 +382,7 @@ function initVariable!(fgl::FactorGraph,
   # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
   belief,b,c,d  = localProduct(fgl, sym, api=localapi)
   pts = getPoints(belief)
-  @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
+  # @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
   setVal!(vert, pts)
   api.updatevertex!(fgl, vert)
 
@@ -414,26 +405,26 @@ Perform one step of the minibatch clique Gibbs operation for solving the Chapman
 trasit integral -- here involving separate approximate functional convolution and
 product operations.
 """
-function cliqGibbs(fg::FactorGraph,
+function cliqGibbs(fg::G,
                    cliq::Graphs.ExVertex,
-                   vertid::Int,
+                   vsym::Symbol,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
                    dbg::Bool,
-                   manis::T  ) where {T <: Tuple}
+                   manis::T  ) where {G <: AbstractDFG, T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
   # consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
-  wfac = Vector{AbstractString}()
-  packFromIncomingDensities!(dens, wfac, vertid, inmsgs, manis)
-  packFromLocalPotentials!(fg, dens, wfac, cliq, vertid, N)
-  packFromLocalPartials!(fg, partials, cliq, vertid, N, dbg)
+  wfac = Vector{Symbol}()
+  packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vertid, getVal(fg,vertid,api=localapi), Array{Float64}(undef, 0,0), dens, wfac)
-  pGM = productbelief(fg, vertid, dens, partials, N, dbg=dbg )
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+  pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
   # @info " "
@@ -447,18 +438,18 @@ Iterate successive approximations of clique marginal beliefs by means
 of the stipulated proposal convolutions and products of the functional objects
 for tree clique `cliq`.
 """
-function fmcmc!(fgl::FactorGraph,
+function fmcmc!(fgl::G,
                 cliq::Graphs.ExVertex,
                 fmsgs::Vector{NBPMessage},
-                IDs::Vector{Int},
+                lbls::Vector{Symbol},
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                api::DataLayerAPI=dlapi )
+                api::DataLayerAPI=dlapi ) where G <: AbstractDFG
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
-    if length(IDs) == 1
+    if length(lbls) == 1
         MCMCIter=1
     end
     mcmcdbg = Array{CliqGibbsMC,1}()
@@ -467,19 +458,18 @@ function fmcmc!(fgl::FactorGraph,
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
       @info "#$(iter)\t -- "
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
-      # @show IDs
-      for vertid in IDs
-        vert = getVert(fgl, vertid, api=api)
-        # @show vert.index, vert.label
+      # @show lbls
+      for vsym in lbls
+        vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod = cliqGibbs(fgl, cliq, vertid, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vertid, fmsgs, N)
+          densPts, potprod = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vsym, fmsgs, N)
           if size(densPts,1)>0
-            updvert = getVert(fgl, vertid, api=dlapi)  # TODO --  can we remove this duplicate getVert?
+            updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
             setValKDE!(updvert, densPts)
             # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
-            dlapi.updatevertex!(fgl, updvert)
-            # fgl.v[vertid].attributes["val"] = densPts
+              # # TODO SAM PLEASE HELPPPPPPPP
+              # dlapi.updatevertex!(fgl, updvert)
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -493,14 +483,14 @@ function fmcmc!(fgl::FactorGraph,
 
     # populate dictionary for return NBPMessage in multiple dispatch
     # TODO -- change to EasyMessage dict
-    d = Dict{Int,EasyMessage}() # Array{Float64,2}
-    for vertid in IDs
+    d = Dict{Symbol,EasyMessage}() # Array{Float64,2}
+    for vsym in lbls
       # TODO reduce to local fg only
-      vert = getVert(fgl,vertid, api=api)
+      vert = DFG.getVariable(fgl,vsym)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vertid] = EasyMessage(getVal(vert), bws, manis)
+      d[vsym] = EasyMessage(getVal(vert), bws, manis)
       # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
     end
     @info "fmcmc! -- finished on $(cliq.attributes["label"])"
@@ -508,10 +498,10 @@ function fmcmc!(fgl::FactorGraph,
     return mcmcdbg, d
 end
 
-function upPrepOutMsg!(d::Dict{Int,EasyMessage}, IDs::Array{Int,1}) #Array{Float64,2}
+function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
-  m = NBPMessage(Dict{Int,EasyMessage}())
+  m = NBPMessage(Dict{Symbol,EasyMessage}())
   for id in IDs
     m.p[id] = d[id]
   end
@@ -625,7 +615,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # TODO -- some weirdness with: d,. = d = ., nothing
   mcmcdbg = Array{CliqGibbsMC,1}()
-  d = Dict{Int,EasyMessage}()
+  d = Dict{Symbol,EasyMessage}()
 
   priorprods = Vector{CliqGibbsMC}()
 
@@ -656,7 +646,8 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
   m = upPrepOutMsg!(d, cliqdata.conditIDs)
 
-  outmsglbl = Dict{Symbol, Int}()
+  # TODO can remove this outmsglbl Symbol => Symbol
+  outmsglbl = Dict{Symbol, Symbol}()
   if dbg
     for (ke, va) in m.p
       outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
@@ -665,8 +656,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # prepare and convert upward belief messages
   upmsgs = Dict{Symbol, BallTreeDensity}()
+  # @show collect(keys(inp.fg.g.vertices))
   for (ke, va) in m.p
-    msgsym = Symbol(inp.fg.g.vertices[ke].label)
+    # msgsym = Symbol(inp.fg.g.vertices[ke].label)
+    msgsym = ke
     upmsgs[msgsym] = convert(BallTreeDensity, va)
   end
   setUpMsg!(inp.cliq, upmsgs)
@@ -680,7 +673,10 @@ end
 
 
 
-function dwnPrepOutMsg(fg::FactorGraph, cliq::Graphs.ExVertex, dwnMsgs::Array{NBPMessage,1}, d::Dict{Int, EasyMessage}) #Array{Float64,2}
+function dwnPrepOutMsg(fg::G,
+                       cliq::Graphs.ExVertex,
+                       dwnMsgs::Array{NBPMessage,1},
+                       d::Dict{Symbol, EasyMessage}) where G <: AbstractDFG
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
@@ -707,12 +703,12 @@ Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward
 Note
 - Only update frontal variables of the clique.
 """
-function downGibbsCliqueDensity(fg::FactorGraph,
+function downGibbsCliqueDensity(fg::G,
                                 cliq::Graphs.ExVertex,
                                 dwnMsgs::Array{NBPMessage,1},
                                 N::Int=100,
                                 MCMCIter::Int=3,
-                                dbg::Bool=false  )
+                                dbg::Bool=false  ) where G <: AbstractDFG
     #
     # TODO standardize function call to have similar stride to upGibbsCliqueDensity
     @info "down"
@@ -728,8 +724,10 @@ function downGibbsCliqueDensity(fg::FactorGraph,
 
     # Always keep dwn messages in cliq data
     dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-    for (ke, va) in m.p
-      msgsym = Symbol(fg.g.vertices[ke].label)
+    for (msgsym, va) in m.p
+      # @show ke
+      # @show collect(keys(fg.g.vertices))
+      # msgsym = Symbol(fg.g.vertices[ke].label)
       dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
     end
     setDwnMsg!(cliq, dwnkeepmsgs)
@@ -757,12 +755,12 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      bt::BayesTree,
                      cliqID::Int,
                      ddt::DownReturnBPType;
                      dbg::Bool=false,
-                     fillcolor::String=""  )
+                     fillcolor::String=""  ) where G <: AbstractDFG
     #
     cliq = bt.cliques[cliqID]
     if dbg
@@ -787,11 +785,10 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="",
-                     api::DataLayerAPI=dlapi  )
+                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
   #
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
@@ -802,24 +799,24 @@ function updateFGBT!(fg::FactorGraph,
     setCliqDrawColor(cliq, fillcolor)
   end
   for dat in urt.IDvals
-    updvert = api.getvertex(fg,dat[1])
+    # TODO make symmetric for non in memory version
+    updvert = DFG.getVariable(fg, dat[1])
     setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-    api.updatevertex!(fg, updvert, updateMAPest=true)
+    # api.updatevertex!(fg, updvert, updateMAPest=true)
   end
   @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
   nothing
 end
 
-function updateFGBT!(fg::FactorGraph,
+function updateFGBT!(fg::G,
                      bt::BayesTree,
                      cliqID::Int,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String="",
-                     api::DataLayerAPI=dlapi  )
+                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
   #
   cliq = bt.cliques[cliqID]
   cliq = bt.cliques[cliqID]
-  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor, api=api )
+  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor )
 end
 
 """
@@ -858,15 +855,19 @@ Get and return upward belief messages as stored in child cliques from `treel::Ba
 Notes
 - Use last parameter to select the return format.
 """
-function getCliqChildMsgsUp(fg_::FactorGraph, treel::BayesTree, cliq::Graphs.ExVertex, ::Type{EasyMessage})
+function getCliqChildMsgsUp(fg_::G,
+                            treel::BayesTree,
+                            cliq::Graphs.ExVertex,
+                            ::Type{EasyMessage} ) where G <: AbstractDFG
+  #
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
-    nbpchild = NBPMessage(Dict{Int,EasyMessage}())
+    nbpchild = NBPMessage(Dict{Symbol,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
-      id = fg_.IDs[key]
-      manis = getManifolds(fg_, id)
-      nbpchild.p[id] = convert(EasyMessage, bel, manis)
+      # id = fg_.IDs[key]
+      manis = getManifolds(fg_, key)
+      nbpchild.p[key] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end
@@ -920,7 +921,7 @@ Notes
 -----
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
-function approxCliqMarginalUp!(fgl::FactorGraph,
+function approxCliqMarginalUp!(fgl::G,
                                treel::BayesTree,
                                csym::Symbol,
                                onduplicate=true;
@@ -928,7 +929,7 @@ function approxCliqMarginalUp!(fgl::FactorGraph,
                                dbg::Bool=false,
                                iters::Int=3,
                                drawpdf::Bool=false,
-                               multiproc::Bool=true )
+                               multiproc::Bool=true ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
@@ -1070,7 +1071,8 @@ function downGibbsCliqueDensity(inp::ExploreTreeType{T},
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
 end
 
-function prepDwnPreOrderStack!(bt::BayesTree, parentStack::Array{Graphs.ExVertex,1})
+function prepDwnPreOrderStack!(bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1})
   # dwn message passing function
   nodedata = nothing
   tempStack = Array{Graphs.ExVertex,1}()
@@ -1103,7 +1105,7 @@ function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
   nothing
 end
 
-function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1})
+function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
     # info("starting pett")
     # TODO -- expand this to grab only partial subsection from the fg and bt data structures
 
@@ -1116,14 +1118,14 @@ function partialExploreTreeType(pfg::FactorGraph, pbt::BayesTree, cliqCursor::Gr
     nothing
 end
 
-function dispatchNewDwnProc!(fg::FactorGraph,
+function dispatchNewDwnProc!(fg::G,
                              bt::BayesTree,
                              parentStack::Array{Graphs.ExVertex,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
                              N::Int=100,
                              dbg::Bool=false,
-                             drawpdf::Bool=false  )
+                             drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   cliq = parentStack[stkcnt]
   while !haskey(refdict, cliq.index) # nodedata.cliq
@@ -1157,13 +1159,13 @@ Downward message passing on Bayes (Junction) tree.
 Notes
 - Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
 """
-function processPreOrderStack!(fg::FactorGraph,
+function processPreOrderStack!(fg::G,
                                bt::BayesTree,
                                parentStack::Array{Graphs.ExVertex,1},
                                refdict::Dict{Int,Future};
                                N::Int=100,
                                dbg::Bool=false,
-                               drawpdf::Bool=false )
+                               drawpdf::Bool=false ) where G <: AbstractDFG
   #
     # dwn message passing function for iterative tree exploration
     stkcnt = 0
@@ -1232,14 +1234,14 @@ end
 
 Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
 """
-function asyncProcessPostStacks!(fgl::FactorGraph,
+function asyncProcessPostStacks!(fgl::G,
                                  bt::BayesTree,
                                  chldstk::Vector{Graphs.ExVertex},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
                                  N::Int=100,
                                  dbg::Bool=false,
-                                 drawpdf::Bool=false  )
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   if stkcnt == 0
     @info "asyncProcessPostStacks! ERROR stkcnt=0"
@@ -1305,12 +1307,12 @@ Notes
 - asyncs used to wrap remotecall for multicore.
 - separate multithreaded calls can occur on each separate process.
 """
-function processPostOrderStacks!(fg::FactorGraph,
+function processPostOrderStacks!(fg::G,
                                  bt::BayesTree,
                                  childStack::Array{Graphs.ExVertex,1};
                                  N::Int=100,
                                  dbg::Bool=false,
-                                 drawpdf::Bool=false  )
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
   #
   refdict = Dict{Int,Future}()
 
@@ -1496,25 +1498,35 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
-function tryCliqStateMachineSolve!(fgl::FactorGraph,
+function tryCliqStateMachineSolve!(dfg::G,
                                    treel::BayesTree,
                                    i::Int,
                                    cliqHistories;
                                    drawtree::Bool=false,
                                    N::Int=100,
                                    limititers::Int=-1,
-                                   recordcliqs::Vector{Symbol}=Symbol[])
+                                   recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   clst = :na
   cliq = treel.cliques[i]
-  ids = getCliqFrontalVarIds(cliq)
-  syms = map(d->getSym(fgl, d), ids)
+  syms = getCliqFrontalVarIds(cliq) # ids =
+  # syms = map(d->getSym(fgl, d), ids)
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers, recordhistory=recordthiscliq )
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, drawtree=drawtree,
+                                             limititers=limititers, recordhistory=recordthiscliq )
     cliqHistories[i] = history
-    clst = getCliqStatus(cliq)
-    # clst = cliqInitSolveUp!(fgl, treel, cliq, drawtree=drawtree, limititers=limititers )
+    if length(history) >= limititers && limititers != -1
+      # save the history in /tmp/
+      @warn "writing /tmp/cliqHistories/$(cliq.label).statemachine"
+      mkpath("/tmp/cliqHistories")
+      # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
+      fid = open("/tmp/cliqHistories/$(cliq.label).statemachine", "w")
+      printCliqHistorySummary(fid, history)
+      close(fid)
+    end
+    # clst = getCliqStatus(cliq)
+    # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     bt = catch_backtrace()
     println()
@@ -1531,17 +1543,17 @@ end
 
 Perform tree based initialization of all variables not yet initialized in factor graph.
 """
-function initInferTreeUp!(fgl::FactorGraph,
+function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
                           skipcliqids::Vector{Int}=Int[],
-                          recordcliqs::Vector{Symbol}=Symbol[] )
+                          recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
-  setTreeCliquesMarginalized!(fgl, treel)
+  setTreeCliquesMarginalized!(dfg, treel)
   drawtree ? drawTree(treel, show=false) : nothing
 
   # queue all the tasks
@@ -1552,7 +1564,7 @@ function initInferTreeUp!(fgl::FactorGraph,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
         end # if
       end # for
     end # sync
@@ -1574,7 +1586,7 @@ end
 
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTree!(fgl::FactorGraph,
+function inferOverTree!(dfg::G,
                         bt::BayesTree;
                         N::Int=100,
                         upsolve::Bool=true,
@@ -1584,7 +1596,7 @@ function inferOverTree!(fgl::FactorGraph,
                         treeinit::Bool=false,
                         limititers::Int=1000,
                         skipcliqids::Vector{Int}=Int[],
-                        recordcliqs::Vector{Symbol}=Symbol[]  )
+                        recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)
@@ -1594,19 +1606,19 @@ function inferOverTree!(fgl::FactorGraph,
   if upsolve
     if treeinit
       @info "Do tree based init-inference on tree"
-      smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
+      smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
       @info "Finished tree based upward init-inference"
     else
-      ensureAllInitialized!(fgl)
+      ensureAllInitialized!(dfg)
     end
     if !treeinit # !isTreeSolvedUp(bt)
       @info "Do multi-process upward pass of inference on tree"
-      upMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+      upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
     end
   end
   if downsolve
     @info "Do multi-process downward pass of inference on tree"
-    downMsgPassingIterative!(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+    downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   end
   return smtasks, ch
 end
@@ -1616,12 +1628,12 @@ end
 
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
-function inferOverTreeR!(fgl::FactorGraph,
+function inferOverTreeR!(fgl::G,
                          bt::BayesTree;
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}
+                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}} where G <: AbstractDFG
   #
   @info "Batch rather than incremental solving over the Bayes (Junction) tree."
   setAllSolveFlags!(bt, false)

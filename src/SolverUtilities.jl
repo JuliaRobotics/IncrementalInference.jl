@@ -1,4 +1,3 @@
-
 function fastnorm(u)
   # dest[1] = ...
   n = length(u)
@@ -164,7 +163,7 @@ end
 
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
-function batchSolve!(fgl::FactorGraph;
+function batchSolve!(dfg::G;
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,
@@ -176,21 +175,21 @@ function batchSolve!(fgl::FactorGraph;
                      limititers::Int=1000,
                      skipcliqids::Vector{Int}=Int[],
                      recordcliqs::Vector{Symbol}=Symbol[],
-                     returntasks::Bool=false  )
+                     returntasks::Bool=false  ) where G <: AbstractDFG
   #
-  if fgl.isfixedlag
+  if DFG.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
-      fifoFreeze!(fgl)
+      fifoFreeze!(dfg)
   end
-  tree = wipeBuildNewTree!(fgl, drawpdf=drawpdf)
+  tree = wipeBuildNewTree!(dfg, drawpdf=drawpdf)
   show ? showTree() : nothing
 
   smtasks = Vector{Task}()
   if recursive
-    # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging -- NEAR OBSOLETE
-    smtasks, ch = inferOverTreeR!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
+    # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
+    smtasks, ch = inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    smtasks, ch = inferOverTree!(fgl, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+    smtasks, ch = inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
                                   limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
                                   downsolve=downsolve, skipcliqids=skipcliqids  )
   end
@@ -209,20 +208,19 @@ end
 
 Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
-function setfreeze!(fgl::FactorGraph, sym::Symbol)
-  if !isInitialized(fgl, sym)
+function setfreeze!(dfg::G, sym::Symbol) where G <: AbstractDFG
+  if !isInitialized(dfg, sym)
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
-  vert = getVert(fgl, sym)
+  vert = GraphsDFG.getVariable(fgl, sym)
   data = getData(vert)
   data.ismargin = true
-
   nothing
 end
-function setfreeze!(fgl::FactorGraph, syms::Vector{Symbol})
+function setfreeze!(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
   for sym in syms
-    setfreeze!(fgl, sym)
+    setfreeze!(dfg, sym)
   end
 end
 
@@ -234,18 +232,18 @@ Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`,
 Future:
 - Allow different freezing strategies beyond fifo.
 """
-function fifoFreeze!(fgl::FactorGraph)
-  if fgl.qfl == 0
+function fifoFreeze!(dfg::G) where G <: AbstractDFG
+  if DFG.getSolverParams(dfg).qfl == 0
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
-  tofreeze = fgl.fifo[1:(end-fgl.qfl)]
+  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
       return nothing
   end
   @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
-  setfreeze!(fgl, tofreeze)
+  setfreeze!(dfg, tofreeze)
   nothing
 end
 

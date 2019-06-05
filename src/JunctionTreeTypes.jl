@@ -10,7 +10,7 @@ mutable struct BayesTree
   bt
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
-  frontals::Dict{String,Int}
+  frontals::Dict{Symbol,Int}
 end
 
 function emptyBayesTree()
@@ -32,8 +32,8 @@ TODO
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
 mutable struct CliqStateMachineContainer
-  fg::FactorGraph
-  cliqSubFg::FactorGraph
+  dfg::DistributedFactorGraphs.GraphsDFG
+  cliqSubFg::DistributedFactorGraphs.GraphsDFG
   tree::BayesTree
   cliq::Graphs.ExVertex
   parentCliq::Vector{Graphs.ExVertex}
@@ -54,19 +54,19 @@ $(TYPEDEF)
 Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
-  frontalIDs::Vector{Int}
-  conditIDs::Vector{Int}
-  inmsgIDs::Vector{Int}
-  potIDs::Vector{Int} # this is likely redundant TODO -- remove
-  potentials::Vector{Int}
+  frontalIDs::Vector{Symbol}
+  conditIDs::Vector{Symbol}
+  inmsgIDs::Vector{Symbol} # Int
+  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
+  potentials::Vector{Symbol}
   partialpotential::Vector{Bool}
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Int}
-  directFrtlMsgIDs::Vector{Int}
-  msgskipIDs::Vector{Int}
-  itervarIDs::Vector{Int}
-  directPriorMsgIDs::Vector{Int}
+  directvarIDs::Vector{Symbol} # Int
+  directFrtlMsgIDs::Vector{Symbol} # Int
+  msgskipIDs::Vector{Symbol} # Int
+  itervarIDs::Vector{Symbol} # Int
+  directPriorMsgIDs::Vector{Symbol} # Int
   debug
   debugDwn
   # future might concentrate these four fields down to two
@@ -114,14 +114,14 @@ end
 $(TYPEDEF)
 """
 mutable struct NBPMessage <: Singleton
-  p::Dict{Int,EasyMessage}
+  p::Dict{Symbol, EasyMessage}
 end
 
 """
 $(TYPEDEF)
 """
 mutable struct PotProd
-    Xi::Int
+    Xi::Symbol # Int
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
@@ -142,8 +142,8 @@ $(TYPEDEF)
 mutable struct DebugCliqMCMC
     mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
     outmsg::NBPMessage
-    outmsglbls::Dict{Symbol, Int}
-    priorprods::Vector{CliqGibbsMC} #Union{Nothing, Dict{Symbol, Vector{EasyMessage}}}
+    outmsglbls::Dict{Symbol, Symbol} # Int
+    priorprods::Vector{CliqGibbsMC}
     DebugCliqMCMC() = new()
     DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
@@ -154,7 +154,7 @@ $(TYPEDEF)
 mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Int, EasyMessage} #Array{Float64,2}
+  IDvals::Dict{Symbol, EasyMessage} # Int
   keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
@@ -167,7 +167,7 @@ $(TYPEDEF)
 mutable struct DownReturnBPType
     dwnMsg::NBPMessage
     dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Int,EasyMessage} #Array{Float64,2}
+    IDvals::Dict{Symbol,EasyMessage} # Int
     keepdwnmsgs::Dict{Symbol, BallTreeDensity}
 end
 
@@ -175,7 +175,7 @@ end
 $(TYPEDEF)
 """
 mutable struct FullExploreTreeType{T, T2}
-  fg::FactorGraph
+  fg::DistributedFactorGraphs.GraphsDFG
   bt::T2
   cliq::Graphs.ExVertex
   prnt::T
@@ -186,11 +186,11 @@ const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
 const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
 
 
-function ExploreTreeType(fgl::FactorGraph,
-                btl::BayesTree,
-                vertl::Graphs.ExVertex,
-                prt::T,
-                msgs::Array{NBPMessage,1} ) where {T}
+function ExploreTreeType(fgl::G,
+                         btl::BayesTree,
+                         vertl::Graphs.ExVertex,
+                         prt::T,
+                         msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
@@ -199,9 +199,9 @@ end
 $(TYPEDEF)
 """
 mutable struct MsgPassType
-  fg::FactorGraph
+  fg::GraphsDFG
   cliq::Graphs.ExVertex
-  vid::Int
+  vid::Symbol # Int
   msgs::Array{NBPMessage,1}
   N::Int
 end

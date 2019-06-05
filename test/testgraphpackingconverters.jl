@@ -1,11 +1,12 @@
 # packing and unpacking of Graph related types
 
 using IncrementalInference
+using DistributedFactorGraphs
 
 using Test
 
-
-setSerializationNamespace!("Main" => Main)
+dfg = GraphsDFG()
+setSerializationModule!(dfg, Main)
 
 @testset "hard-coded test of PackedPrior to Prior" begin
 
@@ -66,8 +67,8 @@ end
 
 @testset "Testing conversion to packed variable node data structure and back" begin
   global dat = getData(fg,:x1) # 1
-  global pd = convert(IncrementalInference.PackedVariableNodeData, dat)
-  global unpckd = convert(IncrementalInference.VariableNodeData, pd)
+  global pd = pack(dfg, dat)
+  global unpckd = unpack(dfg, pd)
 
   @test compareFields(dat, unpckd, skip=[:softtype])
   @test compareFields(dat.softtype, unpckd.softtype)

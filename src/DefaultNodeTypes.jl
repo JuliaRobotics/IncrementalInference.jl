@@ -49,6 +49,24 @@ end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 """
+Converter: Prior -> PackedPrior::Dict{String, Any}
+"""
+function convert(::Type{Dict{String, Any}}, prior::IncrementalInference.Prior)
+    z = convert(Type{Dict{String, Any}}, prior.Z)
+    return Packed_Factor([z], "Prior")
+end
+
+"""
+Converter: PackedPrior::Dict{String, Any} -> Prior
+"""
+function convert(::Type{Prior}, prior::Dict{String, Any})
+    # Genericize to any packed type next.
+    z = prior["measurement"][1]
+    z = convert(_evalType(z["distType"]), z)
+    return Prior(z)
+end
+
+"""
 $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
