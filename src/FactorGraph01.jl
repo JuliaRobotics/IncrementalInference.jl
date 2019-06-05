@@ -77,7 +77,7 @@ getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[s
 getVal(vnd::VariableNodeData) = vnd.val
 getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
 function getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
-  return getVariable(dfg, lbl).solverDataDict[solveKey]
+  return getVariable(dfg, lbl).solverDataDict[solveKey].val
 end
 
 """
@@ -326,7 +326,7 @@ end
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
 function getVal(vA::Vector{DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
-  @warn "getVal(::Vector{ExVertex}) is obsolete, use getVal.(ExVertex) instead."
+  @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
   cols = Array{Int,1}()
