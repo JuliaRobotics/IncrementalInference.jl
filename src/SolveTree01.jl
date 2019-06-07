@@ -676,18 +676,19 @@ end
 function dwnPrepOutMsg(fg::G,
                        cliq::Graphs.ExVertex,
                        dwnMsgs::Array{NBPMessage,1},
-                       d::Dict{Symbol, EasyMessage}) where G <: AbstractDFG
+                       d::Dict{Symbol, T}) where {G <: AbstractDFG, T}
     # pack all downcoming conditionals in a dictionary too.
+    error("dwnPrepOutMsg -- when last did this function get used? 2019Q2")
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
     end # ignore root, now incoming dwn msg
     @info "Outgoing msg density on: "
-    m = NBPMessage(Dict{Int,EasyMessage}())
+    m = NBPMessage(Dict{Symbol,T}())
     i = 0
-    for vid in cliq.attributes["data"].frontalIDs
+    for vid in getData(cliq).frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
     end
-    for cvid in cliq.attributes["data"].conditIDs
+    for cvid in getData(cliq).conditIDs
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
@@ -700,7 +701,7 @@ end
 
 Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
 
-Note
+Notes
 - Only update frontal variables of the clique.
 """
 function downGibbsCliqueDensity(fg::G,
@@ -709,34 +710,34 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false  ) where G <: AbstractDFG
-    #
-    # TODO standardize function call to have similar stride to upGibbsCliqueDensity
-    @info "down"
-    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
-    m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
+  #
+  # TODO standardize function call to have similar stride to upGibbsCliqueDensity
+  @info "down"
+  mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
-    outmsglbl = Dict{Symbol, Int}()
-    if dbg
-      for (ke, va) in m.p
-        outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
-      end
+  outmsglbl = Dict{Symbol, Int}()
+  if dbg
+    for (ke, va) in m.p
+      outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
     end
+  end
 
-    # Always keep dwn messages in cliq data
-    dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-    for (msgsym, va) in m.p
-      # @show ke
-      # @show collect(keys(fg.g.vertices))
-      # msgsym = Symbol(fg.g.vertices[ke].label)
-      dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
-    end
-    setDwnMsg!(cliq, dwnkeepmsgs)
+  # Always keep dwn messages in cliq data
+  dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
+  for (msgsym, va) in m.p
+    # @show ke
+    # @show collect(keys(fg.g.vertices))
+    # msgsym = Symbol(fg.g.vertices[ke].label)
+    dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
+  end
+  setDwnMsg!(cliq, dwnkeepmsgs)
 
-    # down solving complete, set flag
-    getData(cliq).downsolved = true
+  # down solving complete, set flag
+  getData(cliq).downsolved = true
 
-    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
-    return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
+  return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
 end
 
 """

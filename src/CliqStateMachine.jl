@@ -35,11 +35,9 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # get down msg from parent
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = getDwnMsgs(prnt[1])
-  @show dwnmsgs
 
-  # call down inference
-  # drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.fg, csmc.cliq, msgs, 100, 3, false)
-  drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, msgs, 100, 3, false)
+  # call down inference, TODO multiproc
+  drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
   csmc.dodownsolve = false
 
   # update clique with new status
@@ -64,6 +62,7 @@ Notes
 function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # finished and exit downsolve
   if !csmc.dodownsolve
+    infocsm(csmc, "determineCliqIfDownSolve_StateMachine -- shortcut exit since downsolve not required.")
     return IncrementalInference.exitStateMachine
   end
 
@@ -78,6 +77,9 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   else
     # this is the root clique, so assume already downsolved
     setCliqDrawColor(csmc.cliq, "lightblue")
+    dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliq)
+    error("WIP")
+    setDwnMsg!(csmc.cliq, dwnmsgs)
     setCliqStatus!(csmc.cliq, :downsolved)
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved)
     return IncrementalInference.exitStateMachine

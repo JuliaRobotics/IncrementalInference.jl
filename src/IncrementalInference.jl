@@ -202,6 +202,7 @@ export
   getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
   getCliqParentMsgDown,
+  getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,

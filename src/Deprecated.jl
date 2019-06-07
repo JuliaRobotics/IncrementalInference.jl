@@ -1,4 +1,32 @@
 
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+function upMsg(cliq::Graphs.ExVertex)
+  @warn "deprecated upMsg, use getUpMsg instead"
+  getData(cliq).upMsg
+end
+function upMsg(btl::BayesTree, sym::Symbol)
+  @warn "deprecated upMsg, use getUpMsg instead"
+  upMsg(whichCliq(btl, sym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+function dwnMsg(cliq::Graphs.ExVertex)
+  @warn "deprecated dwnMsg, use getDwnMsgs instead"
+  getData(cliq).dwnMsg
+end
+function dwnMsg(btl::BayesTree, sym::Symbol)
+  @warn "deprecated dwnMsg, use getDwnMsgs instead"
+  dwnMsg(whichCliq(btl, sym))
+end
+
 
 """
     $SIGNATURES
@@ -9,7 +37,7 @@ Notes
 - Should not be calling outside programs.
 - Need long term solution
 - DFG's `toDotFile` a better solution -- view with `xdot` application.
-- also try `engine={"sfdp","fdp","dot","twopi","circo"}`
+- also try `engine={"sfdp","fdp","dot","twopi","circo","neato"}`
 """
 function writeGraphPdf(fgl::G;
                        viewerapp::String="evince",
