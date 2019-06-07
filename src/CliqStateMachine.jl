@@ -19,6 +19,72 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Do cliq downward inference
+
+Notes:
+- State machine function nr. 11
+"""
+function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "doCliqDownSolve_StateMachine")
+  setCliqDrawColor(csmc.cliq, "red")
+  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
+  # get down msg from parent
+  prnt = getParent(csmc.tree, csmc.cliq)
+  dwnmsgs = getDwnMsgs(prnt[1])
+  @show dwnmsgs
+
+  # call down inference
+  # drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.fg, csmc.cliq, msgs, 100, 3, false)
+  drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, msgs, 100, 3, false)
+  csmc.dodownsolve = false
+
+  # update clique with new status
+  updateFGBT!(csmc.fg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
+  setCliqStatus!(cliq, :downsolved) # should be a notify
+  notifyCliqDownInitStatus!(cliq, :downsolved)
+
+  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+  # and finished
+  return IncrementalInference.exitStateMachine
+end
+
+
+"""
+    $SIGNATURES
+
+Direct state machine to continue with downward solve or exit.
+
+Notes
+- State machine function nr. 10
+"""
+function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  # finished and exit downsolve
+  if !csmc.dodownsolve
+    return IncrementalInference.exitStateMachine
+  end
+
+  # yes, continue with downsolve
+  setCliqDrawColor(csmc.cliq, "darkviolet")
+  csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
+  # block here until parent is downsolved
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if length(prnt) > 0
+    blockCliqUntilParentDownSolved(prnt[1])
+  else
+    # this is the root clique, so assume already downsolved
+    setCliqDrawColor(csmc.cliq, "lightblue")
+    setCliqStatus!(csmc.cliq, :downsolved)
+    notifyCliqDownInitStatus!(csmc.cliq, :downsolved)
+    return IncrementalInference.exitStateMachine
+  end
+
+  return doCliqDownSolve_StateMachine
+end
 
 """
     $SIGNATURES
@@ -34,7 +100,8 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "9, going for transferUpdateSubGraph!")
     frsyms = getCliqFrontalVarIds(csmc.cliq)
     transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
-    return IncrementalInference.exitStateMachine
+    # go to 10
+    return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
     setCliqDrawColor(csmc.cliq, "sienna")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
@@ -387,7 +454,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst)
     end
-    return IncrementalInference.exitStateMachine
+    return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   end
   return buildCliqSubgraph_StateMachine
 end
@@ -412,6 +479,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         show::Bool=false,
                                         incremental::Bool=true,
                                         limititers::Int=-1,
+                                        downsolve::Bool=false,
                                         recordhistory::Bool=false  ) where G <: AbstractDFG
   #
   children = Graphs.ExVertex[]
@@ -420,7 +488,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end

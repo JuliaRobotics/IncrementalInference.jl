@@ -272,6 +272,7 @@ export
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
+  inferOverTreeIterative!,
 
   #development interface
   getTreeCliqSolveOrderUp,

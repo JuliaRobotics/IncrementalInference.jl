@@ -190,8 +190,11 @@ function solveCliqWithStateMachine!(dfg::G,
                                     tree::BayesTree,
                                     frontal::Symbol;
                                     iters::Int=200,
+                                    downsolve::Bool=true,
                                     recordhistory::Bool=false,
-                                    verbose::Bool=false  ) where G <: AbstractDFG
+                                    verbose::Bool=false,
+                                    nextfnc::Function=isCliqUpSolved_StateMachine,
+                                    prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
   children = Graphs.ExVertex[]
@@ -199,8 +202,8 @@ function solveCliqWithStateMachine!(dfg::G,
     push!(children, ch)
   end
   prnt = getParent(tree, cliq)
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
-  statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true, downsolve) : prevcsmc
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc)
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
 end

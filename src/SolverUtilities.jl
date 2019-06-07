@@ -195,12 +195,7 @@ function batchSolve!(dfg::G;
   end
 
   # later development allows tasks for each cliq state machine to be returned also
-  if returntasks
-    return tree, smtasks
-  else
-    # legacy option as default
-    return tree
-  end
+  return tree, smtasks
 end
 
 """
