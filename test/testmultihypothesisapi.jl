@@ -28,7 +28,7 @@ end
 
 
 global N  = 100
-global fg = FactorGraph()
+global fg = initfg()
 
 
 @testset "test populate factor graph with a multi-hypothesis factor..." begin
@@ -43,7 +43,7 @@ ensureAllInitialized!(fg)
 
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
 
-global pts = evalFactor2(fg, f1, v1.index, N=N)
+global pts = evalFactor2(fg, f1, v1.label, N=N)
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30
 @test sum(abs.(pts .- 10.0) .< 5) > 30
@@ -84,17 +84,14 @@ end
 @testset "Test multi-hypothesis factor convolution exploration" begin
 
 global pts = approxConv(fg, :x2x3x4f1, :x2, N=N)
-# pts = evalFactor2(fg, f3, v2.index, N=N)
 
 @test 99 < sum(pts .<= -70.0)
 
 global pts = approxConv(fg, :x2x3x4f1, :x3, N=N)
-# pts = evalFactor2(fg, f3, v3.index, N=N)
 
 @test 25 < sum(pts .== 3.0) < 75
 
 global pts = approxConv(fg, :x2x3x4f1, :x4, N=N)
-# pts = evalFactor2(fg, f3, v4.index, N=N)
 
 @test 25 < sum(pts .== 2.0) < 75
 
@@ -157,7 +154,7 @@ end
 
 # start a new factor graph
 global N = 200
-global fg = FactorGraph()
+global fg = initfg()
 
 @testset "test tri-modal factor..." begin
 
@@ -173,7 +170,6 @@ ensureAllInitialized!(fg)
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
 
 global pts = approxConv(fg, Symbol(f1.label), :x1, N=N)
-# pts = evalFactor2(fg, f1, v1.index, N=N)
 
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30

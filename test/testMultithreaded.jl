@@ -11,10 +11,10 @@ import IncrementalInference: getSample
 
 @show Threads.nthreads()
 
-global N = 100
+N = 100
 
 # Start with an empty factor graph
-global fg = FactorGraph()
+fg = initfg()
 
 # add the first node
 addVariable!(fg, :x0, ContinuousScalar, N=N)
@@ -28,7 +28,7 @@ addVariable!(fg, :x1, ContinuousScalar, N=N)
 addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)) , threadmodel=MultiThreaded)
 
 
-global pts = approxConv(fg, :x0x1f1, :x1, N=N)
+pts = approxConv(fg, :x0x1f1, :x1, N=N)
 
 @test 0.95*N <= sum(abs.(pts .- 10.0) .< 5.0)
 

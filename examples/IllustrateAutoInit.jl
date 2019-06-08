@@ -33,7 +33,7 @@ import IncrementalInference: getSample
 
 
 # Start with an empty graph
-fg = FactorGraph()
+fg = initfg()
 
 # add the first node
 addVariable!(fg, :x0, ContinuousScalar)

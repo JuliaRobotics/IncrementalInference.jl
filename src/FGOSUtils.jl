@@ -350,15 +350,10 @@ saved and recovered by the associated loadjld(file="tempfg.jld2") method.
 Notes:
 - Must use `.jld2` since Julia 1.0 (previous version was deprecated).
 """
-function savejld(fgl::FactorGraph;
-      file::AbstractString="tempfg.jld2",
-      groundtruth=nothing)
+function savejld(fgl::G;
+                 file::AbstractString="tempfg.jld2"  ) where G <: AbstractDFG
   fgs = encodefg(fgl)
-  if groundtruth == nothing
-    @save file fgs
-  else
-    @save file fgs groundtruth
-  end
+  @save file fgs
   return file
 end
 

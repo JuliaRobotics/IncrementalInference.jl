@@ -49,6 +49,7 @@ export
 
   # DFG SpecialDefinitions
   AbstractDFG,
+  hasVariable,
 
   dlapi,  # data layer variables
   localapi,

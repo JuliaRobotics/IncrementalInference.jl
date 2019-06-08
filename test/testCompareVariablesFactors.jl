@@ -3,8 +3,6 @@
 using IncrementalInference
 using Test
 
-
-
 @testset "testing compare functions for variables and factors..." begin
 
 fg = initfg()

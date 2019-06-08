@@ -6,7 +6,7 @@ using Test
 
 
 global N=100
-global fg = FactorGraph()
+global fg = initfg()
 
 # doors = [-100.0;0.0;100.0;300.0]'
 # cov = [3.0]
@@ -47,8 +47,9 @@ addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
 
 # p = IncrementalInference.getEliminationOrder(fg, ordering=:qr)
-global p = [7,10,1,3,5,12];
-global p = [7,10,1,3,5];
+# global p = [7,10,1,3,5,12];
+# global p = [7,10,1,3,5];
+p = [:l1;:l2;:x1;:x2;:x3]
 
 println()
 global fge = deepcopy(fg)
@@ -78,19 +79,13 @@ if false
   run(`dot bt.dot -Tpdf -o bt.pdf`)
 end
 
-# GraphViz.Graph(to_dot(tree.bt))
-#Michael reference 3sig -- x2l1x4x3    x1|x2
+# drawTree(tree)
 
 import IncrementalInference: buildCliquePotentials
 
 println("Find potential functions for each clique")
 cliq = tree.cliques[1] # start at the root
 buildCliquePotentials(fg, tree, cliq); # fg does not have the marginals as fge does
-
-# now update all factor graph vertices used for this tree
-for v in Graphs.vertices(fg.g)
-  IncrementalInference.dlapi.updatevertex!(fg, v)
-end
 
 
 
