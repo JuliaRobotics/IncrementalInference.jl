@@ -23,7 +23,8 @@ fg2 = deepcopy(fg)
 
 @test !compareVariable(v1,v2)
 
-@test !compareFactor(f1,f2)
+# not testing different factors in this way
+# @test !compareFactor(f1,f2)
 
 @test compareAllVariables(fg, fg)
 
@@ -40,8 +41,8 @@ fg2 = deepcopy(fg)
 
 batchSolve!(fg)
 
-x1a = getVert(fg, :x0)
-x1b = getVert(fg2, :x0)
+x1a = getVariable(fg, :x0)
+x1b = getVariable(fg2, :x0)
 
 @test !compareVariable(x1a, x1b, skipsamples=false)
 
@@ -88,8 +89,7 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 sfg = buildSubgraphFromLabels(fg, [:x0;:x1])
 
 
-@test compareFactorGraphs(fg, sfg)
-
+@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;])
 
 # writeGraphPdf(sfg)
 
