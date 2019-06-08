@@ -217,7 +217,7 @@ function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
                              dims::Int;
-                             gt=nothing,
+                             gt=Dict(),
                              initialized::Bool=true,
                              dontmargin::Bool=false,
                              softtype=nothing)::Nothing
@@ -225,17 +225,9 @@ function setDefaultNodeData!(v::DFGVariable,
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
   if initialized
-    # if size(initval,2) < N && size(initval, 1) == dims
-    #   @warn "setDefaultNodeData! -- deprecated use of stdev."
-    #   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
-    #   pN = resample(p,N)
-    # if size(initval,2) < N && size(initval, 1) != dims
-      # @info "Node value memory allocated but not initialized"
+
       pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
-    # else
-    #   pN = AMP.manikde!(initval, softtype.manifolds)
-    # end
-    # dims = size(initval,1) # rows indicate dimensions
+
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
     gbw2 = Array{Float64}(undef, length(gbw),1)
@@ -244,15 +236,26 @@ function setDefaultNodeData!(v::DFGVariable,
     #initval, stdev
     setSolverData(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, nothing, Symbol[], gt, softtype, true, false, false, dontmargin))
+                            dims, false, :_null, Symbol[], softtype, true, false, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, nothing, Symbol[], gt, softtype, false, false, false, dontmargin))
+                            dims, false, :_null, Symbol[], softtype, false, false, false, dontmargin))
   end
   return nothing
 end
+# if size(initval,2) < N && size(initval, 1) == dims
+#   @warn "setDefaultNodeData! -- deprecated use of stdev."
+#   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
+#   pN = resample(p,N)
+# if size(initval,2) < N && size(initval, 1) != dims
+  # @info "Node value memory allocated but not initialized"
+# else
+#   pN = AMP.manikde!(initval, softtype.manifolds)
+# end
+# dims = size(initval,1) # rows indicate dimensions
+
 
 """
 $(SIGNATURES)
@@ -425,7 +428,6 @@ function prepgenericconvolution(
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
-      # multiverts::Vector{Symbol}=Symbol[]
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.

@@ -270,7 +270,7 @@ global t = Array{Array{Float64,2},1}()
 push!(t,p1)
 push!(t,p2)
 
-global fg = FactorGraph()
+global fg = initfg()
 # fg.registeredModuleFunctions[:Main] = getSample
 
 global v1=addVariable!(fg, :x1, ContinuousScalar, N=N)

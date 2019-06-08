@@ -325,7 +325,7 @@ end
 
 Draw samples from the approximate convolution of `towards` symbol using factor `fct` relative to the other variables.  In addition the `api` can be adjusted to recover the data from elsewhere (likely to be replaced/removed in the future).
 """
-function approxConv(fgl::G,
+function approxConv(dfg::G,
                     fct::Symbol,
                     towards::Symbol;
                     N::Int=-1  ) where G <: AbstractDFG

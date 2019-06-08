@@ -297,7 +297,7 @@ Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` s
 function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
-  vdata.BayesNetVertID = nothing # TODO dont use nothing, see DFG issue #16
+  vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
   vdata.separator = Symbol[]
   nothing
 end
