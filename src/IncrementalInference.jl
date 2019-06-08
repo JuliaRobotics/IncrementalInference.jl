@@ -11,10 +11,10 @@ using Reexport
 @reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
-@reexport using DistributedFactorGraphs
 
 using
   Dates,
+  DistributedFactorGraphs,
   Statistics,
   Random,
   NLsolve,
@@ -46,6 +46,10 @@ export
   KDE,
   AMP,
   DFG,
+
+  # DFG SpecialDefinitions
+  AbstractDFG,
+
   dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,
