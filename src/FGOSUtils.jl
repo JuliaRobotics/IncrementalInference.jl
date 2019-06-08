@@ -118,15 +118,15 @@ end
 
 Compare that all fields are the same in a `::FactorGraph` variable.
 """
-function compareVariable(A::Graphs.ExVertex,
-                         B::Graphs.ExVertex;
+function compareVariable(A::DFGVariable,
+                         B::DFGVariable;
                          show::Bool=true,
                          skipsamples::Bool=true  )::Bool
   Ad = getData(A)
   Bd = getData(B)
 
   TP = compareAll(A, B, skip=[:attributes;], show=show)
-  TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
+  # TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
   varskiplist = skipsamples ? [:val; :bw] : Symbol[]
   varskiplist = union(varskiplist, [:softtype;])
   TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
