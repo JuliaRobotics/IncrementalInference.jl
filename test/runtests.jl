@@ -63,6 +63,9 @@ end
 
 @testset "saving to and loading from .jld2 file" begin
 
+# DFG.savedfg(fg)
+# DFG.loaddfg() # some convert problem on DFGVariable
+
 savejld(fg, file="tempfg.jld2" )
 @warn "not able to load a new DFG object yet"
 # fgu = loadjld( file="tempfg.jld2" )

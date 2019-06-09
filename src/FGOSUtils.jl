@@ -43,10 +43,37 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Array}
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Union{AbstractString,Symbol}}
   #
   return Al == Bl
 end
+
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Union{Array{<:Number}, Number}}
+  #
+  if length(Al) != length(Bl)
+    return false
+  end  
+  return norm(Al - Bl) < 1e-6
+end
+
+function compareAll(Al::T,
+                    Bl::T;
+                    show::Bool=true,
+                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Array}
+  #
+  if length(Al) != length(Bl)
+    return false
+  end
+  TP = true
+  for i in 1:length(Al)
+    TP = TP && compareAll(Al[i],Bl[i], show=false)
+  end
+  return TP
+end
+
 
 """
     $(SIGNATURES)
@@ -71,29 +98,6 @@ end
 function compareAll(Al::T,
                     Bl::T;
                     show::Bool=true,
-                    skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: DataType}
-  #
-  return true
-end
-
-function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
-  @show Al
-  @show Bl
-  TP = compareFields(Al, Bl, show=show, skip=skip)
-  for field in fieldnames(T)
-    if field in skip
-      continue
-    end
-    Ad = eval(:($Al.$field))
-    Bd = eval(:($Bl.$field))
-    TP = TP && compareAll(Ad, Bd, show=show, skip=skip)
-  end
-  return TP
-end
-
-function compareAll(Al::T,
-                    Bl::T;
-                    show::Bool=true,
                     skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
   #
   TP = true
@@ -103,10 +107,50 @@ function compareAll(Al::T,
     if Symbol(id) in skip
       continue
     end
-    compareAll(val, Bl[id], show=show, skip=skip)
+    TP = TP && compareAll(val, Bl[id], show=show, skip=skip)
   end
-  return true
+  return TP
 end
+
+function compareAll(Al::T1, Bl::T2; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where {T1 <: Union{SingleThreaded, MultiThreaded}, T2 <: Union{SingleThreaded, MultiThreaded}}
+  return T1 == T2
+end
+
+function compareAll(Al::T, Bl::T; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where T
+  @show T
+  @show Al
+  @show Bl
+  TP = compareFields(Al, Bl, show=show, skip=skip)
+  !TP ? (return false;) : nothing
+  for field in fieldnames(T)
+    println("field: $field")
+    if field in skip
+      continue
+    end
+    Ad = eval(:($Al.$field))
+    Bd = eval(:($Bl.$field))
+    TP = TP && compareAll(Ad, Bd, show=show, skip=skip)
+    println(string(TP))
+  end
+  return TP
+end
+
+# function compareAll(Al::T,
+#                     Bl::T;
+#                     show::Bool=true,
+#                     skip::Vector{Symbol}=Symbol[]  )::Bool where {T <: Dict}
+#   #
+#   TP = true
+#   TP = TP && length(Al) == length(Bl)
+#   !TP ? (return false) : nothing
+#   for (id, val) in Al
+#     if Symbol(id) in skip
+#       continue
+#     end
+#     compareAll(val, Bl[id], show=show, skip=skip)
+#   end
+#   return true
+# end
 
 function compare(p1::BallTreeDensity, p2::BallTreeDensity)::Bool
   return compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) &&
@@ -124,13 +168,14 @@ function compareVariable(A::DFGVariable,
                          skipsamples::Bool=true  )::Bool
   #
   TP = compareAll(A, B, skip=[:attributes;:solverDataDict;:_internalId], show=show)
-  TP = TP && compareAll(A.solverDataDict, B.solverDataDict, show=show)
+  varskiplist = skipsamples ? [:val; :bw] : Symbol[]
+  skiplist = union([:softtype;],varskiplist)
+  TP = TP && compareAll(A.solverDataDict, B.solverDataDict, skip=skiplist, show=show)
 
   Ad = getData(A)
   Bd = getData(B)
 
   # TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
-  varskiplist = skipsamples ? [:val; :bw] : Symbol[]
   varskiplist = union(varskiplist, [:softtype;:_internalId])
   TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
   TP = TP && typeof(Ad.softtype) == typeof(Bd.softtype)
@@ -170,10 +215,11 @@ function compareFactor(A::DFGFactor,
                        skipsamples::Bool=true,
                        skipcompute::Bool=true  )
   #
+  @info show
   TP =  compareAll(A, B, skip=[:attributes;:data;:_variableOrderSymbols;:_internalId], show=show)
   # TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
   TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;:_internalId], show=show)
-  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx], show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx;:threadmodel], show=show)
   TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
   TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show))
   TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show))
