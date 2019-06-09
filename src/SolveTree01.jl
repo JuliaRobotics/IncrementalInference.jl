@@ -340,7 +340,7 @@ function localProduct(dfg::G,
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Symbol, Vector{BallTreeDensity}}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
   lb = Symbol[]
   fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
