@@ -417,7 +417,7 @@ function cliqGibbs(fg::G,
 
   # consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Symbol, Vector{BallTreeDensity}}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{Symbol}()
   packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
