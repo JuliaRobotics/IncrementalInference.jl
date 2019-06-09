@@ -154,8 +154,9 @@ function encodefg(fgl::G ) where G <: AbstractDFG
 
   # @showprogress 1 "Encoding variables..."
   for vsym in getVariableIds(fgl)
-    cpvert = deepcopy(getVaraible(fgl, vsym))
-    addVariable!(fgs, cpvert)
+    # cpvert = deepcopy(  )
+    var = getVariable(fgl, vsym)
+    # addVariable!(fgs, cpvert)
   end
 
   # @showprogress 1 "Encoding factors..."

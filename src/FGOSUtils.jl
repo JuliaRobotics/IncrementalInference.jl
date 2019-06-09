@@ -352,8 +352,8 @@ Notes:
 """
 function savejld(fgl::G;
                  file::AbstractString="tempfg.jld2"  ) where G <: AbstractDFG
-  fgs = encodefg(fgl)
-  @save file fgs
+  # fgs = encodefg(fgl)
+  @save file fgl
   return file
 end
 
@@ -366,22 +366,8 @@ Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This fu
 uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
 """
 function loadjld(;file::AbstractString="tempfg.jld2")
-  dd = FileIO.load(file)
-  # fgs = jldopen(file,"r") do file
-  #   read(file, "fgs")
-  # end
-  fgs, gt = nothing, nothing
-  if haskey(dd, "fgs")
-    fgs = dd["fgs"]
-  else
-    error("No factor graph (fgs) data found in this file, only found $(keys(dd))")
-  end
-  if haskey(dd, "groundtruth")
-    gt = dd["groundtruth"]
-    println("Also found ground truth data")
-  end
-  fgd = decodefg(fgs)
-  return fgd, gt
+  fgd = @load file fgl
+  return fgd
 end
 
 """
