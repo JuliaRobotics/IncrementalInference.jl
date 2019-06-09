@@ -8,7 +8,7 @@ using Statistics
 
 mutable struct DevelopPartial <: IncrementalInference.FunctorSingleton
   x::Distribution
-  partial::Tuple
+  partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
 end
 getSample(dpl::DevelopPartial, N::Int=1) = (rand(dpl.x, N)', )
 
