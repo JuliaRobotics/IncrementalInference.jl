@@ -46,6 +46,7 @@ x1b = getVariable(fg2, :x0)
 
 @test !compareSimilarVariables(fg, fg2, skipsamples=false)
 @test !compareSimilarFactors(fg, fg2, skipsamples=false)
+
 @test compareFactorGraphs(fg, fg)
 @test !compareFactorGraphs(fg, fg2, skipsamples=false)
 
