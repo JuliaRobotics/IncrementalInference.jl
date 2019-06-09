@@ -80,7 +80,7 @@ end
 
 
 function packFromLocalPartials!(fgl::G,
-                                partials::Dict{Int, Vector{BallTreeDensity}},
+                                partials::Dict{Symbol, Vector{BallTreeDensity}},
                                 cliq::Graphs.ExVertex,
                                 vsym::Symbol,
                                 N::Int,
@@ -113,7 +113,7 @@ Multiply different dimensions from partial constraints individually.
 """
 function productpartials!(pGM::Array{Float64,2},
                           dummy::BallTreeDensity,
-                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          partials::Dict{Symbol, Vector{BallTreeDensity}},
                           manis::T  )::Nothing where {T <: Tuple}
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manis)
@@ -134,7 +134,7 @@ end
 Multiply various full and partial dimension constraints.
 """
 function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
-                                   partials::Dict{Int, Vector{BallTreeDensity}},
+                                   partials::Dict{Symbol, Vector{BallTreeDensity}},
                                    Ndims::Int,
                                    N::Int,
                                    manis::T ) where {T <: Tuple}
@@ -158,7 +158,7 @@ end
 Multiply a single full and several partial dimension constraints.
 """
 function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
-                                      partials::Dict{Int, Vector{BallTreeDensity}},
+                                      partials::Dict{Symbol, Vector{BallTreeDensity}},
                                       Ndims::Int,
                                       N::Int,
                                       manis::T  ) where {T <: Tuple}
@@ -193,7 +193,7 @@ Future
 function productbelief(dfg::G,
                        vertlabel::Symbol,
                        dens::Vector{BallTreeDensity},
-                       partials::Dict{Int, Vector{BallTreeDensity}},
+                       partials::Dict{Symbol, Vector{BallTreeDensity}},
                        N::Int;
                        dbg::Bool=false ) where {G <: AbstractDFG}
   #
@@ -247,7 +247,7 @@ function proposalbeliefs!(dfg::G,
                           factors::Vector{F},
                           fulldimproposal::Vector{Bool},
                           dens::Vector{BallTreeDensity},
-                          partials::Dict{Int, Vector{BallTreeDensity}};
+                          partials::Dict{Symbol, Vector{BallTreeDensity}};
                           N::Int=100,
                           dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
   #
@@ -282,7 +282,7 @@ function predictbelief(dfg::G,
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
+  partials = Dict{Symbol, Vector{BallTreeDensity}}()
 
   # determine number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(destvert),2)
@@ -340,8 +340,8 @@ function localProduct(dfg::G,
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
-  lb = String[]
+  partials = Dict{Symbol, Vector{BallTreeDensity}}()
+  lb = Symbol[]
   fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
   cf = getNeighbors(dfg, sym)
@@ -355,7 +355,7 @@ function localProduct(dfg::G,
   fulldim = Vector{Bool}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
@@ -417,7 +417,7 @@ function cliqGibbs(fg::G,
 
   # consolidate NBPMessages and potentials
   dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
+  partials = Dict{Symbol, Vector{BallTreeDensity}}()
   wfac = Vector{Symbol}()
   packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
   packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)

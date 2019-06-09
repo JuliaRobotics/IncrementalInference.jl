@@ -85,7 +85,7 @@ end
 
 Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
 """
-function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Tuple{Int64,Int64}
+function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
   return size(getData(v, solveKey=solveKey).val,2)
 end
 
@@ -164,7 +164,7 @@ end
 function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
-  setinit ? (getData(v, solveKey==solveKey).initialized = true) : nothing
+  setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   getData(v).partialinit = partialinit
   nothing
 end
