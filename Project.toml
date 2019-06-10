@@ -31,7 +31,7 @@ SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
 ApproxManifoldProducts = "≥ 0.1"
-DistributedFactorGraphs = "≥ 0.1.1"
+DistributedFactorGraphs = "≥ 0.1.2"
 Distributions = "≥ 0.18"
 DocStringExtensions = "≥ 0.7"
 FileIO = "≥ 1.0.2"
