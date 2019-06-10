@@ -47,7 +47,7 @@ $(TYPEDEF)
 
 Solver parameters for the DistributedFactoGraph.
 """
-mutable struct SolverParams
+mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
   registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
@@ -113,9 +113,9 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=GraphsDFG();sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: AbstractDFG
-  solverParams = SolverParams(0, nothing, nothing, false, 0, false)
-  setSolverParams(dfg, solverParams)
+function initfg(dfg::T=GraphsDFG{SolverParams}(params=SolverParams(0, nothing, nothing, false, 0, false));sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: AbstractDFG
+  # solverParams = SolverParams(0, nothing, nothing, false, 0, false)
+  # setSolverParams(dfg, solverParams)
   return dfg
 end
 

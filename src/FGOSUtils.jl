@@ -55,7 +55,7 @@ function compareAll(Al::T,
   #
   if length(Al) != length(Bl)
     return false
-  end  
+  end
   return norm(Al - Bl) < 1e-6
 end
 
@@ -630,8 +630,8 @@ isMarginalized(dfg::G, sym::Symbol; api::DataLayerAPI=localapi) where G <: Abstr
 Free all variables from marginalization.
 """
 function unmarginalizeVariablesAll!(fgl::FactorGraph)
-  fgl.isfixedlag = false
-  fgl.qfl = 9999999999
+  fgl.solverParams.isfixedlag = false
+  fgl.solverParams.qfl = 9999999999
   vsyms = union(ls(fgl)...)
   for sym in vsyms
     getData(fgl, sym).ismargin = false
