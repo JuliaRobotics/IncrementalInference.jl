@@ -213,7 +213,7 @@ function setfreeze!(dfg::G, sym::Symbol) where G <: AbstractDFG
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
-  vert = GraphsDFG.getVariable(fgl, sym)
+  vert = DFG.getVariable(dfg, sym)
   data = getData(vert)
   data.ismargin = true
   nothing
@@ -232,7 +232,7 @@ Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`,
 Future:
 - Allow different freezing strategies beyond fifo.
 """
-function fifoFreeze!(dfg::G) where G <: AbstractDFG
+function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
   if DFG.getSolverParams(dfg).qfl == 0
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end

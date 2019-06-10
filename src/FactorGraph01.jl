@@ -482,18 +482,18 @@ end
 Returns state of vertex data `.initialized` flag.
 
 Notes:
-- used by both factor graph variable and Bayes tree clique logic.
-TODO: Refactor
+- used by Bayes tree clique logic.
+- similar method in DFG
 """
 function isInitialized(vert::Graphs.ExVertex)::Bool
   return getData(vert).initialized
 end
-function isInitialized(vert::DFGVariable)::Bool
-  return getData(vert).initialized
-end
-function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: AbstractDFG
-  return isInitialized(DFG.getVariable(dfg, vsym))
-end
+# function isInitialized(vert::DFGVariable)::Bool
+#   return getData(vert).initialized
+# end
+# function isInitialized(dfg::T, vsym::Symbol)::Bool where T <: AbstractDFG
+#   return isInitialized(DFG.getVariable(dfg, vsym))
+# end
 
 """
     $SIGNATURES

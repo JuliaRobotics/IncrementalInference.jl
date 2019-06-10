@@ -37,7 +37,7 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
