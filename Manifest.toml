@@ -113,9 +113,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DistributedFactorGraphs]]
 deps = ["DataFrames", "Dates", "Distributions", "DocStringExtensions", "Graphs", "Reexport", "Requires"]
-git-tree-sha1 = "5ae185fe667284a34bd2b8f02c2e070e2a6e2639"
+git-tree-sha1 = "2b0d5b378f6d0ab2e85d7d0624aeb7f0a275ba29"
 uuid = "b5cc3c7e-6572-11e9-2517-99fb8daf2f04"
-version = "0.1.1"
+version = "0.1.2"
 
 [[Distributions]]
 deps = ["LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
