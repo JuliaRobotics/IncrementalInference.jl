@@ -95,6 +95,7 @@ export
   # VariableNodeData,
   # PackedVariableNodeData,
   FactorMetadata,
+  getpackedtype,
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,

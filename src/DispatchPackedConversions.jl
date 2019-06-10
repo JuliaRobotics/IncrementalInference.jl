@@ -88,6 +88,10 @@ end
 function getname(t::T) where T
   T.name.name
 end
+function getpackedtype(typestring::AS) where {AS <: AbstractString}
+  # println("Caesar.getpackedtype($(typestring))")
+  eval(Meta.parse(typestring))() # TODO consider caching or better
+end
 function encodePackedType(topackdata::VariableNodeData)
   @warn "'encodePackedType' Deprecated..."
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
