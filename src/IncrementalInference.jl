@@ -37,7 +37,7 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
@@ -90,6 +90,19 @@ export
   PackedMixturePrior,
   MixtureLinearConditional,
   PackedMixtureLinearConditional,
+
+  ls2,
+  lsRear,
+  # from DFG
+  ls,
+  lsf,
+  getVariableIds,
+  sortVarNested,
+  hasOrphans,
+  getfnctype,
+  drawCopyFG,
+  isVariable,
+  isFactor,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -231,20 +244,10 @@ export
   writeGraphPdf,
   drawCliqSubgraphUp,
   drawTree,
-  ls,
-  ls_PREVIOUS,
-  lsf,
-  ls2,
-  lsRear,
-  hasOrphans,
   printgraphmax,
-  allnums,
-  isnestednum,
-  sortnestedperm,
-  getfnctype,
-  drawCopyFG,
-  isVariable,
-  isFactor,
+  # allnums,
+  # isnestednum,
+  # sortnestedperm,
 
   # Bayes (Junction) Tree
   evalPotential,
@@ -273,7 +276,6 @@ export
 
   # new wrapper (experimental)
   CommonConvWrapper,
-
 
   # solve inference
   inferOverTree!,

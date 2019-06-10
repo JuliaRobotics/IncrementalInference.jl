@@ -669,17 +669,16 @@ object. Define whether the automatic initialization of variables should be
 performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
 """
-function addFactor!(
-      dfg::G,
-      Xi::Vector{DFGVariable},
-      usrfnc::R;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      ready::Int=1,
-      labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded  ) where
-        {G <: AbstractDFG,
-         R <: Union{FunctorInferenceType, InferenceType}}
+function addFactor!(dfg::G,
+                    Xi::Vector{DFGVariable},
+                    usrfnc::R;
+                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    ready::Int=1,
+                    labels::Vector{Symbol}=Symbol[],
+                    autoinit::Bool=true,
+                    threadmodel=SingleThreaded  ) where
+                      {G <: AbstractDFG,
+                       R <: Union{FunctorInferenceType, InferenceType}}
   #
   namestring = assembleFactorName(dfg, Xi)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
