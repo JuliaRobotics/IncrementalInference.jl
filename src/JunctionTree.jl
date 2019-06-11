@@ -394,6 +394,21 @@ end
 """
     $(SIGNATURES)
 
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getUpMsgs(cliql::Graphs.ExVertex) = getData(cliql).upMsg
+getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsg(whichCliq(btl, sym))
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
+
+"""
+    $(SIGNATURES)
+
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
 function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
@@ -403,57 +418,17 @@ end
 """
     $(SIGNATURES)
 
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
-function upMsg(cliq::Graphs.ExVertex)
-  getData(cliq).upMsg
-end
-function upMsg(btl::BayesTree, sym::Symbol)
-  upMsg(whichCliq(btl, sym))
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getUpMsgs(btl::BayesTree, sym::Symbol) = upMsg(btl, sym)
-getUpMsgs(cliql::Graphs.ExVertex) = upMsg(cliql)
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
-
+getDwnMsgs(cliql::Graphs.ExVertex) = getData(cliql).dwnMsg
+getDwnMsgs(btl::BayesTree, sym::Symbol) = getDwnMsgs(whichCliq(btl, sym))
 
 """
     $(SIGNATURES)
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
-function dwnMsg(cliq::Graphs.ExVertex)
-  getData(cliq).dwnMsg
-end
-function dwnMsg(btl::BayesTree, sym::Symbol)
-  dwnMsg(whichCliq(btl, sym))
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getDwnMsgs(btl::BayesTree, sym::Symbol) = dwnMsg(btl, sym)
-getDwnMsgs(cliql::Graphs.ExVertex) = dwnMsg(cliql)
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsDown(cliql::Graphs.ExVertex) = dwnMsg(cliql)
+getCliqMsgsDown(cliql::Graphs.ExVertex) = getDwnMsgs(cliql)
 
 
 function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
@@ -697,7 +672,29 @@ Get all `cliq` variable labels as `::Symbol`.
 """
 function getCliqAllVarSyms(dfg::G, cliq::Graphs.ExVertex)::Vector{Symbol} where G <: AbstractDFG
   # Symbol[getSym(dfg, varid) for varid in getCliqAllVarIds(cliq)]
+  @warn "deprecated getCliqAllVarSyms, use getCliqAllVarIds instead."
   getCliqAllVarIds(cliq)
+end
+
+"""
+    $SIGNATURES
+
+Return dictionary of down messages consisting of all frontal and separator beliefs of this clique.
+
+Notes:
+- Fetches numerical results from `subdfg` as dictated in `cliq`.
+"""
+function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity} where G <: AbstractDFG
+  # where the return msgs are contained
+  container = Dict{Symbol,BallTreeDensity}()
+
+  # go through all msgs one by one
+  for sym in getCliqAllVarIds(cliq)
+    container[sym] = getKDE(subdfg, sym)
+  end
+
+  # return the result
+  return container
 end
 
 """

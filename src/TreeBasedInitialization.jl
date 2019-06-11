@@ -23,6 +23,7 @@ function isCliqUpSolved(cliq::Graphs.ExVertex)::Bool
 end
 
 
+
 """
     $SIGNATURES
 
@@ -156,8 +157,8 @@ or numerical initialization status:
 Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
-getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getData(cliq).initialized
-getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatusUp(cliq)
+getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getData(cliq).initialized
+getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
 
 """
     $SIGNATURES
@@ -216,6 +217,14 @@ function setTreeCliquesMarginalized!(dfg::G,
 end
 
 
+function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex)::Nothing
+
+  while fetch(getData(prnt).initDownChannel) != :downsolved
+    wait(getSolveCondition(prnt))
+  end
+
+  return nothing
+end
 
 
 

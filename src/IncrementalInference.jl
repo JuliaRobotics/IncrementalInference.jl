@@ -221,6 +221,7 @@ export
   getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
   getCliqParentMsgDown,
+  getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
@@ -280,6 +281,7 @@ export
   # solve inference
   inferOverTree!,
   inferOverTreeR!,
+  inferOverTreeIterative!,
 
   #development interface
   getTreeCliqSolveOrderUp,

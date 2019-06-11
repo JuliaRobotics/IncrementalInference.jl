@@ -38,14 +38,13 @@ mutable struct CliqStateMachineContainer
   cliq::Graphs.ExVertex
   parentCliq::Vector{Graphs.ExVertex}
   childCliqs::Vector{Graphs.ExVertex}
-  # TODO: bad flags that must be removed
-  forceproceed::Bool
-  # tryonce::Bool
+  forceproceed::Bool # TODO: bad flag that must be removed by refactoring sm
   incremental::Bool
   drawtree::Bool
+  dodownsolve::Bool
   refactoring::Dict{Symbol, String}
   CliqStateMachineContainer() = new()
-  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,Dict{Symbol,String}())
+  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}())
 end
 
 """
@@ -99,8 +98,8 @@ function emptyBTNodeData()
                     Int[],Int[],
                     Int[],Int[],Int[],
                     nothing, nothing,
-                    Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Symbol, BallTreeDensity}(:null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
+                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
+                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Int, Dict{Symbol, BallTreeDensity}}(),
                     Dict{Symbol, BallTreeDensity}(),
                     false, :null,

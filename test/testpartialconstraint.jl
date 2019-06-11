@@ -22,7 +22,7 @@ getSample(dpl::DevelopDim2, N::Int=1) = (rand(dpl.x, N), )
 
 
 
-N=50
+N=100 # 50
 fg = initfg()
 
 

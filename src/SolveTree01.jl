@@ -676,18 +676,18 @@ end
 function dwnPrepOutMsg(fg::G,
                        cliq::Graphs.ExVertex,
                        dwnMsgs::Array{NBPMessage,1},
-                       d::Dict{Symbol, EasyMessage}) where G <: AbstractDFG
+                       d::Dict{Symbol, T}) where {G <: AbstractDFG, T}
     # pack all downcoming conditionals in a dictionary too.
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
     end # ignore root, now incoming dwn msg
     @info "Outgoing msg density on: "
-    m = NBPMessage(Dict{Int,EasyMessage}())
+    m = NBPMessage(Dict{Symbol,T}())
     i = 0
-    for vid in cliq.attributes["data"].frontalIDs
+    for vid in getData(cliq).frontalIDs
       m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
     end
-    for cvid in cliq.attributes["data"].conditIDs
+    for cvid in getData(cliq).conditIDs
         i+=1
         # TODO -- convert to points only since kde replace by rkhs in future
         m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
@@ -700,7 +700,7 @@ end
 
 Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
 
-Note
+Notes
 - Only update frontal variables of the clique.
 """
 function downGibbsCliqueDensity(fg::G,
@@ -709,34 +709,51 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false  ) where G <: AbstractDFG
-    #
-    # TODO standardize function call to have similar stride to upGibbsCliqueDensity
-    @info "down"
-    mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
-    m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
+  #
+  # TODO standardize function call to have similar stride to upGibbsCliqueDensity
+  @info "down"
+  mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
 
-    outmsglbl = Dict{Symbol, Int}()
-    if dbg
-      for (ke, va) in m.p
-        outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
-      end
+  outmsglbl = Dict{Symbol, Int}()
+  if dbg
+    for (ke, va) in m.p
+      outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
     end
+  end
 
-    # Always keep dwn messages in cliq data
-    dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-    for (msgsym, va) in m.p
-      # @show ke
-      # @show collect(keys(fg.g.vertices))
-      # msgsym = Symbol(fg.g.vertices[ke].label)
-      dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
+  # Always keep dwn messages in cliq data
+  dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
+  for (msgsym, va) in m.p
+    # @show ke
+    # @show collect(keys(fg.g.vertices))
+    # msgsym = Symbol(fg.g.vertices[ke].label)
+    dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
+  end
+  setDwnMsg!(cliq, dwnkeepmsgs)
+
+  # down solving complete, set flag
+  getData(cliq).downsolved = true
+
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
+  return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+end
+function downGibbsCliqueDensity(fg::G,
+                                cliq::Graphs.ExVertex,
+                                dwnMsgs::Dict{Symbol,BallTreeDensity},
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false  ) where G <: AbstractDFG
+  #
+  ind = Dict{Symbol, EasyMessage}()
+  sflbls = getVariableIds(fg)
+  for (lbl, bel) in dwnMsgs
+	if lbl in sflbls
+	  ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
     end
-    setDwnMsg!(cliq, dwnkeepmsgs)
-
-    # down solving complete, set flag
-    getData(cliq).downsolved = true
-
-    mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
-    return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+  end
+  ndms = NBPMessage[NBPMessage(ind);]
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg)
 end
 
 """
@@ -758,24 +775,24 @@ Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt`
 function updateFGBT!(fg::G,
                      bt::BayesTree,
                      cliqID::Int,
-                     ddt::DownReturnBPType;
+                     drt::DownReturnBPType;
                      dbg::Bool=false,
                      fillcolor::String=""  ) where G <: AbstractDFG
     #
     cliq = bt.cliques[cliqID]
-    if dbg
-      cliq.attributes["debugDwn"] = deepcopy(ddt.dbgDwn)
-    end
-    setDwnMsg!(cliq, ddt.keepdwnmsgs)
+    # if dbg
+    #   cliq.attributes["debugDwn"] = deepcopy(drt.dbgDwn)
+    # end
+    setDwnMsg!(cliq, drt.keepdwnmsgs)
     # TODO move to drawTree
     if fillcolor != ""
       setCliqDrawColor(cliq, fillcolor)
     end
-    for dat in ddt.IDvals
+    for dat in drt.IDvals
       #TODO -- should become an update call
-        updvert = dlapi.getvertex(fg,dat[1])
+        updvert = DFG.getVariable(fg, dat[1])
         setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+        # dlapi.updatevertex!(fg, updvert, updateMAPest=true)
     end
     nothing
 end
@@ -1137,7 +1154,7 @@ function dispatchNewDwnProc!(fg::G,
 
   if rDDT != nothing
     updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
-    setCliqStatus!(cliq, :downsolved)
+    setCliqStatus!(cliq, :downsolved) # should be a notify
     drawpdf ? drawTree(bt) : nothing
   end
 
@@ -1505,6 +1522,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    drawtree::Bool=false,
                                    N::Int=100,
                                    limititers::Int=-1,
+                                   downsolve::Bool=false,
                                    recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   clst = :na
@@ -1514,7 +1532,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
     history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, drawtree=drawtree,
-                                             limititers=limititers, recordhistory=recordthiscliq )
+                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq )
     cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
       # save the history in /tmp/
@@ -1548,6 +1566,7 @@ function initInferTreeUp!(dfg::G,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
+                          downsolve::Bool=false,
                           skipcliqids::Vector{Int}=Int[],
                           recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
@@ -1564,7 +1583,7 @@ function initInferTreeUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
         end # if
       end # for
     end # sync
@@ -1585,6 +1604,9 @@ end
     $SIGNATURES
 
 Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
+
+Notes
+- For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
 """
 function inferOverTree!(dfg::G,
                         bt::BayesTree;
@@ -1598,28 +1620,43 @@ function inferOverTree!(dfg::G,
                         skipcliqids::Vector{Int}=Int[],
                         recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
   #
-  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
-  setAllSolveFlags!(bt, false)
-  @info "Ensure all nodes are initialized"
+
+  @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  if upsolve
-    if treeinit
-      @info "Do tree based init-inference on tree"
-      smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
-      @info "Finished tree based upward init-inference"
-    else
-      ensureAllInitialized!(dfg)
-    end
-    if !treeinit # !isTreeSolvedUp(bt)
-      @info "Do multi-process upward pass of inference on tree"
-      upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-    end
-  end
-  if downsolve
-    @info "Do multi-process downward pass of inference on tree"
-    downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  end
+  setAllSolveFlags!(bt, false)
+
+  @info "Do tree based init-inference on tree"
+  smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
+  @info "Finished tree based upward init-inference"
+
+  return smtasks, ch
+end
+
+"""
+    $SIGNATURES
+
+Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
+
+Notes
+- Legacy support function, use `inferOverTree!` instead that is based on the state machine method.
+- Previous versions of the code used iterative loops to traverse the Bayes (Junction) tree.
+- Even older code is available as `inferOverTreeR!`
+"""
+function inferOverTreeIterative!(dfg::G,
+                                 bt::BayesTree;
+                                 N::Int=100,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
+  #
+  # @info "Batch rather than incremental solving over the Bayes (Junction) tree."
+  # setAllSolveFlags!(bt, false)
+  @info "Ensure all nodes are initialized"
+  ensureAllInitialized!(dfg)
+  @info "Do multi-process upward pass of inference on tree"
+  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  @info "Do multi-process downward pass of inference on tree"
+  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
