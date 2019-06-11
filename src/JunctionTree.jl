@@ -412,8 +412,6 @@ getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
 function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
-  @warn "setDwnMsg!"
-  @show msgs
   getData(cliql).dwnMsg = msgs
 end
 

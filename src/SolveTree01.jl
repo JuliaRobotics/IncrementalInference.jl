@@ -678,7 +678,6 @@ function dwnPrepOutMsg(fg::G,
                        dwnMsgs::Array{NBPMessage,1},
                        d::Dict{Symbol, T}) where {G <: AbstractDFG, T}
     # pack all downcoming conditionals in a dictionary too.
-    error("dwnPrepOutMsg -- when last did this function get used? 2019Q2")
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
     end # ignore root, now incoming dwn msg
@@ -738,6 +737,23 @@ function downGibbsCliqueDensity(fg::G,
 
   mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
   return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+end
+function downGibbsCliqueDensity(fg::G,
+                                cliq::Graphs.ExVertex,
+                                dwnMsgs::Dict{Symbol,BallTreeDensity},
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false  ) where G <: AbstractDFG
+  #
+  ind = Dict{Symbol, EasyMessage}()
+  sflbls = getVariableIds(fg)
+  for (lbl, bel) in dwnMsgs
+	if lbl in sflbls
+	  ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
+    end
+  end
+  ndms = NBPMessage[NBPMessage(ind);]
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg)
 end
 
 """

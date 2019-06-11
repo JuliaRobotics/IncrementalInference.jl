@@ -41,9 +41,9 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   csmc.dodownsolve = false
 
   # update clique with new status
-  updateFGBT!(csmc.fg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
-  setCliqStatus!(cliq, :downsolved) # should be a notify
-  notifyCliqDownInitStatus!(cliq, :downsolved)
+  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
+  setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
+  notifyCliqDownInitStatus!(csmc.cliq, :downsolved)
 
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
   # and finished
@@ -75,12 +75,12 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   if length(prnt) > 0
     blockCliqUntilParentDownSolved(prnt[1])
   else
-    # this is the root clique, so assume already downsolved
+    # this is the root clique, so assume already downsolved -- only special case
     setCliqDrawColor(csmc.cliq, "lightblue")
-    dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliq)
-    error("WIP")
+    dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setDwnMsg!(csmc.cliq, dwnmsgs)
     setCliqStatus!(csmc.cliq, :downsolved)
+	csmc.dodownsolve = false
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved)
     return IncrementalInference.exitStateMachine
   end
