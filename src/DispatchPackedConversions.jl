@@ -46,7 +46,7 @@ function convert(
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
-  ccw = prepgenericconvolution(Graphs.ExVertex[], usrfnc, multihypo=mhcat)
+  ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat)
   ccw.certainhypo = d.certainhypo
 
   ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
@@ -88,6 +88,10 @@ end
 function getname(t::T) where T
   T.name.name
 end
+function getpackedtype(typestring::AS) where {AS <: AbstractString}
+  # println("Caesar.getpackedtype($(typestring))")
+  eval(Meta.parse(typestring))() # TODO consider caching or better
+end
 function encodePackedType(topackdata::VariableNodeData)
   @warn "'encodePackedType' Deprecated..."
   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
@@ -114,14 +118,13 @@ end
 
 Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
 """
-function convert2packedfunctionnode(fgl::FactorGraph,
-                                    fsym::Symbol,
-                                    api::DataLayerAPI=localapi  )
+function convert2packedfunctionnode(fgl::G,
+                                    fsym::Symbol ) where G <: AbstractDFG
   #
-  fid = fgl.fIDs[fsym]
-  fnc = getfnctype(fgl, fid)
+  # fid = fgl.fIDs[fsym]
+  fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(fgl, fid, api=api) )
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(getFactor(fgl, fsym)) )
   return cfnd, usrtyp
 end
 
@@ -148,36 +151,35 @@ Make a full memory copy of the graph and encode all composite function node
 types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
 are used for database persistence with CloudGraphs.jl.
 """
-function encodefg(fgl::FactorGraph;
-      api::DataLayerAPI=localapi  )
+function encodefg(fgl::G ) where G <: AbstractDFG
   #
   fgs = deepcopy(fgl)
-  fgs.cg = nothing
-  fgs.registeredModuleFunctions = nothing
-  fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  # fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+
   # @showprogress 1 "Encoding variables..."
-for (vsym,vid) in fgl.IDs
-    cpvert = deepcopy(getVert(fgl, vid, api=api))
-    api.addvertex!(fgs, cpvert) #, labels=vnlbls)  # currently losing labels
+  for vsym in getVariableIds(fgl)
+    # cpvert = deepcopy(  )
+    var = getVariable(fgl, vsym)
+    # addVariable!(fgs, cpvert)
   end
 
   # @showprogress 1 "Encoding factors..."
-for (fsym,fid) in fgs.fIDs
+  for (fsym,fid) in fgs.fIDs
     data,ftyp = convert2packedfunctionnode(fgl, fsym)
-    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    newvert = ExVertex(fid,string(fsym))
-    for (key,val) in getVert(fgl,fid,api=api).attributes
-      newvert.attributes[key] = val
-    end
+    data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
+    # newvert = ExVertex(fid,string(fsym))
+    # for (key,val) in getVert(fgl,fid,api=api).attributes
+    #   newvert.attributes[key] = val
+    # end
     ## losing fgl.fncargvID before setdata
-    setData!(newvert, data)
-    api.addvertex!(fgs, newvert)
+    # setData!(newvert, data)
+    # api.addvertex!(fgs, newvert)
   end
   fgs.g.inclist = typeof(fgl.g.inclist)()
 
   # iterated over all edges
   # @showprogress 1 "Encoding edges..."
-for (eid, edges) in fgl.g.inclist
+  for (eid, edges) in fgl.g.inclist
     fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
     for ed in edges
       newed = Graphs.Edge(ed.index,

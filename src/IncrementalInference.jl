@@ -11,10 +11,10 @@ using Reexport
 @reexport using ApproxManifoldProducts
 @reexport using Graphs
 @reexport using LinearAlgebra
-@reexport using DistributedFactorGraphs
 
 using
   Dates,
+  DistributedFactorGraphs,
   Statistics,
   Random,
   NLsolve,
@@ -37,7 +37,7 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
@@ -46,6 +46,11 @@ export
   KDE,
   AMP,
   DFG,
+
+  # DFG SpecialDefinitions
+  AbstractDFG,
+  hasVariable,
+
   dlapi,  # data layer variables
   localapi,
   showcurrentdlapi,
@@ -90,6 +95,7 @@ export
   # VariableNodeData,
   # PackedVariableNodeData,
   FactorMetadata,
+  getpackedtype,
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData,

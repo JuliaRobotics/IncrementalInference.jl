@@ -124,7 +124,7 @@ mutable struct PotProd
     prev::Array{Float64,2}
     product::Array{Float64,2}
     potentials::Array{BallTreeDensity,1}
-    potentialfac::Vector{AbstractString}
+    potentialfac::Vector{Symbol}
 end
 """
 $(TYPEDEF)

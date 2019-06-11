@@ -210,7 +210,7 @@ function productbelief(dfg::G,
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
-    denspts = getVal(fg,vertid,api=localapi)
+    denspts = getPoints(getKDE(dfg, vertlabel))
     Ndims = size(denspts,1)
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     dummy = AMP.manikde!(rand(Ndims,N), ones(Ndims), manis) # [1.0] # TODO -- reuse memory rather than rand here
@@ -341,7 +341,7 @@ function localProduct(dfg::G,
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
-  lb = String[]
+  lb = Symbol[]
   fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
   cf = getNeighbors(dfg, sym)
@@ -355,7 +355,7 @@ function localProduct(dfg::G,
   fulldim = Vector{Bool}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg, api=api)
+  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )

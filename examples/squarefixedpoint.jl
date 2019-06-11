@@ -141,7 +141,7 @@ end
 
 
 function runFullBatchIterations(;N=100, iters=50)
-  fg = FactorGraph()
+  fg = initfg()
 
   x0 = 0.5-rand(1,N)  #[1.0+0.1*randn(N);10+0.1*randn(N)]'
   addVariable!(fg, :x, x0, N=N)
