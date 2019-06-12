@@ -11,10 +11,6 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 
 This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package is also available.
 
-# [TEMPORARY] NOTICE
-
-Please use stable v0.6.x since master branch is temporarily under construction with the new DistributedFactorGraphs.jl upgrade in progress (May 2019).  Look out for v0.7.x as the next stable release -- coming soon.
-
 # Documentation
 
 Please see the [common Caesar.jl documentation](http://juliarobotics.github.io/Caesar.jl/latest/): 
