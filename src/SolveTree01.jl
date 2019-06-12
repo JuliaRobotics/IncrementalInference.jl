@@ -748,8 +748,8 @@ function downGibbsCliqueDensity(fg::G,
   ind = Dict{Symbol, EasyMessage}()
   sflbls = getVariableIds(fg)
   for (lbl, bel) in dwnMsgs
-	if lbl in sflbls
-	  ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
+	  if lbl in sflbls
+	    ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
     end
   end
   ndms = NBPMessage[NBPMessage(ind);]
@@ -1559,7 +1559,62 @@ end
 """
     $SIGNATURES
 
+Perform tree based initialization of all variables not yet initialized in factor graph as non-blocking method.
+
+Notes:
+- To simplify debugging, this method does not include the usual `@ sync` around all the state machine async processes.
+- Extract the error stack with a `fetch` on the failed process return by this function.
+
+Related
+
+initInferTreeUp!
+"""
+function debugTreeInferUp!(dfg::G,
+                           treel::BayesTree;
+                           drawtree::Bool=false,
+                           N::Int=100,
+                           limititers::Int=-1,
+                           downsolve::Bool=false,
+                           skipcliqids::Vector{Int}=Int[],
+                           recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
+  #
+  resetTreeCliquesForUpSolve!(treel)
+  setTreeCliquesMarginalized!(dfg, treel)
+  drawtree ? drawTree(treel, show=false) : nothing
+
+  # queue all the tasks
+  alltasks = Vector{Task}(undef, length(treel.cliques))
+  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  if !isTreeSolved(treel, skipinitialized=true)
+    # @sync begin
+      # duplicate int i into async (important for concurrency)
+      for i in 1:length(treel.cliques)
+        if !(i in skipcliqids)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
+        end # if
+      end # for
+    # end # sync
+  end # if
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  for i in 1:length(treel.cliques)
+    if haskey(cliqHistories, i)
+      getData(treel.cliques[i]).statehistory=cliqHistories[i]
+    end
+  end
+
+  return alltasks, cliqHistories
+end
+
+
+"""
+    $SIGNATURES
+
 Perform tree based initialization of all variables not yet initialized in factor graph.
+
+Related
+
+debugTreeInferUp!
 """
 function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
@@ -1627,8 +1682,12 @@ function inferOverTree!(dfg::G,
   setAllSolveFlags!(bt, false)
 
   @info "Do tree based init-inference on tree"
-  smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
-  @info "Finished tree based upward init-inference"
+  if dbg
+    smtasks, ch = debugTreeInferUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
+  else
+    smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
+  end
+  @info "Finished tree based init-inference"
 
   return smtasks, ch
 end
