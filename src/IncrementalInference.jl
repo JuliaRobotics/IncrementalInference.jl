@@ -130,6 +130,7 @@ export
   factorCanInitFromOtherVars,
   doautoinit!,
   manualinit!,
+  debugTreeInferUp!,
   initInferTreeUp!,
   solveCliqWithStateMachine!,
   resetData!,
