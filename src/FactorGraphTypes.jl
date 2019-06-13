@@ -1,13 +1,13 @@
 import Base: convert
 import Base: ==
 
-abstract type InferenceType end
-abstract type PackedInferenceType end
-
-abstract type FunctorInferenceType <: Function end
-
-abstract type InferenceVariable end
-abstract type ConvolutionObject <: Function end
+# abstract type InferenceType end
+# abstract type PackedInferenceType end
+#
+# abstract type FunctorInferenceType <: Function end
+#
+# abstract type InferenceVariable end
+# abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
