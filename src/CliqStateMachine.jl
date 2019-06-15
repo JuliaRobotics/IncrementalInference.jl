@@ -477,6 +477,7 @@ Notes:
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
                                         cliq::Graphs.ExVertex;
+										oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,

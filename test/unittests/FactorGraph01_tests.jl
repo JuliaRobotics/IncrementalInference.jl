@@ -93,7 +93,7 @@ cliq = whichCliq(tree, :x1)
 
 
 
-# history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq,drawtree=true,
+# history = cliqInitSolveUpByStateMachine!(dfg, tree, cliq, drawtree=true,
 #                                          limititers=50, recordhistory=true )
 # 0
 

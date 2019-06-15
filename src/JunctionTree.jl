@@ -3,14 +3,15 @@
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getData(cliq).frontalIDs
+getCliqFrontalVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.frontalIDs
+getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarIds(getData(cliq))
 
 """
-    $(TYPEDSIGNATURES)
+    $SIGNATURES
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
+getFrontals(cliqd::Union{Graphs.ExVertex,BayesTreeNodeData})::Vector{Symbol} = getCliqFrontalVarIds(cliqd)
 
 
 """
@@ -375,6 +376,13 @@ whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Sym
 """
     $SIGNATURES
 
+Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in the `::BayesTree`.
+"""
+hasCliq(bt::BayesTree, frt::Symbol)::Bool = haskey(bt.frontals, frt)
+
+"""
+    $SIGNATURES
+
 Return the Graphs.ExVertex node object that represents a clique in the Bayes
 (Junction) tree, as defined by one of the frontal variables `frt::Symbol`.
 """
@@ -617,9 +625,7 @@ end
 Return boolean matrix of upward message singletons (i.e. marginal priors) from
 child cliques.  Variable order corresponds to `getCliqAllVarIds`.
 """
-function getCliqMsgMat(cliq::Graphs.ExVertex)
-  getData(cliq).cliqMsgMat
-end
+getCliqMsgMat(cliq::Graphs.ExVertex) = getData(cliq).cliqMsgMat
 
 """
     $SIGNATURES
@@ -635,24 +641,21 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg::Bool=true)
   return mat
 end
 
-
 """
     $SIGNATURES
 
 Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
-  getData(cliq).conditIDs
-end
+getCliqSeparatorVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.conditIDs
+getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqSeparatorVarIds(getData(cliq))
 
 """
     $SIGNATURES
 
 Get `cliq` potentials (factors) ids`::Int`.
 """
-function getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol}
-  getData(cliq).potentials
-end
+getCliqFactorIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.potentials
+getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFactorIds(getData(cliq))
 
 """
     $SIGNATURES

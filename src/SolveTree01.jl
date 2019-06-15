@@ -935,8 +935,10 @@ end
 Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
 
 Notes
------
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
+
+Future
+- TODO: function internally is too long and needs to be refactored for maintainability.
 """
 function approxCliqMarginalUp!(fgl::G,
                                treel::BayesTree,
@@ -1515,10 +1517,57 @@ function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Special internal function to try return the clique data if succesfully identified in `othertree::BayesTree`,
+based on contents of `seeksSimilar::BayesTreeNodeData`.
+
+Notes
+- Used to identify and skip similar cliques (i.e. recycle computations)
+"""
+function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeNodeData)::Graphs.ExVertex
+  # inner convenience function for returning empty clique
+  function EMPTYCLIQ()
+    clq = ExVertex(bt.btid,"null",-1)
+    clq.attributes["label"] = ""
+    setData!(clq, emptyBTNodeData())
+    return clq
+  end
+
+  # does the other clique even exist?
+  seekFrontals = getCliqFrontalVarIds(seeksSimilar)
+  if !hasCliq(othertree, seekFrontals[1])
+    return EMPTYCLIQ()
+  end
+
+  # do the cliques share the same frontals?
+  otherCliq = whichCliq(othertree, seekFrontals[1])
+  if length(intersect(seekFrontals, getCliqFrontalVarIds(otherCliq))) != length(seekFrontals)
+   return EMPTYCLIQ()
+  end
+
+  # do the cliques share the same separator variables?
+  seekSeparator = getCliqSeparatorVarIds(seeksSimilar)
+  if length(intersect(seekSeparator, getCliqSeparatorVarIds(otherCliq))) != length(seekSeparator)
+   return EMPTYCLIQ()
+  end
+
+  # do the cliques use the same factors (potentials)
+  seekPotentials = getCliqFactorIds(seeksSimilar)
+  if length(intersect(seekPotentials, getCliqFactorIds(otherCliq))) != length(seekPotentials)
+   return EMPTYCLIQ()
+  end
+
+  # lets assume they are the same
+  return otherCliq
+end
+
 function tryCliqStateMachineSolve!(dfg::G,
                                    treel::BayesTree,
                                    i::Int,
                                    cliqHistories;
+                                   oldtree::BayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
                                    N::Int=100,
                                    limititers::Int=-1,
@@ -1528,9 +1577,10 @@ function tryCliqStateMachineSolve!(dfg::G,
   clst = :na
   cliq = treel.cliques[i]
   syms = getCliqFrontalVarIds(cliq) # ids =
-  # syms = map(d->getSym(fgl, d), ids)
+  oldcliqdata = attemptTreeSimilarClique(oldtree, getData(cliq))
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
+    # , oldcliqdata=oldcliqdata
     history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, drawtree=drawtree,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq )
     cliqHistories[i] = history
@@ -1571,6 +1621,7 @@ initInferTreeUp!
 """
 function debugTreeInferUp!(dfg::G,
                            treel::BayesTree;
+                           oldtree::BayesTree=emptyBayesTree(),
                            drawtree::Bool=false,
                            N::Int=100,
                            limititers::Int=-1,
@@ -1590,7 +1641,7 @@ function debugTreeInferUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
         end # if
       end # for
     # end # sync
@@ -1618,6 +1669,7 @@ debugTreeInferUp!
 """
 function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
+                          oldtree::BayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
@@ -1638,7 +1690,7 @@ function initInferTreeUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, N=N, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs)
         end # if
       end # for
     end # sync
@@ -1665,6 +1717,7 @@ Notes
 """
 function inferOverTree!(dfg::G,
                         bt::BayesTree;
+                        oldtree::BayesTree=emptyBayesTree(),
                         N::Int=100,
                         upsolve::Bool=true,
                         downsolve::Bool=true,
@@ -1683,9 +1736,9 @@ function inferOverTree!(dfg::G,
 
   @info "Do tree based init-inference on tree"
   if dbg
-    smtasks, ch = debugTreeInferUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
+    smtasks, ch = debugTreeInferUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
   else
-    smtasks, ch = initInferTreeUp!(dfg, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
+    smtasks, ch = initInferTreeUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, skipcliqids=skipcliqids )
   end
   @info "Finished tree based init-inference"
 

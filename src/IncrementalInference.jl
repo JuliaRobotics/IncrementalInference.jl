@@ -218,6 +218,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  hasCliq,
   whichCliq,
   getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
@@ -378,6 +379,9 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+
+  #internal dev functions for recycling cliques on tree
+  attemptTreeSimilarClique,
 
   # some utils
   compareField,
