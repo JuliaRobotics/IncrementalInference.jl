@@ -1588,8 +1588,8 @@ function tryCliqStateMachineSolve!(dfg::G,
   syms = getCliqFrontalVarIds(cliq) # ids =
   oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
   oldcliqdata = getData(oldcliq)
-  mkpath("/tmp/caesar/logs/")
-  logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i.log", "w+"))
+  mkpath("/tmp/caesar/logs/cliq$i/")
+  logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
   # global_logger(logger)
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
@@ -1597,9 +1597,9 @@ function tryCliqStateMachineSolve!(dfg::G,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, logger=logger )
     cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
-      @warn "writing /tmp/caesar/logs/cliq$i.csm"
+      @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
-      fid = open("/tmp/caesar/logs/cliq$i.csm", "w")
+      fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
       printCliqHistorySummary(fid, history)
       close(fid)
     end
@@ -1609,12 +1609,12 @@ function tryCliqStateMachineSolve!(dfg::G,
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    @warn "writing /tmp/caesar/logs/cliq$i.csm"
-    fid = open("/tmp/caesar/logs/cliq$i.stack", "w")
+    @warn "writing /tmp/caesar/logs/cliq$i/*.txt"
+    fid = open("/tmp/caesar/logs/cliq$i/stack.txt", "w")
     showerror(fid, err, bt)
     close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
-    fid = open("/tmp/caesar/logs/cliq$i.csm", "w")
+    fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     error(err)

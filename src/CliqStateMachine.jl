@@ -517,7 +517,7 @@ Notes
 """
 function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
   # @show getCliqFrontalVarIds(csmc.oldcliqdata), getCliqStatus(csmc.oldcliqdata)
-  infocsm(csmc, "0., checking for :uprecycled")
+  infocsm(csmc, "0., checking for :uprecycled, getCliqStatus(csmc.oldcliqdata)=$(getCliqStatus(csmc.oldcliqdata))")
   # check if can be recycled
   if getCliqStatus(csmc.oldcliqdata) == :downsolved
     # one or two checks say yes, so go to 4
