@@ -1575,7 +1575,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    treel::BayesTree,
                                    i::Int,
                                    cliqHistories;
-                                   N=100,
+                                   N::Int=100,
                                    oldtree::BayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
                                    limititers::Int=-1,
@@ -1591,6 +1591,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   mkpath("/tmp/caesar/logs/cliq$i/")
   logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
   # global_logger(logger)
+  history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   try
     history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree, oldcliqdata=oldcliqdata,
@@ -1660,7 +1661,7 @@ function debugTreeInferUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs) # , incremental=incremental, N=N
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1744,7 +1745,7 @@ function inferOverTree!(dfg::G,
                         dbg::Bool=false,
                         drawpdf::Bool=false,
                         treeinit::Bool=false,
-                        incremental::Bool,
+                        incremental::Bool=false,
                         limititers::Int=1000,
                         skipcliqids::Vector{Int}=Int[],
                         recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
