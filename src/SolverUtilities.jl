@@ -173,6 +173,7 @@ function batchSolve!(dfg::G,
                      recursive::Bool=false,
                      dbg::Bool=false,
                      treeinit::Bool=false,
+                     incremental::Bool=false,
                      limititers::Int=1000,
                      skipcliqids::Vector{Int}=Int[],
                      recordcliqs::Vector{Symbol}=Symbol[],
@@ -193,7 +194,7 @@ function batchSolve!(dfg::G,
   else
     smtasks, ch = inferOverTree!(dfg, tree, oldtree=oldtree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
                                  limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
-                                 downsolve=downsolve, skipcliqids=skipcliqids  )
+                                 downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids  )
   end
 
   # later development allows tasks for each cliq state machine to be returned also

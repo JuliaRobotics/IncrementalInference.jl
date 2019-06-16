@@ -15,7 +15,9 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
-  @info "$tmt | $(current_task()) cliq $(csmc.cliq.index), $lbl1, $(cliqst) -- "*str
+  with_logger(csmc.logger) do
+    @info "$tmt | $(current_task()) cliq $(csmc.cliq.index), $lbl1, $(cliqst) -- "*str
+  end
   nothing
 end
 
@@ -348,6 +350,13 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
   csmc.forceproceed = false
 
+  # problem
+  if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+    # might be able to recycle the previous clique solve, go to 0b
+    csmc.incremental = false
+    return checkChildrenAllUpRecycled_StateMachine
+  end
+
   prnt = getParent(csmc.tree, csmc.cliq)
   if 0 == length(prnt)
     # go to 7
@@ -446,7 +455,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
   # lbl = cliq.attributes["label"]
 
-  if csmc.incremental && cliqst in [:upsolved; :downsolved; :marginalized]
+  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
     # prep and send upward message
     prnt = getParent(csmc.tree, csmc.cliq)
     if length(prnt) > 0
@@ -465,6 +474,64 @@ end
 """
     $SIGNATURES
 
+Final determination on whether can promote clique to `:uprecycled`.
+
+Notes
+- State machine function nr.0b
+- Assume children clique status is available
+- Will return to regular init-solve if new information in children -- ie not uprecycle or marginalized
+"""
+function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer)
+  count = Int[]
+  chldr = getChildren(csmc.tree, csmc.cliq)
+  for ch in chldr
+    chst = getCliqStatus(ch)
+    if chst in [:uprecycled; :marginalized]
+      push!(count, 1)
+    end
+  end
+
+  # all children can be used for uprecycled -- i.e. no children have new information
+  if sum(count) == length(chldr)
+    # set up msg and exit go to 1
+    setCliqStatus!(csmc.cliq, :uprecycled)
+    setCliqDrawColor(csmc.cliq, "orange")
+    csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+    return isCliqUpSolved_StateMachine
+  end
+
+  # return to regular solve, go to 2
+  return buildCliqSubgraph_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Notify possible parent if clique is upsolved and exit the state machine.
+
+Notes
+- State machine function nr.0
+- can recycle if two checks:
+  - previous clique was identically downsolved
+  - all children are also :uprecycled
+"""
+function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
+  # @show getCliqFrontalVarIds(csmc.oldcliqdata), getCliqStatus(csmc.oldcliqdata)
+  infocsm(csmc, "0., checking for :uprecycled")
+  # check if can be recycled
+  if getCliqStatus(csmc.oldcliqdata) == :downsolved
+    # one or two checks say yes, so go to 4
+	return isCliqNull_StateMachine
+  end
+
+  # nope, regular clique init-solve, go to 1
+  return isCliqUpSolved_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
 EXPERIMENTAL: perform upward inference using a state machine solution approach.
 
 Notes:
@@ -477,13 +544,15 @@ Notes:
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
                                         cliq::Graphs.ExVertex;
-										oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
+                                        N::Int=100,
+										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
                                         limititers::Int=-1,
                                         downsolve::Bool=false,
-                                        recordhistory::Bool=false  ) where G <: AbstractDFG
+                                        recordhistory::Bool=false,
+                                        logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = Graphs.ExVertex[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
@@ -491,9 +560,9 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, oldcliqdata, logger)
 
-  statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+  statemachine = StateMachine{CliqStateMachineContainer}(next=testCliqCanRecycled_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
