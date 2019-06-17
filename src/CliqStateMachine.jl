@@ -38,9 +38,22 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # get down msg from parent
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = getDwnMsgs(prnt[1])
+  multiproc = true
 
   # call down inference, TODO multiproc
-  drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
+  if multiproc
+    @info "GOING MULTIPROC DWN"
+    cliqc = deepcopy(csmc.cliq)
+    cliqcd = getData(cliqc)
+    # redirect to new unused so that CAN be serialized
+    cliqcd.initUpChannel = Channel{Symbol}(1)
+    cliqcd.initDownChannel = Channel{Symbol}(1)
+    cliqcd.solveCondition = Condition()
+    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false)
+  else
+    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
+  end
   csmc.dodownsolve = false
 
   # update clique with new status
@@ -71,7 +84,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # yes, continue with downsolve
-  setCliqDrawColor(csmc.cliq, "darkviolet")
+  setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   # block here until parent is downsolved
@@ -252,7 +265,7 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
   @inbounds for i in 1:len
-    if getCliqStatus(childs[i]) != :upsolved
+    if !(getCliqStatus(childs[i]) in [:upsolved;:uprecycled;:marginalized])
       infocsm(csmc, "7b, wait condition on upsolve, i=$i, ch_lbl=$(getCliqFrontalVarIds(childs[i])[1]).")
       wait(getSolveCondition(childs[i]))
       break
@@ -323,7 +336,7 @@ Notes
 """
 function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
-  setCliqDrawColor(csmc.cliq, "turquoise")
+  setCliqDrawColor(csmc.cliq, "darkviolet")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   cliqst = getCliqStatus(csmc.cliq)
