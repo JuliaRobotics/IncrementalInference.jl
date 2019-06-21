@@ -201,6 +201,21 @@ function batchSolve!(dfg::G,
   return tree, smtasks
 end
 
+
+# mutable struct SolverOptions
+#
+# end
+
+function solveTree!( fg::G, tree::BayesTree, opts::SolverOptions )::Vector{Task}
+
+  smtasks, ch = inferOverTree!(dfg, tree, oldtree=oldtree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+                               limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
+                               downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids  )
+
+
+  return smtasks
+end
+
 """
     $(SIGNATURES)
 
