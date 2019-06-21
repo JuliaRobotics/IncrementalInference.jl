@@ -163,7 +163,8 @@ end
 
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
-function batchSolve!(dfg::G;
+function batchSolve!(dfg::G,
+                     oldtree::BayesTree=emptyBayesTree();
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,
@@ -172,6 +173,7 @@ function batchSolve!(dfg::G;
                      recursive::Bool=false,
                      dbg::Bool=false,
                      treeinit::Bool=false,
+                     incremental::Bool=false,
                      limititers::Int=1000,
                      skipcliqids::Vector{Int}=Int[],
                      recordcliqs::Vector{Symbol}=Symbol[],
@@ -181,17 +183,18 @@ function batchSolve!(dfg::G;
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfg)
   end
-  tree = wipeBuildNewTree!(dfg, drawpdf=drawpdf)
-  show ? showTree() : nothing
+  tree = wipeBuildNewTree!(dfg, drawpdf=false)
+  drawpdf ? drawTree(tree, show=show) : nothing
+  # show ? showTree() : nothing
 
   smtasks = Vector{Task}()
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
     smtasks, ch = inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    smtasks, ch = inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
-                                  limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
-                                  downsolve=downsolve, skipcliqids=skipcliqids  )
+    smtasks, ch = inferOverTree!(dfg, tree, oldtree=oldtree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+                                 limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
+                                 downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids  )
   end
 
   # later development allows tasks for each cliq state machine to be returned also
