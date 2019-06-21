@@ -1638,7 +1638,7 @@ Related
 
 initInferTreeUp!
 """
-function debugTreeInferUp!(dfg::G,
+function asyncTreeInferUp!(dfg::G,
                            treel::BayesTree;
                            oldtree::BayesTree=emptyBayesTree(),
                            drawtree::Bool=false,
@@ -1685,7 +1685,7 @@ Perform tree based initialization of all variables not yet initialized in factor
 
 Related
 
-debugTreeInferUp!
+asyncTreeInferUp!
 """
 function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
@@ -1758,7 +1758,7 @@ function inferOverTree!(dfg::G,
 
   @info "Do tree based init-inference on tree"
   if dbg
-    smtasks, ch = debugTreeInferUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
+    smtasks, ch = asyncTreeInferUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
   else
     smtasks, ch = initInferTreeUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
   end

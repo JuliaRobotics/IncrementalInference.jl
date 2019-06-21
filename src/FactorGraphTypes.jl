@@ -58,8 +58,10 @@ mutable struct SolverParams <: DFG.AbstractParams
   incremental::Bool
   upsolve::Bool
   downsolve::Bool
-  drawpdf::Bool
+  drawtree::Bool
+  showtree::Bool
   dbg::Bool
+  async::Bool
   limititers::Int
   N::Int
   SolverParams(;dimID::Int=0,
@@ -71,10 +73,12 @@ mutable struct SolverParams <: DFG.AbstractParams
                 incremental::Bool=true,
                 upsolve::Bool=true,
                 downsolve::Bool=true,
-                drawpdf::Bool=false,
+                drawtree::Bool=false,
+                showtree::Bool=false,
                 dbg::Bool=false,
+                async::Bool=false,
                 limititers::Int=100,
-                N::Int=100 ) = new(dimID,
+                N::Int=100  ) = new(dimID,
                                    registeredModuleFunctions,
                                    reference,
                                    stateless,
@@ -83,18 +87,19 @@ mutable struct SolverParams <: DFG.AbstractParams
                                    incremental,
                                    upsolve,
                                    downsolve,
-                                   drawpdf,
+                                   drawtree,
+                                   showtree,
                                    dbg,
+                                   async,
                                    limititers,
-                                   N )
+                                   N  )
   #
-
 end
 
 """
 $(TYPEDEF)
 
-NOTE: Deprecated for DistributedFactoGraph.
+NOTE: Deprecated by DistributedFactorGraphs.
 """
 mutable struct FactorGraph
   g::FGGdict

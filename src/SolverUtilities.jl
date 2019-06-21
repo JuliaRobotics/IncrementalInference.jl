@@ -202,18 +202,41 @@ function batchSolve!(dfg::G,
 end
 
 
-# mutable struct SolverOptions
-#
-# end
 
-function solveTree!( fg::G, tree::BayesTree, opts::SolverOptions )::Vector{Task}
+"""
+    $SIGNATURES
 
-  smtasks, ch = inferOverTree!(dfg, tree, oldtree=oldtree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
-                               limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
-                               downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids  )
+Perform inference over the Bayes tree according to `opt::SolverParams`.
+"""
+function solveTree!(dfgl::G,
+                    oldtree::BayesTree=emptyBayesTree();
+                    skipcliqids::Vector{Int}=Int[],
+                    recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+  #
+  @info "Solving over the Bayes (Junction) tree."
+  smtasks=Vector{Task}()
+  hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  opt = dfgl.solverParams
 
+  # current incremental solver builds a new tree and matches against old tree for recycling.
+  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree)
+  # setAllSolveFlags!(tree, false)
 
-  return smtasks
+  @info "Do tree based init-inference on tree"
+  if opt.async
+    smtasks, hist = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+  else
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+  end
+  @info "Finished tree based init-inference"
+
+  # transfer new tree to outside parameter
+  oldtree.bt = tree.bt
+  oldtree.btid = tree.btid
+  oldtree.cliques = tree.cliques
+  oldtree.frontals = tree.frontals
+
+  return oldtree, smtasks, hist
 end
 
 """
