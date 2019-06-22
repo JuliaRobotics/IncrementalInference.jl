@@ -163,7 +163,8 @@ end
 
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
-function batchSolve!(dfg::G;
+function batchSolve!(dfg::G,
+                     oldtree::BayesTree=emptyBayesTree();
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,
@@ -172,6 +173,7 @@ function batchSolve!(dfg::G;
                      recursive::Bool=false,
                      dbg::Bool=false,
                      treeinit::Bool=false,
+                     incremental::Bool=false,
                      limititers::Int=1000,
                      skipcliqids::Vector{Int}=Int[],
                      recordcliqs::Vector{Symbol}=Symbol[],
@@ -181,22 +183,62 @@ function batchSolve!(dfg::G;
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfg)
   end
-  tree = wipeBuildNewTree!(dfg, drawpdf=drawpdf)
-  show ? showTree() : nothing
+  tree = wipeBuildNewTree!(dfg, drawpdf=false)
+  drawpdf ? drawTree(tree, show=show) : nothing
+  # show ? showTree() : nothing
 
   smtasks = Vector{Task}()
   if recursive
     # recursive is a single core method that is slower but occasionally helpful for better stack traces during debugging
     smtasks, ch = inferOverTreeR!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit)
   else
-    smtasks, ch = inferOverTree!(dfg, tree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
-                                  limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
-                                  downsolve=downsolve, skipcliqids=skipcliqids  )
+    smtasks, ch = inferOverTree!(dfg, tree, oldtree=oldtree, N=N, drawpdf=drawpdf, dbg=dbg, treeinit=treeinit,
+                                 limititers=limititers, recordcliqs=recordcliqs, upsolve=upsolve,
+                                 downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids  )
   end
 
   # later development allows tasks for each cliq state machine to be returned also
   return tree, smtasks
 end
+
+
+
+"""
+    $SIGNATURES
+
+Perform inference over the Bayes tree according to `opt::SolverParams`.
+"""
+function solveTree!(dfgl::G,
+                    oldtree::BayesTree=emptyBayesTree();
+                    skipcliqids::Vector{Int}=Int[],
+                    recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+  #
+  @info "Solving over the Bayes (Junction) tree."
+  smtasks=Vector{Task}()
+  hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  opt = dfgl.solverParams
+
+  # current incremental solver builds a new tree and matches against old tree for recycling.
+  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree)
+  # setAllSolveFlags!(tree, false)
+
+  @info "Do tree based init-inference on tree"
+  if opt.async
+    smtasks, hist = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+  else
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+  end
+  @info "Finished tree based init-inference"
+
+  # transfer new tree to outside parameter
+  oldtree.bt = tree.bt
+  oldtree.btid = tree.btid
+  oldtree.cliques = tree.cliques
+  oldtree.frontals = tree.frontals
+
+  return oldtree, smtasks, hist
+end
+
 
 """
     $(SIGNATURES)

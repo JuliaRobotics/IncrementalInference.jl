@@ -157,7 +157,8 @@ or numerical initialization status:
 Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
-getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getData(cliq).initialized
+getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
+getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(getData(cliq))
 getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
 
 """

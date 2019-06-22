@@ -27,6 +27,8 @@ using
   Optim, # might be deprecated in favor for only NLsolve dependency
   JSON2
 
+using Logging
+
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
 const DFG = DistributedFactorGraphs
@@ -124,7 +126,7 @@ export
   factorCanInitFromOtherVars,
   doautoinit!,
   manualinit!,
-  debugTreeInferUp!,
+  asyncTreeInferUp!,
   initInferTreeUp!,
   solveCliqWithStateMachine!,
   resetData!,
@@ -166,6 +168,7 @@ export
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
   determineAllChildrenNeedDownMsg_StateMachine,
+  testCliqCanRecycled_StateMachine,
 
   #
   isPartial,
@@ -212,6 +215,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  hasCliq,
   whichCliq,
   getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
@@ -228,6 +232,7 @@ export
   initializeNode!,
   CliqStateMachineContainer,
   batchSolve!,
+  solveTree!,
   fifoFreeze!,
   getCurrentWorkspaceFactors,
   getCurrentWorkspaceVariables,
@@ -372,6 +377,9 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+
+  #internal dev functions for recycling cliques on tree
+  attemptTreeSimilarClique,
 
   # some utils
   compareField,

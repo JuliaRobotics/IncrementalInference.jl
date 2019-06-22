@@ -3,14 +3,15 @@
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getData(cliq).frontalIDs
+getCliqFrontalVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.frontalIDs
+getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarIds(getData(cliq))
 
 """
-    $(TYPEDSIGNATURES)
+    $SIGNATURES
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getFrontals(cliql::Graphs.ExVertex) = getCliqFrontalVarIds(cliql)
+getFrontals(cliqd::Union{Graphs.ExVertex,BayesTreeNodeData})::Vector{Symbol} = getCliqFrontalVarIds(cliqd)
 
 
 """
@@ -167,7 +168,7 @@ end
 Open view to see the graphviz exported Bayes tree, assuming default location and
 viewer app.  See keyword arguments for more details.
 """
-function showTree(;filepath::String="/tmp/bt.pdf",
+function showTree(;filepath::String="/tmp/caesar/bt.pdf",
                    viewerapp::String="evince"  )
   #
   try
@@ -190,10 +191,11 @@ Notes
 """
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
-                  filepath::String="/tmp/bt.pdf",
+                  filepath::String="/tmp/caesar/bt.pdf",
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
+  mkpath("/tmp/caesar/")
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
 
@@ -269,7 +271,7 @@ function prepBatchTree!(dfg::G;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
-                        filepath::String="/tmp/bt.pdf",
+                        filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false  ) where G <: AbstractDFG
@@ -348,7 +350,7 @@ function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
                            drawpdf::Bool=false,
                            show::Bool=false,
-                           filepath::String="/tmp/bt.pdf",
+                           filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false  )::BayesTree where G <: AbstractDFG
   #
@@ -371,6 +373,13 @@ getTreeAllFrontalSyms
 """
 whichCliq(bt::BayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
 whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Symbol(string(frt)))
+
+"""
+    $SIGNATURES
+
+Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in the `::BayesTree`.
+"""
+hasCliq(bt::BayesTree, frt::Symbol)::Bool = haskey(bt.frontals, frt)
 
 """
     $SIGNATURES
@@ -617,9 +626,7 @@ end
 Return boolean matrix of upward message singletons (i.e. marginal priors) from
 child cliques.  Variable order corresponds to `getCliqAllVarIds`.
 """
-function getCliqMsgMat(cliq::Graphs.ExVertex)
-  getData(cliq).cliqMsgMat
-end
+getCliqMsgMat(cliq::Graphs.ExVertex) = getData(cliq).cliqMsgMat
 
 """
     $SIGNATURES
@@ -635,24 +642,21 @@ function getCliqMat(cliq::Graphs.ExVertex; showmsg::Bool=true)
   return mat
 end
 
-
 """
     $SIGNATURES
 
 Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-function getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
-  getData(cliq).conditIDs
-end
+getCliqSeparatorVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.conditIDs
+getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqSeparatorVarIds(getData(cliq))
 
 """
     $SIGNATURES
 
 Get `cliq` potentials (factors) ids`::Int`.
 """
-function getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol}
-  getData(cliq).potentials
-end
+getCliqFactorIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.potentials
+getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFactorIds(getData(cliq))
 
 """
     $SIGNATURES

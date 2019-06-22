@@ -1,5 +1,8 @@
 
 
+
+const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
+
 # BayesTree declarations
 """
 $(TYPEDEF)
@@ -7,7 +10,7 @@ $(TYPEDEF)
 Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
 """
 mutable struct BayesTree
-  bt
+  bt::BTGdict
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}
@@ -22,6 +25,7 @@ function emptyBayesTree()
     return bt
 end
 
+
 """
     $TYPEDEF
 
@@ -31,7 +35,7 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer
+mutable struct CliqStateMachineContainer{BTND}
   dfg::DistributedFactorGraphs.GraphsDFG
   cliqSubFg::DistributedFactorGraphs.GraphsDFG
   tree::BayesTree
@@ -43,8 +47,38 @@ mutable struct CliqStateMachineContainer
   drawtree::Bool
   dodownsolve::Bool
   refactoring::Dict{Symbol, String}
-  CliqStateMachineContainer() = new()
-  CliqStateMachineContainer(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) = new(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}())
+  oldcliqdata::BTND
+  logger::SimpleLogger
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND}()
+  CliqStateMachineContainer{BTND}(x1::DFG.GraphsDFG,
+                                  x2::DFG.GraphsDFG,
+                                  x3::BayesTree,
+                                  x4::Graphs.ExVertex,
+                                  x5::Vector{Graphs.ExVertex},
+                                  x6::Vector{Graphs.ExVertex},
+                                  x7::Bool,
+                                  x8::Bool,
+                                  x9::Bool,
+                                  x10a::Bool,
+								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
+                                  x11::BTND=emptyBTNodeData(),
+                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10b,x11,x12)
+end
+
+function CliqStateMachineContainer(x1::GraphsDFG,
+                                   x2::GraphsDFG,
+                                   x3::BayesTree,
+                                   x4::Graphs.ExVertex,
+                                   x5::Vector{Graphs.ExVertex},
+                                   x6::Vector{Graphs.ExVertex},
+                                   x7::Bool,
+                                   x8::Bool,
+                                   x9::Bool,
+                                   x10::Bool,
+                                   x11::BTND=emptyBTNodeData(),
+                                   x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND}
+  #
+  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}(),x11,x12)
 end
 
 """

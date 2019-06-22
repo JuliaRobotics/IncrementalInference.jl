@@ -15,7 +15,10 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
-  @info "$tmt | $(current_task()) cliq $(csmc.cliq.index), $lbl1, $(cliqst) -- "*str
+  with_logger(csmc.logger) do
+    @info "$tmt | $(current_task()) cliq $(csmc.cliq.index), $lbl1, $(cliqst) -- "*str
+  end
+  flush(csmc.logger.stream)
   nothing
 end
 
@@ -28,16 +31,29 @@ Notes:
 - State machine function nr. 11
 """
 function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "doCliqDownSolve_StateMachine")
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine")
   setCliqDrawColor(csmc.cliq, "red")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   # get down msg from parent
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = getDwnMsgs(prnt[1])
+  multiproc = true
 
   # call down inference, TODO multiproc
-  drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
+  if multiproc
+    @info "GOING MULTIPROC DWN"
+    cliqc = deepcopy(csmc.cliq)
+    cliqcd = getData(cliqc)
+    # redirect to new unused so that CAN be serialized
+    cliqcd.initUpChannel = Channel{Symbol}(1)
+    cliqcd.initDownChannel = Channel{Symbol}(1)
+    cliqcd.solveCondition = Condition()
+    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false)
+  else
+    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
+  end
   csmc.dodownsolve = false
 
   # update clique with new status
@@ -60,14 +76,15 @@ Notes
 - State machine function nr. 10
 """
 function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, csmc.dodownsolve=$(csmc.dodownsolve).")
   # finished and exit downsolve
   if !csmc.dodownsolve
-    infocsm(csmc, "determineCliqIfDownSolve_StateMachine -- shortcut exit since downsolve not required.")
+    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine -- shortcut exit since downsolve not required.")
     return IncrementalInference.exitStateMachine
   end
 
   # yes, continue with downsolve
-  setCliqDrawColor(csmc.cliq, "darkviolet")
+  setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   # block here until parent is downsolved
@@ -85,6 +102,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     return IncrementalInference.exitStateMachine
   end
 
+  # go to 11
   return doCliqDownSolve_StateMachine
 end
 
@@ -129,10 +147,10 @@ Notes
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
-    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, wait on parent for condition notify.")
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent for condition notify.")
     wait(getSolveCondition(prnt[1]))
   else
-    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
     @warn "no parent!"
   end
 
@@ -193,7 +211,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
   if length(dwinmsgs) == 0
-    infocsm(csmc, "attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
@@ -247,8 +265,8 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
   @inbounds for i in 1:len
-    if getCliqStatus(childs[i]) != :upsolved
-      infocsm(csmc, "7b, wait condition on upsolve, i=$i.")
+    if !(getCliqStatus(childs[i]) in [:upsolved;:uprecycled;:marginalized])
+      infocsm(csmc, "7b, wait condition on upsolve, i=$i, ch_lbl=$(getCliqFrontalVarIds(childs[i])[1]).")
       wait(getSolveCondition(childs[i]))
       break
     end
@@ -275,7 +293,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   for (clid, clst) in stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
     # :needdownmsg # 'send' downward init msg direction
-    !(clst in [:initialized;:upsolved;:marginalized;:downsolved]) ? (proceed = false) : nothing
+    !(clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? (proceed = false) : nothing
   end
   infocsm(csmc, "7, proceed=$(proceed), forceproceed=$(csmc.forceproceed)")
 
@@ -318,7 +336,7 @@ Notes
 """
 function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
-  setCliqDrawColor(csmc.cliq, "turquoise")
+  setCliqDrawColor(csmc.cliq, "darkviolet")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   cliqst = getCliqStatus(csmc.cliq)
@@ -344,16 +362,25 @@ Notes
 """
 function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
+  prnt = getParent(csmc.tree, csmc.cliq)
+  infocsm(csmc, "4, isCliqNull_StateMachine, csmc.incremental=$(csmc.incremental), len(prnt)=$(length(prnt))")
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
   csmc.forceproceed = false
 
-  prnt = getParent(csmc.tree, csmc.cliq)
+  # for recycle computed clique values case
+  if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+    csmc.incremental = false
+    # might be able to recycle the previous clique solve, go to 0b
+    return checkChildrenAllUpRecycled_StateMachine
+  end
+
   if 0 == length(prnt)
     # go to 7
     return determineCliqNeedDownMsg_StateMachine
   end
 
+  # go to 4b
   return doesCliqNeeddownmsg_StateMachine
 end
 
@@ -367,18 +394,14 @@ Notes
 - State machine function nr.4b
 """
 function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
-  # csmc.forceproceed = false
-  cliqst = getCliqStatus(csmc.cliq)
 
-  # infocsm(csmc, "4b, get parent")
-  # # get parent cliq
-  # prnt = getParent(csmc.tree, csmc.cliq)
+  cliqst = getCliqStatus(csmc.cliq)
+  infocsm(csmc, "4b, doesCliqNeeddownmsg_StateMachine, cliqst=$cliqst")
 
   if cliqst != :null
     if cliqst != :needdownmsg
       return blockCliqSiblingsParentChildrenNeedDown_StateMachine
     end
-    # ELSE: skip by to what used to be 4b
   else
     # fetch (should not block)
     stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq)
@@ -388,7 +411,7 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
     # if all children needdownmsg
     if len > 0 && sum(chstatus .== :needdownmsg) == len
       # TODO maybe can happen where some children need more information?
-      infocsm(csmc, "4, escalating to :needdownmsg since all children :needdownmsg")
+      infocsm(csmc, "4b, escalating to :needdownmsg since all children :needdownmsg")
       notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg)
       setCliqDrawColor(csmc.cliq, "green")
       csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
@@ -426,8 +449,8 @@ Notes
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  infocsm(csmc, "2, build subgraph")
   syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2, build subgraph syms=$(syms)")
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
   return isCliqNull_StateMachine
 end
@@ -442,11 +465,11 @@ Notes
 - State machine function nr.1
 """
 function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
+
   infocsm(csmc, "1, isCliqUpSolved_StateMachine")
   cliqst = getCliqStatus(csmc.cliq)
-  # lbl = cliq.attributes["label"]
 
-  if csmc.incremental && cliqst in [:upsolved; :downsolved; :marginalized]
+  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
     # prep and send upward message
     prnt = getParent(csmc.tree, csmc.cliq)
     if length(prnt) > 0
@@ -456,9 +479,78 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst)
     end
-    return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
+    #go to 10
+    return determineCliqIfDownSolve_StateMachine
   end
+  # go to 2
   return buildCliqSubgraph_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
+Final determination on whether can promote clique to `:uprecycled`.
+
+Notes
+- State machine function nr.0b
+- Assume children clique status is available
+- Will return to regular init-solve if new information in children -- ie not uprecycle or marginalized
+"""
+function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer)
+  count = Int[]
+  chldr = getChildren(csmc.tree, csmc.cliq)
+  for ch in chldr
+    chst = getCliqStatus(ch)
+    if chst in [:uprecycled; :marginalized]
+      push!(count, 1)
+    end
+  end
+  infocsm(csmc, "0b, checkChildrenAllUpRecycled_StateMachine -- length(chldr)=$(length(chldr)), sum(count)=$(sum(count))")
+
+  # all children can be used for uprecycled -- i.e. no children have new information
+  if sum(count) == length(chldr)
+    # set up msg and exit go to 1
+    setCliqStatus!(csmc.cliq, :uprecycled)
+    setCliqDrawColor(csmc.cliq, "orange")
+    csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+    # go to 1
+    return isCliqUpSolved_StateMachine
+  end
+
+  # return to regular solve, go to 2
+  return buildCliqSubgraph_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Notify possible parent if clique is upsolved and exit the state machine.
+
+Notes
+- State machine function nr.0
+- can recycle if two checks:
+  - previous clique was identically downsolved
+  - all children are also :uprecycled
+"""
+function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
+  # @show getCliqFrontalVarIds(csmc.oldcliqdata), getCliqStatus(csmc.oldcliqdata)
+  infocsm(csmc, "0., $(csmc.incremental) ? :uprecycled => getCliqStatus(csmc.oldcliqdata)=$(getCliqStatus(csmc.oldcliqdata))")
+
+  # check if should be trying and can recycle clique computations
+  if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+    # check if a subgraph will be needed later
+    if csmc.dodownsolve
+      # yes need subgraph and need more checks, so go to 2
+      return buildCliqSubgraph_StateMachine
+    else
+       # one or two checks say yes, so go to 4
+      return isCliqNull_StateMachine
+    end
+  end
+
+  # nope, regular clique init-solve, go to 1
+  return isCliqUpSolved_StateMachine
 end
 
 
@@ -477,12 +569,15 @@ Notes:
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
                                         cliq::Graphs.ExVertex;
+                                        N::Int=100,
+										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
                                         limititers::Int=-1,
                                         downsolve::Bool=false,
-                                        recordhistory::Bool=false  ) where G <: AbstractDFG
+                                        recordhistory::Bool=false,
+                                        logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = Graphs.ExVertex[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
@@ -490,9 +585,9 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, oldcliqdata, logger)
 
-  statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
+  statemachine = StateMachine{CliqStateMachineContainer}(next=testCliqCanRecycled_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
