@@ -82,7 +82,6 @@ function addNode!(fg::FactorGraph,
                   ready::Int=1,
                   dontmargin::Bool=false,
                   labels::Vector{<:AbstractString}=String[],
-                  api::DataLayerAPI=dlapi,
                   uid::Int=-1,
                   smalldata=""  ) where {T <:InferenceVariable}
   #
@@ -95,7 +94,6 @@ function addNode!(fg::FactorGraph,
                        ready=ready,
                        dontmargin=dontmargin,
                        labels=labels,
-                       api=api,
                        uid=uid,
                        smalldata=smalldata )
 end
@@ -107,7 +105,6 @@ function addNode!(fg::FactorGraph,
                   ready::Int=1,
                   dontmargin::Bool=false,
                   labels::Vector{<:AbstractString}=String[],
-                  api::DataLayerAPI=dlapi,
                   uid::Int=-1,
                   # dims::Int=-1,
                   smalldata=""  )
@@ -121,7 +118,6 @@ function addNode!(fg::FactorGraph,
                       ready=ready,
                       dontmargin=dontmargin,
                       labels=labels,
-                      api=api,
                       uid=uid,
                       smalldata=smalldata  )
 end
@@ -131,7 +127,7 @@ end
 
 Return all elements `ls(fg)` as tuples, or nodes connected to the a specific element, eg. `ls(fg, :x1)
 """
-function ls(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi, ring::Int=1)
+function ls(fgl::FactorGraph, lbl::Symbol; ring::Int=1)
   @warn "Deprecated, please use DFG.ls"
   # TODO ring functionality must still be implemented
   lsa = Symbol[]
@@ -159,7 +155,6 @@ Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean
 """
 function ls(fgl::FactorGraph,
             lbls::Vector{Symbol};
-            api::DataLayerAPI=dlapi,
             ring::Int=1)
   @warn "Deprecated, please use DFG.ls"
   union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
@@ -242,7 +237,7 @@ List factors in a factor graph.
 lsf(fg, :x1)
 ```
 """
-function lsf(fgl::FactorGraph, lbl::Symbol; api::DataLayerAPI=dlapi)
+function lsf(fgl::FactorGraph, lbl::Symbol)
   @warn "Deprecated, please use DFG.lsf"
   lsa = Symbol[]
   if haskey(fgl.fIDs, lbl)
@@ -271,8 +266,7 @@ lsf(fg)
 lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
 
 function lsf(fgl::FactorGraph,
-             mt::Type{T};
-             api::DataLayerAPI=dlapi  ) where {T <: FunctorInferenceType}
+             mt::Type{T}) where {T <: FunctorInferenceType}
   @warn "Deprecated, please use DFG.lsf"
   syms = Symbol[]
   for (fsym,fid) in fgl.fIDs

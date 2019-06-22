@@ -51,12 +51,6 @@ export
   AbstractDFG,
   hasVariable,
 
-  dlapi,  # data layer variables
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI,
-
   # state machine methods
   StateMachine,
   exitStateMachine,
@@ -420,7 +414,6 @@ include("ccolamd.jl")
 include("FactorGraphTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
-include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")

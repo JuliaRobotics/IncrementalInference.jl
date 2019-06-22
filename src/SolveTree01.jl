@@ -374,8 +374,7 @@ Initialize the belief of a variable node in the factor graph struct.
 """
 function initVariable!(fgl::FactorGraph,
         sym::Symbol;
-        N::Int=100,
-        api::DataLayerAPI=IncrementalInference.dlapi )
+        N::Int=100)
   #
 
   vert = getVert(fgl, sym, api=api)
@@ -390,8 +389,7 @@ function initVariable!(fgl::FactorGraph,
 end
 function initializeNode!(fgl::FactorGraph,
                          sym::Symbol;
-                         N::Int=100,
-                         api::DataLayerAPI=IncrementalInference.dlapi )
+                         N::Int=100)
   #
   @warn "initializeNode! has been deprecated in favor of initVariable!"
   initVariable!(fgl,sym,N=N,api=api )
@@ -444,8 +442,7 @@ function fmcmc!(fgl::G,
                 lbls::Vector{Symbol},
                 N::Int,
                 MCMCIter::Int,
-                dbg::Bool=false,
-                api::DataLayerAPI=dlapi ) where G <: AbstractDFG
+                dbg::Bool=false) where G <: AbstractDFG
   #
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
     # repeat several iterations of functional Gibbs sampling for fixed point convergence

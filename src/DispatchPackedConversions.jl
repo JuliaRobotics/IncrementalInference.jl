@@ -82,36 +82,36 @@ function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: Packed
   getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
 end
 
-function getmodule(t::T) where T
-  T.name.module
-end
-function getname(t::T) where T
-  T.name.name
-end
-function getpackedtype(typestring::AS) where {AS <: AbstractString}
-  # println("Caesar.getpackedtype($(typestring))")
-  eval(Meta.parse(typestring))() # TODO consider caching or better
-end
-function encodePackedType(topackdata::VariableNodeData)
-  @warn "'encodePackedType' Deprecated..."
-  # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
-  pack(nothing, topackdata)
-end
-function encodePackedType(topackdata::GenericFunctionNodeData{CommonConvWrapper{T}, Symbol}) where {T <: FunctorInferenceType}
-  # println("IncrementalInference.encodePackedType(::GenericFunctionNodeData{T,Symbol}): Unknown packed type encoding T=$(T) of $(topackdata)")
-  fnctype = getfnctype(topackdata)
-  fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
-  convert(PackedFunctionNodeData{fnc}, topackdata)
-end
-function encodePackedType(topackdata::GenericFunctionNodeData{T, <:AbstractString}) where {T <: PackedInferenceType}
-  error("IncrementalInference.encodePackedType(::FunctionNodeData{T, <:AbstractString}): Unknown packed type encoding T=$(T) of $(topackdata)")
-  # @show T, typeof(topackdata)
-  # @warn "Yes, its packed!"
-  # fnctype = getfnctype(topackdata)
-  # @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
-  # convert(PackedFunctionNodeData{T}, topackdata)
-  topackdata
-end
+# function getmodule(t::T) where T
+#   T.name.module
+# end
+# function getname(t::T) where T
+#   T.name.name
+# end
+# function getpackedtype(typestring::AS) where {AS <: AbstractString}
+#   # println("Caesar.getpackedtype($(typestring))")
+#   eval(Meta.parse(typestring))() # TODO consider caching or better
+# end
+# function encodePackedType(topackdata::VariableNodeData)
+#   @warn "'encodePackedType' Deprecated..."
+#   # error("IncrementalInference.encodePackedType(::VariableNodeData): Unknown packed type encoding of $(topackdata)")
+#   pack(nothing, topackdata)
+# end
+# function encodePackedType(topackdata::GenericFunctionNodeData{CommonConvWrapper{T}, Symbol}) where {T <: FunctorInferenceType}
+#   # println("IncrementalInference.encodePackedType(::GenericFunctionNodeData{T,Symbol}): Unknown packed type encoding T=$(T) of $(topackdata)")
+#   fnctype = getfnctype(topackdata)
+#   fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
+#   convert(PackedFunctionNodeData{fnc}, topackdata)
+# end
+# function encodePackedType(topackdata::GenericFunctionNodeData{T, <:AbstractString}) where {T <: PackedInferenceType}
+#   error("IncrementalInference.encodePackedType(::FunctionNodeData{T, <:AbstractString}): Unknown packed type encoding T=$(T) of $(topackdata)")
+#   # @show T, typeof(topackdata)
+#   # @warn "Yes, its packed!"
+#   # fnctype = getfnctype(topackdata)
+#   # @show fnc = getfield(getmodule(fnctype), Symbol("Packed$(getname(fnctype))"))
+#   # convert(PackedFunctionNodeData{T}, topackdata)
+#   topackdata
+# end
 
 """
     $(SIGNATURES)
@@ -203,7 +203,7 @@ veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
 """
-function decodefg(fgs::FactorGraph; api::DataLayerAPI=localapi)
+function decodefg(fgs::FactorGraph)
   fgu = deepcopy(fgs)
   fgu.cg = nothing # will be deprecated or replaced
   fgu.registeredModuleFunctions = nothing # TODO: obsolete
