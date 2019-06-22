@@ -131,18 +131,52 @@ end
 
 
 # Variables
-function decodePackedType(packeddata::PackedVariableNodeData,
-                          typestring::String )
-#TODO: typestring is unnecessary
+
+function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
+  @warn "Deprecated?"
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 # Factors
-#TODO: typestring is unnecessary
-function decodePackedType(packeddata::GenericFunctionNodeData{PT,<:AbstractString}, notused::String) where {PT}
+function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
   usrtyp = convert(FunctorInferenceType, packeddata.fnc)
   fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
-  return convert(fulltype, packeddata)
+  factor = convert(fulltype, packeddata)
+  return factor
 end
+
+"""
+  $(SIGNATURES)
+After deserializing a factor using decodePackedType, use this to
+completely rebuild the factor's CCW and user data.
+"""
+function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
+  # Set up the neighbor data
+  neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
+  neighborUserData = map(v->getData(v).softtype, neighbors)
+
+  # Rebuilding the CCW
+  setDefaultFactorNode!(dfg, factor, neighbors, factor.data.fnc.usrfnc!)
+
+  #... Copying neighbor data into the factor?
+  ccw_new = getData(factor)
+  for i in 1:Threads.nthreads()
+    ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
+  end
+
+  # Copying all other fields in the factor
+  # TODO: Confirm whether we still need to do this?
+  ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
+  # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
+  # for field in fieldnames(typeof(ccw_jld))
+  #   if field != :fnc
+  #     setfield!(ccw_new, field, getfield(ccw_jld, field))
+  #   end
+  # end
+
+  return factor
+end
+
+
 
 """
     $(SIGNATURES)
