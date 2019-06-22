@@ -1,13 +1,13 @@
 import Base: convert
 import Base: ==
 
-abstract type InferenceType end
-abstract type PackedInferenceType end
-
-abstract type FunctorInferenceType <: Function end
-
-abstract type InferenceVariable end
-abstract type ConvolutionObject <: Function end
+# abstract type InferenceType end
+# abstract type PackedInferenceType end
+#
+# abstract type FunctorInferenceType <: Function end
+#
+# abstract type InferenceVariable end
+# abstract type ConvolutionObject <: Function end
 
 # been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
@@ -49,17 +49,57 @@ Solver parameters for the DistributedFactoGraph.
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
-  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
+  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}} # remove from
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
+  # new functions
+  incremental::Bool
+  upsolve::Bool
+  downsolve::Bool
+  drawtree::Bool
+  showtree::Bool
+  dbg::Bool
+  async::Bool
+  limititers::Int
+  N::Int
+  SolverParams(;dimID::Int=0,
+                registeredModuleFunctions=nothing,
+                reference=nothing,
+                stateless::Bool=false,
+                qfl::Int=99999999999,
+                isfixedlag::Bool=false,
+                incremental::Bool=true,
+                upsolve::Bool=true,
+                downsolve::Bool=true,
+                drawtree::Bool=false,
+                showtree::Bool=false,
+                dbg::Bool=false,
+                async::Bool=false,
+                limititers::Int=100,
+                N::Int=100  ) = new(dimID,
+                                   registeredModuleFunctions,
+                                   reference,
+                                   stateless,
+                                   qfl,
+                                   isfixedlag,
+                                   incremental,
+                                   upsolve,
+                                   downsolve,
+                                   drawtree,
+                                   showtree,
+                                   dbg,
+                                   async,
+                                   limititers,
+                                   N  )
+  #
 end
 
 """
 $(TYPEDEF)
 
-NOTE: Deprecated for DistributedFactoGraph.
+NOTE: Deprecated by DistributedFactorGraphs.
 """
 mutable struct FactorGraph
   g::FGGdict
@@ -113,9 +153,12 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=GraphsDFG{SolverParams}(params=SolverParams(0, nothing, nothing, false, 0, false));sessionname="NA",robotname="",username="",cloudgraph=nothing)::T where T <: AbstractDFG
-  # solverParams = SolverParams(0, nothing, nothing, false, 0, false)
-  # setSolverParams(dfg, solverParams)
+function initfg(dfg::T=GraphsDFG{SolverParams}(params=SolverParams());
+                                               sessionname="NA",
+                                               robotname="",
+                                               username="",
+                                               cloudgraph=nothing)::T where T <: AbstractDFG
+  #
   return dfg
 end
 

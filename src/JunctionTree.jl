@@ -168,7 +168,7 @@ end
 Open view to see the graphviz exported Bayes tree, assuming default location and
 viewer app.  See keyword arguments for more details.
 """
-function showTree(;filepath::String="/tmp/bt.pdf",
+function showTree(;filepath::String="/tmp/caesar/bt.pdf",
                    viewerapp::String="evince"  )
   #
   try
@@ -191,10 +191,11 @@ Notes
 """
 function drawTree(treel::BayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
-                  filepath::String="/tmp/bt.pdf",
+                  filepath::String="/tmp/caesar/bt.pdf",
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
+  mkpath("/tmp/caesar/")
   fext = split(filepath, '.')[end]
   fpwoext = split(filepath, '.')[end-1]
 
@@ -270,7 +271,7 @@ function prepBatchTree!(dfg::G;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
-                        filepath::String="/tmp/bt.pdf",
+                        filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false  ) where G <: AbstractDFG
@@ -349,7 +350,7 @@ function wipeBuildNewTree!(dfg::G;
                            ordering::Symbol=:qr,
                            drawpdf::Bool=false,
                            show::Bool=false,
-                           filepath::String="/tmp/bt.pdf",
+                           filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false  )::BayesTree where G <: AbstractDFG
   #

@@ -1,5 +1,8 @@
 
 
+
+const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
+
 # BayesTree declarations
 """
 $(TYPEDEF)
@@ -7,7 +10,7 @@ $(TYPEDEF)
 Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
 """
 mutable struct BayesTree
-  bt
+  bt::BTGdict
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}

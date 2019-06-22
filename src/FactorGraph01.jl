@@ -90,14 +90,14 @@ function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
 end
 
 # TODO: Refactor - was is das?
-function getfnctype(data::GenericFunctionNodeData)::Type
+function getfnctype(data::GenericFunctionNodeData)
   if typeof(data).name.name == :VariableNodeData
     return VariableNodeData
   end
   return data.fnc.usrfnc!
 end
 
-function getfnctype(f::DFGFactor; solveKey::Symbol=:default)::Type
+function getfnctype(f::DFGFactor; solveKey::Symbol=:default)
   data = getData(vertl, solveKey=solveKey)
   return getfnctype(data)
 end
@@ -278,7 +278,7 @@ function addVariable!(dfg::G,
                       ready::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
-                      smalldata="",
+                      smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true  )::DFGVariable where
                         {G <: AbstractDFG,
                          T <: InferenceVariable}
@@ -303,7 +303,7 @@ function addVariable!(dfg::G,
                       ready::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
-                      smalldata="")::DFGVariable where
+                      smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
   sto = softtype()
   #TODO: Refactor

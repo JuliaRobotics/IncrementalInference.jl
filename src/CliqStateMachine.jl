@@ -147,10 +147,10 @@ Notes
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
-    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, wait on parent for condition notify.")
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent for condition notify.")
     wait(getSolveCondition(prnt[1]))
   else
-    infocsm(csmc, "waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
     @warn "no parent!"
   end
 
@@ -211,7 +211,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
   if length(dwinmsgs) == 0
-    infocsm(csmc, "attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
