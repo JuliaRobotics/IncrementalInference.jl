@@ -317,10 +317,10 @@ Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Eliminatio
 can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
-  for v in DFG.ls(dfg)
+  for v in DFG.getVariables(dfg)
     resetData!(getData(v))
   end
-  for f in DFG.lsf(dfg)
+  for f in DFG.getFactors(dfg)
     resetData!(getData(f))
   end
   nothing

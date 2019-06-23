@@ -85,9 +85,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffEqDiffTools]]
 deps = ["LinearAlgebra", "SparseArrays", "StaticArrays"]
-git-tree-sha1 = "19add9fe03568da945997cd7052c3405b84d302f"
+git-tree-sha1 = "c83f4ce45d4b723f9d21b9ea3d314a503fd40def"
 uuid = "01453d9d-ee7c-5054-8395-0335cb756afa"
-version = "0.11.0"
+version = "0.12.0"
 
 [[DiffResults]]
 deps = ["Compat", "StaticArrays"]
@@ -113,9 +113,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DistributedFactorGraphs]]
 deps = ["DataFrames", "Dates", "Distributions", "DocStringExtensions", "Graphs", "JSON2", "Neo4j", "Reexport", "Requires"]
-git-tree-sha1 = "5b5d3ea58cb1b4e820ee55ebce295b8deefb4895"
+git-tree-sha1 = "dc17dd1a492e74fde6b8ecdf01a75ab710b406ea"
 uuid = "b5cc3c7e-6572-11e9-2517-99fb8daf2f04"
-version = "0.1.3"
+version = "0.2.0"
 
 [[Distributions]]
 deps = ["LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns"]
