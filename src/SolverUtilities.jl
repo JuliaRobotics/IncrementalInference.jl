@@ -179,6 +179,7 @@ function batchSolve!(dfg::G,
                      recordcliqs::Vector{Symbol}=Symbol[],
                      returntasks::Bool=false  ) where G <: AbstractDFG
   #
+  @warn "deprecated batchSolve! in favor of new solveTree! interface with the same and more functionality."
   if DFG.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfg)
@@ -216,7 +217,12 @@ function solveTree!(dfgl::G,
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  opt = dfgl.solverParams
+  opt = DFG.getSolverParams(dfgl)
+
+  if opt.isfixedlag
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      fifoFreeze!(dfgl)
+  end
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
   tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree)
