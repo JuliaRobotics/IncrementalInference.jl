@@ -878,7 +878,7 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
 end
 
 function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: AbstractDFG
-    addBayesNetVerts!(dfg, p)
+    # addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
       @info "Eliminating $(v)"
