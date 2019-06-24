@@ -9,7 +9,8 @@ getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarI
 """
     $SIGNATURES
 
-Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree. """
+Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree. 
+"""
 getFrontals(cliqd::Union{Graphs.ExVertex,BayesTreeNodeData})::Vector{Symbol} = getCliqFrontalVarIds(cliqd)
 
 
