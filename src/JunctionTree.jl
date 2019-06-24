@@ -9,8 +9,7 @@ getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarI
 """
     $SIGNATURES
 
-Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
-"""
+Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree. """
 getFrontals(cliqd::Union{Graphs.ExVertex,BayesTreeNodeData})::Vector{Symbol} = getCliqFrontalVarIds(cliqd)
 
 
@@ -299,7 +298,7 @@ Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` s
 function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
-  vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
+  # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
   vdata.separator = Symbol[]
   nothing
 end
