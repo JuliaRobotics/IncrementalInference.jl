@@ -9,7 +9,7 @@ getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarI
 """
     $SIGNATURES
 
-Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree. 
+Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
 getFrontals(cliqd::Union{Graphs.ExVertex,BayesTreeNodeData})::Vector{Symbol} = getCliqFrontalVarIds(cliqd)
 
@@ -848,7 +848,6 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
         # TODO int and symbol compare is no good
         for vertidx in getData(DFG.getFactor(dfg, idfct)).fncargvID
         # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
-          @show vertidx, cols[j], i, j
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
