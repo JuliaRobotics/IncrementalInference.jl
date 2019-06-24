@@ -450,12 +450,7 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
 
-
 include("Deprecated.jl")
-
-# Serialization
-include("serialization/models/distributions.jl")
-include("serialization/services/distributions.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
