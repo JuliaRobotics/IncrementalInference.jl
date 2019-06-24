@@ -41,8 +41,10 @@ import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
+
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
+
 
 export
   KDE,
@@ -52,6 +54,7 @@ export
   # DFG SpecialDefinitions
   AbstractDFG,
   hasVariable,
+  getSolverParams,
 
   dlapi,  # data layer variables
   localapi,
