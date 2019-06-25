@@ -97,8 +97,8 @@ function getfnctype(data::GenericFunctionNodeData)
   return data.fnc.usrfnc!
 end
 
-function getfnctype(f::DFGFactor; solveKey::Symbol=:default)
-  data = getData(vertl, solveKey=solveKey)
+function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
+  data = getData(fact) # TODO , solveKey=solveKey)
   return getfnctype(data)
 end
 
