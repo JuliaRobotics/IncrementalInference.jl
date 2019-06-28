@@ -509,22 +509,51 @@ function factorCanInitFromOtherVars(dfg::T,
                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
   #
   # all variables attached to this factor
-  varsyms = getNeighbors(dfg, fct)
+  varsyms = DFG.getNeighbors(dfg, fct)
 
   # list of factors to use in init operation
-  useinitfct = Symbol[]
+  fctlist = []
   faillist = Symbol[]
   for vsym in varsyms
     xi = DFG.getVariable(dfg, vsym)
-    if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-      push!(useinitfct, fct)
+    if !isInitialized(xi)
+      push!(faillist, vsym)
     end
   end
 
-  return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
-          useinitfct,
-          faillist   )
+  # determine if this factor can be used
+  canuse = length(varsyms)==1 || (length(faillist)==1 && loovar in faillist)
+  if canuse
+    push!(fctlist, fct)
+  end
+
+  # return if can use, the factor in an array, and the non-initialized variables attached to the factor
+  return (canuse, fctlist, faillist )
 end
+
+
+# wow, that was quite far off -- needs testing
+# function factorCanInitFromOtherVars(dfg::T,
+#                                     fct::Symbol,
+#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
+#   #
+#   # all variables attached to this factor
+#   varsyms = getNeighbors(dfg, fct)
+#
+#   # list of factors to use in init operation
+#   useinitfct = Symbol[]
+#   faillist = Symbol[]
+#   for vsym in varsyms
+#     xi = DFG.getVariable(dfg, vsym)
+#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+#       push!(useinitfct, fct)
+#     end
+#   end
+#
+#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+#           useinitfct,
+#           faillist   )
+# end
 
 """
     $(SIGNATURES)
@@ -546,21 +575,25 @@ function doautoinit!(dfg::T,
   didinit = false
   # don't initialize a variable more than once
   if !isInitialized(xi)
+    @info "try doautoinit! of $(xi.label)"
     # get factors attached to this variable xi
-    vsym = Symbol(xi.label)
+    vsym = xi.label
     neinodes = DFG.getNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
-    if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+    if (singles || length(neinodes) > 1)
       # Which of the factors can be used for initialization
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
         canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym)
-        useinitfct = union(useinitfct, usefct)
+        if canuse
+          union!(useinitfct, usefct)
+        end
       end
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
+        @info "do init of $vsym"
         pts,fulldim = predictbelief(dfg, vsym, useinitfct)
         setValKDE!(xi, pts, true, !fulldim)
         # getData(xi).initialized = true
