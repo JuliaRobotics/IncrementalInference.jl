@@ -316,8 +316,7 @@ function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol})::Bool where G 
     for vsym in varorder
       var = DFG.getVariable(subfg, vsym)
       isinit = isInitialized(var)
-      @info "going for doautoinit!, var.label=$(var.label), isinit=$(isinit)"
-      # TODO -- must use factors and values in cliq (assume subgraph?)
+      @info "var.label=$(var.label) is initialized=$(isinit)"
       doautoinit!(subfg, [var;])
       if isinit != isInitialized(var)
         count += 1
