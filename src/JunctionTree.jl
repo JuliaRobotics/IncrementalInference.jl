@@ -1115,12 +1115,11 @@ Related:
 
 whichCliq, printCliqHistorySummary
 """
-function getTreeAllFrontalSyms(fgl::FactorGraph, tree::BayesTree)
+function getTreeAllFrontalSyms(fgl::G, tree::BayesTree) where G <: AbstractDFG
   cliqs = tree.cliques
   syms = Vector{Symbol}(undef, length(cliqs))
   for (id,cliq) in cliqs
-    sym = getSym(fgl, getCliqFrontalVarIds(cliq)[1])
-    syms[id] = sym
+    syms[id] = getCliqFrontalVarIds(cliq)[1]
   end
   return syms
 end

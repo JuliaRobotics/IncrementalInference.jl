@@ -1720,7 +1720,11 @@ function initInferTreeUp!(dfg::G,
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   for i in 1:length(treel.cliques)
     if haskey(cliqHistories, i)
-      getData(treel.cliques[i]).statehistory=cliqHistories[i]
+      hist = cliqHistories[i]
+      for i in 1:length(hist)
+        hist[i][4].logger = SimpleLogger(stdout)
+      end
+      getData(treel.cliques[i]).statehistory=hist
     end
   end
 

@@ -84,7 +84,7 @@ printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::BayesTree,
                                 frontal::Symbol,
-                                step::Int  )
+                                step::Int)
   #
   hist = getCliqSolveHistory(tree, frontal)
   return sandboxStateMachineStep(hist, step)
