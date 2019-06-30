@@ -172,10 +172,14 @@ Notes
 """
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
+  if csmc.delay
+    infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
+    sleep(10)
+  end
 
   cliqst = getCliqStatus(csmc.cliq)
 
-  infocsm(csmc, "8b, doCliqAutoInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
+  infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
@@ -577,6 +581,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         limititers::Int=-1,
                                         downsolve::Bool=false,
                                         recordhistory::Bool=false,
+                                        delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = Graphs.ExVertex[]
@@ -585,7 +590,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, oldcliqdata, logger)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=testCliqCanRecycled_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end

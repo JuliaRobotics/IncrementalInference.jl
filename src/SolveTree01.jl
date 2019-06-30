@@ -1581,6 +1581,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    limititers::Int=-1,
                                    downsolve::Bool=false,
                                    incremental::Bool=false,
+                                   delaycliqs::Vector{Symbol}=Symbol[],
                                    recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   clst = :na
@@ -1588,14 +1589,17 @@ function tryCliqStateMachineSolve!(dfg::G,
   syms = getCliqFrontalVarIds(cliq) # ids =
   oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
   oldcliqdata = getData(oldcliq)
+  Base.rm("/tmp/caesar/logs/cliq$i", recursive=true, force=true)
   mkpath("/tmp/caesar/logs/cliq$i/")
   logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+  delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree, oldcliqdata=oldcliqdata,
-                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, logger=logger )
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree,
+                                             oldcliqdata=oldcliqdata,
+                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
       @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
@@ -1647,6 +1651,7 @@ function asyncTreeInferUp!(dfg::G,
                            downsolve::Bool=false,
                            incremental::Bool=false,
                            skipcliqids::Vector{Int}=Int[],
+                           delaycliqs::Vector{Symbol}=Symbol[],
                            recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   resetTreeCliquesForUpSolve!(treel)
@@ -1661,7 +1666,7 @@ function asyncTreeInferUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1696,7 +1701,8 @@ function initInferTreeUp!(dfg::G,
                           downsolve::Bool=false,
                           incremental::Bool=false,
                           skipcliqids::Vector{Int}=Int[],
-                          recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
+                          recordcliqs::Vector{Symbol}=Symbol[],
+                          delaycliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -1711,7 +1717,7 @@ function initInferTreeUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, recordcliqs=recordcliqs) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
         end # if
       end # for
     end # sync

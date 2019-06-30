@@ -46,6 +46,7 @@ mutable struct CliqStateMachineContainer{BTND}
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
+  delay::Bool
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
@@ -60,9 +61,10 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x8::Bool,
                                   x9::Bool,
                                   x10a::Bool,
+                                  x10aa::Bool,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10b,x11,x12)
+                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10b,x11,x12)
 end
 
 function CliqStateMachineContainer(x1::GraphsDFG,
@@ -75,10 +77,11 @@ function CliqStateMachineContainer(x1::GraphsDFG,
                                    x8::Bool,
                                    x9::Bool,
                                    x10::Bool,
+                                   x10aa::Bool,
                                    x11::BTND=emptyBTNodeData(),
                                    x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND}
   #
-  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}(),x11,x12)
+  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,Dict{Symbol,String}(),x11,x12)
 end
 
 """

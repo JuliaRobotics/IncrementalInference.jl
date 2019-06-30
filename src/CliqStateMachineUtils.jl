@@ -25,6 +25,9 @@ Related:
 getTreeAllFrontalSyms, getCliqSolveHistory, animateCliqStateMachines
 """
 function printCliqHistorySummary(fid, hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
+  if length(hist) == 0
+    @warn "printCliqHistorySummary -- No CSM history found."
+  end
   for hi in hist
     first = (split(string(hi[1]), 'T')[end])*" "
     len = length(first)
