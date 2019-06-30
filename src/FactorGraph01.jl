@@ -738,7 +738,7 @@ function addFactor!(
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
+      autoinit::Bool=false,
       threadmodel=SingleThreaded  ) where
         {G <: AbstractDFG,
          R <: Union{FunctorInferenceType, InferenceType}}
