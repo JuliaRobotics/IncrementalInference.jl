@@ -84,15 +84,9 @@ printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::BayesTree,
                                 frontal::Symbol,
-                                step::Int;
-                                fixlogger::Bool=true)
+                                step::Int)
   #
   hist = getCliqSolveHistory(tree, frontal)
-
-  # HACK specific to iif and csm
-  if fixlogger
-    hist[step][4].logger = SimpleLogger(stdout)
-  end
   return sandboxStateMachineStep(hist, step)
 end
 
