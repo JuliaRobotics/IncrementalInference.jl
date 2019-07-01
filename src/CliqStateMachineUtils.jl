@@ -1,4 +1,25 @@
 
+
+"""
+    $SIGNATURES
+
+Return dict of all histories in a Bayes Tree.
+"""
+function getTreeCliqsSolverHistories(fg::G,
+                                     tree::BayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
+  #
+  fsy = getTreeAllFrontalSyms(fg, tree)
+  histories = Dict{Symbol, CSMHistory}()
+  for fs in fsy
+    hist = getCliqSolveHistory(tree, fs)
+    if length(hist) > 0
+      histories[fs] = hist
+    end
+  end
+  return histories
+end
+
+
 """
     $SIGNATURES
 
@@ -109,8 +130,10 @@ Related
 
 printCliqHistorySummary
 """
-function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; frames::Int=100)
-
+function animateCliqStateMachines(tree::BayesTree,
+                                  cliqsyms::Vector{Symbol};
+                                  frames::Int=100  )
+  #
   startT = Dates.now()
   stopT = Dates.now()
 
@@ -133,7 +156,7 @@ function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; fra
   folders = String[]
   for sym in cliqsyms
     hist = getCliqSolveHistory(tree, sym)
-    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="caesar/animatecsm/cliq$sym", title="$sym", startT=startT, stopT=stopT)
+    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="caesar/animatecsm/cliq$sym", title="$sym", startT=startT, stopT=stopT, rmfirst=false)
     push!(folders, "cliq$sym")
   end
 
@@ -209,4 +232,39 @@ function solveCliqWithStateMachine!(dfg::G,
   statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc)
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
+end
+
+"""
+    $SIGNATURES
+
+Animate multiple clique state machines on the same graphviz visualization.  Renders according to
+linear time for all provided histories.
+"""
+function csmAnimate(tree::BayesTree,
+                    cliqsyms::Vector{Symbol};
+                    frames::Int=100  )
+  #
+  hists = getTreeCliqsSolverHistories(fg,tree)
+
+  startT = Dates.now()
+  stopT = Dates.now()
+
+  # get start and stop times across all cliques
+  first = true
+  for (csym, hist) in hists
+    # global startT, stopT
+    @show csym
+    if hist[1][1] < startT
+      startT = hist[1][1]
+    end
+    if first
+      stopT = hist[end][1]
+    end
+    if stopT < hist[end][1]
+      stopT= hist[end][1]
+    end
+  end
+
+  # export all figures
+  animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=500)
 end
