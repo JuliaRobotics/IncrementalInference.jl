@@ -133,7 +133,7 @@ function animateCliqStateMachines(tree::BayesTree, cliqsyms::Vector{Symbol}; fra
   folders = String[]
   for sym in cliqsyms
     hist = getCliqSolveHistory(tree, sym)
-    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="cliq$sym", title="$sym", startT=startT, stopT=stopT)
+    retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="caesar/animatecsm/cliq$sym", title="$sym", startT=startT, stopT=stopT)
     push!(folders, "cliq$sym")
   end
 

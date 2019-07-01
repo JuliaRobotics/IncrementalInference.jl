@@ -174,7 +174,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
   if csmc.delay
     infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
-    sleep(10)
+    sleep(30)
   end
 
   cliqst = getCliqStatus(csmc.cliq)
