@@ -239,10 +239,37 @@ end
 
 Animate multiple clique state machines on the same graphviz visualization.  Renders according to
 linear time for all provided histories.
+
+Example:
+```julia
+using Caesar
+
+# build a factor graph
+fg = initfg()
+# addVariable!(...)
+# addFactor!(...)
+# ...
+
+fsy = getTreeAllFrontalSyms(fg, tree) # for later use
+# perform inference to find the factor graph marginal posterior estimates
+tree, smt, hist = solveTree!(fg, recordcliqs=fsy)
+
+# generate frames in standard location /tmp/caesar/csmCompound/
+#  requires: sudo apt-get install graphviz
+csmAnimate(fg, tree, fsy, frames=500)
+
+# to render and show from default location (requires )
+#  requires: sudo apt-get install ffmpeg vlc
+Base.rm("/tmp/caesar/csmCompound/out.mp4")
+run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" /tmp/caesar/csmCompound/out.mp4`)
+run(`vlc /tmp/caesar/csmCompound/out.mp4`)
+```
 """
-function csmAnimate(tree::BayesTree,
+function csmAnimate(fg::G,
+                    tree::BayesTree,
                     cliqsyms::Vector{Symbol};
-                    frames::Int=100  )
+                    frames::Int=100,
+                    rmfirst::Bool=true  ) where G <: AbstractDFG
   #
   hists = getTreeCliqsSolverHistories(fg,tree)
 
@@ -266,5 +293,9 @@ function csmAnimate(tree::BayesTree,
   end
 
   # export all figures
+  if rmfirst
+    @warn "Removing /tmp/caesar/csmCompound/ in preparation for new frames."
+    Base.rm("/tmp/caesar/csmCompound/", recursive=true, force=true)
+  end
   animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=500)
 end
