@@ -175,7 +175,7 @@ function batchSolve!(dfg::G,
                      treeinit::Bool=false,
                      incremental::Bool=false,
                      limititers::Int=1000,
-                     skipcliqids::Vector{Int}=Int[],
+                     skipcliqids::Vector{Symbol}=Symbol[],
                      recordcliqs::Vector{Symbol}=Symbol[],
                      returntasks::Bool=false  ) where G <: AbstractDFG
   #
@@ -211,9 +211,9 @@ Perform inference over the Bayes tree according to `opt::SolverParams`.
 """
 function solveTree!(dfgl::G,
                     oldtree::BayesTree=emptyBayesTree();
-                    skipcliqids::Vector{Int}=Int[],
                     delaycliqs::Vector{Symbol}=Symbol[],
-                    recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+                    recordcliqs::Vector{Symbol}=Symbol[],
+                    skipcliqids::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()

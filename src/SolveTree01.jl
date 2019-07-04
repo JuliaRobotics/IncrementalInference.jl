@@ -1650,7 +1650,7 @@ function asyncTreeInferUp!(dfg::G,
                            limititers::Int=-1,
                            downsolve::Bool=false,
                            incremental::Bool=false,
-                           skipcliqids::Vector{Int}=Int[],
+                           skipcliqids::Vector{Symbol}=Symbol[],
                            delaycliqs::Vector{Symbol}=Symbol[],
                            recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
@@ -1700,7 +1700,7 @@ function initInferTreeUp!(dfg::G,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
-                          skipcliqids::Vector{Int}=Int[],
+                          skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
                           delaycliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
@@ -1716,7 +1716,8 @@ function initInferTreeUp!(dfg::G,
     @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        if !(i in skipcliqids)
+        scsym = getCliqFrontalVarIds(treel.cliques[i])
+        if length(intersect(scsym, skipcliqids)) == 0
           alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
         end # if
       end # for
@@ -1757,7 +1758,7 @@ function inferOverTree!(dfg::G,
                         treeinit::Bool=false,
                         incremental::Bool=false,
                         limititers::Int=1000,
-                        skipcliqids::Vector{Int}=Int[],
+                        skipcliqids::Vector{Symbol}=Symbol[],
                         recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
   #
 
