@@ -193,7 +193,7 @@ $(TYPEDEF)
 mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, EasyMessage} # Int
+  IDvals::Dict{Symbol, EasyMessage}
   keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()

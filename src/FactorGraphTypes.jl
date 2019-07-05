@@ -35,12 +35,13 @@ mutable struct EasyMessage{T <: Tuple}
   pts::Array{Float64,2}
   bws::Array{Float64,1}
   manifolds::T
+  fulldim::Bool
   EasyMessage{T}() where {T <: Tuple} = new{T}()
-  EasyMessage{T}(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = new{T}(a,b, manis)
-  EasyMessage{T}(p::BallTreeDensity, manis::T) where {T <: Tuple}  = new{T}(getPoints(p), getBW(p)[:,1], manis)
+  EasyMessage{T}(a::Array{Float64,2}, b::Array{Float64,1}, manis::T, fulldim::Bool=true) where {T <: Tuple} = new{T}(a,b, manis, fulldim)
+  EasyMessage{T}(p::BallTreeDensity, manis::T, fulldim::Bool=true) where {T <: Tuple}  = new{T}(getPoints(p), getBW(p)[:,1], manis, fulldim)
 end
-EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = EasyMessage{T}(a, b, manis)
-EasyMessage(p::BallTreeDensity, manis::T) where {T <: Tuple} = EasyMessage{T}(p, manis)
+EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T, fulldim::Bool=true) where {T <: Tuple} = EasyMessage{T}(a, b, manis, fulldim)
+EasyMessage(p::BallTreeDensity, manis::T, fulldim::Bool=true) where {T <: Tuple} = EasyMessage{T}(p, manis, fulldim)
 
 """
 $(TYPEDEF)

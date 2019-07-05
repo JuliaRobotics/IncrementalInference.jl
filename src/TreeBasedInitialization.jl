@@ -337,7 +337,8 @@ function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
                         cliq::Graphs.ExVertex  )::Symbol where G <: AbstractDFG
   #
-  csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label
+  csym = getCliqFrontalVarIds(cliq)[1]
+  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
   approxCliqMarginalUp!(subfg, tree, csym, false)
   getData(cliq).upsolved = true
   return :upsolved
@@ -349,7 +350,7 @@ end
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
 function prepCliqInitMsgsUp(subfg::G,
-                             cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
+                            cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
   #
   # construct init's up msg to place in parent from initialized separator variables
   msg = Dict{Symbol, BallTreeDensity}()
@@ -409,6 +410,17 @@ function doCliqAutoInitUp!(subfg::G,
     cycleInitByVarOrder!(subfg, varorder)
     @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
   end
+
+
+  # print out the partial init status of all vars in clique
+  varids = getCliqAllVarIds(cliq)
+  initstatus = Vector{Bool}(undef, length(varids))
+  initpartial = Vector{Bool}(undef, length(varids))
+  for i in 1:length(varids)
+    initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = getData(getVariable(subfg, varids[i])).partialinit
+  end
+  @info "$(current_task()) Clique $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)

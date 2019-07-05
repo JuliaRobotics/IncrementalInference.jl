@@ -1,34 +1,5 @@
 
 """
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-function upMsg(cliq::Graphs.ExVertex)
-  @warn "deprecated upMsg, use getUpMsg instead"
-  getData(cliq).upMsg
-end
-function upMsg(btl::BayesTree, sym::Symbol)
-  @warn "deprecated upMsg, use getUpMsg instead"
-  upMsg(whichCliq(btl, sym))
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-function dwnMsg(cliq::Graphs.ExVertex)
-  @warn "deprecated dwnMsg, use getDwnMsgs instead"
-  getData(cliq).dwnMsg
-end
-function dwnMsg(btl::BayesTree, sym::Symbol)
-  @warn "deprecated dwnMsg, use getDwnMsgs instead"
-  dwnMsg(whichCliq(btl, sym))
-end
-
-
-"""
     $SIGNATURES
 
 Draw and show the factor graph `<:AbstractDFG` via system graphviz and pdf app.
@@ -38,6 +9,14 @@ Notes
 - Need long term solution
 - DFG's `toDotFile` a better solution -- view with `xdot` application.
 - also try `engine={"sfdp","fdp","dot","twopi","circo","neato"}`
+
+Future:
+- Might be kept with different call strategy since this function so VERY useful!
+- Major issue that this function calls an external program such as "evince", which should be
+   under user control only.
+- Maybe solution is
+- ```toDot(fg,file=...); @async run(`xdot file.dot`)```, or
+  - ```toDot(fg,file=...); exportPdf(...); @async run(`evince ...pdf`)```.
 """
 function writeGraphPdf(fgl::G;
                        viewerapp::String="evince",
@@ -65,6 +44,36 @@ function writeGraphPdf(fgl::G;
   end
   nothing
 end
+
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+function upMsg(cliq::Graphs.ExVertex)
+  @warn "deprecated upMsg, use getUpMsg instead"
+  getData(cliq).upMsg
+end
+function upMsg(btl::BayesTree, sym::Symbol)
+  @warn "deprecated upMsg, use getUpMsg instead"
+  upMsg(whichCliq(btl, sym))
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+function dwnMsg(cliq::Graphs.ExVertex)
+  @warn "deprecated dwnMsg, use getDwnMsgs instead"
+  getData(cliq).dwnMsg
+end
+function dwnMsg(btl::BayesTree, sym::Symbol)
+  @warn "deprecated dwnMsg, use getDwnMsgs instead"
+  dwnMsg(whichCliq(btl, sym))
+end
+
 
 
 """
@@ -303,4 +312,12 @@ function ls2(fgl::FactorGraph, vsym::Symbol)
   end
   xlxl = setdiff(xlxl, [vsym])
   return xlxl
+end
+
+function initializeNode!(fgl::G,
+                         sym::Symbol;
+                         N::Int=100  ) where G <: AbstractDFG
+  #
+  @warn "initializeNode! has been deprecated in favor of initVariable!"
+  initVariable!(fgl,sym,N=N )
 end

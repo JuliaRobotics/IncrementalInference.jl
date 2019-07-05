@@ -596,9 +596,6 @@ function doautoinit!(dfg::T,
         @info "do init of $vsym"
         pts,fulldim = predictbelief(dfg, vsym, useinitfct)
         setValKDE!(xi, pts, true, !fulldim)
-        # getData(xi).initialized = true
-        # TODO: Persist this back if we want to here.
-        # api.updatevertex!(dfg, xi, updateMAPest=false)
         didinit = true
       end
     end
