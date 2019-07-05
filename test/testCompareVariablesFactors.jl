@@ -52,7 +52,7 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true)
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;])
 
 tree = wipeBuildNewTree!(fg2)
 
