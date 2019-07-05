@@ -119,7 +119,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst == :upsolved
     infocsm(csmc, "9, going for transferUpdateSubGraph!")
     frsyms = getCliqFrontalVarIds(csmc.cliq)
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms) # TODO what about down solve??
     # go to 10
     return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
@@ -219,6 +219,10 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
+
+  ## TODO deal with partial inits only, either delay or continue at end...
+  # find intersect between downinitmsgs and local clique variables
+  # if only partials available, then
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.

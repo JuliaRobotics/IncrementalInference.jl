@@ -4,11 +4,11 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-function getCliqInitUpMsgs(cliq::Graphs.ExVertex)
+function getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Symbol, Tuple{BallTreeDensity, Bool}}
   getData(cliq).upInitMsgs
 end
 
-function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict)
+function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict{Symbol,Tuple{BallTreeDensity, Bool}})
   getData(cliq).upInitMsgs[childid] = msg
   # notify cliq condition that there was a change
   notify(getSolveCondition(cliq))
@@ -350,20 +350,20 @@ end
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
 function prepCliqInitMsgsUp(subfg::G,
-                            cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
+                            cliq::Graphs.ExVertex)::Dict{Symbol, Tuple{BallTreeDensity, Bool}}  where G <: AbstractDFG
   #
   # construct init's up msg to place in parent from initialized separator variables
-  msg = Dict{Symbol, BallTreeDensity}()
+  msg = Dict{Symbol, Tuple{BallTreeDensity, Bool}}()
   for vid in getCliqSeparatorVarIds(cliq)
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = getKDE(var)
+      msg[Symbol(var.label)] = (getKDE(var), getData(var).partialinit)
     end
   end
   return msg
 end
 
-function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
+function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, Tuple{BallTreeDensity, Bool}}  where G <: AbstractDFG
   @warn "deprecated, use prepCliqInitMsgsUp(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
   prepCliqInitMsgsUp(subfg, cliq)
 end
@@ -525,7 +525,7 @@ Notes:
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
-                                 downmsgs::Dict{Symbol, BallTreeDensity} )::Vector{Symbol} where G <: AbstractDFG
+                                 downmsgs::Dict{Symbol, Tuple{BallTreeDensity,Bool}} )::Vector{Symbol} where G <: AbstractDFG
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
@@ -584,7 +584,7 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, BallTreeDensity})::Vector{DFGFactor} where G <: AbstractDFG
+                        msgs::Dict{Symbol, Tuple{BallTreeDensity, Bool}})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.getVariableIds(subfg)
@@ -593,7 +593,10 @@ function addMsgFactors!(subfg::G,
     if msym in svars
       # @show "adding down msg $msym"
       # mvid += 1
-      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false)
+
+      # losing dm[2] partial information here
+      # TODO prior missing manifold information
+      fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -601,17 +604,17 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Vector{BallTreeDensity}})::Vector{ExVertex} where G <: AbstractDFG
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Bool}}})::Vector{ExVertex} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = Graphs.ExVertex[]
-  svars = union(ls(subfg)...)
+  svars = ls(subfg)
   mvid = getMaxVertId(subfg)
   for (msym, dms) in msgs
     for dm in dms
       if msym in svars
         # @show "adding down msg $msym"
         mvid += 1
-        fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false, uid=mvid)
+        fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false, uid=mvid)
         push!(msgfcts, fc)
       end
     end
@@ -620,7 +623,7 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{DFGFactor} where G <: AbstractDFG
+                        allmsgs::Dict{Int,Dict{Symbol, Tuple{BallTreeDensity, Bool}}})::Vector{DFGFactor} where G <: AbstractDFG
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
@@ -698,7 +701,7 @@ Algorithm:
 """
 function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
-                         dwinmsgs::Dict{Symbol,BallTreeDensity} ) where G <: AbstractDFG
+                         dwinmsgs::Dict{Symbol,Tuple{BallTreeDensity, Bool}} ) where G <: AbstractDFG
   #
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1"
   status = :needdownmsg #:badinit

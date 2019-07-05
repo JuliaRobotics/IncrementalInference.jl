@@ -111,7 +111,7 @@ mutable struct BayesTreeNodeData
   # future might concentrate these four fields down to two
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
-  upInitMsgs::Dict{Int, Dict{Symbol, BallTreeDensity}}
+  upInitMsgs::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity,Bool}}}
   downInitMsg::Dict{Symbol, BallTreeDensity}
 
   allmarginalized::Bool
