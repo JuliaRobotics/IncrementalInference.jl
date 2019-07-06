@@ -119,12 +119,9 @@ end
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
-@testset "test findRelatedFromPotential..." begin
-global v2
-global fg
-# global f3
-global f4
-global N
+@warn "restore findRelatedFromPotential as testset!"
+# @testset "test findRelatedFromPotential..." begin
+# global v2, fg, f3, f4, N
 
 thefac = getFactor(fg, :x1x2f1)
 
@@ -157,7 +154,7 @@ lpts = KernelDensityEstimate.getPoints(keepaside)
 memcheck = getVal(v2)
 @test norm(X2lpts - memcheck) < 1e-10
 
-end
+# end
 
 
 @testset "test belief prediction with partials..." begin
