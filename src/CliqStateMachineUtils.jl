@@ -299,3 +299,15 @@ function csmAnimate(fg::G,
   end
   animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=500)
 end
+
+"""
+    $SIGNATURES
+
+Return true if both, i.) this clique requires more downward information, ii.) more
+downward message information could potentially become available.
+"""
+function getCliqSiblingsPartialNeeds(tree::BayesTree, prnt, dwinmsgs::Dict)
+
+  # default
+  return false
+end

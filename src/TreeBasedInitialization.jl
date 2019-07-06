@@ -4,9 +4,7 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-function getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Symbol, Tuple{BallTreeDensity, Bool}}
-  getData(cliq).upInitMsgs
-end
+getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity, Bool}}} = getData(cliq).upInitMsgs
 
 function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict{Symbol,Tuple{BallTreeDensity, Bool}})
   getData(cliq).upInitMsgs[childid] = msg
@@ -474,11 +472,11 @@ function prepCliqInitMsgsDown!(fgl::G,
   @info "$(current_task()) Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
+  msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Bool}}}()
   for (cliqid, msgs) in currmsgs
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
-        msgspervar[msgsym] = Vector{BallTreeDensity}()
+        msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Bool}}()
       end
       push!(msgspervar[msgsym], msg)
     end
@@ -489,13 +487,15 @@ function prepCliqInitMsgsDown!(fgl::G,
   # reference to default allocated dict location
   products = getData(cliq).downInitMsg
   # multiply multiple messages together
-  for (msgsym, msgs) in msgspervar
+  for (msgsym, msgsBo) in msgspervar
     # check if this particular down message requires msgsym
     if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
       if length(msgspervar[msgsym]) > 1
-        products[msgsym] = manifoldProduct(msgs, getManifolds(fgl, msgsym))
+        msgs = getindex.(msgsBo, 1)
+        haspar = getindex.(msgsBo, 2)
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspar)
       else
-        products[msgsym] = msgs[1]
+        products[msgsym] = (msgsBo[1], Bool[msgsBo[1];])
       end
     else
       # not required, therefore remove from message to avoid confusion
@@ -703,27 +703,20 @@ function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
                          dwinmsgs::Dict{Symbol,Tuple{BallTreeDensity, Bool}} ) where G <: AbstractDFG
   #
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
   status = :needdownmsg #:badinit
-  # get down messages from parent
-  # prnt = getParent(tree, cliq)[1]
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 2"
-  # dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
+
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  # @show map(x->getSym(subfg, x), initorder)
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5"
   # cycle through vars and attempt init
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
   if cycleInitByVarOrder!(subfg, initorder)
-    # if areCliqVariablesAllInitialized(subfg, cliq)
     status = :initialized
-    # end
   end
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 6, current status: $status"
@@ -732,9 +725,6 @@ function doCliqInitDown!(subfg::G,
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
 
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
-  # queue the response in a channel to signal waiting tasks
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
   return status
 end
 
