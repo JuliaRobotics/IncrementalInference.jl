@@ -83,7 +83,7 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   put!(cd.initUpChannel, status)
   notify(getSolveCondition(cliq))
   # HACK to avoid a race condition that seems to occur ~1/20 times
-  sleep(0.01)
+  sleep(0.1)
   notify(getSolveCondition(cliq))
   nothing
 end
@@ -98,7 +98,7 @@ function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   put!(cd.initDownChannel, status)
   notify(getSolveCondition(cliq))
   # HACK to avoid a race condition that seems to occur ~1/20 times
-  sleep(0.01)
+  sleep(0.1)
   notify(getSolveCondition(cliq))
   nothing
 end
