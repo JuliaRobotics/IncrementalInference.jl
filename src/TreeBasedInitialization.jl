@@ -82,6 +82,9 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   end
   put!(cd.initUpChannel, status)
   notify(getSolveCondition(cliq))
+  # HACK to avoid a race condition that seems to occur ~1/20 times
+  sleep(0.01)
+  notify(getSolveCondition(cliq))
   nothing
 end
 
@@ -93,6 +96,9 @@ function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
   end
   put!(cd.initDownChannel, status)
+  notify(getSolveCondition(cliq))
+  # HACK to avoid a race condition that seems to occur ~1/20 times
+  sleep(0.01)
   notify(getSolveCondition(cliq))
   nothing
 end
@@ -585,7 +591,7 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}})::Vector{DFGFactor} where G <: AbstractDFG
+                        msgs::TempBeliefMsg)::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.getVariableIds(subfg)
@@ -605,17 +611,23 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{ExVertex} where G <: AbstractDFG
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
-  msgfcts = Graphs.ExVertex[]
+  msgfcts = DFGFactor[]
   svars = ls(subfg)
-  mvid = getMaxVertId(subfg)
+  # mvid = getMaxVertId(subfg)
+  # bpvids = ls(subfg, r"bpp") # belief prop prior
+  # mvid = length(bpvids) == 0 ? 0 : parse(Int, string(sortVarNested(bpvids)[end])[4:end])
+  @warn "using hardcoded offst for msgFactors"
+  # # TODO fix hardcoded id offset
+  # mvid = 99999999000
   for (msym, dms) in msgs
     for dm in dms
       if msym in svars
         # @show "adding down msg $msym"
-        mvid += 1
-        fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false, uid=mvid)
+        # mvid += 1
+        # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
+        fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false) # , uid=mvid
         push!(msgfcts, fc)
       end
     end
