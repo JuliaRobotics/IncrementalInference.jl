@@ -119,7 +119,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst == :upsolved
     infocsm(csmc, "9, going for transferUpdateSubGraph!")
     frsyms = getCliqFrontalVarIds(csmc.cliq)
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms) # TODO what about down solve??
     # go to 10
     return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
@@ -172,10 +172,14 @@ Notes
 """
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
+  if csmc.delay
+    infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
+    sleep(30)
+  end
 
   cliqst = getCliqStatus(csmc.cliq)
 
-  infocsm(csmc, "8b, doCliqAutoInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
+  infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
@@ -210,11 +214,18 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
-  if length(dwinmsgs) == 0
+  # determine if more info is needed for partial
+  partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs)
+
+  if length(dwinmsgs) == 0 || partialneedsmore
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
+
+  ## TODO deal with partial inits only, either delay or continue at end...
+  # find intersect between downinitmsgs and local clique variables
+  # if only partials available, then
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
@@ -577,6 +588,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         limititers::Int=-1,
                                         downsolve::Bool=false,
                                         recordhistory::Bool=false,
+                                        delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = Graphs.ExVertex[]
@@ -585,7 +597,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   end
   prnt = getParent(tree, cliq)
 
-  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, oldcliqdata, logger)
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=testCliqCanRecycled_StateMachine)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end

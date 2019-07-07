@@ -175,7 +175,7 @@ function batchSolve!(dfg::G,
                      treeinit::Bool=false,
                      incremental::Bool=false,
                      limititers::Int=1000,
-                     skipcliqids::Vector{Int}=Int[],
+                     skipcliqids::Vector{Symbol}=Symbol[],
                      recordcliqs::Vector{Symbol}=Symbol[],
                      returntasks::Bool=false  ) where G <: AbstractDFG
   #
@@ -211,8 +211,9 @@ Perform inference over the Bayes tree according to `opt::SolverParams`.
 """
 function solveTree!(dfgl::G,
                     oldtree::BayesTree=emptyBayesTree();
-                    skipcliqids::Vector{Int}=Int[],
-                    recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+                    delaycliqs::Vector{Symbol}=Symbol[],
+                    recordcliqs::Vector{Symbol}=Symbol[],
+                    skipcliqids::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
@@ -230,9 +231,9 @@ function solveTree!(dfgl::G,
 
   @info "Do tree based init-inference on tree"
   if opt.async
-    smtasks, hist = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+    smtasks, hist = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids )
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
   end
   @info "Finished tree based init-inference"
 

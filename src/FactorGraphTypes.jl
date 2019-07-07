@@ -26,21 +26,7 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
-"""
-$(TYPEDEF)
 
-Condensed representation of KernelDensityEstimate, by saving points and bandwidth
-"""
-mutable struct EasyMessage{T <: Tuple}
-  pts::Array{Float64,2}
-  bws::Array{Float64,1}
-  manifolds::T
-  EasyMessage{T}() where {T <: Tuple} = new{T}()
-  EasyMessage{T}(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = new{T}(a,b, manis)
-  EasyMessage{T}(p::BallTreeDensity, manis::T) where {T <: Tuple}  = new{T}(getPoints(p), getBW(p)[:,1], manis)
-end
-EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T) where {T <: Tuple} = EasyMessage{T}(a, b, manis)
-EasyMessage(p::BallTreeDensity, manis::T) where {T <: Tuple} = EasyMessage{T}(p, manis)
 
 """
 $(TYPEDEF)
@@ -312,23 +298,7 @@ function CommonConvWrapper(fnc::T,
   return ccw
 end
 
-# """
-# $(TYPEDEF)
-# """
-# mutable struct GenericFunctionNodeData{T, S}
-#   fncargvID::Array{Int,1}
-#   eliminated::Bool
-#   potentialused::Bool
-#   edgeIDs::Array{Int,1}
-#   frommodule::S #Union{Symbol, AbstractString}
-#   fnc::T
-#   multihypo::String # likely to moved when GenericWrapParam is refactored
-#   certainhypo::Vector{Int}
-#   GenericFunctionNodeData{T, S}() where {T, S} = new{T,S}()
-#   GenericFunctionNodeData{T, S}(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
-#   GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7, x8)
-#   # GenericFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String) where {T, S} = new{T,S}(x1, x2, x3, x4, x5, x6, x7)
-# end
+
 
 
 # where {T <: Union{InferenceType, FunctorInferenceType}}
@@ -342,20 +312,6 @@ PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{I
 
 
 
-
-
-###
-
-
-function convert(::Type{BallTreeDensity}, p::EasyMessage)
-  AMP.manikde!(p.pts, p.bws, p.manifolds)
-end
-
-function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
-  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
-end
-
-#
 
 
 

@@ -37,19 +37,23 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
                                     vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
-                                    manis::T ) where {T <: Tuple}
+                                    manis::T )::Bool where {T <: Tuple}
   #
+  fulldim = false
   for m in inmsgs
     for psym in keys(m.p)
       if psym == vsym
-        pdi = m.p[vsym]
+        pdi = m.p[vsym] # ::EasyMessage
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, :msg)
+        fulldim |= pdi.fulldim
       end
       # TODO -- we can inprove speed of search for inner loop
     end
   end
-  nothing
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return fulldim
 end
 
 """
@@ -63,19 +67,23 @@ function packFromLocalPotentials!(dfg::G,
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false ) where G <: AbstractDFG
+                                  dbg::Bool=false )::Bool where G <: AbstractDFG
   #
+  fulldim = false
   for idfct in getData(cliq).potentials
-    vert = DFG.getFactor(dfg, idfct)
-    data = getData(vert)
+    fct = DFG.getFactor(dfg, idfct)
+    data = getData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
-      p, = findRelatedFromPotential(dfg, vert, vsym, N, dbg )
+      p, isfulldim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
-      push!(wfac, vert.label)
+      push!(wfac, fct.label)
+      fulldim |= isfulldim
     end
   end
-  nothing
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return fulldim
 end
 
 
@@ -202,14 +210,17 @@ function productbelief(dfg::G,
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
+    # multiple non-partials
     Ndims = Ndim(dens[1])
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 1 && lenpart >= 1
+    # one non partial and one or more partials
     Ndims = Ndim(dens[1])
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
+    # only partials
     denspts = getPoints(getKDE(dfg, vertlabel))
     Ndims = size(denspts,1)
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
@@ -372,29 +383,17 @@ localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDF
 
 Initialize the belief of a variable node in the factor graph struct.
 """
-function initVariable!(fgl::FactorGraph,
-        sym::Symbol;
-        N::Int=100,
-        api::DataLayerAPI=IncrementalInference.dlapi )
+function initVariable!(fgl::G,
+                       sym::Symbol;
+                       N::Int=100 ) where G <: AbstractDFG
   #
+  @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
 
-  vert = getVert(fgl, sym, api=api)
-  # TODO -- this localapi is inconsistent, but get internal error due to problem with ls(fg, api=dlapi)
-  belief,b,c,d  = localProduct(fgl, sym, api=localapi)
-  pts = getPoints(belief)
-  # @show "initializing", sym, size(pts), Statistics.mean(pts,dims=2), Statistics.std(pts,dims=2)
-  setVal!(vert, pts)
-  api.updatevertex!(fgl, vert)
+  vert = getVariable(fgl, sym)
+  belief,b,c,d  = localProduct(fgl, sym)
+  setValKDE!(vert, belief)
 
   nothing
-end
-function initializeNode!(fgl::FactorGraph,
-                         sym::Symbol;
-                         N::Int=100,
-                         api::DataLayerAPI=IncrementalInference.dlapi )
-  #
-  @warn "initializeNode! has been deprecated in favor of initVariable!"
-  initVariable!(fgl,sym,N=N,api=api )
 end
 
 
@@ -419,16 +418,19 @@ function cliqGibbs(fg::G,
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{Symbol}()
-  packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-  packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
+
+  fulldim = false
+  fulldim |= packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  fulldim |= packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
   packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
 
   potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+      # pts,fulldim = predictbelief(dfg, vsym, useinitfct)  # for reference only
   pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
   # @info " "
-  return pGM, potprod
+  return pGM, potprod, fulldim
 end
 
 """
@@ -463,13 +465,11 @@ function fmcmc!(fgl::G,
         vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds) #cliqGibbs(fg, cliq, vsym, fmsgs, N)
+          densPts, potprod, fulldim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
+
           if size(densPts,1)>0
             updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-            setValKDE!(updvert, densPts)
-            # Go update the datalayer TODO -- excessive for general case, could use local and update remote at end
-              # # TODO SAM PLEASE HELPPPPPPPP
-              # dlapi.updatevertex!(fgl, updvert)
+            setValKDE!(updvert, densPts, true, !fulldim)
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -478,20 +478,16 @@ function fmcmc!(fgl::G,
         end
       end
       !dbg ? nothing : push!(mcmcdbg, dbgvals)
-      # @info ""
     end
 
     # populate dictionary for return NBPMessage in multiple dispatch
-    # TODO -- change to EasyMessage dict
-    d = Dict{Symbol,EasyMessage}() # Array{Float64,2}
+    d = Dict{Symbol,EasyMessage}()
     for vsym in lbls
-      # TODO reduce to local fg only
       vert = DFG.getVariable(fgl,vsym)
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis)
-      # d[vertid] = getVal(dlapi.getvertex(fgl,vertid)) # fgl.v[vertid]
+      d[vsym] = EasyMessage(getVal(vert), bws, manis, !getData(vert).partialinit)
     end
     @info "fmcmc! -- finished on $(cliq.attributes["label"])"
 
@@ -544,7 +540,7 @@ function treeProductUp(fg::FactorGraph,
 
   # perform the actual computation
   manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
-  pGM, potprod = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end
@@ -580,7 +576,7 @@ function treeProductDwn(fg::FactorGraph,
   dwnmsgssym = NBPMessage[NBPMessage(dict);]
 
   # perform the actual computation
-  pGM, potprod = cliqGibbs( fg, cliq, vertid, dwnmsgssym, N, dbg )
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, dwnmsgssym, N, dbg )
 
   return pGM, potprod, vertid, dwnmsgssym
 end
@@ -805,7 +801,8 @@ Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt`
 function updateFGBT!(fg::G,
                      cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
+                     dbg::Bool=false,
+                     fillcolor::String=""  ) where G <: AbstractDFG
   #
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
@@ -815,13 +812,13 @@ function updateFGBT!(fg::G,
   if fillcolor != ""
     setCliqDrawColor(cliq, fillcolor)
   end
-  for dat in urt.IDvals
-    # TODO make symmetric for non in memory version
-    updvert = DFG.getVariable(fg, dat[1])
-    setValKDE!(updvert, deepcopy(dat[2])) # (fg.v[dat[1]], ## TODO -- not sure if deepcopy is required
-    # api.updatevertex!(fg, updvert, updateMAPest=true)
+  # cliqFulldim = true
+  for (id,dat) in urt.IDvals
+    # cliqFulldim &= dat.fulldim
+    updvert = DFG.getVariable(fg, id)
+    setValKDE!(updvert, deepcopy(dat), true, !dat.fulldim) ## TODO -- not sure if deepcopy is required
   end
-  @info "updateFGBT! up -- finished updating $(cliq.attributes["label"])"
+  @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
   nothing
 end
 
@@ -892,15 +889,15 @@ function getCliqChildMsgsUp(fg_::G,
 end
 
 function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{BallTreeDensity})
-  childmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Vector{Bool}}}}()
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child)
       # id = fg_.IDs[key]
       # manis = getManifolds(fg_, id)
       if !haskey(childmsgs, key)
-        childmsgs[key] = BallTreeDensity[]
+        childmsgs[key] = Vector{Tuple{BallTreeDensity, Vector{Bool}}}()
       end
-      push!(childmsgs[key], bel)
+      push!(childmsgs[key], (bel,Bool[false;]) )
     end
   end
   return childmsgs
@@ -938,7 +935,7 @@ Notes
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 
 Future
-- TODO: function internally is too long and needs to be refactored for maintainability.
+- TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
 function approxCliqMarginalUp!(fgl::G,
                                treel::BayesTree,
@@ -988,7 +985,13 @@ function approxCliqMarginalUp!(fgl::G,
   else
     urt = upGibbsCliqueDensity(ett, N, dbg, iters)
   end
-  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="pink") # ett.bt, ett.cliq.index
+
+  # is clique fully upsolved or only partially?
+  cliqFulldim = true
+  for (id, val) in urt.IDvals
+    cliqFulldim &= val.fulldim
+  end
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato1"))
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt
@@ -1581,6 +1584,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    limititers::Int=-1,
                                    downsolve::Bool=false,
                                    incremental::Bool=false,
+                                   delaycliqs::Vector{Symbol}=Symbol[],
                                    recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   clst = :na
@@ -1588,14 +1592,17 @@ function tryCliqStateMachineSolve!(dfg::G,
   syms = getCliqFrontalVarIds(cliq) # ids =
   oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
   oldcliqdata = getData(oldcliq)
+  Base.rm("/tmp/caesar/logs/cliq$i", recursive=true, force=true)
   mkpath("/tmp/caesar/logs/cliq$i/")
   logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
+  delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree, oldcliqdata=oldcliqdata,
-                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, logger=logger )
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree,
+                                             oldcliqdata=oldcliqdata,
+                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
       @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
@@ -1646,7 +1653,8 @@ function asyncTreeInferUp!(dfg::G,
                            limititers::Int=-1,
                            downsolve::Bool=false,
                            incremental::Bool=false,
-                           skipcliqids::Vector{Int}=Int[],
+                           skipcliqids::Vector{Symbol}=Symbol[],
+                           delaycliqs::Vector{Symbol}=Symbol[],
                            recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   resetTreeCliquesForUpSolve!(treel)
@@ -1661,7 +1669,7 @@ function asyncTreeInferUp!(dfg::G,
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1695,8 +1703,9 @@ function initInferTreeUp!(dfg::G,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
-                          skipcliqids::Vector{Int}=Int[],
-                          recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
+                          skipcliqids::Vector{Symbol}=Symbol[],
+                          recordcliqs::Vector{Symbol}=Symbol[],
+                          delaycliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -1710,8 +1719,9 @@ function initInferTreeUp!(dfg::G,
     @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        if !(i in skipcliqids)
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, recordcliqs=recordcliqs) # N=N,
+        scsym = getCliqFrontalVarIds(treel.cliques[i])
+        if length(intersect(scsym, skipcliqids)) == 0
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
         end # if
       end # for
     end # sync
@@ -1751,7 +1761,7 @@ function inferOverTree!(dfg::G,
                         treeinit::Bool=false,
                         incremental::Bool=false,
                         limititers::Int=1000,
-                        skipcliqids::Vector{Int}=Int[],
+                        skipcliqids::Vector{Symbol}=Symbol[],
                         recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
   #
 

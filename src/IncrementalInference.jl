@@ -32,6 +32,7 @@ using Logging
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
 const DFG = DistributedFactorGraphs
+const FSM = FunctionalStateMachine
 
 import Base: convert
 # import HDF5: root
@@ -50,13 +51,18 @@ export
   KDE,
   AMP,
   DFG,
+  FSM,
 
   # DFG SpecialDefinitions
   AbstractDFG,
   hasVariable,
   getSolverParams,
 
-  dlapi,  # data layer variables
+  CSMHistory,
+  getTreeCliqsSolverHistories,
+
+  # OBSOLETE TODO REMOVE
+  dlapi,
   localapi,
   showcurrentdlapi,
   setdatalayerAPI!,
@@ -78,7 +84,9 @@ export
   drawStateTransitionStep,
   drawStateMachineHistory,
   animateStateMachineHistoryByTime,
+  animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
+  csmAnimate,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -389,6 +397,7 @@ export
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
+  getCliqSiblingsPartialNeeds,
 
   # some utils
   compareField,
@@ -429,6 +438,7 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
+include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")

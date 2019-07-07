@@ -4,11 +4,9 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-function getCliqInitUpMsgs(cliq::Graphs.ExVertex)
-  getData(cliq).upInitMsgs
-end
+getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}} = getData(cliq).upInitMsgs
 
-function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::Dict)
+function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::TempBeliefMsg)
   getData(cliq).upInitMsgs[childid] = msg
   # notify cliq condition that there was a change
   notify(getSolveCondition(cliq))
@@ -84,6 +82,9 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   end
   put!(cd.initUpChannel, status)
   notify(getSolveCondition(cliq))
+  # HACK to avoid a race condition that seems to occur ~1/20 times
+  sleep(0.1)
+  notify(getSolveCondition(cliq))
   nothing
 end
 
@@ -95,6 +96,9 @@ function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
     @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
   end
   put!(cd.initDownChannel, status)
+  notify(getSolveCondition(cliq))
+  # HACK to avoid a race condition that seems to occur ~1/20 times
+  sleep(0.1)
   notify(getSolveCondition(cliq))
   nothing
 end
@@ -337,7 +341,8 @@ function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
                         cliq::Graphs.ExVertex  )::Symbol where G <: AbstractDFG
   #
-  csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label
+  csym = getCliqFrontalVarIds(cliq)[1]
+  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
   approxCliqMarginalUp!(subfg, tree, csym, false)
   getData(cliq).upsolved = true
   return :upsolved
@@ -349,20 +354,20 @@ end
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
 function prepCliqInitMsgsUp(subfg::G,
-                             cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
+                            cliq::Graphs.ExVertex)::TempBeliefMsg  where G <: AbstractDFG
   #
   # construct init's up msg to place in parent from initialized separator variables
-  msg = Dict{Symbol, BallTreeDensity}()
+  msg = TempBeliefMsg()
   for vid in getCliqSeparatorVarIds(cliq)
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = getKDE(var)
+      msg[Symbol(var.label)] = (getKDE(var), Bool[getData(var).partialinit;])
     end
   end
   return msg
 end
 
-function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity}  where G <: AbstractDFG
+function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::TempBeliefMsg  where G <: AbstractDFG
   @warn "deprecated, use prepCliqInitMsgsUp(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
   prepCliqInitMsgsUp(subfg, cliq)
 end
@@ -409,6 +414,17 @@ function doCliqAutoInitUp!(subfg::G,
     cycleInitByVarOrder!(subfg, varorder)
     @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
   end
+
+
+  # print out the partial init status of all vars in clique
+  varids = getCliqAllVarIds(cliq)
+  initstatus = Vector{Bool}(undef, length(varids))
+  initpartial = Vector{Bool}(undef, length(varids))
+  for i in 1:length(varids)
+    initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = getData(getVariable(subfg, varids[i])).partialinit
+  end
+  @info "$(current_task()) Clique $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
@@ -462,11 +478,11 @@ function prepCliqInitMsgsDown!(fgl::G,
   @info "$(current_task()) Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = Dict{Symbol, Vector{BallTreeDensity}}()
+  msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Vector{Bool}}}}()
   for (cliqid, msgs) in currmsgs
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
-        msgspervar[msgsym] = Vector{BallTreeDensity}()
+        msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Vector{Bool}}}()
       end
       push!(msgspervar[msgsym], msg)
     end
@@ -477,13 +493,19 @@ function prepCliqInitMsgsDown!(fgl::G,
   # reference to default allocated dict location
   products = getData(cliq).downInitMsg
   # multiply multiple messages together
-  for (msgsym, msgs) in msgspervar
+  for (msgsym, msgsBo) in msgspervar
     # check if this particular down message requires msgsym
     if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
       if length(msgspervar[msgsym]) > 1
-        products[msgsym] = manifoldProduct(msgs, getManifolds(fgl, msgsym))
+        msgs = getindex.(msgsBo, 1)
+        haspars = Bool[]
+        for mb in msgsBo, val in mb[2]
+            push!(haspars, val)
+        end
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
       else
-        products[msgsym] = msgs[1]
+        @show typeof(msgsBo)
+        products[msgsym] = (msgsBo[1][1], Bool[msgsBo[1][2];])
       end
     else
       # not required, therefore remove from message to avoid confusion
@@ -513,7 +535,7 @@ Notes:
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
-                                 downmsgs::Dict{Symbol, BallTreeDensity} )::Vector{Symbol} where G <: AbstractDFG
+                                 downmsgs::TempBeliefMsg )::Vector{Symbol} where G <: AbstractDFG
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
@@ -572,7 +594,7 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, BallTreeDensity})::Vector{DFGFactor} where G <: AbstractDFG
+                        msgs::TempBeliefMsg)::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.getVariableIds(subfg)
@@ -581,7 +603,10 @@ function addMsgFactors!(subfg::G,
     if msym in svars
       # @show "adding down msg $msym"
       # mvid += 1
-      fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false)
+
+      # losing dm[2] partial information here
+      # TODO prior missing manifold information
+      fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -589,17 +614,23 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Vector{BallTreeDensity}})::Vector{ExVertex} where G <: AbstractDFG
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
-  msgfcts = Graphs.ExVertex[]
-  svars = union(ls(subfg)...)
-  mvid = getMaxVertId(subfg)
+  msgfcts = DFGFactor[]
+  svars = ls(subfg)
+  # mvid = getMaxVertId(subfg)
+  # bpvids = ls(subfg, r"bpp") # belief prop prior
+  # mvid = length(bpvids) == 0 ? 0 : parse(Int, string(sortVarNested(bpvids)[end])[4:end])
+  @warn "using hardcoded offst for msgFactors"
+  # # TODO fix hardcoded id offset
+  # mvid = 99999999000
   for (msym, dms) in msgs
     for dm in dms
       if msym in svars
         # @show "adding down msg $msym"
-        mvid += 1
-        fc = addFactor!(subfg, [msym], Prior(dm), autoinit=false, uid=mvid)
+        # mvid += 1
+        # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
+        fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false) # , uid=mvid
         push!(msgfcts, fc)
       end
     end
@@ -608,7 +639,7 @@ function addMsgFactors!(subfg::G,
 end
 
 function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,Dict{Symbol, BallTreeDensity}})::Vector{DFGFactor} where G <: AbstractDFG
+                        allmsgs::Dict{Int,Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{DFGFactor} where G <: AbstractDFG
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
@@ -686,29 +717,22 @@ Algorithm:
 """
 function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
-                         dwinmsgs::Dict{Symbol,BallTreeDensity} ) where G <: AbstractDFG
+                         dwinmsgs::TempBeliefMsg ) where G <: AbstractDFG
   #
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1"
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
   status = :needdownmsg #:badinit
-  # get down messages from parent
-  # prnt = getParent(tree, cliq)[1]
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 2"
-  # dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 3, dwinmsgs=$(collect(keys(dwinmsgs)))"
+
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  # @show map(x->getSym(subfg, x), initorder)
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, dwinmsgs=$(collect(keys(dwinmsgs)))"
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5"
   # cycle through vars and attempt init
+  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
   if cycleInitByVarOrder!(subfg, initorder)
-    # if areCliqVariablesAllInitialized(subfg, cliq)
     status = :initialized
-    # end
   end
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 6, current status: $status"
@@ -717,9 +741,6 @@ function doCliqInitDown!(subfg::G,
 
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
 
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 8, current status: $status"
-  # queue the response in a channel to signal waiting tasks
-  # @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 9, current status: $status"
   return status
 end
 
