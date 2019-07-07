@@ -889,15 +889,15 @@ function getCliqChildMsgsUp(fg_::G,
 end
 
 function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{BallTreeDensity})
-  childmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Vector{Bool}}}}()
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child)
       # id = fg_.IDs[key]
       # manis = getManifolds(fg_, id)
       if !haskey(childmsgs, key)
-        childmsgs[key] = BallTreeDensity[]
+        childmsgs[key] = Vector{Tuple{BallTreeDensity, Vector{Bool}}}()
       end
-      push!(childmsgs[key], bel)
+      push!(childmsgs[key], (bel,Bool[false;]) )
     end
   end
   return childmsgs

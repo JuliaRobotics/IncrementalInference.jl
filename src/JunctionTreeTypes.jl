@@ -110,10 +110,11 @@ mutable struct BayesTreeNodeData
   directPriorMsgIDs::Vector{Symbol} # Int
   debug
   debugDwn
+  
   # future might concentrate these four fields down to two
+  # these should become specialized BeliefMessage type
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
-  # these should become specialized BeliefMessage type
   upInitMsgs::Dict{Int, TempBeliefMsg}
   downInitMsg::TempBeliefMsg
 
