@@ -397,6 +397,7 @@ export
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
+  getCliqSiblingsPartialNeeds,
 
   # some utils
   compareField,
@@ -437,6 +438,7 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
+include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("DataLayerAPI.jl")

@@ -305,9 +305,72 @@ end
 
 Return true if both, i.) this clique requires more downward information, ii.) more
 downward message information could potentially become available.
+
+Notes
+- Delay initialization to the last possible moment.
+
+Dev Notes:
+
+Determine clique truely isn't able to proceed any further:
+- should be as self reliant as possible (using clique's status as indicator)
+- change status to :mustinitdown if have only partial beliefs so far:
+  - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::BayesTree, prnt, dwinmsgs::Dict)
+function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict)
+  # which incoming messages are partials
+  hasPartials = Dict{Symbol, Int}()
+  for (sym, tmsg) in dwinmsgs
+    # assuming any down message per label that is not partial voids further partial consideration
+    if sum(tmsg[2]) > 0
+      if !haskey(hasPartials, sym)
+        hasPartials[sym] = 0
+      end
+      hasPartials[sym] += 1
+    end
+  end
+  partialKeys = collect(keys(hasPartials))
+
+  ## determine who might be able to help init this cliq
+  # check sibling separator sets against this clique's separator
+  sibs = getCliqSiblings(tree, cliq)
+
+  @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
+  # identify which cliques might have useful information
+  localsep = getCliqSeparatorVarIds(cliq)
+  seps = Dict{Int, Vector{Symbol}}()
+  for si in sibs
+    # @show si.attributes["label"]
+    mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
+    if length(mighthave) > 0
+      seps[si.index] = mighthave
+      # @show getCliqStatus(si)
+      if getCliqStatus(si) in [:initialized; :null; :needdownmsg]
+        # partials treated special -- this is slightly hacky
+        # @show partialKeys, mighthave
+        if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
+          # this sibling might have info to delay about
+          setCliqDrawColor(cliq,"magenta")
+          return true
+        end
+      end
+    end
+  end
+  # determine if those cliques will / or will not be able to provide more info
+  # when does clique change to :mustinitdown
+
+  # TODO Should priorize solve order for mustinitdown with lowest dependency first
 
   # default
   return false
 end
+
+
+  # determine if any siblings might still hold promise
+  # candidates = 0
+  # for idx in collect(keys(seps))
+  #   sibcliq = tree.cliques[idx]
+  #   if getCliqStatus(sibcliq) in [:initialized; :null; :needdownmsg]
+  #     @show sibcliq.attributes["label"],
+  #     candidates += 1
+  #   end
+  # end

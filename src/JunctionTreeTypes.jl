@@ -87,6 +87,8 @@ end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 
+
+
 """
 $(TYPEDEF)
 
@@ -111,8 +113,9 @@ mutable struct BayesTreeNodeData
   # future might concentrate these four fields down to two
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
-  upInitMsgs::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity,Bool}}}
-  downInitMsg::Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}
+  # these should become specialized BeliefMessage type
+  upInitMsgs::Dict{Int, TempBeliefMsg}
+  downInitMsg::TempBeliefMsg
 
   allmarginalized::Bool
   initialized::Symbol
@@ -140,21 +143,14 @@ function emptyBTNodeData()
                     nothing, nothing,
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Int, Dict{Symbol, Tuple{BallTreeDensity, Bool}}}(),
-                    Dict{Symbol, Tuple{BallTreeDensity,Vector{Bool}}}(),
+                    Dict{Int, TempBeliefMsg}(),
+                    TempBeliefMsg(),
                     false, :null,
                     false, false,
                     Channel{Symbol}(1), Channel{Symbol}(1), Condition()  )
 end
 
 
-
-"""
-$(TYPEDEF)
-"""
-mutable struct NBPMessage <: Singleton
-  p::Dict{Symbol, EasyMessage}
-end
 
 """
 $(TYPEDEF)

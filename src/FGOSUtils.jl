@@ -676,4 +676,13 @@ end
 
 
 
+function convert(::Type{BallTreeDensity}, p::EasyMessage)
+  AMP.manikde!(p.pts, p.bws, p.manifolds)
+end
+
+function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
+  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
+end
+
+
 #

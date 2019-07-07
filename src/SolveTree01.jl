@@ -991,7 +991,7 @@ function approxCliqMarginalUp!(fgl::G,
   for (id, val) in urt.IDvals
     cliqFulldim &= val.fulldim
   end
-  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato2"))
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato1"))
   drawpdf ? drawTree(tree_) : nothing
   @info "=== end Clique $(cliq.attributes["label"]) ========================"
   urt

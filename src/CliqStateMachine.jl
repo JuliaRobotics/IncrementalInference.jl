@@ -215,7 +215,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
 
   # determine if more info is needed for partial
-  partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, prnt, dwinmsgs)
+  partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs)
 
   if length(dwinmsgs) == 0 || partialneedsmore
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
