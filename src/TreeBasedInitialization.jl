@@ -498,8 +498,11 @@ function prepCliqInitMsgsDown!(fgl::G,
     if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
       if length(msgspervar[msgsym]) > 1
         msgs = getindex.(msgsBo, 1)
-        haspar = getindex.(msgsBo, 2)
-        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspar)
+        haspars = Bool[]
+        for mb in msgsBo, val in mb[2]
+            push!(haspars, val)
+        end
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
       else
         @show typeof(msgsBo)
         products[msgsym] = (msgsBo[1][1], Bool[msgsBo[1][2];])
