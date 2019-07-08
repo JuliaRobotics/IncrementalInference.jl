@@ -122,6 +122,8 @@ export
   getVariableType,
   lsfPriors,
   isPrior,
+  lsTypes,
+  lsfTypes,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,

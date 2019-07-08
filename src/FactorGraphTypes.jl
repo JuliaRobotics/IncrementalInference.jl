@@ -9,16 +9,17 @@ import Base: ==
 # abstract type InferenceVariable end
 # abstract type ConvolutionObject <: Function end
 
-# been replaced by Functor types, but may be reused for non-numerical cases
+
+# abstract type FunctorSingleton <: FunctorInferenceType end
+# abstract type FunctorPairwise <: FunctorInferenceType end
+# abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
+
+# TODO been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
 abstract type Singleton <: InferenceType end
 
-abstract type FunctorSingleton <: FunctorInferenceType end
-# abstract type FunctorPartialSingleton <: FunctorInferenceType end
+# TODO deprecate with standard null hypothesis only
 abstract type FunctorSingletonNH <: FunctorSingleton end
-
-abstract type FunctorPairwise <: FunctorInferenceType end
-abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 abstract type FunctorPairwiseNH <: FunctorPairwise end
 # abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 

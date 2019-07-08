@@ -1,5 +1,7 @@
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
+
+import DistributedFactorGraphs: getData
 """
     $SIGNATURES
 
