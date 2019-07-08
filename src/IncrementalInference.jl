@@ -112,10 +112,16 @@ export
   getVariableIds,
   sortVarNested,
   hasOrphans,
-  getfnctype,
   drawCopyFG,
   isVariable,
   isFactor,
+  # from dfg
+  getfnctype,
+  getFactorType,
+  getSofttype,
+  getVariableType,
+  lsfPriors,
+  isPrior,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -157,7 +163,6 @@ export
   getVert,
   getData,
   setData!,
-  getSofttype,
   getManifolds,
   getVarNode,
   getVal,

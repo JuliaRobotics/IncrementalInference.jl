@@ -45,6 +45,8 @@ function setData!(v::Graphs.ExVertex, data)
   nothing
 end
 
+## has been moved to DFG
+import DistributedFactorGraphs: getSofttype
 """
    $(SIGNATURES)
 
@@ -89,6 +91,7 @@ function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
   return size(getData(v, solveKey=solveKey).val,2)
 end
 
+import DistributedFactorGraphs: getfnctype
 # TODO: Refactor - was is das?
 function getfnctype(data::GenericFunctionNodeData)
   if typeof(data).name.name == :VariableNodeData
@@ -103,7 +106,7 @@ function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
 end
 
 function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
-  getfnctype(getFactor(dfg, exvertid, api=api))
+  getfnctype(getFactor(dfg, exvertid))
 end
 
 function getBW(vnd::VariableNodeData)

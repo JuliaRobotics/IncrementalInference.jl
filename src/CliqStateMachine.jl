@@ -332,7 +332,7 @@ Notes
 """
 function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMachineContainer)
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  infocsm(csmc, "7, check/block sibl&prnt :needdownmsg")
+  infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   return determineCliqNeedDownMsg_StateMachine
