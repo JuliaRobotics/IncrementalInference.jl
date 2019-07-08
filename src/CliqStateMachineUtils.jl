@@ -258,8 +258,15 @@ tree, smt, hist = solveTree!(fg, recordcliqs=fsy)
 #  requires: sudo apt-get install graphviz
 csmAnimate(fg, tree, fsy, frames=500)
 
-# to render and show from default location (requires )
-#  requires: sudo apt-get install ffmpeg vlc
+# to render and show from default location (might require)
+#  sudo apt-get install ffmpeg vlc
+
+# .ogv [Totem Ubuntu default]
+Base.rm("/tmp/caesar/csmCompound/out.ogv")
+run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 /tmp/caesar/csmCompound/out.ogv`)
+run(`totem /tmp/caesar/csmCompound/out.ogv`)
+
+# h.264 [VLC not default]
 Base.rm("/tmp/caesar/csmCompound/out.mp4")
 run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" /tmp/caesar/csmCompound/out.mp4`)
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
@@ -297,7 +304,7 @@ function csmAnimate(fg::G,
     @warn "Removing /tmp/caesar/csmCompound/ in preparation for new frames."
     Base.rm("/tmp/caesar/csmCompound/", recursive=true, force=true)
   end
-  animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=500)
+  animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
 end
 
 """
