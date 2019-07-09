@@ -311,8 +311,10 @@ Notes:
   - including the required up or down messages
 - intended for both up and down initialization operations.
 """
-function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol})::Bool where G <: AbstractDFG
-  @info "cycleInitByVarOrder! -- varorder=$(varorder)"
+function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol};logger=SimpleLogger(stdout))::Bool where G <: AbstractDFG
+  with_logger(logger) do
+    @info "cycleInitByVarOrder! -- varorder=$(varorder)"
+  end
   retval = false
   count = 1
   while count > 0
@@ -320,7 +322,9 @@ function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol})::Bool where G 
     for vsym in varorder
       var = DFG.getVariable(subfg, vsym)
       isinit = isInitialized(var)
-      @info "var.label=$(var.label) is initialized=$(isinit)"
+      with_logger(logger) do
+        @info "var.label=$(var.label) is initialized=$(isinit)"
+      end
       doautoinit!(subfg, [var;])
       if isinit != isInitialized(var)
         count += 1
@@ -328,7 +332,10 @@ function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol})::Bool where G 
       end
     end
   end
-  @info "cycleInitByVarOrder!, retval=$(retval)"
+  with_logger(logger) do
+    @info "cycleInitByVarOrder!, retval=$(retval)"
+  end
+  flush(logger.stream)
   return retval
 end
 
@@ -372,6 +379,46 @@ function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::T
   prepCliqInitMsgsUp(subfg, cliq)
 end
 
+
+function doCliqAutoInitUpPart1!(subfg::G,
+                                tree::BayesTree,
+                                cliq::Graphs.ExVertex;
+                                up_solve_if_able::Bool=true,
+                                multiprocess::Bool=true,
+                                logger=SimpleLogger(stdout) ) where {G <: AbstractDFG}
+  #
+
+  # init up msg has special procedure for incomplete messages
+  varorder = Int[]
+
+  # get incoming clique up messages
+  upmsgs = getCliqInitUpMsgs(cliq)
+
+  # add incoming up messages as priors to subfg
+  with_logger(logger) do
+    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- adding up message factors"
+  end
+  msgfcts = addMsgFactors!(subfg, upmsgs)
+
+  # attempt initialize if necessary
+  if !areCliqVariablesAllInitialized(subfg, cliq)
+    # structure for all up message densities computed during this initialization procedure.
+    varorder = getCliqInitVarOrderUp(cliq)
+    # do physical inits, ignore cycle return value
+    with_logger(logger) do
+      @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
+    end
+
+    cycleInitByVarOrder!(subfg, varorder, logger=logger)
+    with_logger(logger) do
+      @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- finished with up cycle order"
+    end
+  end
+  flush(logger.stream)
+
+  return msgfcts
+end
+
 """
     $SIGNATURES
 
@@ -384,37 +431,15 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUp!(subfg::G,
-                           tree::BayesTree,
-                           cliq::Graphs.ExVertex;
-                           up_solve_if_able::Bool=true,
-                           multiprocess::Bool=true )::Symbol where {G <: AbstractDFG}
+function doCliqAutoInitUpPart2!(subfg::G,
+                                tree::BayesTree,
+                                cliq::Graphs.ExVertex,
+                                msgfcts;
+                                up_solve_if_able::Bool=true,
+                                multiprocess::Bool=true )::Symbol where {G <: AbstractDFG}
   #
-  # init up msg has special procedure for incomplete messages
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
-  varorder = Int[]
-
-  # get incoming clique up messages
-  upmsgs = getCliqInitUpMsgs(cliq)
-
-  # add incoming up messages as priors to subfg
-  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- adding up message factors"
-  msgfcts = addMsgFactors!(subfg, upmsgs)
-
-    # TEMP
-    # writeGraphPdf(subfg, show=true)
-
-  # attempt initialize if necessary
-  if !areCliqVariablesAllInitialized(subfg, cliq)
-    # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqInitVarOrderUp(cliq)
-    # do physical inits, ignore cycle return value
-    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- going for up cycle order"
-    cycleInitByVarOrder!(subfg, varorder)
-    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- finished with up cycle order"
-  end
-
 
   # print out the partial init status of all vars in clique
   varids = getCliqAllVarIds(cliq)
@@ -428,7 +453,7 @@ function doCliqAutoInitUp!(subfg::G,
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
-    @info "$(current_task()) Clique $(cliq.index), going for doCliqUpSolve!, clique status = $(status)"
+    @info "$(current_task()) Clique $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
     status = doCliqUpSolve!(subfg, tree, cliq)
   else
     @info "$(current_task()) Clique $(cliq.index), all variables not initialized, status = $(status)"
@@ -443,17 +468,16 @@ function doCliqAutoInitUp!(subfg::G,
   @info "$(current_task()) Clique $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
   if length(prnt) > 0
     # not a root clique
-    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart2! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
-  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- removing up message factors, length=$(length(msgfcts))"
+  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
   deleteMsgFactors!(subfg, msgfcts)
 
-  # set flags in clique for multicore sequencing
-  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status"
-  notifyCliqUpInitStatus!(cliq, status)
+  # @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status=$status"
+  # notifyCliqUpInitStatus!(cliq, status)
   return status
 end
 

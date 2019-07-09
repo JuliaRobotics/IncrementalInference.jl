@@ -183,8 +183,18 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-    infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUp!.")
-    cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
+
+    # check if init is required and possible
+    infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
+    msgfcts = doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+    infocsm(csmc, "8b, attemptCliqInitUp, areCliqVariablesAllInitialized(subfg, cliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+
+    # do actual up solve
+    retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, msgfcts)
+    infocsm(csmc, "8b, attemptCliqInitUp, post-doCliqAu. -- notification retstatus=$retstatus")
+
+    # notify of results TODO should the status not be set before notify
+    notifyCliqUpInitStatus!(csmc.cliq, retstatus)
   end
 
   # go to 9
@@ -217,7 +227,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # determine if more info is needed for partial
   partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs)
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, length(dwinmsgs)=$(length(dwinmsgs)), partialneedsmore=$partialneedsmore")
+  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(collect(keys(dwinmsgs))), partialneedsmore=$partialneedsmore")
 
   if length(dwinmsgs) == 0 || partialneedsmore
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
