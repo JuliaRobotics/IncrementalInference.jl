@@ -711,11 +711,12 @@ function addFactor!(dfg::G,
                     ready::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit::Bool=false,
-                    threadmodel=SingleThreaded  ) where
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  ) where
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
-  namestring = assembleFactorName(dfg, Xi)
+  namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
   # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
@@ -741,12 +742,13 @@ function addFactor!(
       ready::Int=1,
       labels::Vector{Symbol}=Symbol[],
       autoinit::Bool=false,
-      threadmodel=SingleThreaded  ) where
+      threadmodel=SingleThreaded,
+      maxparallel::Int=50  ) where
         {G <: AbstractDFG,
          R <: Union{FunctorInferenceType, InferenceType}}
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
@@ -870,7 +872,7 @@ function addConditional!(dfg::G, vertId::Symbol, Si::Vector{Symbol})::Nothing wh
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDFG
+function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}; maxparallel::Int=50) where G <: AbstractDFG
     @show Si
   lbls = String[]
   genmarg = GenericMarginal()
@@ -879,7 +881,7 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDF
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, autoinit=false)
+  addFactor!(dfg, Xi, genmarg, autoinit=false, maxparallel=maxparallel)
   nothing
 end
 
@@ -912,7 +914,7 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
   return nothing
 end
 
-function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: AbstractDFG
+function buildBayesNet!(dfg::G, p::Array{Symbol,1}; maxparallel::Int=50)::Nothing where G <: AbstractDFG
     # addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
@@ -959,7 +961,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: Abstract
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si (round the outside, right the outside)
-      length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
+      length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
 
     end
     return nothing

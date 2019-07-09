@@ -177,14 +177,15 @@ function batchSolve!(dfg::G,
                      limititers::Int=1000,
                      skipcliqids::Vector{Symbol}=Symbol[],
                      recordcliqs::Vector{Symbol}=Symbol[],
-                     returntasks::Bool=false  ) where G <: AbstractDFG
+                     returntasks::Bool=false,
+                     maxparallel::Int=50  ) where G <: AbstractDFG
   #
   @warn "deprecated batchSolve! in favor of new solveTree! interface with the same and more functionality."
   if DFG.getSolverParams(dfg).isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfg)
   end
-  tree = wipeBuildNewTree!(dfg, drawpdf=false)
+  tree = wipeBuildNewTree!(dfg, drawpdf=false, maxparallel=maxparallel)
   drawpdf ? drawTree(tree, show=show) : nothing
   # show ? showTree() : nothing
 
@@ -213,7 +214,8 @@ function solveTree!(dfgl::G,
                     oldtree::BayesTree=emptyBayesTree();
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
-                    skipcliqids::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+                    skipcliqids::Vector{Symbol}=Symbol[],
+                    maxparallel::Int=50  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
@@ -226,7 +228,7 @@ function solveTree!(dfgl::G,
   end
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree)
+  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel  )
   # setAllSolveFlags!(tree, false)
 
   @info "Do tree based init-inference on tree"

@@ -364,6 +364,12 @@ function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prn
   return false
 end
 
+"""
+    $SIGNATURES
+
+Bump a clique state machine solver condition in case a task might be waiting on it.
+"""
+notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
 
   # determine if any siblings might still hold promise
   # candidates = 0

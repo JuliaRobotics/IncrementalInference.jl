@@ -216,17 +216,18 @@ Compare that all fields are the same in a `::FactorGraph` factor.
 function compareFactor(A::DFGFactor,
                        B::DFGFactor;
                        show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[],
                        skipsamples::Bool=true,
                        skipcompute::Bool=true  )
   #
   @info show
-  TP =  compareAll(A, B, skip=[:attributes;:data;:_variableOrderSymbols;:_internalId], show=show)
+  TP =  compareAll(A, B, skip=union([:attributes;:data;:_variableOrderSymbols;:_internalId],skip), show=show)
   # TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
-  TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;:_internalId], show=show)
-  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx;:threadmodel], show=show)
-  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
-  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show))
-  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show))
+  TP = TP & compareAllSpecial(getData(A), getData(B), skip=union([:fnc;:_internalId], skip), show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=union([:cpt;:measurement;:params;:varidx;:threadmodel], skip), show=show)
+  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show, skip=skip))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show, skip=skip))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show, skip=skip))
 
   return TP
 end

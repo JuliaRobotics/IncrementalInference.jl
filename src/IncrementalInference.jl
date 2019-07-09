@@ -58,6 +58,7 @@ export
   hasVariable,
   getSolverParams,
 
+  notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
 

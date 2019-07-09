@@ -183,6 +183,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+    infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUp!.")
     cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
   end
 
@@ -212,10 +213,11 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # not if parent also needs downward init message
   infocsm(csmc, "8a, needs down message -- attempt down init")
   prnt = getParent(csmc.tree, csmc.cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt) # csmc.cliqSubFg
 
   # determine if more info is needed for partial
   partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs)
+  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, length(dwinmsgs)=$(length(dwinmsgs)), partialneedsmore=$partialneedsmore")
 
   if length(dwinmsgs) == 0 || partialneedsmore
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
