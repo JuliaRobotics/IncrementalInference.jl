@@ -280,7 +280,7 @@ function prepBatchTree!(dfg::G;
   #
   p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel)
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
