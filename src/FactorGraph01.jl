@@ -885,7 +885,10 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}; maxparallel::Int=50) 
   nothing
 end
 
-function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::Nothing where G <: AbstractDFG
+function rmVarFromMarg(dfg::G, 
+                       fromvert::DFGVariable, 
+                       gm::Vector{DFGFactor};
+                       maxparallel::Int=50 )::Nothing where G <: AbstractDFG
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -899,7 +902,7 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false)
+          addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
