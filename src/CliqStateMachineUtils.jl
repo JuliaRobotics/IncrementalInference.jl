@@ -335,14 +335,21 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
   lielbls = setdiff(ids, cliq.index)
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
+  dwninters = Vector{Int}(undef, len)
+  dwnkeys = collect(keys(dwinmsgs))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end
 
   # sum matrix with all "up solved" rows and columns eliminated
   fill!(allinters, 0)
-  for i in 1:len, j in i:len
-    allinters[i,j] = length(intersect(seps[i],seps[j]))
+  for i in 1:len
+    for j in i:len
+      if i != j
+        allinters[i,j] = length(intersect(seps[i],seps[j]))
+      end
+    end
+    dwninters[i] = length(intersect(seps[i], dwnkeys))
   end
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- allinters=$(allinters)"
@@ -368,17 +375,52 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
     # find which siblings this cliq epends on
     symm = allinters + allinters'
     maskcol = symm[:,sibidx] .> 0
-    lenm = length(maskcol)
-    stat = Vector{Symbol}(undef, lenm)
-    maskstat = fill(false, lenm)
+    # lenm = length(maskcol)
+    stat = Vector{Symbol}(undef, len)
+    stillbusymask = fill(false, len)
+
+    flush(logger.stream)
 
     # get each sibling status (entering atomic computation segment -- until wait command)
-    stat .= getCliqStatus.(sibs[maskcol])
-    # check if all
-    for i in 1:lenm
-      maskstat[i] = !(stat[i] in solvedstats)
+    stat .= getCliqStatus.(sibs) #[maskcol]
+
+    ## (long down chain case)
+    # need different behaviour when all remaining siblings are blocking with :needdownmsg
+    remainingmask = stat .== :needdownmsg
+    if sum(remainingmask) == length(stat)
+      with_logger(logger) do
+        @info "getSiblingsDelayOrder -- all blocking: sum(remainingmask) == length(stat), stat=$stat"
+      end
+      # pick sibling with most overlap in down msgs from parent
+       # list of similar length siblings
+      candidates = dwninters .== maximum(dwninters)
+      if candidates[sibidx]
+        # must also pick minimized intersect with other remaing siblings
+        maxcan = collect(1:len)[candidates]
+        with_logger(logger) do
+          @info "getSiblingsDelayOrder -- candidates=$candidates, maxcan=$maxcan, rows=$rows"
+        end
+        if rows[sibidx] == minimum(rows[maxcan])
+          with_logger(logger) do
+            @info "getSiblingsDelayOrder -- FORCE DOWN INIT SOLVE ON THIS CLIQUE: $(cliq.index), $(cliq.attributes["label"])"
+          end
+          return false
+        end
+      end
+      with_logger(logger) do
+        @info "getSiblingsDelayOrder -- not a max and should block"
+      end
+      return true
     end
-    if sum(maskstat) > 0
+
+    with_logger(logger) do
+      @info "getSiblingsDelayOrder -- still busy solving on branches, so potential to delay"
+    end
+    # still busy solving on branches, so potential to delay
+    for i in 1:len
+      stillbusymask[i] = maskcol[i] && !(stat[i] in solvedstats)
+    end
+    if sum(stillbusymask) > 0
       # yes something to delay about
       with_logger(logger) do
         @info "getSiblingsDelayOrder -- yes delay, stat=$stat, symm=$symm"
@@ -386,6 +428,11 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
       return true
     end
   end
+
+  with_logger(logger) do
+    @info "getSiblingsDelayOrder -- default will not delay"
+  end
+  flush(logger.stream)
   # carry over default from partial init process
   return false
 end

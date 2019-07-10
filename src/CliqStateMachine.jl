@@ -224,15 +224,16 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, needs down message -- attempt down init")
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt) # csmc.cliqSubFg
+  dwnkeys = collect(keys(dwinmsgs))
 
-  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(collect(keys(dwinmsgs)))")
+  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys)")
 
   # determine if more info is needed for partial
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
-  if length(dwinmsgs) == 0
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
+  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0 # length(dwinmsgs) == 0 ||
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)

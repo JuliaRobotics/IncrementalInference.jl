@@ -1611,6 +1611,8 @@ function tryCliqStateMachineSolve!(dfg::G,
       printCliqHistorySummary(fid, history)
       close(fid)
     end
+    flush(logger.stream)
+    close(logger.stream)
     # clst = getCliqStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
@@ -1625,6 +1627,8 @@ function tryCliqStateMachineSolve!(dfg::G,
     fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
     printCliqHistorySummary(fid, history)
     close(fid)
+    flush(logger.stream)
+    close(logger.stream)
     error(err)
   end
   # if !(clst in [:upsolved; :downsolved; :marginalized])
