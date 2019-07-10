@@ -73,18 +73,41 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   return initorder
 end
 
+lockUpStatus!(cd::BayesTreeNodeData) = take!(cd.lockUpStatus)
+unlockUpStatus!(cd::BayesTreeNodeData) = put!(cd.lockUpStatus, 1)
+
+"""
+    $SIGNATURES
+
+Update clique status and notify of the change
+
+Notes
+- Assumes users will lock the status state before getting status until after decision whether to update status.
+- If so, only unlock after status and condition has been updated.
+
+Dev Notes
+- Should be made an atomic transaction
+"""
 function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   cd = getData(cliq)
+
+  ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
+  # Wait until lock can be aquired
+  lockUpStatus!(cd)
+
   cd.initialized = status
   if isready(cd.initUpChannel)
     tkst = take!(cd.initUpChannel)
-    @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
+    # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
   notify(getSolveCondition(cliq))
-  # HACK to avoid a race condition that seems to occur ~1/20 times
-  sleep(0.1)
-  notify(getSolveCondition(cliq))
+     # HACK to avoid a race condition  -- remove with atomic lock logic upgrade
+     sleep(0.1)
+     notify(getSolveCondition(cliq))
+
+  # TODO unlock
+
   nothing
 end
 

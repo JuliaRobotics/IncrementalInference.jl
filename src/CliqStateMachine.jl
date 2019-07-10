@@ -172,12 +172,13 @@ Notes
 """
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
-  if csmc.delay
-    infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
-    sleep(30)
-  end
 
   cliqst = getCliqStatus(csmc.cliq)
+  # OBSOLETE
+  # if csmc.delay
+  #   infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
+  #   sleep(30)
+  # end
 
   infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
