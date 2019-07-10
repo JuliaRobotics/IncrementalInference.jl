@@ -183,7 +183,18 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
-    cliqst = doCliqAutoInitUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq)
+
+    # check if init is required and possible
+    infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
+    msgfcts = doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+    infocsm(csmc, "8b, attemptCliqInitUp, areCliqVariablesAllInitialized(subfg, cliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+
+    # do actual up solve
+    retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, msgfcts)
+    infocsm(csmc, "8b, attemptCliqInitUp, post-doCliqAu. -- notification retstatus=$retstatus")
+
+    # notify of results TODO should the status not be set before notify
+    notifyCliqUpInitStatus!(csmc.cliq, retstatus)
   end
 
   # go to 9
@@ -212,13 +223,25 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # not if parent also needs downward init message
   infocsm(csmc, "8a, needs down message -- attempt down init")
   prnt = getParent(csmc.tree, csmc.cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.cliqSubFg, csmc.tree, prnt)
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt) # csmc.cliqSubFg
+  dwnkeys = collect(keys(dwinmsgs))
+
+  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys)")
 
   # determine if more info is needed for partial
-  partialneedsmore = getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs)
 
-  if length(dwinmsgs) == 0 || partialneedsmore
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent.")
+  # priorize solve order for mustinitdown with lowest dependency first
+  # follow example from issue #344
+  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0 # length(dwinmsgs) == 0 ||
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
+    # go to 8c
+    return waitChangeOnParentCondition_StateMachine
+  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
+    infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
+    # go to 8c
+    return waitChangeOnParentCondition_StateMachine
+  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
+    infocsm(csmc, "8a, attemptCliqInitD., prioritize")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
@@ -332,7 +355,7 @@ Notes
 """
 function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMachineContainer)
   # add blocking case when all siblings and parent :needdownmsg -- until parent :initialized
-  infocsm(csmc, "7, check/block sibl&prnt :needdownmsg")
+  infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq)
 
   return determineCliqNeedDownMsg_StateMachine

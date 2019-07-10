@@ -58,8 +58,10 @@ export
   hasVariable,
   getSolverParams,
 
+  notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
+  assignTreeHistory!,
 
   # OBSOLETE TODO REMOVE
   dlapi,
@@ -112,10 +114,18 @@ export
   getVariableIds,
   sortVarNested,
   hasOrphans,
-  getfnctype,
   drawCopyFG,
   isVariable,
   isFactor,
+  # from dfg
+  getfnctype,
+  getFactorType,
+  getSofttype,
+  getVariableType,
+  lsfPriors,
+  isPrior,
+  lsTypes,
+  lsfTypes,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -157,7 +167,6 @@ export
   getVert,
   getData,
   setData!,
-  getSofttype,
   getManifolds,
   getVarNode,
   getVal,
@@ -199,7 +208,8 @@ export
   areCliqChildrenNeedDownMsg,
   areCliqChildrenAllUpSolved,
   ensureAllInitialized!,
-  doCliqAutoInitUp!,
+  doCliqAutoInitUpPart1!,
+  doCliqAutoInitUpPart2!,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   doCliqUpSolve!,

@@ -310,6 +310,143 @@ end
 """
     $SIGNATURES
 
+Return true if this clique's down init should be delayed on account of prioritization among sibling separators.
+
+Notes
+- process described in issue #344
+
+Dev Notes
+- not priorizing order yet (TODO), just avoiding unsolvables at this time.
+- Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
+- should precompute `allinters`.
+"""
+function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=SimpleLogger(stdout))
+  # when is a cliq upsolved
+  solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
+
+  # safety net double check
+  cliqst = getCliqStatus(cliq)
+  if cliqst in solvedstats
+    with_logger(logger) do
+      @warn "getSiblingsDelayOrder -- clique status should not be here with a solved cliqst=$cliqst"
+    end
+    return false
+  end
+
+  # get siblings separators
+  sibs = getCliqSiblings(tree, cliq, true)
+  ids = map(s->s.index, sibs)
+  len = length(sibs)
+  sibidx = collect(1:len)[ids .== cliq.index][1]
+  seps = getCliqSeparatorVarIds.(sibs)
+  lielbls = setdiff(ids, cliq.index)
+  # get intersect matrix of siblings (should be exactly the same across siblings' csm)
+  allinters = Array{Int,2}(undef, len, len)
+  dwninters = Vector{Int}(undef, len)
+  dwnkeys = collect(keys(dwinmsgs))
+  with_logger(logger) do
+    @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
+  end
+
+  # sum matrix with all "up solved" rows and columns eliminated
+  fill!(allinters, 0)
+  for i in 1:len
+    for j in i:len
+      if i != j
+        allinters[i,j] = length(intersect(seps[i],seps[j]))
+      end
+    end
+    dwninters[i] = length(intersect(seps[i], dwnkeys))
+  end
+  with_logger(logger) do
+    @info "getSiblingsDelayOrder -- allinters=$(allinters)"
+  end
+
+  # sum "across/over" rows, then columns (i.e. visa versa "along" columns then rows)
+  rows = sum(allinters, dims=1)
+  cols = sum(allinters, dims=2)
+
+  # is this clique a non-zero row -- i.e. sum across columns? if not, no further special care needed
+  if cols[sibidx] == 0
+    with_logger(logger) do
+      @info "getSiblingsDelayOrder -- cols[sibidx=$(sibidx))] == 0, no special care needed"
+    end
+    return false
+  end
+
+  # now determine if initializing from below or needdownmsg
+  if cliqst in Symbol[:needdownmsg;]
+    # be super careful about delay (true) vs pass (false) at this point -- might be partial too TODO
+    # return true if delay beneficial to initialization accuracy
+
+    # find which siblings this cliq epends on
+    symm = allinters + allinters'
+    maskcol = symm[:,sibidx] .> 0
+    # lenm = length(maskcol)
+    stat = Vector{Symbol}(undef, len)
+    stillbusymask = fill(false, len)
+
+    flush(logger.stream)
+
+    # get each sibling status (entering atomic computation segment -- until wait command)
+    stat .= getCliqStatus.(sibs) #[maskcol]
+
+    ## (long down chain case)
+    # need different behaviour when all remaining siblings are blocking with :needdownmsg
+    remainingmask = stat .== :needdownmsg
+    if sum(remainingmask) == length(stat)
+      with_logger(logger) do
+        @info "getSiblingsDelayOrder -- all blocking: sum(remainingmask) == length(stat), stat=$stat"
+      end
+      # pick sibling with most overlap in down msgs from parent
+       # list of similar length siblings
+      candidates = dwninters .== maximum(dwninters)
+      if candidates[sibidx]
+        # must also pick minimized intersect with other remaing siblings
+        maxcan = collect(1:len)[candidates]
+        with_logger(logger) do
+          @info "getSiblingsDelayOrder -- candidates=$candidates, maxcan=$maxcan, rows=$rows"
+        end
+        if rows[sibidx] == minimum(rows[maxcan])
+          with_logger(logger) do
+            @info "getSiblingsDelayOrder -- FORCE DOWN INIT SOLVE ON THIS CLIQUE: $(cliq.index), $(cliq.attributes["label"])"
+          end
+          return false
+        end
+      end
+      with_logger(logger) do
+        @info "getSiblingsDelayOrder -- not a max and should block"
+      end
+      return true
+    end
+
+    with_logger(logger) do
+      @info "getSiblingsDelayOrder -- still busy solving on branches, so potential to delay"
+    end
+    # still busy solving on branches, so potential to delay
+    for i in 1:len
+      stillbusymask[i] = maskcol[i] && !(stat[i] in solvedstats)
+    end
+    if sum(stillbusymask) > 0
+      # yes something to delay about
+      with_logger(logger) do
+        @info "getSiblingsDelayOrder -- yes delay, stat=$stat, symm=$symm"
+      end
+      return true
+    end
+  end
+
+  with_logger(logger) do
+    @info "getSiblingsDelayOrder -- default will not delay"
+  end
+  flush(logger.stream)
+  # carry over default from partial init process
+  return false
+end
+
+"""
+    $SIGNATURES
+
 Return true if both, i.) this clique requires more downward information, ii.) more
 downward message information could potentially become available.
 
@@ -323,7 +460,7 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict)
+function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=SimpleLogger(stdout))
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs
@@ -341,7 +478,9 @@ function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prn
   # check sibling separator sets against this clique's separator
   sibs = getCliqSiblings(tree, cliq)
 
-  @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
+  with_logger(logger) do
+    @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
+  end
   # identify which cliques might have useful information
   localsep = getCliqSeparatorVarIds(cliq)
   seps = Dict{Int, Vector{Symbol}}()
@@ -365,12 +504,16 @@ function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prn
   # determine if those cliques will / or will not be able to provide more info
   # when does clique change to :mustinitdown
 
-  # TODO Should priorize solve order for mustinitdown with lowest dependency first
-
   # default
   return false
 end
 
+"""
+    $SIGNATURES
+
+Bump a clique state machine solver condition in case a task might be waiting on it.
+"""
+notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
 
   # determine if any siblings might still hold promise
   # candidates = 0

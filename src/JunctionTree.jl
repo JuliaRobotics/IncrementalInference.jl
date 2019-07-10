@@ -234,12 +234,13 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
-                                drawbayesnet::Bool=false) where G <: AbstractDFG
+                                drawbayesnet::Bool=false,
+                                maxparallel::Int=50  ) where G <: AbstractDFG
   #
   println()
   fge = deepcopy(dfg)
   println("Building Bayes net...")
-  buildBayesNet!(fge, p)
+  buildBayesNet!(fge, p, maxparallel=maxparallel)
 
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
@@ -274,11 +275,12 @@ function prepBatchTree!(dfg::G;
                         filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false  ) where G <: AbstractDFG
+                        drawbayesnet::Bool=false,
+                        maxparallel::Int=50  ) where G <: AbstractDFG
   #
   p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -352,10 +354,11 @@ function wipeBuildNewTree!(dfg::G;
                            show::Bool=false,
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
-                           imgs::Bool=false  )::BayesTree where G <: AbstractDFG
+                           imgs::Bool=false,
+                           maxparallel::Int=50  )::BayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
+  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
 end
 
 """

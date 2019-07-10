@@ -1611,6 +1611,8 @@ function tryCliqStateMachineSolve!(dfg::G,
       printCliqHistorySummary(fid, history)
       close(fid)
     end
+    flush(logger.stream)
+    close(logger.stream)
     # clst = getCliqStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
@@ -1625,11 +1627,31 @@ function tryCliqStateMachineSolve!(dfg::G,
     fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
     printCliqHistorySummary(fid, history)
     close(fid)
+    flush(logger.stream)
+    close(logger.stream)
     error(err)
   end
   # if !(clst in [:upsolved; :downsolved; :marginalized])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
+end
+
+"""
+    $SIGNATURES
+
+After solving, clique histories can be inserted back into the tree for later reference.
+This function helps do the required assigment task.
+"""
+function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
+  for i in 1:length(treel.cliques)
+    if haskey(cliqHistories, i)
+      hist = cliqHistories[i]
+      for i in 1:length(hist)
+        hist[i][4].logger = SimpleLogger(stdout)
+      end
+      getData(treel.cliques[i]).statehistory=hist
+    end
+  end
 end
 
 """
@@ -1676,11 +1698,12 @@ function asyncTreeInferUp!(dfg::G,
   end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  for i in 1:length(treel.cliques)
-    if haskey(cliqHistories, i)
-      getData(treel.cliques[i]).statehistory=cliqHistories[i]
-    end
-  end
+  assignTreeHistory!(treel, cliqHistories)
+  # for i in 1:length(treel.cliques)
+  #   if haskey(cliqHistories, i)
+  #     getData(treel.cliques[i]).statehistory=cliqHistories[i]
+  #   end
+  # end
 
   return alltasks, cliqHistories
 end
@@ -1728,15 +1751,16 @@ function initInferTreeUp!(dfg::G,
   end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  for i in 1:length(treel.cliques)
-    if haskey(cliqHistories, i)
-      hist = cliqHistories[i]
-      for i in 1:length(hist)
-        hist[i][4].logger = SimpleLogger(stdout)
-      end
-      getData(treel.cliques[i]).statehistory=hist
-    end
-  end
+  assignTreeHistory!(treel, cliqHistories)
+  # for i in 1:length(treel.cliques)
+  #   if haskey(cliqHistories, i)
+  #     hist = cliqHistories[i]
+  #     for i in 1:length(hist)
+  #       hist[i][4].logger = SimpleLogger(stdout)
+  #     end
+  #     getData(treel.cliques[i]).statehistory=hist
+  #   end
+  # end
 
   return alltasks, cliqHistories
 end
