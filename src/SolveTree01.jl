@@ -1639,6 +1639,24 @@ end
 """
     $SIGNATURES
 
+After solving, clique histories can be inserted back into the tree for later reference.
+This function helps do the required assigment task.
+"""
+function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
+  for i in 1:length(treel.cliques)
+    if haskey(cliqHistories, i)
+      hist = cliqHistories[i]
+      for i in 1:length(hist)
+        hist[i][4].logger = SimpleLogger(stdout)
+      end
+      getData(treel.cliques[i]).statehistory=hist
+    end
+  end
+end
+
+"""
+    $SIGNATURES
+
 Perform tree based initialization of all variables not yet initialized in factor graph as non-blocking method.
 
 Notes:
@@ -1680,11 +1698,12 @@ function asyncTreeInferUp!(dfg::G,
   end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  for i in 1:length(treel.cliques)
-    if haskey(cliqHistories, i)
-      getData(treel.cliques[i]).statehistory=cliqHistories[i]
-    end
-  end
+  assignTreeHistory!(treel, cliqHistories)
+  # for i in 1:length(treel.cliques)
+  #   if haskey(cliqHistories, i)
+  #     getData(treel.cliques[i]).statehistory=cliqHistories[i]
+  #   end
+  # end
 
   return alltasks, cliqHistories
 end
@@ -1732,15 +1751,16 @@ function initInferTreeUp!(dfg::G,
   end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  for i in 1:length(treel.cliques)
-    if haskey(cliqHistories, i)
-      hist = cliqHistories[i]
-      for i in 1:length(hist)
-        hist[i][4].logger = SimpleLogger(stdout)
-      end
-      getData(treel.cliques[i]).statehistory=hist
-    end
-  end
+  assignTreeHistory!(treel, cliqHistories)
+  # for i in 1:length(treel.cliques)
+  #   if haskey(cliqHistories, i)
+  #     hist = cliqHistories[i]
+  #     for i in 1:length(hist)
+  #       hist[i][4].logger = SimpleLogger(stdout)
+  #     end
+  #     getData(treel.cliques[i]).statehistory=hist
+  #   end
+  # end
 
   return alltasks, cliqHistories
 end

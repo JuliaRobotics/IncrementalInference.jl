@@ -61,6 +61,7 @@ export
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
+  assignTreeHistory!,
 
   # OBSOLETE TODO REMOVE
   dlapi,
