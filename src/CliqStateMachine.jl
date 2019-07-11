@@ -87,14 +87,23 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
+  dwnmsgs = Dict{Symbol, BallTreeDensity}()
+
   # block here until parent is downsolved
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
+    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going to block on parent.")
     blockCliqUntilParentDownSolved(prnt[1])
+    prntst = getCliqStatus(prnt[1])
+    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, parent status=$prntst.")
+    if prntst != :downsolved
+      infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going around again.")
+      return determineCliqIfDownSolve_StateMachine
+    end
   else
     # this is the root clique, so assume already downsolved -- only special case
-    setCliqDrawColor(csmc.cliq, "lightblue")
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
+    setCliqDrawColor(csmc.cliq, "lightblue")
     setDwnMsg!(csmc.cliq, dwnmsgs)
     setCliqStatus!(csmc.cliq, :downsolved)
 	csmc.dodownsolve = false
@@ -102,6 +111,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     return IncrementalInference.exitStateMachine
   end
 
+  infocsm(csmc, "10, going for down solve, msgs=$(collect(keys(dwnmsgs))).")
   # go to 11
   return doCliqDownSolve_StateMachine
 end

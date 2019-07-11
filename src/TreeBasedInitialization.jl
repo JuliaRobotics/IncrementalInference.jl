@@ -280,7 +280,13 @@ end
 function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex)::Nothing
 
   while fetch(getData(prnt).initDownChannel) != :downsolved
-    wait(getSolveCondition(prnt))
+    @sync begin
+      @async begin
+        sleep(1)
+        notify(getSolveCondition(prnt))
+      end
+      wait(getSolveCondition(prnt))
+    end
   end
 
   return nothing
