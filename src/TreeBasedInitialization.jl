@@ -7,9 +7,17 @@ Based on a push model from child cliques that should have already completed thei
 getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}} = getData(cliq).upInitMsgs
 
 function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::TempBeliefMsg)
-  getData(cliq).upInitMsgs[childid] = msg
+  cd = getData(cliq)
+  soco = getSolveCondition(cliq)
+  lockUpStatus!(cd)
+  cd.upInitMsgs[childid] = msg
   # notify cliq condition that there was a change
-  notify(getSolveCondition(cliq))
+  notify(soco)
+  unlockUpStatus!(cd)
+  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
+  sleep(0.1)
+  notify(soco)
+  nothing
 end
 
 function isCliqInitialized(cliq::Graphs.ExVertex)::Bool
@@ -73,8 +81,11 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   return initorder
 end
 
-lockUpStatus!(cd::BayesTreeNodeData) = take!(cd.lockUpStatus)
-unlockUpStatus!(cd::BayesTreeNodeData) = put!(cd.lockUpStatus, 1)
+lockUpStatus!(cd::BayesTreeNodeData) = put!(cd.lockUpStatus, 1)
+unlockUpStatus!(cd::BayesTreeNodeData) = take!(cd.lockUpStatus)
+
+lockDwnStatus!(cd::BayesTreeNodeData) = put!(cd.lockDwnStatus, 1)
+unlockDwnStatus!(cd::BayesTreeNodeData) = take!(cd.lockDwnStatus)
 
 """
     $SIGNATURES
@@ -88,8 +99,13 @@ Notes
 Dev Notes
 - Should be made an atomic transaction
 """
-function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
+function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=SimpleLogger(stdout))
   cd = getData(cliq)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
+  end
+  flush(logger.stream)
 
   ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
   # Wait until lock can be aquired
@@ -102,27 +118,43 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
   end
   put!(cd.initUpChannel, status)
   notify(getSolveCondition(cliq))
-     # HACK to avoid a race condition  -- remove with atomic lock logic upgrade
-     sleep(0.1)
-     notify(getSolveCondition(cliq))
+    # hack to avoid a race condition  -- remove with atomic lock logic upgrade
+    sleep(0.1)
+    notify(getSolveCondition(cliq))
 
   # TODO unlock
+  unlockUpStatus!(cd)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
+  end
 
   nothing
 end
 
-function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol)
-  @info "$(current_task()) Clique $(cliq.index), notify down init status=$(status)"
+function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=SimpleLogger(stdout))
   cd = getData(cliq)
+  with_logger(logger) do
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cd.initialized)-->$(status)"
+  end
+
+  lockDwnStatus!(cd)
+
   cd.initialized = status
   if isready(cd.initDownChannel)
-    @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
+    # @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
   end
   put!(cd.initDownChannel, status)
   notify(getSolveCondition(cliq))
-  # HACK to avoid a race condition that seems to occur ~1/20 times
-  sleep(0.1)
-  notify(getSolveCondition(cliq))
+    # hack to avoid a race condition that seems to occur ~1/20 times
+    sleep(0.1)
+    notify(getSolveCondition(cliq))
+
+  unlockDwnStatus!(cd)
+  with_logger(logger) do
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(cd.initialized)"
+  end
+
   nothing
 end
 
@@ -293,8 +325,12 @@ Notes
 - exit strategy is parent becomes status `:initialized`.
 """
 function blockCliqSiblingsParentNeedDown(tree::BayesTree,
-                                         cliq::Graphs.ExVertex)
+                                         cliq::Graphs.ExVertex; logger=SimpleLogger(stdout))
   #
+  with_logger(logger) do
+    @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
+  end
+  flush(logger.stream)
   # ret = Dict{Int, Symbol}()
   prnt = getParent(tree, cliq)
   allneeddwn = true
@@ -305,16 +341,29 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
         chst = getCliqStatusUp(ch)
         if chst != :needdownmsg
           allneeddwn = false
+          break;
         end
       end
+
       if allneeddwn
-        @warn "$(current_task()) Clique $(cliq.index), block since all siblings/parent needdownmsg."
+        with_logger(logger) do
+          tt = split(string(now()), 'T')[end]
+          @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt[1].index)) :needdownmsg."
+        end
+        flush(logger.stream)
+        # do actual fetch
         prtmsg = fetch(getData(prnt[1]).initDownChannel)
-        @info "$(current_task()) Clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
+        with_logger(logger) do
+            tt = split(string(now()), 'T')[end]
+          @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
+        end
         if prtmsg == :initialized
           return true
         else
-          @warn "$(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
+            with_logger(logger) do
+                tt = split(string(now()), 'T')[end]
+                @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
+            end
           # take!(getData(prnt[1]).initDownChannel)
         end
       end
@@ -459,7 +508,8 @@ function doCliqAutoInitUpPart2!(subfg::G,
                                 cliq::Graphs.ExVertex,
                                 msgfcts;
                                 up_solve_if_able::Bool=true,
-                                multiprocess::Bool=true )::Symbol where {G <: AbstractDFG}
+                                multiprocess::Bool=true,
+                                logger=SimpleLogger(stdout)  )::Symbol where {G <: AbstractDFG}
   #
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
@@ -491,7 +541,11 @@ function doCliqAutoInitUpPart2!(subfg::G,
   @info "$(current_task()) Clique $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
   if length(prnt) > 0
     # not a root clique
-    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart2! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+    with_logger(logger) do
+      tt = split(string(now()),'T')[end]
+      @info "$tt | $(current_task()), cliq $(cliq.index), doCliqAutoInitUpPart2! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+    end
+    # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
