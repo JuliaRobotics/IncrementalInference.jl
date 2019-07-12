@@ -489,10 +489,8 @@ function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prn
     mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
     if length(mighthave) > 0
       seps[si.index] = mighthave
-      # @show getCliqStatus(si)
       if getCliqStatus(si) in [:initialized; :null; :needdownmsg]
         # partials treated special -- this is slightly hacky
-        # @show partialKeys, mighthave
         if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
           # this sibling might have info to delay about
           setCliqDrawColor(cliq,"magenta")
@@ -514,13 +512,3 @@ end
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
 notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
-
-  # determine if any siblings might still hold promise
-  # candidates = 0
-  # for idx in collect(keys(seps))
-  #   sibcliq = tree.cliques[idx]
-  #   if getCliqStatus(sibcliq) in [:initialized; :null; :needdownmsg]
-  #     @show sibcliq.attributes["label"],
-  #     candidates += 1
-  #   end
-  # end
