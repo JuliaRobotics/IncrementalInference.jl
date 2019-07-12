@@ -35,14 +35,14 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
-  # get down msg from parent
+  # get down msg from parent (assing root clique CSM wont make it here)
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = getDwnMsgs(prnt[1])
-  multiproc = true
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs)))")
 
+  multiproc = false
   # call down inference, TODO multiproc
   if multiproc
-    @info "GOING MULTIPROC DWN"
     cliqc = deepcopy(csmc.cliq)
     cliqcd = getData(cliqc)
     # redirect to new unused so that CAN be serialized
@@ -50,18 +50,28 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     cliqcd.initDownChannel = Channel{Symbol}(1)
     cliqcd.solveCondition = Condition()
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
+    # NOTE Cannot send logger to separate process memory
     drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false)
   else
-    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false)
+    infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
+    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, csmc.logger)
   end
   csmc.dodownsolve = false
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
-  # update clique with new status
+  # update clique subgraph with new status
   updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
-  setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
+
+  # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
   notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
+
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
+
   # and finished
   return IncrementalInference.exitStateMachine
 end
@@ -87,13 +97,13 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
-  dwnmsgs = Dict{Symbol, BallTreeDensity}()
 
   # block here until parent is downsolved
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going to block on parent.")
-    blockCliqUntilParentDownSolved(prnt[1])
+    # TODO -- some cleanup
+    blockCliqUntilParentDownSolved(prnt[1], logger=csmc.logger)
     prntst = getCliqStatus(prnt[1])
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, parent status=$prntst.")
     if prntst != :downsolved
@@ -111,7 +121,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     return IncrementalInference.exitStateMachine
   end
 
-  infocsm(csmc, "10, going for down solve, msgs=$(collect(keys(dwnmsgs))).")
+  infocsm(csmc, "10, going for down solve.")
   # go to 11
   return doCliqDownSolve_StateMachine
 end

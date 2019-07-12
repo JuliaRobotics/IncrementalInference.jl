@@ -81,11 +81,28 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
   return initorder
 end
 
-lockUpStatus!(cd::BayesTreeNodeData) = put!(cd.lockUpStatus, 1)
-unlockUpStatus!(cd::BayesTreeNodeData) = take!(cd.lockUpStatus)
+lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
+unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 
-lockDwnStatus!(cd::BayesTreeNodeData) = put!(cd.lockDwnStatus, 1)
-unlockDwnStatus!(cd::BayesTreeNodeData) = take!(cd.lockDwnStatus)
+function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=SimpleLogger(stdout))
+  with_logger(logger) do
+    @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
+  end
+    flush(logger.stream)
+  # if isready(cdat.lockDwnStatus)
+  #   with_logger(logger) do
+  #     @info "lockDwnStatus! is locked with $(cdat.lockDwnStatus.data)"
+  #   end
+  #   flush(logger.stream)
+  # end
+  stf =  put!(cdat.lockDwnStatus, idx)
+  with_logger(logger) do
+    @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
+  end
+  flush(logger.stream)
+  stf
+end
+unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 
 """
     $SIGNATURES
@@ -133,27 +150,35 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=S
 end
 
 function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=SimpleLogger(stdout))
-  cd = getData(cliq)
+  cdat = getData(cliq)
   with_logger(logger) do
-    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cd.initialized)-->$(status)"
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
   end
 
-  lockDwnStatus!(cd)
+  # take lock for atomic transaction
+  lockDwnStatus!(cdat, cliq.index, logger=logger)
 
-  cd.initialized = status
-  if isready(cd.initDownChannel)
-    # @info "dumping stale cliq=$(cliq.index) status message $(take!(cd.initDownChannel)), replacing with $(status)"
+  cdat.initialized = status
+
+  if isready(cdat.initDownChannel)
+    content = take!(cdat.initDownChannel)
+    with_logger(logger) do
+      @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
+    end
   end
-  put!(cd.initDownChannel, status)
+  put!(cdat.initDownChannel, status)
   notify(getSolveCondition(cliq))
-    # hack to avoid a race condition that seems to occur ~1/20 times
+    # hack to avoid a race condition
     sleep(0.1)
     notify(getSolveCondition(cliq))
 
-  unlockDwnStatus!(cd)
+  # unlock for others to proceed
+  unlockDwnStatus!(cdat)
   with_logger(logger) do
-    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(cd.initialized)"
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqStatus(cliq))"
   end
+
+  # flush(logger.stream)
 
   nothing
 end
@@ -277,16 +302,24 @@ function setTreeCliquesMarginalized!(dfg::G,
 end
 
 
-function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex)::Nothing
+function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=SimpleLogger(stdout))::Nothing
+  #
+  lbl = prnt.attributes["label"]
 
+  with_logger(logger) do
+    @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
+  end
   while fetch(getData(prnt).initDownChannel) != :downsolved
-    @sync begin
-      @async begin
-        sleep(1)
-        notify(getSolveCondition(prnt))
+    # @sync begin
+    #   @async begin
+    #     sleep(1)
+    #     notify(getSolveCondition(prnt))
+    #   end
+      with_logger(logger) do
+        @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | waiting on solve condition..."
       end
       wait(getSolveCondition(prnt))
-    end
+    # end
   end
 
   return nothing
