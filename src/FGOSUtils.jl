@@ -166,12 +166,15 @@ Compare that all fields are the same in a `::FactorGraph` variable.
 """
 function compareVariable(A::DFGVariable,
                          B::DFGVariable;
+                         skip::Vector{Symbol}=Symbol[],
                          show::Bool=true,
                          skipsamples::Bool=true  )::Bool
   #
-  TP = compareAll(A, B, skip=[:attributes;:solverDataDict;:_internalId], show=show)
+  skiplist = union([:attributes;:solverDataDict;:_internalId],skip)
+  TP = compareAll(A, B, skip=skiplist, show=show)
   varskiplist = skipsamples ? [:val; :bw] : Symbol[]
   skiplist = union([:softtype;],varskiplist)
+  union!(skiplist, skip)
   TP = TP && compareAll(A.solverDataDict, B.solverDataDict, skip=skiplist, show=show)
 
   Ad = getData(A)
@@ -179,9 +182,10 @@ function compareVariable(A::DFGVariable,
 
   # TP = TP && compareAll(A.attributes, B.attributes, skip=[:softtype;], show=show)
   varskiplist = union(varskiplist, [:softtype;:_internalId])
+  union!(varskiplist, skip)
   TP = TP && compareAll(Ad, Bd, skip=varskiplist, show=show)
   TP = TP && typeof(Ad.softtype) == typeof(Bd.softtype)
-  TP = TP && compareAll(Ad.softtype, Bd.softtype, show=show)
+  TP = TP && compareAll(Ad.softtype, Bd.softtype, show=show, skip=skip)
   return TP
 end
 
@@ -215,17 +219,18 @@ Compare that all fields are the same in a `::FactorGraph` factor.
 function compareFactor(A::DFGFactor,
                        B::DFGFactor;
                        show::Bool=true,
+                       skip::Vector{Symbol}=Symbol[],
                        skipsamples::Bool=true,
                        skipcompute::Bool=true  )
   #
   @info show
-  TP =  compareAll(A, B, skip=[:attributes;:data;:_variableOrderSymbols;:_internalId], show=show)
+  TP =  compareAll(A, B, skip=union([:attributes;:data;:_variableOrderSymbols;:_internalId],skip), show=show)
   # TP = TP & compareAll(A.attributes, B.attributes, skip=[:data;], show=show)
-  TP = TP & compareAllSpecial(getData(A), getData(B), skip=[:fnc;:_internalId], show=show)
-  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=[:cpt;:measurement;:params;:varidx;:threadmodel], show=show)
-  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show))
-  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show))
-  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show))
+  TP = TP & compareAllSpecial(getData(A), getData(B), skip=union([:fnc;:_internalId], skip), show=show)
+  TP = TP & compareAllSpecial(getData(A).fnc, getData(B).fnc, skip=union([:cpt;:measurement;:params;:varidx;:threadmodel], skip), show=show)
+  TP = TP & (skipsamples || compareAll(getData(A).fnc.measurement, getData(B).fnc.measurement, show=show, skip=skip))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.params, getData(B).fnc.params, show=show, skip=skip))
+  TP = TP & (skipcompute || compareAll(getData(A).fnc.varidx, getData(B).fnc.varidx, show=show, skip=skip))
 
   return TP
 end
@@ -251,6 +256,7 @@ Related:
 """
 function compareAllVariables(fgA::G1,
                              fgB::G2;
+                             skip::Vector{Symbol}=Symbol[],
                              show::Bool=true,
                              skipsamples::Bool=true )::Bool where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   # get all the variables in A or B
@@ -270,7 +276,7 @@ function compareAllVariables(fgA::G1,
 
   # compare each variable is the same in both A and B
   for var in vars
-    TP = TP && compareVariable(DFG.getVariable(fgA, var), DFG.getVariable(fgB, var), skipsamples=skipsamples)
+    TP = TP && compareVariable(DFG.getVariable(fgA, var), DFG.getVariable(fgB, var), skipsamples=skipsamples, skip=skip)
   end
 
   # return comparison result
@@ -291,6 +297,7 @@ Related:
 """
 function compareSimilarVariables(fgA::G1,
                                  fgB::G2;
+                                 skip::Vector{Symbol}=Symbol[],
                                  show::Bool=true,
                                  skipsamples::Bool=true )::Bool where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
@@ -303,7 +310,8 @@ function compareSimilarVariables(fgA::G1,
 
   # compare the common set
   for var in xlAB
-    TP = TP && compareVariable(DFG.getVariable(fgA, var), DFG.getVariable(fgB, var), skipsamples=skipsamples)
+    @info var
+    TP &= compareVariable(DFG.getVariable(fgA, var), DFG.getVariable(fgB, var), skipsamples=skipsamples, skip=skip)
   end
 
   # return comparison result
@@ -380,11 +388,12 @@ function compareFactorGraphs(fgA::G1,
   #
   skiplist = Symbol[:g;:bn;:IDs;:fIDs;:id;:nodeIDs;:factorIDs;:fifo; :solverParams]
   skiplist = union(skiplist, skip)
+  @warn "compareFactorGraphs will skip comparisons on: $skiplist"
 
   TP = compareAll(fgA, fgB, skip=skiplist, show=show)
-  TP = TP && compareSimilarVariables(fgA, fgB, skipsamples=skipsamples, show=show )
+  TP = TP && compareSimilarVariables(fgA, fgB, skipsamples=skipsamples, show=show, skip=skiplist )
   TP = TP && compareSimilarFactors(fgA, fgB, skipsamples=skipsamples, skipcompute=skipcompute, show=show )
-  TP = TP && compareAll(fgA.solverParams, fgB.solverParams)
+  TP = TP && compareAll(fgA.solverParams, fgB.solverParams, skip=skiplist)
 
   return TP
 end
@@ -669,6 +678,15 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
   nothing
 end
 
+
+
+function convert(::Type{BallTreeDensity}, p::EasyMessage)
+  AMP.manikde!(p.pts, p.bws, p.manifolds)
+end
+
+function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
+  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
+end
 
 
 #

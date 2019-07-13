@@ -1,5 +1,7 @@
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
+
+import DistributedFactorGraphs: getData
 """
     $SIGNATURES
 
@@ -45,6 +47,8 @@ function setData!(v::Graphs.ExVertex, data)
   nothing
 end
 
+## has been moved to DFG
+import DistributedFactorGraphs: getSofttype
 """
    $(SIGNATURES)
 
@@ -89,6 +93,7 @@ function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
   return size(getData(v, solveKey=solveKey).val,2)
 end
 
+import DistributedFactorGraphs: getfnctype
 # TODO: Refactor - was is das?
 function getfnctype(data::GenericFunctionNodeData)
   if typeof(data).name.name == :VariableNodeData
@@ -97,13 +102,13 @@ function getfnctype(data::GenericFunctionNodeData)
   return data.fnc.usrfnc!
 end
 
-function getfnctype(f::DFGFactor; solveKey::Symbol=:default)
-  data = getData(vertl, solveKey=solveKey)
+function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
+  data = getData(fact) # TODO , solveKey=solveKey)
   return getfnctype(data)
 end
 
 function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
-  getfnctype(getFactor(dfg, exvertid, api=api))
+  getfnctype(getFactor(dfg, exvertid))
 end
 
 function getBW(vnd::VariableNodeData)
@@ -509,22 +514,51 @@ function factorCanInitFromOtherVars(dfg::T,
                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
   #
   # all variables attached to this factor
-  varsyms = getNeighbors(dfg, fct)
+  varsyms = DFG.getNeighbors(dfg, fct)
 
   # list of factors to use in init operation
-  useinitfct = Symbol[]
+  fctlist = []
   faillist = Symbol[]
   for vsym in varsyms
     xi = DFG.getVariable(dfg, vsym)
-    if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
-      push!(useinitfct, fct)
+    if !isInitialized(xi)
+      push!(faillist, vsym)
     end
   end
 
-  return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
-          useinitfct,
-          faillist   )
+  # determine if this factor can be used
+  canuse = length(varsyms)==1 || (length(faillist)==1 && loovar in faillist)
+  if canuse
+    push!(fctlist, fct)
+  end
+
+  # return if can use, the factor in an array, and the non-initialized variables attached to the factor
+  return (canuse, fctlist, faillist )
 end
+
+
+# wow, that was quite far off -- needs testing
+# function factorCanInitFromOtherVars(dfg::T,
+#                                     fct::Symbol,
+#                                     loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
+#   #
+#   # all variables attached to this factor
+#   varsyms = getNeighbors(dfg, fct)
+#
+#   # list of factors to use in init operation
+#   useinitfct = Symbol[]
+#   faillist = Symbol[]
+#   for vsym in varsyms
+#     xi = DFG.getVariable(dfg, vsym)
+#     if (isInitialized(xi) && sum(useinitfct .== fct) == 0 ) || length(varsyms) == 1
+#       push!(useinitfct, fct)
+#     end
+#   end
+#
+#   return (length(useinitfct)==length(varsyms)&&length(faillist)==0,
+#           useinitfct,
+#           faillist   )
+# end
 
 """
     $(SIGNATURES)
@@ -546,26 +580,27 @@ function doautoinit!(dfg::T,
   didinit = false
   # don't initialize a variable more than once
   if !isInitialized(xi)
+    @info "try doautoinit! of $(xi.label)"
     # get factors attached to this variable xi
-    vsym = Symbol(xi.label)
+    vsym = xi.label
     neinodes = DFG.getNeighbors(dfg, vsym)
     # proceed if has more than one neighbor OR even if single factor
-    if (length(neinodes) > 1 || singles) # && !isInitialized(xi)
+    if (singles || length(neinodes) > 1)
       # Which of the factors can be used for initialization
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
         canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym)
-        useinitfct = union(useinitfct, usefct)
+        if canuse
+          union!(useinitfct, usefct)
+        end
       end
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
+        @info "do init of $vsym"
         pts,fulldim = predictbelief(dfg, vsym, useinitfct)
         setValKDE!(xi, pts, true, !fulldim)
-        # getData(xi).initialized = true
-        # TODO: Persist this back if we want to here.
-        # api.updatevertex!(dfg, xi, updateMAPest=false)
         didinit = true
       end
     end
@@ -676,11 +711,12 @@ function addFactor!(dfg::G,
                     ready::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit::Bool=false,
-                    threadmodel=SingleThreaded  ) where
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  ) where
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
-  namestring = assembleFactorName(dfg, Xi)
+  namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
   # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
@@ -705,13 +741,14 @@ function addFactor!(
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded  ) where
+      autoinit::Bool=false,
+      threadmodel=SingleThreaded,
+      maxparallel::Int=50  ) where
         {G <: AbstractDFG,
          R <: Union{FunctorInferenceType, InferenceType}}
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
@@ -834,7 +871,7 @@ function addConditional!(dfg::G, vertId::Symbol, Si::Vector{Symbol})::Nothing wh
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDFG
+function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}; maxparallel::Int=50) where G <: AbstractDFG
     @show Si
   lbls = String[]
   genmarg = GenericMarginal()
@@ -843,11 +880,14 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}) where G <: AbstractDF
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, autoinit=false)
+  addFactor!(dfg, Xi, genmarg, autoinit=false, maxparallel=maxparallel)
   nothing
 end
 
-function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::Nothing where G <: AbstractDFG
+function rmVarFromMarg(dfg::G, 
+                       fromvert::DFGVariable, 
+                       gm::Vector{DFGFactor};
+                       maxparallel::Int=50 )::Nothing where G <: AbstractDFG
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -861,7 +901,7 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false)
+          addFactor!(dfg, remvars, getData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -876,8 +916,8 @@ function rmVarFromMarg(dfg::G, fromvert::DFGVariable, gm::Vector{DFGFactor})::No
   return nothing
 end
 
-function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: AbstractDFG
-    addBayesNetVerts!(dfg, p)
+function buildBayesNet!(dfg::G, p::Array{Symbol,1}; maxparallel::Int=50)::Nothing where G <: AbstractDFG
+    # addBayesNetVerts!(dfg, p)
     for v in p
       @info ""
       @info "Eliminating $(v)"
@@ -923,7 +963,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1})::Nothing where G <: Abstract
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si (round the outside, right the outside)
-      length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
+      length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
 
     end
     return nothing

@@ -234,12 +234,13 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
-                                drawbayesnet::Bool=false) where G <: AbstractDFG
+                                drawbayesnet::Bool=false,
+                                maxparallel::Int=50  ) where G <: AbstractDFG
   #
   println()
   fge = deepcopy(dfg)
   println("Building Bayes net...")
-  buildBayesNet!(fge, p)
+  buildBayesNet!(fge, p, maxparallel=maxparallel)
 
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
@@ -274,11 +275,12 @@ function prepBatchTree!(dfg::G;
                         filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false  ) where G <: AbstractDFG
+                        drawbayesnet::Bool=false,
+                        maxparallel::Int=50  ) where G <: AbstractDFG
   #
   p = getEliminationOrder(dfg, ordering=ordering)
 
-  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -299,7 +301,7 @@ Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` s
 function resetData!(vdata::VariableNodeData)::Nothing
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
-  vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
+  # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
   vdata.separator = Symbol[]
   nothing
 end
@@ -352,10 +354,11 @@ function wipeBuildNewTree!(dfg::G;
                            show::Bool=false,
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
-                           imgs::Bool=false  )::BayesTree where G <: AbstractDFG
+                           imgs::Bool=false,
+                           maxparallel::Int=50  )::BayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs);
+  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
 end
 
 """
@@ -848,7 +851,6 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
         # TODO int and symbol compare is no good
         for vertidx in getData(DFG.getFactor(dfg, idfct)).fncargvID
         # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
-          @show vertidx, cols[j], i, j
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -1068,7 +1070,7 @@ getChildren(treel::BayesTree, cliq::Graphs.ExVertex) = childCliqs(treel, cliq)
 
 Return a vector of all siblings to a clique, which defaults to not `inclusive` the calling `cliq`.
 """
-function getCliqSiblings(treel::BayesTree, cliq::Graphs.ExVertex, inclusive::Bool=false)
+function getCliqSiblings(treel::BayesTree, cliq::Graphs.ExVertex, inclusive::Bool=false)::Vector{Graphs.ExVertex}
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
     allch = getChildren(treel, prnt[1])
@@ -1116,12 +1118,11 @@ Related:
 
 whichCliq, printCliqHistorySummary
 """
-function getTreeAllFrontalSyms(fgl::FactorGraph, tree::BayesTree)
+function getTreeAllFrontalSyms(fgl::G, tree::BayesTree) where G <: AbstractDFG
   cliqs = tree.cliques
   syms = Vector{Symbol}(undef, length(cliqs))
   for (id,cliq) in cliqs
-    sym = getSym(fgl, getCliqFrontalVarIds(cliq)[1])
-    syms[id] = sym
+    syms[id] = getCliqFrontalVarIds(cliq)[1]
   end
   return syms
 end

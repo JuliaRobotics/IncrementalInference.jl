@@ -27,15 +27,17 @@ v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 odoc = LinearConditional(Normal(50.0,2.0)) # Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])
 f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
 
-@test isInitialized(fg, :x1)
+# @test isInitialized(fg, :x1)
 
-pts = evalFactor2(fg, f2, v2.label)
+pts = approxConv(fg, :x1x2f1, :x2)
+# pts = evalFactor2(fg, f2, v2.label)
 @show Statistics.mean(pts,dims=2)
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
 
-ensureAllInitialized!(fg)
-tree = wipeBuildNewTree!(fg, drawpdf=false)
-inferOverTree!(fg, tree)
+tree, smt, hist = solveTree!(fg)
+# ensureAllInitialized!(fg)
+# tree = wipeBuildNewTree!(fg, drawpdf=false)
+# inferOverTree!(fg, tree)
 
 @test norm(Statistics.mean(getVal(fg, :x2),dims=2)-[50.0]) < 15.0
 

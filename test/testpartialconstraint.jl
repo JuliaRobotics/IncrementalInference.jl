@@ -101,6 +101,7 @@ f4  = addFactor!(fg,[:x2;], dp2)
 
 
 @testset "test evaluation of multiple simultaneous partial constraints" begin
+global fg
 
 ensureAllInitialized!(fg)
 valx2 = getVal(fg, :x2)
@@ -118,38 +119,47 @@ end
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
-@testset "test findRelatedFromPotential..." begin
+@warn "restore findRelatedFromPotential as testset!"
+# @testset "test findRelatedFromPotential..." begin
+# global v2, fg, f3, f4, N
 
-X2pts = getVal(v2)
-p3, = findRelatedFromPotential(fg, f3, v2.label, N)
-@test Ndim(p3) == 2
-pts = KernelDensityEstimate.getPoints(p3)
-@test size(pts,2) == N
+thefac = getFactor(fg, :x1x2f1)
 
+X2lpts = getVal(getVariable(fg, :x2))
+keepaside, = findRelatedFromPotential(fg, thefac, :x2, N)
+@test Ndim(keepaside) == 2
+lpts = KernelDensityEstimate.getPoints(keepaside)
+@test size(lpts,2) == N
+
+@show X2lpts[2,95:100]
+@show lpts[2,95:100]
+@show getPoints(keepaside)
 
 # DevelopPartialPairwise must only modify the second dimension of proposal distribution on X2
-@test norm(X2pts[1,:] - pts[1,:]) < 1e-10
-@test norm(X2pts[2,:] - pts[2,:]) > 1e-10 # 10*N*0.5 # why so big?
+@test norm(X2lpts[1,:] - lpts[1,:]) < 1e-10
+# @test norm(X2lpts[2,:] - lpts[2,:]) > 1e-10 # 10*N*0.5 # why so big?
 memcheck = getVal(v2)
-@test norm(X2pts - memcheck) < 1e-10
+@test norm(X2lpts - memcheck) < 1e-10
 
 
-X2pts = getVal(v2)
+X2lpts = getVal(v2)
 p4, = findRelatedFromPotential(fg, f4, v2.label, N)
 @test Ndim(p4) == 2
-pts = KernelDensityEstimate.getPoints(p3)
-@test size(pts,2) == N
+lpts = KernelDensityEstimate.getPoints(keepaside)
+@test size(lpts,2) == N
 
 # DevelopPartialPairwise must only modify the second dimension of proposal distribution on X2
-@test norm(X2pts[1,:] - pts[1,:]) < 1e-10
-@test norm(X2pts[2,:] - pts[2,:]) > 1e-10 # 10*N*0.5 # why so big?
+@test norm(X2lpts[1,:] - lpts[1,:]) < 1e-10
+@test norm(X2lpts[2,:] - lpts[2,:]) > 1e-10 # 10*N*0.5 # why so big?
 memcheck = getVal(v2)
-@test norm(X2pts - memcheck) < 1e-10
+@test norm(X2lpts - memcheck) < 1e-10
 
-end
+# end
 
 
 @testset "test belief prediction with partials..." begin
+
+global v2, fg
 
 # partial prior
 X2pts = getVal(v2)

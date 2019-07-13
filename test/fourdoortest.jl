@@ -1,5 +1,6 @@
 using IncrementalInference
 
+@testset "test fourdoor early example" begin
 
 global N=100
 global fg = initfg()
@@ -48,7 +49,7 @@ addFactor!(fg,[:x5;:x6], LinearConditional( Normal(40.0,1.20)) )
 addVariable!(fg,:x7,ContinuousScalar, N=N)
 addFactor!(fg,[:x6;:x7], LinearConditional( Normal(60.0,2.0)) )
 
-ensureAllInitialized!(fg)
+# ensureAllInitialized!(fg)
 
 global mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))
 
@@ -70,23 +71,25 @@ gt[:x7]=reshape(Float64[300.0; 2.14353 ],2,1) # 298.467
 gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 
 
-global tree = prepBatchTree!(fg, drawpdf=false);
+tree, smt, hist = solveTree!(fg)
 
-# list vertices in fg
-@show xx,ll = IncrementalInference.ls(fg)
+# global tree = prepBatchTree!(fg, drawpdf=false);
+#
+# # list vertices in fg
+# @show xx,ll = IncrementalInference.ls(fg)
+#
+# # do belief propagation inference over tree once
+# # using recursive single core approach (better stack trace for development)
+# # inferOverTreeR!(fg, tree)
+# inferOverTree!(fg, tree, N=N, dbg=true, treeinit=true)
+#
+#  #
+# # test multi-processor solve (operational fast solving)
+#  inferOverTree!(fg, tree)
+# # inferOverTree!(fg, tree, dbg=true)
+#
 
-# do belief propagation inference over tree once
-# using recursive single core approach (better stack trace for development)
-# inferOverTreeR!(fg, tree)
-inferOverTree!(fg, tree, N=N, dbg=true, treeinit=true)
 
- #
-# test multi-processor solve (operational fast solving)
- inferOverTree!(fg, tree)
-# inferOverTree!(fg, tree, dbg=true)
-
-
-
-
+end
 
 #

@@ -32,6 +32,7 @@ using Logging
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
 const DFG = DistributedFactorGraphs
+const FSM = FunctionalStateMachine
 
 import Base: convert
 # import HDF5: root
@@ -41,17 +42,33 @@ import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
+
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
+
 
 export
   KDE,
   AMP,
   DFG,
+  FSM,
 
   # DFG SpecialDefinitions
   AbstractDFG,
   hasVariable,
+  getSolverParams,
+
+  notifyCSMCondition,
+  CSMHistory,
+  getTreeCliqsSolverHistories,
+  assignTreeHistory!,
+
+  # OBSOLETE TODO REMOVE #TODO TODO
+  dlapi,
+  localapi,
+  showcurrentdlapi,
+  setdatalayerAPI!,
+  DataLayerAPI,
 
   # state machine methods
   StateMachine,
@@ -69,7 +86,9 @@ export
   drawStateTransitionStep,
   drawStateMachineHistory,
   animateStateMachineHistoryByTime,
+  animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
+  csmAnimate,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -95,10 +114,18 @@ export
   getVariableIds,
   sortVarNested,
   hasOrphans,
-  getfnctype,
   drawCopyFG,
   isVariable,
   isFactor,
+  # from dfg
+  getfnctype,
+  getFactorType,
+  getSofttype,
+  getVariableType,
+  lsfPriors,
+  isPrior,
+  lsTypes,
+  lsfTypes,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -140,7 +167,6 @@ export
   getVert,
   getData,
   setData!,
-  getSofttype,
   getManifolds,
   getVarNode,
   getVal,
@@ -182,7 +208,8 @@ export
   areCliqChildrenNeedDownMsg,
   areCliqChildrenAllUpSolved,
   ensureAllInitialized!,
-  doCliqAutoInitUp!,
+  doCliqAutoInitUpPart1!,
+  doCliqAutoInitUpPart2!,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   doCliqUpSolve!,
@@ -380,6 +407,7 @@ export
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
+  getCliqSiblingsPartialNeeds,
 
   # some utils
   compareField,
@@ -420,6 +448,7 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
+include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("FactorGraph01.jl")
@@ -440,12 +469,7 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
 
-
 include("Deprecated.jl")
-
-# Serialization
-include("serialization/models/distributions.jl")
-include("serialization/services/distributions.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()

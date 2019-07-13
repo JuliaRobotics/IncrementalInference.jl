@@ -3,6 +3,7 @@
 
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
 
+
 # BayesTree declarations
 """
 $(TYPEDEF)
@@ -46,6 +47,7 @@ mutable struct CliqStateMachineContainer{BTND}
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
+  delay::Bool
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
@@ -60,9 +62,10 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x8::Bool,
                                   x9::Bool,
                                   x10a::Bool,
+                                  x10aa::Bool,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10b,x11,x12)
+                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10b,x11,x12)
 end
 
 function CliqStateMachineContainer(x1::GraphsDFG,
@@ -75,11 +78,16 @@ function CliqStateMachineContainer(x1::GraphsDFG,
                                    x8::Bool,
                                    x9::Bool,
                                    x10::Bool,
+                                   x10aa::Bool,
                                    x11::BTND=emptyBTNodeData(),
                                    x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND}
   #
-  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,Dict{Symbol,String}(),x11,x12)
+  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,Dict{Symbol,String}(),x11,x12)
 end
+
+const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
+
+
 
 """
 $(TYPEDEF)
@@ -102,11 +110,13 @@ mutable struct BayesTreeNodeData
   directPriorMsgIDs::Vector{Symbol} # Int
   debug
   debugDwn
+
   # future might concentrate these four fields down to two
+  # these should become specialized BeliefMessage type
   upMsg::Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
-  upInitMsgs::Dict{Int, Dict{Symbol, BallTreeDensity}}
-  downInitMsg::Dict{Symbol, BallTreeDensity}
+  upInitMsgs::Dict{Int, TempBeliefMsg}
+  downInitMsg::TempBeliefMsg
 
   allmarginalized::Bool
   initialized::Symbol
@@ -115,40 +125,36 @@ mutable struct BayesTreeNodeData
   initUpChannel::Channel{Symbol}
   initDownChannel::Channel{Symbol}
   solveCondition::Condition
+  lockUpStatus::Channel{Int}
+  lockDwnStatus::Channel{Int}
   statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25], x[26],
+                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28],
                                 Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
 # TODO -- this should be a constructor
 function emptyBTNodeData()
   BayesTreeNodeData(Int[],Int[],Int[],
-                    Int[],Int[],Bool[],
+                    Int[],Int[],Bool[],      # 6
                     Array{Bool}(undef, 0,0),
                     Array{Bool}(undef, 0,0),
-                    Int[],Int[],
-                    Int[],Int[],Int[],
-                    nothing, nothing,
+                    Int[],Int[],             # 10
+                    Int[],Int[],Int[],       # 13
+                    nothing, nothing,        # 15
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Int, Dict{Symbol, BallTreeDensity}}(),
-                    Dict{Symbol, BallTreeDensity}(),
+                    Dict{Int, TempBeliefMsg}(),
+                    TempBeliefMsg(),         # 19
                     false, :null,
-                    false, false,
-                    Channel{Symbol}(1), Channel{Symbol}(1), Condition()  )
+                    false, false,            # 23
+                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26
+                    Channel{Int}(1), Channel{Int}(1)   )
 end
 
 
-
-"""
-$(TYPEDEF)
-"""
-mutable struct NBPMessage <: Singleton
-  p::Dict{Symbol, EasyMessage}
-end
 
 """
 $(TYPEDEF)
@@ -187,7 +193,7 @@ $(TYPEDEF)
 mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, EasyMessage} # Int
+  IDvals::Dict{Symbol, EasyMessage}
   keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
