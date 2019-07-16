@@ -457,11 +457,12 @@ Update `subfg<:AbstractDFG` according to internal computations for a full upsolv
 """
 function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
-                        cliq::Graphs.ExVertex  )::Symbol where G <: AbstractDFG
+                        cliq::Graphs.ExVertex;
+                        logger=SimpleLogger(stdout)  )::Symbol where G <: AbstractDFG
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false)
+  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger)
   getData(cliq).upsolved = true
   return :upsolved
 end
@@ -561,39 +562,51 @@ function doCliqAutoInitUpPart2!(subfg::G,
     initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
     initpartial[i] = getData(getVariable(subfg, varids[i])).partialinit
   end
-  @info "$(current_task()) Clique $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+  with_logger(logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+  end
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
-    @info "$(current_task()) Clique $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
-    status = doCliqUpSolve!(subfg, tree, cliq)
+    with_logger(logger) do
+      tt = split(string(now()),'T')[end]
+      @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
+    end
+    status = doCliqUpSolve!(subfg, tree, cliq, logger=logger)
   else
-    @info "$(current_task()) Clique $(cliq.index), all variables not initialized, status = $(status)"
+    with_logger(logger) do
+      @info "cliq $(cliq.index), all variables not initialized, status = $(status)"
+    end
   end
 
   # construct init's up msg to place in parent from initialized separator variables
-  @info "$(current_task()) Clique $(cliq.index), going to prepCliqInitMsgsUp"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), going to prepCliqInitMsgsUp"
+  end
   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
   # put the init result in the parent cliq.
   prnt = getParent(tree, cliq)
-  @info "$(current_task()) Clique $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
+  end
   if length(prnt) > 0
     # not a root clique
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
-      @info "$tt | $(current_task()), cliq $(cliq.index), doCliqAutoInitUpPart2! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg)))"
     end
     # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
-  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
+  end
   deleteMsgFactors!(subfg, msgfcts)
 
-  # @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status=$status"
-  # notifyCliqUpInitStatus!(cliq, status)
   return status
 end
 
