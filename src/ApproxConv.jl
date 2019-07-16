@@ -297,6 +297,7 @@ function evalFactor2(dfg::G,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
+  # TODO replace fncargvID with neighbors
   variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
   for id in getData(fct).fncargvID
     count += 1
@@ -361,6 +362,9 @@ end
 Compute proposal belief on `vertid` through `idfct` representing some constraint in factor graph.
 Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
 The remaining dimensions will keep pre-existing variable values.
+
+Notes
+- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
 """
 function findRelatedFromPotential(dfg::G,
                                   idfct::DFGFactor,
@@ -372,6 +376,8 @@ function findRelatedFromPotential(dfg::G,
   # determine if evaluation is "dimension-deficient"
   zdim = getFactorDim(idfct)
   vdim = getVariableDim(DFG.getVariable(dfg, vertlabel))
+
+  # test for full or deficient dimension
   fulldim = vdim <= zdim
 
   # TODO -- better to upsample before the projection

@@ -285,6 +285,14 @@ function proposalbeliefs!(dfg::G,
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Calculate the proposals and products on `destvert` using `factors` in factor graph `dfg`.
+
+Notes
+- Returns tuple of product and whether full dimensional (=true) or partial (=false).
+"""
 function predictbelief(dfg::G,
                        destvert::DFGVariable,
                        factors::Vector{F};
@@ -963,10 +971,14 @@ function approxCliqMarginalUp!(fgl::G,
                                dbg::Bool=false,
                                iters::Int=3,
                                drawpdf::Bool=false,
-                               multiproc::Bool=true ) where G <: AbstractDFG
+                               multiproc::Bool=true,
+                               logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
-  onduplicate ? (@warn "rebuilding new Bayes tree on deepcopy of factor graph") : nothing
+  onduplicate
+  with_logger(logger) do
+    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
+  end
   tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
 
 
@@ -986,11 +998,12 @@ function approxCliqMarginalUp!(fgl::G,
 
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
-  @info "=== start Clique $(cliq.attributes["label"]) ======================"
+  with_logger(logger) do
+    @info "=== start Clique $(cliq.attributes["label"]) ======================"
+  end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
   urt = UpReturnBPType()
   if multiproc
-    @info "GOING MULTIPROC"
     cliqc = deepcopy(cliq)
     cliqcd = getData(cliqc)
     # redirect to new unused so that CAN be serialized
@@ -1001,6 +1014,9 @@ function approxCliqMarginalUp!(fgl::G,
     ett.cliq = cliqc
     urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
   else
+    with_logger(logger) do
+      @info "Single process upsolve clique=$(cliq.index)"
+    end
     urt = upGibbsCliqueDensity(ett, N, dbg, iters)
   end
 
@@ -1011,8 +1027,10 @@ function approxCliqMarginalUp!(fgl::G,
   end
   updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato1"))
   drawpdf ? drawTree(tree_) : nothing
-  @info "=== end Clique $(cliq.attributes["label"]) ========================"
-  urt
+  with_logger(logger) do
+    @info "=== end Clique $(cliq.attributes["label"]) ========================"
+  end
+  return urt
 end
 
 """
@@ -1031,9 +1049,10 @@ function doCliqInferenceUp!(fgl::FactorGraph,
                             N::Int=100,
                             dbg::Bool=false,
                             iters::Int=3,
-                            drawpdf::Bool=false   )
+                            drawpdf::Bool=false,
+                            logger=SimpleLogger(stdout)   )
   #
-  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf )
+  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, logger=logger  )
 end
 
 # """
