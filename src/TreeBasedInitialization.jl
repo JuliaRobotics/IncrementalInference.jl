@@ -480,7 +480,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in getCliqSeparatorVarIds(cliq)
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), Bool[getData(var).partialinit;])
+      msg[Symbol(var.label)] = (getKDE(var), getData(var).fulldim)
     end
   end
   return msg
@@ -557,10 +557,10 @@ function doCliqAutoInitUpPart2!(subfg::G,
   # print out the partial init status of all vars in clique
   varids = getCliqAllVarIds(cliq)
   initstatus = Vector{Bool}(undef, length(varids))
-  initpartial = Vector{Bool}(undef, length(varids))
+  initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
     initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getData(getVariable(subfg, varids[i])).partialinit
+    initpartial[i] = getData(getVariable(subfg, varids[i])).fulldim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]

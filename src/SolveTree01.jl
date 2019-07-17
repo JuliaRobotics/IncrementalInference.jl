@@ -37,23 +37,23 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
                                     vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
-                                    manis::T )::Bool where {T <: Tuple}
+                                    manis::T )::Float64 where {T <: Tuple}
   #
-  fulldim = false
+  inferdim = 0.0
   for m in inmsgs
     for psym in keys(m.p)
       if psym == vsym
         pdi = m.p[vsym] # ::EasyMessage
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, :msg)
-        fulldim |= pdi.fulldim
+        inferdim += pdi.inferdim
       end
       # TODO -- we can inprove speed of search for inner loop
     end
   end
 
   # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
-  return fulldim
+  return inferdim
 end
 
 """
@@ -69,21 +69,21 @@ function packFromLocalPotentials!(dfg::G,
                                   N::Int,
                                   dbg::Bool=false )::Bool where G <: AbstractDFG
   #
-  fulldim = false
+  inferdim = 0.0
   for idfct in getData(cliq).potentials
     fct = DFG.getFactor(dfg, idfct)
     data = getData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
-      p, isfulldim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
+      p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, fct.label)
-      fulldim |= isfulldim
+      inferdim += isinferdim
     end
   end
 
   # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
-  return fulldim
+  return inferdim
 end
 
 
@@ -256,7 +256,7 @@ Notes
 function proposalbeliefs!(dfg::G,
                           destvertlabel::Symbol,
                           factors::Vector{F},
-                          fulldimproposal::Vector{Bool},
+                          inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
@@ -266,7 +266,7 @@ function proposalbeliefs!(dfg::G,
   for fct in factors
     count += 1
     data = getData(fct)
-    p,fulld = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -276,11 +276,10 @@ function proposalbeliefs!(dfg::G,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
-      fulldimproposal[count] = false
     else # full density
       push!(dens, p)
-      fulldimproposal[count] = fulld
     end
+    inferddimproposal[count] = inferd
   end
   nothing
 end
@@ -307,15 +306,15 @@ function predictbelief(dfg::G,
   nn = N != 0 ? N : size(getVal(destvert),2)
 
   # memory for if proposals are full dimension
-  fulldim = Vector{Bool}(undef, length(factors))
+  inferdim = Float64[0.0;]
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, destvertlabel, factors, fulldim, dens, partials, N=nn, dbg=dbg)
+  proposalbeliefs!(dfg, destvertlabel, factors, inferdim, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
-  return pGM, sum(fulldim) > 0
+  return pGM, sum(inferdim
 end
 
 function predictbelief(dfg::G,
@@ -495,7 +494,7 @@ function fmcmc!(fgl::G,
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis, !getData(vert).partialinit)
+      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).fulldim)
     end
     @info "fmcmc! -- finished on $(cliq.attributes["label"])"
 
@@ -955,6 +954,23 @@ end
 """
     $SIGNATURES
 
+Return true if the variables solve dimension is equal to the sum of connected factor dimensions.
+
+Related
+
+getVariableSolveDim, getVariableDim, getVariableInferDim, getVariablePotentialDims
+"""
+function isCliqFullDim(fg::G, var::DFGVariable)::Bool where G <: AbstractDFG
+  vard = getData(var)
+  vfd = getVariableInferDim(vard)
+  alldims = getVariablePotentialDims(fg, var)
+  return abs(vfd - alldims) < 1e-10
+end
+
+
+"""
+    $SIGNATURES
+
 Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
 
 Notes
@@ -1021,11 +1037,16 @@ function approxCliqMarginalUp!(fgl::G,
   end
 
   # is clique fully upsolved or only partially?
-  cliqFulldim = true
-  for (id, val) in urt.IDvals
-    cliqFulldim &= val.fulldim
-  end
-  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato1"))
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="brown")
+
+  # is clique fulldim/partially solved?
+  # for (id, val) in urt.IDvals
+  #     cliqFulldim += val.fulldim
+  # end
+
+  # set clique color accordingly
+  setCliqDrawColor(cliq, isCliqFullDim(cliq) ? "pink" : "tomato1")
+
   drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
     @info "=== end Clique $(cliq.attributes["label"]) ========================"

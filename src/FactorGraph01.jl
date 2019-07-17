@@ -147,9 +147,9 @@ Set the point centers and bandwidth parameters of a variable node, also set `isI
 
 Notes
 - `initialized` is used for initial solve of factor graph where variables are not yet initialized.
-- `partialinit` is used to identify if the initialized was only partial.
+- `inferdim` is used to identify if the initialized was only partial.
 """
-function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)::Nothing
+function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true, inferdim::Float64=0; solveKey::Symbol=:default)::Nothing
   # recover softtype information
   sty = getSofttype(v, solveKey=solveKey)
   # @show sty.manifolds
@@ -157,20 +157,20 @@ function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true, p
   p = AMP.manikde!(val, sty.manifolds)
   setVal!(v,val,getBW(p)[:,1], solveKey=solveKey) # TODO -- this can be little faster
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
-  getData(v).partialinit = partialinit
+  getData(v).inferdim = inferdim
   nothing
 end
-function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)::Nothing
+function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true, inferdim::Float64=0; solveKey::Symbol=:default)::Nothing
   setVal!(v, em.pts, em.bws, solveKey=solveKey) # getBW(p)[:,1]
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
-  getData(v).partialinit = partialinit
+  getData(v).inferdim = inferdim
   nothing
 end
-function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true, partialinit::Bool=false; solveKey::Symbol=:default)
+function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true, inferdim::Float64=0; solveKey::Symbol=:default)
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
-  getData(v).partialinit = partialinit
+  getData(v).inferdim = inferdim
   nothing
 end
 function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: AbstractDFG
@@ -192,9 +192,55 @@ getFactorDim(fc::DFGFactor)::Int = getData(fc).fnc.zDim
     $SIGNATURES
 
 Return the number of dimensions this variable vertex `var` contains.
+
+Related
+
+getVariableInferDim, getVariableSolveDim
 """
+getVariableDim(vard::VariableNodeData)::Int = vard.dims
 getVariableDim(var::DFGVariable)::Int = getData(var).dims
 
+"""
+    $SIGNATURES
+
+Return the number of projected dimensions into a variable during inference.
+
+Related
+
+getVariableDim, getVariableSolveDim
+"""
+getVariableInferDim(vard::VariableNodeData) = vard.inferdim
+getVariableInferDim(var::DFGVariable) = getVariableInferDim(getData(var))
+
+"""
+    $SIGNATURES
+
+Return the solvable number of dimensions for which this variable can be used during autoinitialization / inference.
+
+Related
+
+getVariableInferDim, getVariableDim
+"""
+getVariableSolveDim(vard::VariableNodeData) = vard.inferdim / getVariableDim(vard)
+
+
+"""
+   $SIGNATURES
+
+Return the sum of factor dimensions connected to variable as per the factor graph `fg`.
+
+Related
+
+isCliqFullDim, getVariableDim, getVariableInferDim, getFactorDim
+"""
+function getVariablePotentialDims(fg::G, var::DFGVariable)::Float64 where G <: AbstractDFG
+  fcts = ls(fg, var.label)
+  alldims = 0.0
+  for fc in fcts
+    alldims += getFactorDim(fc)
+  end
+  return alldims
+end
 
 """
     $(SIGNATURES)
@@ -202,7 +248,7 @@ getVariableDim(var::DFGVariable)::Int = getData(var).dims
 Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
 """
 function kde!(em::EasyMessage)
-  return AMP.manikde!(em.pts,em.bws, em.manifolds)
+  return AMP.manikde!(em.pts, em.bws, em.manifolds)
 end
 
 
@@ -599,8 +645,8 @@ function doautoinit!(dfg::T,
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
         @info "do init of $vsym"
-        pts,fulldim = predictbelief(dfg, vsym, useinitfct)
-        setValKDE!(xi, pts, true, !fulldim)
+        pts,inferdim = predictbelief(dfg, vsym, useinitfct)
+        setValKDE!(xi, pts, true, inferdim)
         didinit = true
       end
     end
@@ -885,8 +931,8 @@ function addChainRuleMarginal!(dfg::G, Si::Vector{Symbol}; maxparallel::Int=50) 
   nothing
 end
 
-function rmVarFromMarg(dfg::G, 
-                       fromvert::DFGVariable, 
+function rmVarFromMarg(dfg::G,
+                       fromvert::DFGVariable,
                        gm::Vector{DFGFactor};
                        maxparallel::Int=50 )::Nothing where G <: AbstractDFG
   @info " - Removing $(fromvert.label)"

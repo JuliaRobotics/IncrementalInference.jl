@@ -357,6 +357,17 @@ function approxConvBinary(arr::Array{Float64,2}, meas::T, outdims::Int; N::Int=0
 end
 
 """
+    $SIGNATURES
+
+Return the total infered dimension available for variable based on current inferred status of other factor connected variables.
+"""
+function getFactorInferDim(dfg::G, idfct::Symbol, varid::Symbol)::Float64 where G <: AbstractDFG
+  allvars = lsf(dfg, idfct)
+  
+
+end
+
+"""
     $(SIGNATURES)
 
 Compute proposal belief on `vertid` through `idfct` representing some constraint in factor graph.
@@ -370,7 +381,7 @@ function findRelatedFromPotential(dfg::G,
                                   idfct::DFGFactor,
                                   vertlabel::Symbol,
                                   N::Int,
-                                  dbg::Bool=false)::Tuple{BallTreeDensity,Bool} where G <: AbstractDFG
+                                  dbg::Bool=false)::TempBeliefMsg where G <: AbstractDFG
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(dfg, idfct, vertlabel, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
@@ -378,7 +389,7 @@ function findRelatedFromPotential(dfg::G,
   vdim = getVariableDim(DFG.getVariable(dfg, vertlabel))
 
   # test for full or deficient dimension
-  fulldim = vdim <= zdim
+  fulldim = getFactorInferDim(dfg, idfct, vertlabel)
 
   # TODO -- better to upsample before the projection
   Ndim = size(ptsbw,1)
