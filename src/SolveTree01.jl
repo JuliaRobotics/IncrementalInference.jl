@@ -297,7 +297,7 @@ function predictbelief(dfg::G,
                        destvert::DFGVariable,
                        factors::Vector{F};
                        N::Int=0,
-                       dbg::Bool=false ) where {G <: AbstractDFG, F <: DFGNode}
+                       dbg::Bool=false  ) where {G <: AbstractDFG, F <: DFGNode}
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
