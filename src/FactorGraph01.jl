@@ -67,7 +67,7 @@ end
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getSofttype(v, solveKey=solveKey).manifolds
-function getManifolds(dfg::T, sym::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
+function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
 
@@ -160,92 +160,58 @@ function setValKDE!(v::DFGVariable, val::Array{Float64,2}, setinit::Bool=true, i
   getData(v).inferdim = inferdim
   nothing
 end
-function setValKDE!(v::DFGVariable, em::EasyMessage, setinit::Bool=true, inferdim::Float64=0; solveKey::Symbol=:default)::Nothing
+function setValKDE!(v::DFGVariable,
+                    em::EasyMessage,
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    solveKey::Symbol=:default  )::Nothing
+  #
   setVal!(v, em.pts, em.bws, solveKey=solveKey) # getBW(p)[:,1]
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   getData(v).inferdim = inferdim
   nothing
 end
-function setValKDE!(v::DFGVariable, p::BallTreeDensity, setinit::Bool=true, inferdim::Float64=0; solveKey::Symbol=:default)
+function setValKDE!(v::DFGVariable,
+                    p::BallTreeDensity,
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    solveKey::Symbol=:default  )
+  #
   pts = getPoints(p)
   setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   getData(v).inferdim = inferdim
   nothing
 end
-function setValKDE!(dfg::T, sym::Symbol, p::BallTreeDensity; solveKey::Symbol=:default, setinit::Bool=true) where T <: AbstractDFG
-  setValKDE!(getVert(dfg, sym), p, setinit, solveKey=solveKey)
+function setValKDE!(dfg::T,
+                    sym::Symbol,
+                    p::BallTreeDensity,
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    solveKey::Symbol=:default  ) where T <: AbstractDFG
+  #
+  setValKDE!(getVert(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
   nothing
 end
+
 # TODO: Confirm this is supposed to be a variable?
-setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default) = setValKDE!(v, em, solveKey=solveKey)
-setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default) = setValKDE!(v, p, solveKey=solveKey)
-
-"""
-    $SIGNATURES
-
-Return the number of dimensions this factor vertex `fc` influences.
-"""
-getFactorDim(fc::DFGFactor)::Int = getData(fc).fnc.zDim
-
-"""
-    $SIGNATURES
-
-Return the number of dimensions this variable vertex `var` contains.
-
-Related
-
-getVariableInferDim, getVariableSolveDim
-"""
-getVariableDim(vard::VariableNodeData)::Int = vard.dims
-getVariableDim(var::DFGVariable)::Int = getData(var).dims
-
-"""
-    $SIGNATURES
-
-Return the number of projected dimensions into a variable during inference.
-
-Related
-
-getVariableDim, getVariableSolveDim
-"""
-getVariableInferDim(vard::VariableNodeData) = vard.inferdim
-getVariableInferDim(var::DFGVariable) = getVariableInferDim(getData(var))
-
-"""
-    $SIGNATURES
-
-Return the solvable number of dimensions for which this variable can be used during autoinitialization / inference.
-
-Related
-
-getVariableInferDim, getVariableDim
-"""
-getVariableSolveDim(vard::VariableNodeData) = vard.inferdim / getVariableDim(vard)
-
-
-"""
-   $SIGNATURES
-
-Return the sum of factor dimensions connected to variable as per the factor graph `fg`.
-
-Related
-
-isCliqFullDim, getVariableDim, getVariableInferDim, getFactorDim
-"""
-function getVariablePotentialDims(fg::G, var::DFGVariable)::Float64 where G <: AbstractDFG
-  fcts = ls(fg, var.label)
-  alldims = 0.0
-  for fc in fcts
-    alldims += getFactorDim(fc)
-  end
-  return alldims
+function setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default)
+    @warn "setVal! deprecated, use setValKDE! instead"
+    setValKDE!(v, em, solveKey=solveKey)
+end
+function setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default)
+    @warn "setVal! deprecated, use setValKDE! instead"
+    setValKDE!(v, p, solveKey=solveKey)
 end
 
 """
     $(SIGNATURES)
 
 Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
+
+Related
+
+manikde!, getKDE, getKDEMax, getKDEMean, EasyMessage
 """
 function kde!(em::EasyMessage)
   return AMP.manikde!(em.pts, em.bws, em.manifolds)
@@ -287,12 +253,12 @@ function setDefaultNodeData!(v::DFGVariable,
     #initval, stdev
     setSolverData(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, true, false, false, dontmargin))
+                            dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, false, false, false, dontmargin))
+                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin))
   end
   return nothing
 end

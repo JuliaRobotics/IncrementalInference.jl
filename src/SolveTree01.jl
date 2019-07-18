@@ -67,7 +67,7 @@ function packFromLocalPotentials!(dfg::G,
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )::Bool where G <: AbstractDFG
+                                  dbg::Bool=false )::Float64 where G <: AbstractDFG
   #
   inferdim = 0.0
   for idfct in getData(cliq).potentials
@@ -256,12 +256,13 @@ Notes
 function proposalbeliefs!(dfg::G,
                           destvertlabel::Symbol,
                           factors::Vector{F},
-                          inferddimproposal::Vector{Float64},
+                          # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
-                          dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
+                          dbg::Bool=false)::Vector{Float64} where {G <: AbstractDFG, F <: DFGFactor}
   #
+  inferddimproposal = Vector{Float64}()
   count = 0
   for fct in factors
     count += 1
@@ -279,9 +280,9 @@ function proposalbeliefs!(dfg::G,
     else # full density
       push!(dens, p)
     end
-    inferddimproposal[count] = inferd
+    push!(inferddimproposal, inferd)
   end
-  nothing
+  inferddimproposal
 end
 
 """
@@ -306,15 +307,15 @@ function predictbelief(dfg::G,
   nn = N != 0 ? N : size(getVal(destvert),2)
 
   # memory for if proposals are full dimension
-  inferdim = Float64[0.0;]
+  # inferdim = Float64[0.0;]
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, destvertlabel, factors, inferdim, dens, partials, N=nn, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
-  return pGM, sum(inferdim
+  return pGM, sum(inferdim)
 end
 
 function predictbelief(dfg::G,
@@ -370,10 +371,10 @@ function localProduct(dfg::G,
   end
 
   # memory for if proposals are full dimension
-  fulldim = Vector{Bool}(undef, length(fcts))
+  # inferdim = Vector{Float64}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
@@ -426,18 +427,18 @@ function cliqGibbs(fg::G,
   partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{Symbol}()
 
-  fulldim = false
-  fulldim |= packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-  fulldim |= packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
+  inferdim = 0.0
+  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  inferdim += packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
   packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
 
   potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
-      # pts,fulldim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
   pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
   # @info " "
-  return pGM, potprod, fulldim
+  return pGM, potprod, inferdim
 end
 
 """
@@ -454,9 +455,11 @@ function fmcmc!(fgl::G,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                api::DataLayerAPI=dlapi ) where G <: AbstractDFG
+                logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
   #
+  with_logger(logger) do
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
+  end
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
     if length(lbls) == 1
         MCMCIter=1
@@ -465,18 +468,20 @@ function fmcmc!(fgl::G,
 
     for iter in 1:MCMCIter
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
-      @info "#$(iter)\t -- "
+      with_logger(logger) do
+        @info "#$(iter)\t -- "
+      end
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       # @show lbls
       for vsym in lbls
         vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod, fulldim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
+          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
 
           if size(densPts,1)>0
             updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-            setValKDE!(updvert, densPts, true, !fulldim)
+            setValKDE!(updvert, densPts, true, inferdim)
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -494,9 +499,11 @@ function fmcmc!(fgl::G,
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).fulldim)
+      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
     end
-    @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+    with_logger(logger) do
+      @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+    end
 
     return mcmcdbg, d
 end
@@ -841,7 +848,7 @@ function updateFGBT!(fg::G,
   for (id,dat) in urt.IDvals
     # cliqFulldim &= dat.fulldim
     updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true, !dat.fulldim) ## TODO -- not sure if deepcopy is required
+    setValKDE!(updvert, deepcopy(dat), true, dat.inferdim) ## TODO -- not sure if deepcopy is required
   end
   @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
   nothing
@@ -951,22 +958,6 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
 end
 
 
-"""
-    $SIGNATURES
-
-Return true if the variables solve dimension is equal to the sum of connected factor dimensions.
-
-Related
-
-getVariableSolveDim, getVariableDim, getVariableInferDim, getVariablePotentialDims
-"""
-function isCliqFullDim(fg::G, var::DFGVariable)::Bool where G <: AbstractDFG
-  vard = getData(var)
-  vfd = getVariableInferDim(vard)
-  alldims = getVariablePotentialDims(fg, var)
-  return abs(vfd - alldims) < 1e-10
-end
-
 
 """
     $SIGNATURES
@@ -1044,8 +1035,8 @@ function approxCliqMarginalUp!(fgl::G,
   #     cliqFulldim += val.fulldim
   # end
 
-  # set clique color accordingly
-  setCliqDrawColor(cliq, isCliqFullDim(cliq) ? "pink" : "tomato1")
+  # set clique color accordingly, using local memory
+  setCliqDrawColor(cliq, isCliqFullDim(fg_, cliq) ? "pink" : "tomato1")
 
   drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do

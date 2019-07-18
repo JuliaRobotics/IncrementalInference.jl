@@ -162,8 +162,8 @@ export
   getFactor,
   getFactorDim,
   getVariableDim,
-  getVariableInferDim,
-  getVariableSolveDim,
+  getVariableInferredDim,
+  getVariableInferredDimFraction,
   getVariablePotentialDims,
   isCliqFullDim,
   hasFactor,
@@ -371,6 +371,7 @@ export
   getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,
+  getCliqAllFactIds,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
@@ -468,6 +469,7 @@ include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
+include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")

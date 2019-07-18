@@ -258,7 +258,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # take atomic lock when waiting for down ward information
   lockUpStatus!(getData(prnt))
 
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt) # csmc.cliqSubFg
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, logger=csmc.logger) # csmc.cliqSubFg
   dwnkeys = collect(keys(dwinmsgs))
 
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys)")
