@@ -168,6 +168,9 @@ mutable struct FactorMetadata
   FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
 end
 
+"""
+$(TYPEDEF)
+"""
 struct SingleThreaded
 end
 """
@@ -323,6 +326,7 @@ function addGraphsVert!(fgl::FactorGraph,
             exvert::Graphs.ExVertex;
             labels::Vector{<:AbstractString}=String[])
   #
+  @warn "Deprecated"
   Graphs.add_vertex!(fgl.g, exvert)
 end
 
@@ -349,7 +353,7 @@ getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: Ab
 function updateFullVertData!(fgl::G,
                              nv::N;  # nv::Graphs.ExVertex;
                              updateMAPest::Bool=false ) where {G <: AbstractDFG, N <: DFGNode}
-  #
+  @warn "Deprecated"
 
   sym = Symbol(nv.label)
   isvar = isVariable(fgl, sym)
@@ -371,6 +375,7 @@ end
 
 
 function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex; saveedgeID::Bool=true)
+  @warn "Deprecated"
   edge = Graphs.make_edge(fgl.g, v1, v2)
   Graphs.add_edge!(fgl.g, edge)
   if saveedgeID push!(getData(v2).edgeIDs,edge.index) end #.attributes["data"]
@@ -378,13 +383,16 @@ function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex
 end
 
 function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1, needdata::Bool=false)
+  @warn "Deprecated"
   Graphs.out_neighbors(vert, fgl.g)
 end
 function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int; ready::Int=1,backendset::Int=1, needdata::Bool=false)
+  @warn "Deprecated"
   graphsOutNeighbors(fgl.g, getVert(fgl,exVertId), ready=ready, backendset=backendset, needdata=needdata)
 end
 
 function graphsGetEdge(fgl::FactorGraph, id::Int)
+  @warn "Deprecated"
   nothing
 end
 

@@ -63,7 +63,7 @@ export
   getTreeCliqsSolverHistories,
   assignTreeHistory!,
 
-  # OBSOLETE TODO REMOVE
+  # OBSOLETE TODO REMOVE #TODO TODO
   dlapi,
   localapi,
   showcurrentdlapi,
@@ -457,7 +457,6 @@ include("FactorGraphTypes.jl")
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
-include("DataLayerAPI.jl")
 include("FactorGraph01.jl")
 include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")

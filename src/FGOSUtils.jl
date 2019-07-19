@@ -112,6 +112,7 @@ function compareAll(Al::T,
   return TP
 end
 
+# TODO: KEEP
 function compareAll(Al::T1, Bl::T2; show::Bool=true, skip::Vector{Symbol}=Symbol[])::Bool where {T1 <: Union{SingleThreaded, MultiThreaded}, T2 <: Union{SingleThreaded, MultiThreaded}}
   return T1 == T2
 end
@@ -152,6 +153,7 @@ end
 #   return true
 # end
 
+# TODO: KEEP
 function compare(p1::BallTreeDensity, p2::BallTreeDensity)::Bool
   return compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) &&
          compareAll(p1,p2, skip=[:calcStatsHandle; :bt])
@@ -198,6 +200,7 @@ function compareAllSpecial(A::T1,
   end
 end
 
+# TODO: KEEP
 function compareAllSpecial(A::T1, B::T2;
                     skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
   #
@@ -327,7 +330,7 @@ Related:
 
 `compareFactorGraphs`, `compareSimilarVariables`, `compareSimilarFactors`, `ls`.
 """
-function compareSubsetFactorGraph(fgS::FactorGraph, fgA::FactorGraph; api::DataLayerAPI=localapi)
+function compareSubsetFactorGraph(fgS::FactorGraph, fgA::FactorGraph)
   error("not implemented yet")
   return false
 end
@@ -629,7 +632,7 @@ end
 Return `::Bool` on whether this variable has been marginalized.
 """
 isMarginalized(vert::DFGVariable) = getData(vert).ismargin
-isMarginalized(dfg::G, sym::Symbol; api::DataLayerAPI=localapi) where G <: AbstractDFG = isMarginalized(DFG.getVariable(fg, sym))
+isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.getVariable(fg, sym))
 
 
 

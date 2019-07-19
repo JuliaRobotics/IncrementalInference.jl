@@ -864,12 +864,11 @@ end
 function addBayesNetVerts!(dfg::G, elimOrder::Array{Symbol,1}) where G <: AbstractDFG
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    # @show vert.label, getData(vert).BayesNetVertID
-    if getData(vert).BayesNetVertID == nothing
-      # fg.bnid+=1
+    if getData(vert).BayesNetVertID == nothing || getData(vert).BayesNetVertID == :_null # Special serialization case of nothing
+      @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
       getData(vert).BayesNetVertID = pId
     else
-      @warn "addBayesNetVerts -- something is very wrong, should not have a Bayes net vertex"
+      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getData(vert).BayesNetVertID)'"
     end
   end
 end
