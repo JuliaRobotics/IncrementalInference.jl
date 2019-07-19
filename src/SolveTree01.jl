@@ -37,23 +37,23 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
                                     vsym::Symbol,
                                     inmsgs::Array{NBPMessage,1},
-                                    manis::T )::Bool where {T <: Tuple}
+                                    manis::T )::Float64 where {T <: Tuple}
   #
-  fulldim = false
+  inferdim = 0.0
   for m in inmsgs
     for psym in keys(m.p)
       if psym == vsym
         pdi = m.p[vsym] # ::EasyMessage
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, :msg)
-        fulldim |= pdi.fulldim
+        inferdim += pdi.inferdim
       end
       # TODO -- we can inprove speed of search for inner loop
     end
   end
 
   # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
-  return fulldim
+  return inferdim
 end
 
 """
@@ -67,23 +67,23 @@ function packFromLocalPotentials!(dfg::G,
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )::Bool where G <: AbstractDFG
+                                  dbg::Bool=false )::Float64 where G <: AbstractDFG
   #
-  fulldim = false
+  inferdim = 0.0
   for idfct in getData(cliq).potentials
     fct = DFG.getFactor(dfg, idfct)
     data = getData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
-      p, isfulldim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
+      p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, fct.label)
-      fulldim |= isfulldim
+      inferdim += isinferdim
     end
   end
 
   # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
-  return fulldim
+  return inferdim
 end
 
 
@@ -256,17 +256,18 @@ Notes
 function proposalbeliefs!(dfg::G,
                           destvertlabel::Symbol,
                           factors::Vector{F},
-                          fulldimproposal::Vector{Bool},
+                          # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
                           N::Int=100,
-                          dbg::Bool=false)::Nothing where {G <: AbstractDFG, F <: DFGFactor}
+                          dbg::Bool=false)::Vector{Float64} where {G <: AbstractDFG, F <: DFGFactor}
   #
+  inferddimproposal = Vector{Float64}()
   count = 0
   for fct in factors
     count += 1
     data = getData(fct)
-    p,fulld = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -276,13 +277,12 @@ function proposalbeliefs!(dfg::G,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
-      fulldimproposal[count] = false
     else # full density
       push!(dens, p)
-      fulldimproposal[count] = fulld
     end
+    push!(inferddimproposal, inferd)
   end
-  nothing
+  inferddimproposal
 end
 
 """
@@ -297,7 +297,7 @@ function predictbelief(dfg::G,
                        destvert::DFGVariable,
                        factors::Vector{F};
                        N::Int=0,
-                       dbg::Bool=false ) where {G <: AbstractDFG, F <: DFGNode}
+                       dbg::Bool=false  ) where {G <: AbstractDFG, F <: DFGNode}
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -307,15 +307,15 @@ function predictbelief(dfg::G,
   nn = N != 0 ? N : size(getVal(destvert),2)
 
   # memory for if proposals are full dimension
-  fulldim = Vector{Bool}(undef, length(factors))
+  # inferdim = Float64[0.0;]
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, destvertlabel, factors, fulldim, dens, partials, N=nn, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
 
-  return pGM, sum(fulldim) > 0
+  return pGM, sum(inferdim)
 end
 
 function predictbelief(dfg::G,
@@ -371,10 +371,10 @@ function localProduct(dfg::G,
   end
 
   # memory for if proposals are full dimension
-  fulldim = Vector{Bool}(undef, length(fcts))
+  # inferdim = Vector{Float64}(undef, length(fcts))
 
   # get proposal beliefs
-  proposalbeliefs!(dfg, sym, fcts, fulldim, dens, partials, N=N, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
@@ -427,18 +427,18 @@ function cliqGibbs(fg::G,
   partials = Dict{Int, Vector{BallTreeDensity}}()
   wfac = Vector{Symbol}()
 
-  fulldim = false
-  fulldim |= packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-  fulldim |= packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
+  inferdim = 0.0
+  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  inferdim += packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
   packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
 
   potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
-      # pts,fulldim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
   pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
   if dbg  potprod.product = pGM  end
 
   # @info " "
-  return pGM, potprod, fulldim
+  return pGM, potprod, inferdim
 end
 
 """
@@ -455,9 +455,11 @@ function fmcmc!(fgl::G,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                api::DataLayerAPI=dlapi ) where G <: AbstractDFG
+                logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
   #
+  with_logger(logger) do
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
+  end
     # repeat several iterations of functional Gibbs sampling for fixed point convergence
     if length(lbls) == 1
         MCMCIter=1
@@ -466,18 +468,20 @@ function fmcmc!(fgl::G,
 
     for iter in 1:MCMCIter
       # iterate through each of the variables, KL-divergence tolerence would be nice test here
-      @info "#$(iter)\t -- "
+      with_logger(logger) do
+        @info "#$(iter)\t -- "
+      end
       dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
       # @show lbls
       for vsym in lbls
         vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod, fulldim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
+          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
 
           if size(densPts,1)>0
             updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-            setValKDE!(updvert, densPts, true, !fulldim)
+            setValKDE!(updvert, densPts, true, inferdim)
             if dbg
               push!(dbgvals.prods, potprod)
               push!(dbgvals.lbls, Symbol(updvert.label))
@@ -495,9 +499,11 @@ function fmcmc!(fgl::G,
       pden = getKDE(vert)
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis, !getData(vert).partialinit)
+      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
     end
-    @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+    with_logger(logger) do
+      @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+    end
 
     return mcmcdbg, d
 end
@@ -610,9 +616,12 @@ urt = upGibbsCliqueDensity(inp)
 function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
                               N::Int=100,
                               dbg::Bool=false,
-                              iters::Int=3) where {T, T2}
+                              iters::Int=3,
+                              logger=SimpleLogger(stdout)  ) where {T, T2}
   #
-  @info "up w $(length(inp.sendmsgs)) msgs"
+  with_logger(logger) do
+    @info "up w $(length(inp.sendmsgs)) msgs"
+  end
   # Local mcmc over belief functions
   # this is so slow! TODO Can be ignored once we have partial working
   # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
@@ -628,21 +637,21 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
     IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
-    mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg)
+    mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
-    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1)
+    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger)
     if length(cliqdata.msgskipIDs) > 0
-      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1)
+      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger)
       for md in dd d[md[1]] = md[2]; end
     end
     # NOTE -- previous mistake, must iterate over directsvarIDs also
     if length(cliqdata.itervarIDs) > 0
-      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg)
+      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg)
+      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
@@ -842,7 +851,7 @@ function updateFGBT!(fg::G,
   for (id,dat) in urt.IDvals
     # cliqFulldim &= dat.fulldim
     updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true, !dat.fulldim) ## TODO -- not sure if deepcopy is required
+    setValKDE!(updvert, deepcopy(dat), true, dat.inferdim) ## TODO -- not sure if deepcopy is required
   end
   @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
   nothing
@@ -952,6 +961,7 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
 end
 
 
+
 """
     $SIGNATURES
 
@@ -1012,20 +1022,26 @@ function approxCliqMarginalUp!(fgl::G,
     cliqcd.solveCondition = Condition()
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
+    # TODO create new dedicate file for separate process to log with
     urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
   else
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
     end
-    urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+    urt = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
   end
 
   # is clique fully upsolved or only partially?
-  cliqFulldim = true
-  for (id, val) in urt.IDvals
-    cliqFulldim &= val.fulldim
-  end
-  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor=(cliqFulldim ? "pink" : "tomato1"))
+  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="brown")
+
+  # is clique fulldim/partially solved?
+  # for (id, val) in urt.IDvals
+  #     cliqFulldim += val.fulldim
+  # end
+
+  # set clique color accordingly, using local memory
+  setCliqDrawColor(cliq, isCliqFullDim(fg_, cliq) ? "pink" : "tomato1")
+
   drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
     @info "=== end Clique $(cliq.attributes["label"]) ========================"
@@ -1803,100 +1819,4 @@ function initInferTreeUp!(dfg::G,
   # end
 
   return alltasks, cliqHistories
-end
-
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
-
-Notes
-- For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
-"""
-function inferOverTree!(dfg::G,
-                        bt::BayesTree;
-                        oldtree::BayesTree=emptyBayesTree(),
-                        N::Int=100,
-                        upsolve::Bool=true,
-                        downsolve::Bool=true,
-                        dbg::Bool=false,
-                        drawpdf::Bool=false,
-                        treeinit::Bool=false,
-                        incremental::Bool=false,
-                        limititers::Int=1000,
-                        skipcliqids::Vector{Symbol}=Symbol[],
-                        recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
-  #
-
-  @info "Solving over the Bayes (Junction) tree."
-  smtasks=Vector{Task}()
-  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  setAllSolveFlags!(bt, false)
-
-  @info "Do tree based init-inference on tree"
-  if dbg
-    smtasks, ch = asyncTreeInferUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
-  else
-    smtasks, ch = initInferTreeUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
-  end
-  @info "Finished tree based init-inference"
-
-  return smtasks, ch
-end
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
-
-Notes
-- Legacy support function, use `inferOverTree!` instead that is based on the state machine method.
-- Previous versions of the code used iterative loops to traverse the Bayes (Junction) tree.
-- Even older code is available as `inferOverTreeR!`
-"""
-function inferOverTreeIterative!(dfg::G,
-                                 bt::BayesTree;
-                                 N::Int=100,
-                                 dbg::Bool=false,
-                                 drawpdf::Bool=false  ) where G <: AbstractDFG
-  #
-  # @info "Batch rather than incremental solving over the Bayes (Junction) tree."
-  # setAllSolveFlags!(bt, false)
-  @info "Ensure all nodes are initialized"
-  ensureAllInitialized!(dfg)
-  @info "Do multi-process upward pass of inference on tree"
-  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  return smtasks, ch
-end
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
-"""
-function inferOverTreeR!(fgl::G,
-                         bt::BayesTree;
-                         N::Int=100,
-                         dbg::Bool=false,
-                         drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}} where G <: AbstractDFG
-  #
-  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
-  setAllSolveFlags!(bt, false)
-  @info "Ensure all nodes are initialized"
-  smtasks = Vector{Task}()
-  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  if treeinit
-    smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-  else
-    @info "Do conventional recursive up inference over tree"
-    ensureAllInitialized!(fgl)
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  end
-  @info "Do recursive down inference over tree"
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  return smtasks, ch
 end

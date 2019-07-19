@@ -1,0 +1,335 @@
+
+export
+  getCliqVariableInferredPercent,
+  getCliqVariableMoreInitDims
+
+
+## Description
+# Dim              -- Native dimension of Variable/Factor
+# Possible         -- Maximum dimension possible in variable
+# Solvable         -- number of dimensions which can be resolved from current state
+# Inferred         -- Current inferered dimension available
+# suffix-Fraction  -- Report as percentage fraction
+# XPercentage      -- Report ratio of X over Possible
+
+
+## Major objectives
+#
+# getCliqVariableInferredPercent
+# getCliqVariableMoreInitDims
+
+
+## Variables
+
+"""
+    $SIGNATURES
+
+Return the number of dimensions this variable vertex `var` contains.
+
+Related
+
+getVariableInferredDim, getVariableInferredDimFraction
+"""
+getVariableDim(vard::VariableNodeData)::Int = getSofttype(vard).dims
+getVariableDim(var::DFGVariable)::Int = getVariableDim(getData(var))
+
+"""
+    $SIGNATURES
+
+Return the number of projected dimensions into a variable during inference.
+
+Notes
+- `saturate` clamps return value to no greater than variable dimension
+
+Related
+
+getVariableDim, getVariableInferredDimFraction
+"""
+getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
+getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(getData(var), saturate)
+function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) where G <: AbstractDFG
+  getVariableInferredDim(getVariable(fg, varid), saturate)
+end
+
+"""
+    $SIGNATURES
+
+Return the assumed fraction of dimensions for which this variable can be used during autoinitialization / inference.
+
+Notes
+- Does not consider linear dependence conditions -- i.e. might be unobservable or have poor disparity between measurements.
+
+Related
+
+getVariableInferredDim, getVariableDim
+"""
+getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
+
+getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
+getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(getData(var), saturate)
+function getVariableInferredDimFraction(dfg::G, varid::Symbol, saturate::Bool=false)::Float64 where G <: AbstractDFG
+  getVariableInferredDimFraction(getVariable(dfg, varid), saturate)
+end
+
+
+## Factors
+
+"""
+    $SIGNATURES
+
+Return the number of dimensions this factor vertex `fc` influences.
+"""
+getFactorDim(fcd::GenericFunctionNodeData)::Int = fcd.fnc.zDim
+getFactorDim(fc::DFGFactor)::Int = getFactorDim(getData(fc))
+function getFactorDim(fg::G, fctid::Symbol)::Int where G <: AbstractDFG
+  getFactorDim(getFactor(fg, fctid))
+end
+
+"""
+   $SIGNATURES
+
+Return the sum of factor dimensions connected to variable as per the factor graph `fg`.
+
+Related
+
+getFactorSolvableDim, getVariableDim, getVariableInferredDim, getFactorDim, isCliqFullDim
+"""
+function getVariablePossibleDim(fg::G, var::DFGVariable, fcts::Vector{Symbol}=ls(fg, var.label))::Float64 where G <: AbstractDFG
+  alldims = 0.0
+  for fc in fcts
+    alldims += getFactorDim(fg, fc)
+  end
+  return alldims
+end
+function getVariablePossibleDim(fg::G,
+                                varid::Symbol,
+                                fcts::Vector{Symbol}=ls(fg, varid)  )::Float64 where G <: AbstractDFG
+  #
+  getVariablePossibleDim(fg, getVariable(fg, varid))
+end
+
+"""
+    $SIGNATURES
+
+Return the total inferred dimension available for variable from factor based on current inferred status of other connected variables.
+
+Notes
+- Accumulate the factor dimension fractions:  Sum [0..1]*zdim
+- Variable dimenion fractions are inferdim / vardim
+- Variable dimension are saturated at vardim for the calculating solve dimensions
+
+Related
+
+getVariablePossibleDim, getVariableDim, getVariableInferredDim, getFactorDim, getFactorSolvableDim, isCliqFullDim
+"""
+function getFactorInferFraction(dfg::G,
+                                idfct::Symbol,
+                                varid::Symbol,
+                                saturate::Bool=false  )::Float64 where G <: AbstractDFG
+  # get all other variables
+  allvars = lsf(dfg, idfct)
+  lievars = setdiff(allvars, [varid;])
+
+  # get all other var dimensions with saturation
+  len = length(lievars)
+  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, true), lievars)
+
+  if length(fracs) == 0
+    return 0.0
+  end
+
+  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out variable.
+  return cumprod(fracs)[end]
+end
+
+
+"""
+    $SIGNATURES
+
+Return the total inferred/solvable dimension available for variable based on current inferred status of other factor connected variables.
+
+Notes
+- Accumulate the factor dimension fractions:  Sum [0..1]*zdim
+- Variable dimenion fractions are inferdim / vardim
+- Variable dimension are saturated at vardim for the calculating solve dimensions
+
+Related
+
+getVariablePossibleDim, getVariableDim, getVariableInferredDim, getFactorDim, getFactorInferFraction, isCliqFullDim
+"""
+function getFactorSolvableDim(dfg::G,
+                              idfct::Symbol,
+                              varid::Symbol,
+                              saturate::Bool=false,
+                              fraction::Bool=false )::Float64 where G <: AbstractDFG
+  #
+  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out variable.
+  return fraction ? getFactorInferFraction(dfg, idfct, varid, saturate) : getFactorInferFraction(dfg, idfct, varid, saturate)*getFactorDim(getFactor(dfg, idfct))
+end
+function getFactorSolvableDim(dfg::G,
+                              fct::DFGFactor,
+                              varid::Symbol,
+                              saturate::Bool=false,
+                              fraction::Bool=false )::Float64 where G <: AbstractDFG
+  #
+  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out variable.
+  return fraction ? getFactorInferFraction(dfg, fct.label, varid, saturate) : getFactorInferFraction(dfg, fct.label, varid, saturate)*getFactorDim(fct)
+end
+
+"""
+    $SIGNATURES
+
+Return the total solvable dimension for each variable in the factor graph `dfg`.
+
+Notes
+- "Project" the solved dimension from other variables through connected factors onto each variable.
+"""
+function getVariableSolvableDim(dfg::G, varid::Symbol, fcts::Vector{Symbol}=ls(dfg, varid)) where G <: AbstractDFG
+
+  sd = 0.0
+  for fc in fcts
+    sd += getFactorSolvableDim(dfg,fc,varid)
+  end
+  return sd
+end
+
+
+## Combined Variables and Factors
+
+"""
+    $SIGNATURES
+
+Return the current dimensionality of solve for each variable in a clique.
+"""
+function getCliqVariableInferDims(dfg::G,
+                                  cliq::Graphs.ExVertex,
+                                  saturate::Bool=true,
+                                  fraction::Bool=true  )::Dict{Symbol,Float64} where G <: AbstractDFG
+  #
+  # which variables
+  varids = getCliqAllVarIds(cliq)
+
+  # and what inferred dimension in this dfg
+  retd = Dict{Symbol,Float64}()
+  for varid in varids
+    retd[varid] = getVariableInferredDim(dfg, varid)
+  end
+
+  return retd
+end
+
+# """
+#     $SIGNATURES
+#
+# Return the directly achievable dimensionality of solve for each variable in a clique.
+#
+# Related
+#
+# getFactorSolvableDim
+# """
+# function getCliqVarPossibleDim(dfg::G,
+#                                     cliq::Graphs.ExVertex,
+#                                     saturate::Bool=true,
+#                                     fraction::Bool=true  )::Dict{Symbol, Float64}
+#   #
+#   # variables and factors associated with this clique
+#   vars = getCliqAllVarIds(cliq)
+#   # fcts = getCliqAllFactIds(cliq)
+#   # rows = length(fcts)
+#   cols = length(vars)
+#
+#   # for output result
+#   dict = Dict{Symbol,Float64}()
+#
+#   for j in 1:cols
+#     dict[vars[j]] += getVariablePossibleDim(dfg, vars[j])
+#   end
+#
+# end
+
+
+"""
+    $SIGNATURES
+
+Return dictionary of clique variables and percentage of inference completion for each.
+
+Notes
+- Completion means (relative to clique subgraph) ratio of inferred dimension over possible solve dimension.
+
+Related
+
+getCliqVariableMoreInitDims
+"""
+function getCliqVariableInferredPercent(dfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+
+  # cliq variables factors
+  vars = getCliqAllVarIds(cliq)
+  # fcts = getCliqAllFactIds(cliq)
+  # rows = length(fcts)
+  # nvars = length(vars)
+
+  # for output result
+  dict = Dict{Symbol,Float64}()
+
+  # possible variable infer dim
+  # current variable infer dim
+  # calculate ratios in [0,1]
+  for var in getCliqAllVarIds(cliq)# 1:nvars
+      dict[var] = getVariableInferredDim(dfg, var)
+      dict[var] /= getVariablePossibleDim(dfg, var)
+  end
+
+  # return dict with result
+  return dict
+end
+
+
+"""
+    $SIGNATURES
+
+Return a dictionary with the number of immediately additionally available inference
+dimensions on each variable in a clique.
+
+Related
+
+getCliqVariableInferredPercent
+"""
+function getCliqVariableMoreInitDims(dfg::G,
+                                     cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+  #
+  # cliq variables factors
+  vars = getCliqAllVarIds(cliq)
+
+  # for output result
+  dict = Dict{Symbol,Float64}()
+
+  # possible variable infer dim
+  # current variable infer dim
+  for var in 1:vars
+    dict[var] = getVariableSolvableDim(dfg, var)
+    dict[var] -= getVariableInferredDim(dfg, var)
+  end
+
+  # return dict with result
+  return dict
+end
+
+
+"""
+    $SIGNATURES
+
+Return true if the variables solve dimension is equal to the sum of connected factor dimensions.
+
+Related
+
+getVariableInferredDimFraction, getVariableDim, getVariableInferredDim, getVariablePossibleDim
+"""
+function isCliqFullDim(fg::G,
+                       cliq::Graphs.ExVertex )::Bool where G <: AbstractDFG
+  #
+  # get various variable percentages
+  red = getCliqVariableInferredPercent(fg, cliq)
+
+  # if all variables are solved to their full potential
+  return abs(sum(collect(values(red))) - length(red)) < 1e10
+end
