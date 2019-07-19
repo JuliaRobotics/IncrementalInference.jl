@@ -616,9 +616,12 @@ urt = upGibbsCliqueDensity(inp)
 function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
                               N::Int=100,
                               dbg::Bool=false,
-                              iters::Int=3) where {T, T2}
+                              iters::Int=3,
+                              logger=SimpleLogger(stdout)  ) where {T, T2}
   #
-  @info "up w $(length(inp.sendmsgs)) msgs"
+  with_logger(logger) do
+    @info "up w $(length(inp.sendmsgs)) msgs"
+  end
   # Local mcmc over belief functions
   # this is so slow! TODO Can be ignored once we have partial working
   # loclfg = nprocs() < 2 ? deepcopy(inp.fg) : inp.fg
@@ -634,21 +637,21 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
     IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
-    mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg)
+    mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
-    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1)
+    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger)
     if length(cliqdata.msgskipIDs) > 0
-      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1)
+      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger)
       for md in dd d[md[1]] = md[2]; end
     end
     # NOTE -- previous mistake, must iterate over directsvarIDs also
     if length(cliqdata.itervarIDs) > 0
-      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg)
+      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg)
+      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
@@ -1019,12 +1022,13 @@ function approxCliqMarginalUp!(fgl::G,
     cliqcd.solveCondition = Condition()
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
+    # TODO create new dedicate file for separate process to log with
     urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
   else
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
     end
-    urt = upGibbsCliqueDensity(ett, N, dbg, iters)
+    urt = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
   end
 
   # is clique fully upsolved or only partially?
@@ -1815,100 +1819,4 @@ function initInferTreeUp!(dfg::G,
   # end
 
   return alltasks, cliqHistories
-end
-
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
-
-Notes
-- For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
-"""
-function inferOverTree!(dfg::G,
-                        bt::BayesTree;
-                        oldtree::BayesTree=emptyBayesTree(),
-                        N::Int=100,
-                        upsolve::Bool=true,
-                        downsolve::Bool=true,
-                        dbg::Bool=false,
-                        drawpdf::Bool=false,
-                        treeinit::Bool=false,
-                        incremental::Bool=false,
-                        limititers::Int=1000,
-                        skipcliqids::Vector{Symbol}=Symbol[],
-                        recordcliqs::Vector{Symbol}=Symbol[]  ) where G <: AbstractDFG
-  #
-
-  @info "Solving over the Bayes (Junction) tree."
-  smtasks=Vector{Task}()
-  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  setAllSolveFlags!(bt, false)
-
-  @info "Do tree based init-inference on tree"
-  if dbg
-    smtasks, ch = asyncTreeInferUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
-  else
-    smtasks, ch = initInferTreeUp!(dfg, bt, oldtree=oldtree, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, downsolve=downsolve, incremental=incremental, skipcliqids=skipcliqids )
-  end
-  @info "Finished tree based init-inference"
-
-  return smtasks, ch
-end
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (multi-process) algorithm for full sum-product solution of all continuous marginal beliefs.
-
-Notes
-- Legacy support function, use `inferOverTree!` instead that is based on the state machine method.
-- Previous versions of the code used iterative loops to traverse the Bayes (Junction) tree.
-- Even older code is available as `inferOverTreeR!`
-"""
-function inferOverTreeIterative!(dfg::G,
-                                 bt::BayesTree;
-                                 N::Int=100,
-                                 dbg::Bool=false,
-                                 drawpdf::Bool=false  ) where G <: AbstractDFG
-  #
-  # @info "Batch rather than incremental solving over the Bayes (Junction) tree."
-  # setAllSolveFlags!(bt, false)
-  @info "Ensure all nodes are initialized"
-  ensureAllInitialized!(dfg)
-  @info "Do multi-process upward pass of inference on tree"
-  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
-  return smtasks, ch
-end
-
-"""
-    $SIGNATURES
-
-Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
-"""
-function inferOverTreeR!(fgl::G,
-                         bt::BayesTree;
-                         N::Int=100,
-                         dbg::Bool=false,
-                         drawpdf::Bool=false,
-                         treeinit::Bool=false  )::Tuple{Vector{Task},Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}} where G <: AbstractDFG
-  #
-  @info "Batch rather than incremental solving over the Bayes (Junction) tree."
-  setAllSolveFlags!(bt, false)
-  @info "Ensure all nodes are initialized"
-  smtasks = Vector{Task}()
-  ch = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-  if treeinit
-    smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf)
-  else
-    @info "Do conventional recursive up inference over tree"
-    ensureAllInitialized!(fgl)
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  end
-  @info "Do recursive down inference over tree"
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
-  return smtasks, ch
 end

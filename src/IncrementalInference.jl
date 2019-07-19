@@ -264,6 +264,7 @@ export
   CliqStateMachineContainer,
   batchSolve!,
   solveTree!,
+  solveCliq!,
   fifoFreeze!,
   getCurrentWorkspaceFactors,
   getCurrentWorkspaceVariables,
@@ -475,6 +476,7 @@ include("SolveTree01.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
+include("SolverAPI.jl")
 
 include("Deprecated.jl")
 
