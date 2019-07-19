@@ -664,13 +664,29 @@ getCliqFactorIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFactorIds(getDa
 """
     $SIGNATURES
 
-Get all `cliq` variable ids`::Int`.
+Get all `cliq` variable ids`::Symbol`.
+
+Related
+
+getCliqAllFactIds
 """
 function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
-  [frtl;cond]
+  union(frtl,cond)
 end
+
+"""
+    $SIGNATURES
+
+Get all `cliq` factor ids`::Symbol`.
+
+Related
+
+getCliqAllVarIds
+"""
+getCliqAllFactIds(cliqd::BayesTreeNodeData) = cliqd.potentials
+getCliqAllFactIds(cliq::Graphs.ExVertex) = getCliqAllFactIds(getData(cliq))
 
 """
     $SIGNATURES

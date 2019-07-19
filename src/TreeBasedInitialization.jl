@@ -4,7 +4,7 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}} = getData(cliq).upInitMsgs
+getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, TempBeliefMsg} = getData(cliq).upInitMsgs
 
 function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::TempBeliefMsg)
   cd = getData(cliq)
@@ -457,11 +457,12 @@ Update `subfg<:AbstractDFG` according to internal computations for a full upsolv
 """
 function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
-                        cliq::Graphs.ExVertex  )::Symbol where G <: AbstractDFG
+                        cliq::Graphs.ExVertex;
+                        logger=SimpleLogger(stdout)  )::Symbol where G <: AbstractDFG
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false)
+  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger)
   getData(cliq).upsolved = true
   return :upsolved
 end
@@ -479,7 +480,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in getCliqSeparatorVarIds(cliq)
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), Bool[getData(var).partialinit;])
+      msg[Symbol(var.label)] = (getKDE(var), getData(var).inferdim)
     end
   end
   return msg
@@ -556,44 +557,56 @@ function doCliqAutoInitUpPart2!(subfg::G,
   # print out the partial init status of all vars in clique
   varids = getCliqAllVarIds(cliq)
   initstatus = Vector{Bool}(undef, length(varids))
-  initpartial = Vector{Bool}(undef, length(varids))
+  initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
     initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getData(getVariable(subfg, varids[i])).partialinit
+    initpartial[i] = getData(getVariable(subfg, varids[i])).inferdim
   end
-  @info "$(current_task()) Clique $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+  with_logger(logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+  end
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(subfg, cliq)
-    @info "$(current_task()) Clique $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
-    status = doCliqUpSolve!(subfg, tree, cliq)
+    with_logger(logger) do
+      tt = split(string(now()),'T')[end]
+      @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
+    end
+    status = doCliqUpSolve!(subfg, tree, cliq, logger=logger)
   else
-    @info "$(current_task()) Clique $(cliq.index), all variables not initialized, status = $(status)"
+    with_logger(logger) do
+      @info "cliq $(cliq.index), all variables not initialized, status = $(status)"
+    end
   end
 
   # construct init's up msg to place in parent from initialized separator variables
-  @info "$(current_task()) Clique $(cliq.index), going to prepCliqInitMsgsUp"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), going to prepCliqInitMsgsUp"
+  end
   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
   # put the init result in the parent cliq.
   prnt = getParent(tree, cliq)
-  @info "$(current_task()) Clique $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
+  end
   if length(prnt) > 0
     # not a root clique
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
-      @info "$tt | $(current_task()), cliq $(cliq.index), doCliqAutoInitUpPart2! -- putting upinitmsg in prnt=$(prnt[1].index), with msgs for $(collect(keys(msg)))"
+      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg)))"
     end
     # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 
   # remove msg factors that were added to the subfg
-  @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
+  end
   deleteMsgFactors!(subfg, msgfcts)
 
-  # @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUp! -- sending notification of up init status=$status"
-  # notifyCliqUpInitStatus!(cliq, status)
   return status
 end
 
@@ -610,25 +623,33 @@ Notes
 """
 function prepCliqInitMsgsDown!(fgl::G,
                                tree::BayesTree,
-                               cliq::Graphs.ExVertex ) where G <: AbstractDFG
+                               cliq::Graphs.ExVertex;
+                               logger=SimpleLogger(stdout) ) where G <: AbstractDFG
   #
-  @info "$(current_task()) Clique $(cliq.index), prepCliqInitMsgsDown!"
+  tt = split(string(now()), 'T')[end]
+  with_logger(logger) do
+    @info "$(tt) Clique $(cliq.index), prepCliqInitMsgsDown!"
+  end
   # get the current messages stored in the parent
   currmsgs = getCliqInitUpMsgs(cliq)
-  @info "$(current_task()) Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
+  with_logger(logger) do
+    @info "Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
+  end
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Vector{Bool}}}}()
+  msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
   for (cliqid, msgs) in currmsgs
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
-        msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Vector{Bool}}}()
+        msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
       end
       push!(msgspervar[msgsym], msg)
     end
   end
 
-  @info "$(current_task()) Clique $(cliq.index), vars fw/ down msgs=$(collect(keys(msgspervar)))"
+  with_logger(logger) do
+    @info "$(current_task()) Clique $(cliq.index), vars fw/ down msgs=$(collect(keys(msgspervar)))"
+  end
 
   # reference to default allocated dict location
   products = getData(cliq).downInitMsg
@@ -638,14 +659,14 @@ function prepCliqInitMsgsDown!(fgl::G,
     if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
       if length(msgspervar[msgsym]) > 1
         msgs = getindex.(msgsBo, 1)
-        haspars = Bool[]
+        haspars = 0.0
         for mb in msgsBo, val in mb[2]
-            push!(haspars, val)
+            haspars += val
         end
         products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
       else
-        @show typeof(msgsBo)
-        products[msgsym] = (msgsBo[1][1], Bool[msgsBo[1][2];])
+        # @show typeof(msgsBo)
+        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
       end
     else
       # not required, therefore remove from message to avoid confusion
@@ -655,7 +676,9 @@ function prepCliqInitMsgsDown!(fgl::G,
     end
   end
 
-  @info "$(current_task()) Clique $(cliq.index), product keys=$(collect(keys(products)))"
+  with_logger(logger) do
+    @info "$(current_task()) Clique $(cliq.index), product keys=$(collect(keys(products)))"
+  end
   return products
 end
 
@@ -728,6 +751,8 @@ during clique inference.
 
 Notes
 - May be used initialization or inference, in both upward and downward directions.
+- `msgs` are identified by variable label `::Symbol`, and my consist of multiple beliefs.
+- Message sets from different cliques are identified by clique id `::Int`.
 
 Related
 
@@ -752,9 +777,8 @@ function addMsgFactors!(subfg::G,
   end
   return msgfcts
 end
-
 function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{DFGFactor} where G <: AbstractDFG
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = ls(subfg)
@@ -777,9 +801,8 @@ function addMsgFactors!(subfg::G,
   end
   return msgfcts
 end
-
 function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}})::Vector{DFGFactor} where G <: AbstractDFG
+                        allmsgs::Dict{Int,TempBeliefMsg} )::Vector{DFGFactor} where G <: AbstractDFG
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs

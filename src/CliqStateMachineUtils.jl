@@ -358,13 +358,16 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
     end
     dwninters[i] = length(intersect(seps[i], dwnkeys))
   end
-  with_logger(logger) do
-    @info "getSiblingsDelayOrder -- allinters=$(allinters)"
-  end
 
   # sum "across/over" rows, then columns (i.e. visa versa "along" columns then rows)
   rows = sum(allinters, dims=1)
   cols = sum(allinters, dims=2)
+
+  with_logger(logger) do
+      @info "getSiblingsDelayOrder -- allinters=$(allinters)"
+      @info "getSiblingsDelayOrder -- rows=$(rows)"
+      @info "getSiblingsDelayOrder -- rows=$(cols)"
+  end
 
   # is this clique a non-zero row -- i.e. sum across columns? if not, no further special care needed
   if cols[sibidx] == 0
@@ -420,13 +423,15 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
       return true
     end
 
-    with_logger(logger) do
-      @info "getSiblingsDelayOrder -- still busy solving on branches, so potential to delay"
-    end
     # still busy solving on branches, so potential to delay
     for i in 1:len
       stillbusymask[i] = maskcol[i] && !(stat[i] in solvedstats)
     end
+    with_logger(logger) do
+        @info "getSiblingsDelayOrder -- busy solving: $maskcol, $stillbusymask"
+    end
+
+    # Too blunt -- should already have returned false by this point perhaps
     if sum(stillbusymask) > 0
       # yes something to delay about
       with_logger(logger) do

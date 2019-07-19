@@ -51,6 +51,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   async::Bool
   limititers::Int
   N::Int
+  multicore::Bool
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
                 reference=nothing,
@@ -65,21 +66,23 @@ mutable struct SolverParams <: DFG.AbstractParams
                 dbg::Bool=false,
                 async::Bool=false,
                 limititers::Int=100,
-                N::Int=100  ) = new(dimID,
-                                   registeredModuleFunctions,
-                                   reference,
-                                   stateless,
-                                   qfl,
-                                   isfixedlag,
-                                   incremental,
-                                   upsolve,
-                                   downsolve,
-                                   drawtree,
-                                   showtree,
-                                   dbg,
-                                   async,
-                                   limititers,
-                                   N  )
+                N::Int=100,
+                multicore::Bool=true  ) = new(dimID,
+                                              registeredModuleFunctions,
+                                              reference,
+                                              stateless,
+                                              qfl,
+                                              isfixedlag,
+                                              incremental,
+                                              upsolve,
+                                              downsolve,
+                                              drawtree,
+                                              showtree,
+                                              dbg,
+                                              async,
+                                              limititers,
+                                              N,
+                                              multicore  )
   #
 end
 
