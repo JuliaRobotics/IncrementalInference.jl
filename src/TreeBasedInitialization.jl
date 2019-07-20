@@ -458,6 +458,7 @@ Update `subfg<:AbstractDFG` according to internal computations for a full upsolv
 function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
                         cliq::Graphs.ExVertex;
+                        multiproc::Bool=true,
                         logger=SimpleLogger(stdout)  )::Symbol where G <: AbstractDFG
   #
   csym = getCliqFrontalVarIds(cliq)[1]
@@ -496,7 +497,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
                                 tree::BayesTree,
                                 cliq::Graphs.ExVertex;
                                 up_solve_if_able::Bool=true,
-                                multiprocess::Bool=true,
+                                multiproc::Bool=true,
                                 logger=SimpleLogger(stdout) ) where {G <: AbstractDFG}
   #
 
@@ -548,7 +549,7 @@ function doCliqAutoInitUpPart2!(subfg::G,
                                 cliq::Graphs.ExVertex,
                                 msgfcts;
                                 up_solve_if_able::Bool=true,
-                                multiprocess::Bool=true,
+                                multiproc::Bool=true,
                                 logger=SimpleLogger(stdout)  )::Symbol where {G <: AbstractDFG}
   #
   cliqst = getCliqStatus(cliq)
@@ -573,7 +574,7 @@ function doCliqAutoInitUpPart2!(subfg::G,
       tt = split(string(now()),'T')[end]
       @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
     end
-    status = doCliqUpSolve!(subfg, tree, cliq, logger=logger)
+    status = doCliqUpSolve!(subfg, tree, cliq, multiproc=multiproc, logger=logger)
   else
     with_logger(logger) do
       @info "cliq $(cliq.index), all variables not initialized, status = $(status)"

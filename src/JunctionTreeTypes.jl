@@ -48,6 +48,7 @@ mutable struct CliqStateMachineContainer{BTND}
   drawtree::Bool
   dodownsolve::Bool
   delay::Bool
+  opts::SolverParams
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
@@ -63,9 +64,10 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x9::Bool,
                                   x10a::Bool,
                                   x10aa::Bool,
+                                  x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10b,x11,x12)
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
 end
 
 function CliqStateMachineContainer(x1::GraphsDFG,
@@ -79,10 +81,11 @@ function CliqStateMachineContainer(x1::GraphsDFG,
                                    x9::Bool,
                                    x10::Bool,
                                    x10aa::Bool,
+                                   x10aaa::SolverParams,
                                    x11::BTND=emptyBTNodeData(),
-                                   x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND}
+                                   x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND}
   #
-  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,Dict{Symbol,String}(),x11,x12)
+  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,Dict{Symbol,String}(),x11,x13)
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}

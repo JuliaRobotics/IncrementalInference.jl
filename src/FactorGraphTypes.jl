@@ -51,7 +51,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   async::Bool
   limititers::Int
   N::Int
-  multicore::Bool
+  multiproc::Bool
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
                 reference=nothing,
@@ -67,7 +67,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 async::Bool=false,
                 limititers::Int=100,
                 N::Int=100,
-                multicore::Bool=true  ) = new(dimID,
+                multiproc::Bool=true  ) = new(dimID,
                                               registeredModuleFunctions,
                                               reference,
                                               stateless,
@@ -82,7 +82,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                               async,
                                               limititers,
                                               N,
-                                              multicore  )
+                                              multiproc  )
   #
 end
 

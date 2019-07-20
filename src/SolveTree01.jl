@@ -1066,9 +1066,10 @@ function doCliqInferenceUp!(fgl::FactorGraph,
                             dbg::Bool=false,
                             iters::Int=3,
                             drawpdf::Bool=false,
+                            multiproc::Bool=true,
                             logger=SimpleLogger(stdout)   )
   #
-  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, logger=logger  )
+  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
 end
 
 # """
