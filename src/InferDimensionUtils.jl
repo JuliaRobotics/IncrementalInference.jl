@@ -67,7 +67,7 @@ end
 
 Return the number of dimensions this factor vertex `fc` influences.
 """
-getFactorDim(fcd::GenericFunctionNodeData)::Int = fcd.fnc.zDim
+getFactorDim(fcd::GenericFunctionNodeData)::Float64 = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Float64(fcd.fnc.zDim)
 getFactorDim(fc::DFGFactor)::Int = getFactorDim(getData(fc))
 function getFactorDim(fg::G, fctid::Symbol)::Int where G <: AbstractDFG
   getFactorDim(getFactor(fg, fctid))
