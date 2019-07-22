@@ -684,13 +684,24 @@ Get all `cliq` variable ids`::Symbol`.
 
 Related
 
-getCliqAllFactIds
+getCliqVarIdsAll, getCliqAllFactIds
 """
 function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
   union(frtl,cond)
 end
+
+"""
+    $SIGNATURES
+
+Get all `cliq` variable ids`::Symbol`.
+
+Related
+
+getCliqAllVarIds, getCliqAllFactIds
+"""
+getCliqVarIdsAll(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqAllVarIds(cliq::Graphs.ExVertex)
 
 """
     $SIGNATURES

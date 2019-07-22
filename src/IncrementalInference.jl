@@ -63,6 +63,9 @@ export
   getTreeCliqsSolverHistories,
   assignTreeHistory!,
 
+  updateCliqSolvableDims!,
+  fetchCliqSolvableDims,
+
   # OBSOLETE TODO REMOVE #TODO TODO
   dlapi,
   localapi,
@@ -94,6 +97,7 @@ export
   lockDwnStatus!,
   unlockDwnStatus!,
   getSiblingsDelayOrder,
+  areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -174,6 +178,7 @@ export
   getVariableSolvableDim,
   getFactorSolvableDim,
   getFactorInferFraction,
+  getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   hasFactor,
   getVariable,
@@ -378,6 +383,7 @@ export
   getFrontals,                     # duplicate
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
+  getCliqVarIdsAll,
   getCliqVars,
   getCliqAllVarSyms,
   getCliqVarIdsPriors,

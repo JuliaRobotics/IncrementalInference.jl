@@ -348,3 +348,34 @@ function isCliqFullDim(fg::G,
   # if all variables are solved to their full potential
   return abs(sum(collect(values(red))) - length(red)) < 1e10
 end
+
+
+
+"""
+    $SIGNATURES
+
+Return a vector of clique index `::Int` for descending order solvable dimensions of each clique.
+
+Notes
+- Uses the number of inferable/solvable dimension information in descending order.
+- Uses function fetchCliqSolvableDims/getCliqVariableMoreInitDims to retrieved cached values of new solvable/inferable dimensions.
+
+Related
+
+fetchCliqSolvableDims, getCliqVariableMoreInitDims
+"""
+function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
+                                          prnt::Graphs.ExVertex )::Vector{Int}
+  #
+  sibs = getChildren(tree, prnt)
+  len = length(sibs)
+  tdims = Vector{Int}(undef, len)
+  sidx = Vector{Int}(undef, len)
+  for idx in 1:len
+    sidims = fetchCliqSolvableDims(sibs[idx])
+    sidx[idx] = sibs[idx].index
+    tdims[idx] = sum(collect(values(sidims)))
+  end
+  p = sortperm(tdims, rev=true)
+  return sidx[p]
+end

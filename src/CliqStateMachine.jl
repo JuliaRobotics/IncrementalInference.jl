@@ -139,7 +139,19 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
   if cliqst == :upsolved
       frsyms = getCliqFrontalVarIds(csmc.cliq)
     infocsm(csmc, "9, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms) # TODO what about down solve??
+    # TODO what about down solve??
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+
+    # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
+    # assuming maximally complte up solved cliq at this point
+    lockUpStatus!(csmc.cliq)
+    sdims = Dict{Symbol,Float64}()
+    for varid in getCliqAllVarIds(csmc.cliq)
+      sdims[varid] = 0.0
+    end
+    updateCliqSolvableDims!(csmc.cliq,sdims)
+    unlockUpStatus!(csmc.cliq)
+
     # go to 10
     return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
@@ -261,9 +273,21 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, logger=csmc.logger) # csmc.cliqSubFg
   dwnkeys = collect(keys(dwinmsgs))
 
-  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys)")
+
+  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
+
+  ## DEVIdea
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs)
 
   # determine if more info is needed for partial
+
+  # DEVidea
+  sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
+  updateCliqSolvableDims!(csmc.cliq, sdims)
+
+
+
+  infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims")
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
@@ -279,11 +303,20 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     mustwait = true
   end
 
+  # remove the downward messages too
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
   # unlock
-  infocsm(csmc, "8a, attemptCliqInitD., unlockUpStatus!")
   unlockUpStatus!(getData(prnt))
-  if mustwait
+
+  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt )
+  noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
+  infocsm(csmc, "8a, attemptCliqInitD., $mustwait, $noOneElse, solord = $solord")
+
+  if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
     # go to 8c
+    infocsm(csmc, "8a, attemptCliqInitD., mustwait so wait on change.")
     return waitChangeOnParentCondition_StateMachine
   end
 

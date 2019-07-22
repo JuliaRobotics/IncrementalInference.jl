@@ -521,3 +521,71 @@ end
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
 notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
+
+
+"""
+    $SIGNATURES
+
+Store/cache a clique's solvable dimensions.
+"""
+function updateCliqSolvableDims!(cliq::Graphs.ExVertex,
+                                 sdims::Dict{Symbol, Float64},
+                                 logger=ConsoleLogger() )::Nothing
+  #
+  cliqd = getData(cliq)
+  if isready(cliqd.solvableDims)
+    take!(cliqd.solvableDims)
+    with_logger(logger) do
+      @info "cliq $(cliq.index), updateCliqSolvableDims! -- cleared solvableDims"
+    end
+  end
+  put!(cliqd.solvableDims, sdims)
+  with_logger(logger) do
+      @info "cliq $(cliq.index), updateCliqSolvableDims! -- updated"
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Retrieve a clique's cached solvable dimensions (since last update).
+"""
+function fetchCliqSolvableDims(cliq::Graphs.ExVertex)::Dict{Symbol,Float64}
+  cliqd = getData(cliq)
+  return fetch(cliqd.solvableDims)
+  # if isready(cliqd.solvableDims)
+  # end
+end
+
+"""
+    $SIGNATURES
+
+Return true there is no other sibling that will make progress.
+
+Notes
+- Relies on sibling priority order with only one "currently best" option that will force progress in global upward inference.
+- Return false if one of the siblings is still busy
+"""
+function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
+                                        cliq::Graphs.ExVertex  )::Bool
+  #
+  stillbusylist = [:null; :initialized;]
+  prnt = getParent(tree, cliq)
+  if length(prnt) > 0
+    for si in getChildren(tree, prnt[1])
+      # are any of the other siblings still busy?
+      if si.index != cliq.index && getCliqStatus(si) in stillbusylist
+        return false
+      end
+    end
+  end
+
+  # nope, everybody is waiting for something to change -- proceed with forcing a cliq solve
+  return true
+end
+
+
+
+
+#

@@ -82,7 +82,9 @@ function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
 end
 
 lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
+lockUpStatus!(cliq::Graphs.ExVertex, idx::Int=1) = lockUpStatus!(getData(cliq), idx)
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
+unlockUpStatus!(cliq::Graphs.ExVertex) = unlockUpStatus!(getData(cliq))
 
 function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=SimpleLogger(stdout))
   with_logger(logger) do
@@ -372,8 +374,8 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
   with_logger(logger) do
     @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
   end
-  flush(logger.stream)
   # ret = Dict{Int, Symbol}()
+  # flush(logger.stream)
   prnt = getParent(tree, cliq)
   allneeddwn = true
   if length(prnt) > 0
