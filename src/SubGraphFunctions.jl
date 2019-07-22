@@ -248,15 +248,19 @@ end
 Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
 
 Notes
-- Approximately like `dest` = `src`, for all `syms`
+- Reads, `dest` := `src`, for all `syms`
 """
 function transferUpdateSubGraph!(dest::G1,
                                  src::G2,
-                                 syms::Vector{Symbol}=union(ls(src)...) ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
+                                 syms::Vector{Symbol}=union(ls(src)...),
+                                 logger=SimpleLogger(stdout)  ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
+  with_logger(logger) do
+    @info "transferUpdateSubGraph! -- syms=$syms"
+  end
   for sym in syms
-    vert = DFG.getVariable(src, sym)
-    updateFullVertData!(dest, vert, updateMAPest=true)
+    vari = DFG.getVariable(src, sym)
+    updateFullVertData!(dest, vari, updateMAPest=true)
   end
   nothing
 end

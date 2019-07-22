@@ -428,14 +428,18 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwi
       stillbusymask[i] = maskcol[i] && !(stat[i] in solvedstats)
     end
     with_logger(logger) do
-        @info "getSiblingsDelayOrder -- busy solving: $maskcol, $stillbusymask"
+        @info "getSiblingsDelayOrder -- busy solving:"
+        @info "maskcol=$maskcol"
+        @info "stillbusy=$stillbusymask"
     end
 
     # Too blunt -- should already have returned false by this point perhaps
     if sum(stillbusymask) > 0
       # yes something to delay about
       with_logger(logger) do
-        @info "getSiblingsDelayOrder -- yes delay, stat=$stat, symm=$symm"
+        @info "getSiblingsDelayOrder -- yes delay,"
+        @info "stat=$stat"
+        @info "symm=$symm"
       end
       return true
     end

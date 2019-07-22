@@ -372,10 +372,26 @@ Notes
 
 Related:
 
-getTreeAllFrontalSyms
+getCliq, getTreeAllFrontalSyms
 """
-whichCliq(bt::BayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
+getCliq(bt::BayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
+
+"""
+    $(SIGNATURES)
+
+Return the Graphs.ExVertex node object that represents a clique in the Bayes
+(Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
+
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+getCliq, getTreeAllFrontalSyms
+"""
+whichCliq(bt::BayesTree, frt::Symbol) = getCliq(bt, frt)
 whichCliq(bt::BayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Symbol(string(frt)))
+
 
 """
     $SIGNATURES
@@ -384,13 +400,13 @@ Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in
 """
 hasCliq(bt::BayesTree, frt::Symbol)::Bool = haskey(bt.frontals, frt)
 
-"""
-    $SIGNATURES
-
-Return the Graphs.ExVertex node object that represents a clique in the Bayes
-(Junction) tree, as defined by one of the frontal variables `frt::Symbol`.
-"""
-getCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+# """
+#     $SIGNATURES
+#
+# Return the Graphs.ExVertex node object that represents a clique in the Bayes
+# (Junction) tree, as defined by one of the frontal variables `frt::Symbol`.
+# """
+# getCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
 
 
 

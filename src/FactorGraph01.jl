@@ -587,12 +587,15 @@ Development Notes:
 function doautoinit!(dfg::T,
                      xi::DFGVariable;
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: AbstractDFG
+                     N::Int=100,
+                     logger=SimpleLogger(stdout) )::Bool where T <: AbstractDFG
   #
   didinit = false
   # don't initialize a variable more than once
   if !isInitialized(xi)
-    @info "try doautoinit! of $(xi.label)"
+    with_logger(logger) do
+      @info "try doautoinit! of $(xi.label)"
+    end
     # get factors attached to this variable xi
     vsym = xi.label
     neinodes = DFG.getNeighbors(dfg, vsym)
@@ -610,7 +613,9 @@ function doautoinit!(dfg::T,
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
-        @info "do init of $vsym"
+        with_logger(logger) do
+          @info "do init of $vsym"
+        end
         pts,inferdim = predictbelief(dfg, vsym, useinitfct)
         setValKDE!(xi, pts, true, inferdim)
         didinit = true
@@ -623,7 +628,8 @@ end
 function doautoinit!(dfg::T,
                      Xi::Vector{DFGVariable};
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: AbstractDFG
+                     N::Int=100,
+                     logger=SimpleLogger(stdout) )::Bool where T <: AbstractDFG
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -633,7 +639,7 @@ function doautoinit!(dfg::T,
 
   # loop over all requested variables that must be initialized
   for xi in Xi
-    didinit &= doautoinit!(dfg, xi, singles=singles, N=N)
+    didinit &= doautoinit!(dfg, xi, singles=singles, N=N, logger=logger)
   end
   return didinit
 end
@@ -641,17 +647,19 @@ end
 function doautoinit!(dfg::T,
                      xsyms::Vector{Symbol};
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: AbstractDFG
+                     N::Int=100,
+                     logger=SimpleLogger(logger)  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
-  return doautoinit!(dfg, verts, singles=singles, N=N)
+  return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)
 end
 function doautoinit!(dfg::T,
                      xsym::Symbol;
                      singles::Bool=true,
-                     N::Int=100)::Bool where T <: AbstractDFG
+                     N::Int=100,
+                     logger=SimpleLogger(stdout)  )::Bool where T <: AbstractDFG
   #
-  return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N)
+  return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N, logger=logger)
 end
 
 """

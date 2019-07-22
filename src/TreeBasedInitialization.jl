@@ -340,14 +340,17 @@ Notes:
 - Can be called multiple times
 """
 function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
-                                            prnt::Graphs.ExVertex  )::Dict{Int, Symbol}
+                                            prnt::Graphs.ExVertex,
+                                            logger=SimpleLogger(stdout) )::Dict{Int, Symbol}
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
   for ch in chlr
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
-    @info "$(current_task()) Clique $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+    with_logger(logger) do
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+    end
     ret[ch.index] = fetch(getData(ch).initUpChannel)
   end
   return ret
@@ -436,7 +439,7 @@ function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol};logger=SimpleLo
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;])
+      doautoinit!(subfg, [var;], logger=logger)
       if isinit != isInitialized(var)
         count += 1
         retval = true
@@ -463,7 +466,7 @@ function doCliqUpSolve!(subfg::G,
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger)
+  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger, multiproc=multiproc)
   getData(cliq).upsolved = true
   return :upsolved
 end
@@ -509,7 +512,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
 
   # add incoming up messages as priors to subfg
   with_logger(logger) do
-    @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- adding up message factors"
+    @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- adding up message factors"
   end
   msgfcts = addMsgFactors!(subfg, upmsgs)
 
@@ -519,12 +522,12 @@ function doCliqAutoInitUpPart1!(subfg::G,
     varorder = getCliqInitVarOrderUp(cliq)
     # do physical inits, ignore cycle return value
     with_logger(logger) do
-      @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
+      @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
     end
 
     cycleInitByVarOrder!(subfg, varorder, logger=logger)
     with_logger(logger) do
-      @info "$(current_task()) Clique $(cliq.index), doCliqAutoInitUpPart1! -- finished with up cycle order"
+      @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- finished with up cycle order"
     end
   end
   flush(logger.stream)
@@ -945,12 +948,14 @@ end
 
 Return true if has parent with status `:needdownmsg`.
 """
-function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)
+function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex, logger=SimpleLogger(stdout))
   prnt = getParent(tree, cliq)
   if length(prnt) == 0
     return false
   end
   prstat = getCliqStatus(prnt[1])
-  @info "$(current_task()) Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
+  with_logger(logger) do
+    @info "$(current_task()) Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
+  end
   return prstat == :needdownmsg
 end

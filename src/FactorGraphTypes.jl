@@ -366,6 +366,7 @@ function updateFullVertData!(fgl::G,
     lvd.val[:,:] = nvd.val[:,:]
     lvd.bw[:] = nvd.bw[:]
     lvd.initialized = nvd.initialized
+    lvd.inferdim = nvd.inferdim
   else
     # assuming nothing to be done
   end
