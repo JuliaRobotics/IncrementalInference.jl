@@ -67,7 +67,8 @@ function solveCliq!(dfgl::G,
   end
 
   # if !isTreeSolved(treel, skipinitialized=true)
-  cliqtask = @async tryCliqStateMachineSolve!(dfg, tree, i, cliqHistories, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  cliq = whichCliq(tree, cliqid)
+  cliqtask = @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, cliqHistories, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   # end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)

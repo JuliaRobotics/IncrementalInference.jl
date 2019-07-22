@@ -1,7 +1,8 @@
 
 export
   getCliqVariableInferredPercent,
-  getCliqVariableMoreInitDims
+  getCliqVariableMoreInitDims,
+  getVariablePossibleDim
 
 
 ## Description
@@ -43,7 +44,7 @@ Notes
 
 Related
 
-getVariableDim, getVariableInferredDimFraction
+getVariableDim, getVariableInferredDimFraction, getVariableInferredDim, getVariableDim
 """
 getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
 getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(getData(var), saturate)
@@ -51,19 +52,6 @@ function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) wher
   getVariableInferredDim(getVariable(fg, varid), saturate)
 end
 
-"""
-    $SIGNATURES
-
-Return the assumed fraction of dimensions for which this variable can be used during autoinitialization / inference.
-
-Notes
-- Does not consider linear dependence conditions -- i.e. might be unobservable or have poor disparity between measurements.
-
-Related
-
-getVariableInferredDim, getVariableDim
-"""
-getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
 
 getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
 getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(getData(var), saturate)
@@ -79,7 +67,7 @@ end
 
 Return the number of dimensions this factor vertex `fc` influences.
 """
-getFactorDim(fcd::GenericFunctionNodeData)::Int = fcd.fnc.zDim
+getFactorDim(fcd::GenericFunctionNodeData)::Float64 = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Float64(fcd.fnc.zDim)
 getFactorDim(fc::DFGFactor)::Int = getFactorDim(getData(fc))
 function getFactorDim(fg::G, fctid::Symbol)::Int where G <: AbstractDFG
   getFactorDim(getFactor(fg, fctid))
@@ -157,23 +145,50 @@ Related
 
 getVariablePossibleDim, getVariableDim, getVariableInferredDim, getFactorDim, getFactorInferFraction, isCliqFullDim
 """
+function getFactorSolvableDimFraction(dfg::G,
+                                      idfct::Symbol,
+                                      varid::Symbol,
+                                      saturate::Bool=false  )::Float64 where G <: AbstractDFG
+  #
+  # get all other variables
+  allvars = lsf(dfg, idfct)
+
+  # prior/unary
+  if length(allvars) == 1
+    return 1.0
+  end
+
+  # general case
+  lievars = setdiff(allvars, [varid;])
+
+  # get all other var dimensions with saturation
+  len = length(lievars)
+  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, true), lievars)
+
+  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out   variable.
+  return cumprod(fracs)[end]
+end
+function getFactorSolvableDimFraction(dfg::G,
+                                      fct::DFGFactor,
+                                      varid::Symbol,
+                                      saturate::Bool=false  )::Float64 where G <: AbstractDFG
+  #
+  getFactorSolvableDimFraction(dfg,fct.label,varid,saturate)
+end
+
 function getFactorSolvableDim(dfg::G,
                               idfct::Symbol,
                               varid::Symbol,
-                              saturate::Bool=false,
-                              fraction::Bool=false )::Float64 where G <: AbstractDFG
+                              saturate::Bool=false  )::Float64 where G <: AbstractDFG
   #
-  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out variable.
-  return fraction ? getFactorInferFraction(dfg, idfct, varid, saturate) : getFactorInferFraction(dfg, idfct, varid, saturate)*getFactorDim(getFactor(dfg, idfct))
+  return getFactorSolvableDimFraction(dfg,idfct,varid,saturate)*getFactorDim(dfg, idfct)
 end
 function getFactorSolvableDim(dfg::G,
                               fct::DFGFactor,
                               varid::Symbol,
-                              saturate::Bool=false,
-                              fraction::Bool=false )::Float64 where G <: AbstractDFG
+                              saturate::Bool=false  )::Float64 where G <: AbstractDFG
   #
-  # the dimension of leave one out variables dictate if this factor can prodive full information on leave out variable.
-  return fraction ? getFactorInferFraction(dfg, fct.label, varid, saturate) : getFactorInferFraction(dfg, fct.label, varid, saturate)*getFactorDim(fct)
+  return getFactorSolvableDimFraction(dfg,fct,varid,saturate)*getFactorDim(fct)
 end
 
 """
@@ -305,9 +320,9 @@ function getCliqVariableMoreInitDims(dfg::G,
 
   # possible variable infer dim
   # current variable infer dim
-  for var in 1:vars
-    dict[var] = getVariableSolvableDim(dfg, var)
-    dict[var] -= getVariableInferredDim(dfg, var)
+  for vari in vars
+    dict[vari] = getVariableSolvableDim(dfg, vari)
+    dict[vari] -= getVariableInferredDim(dfg, vari)
   end
 
   # return dict with result
@@ -332,4 +347,35 @@ function isCliqFullDim(fg::G,
 
   # if all variables are solved to their full potential
   return abs(sum(collect(values(red))) - length(red)) < 1e10
+end
+
+
+
+"""
+    $SIGNATURES
+
+Return a vector of clique index `::Int` for descending order solvable dimensions of each clique.
+
+Notes
+- Uses the number of inferable/solvable dimension information in descending order.
+- Uses function fetchCliqSolvableDims/getCliqVariableMoreInitDims to retrieved cached values of new solvable/inferable dimensions.
+
+Related
+
+fetchCliqSolvableDims, getCliqVariableMoreInitDims
+"""
+function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
+                                          prnt::Graphs.ExVertex )::Vector{Int}
+  #
+  sibs = getChildren(tree, prnt)
+  len = length(sibs)
+  tdims = Vector{Int}(undef, len)
+  sidx = Vector{Int}(undef, len)
+  for idx in 1:len
+    sidims = fetchCliqSolvableDims(sibs[idx])
+    sidx[idx] = sibs[idx].index
+    tdims[idx] = sum(collect(values(sidims)))
+  end
+  p = sortperm(tdims, rev=true)
+  return sidx[p]
 end

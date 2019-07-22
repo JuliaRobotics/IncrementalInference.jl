@@ -48,6 +48,7 @@ mutable struct CliqStateMachineContainer{BTND}
   drawtree::Bool
   dodownsolve::Bool
   delay::Bool
+  opts::SolverParams
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
@@ -63,9 +64,10 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x9::Bool,
                                   x10a::Bool,
                                   x10aa::Bool,
+                                  x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10b,x11,x12)
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
 end
 
 function CliqStateMachineContainer(x1::GraphsDFG,
@@ -79,10 +81,11 @@ function CliqStateMachineContainer(x1::GraphsDFG,
                                    x9::Bool,
                                    x10::Bool,
                                    x10aa::Bool,
+                                   x10aaa::SolverParams,
                                    x11::BTND=emptyBTNodeData(),
-                                   x12::SimpleLogger=SimpleLogger(Base.stdout)) where {BTND}
+                                   x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND}
   #
-  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,Dict{Symbol,String}(),x11,x12)
+  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,Dict{Symbol,String}(),x11,x13)
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -127,11 +130,12 @@ mutable struct BayesTreeNodeData
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
+  solvableDims::Channel{Dict{Symbol, Float64}}
   statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28],
+                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29],
                                 Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
@@ -151,7 +155,8 @@ function emptyBTNodeData()
                     false, :null,
                     false, false,            # 23
                     Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26
-                    Channel{Int}(1), Channel{Int}(1)   )
+                    Channel{Int}(1), Channel{Int}(1),
+                    Channel{Dict{Symbol,Float64}}(1) )
 end
 
 

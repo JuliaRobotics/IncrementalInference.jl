@@ -103,7 +103,7 @@ for ch in Graphs.out_neighbors(cliq, tree.bt)
   push!(children, ch)
 end
 prnt = getParent(tree, cliq)
-csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true)
+csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, true, true, getSolverParams(dfg))
 statemachine = StateMachine{CliqStateMachineContainer}(next=isCliqUpSolved_StateMachine)
 
 

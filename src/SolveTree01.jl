@@ -203,7 +203,8 @@ function productbelief(dfg::G,
                        dens::Vector{BallTreeDensity},
                        partials::Dict{Int, Vector{BallTreeDensity}},
                        N::Int;
-                       dbg::Bool=false ) where {G <: AbstractDFG}
+                       dbg::Bool=false,
+                       logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG}
   #
   vert = DFG.getVariable(dfg, vertlabel)
   manis = getSofttype(vert).manifolds
@@ -212,18 +213,24 @@ function productbelief(dfg::G,
   if lennonp > 1
     # multiple non-partials
     Ndims = Ndim(dens[1])
-    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    with_logger(logger) do
+      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    end
     pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 1 && lenpart >= 1
     # one non partial and one or more partials
     Ndims = Ndim(dens[1])
-    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    with_logger(logger) do
+      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    end
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
     # only partials
     denspts = getPoints(getKDE(dfg, vertlabel))
     Ndims = size(denspts,1)
-    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    with_logger(logger) do
+      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+    end
     dummy = AMP.manikde!(rand(Ndims,N), ones(Ndims), manis) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
     productpartials!(pGM, dummy, partials, manis)
@@ -237,7 +244,9 @@ function productbelief(dfg::G,
     # @info "[drct]"
     pGM = getPoints(dens[1])
   else
-    @warn "Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)"
+    with_logger(logger) do
+      @warn "Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)"
+    end
     pGM = Array{Float64,2}(undef, 0,1)
   end
 
@@ -297,7 +306,8 @@ function predictbelief(dfg::G,
                        destvert::DFGVariable,
                        factors::Vector{F};
                        N::Int=0,
-                       dbg::Bool=false  ) where {G <: AbstractDFG, F <: DFGNode}
+                       dbg::Bool=false,
+                       logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG, F <: DFGNode}
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -313,7 +323,7 @@ function predictbelief(dfg::G,
   inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg )
+  pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg, logger=logger )
 
   return pGM, sum(inferdim)
 end
@@ -322,7 +332,8 @@ function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Vector{Symbol};
                        N::Int=0,
-                       dbg::Bool=false) where G <: AbstractDFG
+                       dbg::Bool=false,
+                       logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
   #
   factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
 
@@ -332,16 +343,17 @@ function predictbelief(dfg::G,
   nn = N != 0 ? N : size(getVal(vert),2)
 
   # do the belief prediction
-  predictbelief(dfg, vert, factors, N=nn, dbg=dbg)
+  predictbelief(dfg, vert, factors, N=nn, dbg=dbg, logger=logger)
 end
 
 function predictbelief(dfg::G,
                        destvertsym::Symbol,
                        factorsyms::Colon;
                        N::Int=0,
-                       dbg::Bool=false) where G <: AbstractDFG
+                       dbg::Bool=false,
+                       logger=SimpleLogger(stdout)) where G <: AbstractDFG
   #
-  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
 end
 
 """
@@ -355,7 +367,8 @@ Return: product belief, full proposals, partial dimension proposals, labels
 function localProduct(dfg::G,
                       sym::Symbol;
                       N::Int=100,
-                      dbg::Bool=false) where G <: AbstractDFG
+                      dbg::Bool=false,
+                      logger=SimpleLogger(logger) ) where G <: AbstractDFG
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
@@ -377,7 +390,7 @@ function localProduct(dfg::G,
   inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, N=N, dbg=dbg)
 
   # take the product
-  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg )
+  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
   vert = DFG.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
 
@@ -418,7 +431,8 @@ function cliqGibbs(fg::G,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
                    dbg::Bool,
-                   manis::T  ) where {G <: AbstractDFG, T <: Tuple}
+                   manis::T,
+                   logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG, T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
@@ -434,7 +448,7 @@ function cliqGibbs(fg::G,
 
   potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
       # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
-  pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg )
+  pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg, logger=logger )
   if dbg  potprod.product = pGM  end
 
   # @info " "
@@ -477,7 +491,7 @@ function fmcmc!(fgl::G,
         vert = DFG.getVariable(fgl, vsym)
         if !getData(vert).ismargin
           # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds)
+          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
 
           if size(densPts,1)>0
             updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
@@ -837,7 +851,8 @@ function updateFGBT!(fg::G,
                      cliq::Graphs.ExVertex,
                      urt::UpReturnBPType;
                      dbg::Bool=false,
-                     fillcolor::String=""  ) where G <: AbstractDFG
+                     fillcolor::String="",
+                     logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
   #
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
@@ -850,10 +865,15 @@ function updateFGBT!(fg::G,
   # cliqFulldim = true
   for (id,dat) in urt.IDvals
     # cliqFulldim &= dat.fulldim
+    with_logger(logger) do
+      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
+    end
     updvert = DFG.getVariable(fg, id)
     setValKDE!(updvert, deepcopy(dat), true, dat.inferdim) ## TODO -- not sure if deepcopy is required
   end
-  @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
+  with_logger(logger) do
+    @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
+  end
   nothing
 end
 
@@ -1032,7 +1052,9 @@ function approxCliqMarginalUp!(fgl::G,
   end
 
   # is clique fully upsolved or only partially?
-  updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="brown")
+  with_logger(logger) do
+    updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="brown", logger=logger)
+  end
 
   # is clique fulldim/partially solved?
   # for (id, val) in urt.IDvals
@@ -1066,9 +1088,10 @@ function doCliqInferenceUp!(fgl::FactorGraph,
                             dbg::Bool=false,
                             iters::Int=3,
                             drawpdf::Bool=false,
+                            multiproc::Bool=true,
                             logger=SimpleLogger(stdout)   )
   #
-  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, logger=logger  )
+  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
 end
 
 # """

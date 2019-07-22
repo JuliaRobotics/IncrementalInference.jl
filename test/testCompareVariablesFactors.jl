@@ -52,7 +52,7 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
 
 tree = wipeBuildNewTree!(fg2)
 
@@ -60,7 +60,7 @@ tree = wipeBuildNewTree!(fg2)
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
-@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;])
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim])
 
 end
 

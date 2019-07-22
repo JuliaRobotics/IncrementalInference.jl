@@ -63,6 +63,9 @@ export
   getTreeCliqsSolverHistories,
   assignTreeHistory!,
 
+  updateCliqSolvableDims!,
+  fetchCliqSolvableDims,
+
   # OBSOLETE TODO REMOVE #TODO TODO
   dlapi,
   localapi,
@@ -89,6 +92,12 @@ export
   animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
   csmAnimate,
+  lockUpStatus!,
+  unlockUpStatus!,
+  lockDwnStatus!,
+  unlockDwnStatus!,
+  getSiblingsDelayOrder,
+  areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -97,6 +106,7 @@ export
   SamplableBelief,
   Prior,
   PackedPrior,
+  MsgPrior,
   PartialPrior,
   PackedPartialPrior,
   LinearConditional,
@@ -165,6 +175,10 @@ export
   getVariableInferredDim,
   getVariableInferredDimFraction,
   getVariablePotentialDims,
+  getVariableSolvableDim,
+  getFactorSolvableDim,
+  getFactorInferFraction,
+  getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   hasFactor,
   getVariable,
@@ -247,6 +261,7 @@ export
   prepBatchTree!,
   wipeBuildNewTree!,
   hasCliq,
+  getCliq,
   whichCliq,
   getTreeAllFrontalSyms,
   getCliqChildMsgsUp,
@@ -368,6 +383,7 @@ export
   getFrontals,                     # duplicate
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
+  getCliqVarIdsAll,
   getCliqVars,
   getCliqAllVarSyms,
   getCliqVarIdsPriors,
