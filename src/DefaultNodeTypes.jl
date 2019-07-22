@@ -49,6 +49,25 @@ end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 """
+$(TYPEDEF)
+
+Message prior on all dimensions of a variable node in the factor graph.
+
+Notes
+- Only temporary existance during CSM operations.
+"""
+struct MsgPrior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBelief
+  Z::T
+  inferdim::Float64
+  MsgPrior{T}() where {T} = new{T}()
+  MsgPrior{T}(z::T, infd::R) where {T <: SamplableBelief, R <: Real} = new{T}(z, infd)
+end
+function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
+    MsgPrior{T}(z, infd)
+end
+getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+"""
 Converter: Prior -> PackedPrior::Dict{String, Any}
 """
 function convert(::Type{Dict{String, Any}}, prior::IncrementalInference.Prior)

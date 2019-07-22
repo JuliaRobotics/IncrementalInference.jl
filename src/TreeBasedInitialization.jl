@@ -496,6 +496,17 @@ function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::T
 end
 
 
+"""
+    $SIGNATURES
+
+Perform cliq initalization calculation based on current state of the tree and factor graph,
+using upward message passing logic.
+
+Notes
+- adds msg priors added to clique subgraph
+- Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
+- must use factors in cliq only, ensured by using subgraph -- TODO general case.
+"""
 function doCliqAutoInitUpPart1!(subfg::G,
                                 tree::BayesTree,
                                 cliq::Graphs.ExVertex;
@@ -538,12 +549,12 @@ end
 """
     $SIGNATURES
 
-Perform cliq initalization calculation based on current state of the tree and factor graph,
+Follows cliq initalization calculation and attempts full upsolve
+based on current state of the tree and factor graph,
 using upward message passing logic.
 
-> NOTE WORK IN PROGRESS
-
 Notes
+- Removes msg priors added to clique subgraph
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
@@ -767,15 +778,10 @@ function addMsgFactors!(subfg::G,
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.getVariableIds(subfg)
-  # mvid = getMaxVertId(subfg)
   for (msym, dm) in msgs
     if msym in svars
-      # @show "adding down msg $msym"
-      # mvid += 1
-
-      # losing dm[2] partial information here
       # TODO prior missing manifold information
-      fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false)
+      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -786,19 +792,11 @@ function addMsgFactors!(subfg::G,
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = ls(subfg)
-  # mvid = getMaxVertId(subfg)
-  # bpvids = ls(subfg, r"bpp") # belief prop prior
-  # mvid = length(bpvids) == 0 ? 0 : parse(Int, string(sortVarNested(bpvids)[end])[4:end])
-  @warn "using hardcoded offst for msgFactors"
-  # # TODO fix hardcoded id offset
-  # mvid = 99999999000
   for (msym, dms) in msgs
     for dm in dms
       if msym in svars
-        # @show "adding down msg $msym"
-        # mvid += 1
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], Prior(dm[1]), autoinit=false) # , uid=mvid
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
         push!(msgfcts, fc)
       end
     end

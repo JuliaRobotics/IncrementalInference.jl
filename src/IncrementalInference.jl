@@ -89,6 +89,11 @@ export
   animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
   csmAnimate,
+  lockUpStatus!,
+  unlockUpStatus!,
+  lockDwnStatus!,
+  unlockDwnStatus!,
+  getSiblingsDelayOrder,
 
   # general types for softtyping of variable nodes
   InferenceVariable,
@@ -97,6 +102,7 @@ export
   SamplableBelief,
   Prior,
   PackedPrior,
+  MsgPrior,
   PartialPrior,
   PackedPartialPrior,
   LinearConditional,
