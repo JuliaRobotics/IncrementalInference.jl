@@ -320,7 +320,7 @@ function getCliqVariableMoreInitDims(dfg::G,
 
   # possible variable infer dim
   # current variable infer dim
-  for vari in 1:length(vars)
+  for vari in vars
     dict[vari] = getVariableSolvableDim(dfg, vari)
     dict[vari] -= getVariableInferredDim(dfg, vari)
   end
