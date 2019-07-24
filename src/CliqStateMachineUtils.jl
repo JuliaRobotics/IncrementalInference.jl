@@ -356,7 +356,7 @@ Dev Notes
 - Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
 - should precompute `allinters`.
 """
-function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=SimpleLogger(stdout))
+function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -505,7 +505,7 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=SimpleLogger(stdout))
+function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs

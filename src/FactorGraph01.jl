@@ -588,7 +588,7 @@ function doautoinit!(dfg::T,
                      xi::DFGVariable;
                      singles::Bool=true,
                      N::Int=100,
-                     logger=SimpleLogger(stdout) )::Bool where T <: AbstractDFG
+                     logger=ConsoleLogger() )::Bool where T <: AbstractDFG
   #
   didinit = false
   # don't initialize a variable more than once
@@ -629,7 +629,7 @@ function doautoinit!(dfg::T,
                      Xi::Vector{DFGVariable};
                      singles::Bool=true,
                      N::Int=100,
-                     logger=SimpleLogger(stdout) )::Bool where T <: AbstractDFG
+                     logger=ConsoleLogger() )::Bool where T <: AbstractDFG
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -657,7 +657,7 @@ function doautoinit!(dfg::T,
                      xsym::Symbol;
                      singles::Bool=true,
                      N::Int=100,
-                     logger=SimpleLogger(stdout)  )::Bool where T <: AbstractDFG
+                     logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
   return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N, logger=logger)
 end

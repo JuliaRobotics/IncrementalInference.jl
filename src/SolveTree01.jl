@@ -204,7 +204,7 @@ function productbelief(dfg::G,
                        partials::Dict{Int, Vector{BallTreeDensity}},
                        N::Int;
                        dbg::Bool=false,
-                       logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG}
+                       logger=ConsoleLogger()  ) where {G <: AbstractDFG}
   #
   vert = DFG.getVariable(dfg, vertlabel)
   manis = getSofttype(vert).manifolds
@@ -307,7 +307,7 @@ function predictbelief(dfg::G,
                        factors::Vector{F};
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG, F <: DFGNode}
+                       logger=ConsoleLogger()  ) where {G <: AbstractDFG, F <: DFGNode}
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -333,7 +333,7 @@ function predictbelief(dfg::G,
                        factorsyms::Vector{Symbol};
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
+                       logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
 
@@ -351,7 +351,7 @@ function predictbelief(dfg::G,
                        factorsyms::Colon;
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=SimpleLogger(stdout)) where G <: AbstractDFG
+                       logger=ConsoleLogger()) where G <: AbstractDFG
   #
   predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
 end
@@ -432,7 +432,7 @@ function cliqGibbs(fg::G,
                    N::Int,
                    dbg::Bool,
                    manis::T,
-                   logger=SimpleLogger(stdout)  ) where {G <: AbstractDFG, T <: Tuple}
+                   logger=ConsoleLogger()  ) where {G <: AbstractDFG, T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
@@ -469,7 +469,7 @@ function fmcmc!(fgl::G,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
+                logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   with_logger(logger) do
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
@@ -631,7 +631,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
                               N::Int=100,
                               dbg::Bool=false,
                               iters::Int=3,
-                              logger=SimpleLogger(stdout)  ) where {T, T2}
+                              logger=ConsoleLogger()  ) where {T, T2}
   #
   with_logger(logger) do
     @info "up w $(length(inp.sendmsgs)) msgs"
@@ -736,7 +736,7 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
-                                logger=SimpleLogger(stdout)) where G <: AbstractDFG
+                                logger=ConsoleLogger()) where G <: AbstractDFG
   #
   # TODO standardize function call to have similar stride to upGibbsCliqueDensity
   # @info "down"
@@ -782,7 +782,7 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
-                                logger=SimpleLogger(stdout)) where G <: AbstractDFG
+                                logger=ConsoleLogger()) where G <: AbstractDFG
   #
   with_logger(logger) do
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to NBPMessages."
@@ -852,7 +852,7 @@ function updateFGBT!(fg::G,
                      urt::UpReturnBPType;
                      dbg::Bool=false,
                      fillcolor::String="",
-                     logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
+                     logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   if dbg
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
@@ -1002,7 +1002,7 @@ function approxCliqMarginalUp!(fgl::G,
                                iters::Int=3,
                                drawpdf::Bool=false,
                                multiproc::Bool=true,
-                               logger=SimpleLogger(stdout)  ) where G <: AbstractDFG
+                               logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   onduplicate
@@ -1089,7 +1089,7 @@ function doCliqInferenceUp!(fgl::FactorGraph,
                             iters::Int=3,
                             drawpdf::Bool=false,
                             multiproc::Bool=true,
-                            logger=SimpleLogger(stdout)   )
+                            logger=ConsoleLogger()   )
   #
   approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
 end
@@ -1163,7 +1163,7 @@ end
 function downGibbsCliqueDensity(inp::ExploreTreeType{T},
                                 N::Int=100,
                                 dbg::Bool=false,
-                                logger=SimpleLogger(stdout)  ) where {T}
+                                logger=ConsoleLogger()  ) where {T}
   #
   with_logger(logger) do
     @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
@@ -1726,7 +1726,7 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
     if haskey(cliqHistories, i)
       hist = cliqHistories[i]
       for i in 1:length(hist)
-        hist[i][4].logger = SimpleLogger(stdout)
+        hist[i][4].logger = ConsoleLogger()
       end
       getData(treel.cliques[i]).statehistory=hist
     end
@@ -1835,7 +1835,7 @@ function initInferTreeUp!(dfg::G,
   #   if haskey(cliqHistories, i)
   #     hist = cliqHistories[i]
   #     for i in 1:length(hist)
-  #       hist[i][4].logger = SimpleLogger(stdout)
+  #       hist[i][4].logger = ConsoleLogger()
   #     end
   #     getData(treel.cliques[i]).statehistory=hist
   #   end

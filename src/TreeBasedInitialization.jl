@@ -86,7 +86,7 @@ lockUpStatus!(cliq::Graphs.ExVertex, idx::Int=1) = lockUpStatus!(getData(cliq), 
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 unlockUpStatus!(cliq::Graphs.ExVertex) = unlockUpStatus!(getData(cliq))
 
-function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=SimpleLogger(stdout))
+function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
   with_logger(logger) do
     @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
   end
@@ -118,7 +118,7 @@ Notes
 Dev Notes
 - Should be made an atomic transaction
 """
-function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=SimpleLogger(stdout))
+function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=ConsoleLogger())
   cd = getData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
@@ -151,7 +151,7 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=S
   nothing
 end
 
-function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=SimpleLogger(stdout))
+function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=ConsoleLogger())
   cdat = getData(cliq)
   with_logger(logger) do
     @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
@@ -304,7 +304,7 @@ function setTreeCliquesMarginalized!(dfg::G,
 end
 
 
-function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=SimpleLogger(stdout))::Nothing
+function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=ConsoleLogger())::Nothing
   #
   lbl = prnt.attributes["label"]
 
@@ -343,7 +343,7 @@ Notes:
 """
 function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
                                             prnt::Graphs.ExVertex,
-                                            logger=SimpleLogger(stdout) )::Dict{Int, Symbol}
+                                            logger=ConsoleLogger() )::Dict{Int, Symbol}
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
@@ -369,7 +369,7 @@ Notes
 - exit strategy is parent becomes status `:initialized`.
 """
 function blockCliqSiblingsParentNeedDown(tree::BayesTree,
-                                         cliq::Graphs.ExVertex; logger=SimpleLogger(stdout))
+                                         cliq::Graphs.ExVertex; logger=ConsoleLogger())
   #
   with_logger(logger) do
     @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
@@ -470,7 +470,7 @@ function doCliqUpSolve!(subfg::G,
                         tree::BayesTree,
                         cliq::Graphs.ExVertex;
                         multiproc::Bool=true,
-                        logger=SimpleLogger(stdout)  )::Symbol where G <: AbstractDFG
+                        logger=ConsoleLogger()  )::Symbol where G <: AbstractDFG
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
@@ -520,7 +520,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
                                 cliq::Graphs.ExVertex;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=SimpleLogger(stdout) ) where {G <: AbstractDFG}
+                                logger=ConsoleLogger() ) where {G <: AbstractDFG}
   #
 
   # init up msg has special procedure for incomplete messages
@@ -572,7 +572,7 @@ function doCliqAutoInitUpPart2!(subfg::G,
                                 msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=SimpleLogger(stdout)  )::Symbol where {G <: AbstractDFG}
+                                logger=ConsoleLogger()  )::Symbol where {G <: AbstractDFG}
   #
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
@@ -1060,7 +1060,7 @@ end
 
 Return true if has parent with status `:needdownmsg`.
 """
-function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex, logger=SimpleLogger(stdout))
+function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex, logger=ConsoleLogger())
   prnt = getParent(tree, cliq)
   if length(prnt) == 0
     return false
