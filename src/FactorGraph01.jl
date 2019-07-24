@@ -616,7 +616,7 @@ function doautoinit!(dfg::T,
         with_logger(logger) do
           @info "do init of $vsym"
         end
-        pts,inferdim = predictbelief(dfg, vsym, useinitfct)
+        pts,inferdim = predictbelief(dfg, vsym, useinitfct, logger=logger)
         setValKDE!(xi, pts, true, inferdim)
         didinit = true
       end
