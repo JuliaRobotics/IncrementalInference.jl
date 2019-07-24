@@ -637,6 +637,9 @@ it is possible that none of the child cliq variables have been initialized.
 Notes
 - init msgs from child upward passes are individually stored in this `cliq`.
 - fresh product of overlapping beliefs are calculated on each function call.
+
+Dev Notes
+- This should be the initialization cycle of parent, build up bit by bit...
 """
 function prepCliqInitMsgsDown!(fgl::G,
                                tree::BayesTree,
