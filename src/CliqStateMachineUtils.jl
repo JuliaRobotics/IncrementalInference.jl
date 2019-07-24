@@ -310,6 +310,42 @@ end
 """
     $SIGNATURES
 
+Convenience function to assign and make video of CSM state machine for `cliqs`.
+
+Notes
+- Probably several teething issues still (lower priority).
+- Use `assignhist` if solver params async was true, or errored.
+
+Related
+
+csmAnimate, printCliqHistorySummary
+"""
+function makeCsmMovie(fg::G,
+                      tree::BayesTree,
+                      cliqs=ls(fg);
+                      assignhist=nothing,
+                      show::Bool=true,
+                      filename::AS="/tmp/caesar/csmCompound/out.ogv",
+                      frames::Int=1000 )::String where {G <: AbstractDFG, AS <: AbstractString}
+  #
+  if assignhist != nothing
+    assignTreeHistory!(tree, assignhist)
+  end
+  csmAnimate(fg, tree, cliqs, frames=frames)
+  # Base.rm("/tmp/caesar/csmCompound/out.ogv")
+  run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 $filename`)
+  if show
+    @async run(`totem $filename`)
+  end
+  filename
+end
+
+
+
+
+"""
+    $SIGNATURES
+
 Return true if this clique's down init should be delayed on account of prioritization among sibling separators.
 
 Notes

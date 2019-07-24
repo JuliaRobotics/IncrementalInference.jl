@@ -92,6 +92,7 @@ export
   animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
   csmAnimate,
+  makeCsmMovie,
   lockUpStatus!,
   unlockUpStatus!,
   lockDwnStatus!,

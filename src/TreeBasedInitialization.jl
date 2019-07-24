@@ -426,8 +426,14 @@ Notes:
 - assumed `subfg` is a subgraph containing only the factors that can be used.
   - including the required up or down messages
 - intended for both up and down initialization operations.
+
+Dev Notes
+- Should monitor updates based on the number of inferred & solvable dimensions
 """
-function cycleInitByVarOrder!(subfg::G, varorder::Vector{Symbol};logger=SimpleLogger(stdout))::Bool where G <: AbstractDFG
+function cycleInitByVarOrder!(subfg::G,
+                              varorder::Vector{Symbol};
+                              logger=ConsoleLogger()  )::Bool where G <: AbstractDFG
+  #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
   end
@@ -627,6 +633,121 @@ function doCliqAutoInitUpPart2!(subfg::G,
   return status
 end
 
+# Helper function for prepCliqInitMsgsDown!
+# populate products with products of upward messages
+function condenseDownMsgsProductOnly!(fgl::G,
+                                      products,
+                                      msgspervar  ) where G <: AbstractDFG
+  #
+  # multiply multiple messages together
+  for (msgsym, msgsBo) in msgspervar
+    # check if this particular down message requires msgsym
+    if DFG.hasVariable(fgl, msgsym)
+      if length(msgspervar[msgsym]) > 1
+        msgs = getindex.(msgsBo, 1)
+        haspars = 0.0
+        for mb in msgsBo, val in mb[2]
+            haspars += val
+        end
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
+      else
+        # transfer if only have a single belief
+        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
+      end
+    else
+      # not required, therefore remove from message to avoid confusion
+      if haskey(products, msgsym)
+        delete!(products, msgsym)
+      end
+    end
+  end
+  nothing
+end
+
+
+# currently for internal use only
+# initialize variables based on best current achievable ordering
+# OBVIOUSLY a lot of refactoring and consolidation needed with cliqGibbs / approxCliqMarginalUp
+function initSolveSubFg!(subfg::G,
+                         logger=ConsoleLogger() ) where G <: AbstractDFG
+  #
+  varorder = getSubFgPriorityInitOrder(subfg, logger)
+  with_logger(logger) do
+    @info "initSolveSubFg! -- varorder=$varorder"
+  end
+  cycleInitByVarOrder!(subfg, varorder, logger=logger)
+  nothing
+end
+
+# Helper function for prepCliqInitMsgsDown!
+# future, be used in a cached system with parent in one location only for all siblings
+function condenseDownMsgsProductPrntFactors!(fgl::G,
+                                             products,
+                                             msgspervar,
+                                             prnt::Graphs.ExVertex,
+                                             cliq::Graphs.ExVertex,
+                                             logger=ConsoleLogger()  ) where G <: AbstractDFG
+  #
+
+  # determine the variables of interest
+  reqMsgIds = collect(keys(msgspervar))
+  # unique frontals per cliq
+  prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
+  lvarids = union(prntvars, reqMsgIds)
+  # determine allowable factors, if any (only from parent cliq)
+  awfcts = getCliqAllFactIds(prnt)
+  with_logger(logger) do
+      @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
+      @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
+      @info "condenseDownMsgsProductPrntFactors! -- allow factors $awfcts"
+  end
+
+  # build required subgraph for parent/sibling down msgs
+  lsfg = buildSubgraphFromLabels(fgl, lvarids)
+  tempfcts = lsf(lsfg)
+  dellist = setdiff(awfcts, tempfcts)
+  for delf in dellist
+    deleteFactor!(lsfg,delf)
+  end
+  with_logger(logger) do
+      @info "condenseDownMsgsProductPrntFactors! -- lsfg fcts=$(lsf(lsfg)),"
+      @info "condenseDownMsgsProductPrntFactors! -- excess factors $dellist"
+  end
+
+  # add message priors
+  addMsgFactors!(lsfg, msgspervar)
+
+  # perform initialization/inference
+  # ....uhhh TODO
+  initSolveSubFg!(lsfg, logger)
+
+      # QUICK DBG CODE
+      vars = ls(lsfg)
+      len = length(vars)
+      tdims = Vector{Float64}(undef, len)
+      isinit = Vector{Bool}(undef, len)
+      for idx in 1:len
+        tdims[idx] = getVariableSolvableDim(lsfg, vars[idx])
+        isinit[idx] = isInitialized(lsfg, vars[idx])
+      end
+      with_logger(logger) do
+          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: vars=$vars"
+          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
+          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
+      end
+      # QUICK DBG CODE
+
+  # extract complete downward marginal msg priors
+  for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
+    vari = getVariable(lsfg, id)
+    products[id] = (getKDE(vari), getVariableInferredDim(vari))
+  end
+
+  # if recycling lsfg
+  # deleteMsgFactors!(...)
+
+  nothing
+end
 
 """
     $SIGNATURES
@@ -637,28 +758,30 @@ it is possible that none of the child cliq variables have been initialized.
 Notes
 - init msgs from child upward passes are individually stored in this `cliq`.
 - fresh product of overlapping beliefs are calculated on each function call.
+- Assumed that `prnt` of siblings
 
 Dev Notes
 - This should be the initialization cycle of parent, build up bit by bit...
 """
 function prepCliqInitMsgsDown!(fgl::G,
                                tree::BayesTree,
+                               prnt::Graphs.ExVertex,
                                cliq::Graphs.ExVertex;
-                               logger=SimpleLogger(stdout) ) where G <: AbstractDFG
+                               logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
-    @info "$(tt) Clique $(cliq.index), prepCliqInitMsgsDown!"
+    @info "$(tt) cliq $(prnt.index), prepCliqInitMsgsDown! --"
   end
   # get the current messages stored in the parent
-  currmsgs = getCliqInitUpMsgs(cliq)
+  currmsgs = getCliqInitUpMsgs(prnt)
   with_logger(logger) do
-    @info "Clique $(cliq.index), cliq ids::Int=$(collect(keys(currmsgs)))"
+    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
 
   # check if any msgs should be multiplied together for the same variable
   msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
-  for (cliqid, msgs) in currmsgs
+  for (prntid, msgs) in currmsgs
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
         msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
@@ -668,36 +791,22 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   with_logger(logger) do
-    @info "$(current_task()) Clique $(cliq.index), vars fw/ down msgs=$(collect(keys(msgspervar)))"
+    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
   end
 
   # reference to default allocated dict location
-  products = getData(cliq).downInitMsg
-  # multiply multiple messages together
-  for (msgsym, msgsBo) in msgspervar
-    # check if this particular down message requires msgsym
-    if DFG.hasVariable(fgl, msgsym) #haskey(fgl.IDs, msgsym)
-      if length(msgspervar[msgsym]) > 1
-        msgs = getindex.(msgsBo, 1)
-        haspars = 0.0
-        for mb in msgsBo, val in mb[2]
-            haspars += val
-        end
-        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
-      else
-        # @show typeof(msgsBo)
-        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
-      end
-    else
-      # not required, therefore remove from message to avoid confusion
-      if haskey(products, msgsym)
-        delete!(products, msgsym)
-      end
-    end
-  end
+  products = getData(prnt).downInitMsg
+
+  ## TODO use parent factors too
+  # intersect with the asking clique's seperator variables
+
+    # products only method
+    condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
+    # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+
 
   with_logger(logger) do
-    @info "$(current_task()) Clique $(cliq.index), product keys=$(collect(keys(products)))"
+    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products)))"
   end
   return products
 end
@@ -918,7 +1027,7 @@ function doCliqInitDown!(subfg::G,
                          tree::BayesTree,
                          cliq::Graphs.ExVertex  ) where G <: AbstractDFG
   #
-  @warn "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
+  @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
   prnt = getParent(tree, cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
   status = doCliqInitDown!(subfg, cliq, dwinmsgs)
