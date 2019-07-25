@@ -1726,7 +1726,7 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
     if haskey(cliqHistories, i)
       hist = cliqHistories[i]
       for i in 1:length(hist)
-        hist[i][4].logger = ConsoleLogger()
+        hist[i][4].logger = SimpleLogger(stdout)
       end
       getData(treel.cliques[i]).statehistory=hist
     end
