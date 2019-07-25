@@ -264,7 +264,10 @@ export
   hasCliq,
   getCliq,
   whichCliq,
+  getCliqDepth,
   getTreeAllFrontalSyms,
+  getTreeCliqUpMsgsAll,
+  stackCliqUpMsgsByVariable,
   getCliqChildMsgsUp,
   getCliqParentMsgDown,
   getCliqDownMsgsAfterDownSolve,
@@ -284,6 +287,10 @@ export
   fifoFreeze!,
   getCurrentWorkspaceFactors,
   getCurrentWorkspaceVariables,
+
+  # temp const types TODO
+  TempBeliefMsg,
+  TempUpMsgPlotting,
 
   #functors need
   getSample,

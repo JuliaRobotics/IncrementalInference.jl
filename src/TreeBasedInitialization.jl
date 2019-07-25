@@ -801,8 +801,8 @@ function prepCliqInitMsgsDown!(fgl::G,
   # intersect with the asking clique's seperator variables
 
     # products only method
-    condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    # condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
+    condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
 
 
   with_logger(logger) do
