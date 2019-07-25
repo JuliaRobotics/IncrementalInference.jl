@@ -735,6 +735,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
           @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
           @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
       end
+      writeGraphPdf(lsfg, show=false, filepath="/tmp/caesar/lsfg.pdf")
       # QUICK DBG CODE
 
   # extract complete downward marginal msg priors
@@ -801,8 +802,8 @@ function prepCliqInitMsgsDown!(fgl::G,
   # intersect with the asking clique's seperator variables
 
     # products only method
-    # condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
+    # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
 
 
   with_logger(logger) do
