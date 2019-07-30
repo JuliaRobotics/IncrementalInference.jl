@@ -768,7 +768,8 @@ function prepCliqInitMsgsDown!(fgl::G,
                                tree::BayesTree,
                                prnt::Graphs.ExVertex,
                                cliq::Graphs.ExVertex;
-                               logger=ConsoleLogger() ) where G <: AbstractDFG
+                               logger=ConsoleLogger(),
+                               dbgnew::Bool=true  ) where G <: AbstractDFG
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
@@ -802,8 +803,11 @@ function prepCliqInitMsgsDown!(fgl::G,
   # intersect with the asking clique's seperator variables
 
     # products only method
-    condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    if dbgnew
+        condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
+    else
+        condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    end
 
 
   with_logger(logger) do

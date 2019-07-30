@@ -662,6 +662,8 @@ unmarginalizeVariablesAll!
 """
 unfreezeVariablesAll!(fgl::FactorGraph) = unmarginalizeVariablesAll!(fgl)
 
+
+
 """
     $SIGNATURES
 
@@ -671,9 +673,9 @@ Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
 function resetVariableAllInitializations!(fgl::FactorGraph)
-  vsyms = union(ls(fgl)...)
+  vsyms = ls(fgl)
   for sym in vsyms
-    getData(fgl, sym).initialized = false
+    setVariableInitialized!(getVariable(fgl, sym), :false)
   end
   nothing
 end

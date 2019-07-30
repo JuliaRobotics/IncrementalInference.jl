@@ -443,6 +443,7 @@ getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsg(whichCliq(btl, sym))
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
 getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
+getCliqMsgsUp(treel::BayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
 
 """
     $(SIGNATURES)
