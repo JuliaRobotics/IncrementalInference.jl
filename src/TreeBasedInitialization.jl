@@ -707,7 +707,10 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
-    deleteFactor!(lsfg,delf)
+    # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
+    if hasFactor(lsfg, delf)
+      deleteFactor!(lsfg,delf)
+    end
   end
   with_logger(logger) do
       @info "condenseDownMsgsProductPrntFactors! -- lsfg fcts=$(lsf(lsfg)),"
