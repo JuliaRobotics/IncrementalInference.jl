@@ -1769,7 +1769,8 @@ function asyncTreeInferUp!(dfg::G,
     # @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
-        if !(i in skipcliqids)
+        scsym = getCliqFrontalVarIds(treel.cliques[i])
+        if length(intersect(scsym, skipcliqids)) == 0
           alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for

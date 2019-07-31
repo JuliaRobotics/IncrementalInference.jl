@@ -33,9 +33,13 @@ const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.E
 $(TYPEDEF)
 
 Solver parameters for the DistributedFactoGraph.
+
+Dev Notes
+- TODO remove NothingUnion
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
+  # TODO remove NothingUnion
   registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}} # remove from
   reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
   stateless::Bool
@@ -52,6 +56,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   limititers::Int
   N::Int
   multiproc::Bool
+  devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
                 reference=nothing,
@@ -67,22 +72,24 @@ mutable struct SolverParams <: DFG.AbstractParams
                 async::Bool=false,
                 limititers::Int=100,
                 N::Int=100,
-                multiproc::Bool=true  ) = new(dimID,
-                                              registeredModuleFunctions,
-                                              reference,
-                                              stateless,
-                                              qfl,
-                                              isfixedlag,
-                                              incremental,
-                                              upsolve,
-                                              downsolve,
-                                              drawtree,
-                                              showtree,
-                                              dbg,
-                                              async,
-                                              limititers,
-                                              N,
-                                              multiproc  )
+                multiproc::Bool=true,
+                devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
+                                                                            registeredModuleFunctions,
+                                                                            reference,
+                                                                            stateless,
+                                                                            qfl,
+                                                                            isfixedlag,
+                                                                            incremental,
+                                                                            upsolve,
+                                                                            downsolve,
+                                                                            drawtree,
+                                                                            showtree,
+                                                                            dbg,
+                                                                            async,
+                                                                            limititers,
+                                                                            N,
+                                                                            multiproc,
+                                                                            devParams)
   #
 end
 

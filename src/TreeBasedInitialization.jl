@@ -735,7 +735,6 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
           @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
           @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
       end
-      writeGraphPdf(lsfg, show=false, filepath="/tmp/caesar/lsfg.pdf")
       # QUICK DBG CODE
 
   # extract complete downward marginal msg priors
@@ -809,6 +808,20 @@ function prepCliqInitMsgsDown!(fgl::G,
         condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
     end
 
+  # remove msgs that have no data
+  rmlist = Symbol[]
+  for (prsym,belmsg) in products
+    if belmsg[2] < 1e-10
+      # no information so remove
+      push!(rmlist, prsym)
+    end
+  end
+  with_logger(logger) do
+    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)"
+  end
+  for pr in rmlist
+    delete!(products, pr)
+  end
 
   with_logger(logger) do
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products)))"

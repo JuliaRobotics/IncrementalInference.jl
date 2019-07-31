@@ -245,7 +245,7 @@ function resetCliqSolve!(dfg::G,
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)
   end
-  prnt = getParent(tree, cliq)
+  prnt = getParent(treel, cliq)
   if length(prnt) > 0
     setCliqUpInitMsgs!(prnt[1], cliq.index, TempBeliefMsg())
   end

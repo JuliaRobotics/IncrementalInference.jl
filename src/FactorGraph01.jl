@@ -738,6 +738,9 @@ function doautoinit!(dfg::T,
           union!(useinitfct, usefct)
         end
       end
+      with_logger(logger) do
+        @info "init with useinitfct $useinitfct"
+      end
       # println("Consider all singleton (unary) factors to $vsym...")
       # calculate the predicted belief over $vsym
       if length(useinitfct) > 0
