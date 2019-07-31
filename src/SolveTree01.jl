@@ -46,7 +46,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
         pdi = m.p[vsym] # ::EasyMessage
         push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
         push!(wfac, :msg)
-        inferdim += pdi.inferdim
+        @show inferdim += pdi.inferdim
       end
       # TODO -- we can inprove speed of search for inner loop
     end
@@ -78,7 +78,7 @@ function packFromLocalPotentials!(dfg::G,
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, fct.label)
-      inferdim += isinferdim
+      @show inferdim += isinferdim
     end
   end
 
@@ -451,6 +451,10 @@ function cliqGibbs(fg::G,
   pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg, logger=logger )
   if dbg  potprod.product = pGM  end
 
+  # with_logger(logger) do
+    @info "cliqGibbs -- end $vsym, inferdim=$inferdim, ls(fg)=$(ls(fg, vsym))"
+  # end
+
   # @info " "
   return pGM, potprod, inferdim
 end
@@ -514,6 +518,9 @@ function fmcmc!(fgl::G,
       bws = vec(getBW(pden)[:,1])
       manis = getSofttype(vert).manifolds
       d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
+      with_logger(logger) do
+        @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
+      end
     end
     with_logger(logger) do
       @info "fmcmc! -- finished on $(cliq.attributes["label"])"
@@ -647,6 +654,12 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   priorprods = Vector{CliqGibbsMC}()
 
   cliqdata = getData(inp.cliq)
+
+  with_logger(logger) do
+    for el in inp.sendmsgs, (id,msg) in el.p
+      @info "inp.sendmsgs[$id].inferdim=$(msg.inferdim)"
+    end
+  end
 
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
@@ -936,7 +949,9 @@ function getCliqChildMsgsUp(fg_::G,
       @info "$(current_task()) Clique $(cliq.index), child cliq $(child.index), getCliqChildMsgsUp -- key=$(key)"
       # id = fg_.IDs[key]
       manis = getManifolds(fg_, key)
-      nbpchild.p[key] = convert(EasyMessage, bel, manis)
+      # TODO -- get inferdim
+      inferdim = getVariableInferredDim(fg_, key)
+      nbpchild.p[key] = convert(EasyMessage, bel, manis, inferdim)
     end
     push!(childmsgs, nbpchild)
   end
