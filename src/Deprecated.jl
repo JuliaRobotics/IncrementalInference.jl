@@ -46,6 +46,8 @@ function writeGraphPdf(fgl::G;
 end
 
 
+
+
 """
     $(SIGNATURES)
 
@@ -73,6 +75,394 @@ function dwnMsg(btl::BayesTree, sym::Symbol)
   @warn "deprecated dwnMsg, use getDwnMsgs instead"
   dwnMsg(whichCliq(btl, sym))
 end
+
+
+
+
+"""
+    $(SIGNATURES)
+
+Pass NBPMessages back down the tree -- pre order tree traversal.
+"""
+function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
+  @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+
+  mcmciter = inp.prnt != nothing ? 3 : 0; # skip mcmc in root on dwn pass
+  rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
+  updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+  setCliqStatus!(inp.cliq, :downsolved)
+  drawpdf ? drawTree(inp.bt) : nothing
+
+  # rr = Array{Future,1}()
+  # pcs = procs()
+
+  ddt=nothing
+  for child in out_neighbors(inp.cliq, inp.bt.bt)
+    ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
+    ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
+    drawpdf ? drawTree(inp.bt) : nothing
+  end
+
+  # return modifications to factorgraph to calling process
+  return ddt
+end
+
+# post order tree traversal and build potential functions
+function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
+    @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
+    childMsgs = Array{NBPMessage,1}()
+
+    outnei = out_neighbors(inp.cliq, inp.bt.bt)
+    len = length(outnei)
+    for child in outnei
+        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[])
+        @info "upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])"
+        newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
+        @info "upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))"
+        push!(  childMsgs, newmsgs )
+    end
+
+    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+    ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, nothing, childMsgs)
+
+    urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
+    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
+    drawpdf ? drawTree(inp.bt) : nothing
+    @info "End Clique $(inp.cliq.attributes["label"]) ============================="
+    urt.upMsgs
+end
+
+
+function downGibbsCliqueDensity(inp::ExploreTreeType{T},
+                                N::Int=100,
+                                dbg::Bool=false,
+                                logger=ConsoleLogger()  ) where {T}
+  #
+  with_logger(logger) do
+    @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
+  end
+  mcmciter = inp.prnt != nothing ? 3 : 0
+  return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
+end
+
+function prepDwnPreOrderStack!(bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1})
+  # dwn message passing function
+  nodedata = nothing
+  tempStack = Array{Graphs.ExVertex,1}()
+  push!(tempStack, parentStack[1])
+
+  while ( length(tempStack) != 0 || nodedata != nothing )
+    if nodedata != nothing
+      for child in out_neighbors(nodedata, bt.bt) #nodedata.cliq, nodedata.bt.bt
+          ## TODO -- don't yet have the NBPMessage results to propagate belief
+          ## should only construct ett during processing
+          push!(parentStack, child) #ett
+          push!(tempStack, child) #ett
+      end
+      nodedata = nothing # its over but we still need to complete computation in each of the leaves of the tree
+    else
+      nodedata = tempStack[1]
+      deleteat!(tempStack, 1)
+    end
+  end
+  nothing
+end
+
+function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
+
+  cliqdata = getData(cliq)
+  IDS = [cliqdata.frontalIDs; cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+
+
+  @error "findVertsAssocCliq -- not completed yet"
+  nothing
+end
+
+function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
+    # info("starting pett")
+    # TODO -- expand this to grab only partial subsection from the fg and bt data structures
+
+
+    if length(pmsgs) < 1
+      return ExploreTreeType(pfg, pbt, cliqCursor, prnt, NBPMessage[])
+    else
+      return ExploreTreeType(pfg, pbt, cliqCursor, prnt, pmsgs)
+    end
+    nothing
+end
+
+function dispatchNewDwnProc!(fg::G,
+                             bt::BayesTree,
+                             parentStack::Array{Graphs.ExVertex,1},
+                             stkcnt::Int,
+                             refdict::Dict{Int,Future};
+                             N::Int=100,
+                             dbg::Bool=false,
+                             drawpdf::Bool=false  ) where G <: AbstractDFG
+  #
+  cliq = parentStack[stkcnt]
+  while !haskey(refdict, cliq.index) # nodedata.cliq
+    sleep(0.25)
+  end
+
+  rDDT = fetch(refdict[cliq.index]) #nodedata.cliq
+  delete!(refdict, cliq.index) # nodedata
+
+  if rDDT != nothing
+    updateFGBT!(fg, bt, cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
+    setCliqStatus!(cliq, :downsolved) # should be a notify
+    drawpdf ? drawTree(bt) : nothing
+  end
+
+  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+
+  for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
+      haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
+      ett = partialExploreTreeType(fg, emptr, child, cliq, [rDDT.dwnMsg]) # bt
+      refdict[child.index] = remotecall(downGibbsCliqueDensity, upp2() , ett, N) # Julia 0.5 swapped order
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Downward message passing on Bayes (Junction) tree.
+
+Notes
+- Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
+"""
+function processPreOrderStack!(fg::G,
+                               bt::BayesTree,
+                               parentStack::Array{Graphs.ExVertex,1},
+                               refdict::Dict{Int,Future};
+                               N::Int=100,
+                               dbg::Bool=false,
+                               drawpdf::Bool=false ) where G <: AbstractDFG
+  #
+    # dwn message passing function for iterative tree exploration
+    stkcnt = 0
+
+    @sync begin
+      sendcnt = 1:length(parentStack) # separate memory for remote calls
+      for i in 1:sendcnt[end]
+          @async try
+            dispatchNewDwnProc!(fg, bt, parentStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf) # stkcnt ##pidxI,nodedata
+          catch err
+            bt = catch_backtrace()
+            println()
+            showerror(stderr, err, bt)
+          end
+      end
+    end
+    nothing
+end
+
+function downMsgPassingIterative!(startett::ExploreTreeType{T};
+                                  N::Int=100,
+                                  dbg::Bool=false,
+                                  drawpdf::Bool=false  ) where {T}
+  #
+  # this is where we launch the downward iteration process from
+  parentStack = Array{Graphs.ExVertex,1}()
+  refdict = Dict{Int,Future}()
+
+  # start at the given clique in the tree -- shouldn't have to be the root.
+  pett = partialExploreTreeType(startett.fg, startett.bt, startett.cliq,
+                                        startett.prnt, startett.sendmsgs)
+  refdict[startett.cliq.index] = remotecall(downGibbsCliqueDensity, upp2(), pett, N)  # for Julia 0.5
+
+  push!(parentStack, startett.cliq )
+
+  prepDwnPreOrderStack!(startett.bt, parentStack)
+  processPreOrderStack!(startett.fg, startett.bt, parentStack, refdict, N=N, dbg=dbg, drawpdf=drawpdf )
+
+  @info "dwnward leftovers, $(keys(refdict))"
+  nothing
+end
+
+function prepPostOrderUpPassStacks!(bt::BayesTree,
+                                    parentStack::Array{Graphs.ExVertex,1},
+                                    childStack::Array{Graphs.ExVertex,1}  )
+  # upward message passing preparation
+  while ( length(parentStack) != 0 )
+      #2.1 Pop a node from first stack and push it to second stack
+      cliq = parentStack[end]
+      deleteat!(parentStack, length(parentStack))
+      push!(childStack, cliq )
+
+      #2.2 Push left and right children of the popped node to first stack
+      for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
+          push!(parentStack, child )
+      end
+  end
+  for child in childStack
+    @show child.attributes["label"]
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
+"""
+function asyncProcessPostStacks!(fgl::G,
+                                 bt::BayesTree,
+                                 chldstk::Vector{Graphs.ExVertex},
+                                 stkcnt::Int,
+                                 refdict::Dict{Int,Future};
+                                 N::Int=100,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
+  #
+  if stkcnt == 0
+    @info "asyncProcessPostStacks! ERROR stkcnt=0"
+    error("asyncProcessPostStacks! stkcnt=0")
+  end
+  cliq = chldstk[stkcnt]
+  gomulti = true
+  @info "Start Clique $(cliq.attributes["label"]) ============================="
+  childMsgs = Array{NBPMessage,1}()
+  ur = nothing
+  for child in out_neighbors(cliq, bt.bt)
+      @info "asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))"
+        while !haskey(refdict, child.index)
+          # info("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
+          # @show child.index, keys(refdict)
+          sleep(0.25)
+        end
+
+      if gomulti
+        ur = fetch(refdict[child.index])
+      else
+        ur = child.attributes["remoteref"]
+      end
+      updateFGBT!( fgl, bt, child.index, ur, dbg=dbg, fillcolor="pink" ) # deep copies happen in the update function
+      drawpdf ? drawTree(bt) : nothing
+      #delete!(child.attributes, "remoteref")
+
+      push!(childMsgs, ur.upMsgs)
+
+  end
+  @info "====================== Clique $(cliq.attributes["label"]) ============================="
+  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+  pett = partialExploreTreeType(fgl, emptr, cliq, nothing, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
+
+  if haskey(cliq.attributes, "remoteref")
+      @info "asyncProcessPostStacks! -- WHY YOU ALREADY HAVE REMOTEREF?"
+  end
+
+  newprocid = upp2()
+  if gomulti
+    refdict[cliq.index] = remotecall(upGibbsCliqueDensity, newprocid, pett, N, dbg ) # swap order for Julia 0.5
+  else
+    # bad way to do non multi test
+    cliq.attributes["remoteref"] = upGibbsCliqueDensity(pett, N, dbg)
+  end
+
+  # delete as late as possible, but could happen sooner
+  for child in out_neighbors(cliq, bt.bt)
+      # delete!(child.attributes, "remoteref")
+      delete!(refdict, child.index)
+  end
+
+  @info "End Clique $(cliq.attributes["label"]) ============================="
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Multiprocess upward belief propagation message passing function, using async tasks.
+
+Notes
+- asyncs used to wrap remotecall for multicore.
+- separate multithreaded calls can occur on each separate process.
+"""
+function processPostOrderStacks!(fg::G,
+                                 bt::BayesTree,
+                                 childStack::Array{Graphs.ExVertex,1};
+                                 N::Int=100,
+                                 dbg::Bool=false,
+                                 drawpdf::Bool=false  ) where G <: AbstractDFG
+  #
+  refdict = Dict{Int,Future}()
+
+  stkcnt = length(childStack)
+  @sync begin
+    sendcnt = stkcnt:-1:1 # separate stable memory
+    for i in 1:stkcnt
+        @async asyncProcessPostStacks!(fg, bt, childStack, sendcnt[i], refdict, N=N, dbg=dbg, drawpdf=drawpdf ) # deepcopy(stkcnt)
+    end
+  end
+  @info "processPostOrderStacks! -- THIS ONLY HAPPENS AFTER SYNC"
+  # we still need to fetch the root node computational output
+  if true
+    ur = fetch(refdict[childStack[1].index])
+  else
+    ur = childStack[1].attributes["remoteref"]
+  end
+  # delete!(childStack[1].attributes, "remoteref") # childStack[1].cliq
+  delete!(refdict, childStack[1].index)
+
+  @info "upward leftovers, $(keys(refdict))"
+
+  updateFGBT!(fg, bt, childStack[1].index, ur, dbg=dbg, fillcolor="pink" ) # nodedata
+  drawpdf ? drawTree(bt) : nothing
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Return clique pointers for the given order in which they will be solved (sequentially).
+"""
+function getCliqOrderUpSolve(treel::BayesTree, startcliq=treel.cliques[1])
+  # http://www.geeksforgeeks.org/iterative-postorder-traversal/
+  # this is where we launch the downward iteration process from
+  parentStack = Vector{Graphs.ExVertex}()
+  childStack = Vector{Graphs.ExVertex}()
+  #Loop while first stack is not empty
+  push!(parentStack, startcliq)
+  # Starting at the root means we have a top down view of the tree
+  prepPostOrderUpPassStacks!(treel, parentStack, childStack)
+  return childStack
+end
+
+"""
+    $SIGNATURES
+
+Return clique pointers for the given order in which they will be solved (sequentially).
+"""
+getTreeCliqSolveOrderUp(treel::BayesTree, startcliq=treel.cliques[1]) = getCliqOrderUpSolve(treel, startcliq)
+
+"""
+    $SIGNATURES
+
+Perform upward message passing (multi-process) algorithm for sum-product solution from leaves to root of the tree.
+
+Notes:
+* inspired by http://www.geeksforgeeks.org/iterative-postorder-traversal/
+* this is where downward iteration process is launched from.
+"""
+function upMsgPassingIterative!(startett::ExploreTreeType{T};
+                                N::Int=100,
+                                dbg::Bool=false,
+                                drawpdf::Bool=false  ) where {T}
+  #
+  childStack = getCliqOrderUpSolve(startett.bt, startett.cliq)
+  # Starting at the root means we have a top down view of the tree
+  processPostOrderStacks!(startett.fg, startett.bt, childStack, N=N, dbg=dbg, drawpdf=drawpdf)
+  nothing
+end
+# for (ids, cliq) in treel.cliques
+#   getData(cliq).initialized = :initialized
+# end
+
+
 
 
 

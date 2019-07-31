@@ -237,7 +237,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
-  setValKDE!(v, em.pts, em.bws, setinit, inferdim, solveKey=solveKey) # getBW(p)[:,1]
+  setValKDE!(v, em.pts, em.bws, setinit, Float64(inferdim), solveKey=solveKey) # getBW(p)[:,1]
   # setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   # getData(v).inferdim = inferdim
   nothing
@@ -248,7 +248,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(getData(v,solveKey=solveKey),p,setinit,inferdim)
+  setValKDE!(getData(v,solveKey=solveKey),p,setinit,Float64(inferdim))
   # pts = getPoints(p)
   # setVal!(v, pts, getBW(p)[:,1], solveKey=solveKey) # BUG ...al!(., val, . ) ## TODO -- this can be little faster
   # setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing

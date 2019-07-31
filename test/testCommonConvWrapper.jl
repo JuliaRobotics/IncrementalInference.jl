@@ -143,7 +143,7 @@ end
 @testset "Test in factor graph setting..." begin
 
 
-global N = 101
+global N = 100
 global p1 = rand(1,N)
 global p2 = rand(1,N)
 global t = Array{Array{Float64,2},1}()
@@ -262,7 +262,7 @@ end
 
 @testset "Generic convolution testing in factor graph context..." begin
 
-global N=101
+global N=100
 global p1 = randn(1,N)
 global d1 = kde!(p1)
 global p2 = randn(1,N)
@@ -283,24 +283,25 @@ global f2 = addFactor!(fg, [v1;v2], odo)
 
 global tree = wipeBuildNewTree!(fg)
 
-global pts = getVal(getVert(fg,:x1))
+global pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
-global pts = getVal(getVert(fg,:x2))
+global pts = getVal(getVariable(fg,:x2))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-inferOverTreeR!(fg, tree, N=N)
-inferOverTreeR!(fg, tree)
+# inferOverTreeR!(fg, tree, N=N)
+# inferOverTreeR!(fg, tree)
 # @time [inferOverTreeR!(fg, tree, N=N) for i in 1:3];
+tree, smt, hist = solveTree!(fg)
 
 
 # using Gadfly
 # plot(y=rand(10))
 # plotKDE(getVertKDE(fg,:x2))
 
-global pts = getVal(getVert(fg,:x1))
+global pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-global pts = getVal(getVert(fg,:x2))
+global pts = getVal(getVariable(fg,:x2))
 @test abs(Statistics.mean(pts)-100.0) < 10.0
 
 
