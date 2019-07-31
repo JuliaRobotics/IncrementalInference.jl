@@ -253,7 +253,7 @@ Notes
 function transferUpdateSubGraph!(dest::G1,
                                  src::G2,
                                  syms::Vector{Symbol}=union(ls(src)...),
-                                 logger=SimpleLogger(stdout)  ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
+                                 logger=ConsoleLogger()  ) where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"

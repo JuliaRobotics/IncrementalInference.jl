@@ -149,7 +149,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
     end
-    updateCliqSolvableDims!(csmc.cliq,sdims)
+    updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
     unlockUpStatus!(csmc.cliq)
 
     # go to 10
@@ -270,7 +270,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # take atomic lock when waiting for down ward information
   lockUpStatus!(getData(prnt))
 
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, logger=csmc.logger) # csmc.cliqSubFg
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=!haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)) # csmc.cliqSubFg
   dwnkeys = collect(keys(dwinmsgs))
 
 
@@ -283,8 +283,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # DEVidea
   sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
-  updateCliqSolvableDims!(csmc.cliq, sdims)
-
+  updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
 
 
   infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims")

@@ -662,6 +662,8 @@ unmarginalizeVariablesAll!
 """
 unfreezeVariablesAll!(fgl::FactorGraph) = unmarginalizeVariablesAll!(fgl)
 
+
+
 """
     $SIGNATURES
 
@@ -671,9 +673,9 @@ Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
 function resetVariableAllInitializations!(fgl::FactorGraph)
-  vsyms = union(ls(fgl)...)
+  vsyms = ls(fgl)
   for sym in vsyms
-    getData(fgl, sym).initialized = false
+    setVariableInitialized!(getVariable(fgl, sym), :false)
   end
   nothing
 end
@@ -684,8 +686,8 @@ function convert(::Type{BallTreeDensity}, p::EasyMessage)
   AMP.manikde!(p.pts, p.bws, p.manifolds)
 end
 
-function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T) where {T <: Tuple}
-  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds)
+function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T, inferdim=0.0) where {T <: Tuple}
+  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds, inferdim)
 end
 
 

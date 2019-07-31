@@ -362,7 +362,7 @@ Notes
 
 Related
 
-fetchCliqSolvableDims, getCliqVariableMoreInitDims
+fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
 function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
                                           prnt::Graphs.ExVertex )::Vector{Int}
@@ -378,4 +378,35 @@ function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
   end
   p = sortperm(tdims, rev=true)
   return sidx[p]
+end
+
+
+"""
+    $SIGNATURES
+
+Return a vector of variable labels `::Symbol` for descending order solvable dimensions of each clique.
+
+Notes
+- EXPERIMENTAL, NOT EXPORTED
+- Uses the number of inferable/solvable dimension information in descending order.
+- Uses function getVariableSolvableDim to retrieved cached values of new solvable/inferable dimensions.
+
+Related
+
+getVariableSolvableDim, getCliqSiblingsPriorityInitOrder
+"""
+function getSubFgPriorityInitOrder(sfg::G, logger=ConsoleLogger()) where G <: AbstractDFG
+
+    vars = ls(sfg)
+    len = length(vars)
+    tdims = Vector{Int}(undef, len)
+    for idx in 1:len
+      tdims[idx] = getVariableSolvableDim(sfg, vars[idx])
+    end
+    p = sortperm(tdims, rev=true)
+    with_logger(logger) do
+      @info "getSubFgPriorityInitOrder -- ordered vars=$(vars[p])"
+      @info "getSubFgPriorityInitOrder -- ordered tdims=$(tdims[p])"
+    end
+    return vars[p]
 end

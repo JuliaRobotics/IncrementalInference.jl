@@ -400,13 +400,23 @@ Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in
 """
 hasCliq(bt::BayesTree, frt::Symbol)::Bool = haskey(bt.frontals, frt)
 
-# """
-#     $SIGNATURES
-#
-# Return the Graphs.ExVertex node object that represents a clique in the Bayes
-# (Junction) tree, as defined by one of the frontal variables `frt::Symbol`.
-# """
-# getCliq(bt::BayesTree, frt::Symbol) = whichCliq(bt, string(frt))
+"""
+    $SIGNATURES
+
+Return depth in tree as `::Int`, with root as depth=0.
+
+Related
+
+getCliq
+"""
+function getCliqDepth(tree, cliq)::Int
+  prnt = getParent(tree, cliq)
+  if length(prnt) == 0
+    return 0
+  end
+  return getCliqDepth(tree, prnt[1]) + 1
+end
+getCliqDepth(tree::BayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
 
 
 
@@ -433,6 +443,7 @@ getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsg(whichCliq(btl, sym))
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
 getCliqMsgsUp(cliql::Graphs.ExVertex) = upMsg(cliql)
+getCliqMsgsUp(treel::BayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
 
 """
     $(SIGNATURES)
@@ -1177,3 +1188,66 @@ Get the `::Condition` variable for a clique, likely used for delaying state tran
 state machine solver.
 """
 getSolveCondition(cliq::Graphs.ExVertex) = getData(cliq).solveCondition
+
+
+"""
+    $SIGNATURES
+
+Return dictionary of all up belief messages currently in a Bayes `tree`.
+
+Related
+
+getUpMsgs
+"""
+function getTreeCliqUpMsgsAll(tree::BayesTree)::Dict{Int,TempBeliefMsg}
+  allUpMsgs = Dict{Int,TempBeliefMsg}()
+  for (idx,cliq) in tree.cliques
+    msgs = getUpMsgs(cliq)
+    allUpMsgs[cliq.index] = TempBeliefMsg()
+    for (lbl,msg) in msgs
+      # TODO capture the inferred dimension as part of the upward propagation
+      allUpMsgs[cliq.index][lbl] = (msg, 0.0)
+    end
+  end
+  return allUpMsgs
+end
+
+"""
+    $SIGNATURES
+
+Convert tree up messages dictionary to a new dictionary relative to variables specific messages and their depth in the tree
+
+Notes
+- Return data in `TempUpMsgPlotting` format:
+    Dict{Symbol,   -- is for variable label
+     Vector{       -- multiple msgs for the same variable
+      Symbol,      -- Clique index
+      Int,         -- Depth in tree
+      BTD          -- Belief estimate
+      inferredDim  -- Information count
+     }
+"""
+function stackCliqUpMsgsByVariable(tree::BayesTree,
+                                   tmpmsgs::Dict{Int, TempBeliefMsg}  )::TempUpMsgPlotting
+  #
+  # start of the return data structure
+  stack = TempUpMsgPlotting()
+
+  # look at all the clique level data
+  for (cidx,tmpmsg) in tmpmsgs
+    # look at all variables up msg from each clique
+    for (sym,msgdim) in tmpmsg
+      # create a new object for a particular variable if hasnt been seen before
+      if !haskey(stack,sym)
+        stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
+      end
+      # assemble metadata
+      cliq = tree.cliques[cidx]
+      frt = getCliqFrontalVarIds(cliq)[1]
+      # add this belief msg and meta data to vector of variable entry
+      push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))
+    end
+  end
+
+  return stack
+end

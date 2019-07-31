@@ -19,7 +19,18 @@ end
 EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T, inferdim::Union{Float64, Int32, Int64}=0) where {T <: Tuple} = EasyMessage{T}(a, b, manis, inferdim)
 EasyMessage(p::BallTreeDensity, manis::T, inferdim::Union{Float64, Int32, Int64}=0) where {T <: Tuple} = EasyMessage{T}(p, manis, inferdim)
 
-const TempBeliefMsg = Dict{Symbol, Tuple{BallTreeDensity, Float64}} # Dict{Symbol, Tuple{BallTreeDensity, Vector{Bool}}}
+
+const TempBeliefMsg = Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+
+# Dict{Symbol,   -- is for variable label
+#  Vector{       -- multiple msgs for the same variable
+#   Symbol,      -- Clique index
+#   Int,         -- Depth in tree
+#   BTD          -- Belief estimate
+#   inferredDim  -- Information count
+#  }
+const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
+
 """
 $(TYPEDEF)
 """

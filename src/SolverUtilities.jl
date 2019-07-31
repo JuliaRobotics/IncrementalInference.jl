@@ -224,4 +224,47 @@ function getCurrentWorkspaceVariables()::Vector{Type}
 end
 
 
+"""
+    $SIGNATURES
+
+Reset the state of all variables in a clique to not initialized.
+
+Notes
+- resets numberical values to zeros.
+
+Dev Notes
+- TODO not all kde manifolds will initialize to zero.
+"""
+function resetCliqSolve!(dfg::G,
+                         treel::BayesTree,
+                         cliq::Graphs.ExVertex;
+                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
+  #
+  cda = getData(cliq)
+  vars = getCliqVarIdsAll(cliq)
+  for varis in vars
+    resetVariable!(dfg, varis, solveKey=solveKey)
+  end
+  prnt = getParent(treel, cliq)
+  if length(prnt) > 0
+    setCliqUpInitMsgs!(prnt[1], cliq.index, TempBeliefMsg())
+  end
+  cda.upMsg = Dict{Symbol, BallTreeDensity}()
+  cda.dwnMsg = Dict{Symbol, BallTreeDensity}()
+  cda.upInitMsgs = Dict{Int, TempBeliefMsg}()
+  cda.downInitMsg = TempBeliefMsg()
+  setCliqStatus!(cliq, :null)
+  setCliqDrawColor(cliq, "")
+  return nothing
+end
+
+function resetCliqSolve!(dfg::G,
+                         treel::BayesTree,
+                         frt::Symbol;
+                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
+  #
+  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
+end
+
+
 #

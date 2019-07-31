@@ -6,6 +6,19 @@
     $SIGNATURES
 
 Perform inference over the Bayes tree according to `opt::SolverParams`.
+
+Notes
+- Variety of options, including fixed-lag solving -- see `getSolverParams(fg)` for details.
+
+Example
+```julia
+# without [or with] compute recycling
+tree, smt, hist = solveTree!(fg [,tree])
+```
+
+Related
+
+solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::G,
                     oldtree::BayesTree=emptyBayesTree();
@@ -50,6 +63,16 @@ end
     $SIGNATURES
 
 Perform inference over one clique in the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree = wipeBuildNewTree!(fg)
+smt, hist = solveCliq!(fg, tree, :x1 [,cliqHistories=hist] )
+```
+
+Related
+
+solveTree!, wipeBuildNewTree!
 """
 function solveCliq!(dfgl::G,
                     tree::BayesTree,
