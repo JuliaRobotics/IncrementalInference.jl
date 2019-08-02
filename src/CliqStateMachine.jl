@@ -559,6 +559,8 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
   infocsm(csmc, "2, build subgraph syms=$(syms)")
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+
+  # go to 4
   return isCliqNull_StateMachine
 end
 
@@ -682,7 +684,8 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         show::Bool=false,
                                         incremental::Bool=true,
                                         limititers::Int=-1,
-                                        downsolve::Bool=false,
+                                        upsolve::Bool=true,
+                                        downsolve::Bool=true,
                                         recordhistory::Bool=false,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
@@ -695,7 +698,9 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   csmc = CliqStateMachineContainer(dfg, initfg(), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
 
-  statemachine = StateMachine{CliqStateMachineContainer}(next=testCliqCanRecycled_StateMachine)
+  nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
+
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nxt)
   while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
