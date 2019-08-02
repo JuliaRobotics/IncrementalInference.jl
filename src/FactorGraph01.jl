@@ -1110,7 +1110,7 @@ function buildBayesNet!(dfg::G, p::Array{Symbol,1}; maxparallel::Int=50)::Nothin
       # localapi.updatevertex!(fg, tuv)
 
       # TODO -- remove links from current vertex to any marginals
-      rmVarFromMarg(dfg, vert, gm)
+      rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
 
       #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
       # new function between all Si (round the outside, right the outside)
