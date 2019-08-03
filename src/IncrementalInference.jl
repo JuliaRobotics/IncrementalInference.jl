@@ -421,6 +421,8 @@ export
   loadjld,
   landmarks,
   setCliqDrawColor,
+  fetchCliqTaskHistoryAll!,
+  fetchAssignTaskHistoryAll!,
 
   # Temp placeholder for evaluating string types to real types
   _evalType,

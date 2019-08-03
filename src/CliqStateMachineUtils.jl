@@ -219,7 +219,7 @@ function solveCliqWithStateMachine!(dfg::G,
                                     downsolve::Bool=true,
                                     recordhistory::Bool=false,
                                     verbose::Bool=false,
-                                    nextfnc::Function=isCliqUpSolved_StateMachine,
+                                    nextfnc::Function=testCliqCanRecycled_StateMachine,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
