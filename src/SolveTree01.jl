@@ -1371,6 +1371,20 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
   end
 end
 
+function fetchCliqTaskHistoryAll!(smt, hist)
+  for i in 1:length(smt)
+    # sm = smt[i]
+    hist[i] = fetch(smt[i])
+  end
+end
+
+function fetchAssignTaskHistoryAll!(tree::BayesTree, smt)
+  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
+  fetchCliqTaskHistoryAll!(smt, hist)
+  assignTreeHistory!(tree, hist)
+end
+
+
 """
     $SIGNATURES
 
@@ -1428,12 +1442,6 @@ function asyncTreeInferUp!(dfg::G,
 end
 
 
-function fetchCliqTaskHistoryAll!(smt, hist)
-  for i in 1:length(smt)
-    # sm = smt[i]
-    hist[i] = fetch(smt[i])
-  end
-end
 
 """
     $SIGNATURES
