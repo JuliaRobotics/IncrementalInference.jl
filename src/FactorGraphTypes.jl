@@ -70,7 +70,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 showtree::Bool=false,
                 dbg::Bool=false,
                 async::Bool=false,
-                limititers::Int=100,
+                limititers::Int=500,
                 N::Int=100,
                 multiproc::Bool=true,
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,

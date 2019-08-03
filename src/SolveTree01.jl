@@ -1291,8 +1291,8 @@ end
 
 function tryCliqStateMachineSolve!(dfg::G,
                                    treel::BayesTree,
-                                   i::Int,
-                                   cliqHistories;
+                                   i::Int;
+                                   # cliqHistories;
                                    N::Int=100,
                                    oldtree::BayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
@@ -1318,7 +1318,8 @@ function tryCliqStateMachineSolve!(dfg::G,
     history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
-    cliqHistories[i] = history
+    #
+    # cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
       @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
@@ -1349,6 +1350,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   # if !(clst in [:upsolved; :downsolved; :marginalized])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
+  return history
 end
 
 """
@@ -1400,30 +1402,38 @@ function asyncTreeInferUp!(dfg::G,
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
-  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   if !isTreeSolved(treel, skipinitialized=true)
     # @sync begin
       # duplicate int i into async (important for concurrency)
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
   end # if
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  assignTreeHistory!(treel, cliqHistories)
+  # assignTreeHistory!(treel, cliqHistories)
+
   # for i in 1:length(treel.cliques)
   #   if haskey(cliqHistories, i)
   #     getData(treel.cliques[i]).statehistory=cliqHistories[i]
   #   end
   # end
 
-  return alltasks, cliqHistories
+  return alltasks #, cliqHistories
 end
 
+
+function fetchCliqTaskHistoryAll!(smt, hist)
+  for i in 1:length(smt)
+    # sm = smt[i]
+    hist[i] = fetch(smt[i])
+  end
+end
 
 """
     $SIGNATURES
@@ -1460,11 +1470,13 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, cliqHistories, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
         end # if
       end # for
     end # sync
   end # if
+
+  fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   assignTreeHistory!(treel, cliqHistories)
