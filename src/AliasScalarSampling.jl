@@ -18,7 +18,7 @@ struct AliasingScalarSampler
     pxf = Float64.(p_x)
     pxf[pxf.<0.0] .= 0.0 # no negative values!
     pxf ./=sum(pxf)  # must sum to 1
-    pxf2 = pxf - quantile(pxf,SNRfloor) # remove lowest quantile
+    pxf2 = pxf .- quantile(pxf,SNRfloor) # remove lowest quantile
     pxf2s = sum(pxf2)
     pxf[:] = 1e-10 < pxf2s ? pxf2 : pxf
     pxf[pxf.<0.0] .= 0.0
