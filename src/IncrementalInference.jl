@@ -164,6 +164,7 @@ export
   factorCanInitFromOtherVars,
   doautoinit!,
   manualinit!,
+  initVariable!,
   asyncTreeInferUp!,
   initInferTreeUp!,
   solveCliqWithStateMachine!,

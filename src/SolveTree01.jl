@@ -368,7 +368,7 @@ function localProduct(dfg::G,
                       sym::Symbol;
                       N::Int=100,
                       dbg::Bool=false,
-                      logger=SimpleLogger(logger) ) where G <: AbstractDFG
+                      logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
