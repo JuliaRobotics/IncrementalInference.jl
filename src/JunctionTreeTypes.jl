@@ -36,8 +36,8 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND}
-  dfg::AbstractDFG
+mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG}
+  dfg::T
   cliqSubFg::DistributedFactorGraphs.GraphsDFG
   tree::BayesTree
   cliq::Graphs.ExVertex
@@ -52,7 +52,7 @@ mutable struct CliqStateMachineContainer{BTND}
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND}()
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG}() # NOTE JT-GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::DFG.GraphsDFG,
                                   x3::BayesTree,
@@ -67,7 +67,7 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND,G}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
 end
 
 function CliqStateMachineContainer(x1::G,
