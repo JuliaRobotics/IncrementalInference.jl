@@ -3,8 +3,8 @@
 
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
 
-#supported in memmory fg types
-const InMemmoryDFGTypes = Union{DFG.GraphsDFG,DFG.LightGraphsDFG}
+#supported in Memory fg types
+const InMemoryDFGTypes = Union{DFG.GraphsDFG,DFG.LightGraphsDFG}
 
 # BayesTree declarations
 """
@@ -38,7 +38,7 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemmoryDFGTypes}
+mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemoryDFGTypes}
   dfg::T
   cliqSubFg::InMemG
   tree::BayesTree
@@ -56,7 +56,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   logger::SimpleLogger
   CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
-                                  x2::InMemmoryDFGTypes,
+                                  x2::InMemoryDFGTypes,
                                   x3::BayesTree,
                                   x4::Graphs.ExVertex,
                                   x5::Vector{Graphs.ExVertex},
@@ -73,7 +73,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
 end
 
 function CliqStateMachineContainer(x1::G,
-                                   x2::InMemmoryDFGTypes,
+                                   x2::InMemoryDFGTypes,
                                    x3::BayesTree,
                                    x4::Graphs.ExVertex,
                                    x5::Vector{Graphs.ExVertex},
@@ -220,8 +220,8 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct FullExploreTreeType{T, T2}
-  fg::InMemmoryDFGTypes
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
   bt::T2
   cliq::Graphs.ExVertex
   prnt::T
