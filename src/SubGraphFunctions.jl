@@ -56,7 +56,13 @@ getVariableIds
 function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
 
   # data structure for cliq sub graph
-  cliqSubFg = initfg()
+  if G <: InMemmoryDFGTypes
+    #Same type
+    cliqSubFg = initfg(G)
+  else
+    #Default
+    cliqSubFg = initfg()
+  end
 
   # add a little too many variables (since we need the factors)
   for sym in syms

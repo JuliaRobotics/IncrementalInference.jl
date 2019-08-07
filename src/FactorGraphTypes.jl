@@ -166,7 +166,15 @@ function initfg(::Type{T}; params=SolverParams(),
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T{typeof(params)}(params=params)
+  return T(params=params)
+end
+
+function initfg(::Type{T}, params::SolverParams;
+                           sessionname="NA",
+                           robotname="",
+                           username="",
+                           cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
+  return T{SolverParams}(params=params)
 end
 
 """
