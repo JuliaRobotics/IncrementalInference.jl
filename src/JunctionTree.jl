@@ -235,7 +235,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50  ) where G <: AbstractDFG
+                                maxparallel::Int=50  ) where G <: InMemoryDFGTypes
   #
   println()
   fge = deepcopy(dfg)
@@ -259,6 +259,45 @@ function buildTreeFromOrdering!(dfg::G,
 
   return tree
 end
+
+
+"""
+    $SIGNATURES
+
+Build Bayes/Junction/Elimination tree from a given variable ordering.
+"""
+function buildTreeFromOrdering!(dfg::DFG.CloudGraphsDFG,
+                                p::Vector{Symbol};
+                                drawbayesnet::Bool=false,
+                                maxparallel::Int=50  )
+  #
+  println()
+
+  @info "Copying to LightGraphsDFG"
+  fge = InMemDFGType(params=SolverParams())#GraphsDFG{SolverParams}(params=SolverParams())
+  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
+
+  println("Building Bayes net from cloud...")
+  buildBayesNet!(fge, p, maxparallel=maxparallel)
+
+  tree = emptyBayesTree()
+  buildTree!(tree, fge, p)
+
+  if drawbayesnet
+    println("Bayes Net")
+    sleep(0.1)
+    fid = open("bn.dot","w+")
+    write(fid,to_dot(fge.bn))
+    close(fid)
+  end
+
+  println("Find potential functions for each clique")
+  cliq = tree.cliques[1] # start at the root
+  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+
+  return tree
+end
+
 
 """
     $SIGNATURES

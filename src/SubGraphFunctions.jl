@@ -55,7 +55,7 @@ getVariableIds
 """
 function buildSubgraphFromLabels(dfg::G,
                                  syms::Vector{Symbol},
-                                 destType::Type{<:AbstractDFG}=GraphsDFG{SolverParams} ) where G <: AbstractDFG
+                                 destType::Type{<:AbstractDFG}=InMemDFGType ) where G <: AbstractDFG
 
   # data structure for cliq sub graph
   if G <: InMemoryDFGTypes
