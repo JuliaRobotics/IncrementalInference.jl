@@ -346,7 +346,7 @@ export
   #development interface
   getTreeCliqSolveOrderUp,
   getCliqOrderUpSolve,
-  getCliqInitVarOrderUp,
+  getCliqVarInitOrderUp,
   getCliqInitVarOrderDown,
   getCliqStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
@@ -437,6 +437,7 @@ export
   getDwnMsgs,
   getCliqMsgsUp,
   getCliqMsgsDown,
+  getCliqVarSolveOrderUp,
 
   getSym,
   doCliqInferenceUp!,
