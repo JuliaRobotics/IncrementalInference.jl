@@ -238,7 +238,10 @@ function solveCliqWithStateMachine!(dfg::G,
     push!(children, ch)
   end
   prnt = getParent(tree, cliq)
-  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(G), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
+
+  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
+
+  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
   statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc)
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
