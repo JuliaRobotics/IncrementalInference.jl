@@ -159,6 +159,24 @@ function initfg(dfg::T=GraphsDFG{SolverParams}(params=SolverParams());
   return dfg
 end
 
+
+#init an empty fg with a provided type and SolverParams
+function initfg(::Type{T}; params=SolverParams(),
+                           sessionname="NA",
+                           robotname="",
+                           username="",
+                           cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
+  return T(params=params)
+end
+
+function initfg(::Type{T}, params::SolverParams;
+                           sessionname="NA",
+                           robotname="",
+                           username="",
+                           cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
+  return T{SolverParams}(params=params)
+end
+
 """
 $(TYPEDEF)
 """

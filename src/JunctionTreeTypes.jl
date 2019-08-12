@@ -3,6 +3,8 @@
 
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
 
+#supported in Memory fg types
+const InMemoryDFGTypes = Union{DFG.GraphsDFG,DFG.LightGraphsDFG}
 
 # BayesTree declarations
 """
@@ -36,9 +38,9 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND}
-  dfg::DistributedFactorGraphs.GraphsDFG
-  cliqSubFg::DistributedFactorGraphs.GraphsDFG
+mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemoryDFGTypes}
+  dfg::T
+  cliqSubFg::InMemG
   tree::BayesTree
   cliq::Graphs.ExVertex
   parentCliq::Vector{Graphs.ExVertex}
@@ -52,9 +54,9 @@ mutable struct CliqStateMachineContainer{BTND}
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND}()
-  CliqStateMachineContainer{BTND}(x1::DFG.GraphsDFG,
-                                  x2::DFG.GraphsDFG,
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
+  CliqStateMachineContainer{BTND}(x1::G,
+                                  x2::InMemoryDFGTypes,
                                   x3::BayesTree,
                                   x4::Graphs.ExVertex,
                                   x5::Vector{Graphs.ExVertex},
@@ -67,11 +69,11 @@ mutable struct CliqStateMachineContainer{BTND}
                                   x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND} = new{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
 end
 
-function CliqStateMachineContainer(x1::GraphsDFG,
-                                   x2::GraphsDFG,
+function CliqStateMachineContainer(x1::G,
+                                   x2::InMemoryDFGTypes,
                                    x3::BayesTree,
                                    x4::Graphs.ExVertex,
                                    x5::Vector{Graphs.ExVertex},
@@ -83,7 +85,7 @@ function CliqStateMachineContainer(x1::GraphsDFG,
                                    x10aa::Bool,
                                    x10aaa::SolverParams,
                                    x11::BTND=emptyBTNodeData(),
-                                   x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND}
+                                   x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG}
   #
   CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,Dict{Symbol,String}(),x11,x13)
 end
@@ -218,8 +220,8 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct FullExploreTreeType{T, T2}
-  fg::DistributedFactorGraphs.GraphsDFG
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
   bt::T2
   cliq::Graphs.ExVertex
   prnt::T
