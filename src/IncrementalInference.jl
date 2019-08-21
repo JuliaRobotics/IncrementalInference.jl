@@ -485,7 +485,7 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
-const InMemDFGType = DFG.LightGraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+const InMemDFGType = DFG.LightDFG{SolverParams} # JT TODO move to somewhere more fitting?
 
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")

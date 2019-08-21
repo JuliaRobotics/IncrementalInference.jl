@@ -273,7 +273,7 @@ function buildTreeFromOrdering!(dfg::DFG.CloudGraphsDFG,
   #
   println()
 
-  @info "Copying to LightGraphsDFG"
+  @info "Copying to MetaGraphsDFG"
   fge = InMemDFGType(params=SolverParams())#GraphsDFG{SolverParams}(params=SolverParams())
   DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
 
