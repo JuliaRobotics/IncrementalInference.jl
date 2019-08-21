@@ -47,6 +47,37 @@ end
 
 
 
+"""
+    $(SIGNATURES)
+
+Save mostly complete Factor Graph type by converting complicated FunctionNodeData
+types to 'Packed' types using user supplied converters. Ground truth can also be
+saved and recovered by the associated loadjld(file="tempfg.jld2") method.
+
+Notes:
+- Must use `.jld2` since Julia 1.0 (previous version was deprecated).
+"""
+function savejld(fgl::G;
+                 file::AbstractString="tempfg.jld2"  ) where G <: AbstractDFG
+  #
+  @error "savejld has been deprecated, use saveDFG instead"
+  # fgs = encodefg(fgl)
+  @save file fgl
+  return file
+end
+
+"""
+    $(SIGNATURES)
+
+Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This function
+uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
+"""
+function loadjld(;file::AbstractString="tempfg.jld2")
+  @error "loadjld has been deprecated, use loadDFG instead"
+  fgd = @load file fgl
+  return fgd
+end
+
 
 """
     $(SIGNATURES)
@@ -705,3 +736,30 @@ function initializeNode!(fgl::G,
   @warn "initializeNode! has been deprecated in favor of initVariable!"
   initVariable!(fgl,sym,N=N )
 end
+
+
+
+# """
+#     $(SIGNATURES)
+#
+# Test if all elements of the string is a number:  Ex, "123" is true, "1_2" is false.
+# """
+# allnums(str::S) where {S <: AbstractString} = occursin(Regex(string(["[0-9]" for j in 1:length(str)]...)), str)
+# # occursin(r"_+|,+|-+", node_idx)
+#
+# isnestednum(str::S; delim='_') where {S <: AbstractString} = occursin(Regex("[0-9]+$(delim)[0-9]+"), str)
+#
+# function sortnestedperm(strs::Vector{<:AbstractString}; delim='_')
+#   str12 = split.(strs, delim)
+#   sp1 = sortperm(parse.(Int,getindex.(str12,2)))
+#   sp2 = sortperm(parse.(Int,getindex.(str12,1)[sp1]))
+#   return sp1[sp2]
+# end
+
+# moved to DFG
+# """
+#     $SIGNATURES
+#
+# Return `::Bool` on whether `fg::FactorGraph` has orphaned nodes or graph fragments.
+# """
+# hasOrphans(fg::FactorGraph) = sum(length.(ls.(fg, [ls(fg)[1];ls(fg)[2]])) .== 0) > 0
