@@ -219,6 +219,7 @@ export
   isCliqUpSolved_StateMachine,
   determineAllChildrenNeedDownMsg_StateMachine,
   testCliqCanRecycled_StateMachine,
+  buildCliqSubgraphForDown_StateMachine,
 
   #
   isPartial,

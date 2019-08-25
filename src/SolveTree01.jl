@@ -953,13 +953,14 @@ Notes
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
 function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
-  downmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
         downmsgs[key] = BallTreeDensity[]
       end
-      push!(downmsgs[key], bel)
+      # TODO insert true inferred dim
+      push!(downmsgs[key], (bel, 0.0))
     end
   end
   return downmsgs

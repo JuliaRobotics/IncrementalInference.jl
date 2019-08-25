@@ -424,9 +424,20 @@ getCliqDepth(tree::BayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tre
     $(SIGNATURES)
 
 Set the upward passing message for Bayes (Junction) tree clique `cliql`.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
 """
 function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
   getData(cliql).upMsg = msgs
+end
+
+function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, Tuple{BallTreeDensity, Float64}})
+  ms = Dict{Symbol, BallTreeDensity}()
+  for (id, val) in msgs
+    ms[id] = val[1]
+  end
+  getData(cliql).upMsg = ms
 end
 
 """
@@ -435,7 +446,7 @@ end
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
 getUpMsgs(cliql::Graphs.ExVertex) = getData(cliql).upMsg
-getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsg(whichCliq(btl, sym))
+getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsgs(whichCliq(btl, sym))
 
 """
     $(SIGNATURES)

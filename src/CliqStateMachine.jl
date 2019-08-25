@@ -86,7 +86,7 @@ Notes
 - State machine function nr. 10
 """
 function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
-    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, csmc.dodownsolve=$(csmc.dodownsolve).")
+  infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, csmc.dodownsolve=$(csmc.dodownsolve).")
   # finished and exit downsolve
   if !csmc.dodownsolve
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine -- shortcut exit since downsolve not required.")
@@ -97,6 +97,12 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
+  # assume separate down solve via solveCliq! call, but need a csmc.cliqSubFg this late in CSM anyway -- so just go copy one
+  if length(ls(csmc.cliqSubFg)) == 0
+    # first need to fetch cliq sub graph
+    # go to 2b
+    return buildCliqSubgraphForDown_StateMachine
+  end
 
   # block here until parent is downsolved
   prnt = getParent(csmc.tree, csmc.cliq)
@@ -111,6 +117,8 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
       return determineCliqIfDownSolve_StateMachine
     end
   else
+    # special case for down solve on root clique.  When using solveCliq! following an up pass.
+
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -564,6 +572,23 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   return isCliqNull_StateMachine
 end
 
+"""
+    $SIGNATURES
+
+Build a sub factor graph for clique variables from the larger factor graph.
+
+Notes
+- State machine function nr.2r
+"""
+function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
+  # build a local subgraph for inference operations
+  syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2r, build subgraph syms=$(syms)")
+  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+
+  # go to 10
+  return determineCliqIfDownSolve_StateMachine
+end
 
 """
     $SIGNATURES
