@@ -1025,8 +1025,9 @@ end
 Determine and return order list of variable ids required for minibatch Gibbs iteration inside `cliq`.
 
 Notes
-* Singleton factors (priors and up messages) back of the list
-* least number of associated factor variables earlier in list
+- Singleton factors (priors and up messages) back of the list
+- least number of associated factor variables earlier in list
+- Same as getCliqVarSolveOrderUp
 """
 function mcmcIterationIdsOrdered(cliq::Graphs.ExVertex)
   # get unordered iter list
@@ -1062,6 +1063,20 @@ function mcmcIterationIdsOrdered(cliq::Graphs.ExVertex)
   ascsing = singletonvars[p]
 
   return [ascnons; ascsing]
+end
+
+"""
+    $SIGNATURES
+
+Determine and return order list of variable ids required for minibatch Gibbs iteration inside `cliq`.
+
+Notes
+- Singleton factors (priors and up messages) back of the list
+- least number of associated factor variables earlier in list
+- Same as mcmcIterationIdsOrdered
+"""
+function getCliqVarSolveOrderUp(cliq::Graphs.ExVertex)
+  return mcmcIterationIdsOrdered(cliq)
 end
 
 """

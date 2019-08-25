@@ -378,9 +378,9 @@ function localProduct(dfg::G,
   # vector of all neighbors as Symbols
   cf = getNeighbors(dfg, sym)
   for f in cf
-    vert = DFG.getFactor(dfg, f)
-    push!(fcts, vert)
-    push!(lb, vert.label)
+    gfct = DFG.getFactor(dfg, f)
+    push!(fcts, gfct)
+    push!(lb, gfct.label)
   end
 
   # memory for if proposals are full dimension
@@ -391,8 +391,8 @@ function localProduct(dfg::G,
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
-  vert = DFG.getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getSofttype(vert).manifolds )
+  vari = DFG.getVariable(dfg, sym)
+  pp = AMP.manikde!(pGM, getSofttype(vari).manifolds )
 
   return pp, dens, partials, lb
 end

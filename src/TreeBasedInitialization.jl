@@ -39,7 +39,7 @@ sequence).
 Notes:
 - sorts id for increasing number of connected factors.
 """
-function getCliqInitVarOrderUp(cliq::Graphs.ExVertex)
+function getCliqVarInitOrderUp(cliq::Graphs.ExVertex)
   # rules to explore dimension from one to the other?
 
   # get all variable ids and number of associated factors
@@ -538,7 +538,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)
     # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqInitVarOrderUp(cliq)
+    varorder = getCliqVarInitOrderUp(cliq)
     # do physical inits, ignore cycle return value
     with_logger(logger) do
       @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
