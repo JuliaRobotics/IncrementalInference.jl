@@ -526,14 +526,6 @@ function doCliqAutoInitUpPart1!(subfg::G,
   # init up msg has special procedure for incomplete messages
   varorder = Int[]
 
-  # get incoming clique up messages
-  upmsgs = getCliqInitUpMsgs(cliq)
-
-  # add incoming up messages as priors to subfg
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- adding up message factors"
-  end
-  msgfcts = addMsgFactors!(subfg, upmsgs)
 
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)
@@ -551,7 +543,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
   end
   flush(logger.stream)
 
-  return msgfcts
+  return nothing
 end
 
 """
@@ -568,8 +560,8 @@ Notes
 """
 function doCliqAutoInitUpPart2!(subfg::G,
                                 tree::BayesTree,
-                                cliq::Graphs.ExVertex,
-                                msgfcts;
+                                cliq::Graphs.ExVertex;
+                                # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
                                 logger=ConsoleLogger()  )::Symbol where {G <: AbstractDFG}
@@ -623,12 +615,6 @@ function doCliqAutoInitUpPart2!(subfg::G,
     # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
-
-  # remove msg factors that were added to the subfg
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
-  end
-  deleteMsgFactors!(subfg, msgfcts)
 
   return status
 end
@@ -844,7 +830,10 @@ Notes:
 - similar to upward initialization, but uses different message structure
   - first draft assumes upward messages will not be used,
   - full up solve still required which explicitly depends on upward messages.
-- TODO replace with nested 'minimum degree' type variable ordering
+
+Dev Notes
+- Streamline add/delete msg priors from calling function and csm.
+- TODO replace with nested 'minimum degree' type variable ordering.
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
@@ -1017,7 +1006,8 @@ Algorithm:
 """
 function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
-                         dwinmsgs::TempBeliefMsg ) where G <: AbstractDFG
+                         dwinmsgs::TempBeliefMsg;
+                         dbg::Bool=false ) where G <: AbstractDFG
   #
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
   status = :needdownmsg #:badinit
@@ -1029,29 +1019,39 @@ function doCliqInitDown!(subfg::G,
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
+  # store the cliqSubFg for later debugging
+  if dbg
+    DFG.saveDFG(subfg, "/tmp/caesar/cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit")
+  end
+
   # cycle through vars and attempt init
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
   if cycleInitByVarOrder!(subfg, initorder)
     status = :initialized
   end
 
+
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 6, current status: $status"
   # remove msg factors previously added
   deleteMsgFactors!(subfg, msgfcts)
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
+  # store the cliqSubFg for later debugging
+  if dbg
+      DFG.saveDFG(subfg, "/tmp/caesar/cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit")
+  end
 
   return status
 end
 
 function doCliqInitDown!(subfg::G,
                          tree::BayesTree,
-                         cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                         cliq::Graphs.ExVertex;
+                         dbg::Bool=false ) where G <: AbstractDFG
   #
   @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
   prnt = getParent(tree, cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  status = doCliqInitDown!(subfg, cliq, dwinmsgs)
+  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
 
   return status
 end

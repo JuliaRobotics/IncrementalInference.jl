@@ -67,6 +67,21 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
+struct PackedMsgPrior <: PackedInferenceType where T
+  Z::String
+  inferdim::Float64
+  PackedMsgPrior() = new()
+  PackedMsgPrior(z::S, infd::R) where {S <: AbstractString, R <: Real} = new(string(z), infd)
+end
+
+function convert(::Type{PackedMsgPrior}, d::MsgPrior)
+  PackedMsgPrior(string(d.Z), d.inferdim)
+end
+function convert(::Type{MsgPrior}, d::PackedMsgPrior)
+  MsgPrior(extractdistribution(d.Z), d.inferdim)
+end
+
+
 """
 Converter: Prior -> PackedPrior::Dict{String, Any}
 """
