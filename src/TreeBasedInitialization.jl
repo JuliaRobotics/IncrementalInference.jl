@@ -911,6 +911,18 @@ function addMsgFactors!(subfg::G,
   end
   return msgfcts
 end
+function addMsgFactors!(subfg::G, msgs::Dict{Symbol, BallTreeDensity}) where G <: AbstractDFG
+  @warn "addMsgFactors! use TempBeliefMsg format instead"
+
+  # assemble new temporary list
+  tmpmsgs = TempBeliefMsg()
+  for (id, val) in msgs
+    tmpmsgs[id] = (val, 0.0)
+  end
+
+  # call intended function with temporary message work around
+  return addMsgFactors!(subfg, tmpmsgs)
+end
 function addMsgFactors!(subfg::G,
                         msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}})::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
@@ -1007,7 +1019,8 @@ Algorithm:
 function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
                          dwinmsgs::TempBeliefMsg;
-                         dbg::Bool=false ) where G <: AbstractDFG
+                         dbg::Bool=false,
+                         logpath::String="/tmp/caesar/" ) where G <: AbstractDFG
   #
   @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
   status = :needdownmsg #:badinit
@@ -1021,7 +1034,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-    DFG.saveDFG(subfg, "/tmp/caesar/cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit")
+    DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit"))
   end
 
   # cycle through vars and attempt init
@@ -1037,7 +1050,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-      DFG.saveDFG(subfg, "/tmp/caesar/cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit")
+      DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit"))
   end
 
   return status

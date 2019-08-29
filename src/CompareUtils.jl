@@ -381,7 +381,7 @@ function compareFactorGraphs(fgA::G1,
                              skip::Vector{Symbol}=Symbol[],
                              show::Bool=true  )::Bool where {G1 <: AbstractDFG, G2 <: AbstractDFG}
   #
-  skiplist = Symbol[:g;:bn;:IDs;:fIDs;:id;:nodeIDs;:factorIDs;:fifo; :solverParams]
+  skiplist = Symbol[:g;:bn;:IDs;:fIDs;:id;:nodeIDs;:factorIDs;:fifo;:solverParams]
   skiplist = union(skiplist, skip)
   @warn "compareFactorGraphs will skip comparisons on: $skiplist"
 

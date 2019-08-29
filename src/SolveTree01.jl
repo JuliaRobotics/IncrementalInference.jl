@@ -716,23 +716,26 @@ end
 function dwnPrepOutMsg(fg::G,
                        cliq::Graphs.ExVertex,
                        dwnMsgs::Array{NBPMessage,1},
-                       d::Dict{Symbol, T}) where {G <: AbstractDFG, T}
-    # pack all downcoming conditionals in a dictionary too.
+                       d::Dict{Symbol, T},
+                       logger=ConsoleLogger()) where {G <: AbstractDFG, T}
+  # pack all downcoming conditionals in a dictionary too.
+  with_logger(logger) do
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
+      @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
-    @info "Outgoing msg density on: "
-    m = NBPMessage(Dict{Symbol,T}())
-    i = 0
-    for vid in getData(cliq).frontalIDs
-      m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-    end
-    for cvid in getData(cliq).conditIDs
-        i+=1
-        # TODO -- convert to points only since kde replace by rkhs in future
-        m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
-    end
-    return m
+  end
+  m = NBPMessage(Dict{Symbol,T}())
+  i = 0
+  for vid in getData(cliq).frontalIDs
+    m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+  end
+  for cvid in getData(cliq).conditIDs
+    i+=1
+    # TODO -- convert to points only since kde replace by rkhs in future
+    m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
+  end
+  return m
 end
 
 """
@@ -749,15 +752,17 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
+                                usemsgpriors::Bool=false,
                                 logger=ConsoleLogger()) where G <: AbstractDFG
   #
   # TODO standardize function call to have similar stride to upGibbsCliqueDensity
   # @info "down"
   with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc."
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc, keys=$(keys(dwnMsgs))"
   end
-  mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
-  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
+  fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
+  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, getFrontals(cliq), N, MCMCIter, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
 
   outmsglbl = Dict{Symbol, Int}()
   if dbg
@@ -773,9 +778,6 @@ function downGibbsCliqueDensity(fg::G,
   # Always keep dwn messages in cliq data
   dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
   for (msgsym, va) in m.p
-    # @show ke
-    # @show collect(keys(fg.g.vertices))
-    # msgsym = Symbol(fg.g.vertices[ke].label)
     dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
   end
   setDwnMsg!(cliq, dwnkeepmsgs)
@@ -795,6 +797,7 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
+                                usemsgpriors::Bool=false,
                                 logger=ConsoleLogger()) where G <: AbstractDFG
   #
   with_logger(logger) do
@@ -811,7 +814,7 @@ function downGibbsCliqueDensity(fg::G,
   with_logger(logger) do
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- call with NBPMessages."
   end
-  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, logger)
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
 end
 
 """
@@ -1308,9 +1311,10 @@ function tryCliqStateMachineSolve!(dfg::G,
   syms = getCliqFrontalVarIds(cliq) # ids =
   oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
   oldcliqdata = getData(oldcliq)
-  Base.rm("/tmp/caesar/logs/cliq$i", recursive=true, force=true)
-  mkpath("/tmp/caesar/logs/cliq$i/")
-  logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
+  opts = getSolverParams(dfg)
+  # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
+  mkpath(joinpath(opts.logpath,"logs/cliq$i/"))
+  logger = SimpleLogger(open(joinpath(opts.logpath,"logs/cliq$i/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
@@ -1322,9 +1326,9 @@ function tryCliqStateMachineSolve!(dfg::G,
     #
     # cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
-      @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
+      # @warn "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
-      fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
+      fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
       close(fid)
     end
@@ -1336,12 +1340,12 @@ function tryCliqStateMachineSolve!(dfg::G,
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    @warn "writing /tmp/caesar/logs/cliq$i/*.txt"
-    fid = open("/tmp/caesar/logs/cliq$i/stack.txt", "w")
+    # @warn "writing /tmp/caesar/logs/cliq$i/*.txt"
+    fid = open(joinpath(opts.logpath,"logs/cliq$i/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
-    fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
+    fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     flush(logger.stream)

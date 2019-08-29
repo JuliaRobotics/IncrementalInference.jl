@@ -56,6 +56,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   limititers::Int
   N::Int
   multiproc::Bool
+  logpath::String
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -73,6 +74,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 limititers::Int=500,
                 N::Int=100,
                 multiproc::Bool=true,
+                logpath::String="/tmp/caesar/$(now())",
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
                                                                             reference,
@@ -89,6 +91,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             limititers,
                                                                             N,
                                                                             multiproc,
+                                                                            logpath,
                                                                             devParams)
   #
 end
