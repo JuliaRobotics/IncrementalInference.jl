@@ -612,7 +612,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   opts = getSolverParams(csmc.dfg)
   if opts.dbg
     mkpath(joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"/cliqSubFgs/cliq$(csmc.cliq.index)/fg_build"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_build"))
   end
 
   # go to 4
