@@ -29,7 +29,7 @@ function solveTree!(dfgl::G,
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
-  hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag
