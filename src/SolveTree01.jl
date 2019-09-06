@@ -460,6 +460,53 @@ function cliqGibbs(fg::G,
 end
 
 """
+    $SIGNATURES
+
+Dev Notes
+- part of refactoring fmcmc.
+- function seems excessive
+"""
+function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()) where G <: AbstractDFG
+  d = Dict{Symbol,EasyMessage}()
+  for vsym in lbls
+    vert = DFG.getVariable(fgl,vsym)
+    pden = getKDE(vert)
+    bws = vec(getBW(pden)[:,1])
+    manis = getSofttype(vert).manifolds
+    d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
+    with_logger(logger) do
+      @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
+    end
+  end
+  return d
+end
+
+function doFMCIteration(fgl::G,
+                        vsym::Symbol,
+                        cliq::Graphs.ExVertex,
+                        fmsgs,
+                        N::Int,
+                        dbg::Bool,
+                        logger=ConsoleLogger()  ) where G <: AbstractDFG
+  #
+  vert = DFG.getVariable(fgl, vsym)
+  if !getData(vert).ismargin
+    # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+
+    if size(densPts,1)>0
+      updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
+      setValKDE!(updvert, densPts, true, inferdim)
+      if dbg
+        push!(dbgvals.prods, potprod)
+        push!(dbgvals.lbls, Symbol(updvert.label))
+      end
+    end
+  end
+  nothing
+end
+
+"""
     $(SIGNATURES)
 
 Iterate successive approximations of clique marginal beliefs by means
@@ -473,60 +520,50 @@ function fmcmc!(fgl::G,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                logger=ConsoleLogger()  ) where G <: AbstractDFG
+                logger=ConsoleLogger(),
+                multithreaded::Bool=false  ) where G <: AbstractDFG
   #
   with_logger(logger) do
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
   end
-    # repeat several iterations of functional Gibbs sampling for fixed point convergence
-    if length(lbls) == 1
-        MCMCIter=1
-    end
-    mcmcdbg = Array{CliqGibbsMC,1}()
+  # repeat several iterations of functional Gibbs sampling for fixed point convergence
+  if length(lbls) == 1
+      MCMCIter=1
+  end
+  mcmcdbg = Array{CliqGibbsMC,1}()
 
-    for iter in 1:MCMCIter
-      # iterate through each of the variables, KL-divergence tolerence would be nice test here
-      with_logger(logger) do
-        @info "#$(iter)\t -- "
-      end
-      dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
-      # @show lbls
-      for vsym in lbls
-        vert = DFG.getVariable(fgl, vsym)
-        if !getData(vert).ismargin
-          # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
-
-          if size(densPts,1)>0
-            updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-            setValKDE!(updvert, densPts, true, inferdim)
-            if dbg
-              push!(dbgvals.prods, potprod)
-              push!(dbgvals.lbls, Symbol(updvert.label))
-            end
-          end
-        end
-      end
-      !dbg ? nothing : push!(mcmcdbg, dbgvals)
-    end
-
-    # populate dictionary for return NBPMessage in multiple dispatch
-    d = Dict{Symbol,EasyMessage}()
-    for vsym in lbls
-      vert = DFG.getVariable(fgl,vsym)
-      pden = getKDE(vert)
-      bws = vec(getBW(pden)[:,1])
-      manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
-      with_logger(logger) do
-        @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
-      end
-    end
+  for iter in 1:MCMCIter
+    # iterate through each of the variables, KL-divergence tolerence would be nice test here
     with_logger(logger) do
-      @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+      @info "#$(iter)\t -- "
     end
+    dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
 
-    return mcmcdbg, d
+    for vsym in lbls
+        doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, logger)
+
+      # vert = DFG.getVariable(fgl, vsym)
+      # if !getData(vert).ismargin
+      #   # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+      #   densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+      #
+      #   if size(densPts,1)>0
+      #     updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
+      #     setValKDE!(updvert, densPts, true, inferdim)
+      #     if dbg
+      #       push!(dbgvals.prods, potprod)
+      #       push!(dbgvals.lbls, Symbol(updvert.label))
+      #     end
+      #   end
+      # end
+    end
+    !dbg ? nothing : push!(mcmcdbg, dbgvals)
+  end
+
+  # populate dictionary for return NBPMessage in multiple dispatch
+  msgdict = compileFMCMessages(fgl, lbls, logger)
+
+  return mcmcdbg, msgdict
 end
 
 function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
@@ -666,19 +703,19 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
     mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
-    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger)
+    # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
+    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
     if length(cliqdata.msgskipIDs) > 0
-      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger)
+      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
       for md in dd d[md[1]] = md[2]; end
     end
-    # NOTE -- previous mistake, must iterate over directsvarIDs also
     if length(cliqdata.itervarIDs) > 0
-      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger)
+      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger, false)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger)
+      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger, true)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
@@ -761,7 +798,10 @@ function downGibbsCliqueDensity(fg::G,
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc, keys=$(keys(dwnMsgs))"
   end
   fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
-  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, getFrontals(cliq), N, MCMCIter, dbg)
+  frtls = getFrontals(cliq)
+  niters = length(frtls) == 1 ? 1 : MCMCIter
+  # TODO standize with upsolve and variable solver order
+  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
   m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
 
   outmsglbl = Dict{Symbol, Int}()

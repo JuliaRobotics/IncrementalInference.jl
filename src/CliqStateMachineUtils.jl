@@ -152,6 +152,7 @@ function animateCliqStateMachines(tree::BayesTree,
     end
     if first
       stopT = hist[end][1]
+      first = false
     end
     if stopT < hist[end][1]
       stopT= hist[end][1]
@@ -299,9 +300,10 @@ function csmAnimate(fg::G,
     end
     if first
       stopT = hist[end][1]
+      first = false
     end
     if stopT < hist[end][1]
-      stopT= hist[end][1]
+      stopT = hist[end][1]
     end
   end
 

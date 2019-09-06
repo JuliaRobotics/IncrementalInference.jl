@@ -77,6 +77,11 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
   end
 
+  # transfer results to main factor graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
   notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
@@ -236,15 +241,9 @@ Notes
 - TODO: Make multi-core
 """
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
-
-
+  # get a few pointers to relevant data
   cliqst = getCliqStatus(csmc.cliq)
   opts = getSolverParams(csmc.dfg)
-  # OBSOLETE
-  # if csmc.delay
-  #   infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
-  #   sleep(30)
-  # end
 
   infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
@@ -356,14 +355,16 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
   # unlock
   unlockUpStatus!(getData(prnt))
+  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
-  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt )
+  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
+  infocsm(csmc, "8a, attemptCliqInitD., before are Siblings")
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
   infocsm(csmc, "8a, attemptCliqInitD., $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
     # go to 8c
-    infocsm(csmc, "8a, attemptCliqInitD., mustwait so wait on change.")
+    infocsm(csmc, "8a, attemptCliqInitD., mustwait, so wait on change.")
     return waitChangeOnParentCondition_StateMachine
   end
 
@@ -371,7 +372,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=getSolverParams(csmc.dfg).dbg, logpath=getSolverParams(csmc.dfg).logpath )
+  infocsm(csmc, "8a, attemptCliqInitD.,do cliq init down dwinmsgs=$(keys(dwinmsgs))")
+  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=getSolverParams(csmc.dfg).dbg, logger=csmc.logger, logpath=getSolverParams(csmc.dfg).logpath )
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
   # # TODO: is status of notify required here?
@@ -384,7 +386,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     # set messages if children :needdownmsg
     infocsm(csmc, "8a, doCliqInitDown! -- must set messages for future down init")
     # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq) # , tree,
+    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
 
     infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
@@ -699,6 +701,11 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
   # all children can be used for uprecycled -- i.e. no children have new information
   if sum(count) == length(chldr)
     # set up msg and exit go to 1
+    sdims = Dict{Symbol,Float64}()
+    for varid in getCliqAllVarIds(csmc.cliq)
+      sdims[varid] = 0.0
+    end
+    updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
