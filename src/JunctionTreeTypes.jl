@@ -118,7 +118,7 @@ mutable struct BayesTreeNodeData
 
   # future might concentrate these four fields down to two
   # these should become specialized BeliefMessage type
-  upMsg::Dict{Symbol, BallTreeDensity}
+  upMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
   dwnMsg::Dict{Symbol, BallTreeDensity}
   upInitMsgs::Dict{Int, TempBeliefMsg}
   downInitMsg::TempBeliefMsg
@@ -201,7 +201,7 @@ mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
   IDvals::Dict{Symbol, EasyMessage}
-  keepupmsgs::Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  keepupmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
   UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)

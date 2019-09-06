@@ -732,12 +732,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   # prepare and convert upward belief messages
-  upmsgs = Dict{Symbol, BallTreeDensity}()
+  upmsgs = TempBeliefMsg() #Dict{Symbol, BallTreeDensity}()
   # @show collect(keys(inp.fg.g.vertices))
-  for (ke, va) in m.p
-    # msgsym = Symbol(inp.fg.g.vertices[ke].label)
-    msgsym = ke
-    upmsgs[msgsym] = convert(BallTreeDensity, va)
+  for (msgsym, val) in m.p
+    upmsgs[msgsym] = (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
 
@@ -963,8 +961,8 @@ function getCliqChildMsgsUp(fg_::G,
     nbpchild = NBPMessage(Dict{Symbol,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       manis = getManifolds(fg_, key)
-      inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = convert(EasyMessage, bel, manis, inferdim)
+      # inferdim = getVariableInferredDim(fg_, key)
+      nbpchild.p[key] = convert(EasyMessage, bel[1], manis, bel[2]) #inferdim
     end
     push!(childmsgs, nbpchild)
   end
@@ -980,7 +978,7 @@ function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{Ball
       if !haskey(childmsgs, key)
         childmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()  # Vector{Bool}
       end
-      push!(childmsgs[key], (bel,Bool[false;]) )
+      push!(childmsgs[key], bel )
     end
   end
   return childmsgs

@@ -455,15 +455,17 @@ Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
 function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+  @error "setUpMsg!, use inferred dimension version instead"
   getData(cliql).upMsg = msgs
 end
 
-function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, Tuple{BallTreeDensity, Float64}})
-  ms = Dict{Symbol, BallTreeDensity}()
-  for (id, val) in msgs
-    ms[id] = val[1]
-  end
-  getData(cliql).upMsg = ms
+function setUpMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+  # ms = Dict{Symbol, BallTreeDensity}()
+  # for (id, val) in msgs
+  #   ms[id] = val[1]
+  # end
+  getData(cliql).upMsg = msgs #ms
+  nothing
 end
 
 """
