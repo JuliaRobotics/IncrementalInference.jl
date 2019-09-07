@@ -234,10 +234,10 @@ end
 function setValKDE!(v::DFGVariable,
                     em::EasyMessage,
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
-  setValKDE!(v, em.pts, em.bws, setinit, Float64(inferdim), solveKey=solveKey) # getBW(p)[:,1]
+  setValKDE!(v, em.pts, em.bws, setinit, em.inferdim, solveKey=solveKey) # getBW(p)[:,1]
   # setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   # getData(v).inferdim = inferdim
   nothing
@@ -1067,57 +1067,59 @@ function rmVarFromMarg(dfg::G,
   return nothing
 end
 
-function buildBayesNet!(dfg::G, p::Array{Symbol,1}; maxparallel::Int=50)::Nothing where G <: AbstractDFG
-    # addBayesNetVerts!(dfg, p)
-    for v in p
-      @info ""
-      @info "Eliminating $(v)"
-      @info "==============="
-      @info ""
-      # which variable are we eliminating
+function buildBayesNet!(dfg::G,
+                        elimorder::Vector{Symbol};
+                        maxparallel::Int=50)::Nothing where G <: AbstractDFG
+  #
+  # addBayesNetVerts!(dfg, elimorder)
+  for v in elimorder
+    @info ""
+    @info "Eliminating $(v)"
+    @info "==============="
+    @info ""
+    # which variable are we eliminating
 
-      # all factors adjacent to this variable
-      fi = Symbol[]
-      Si = Symbol[]
-      gm = DFGFactor[]
+    # all factors adjacent to this variable
+    fi = Symbol[]
+    Si = Symbol[]
+    gm = DFGFactor[]
 
-      vert = DFG.getVariable(dfg, v)
-      for fctId in DFG.getNeighbors(dfg, vert)
-        fct = DFG.getFactor(dfg, fctId)
-        if (getData(fct).eliminated != true)
-          push!(fi, fctId)
-          for sepNode in DFG.getNeighbors(dfg, fct)
-            # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
-            if sepNode != v && !(sepNode in Si) # Symbol comparison!
-              push!(Si,sepNode)
-            end
+    vert = DFG.getVariable(dfg, v)
+    for fctId in DFG.getNeighbors(dfg, vert)
+      fct = DFG.getFactor(dfg, fctId)
+      if (getData(fct).eliminated != true)
+        push!(fi, fctId)
+        for sepNode in DFG.getNeighbors(dfg, fct)
+          # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
+          if sepNode != v && !(sepNode in Si) # Symbol comparison!
+            push!(Si,sepNode)
           end
-          getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
         end
-
-        if typeof(getData(fct).fnc) == CommonConvWrapper{GenericMarginal}
-          push!(gm, fct)
-        end
+        getData(fct).eliminated = true #fct.attributes["data"].eliminated = true
       end
 
-      if v != p[end]
-        addConditional!(dfg, v, Si)
-        # not yet inserting the new prior p(Si) back into the factor graph
+      if typeof(getData(fct).fnc) == CommonConvWrapper{GenericMarginal}
+        push!(gm, fct)
       end
-
-      # tuv = localapi.getvertex(fg, v) # TODO -- This may well throw away valuable data
-      getData(vert).eliminated = true
-      # localapi.updatevertex!(fg, tuv)
-
-      # TODO -- remove links from current vertex to any marginals
-      rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
-
-      #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
-      # new function between all Si (round the outside, right the outside)
-      length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
-
     end
-    return nothing
+
+    if v != elimorder[end]
+      addConditional!(dfg, v, Si)
+      # not yet inserting the new prior p(Si) back into the factor graph
+    end
+
+    # mark variable
+    getData(vert).eliminated = true
+
+    # TODO -- remove links from current vertex to any marginals
+    rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
+
+    #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
+    # new function between all Si (round the outside, right the outside)
+    length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
+
+  end
+  return nothing
 end
 
 ### TODO: TO BE REFACTORED FOR DFG

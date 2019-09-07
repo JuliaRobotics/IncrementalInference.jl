@@ -460,6 +460,53 @@ function cliqGibbs(fg::G,
 end
 
 """
+    $SIGNATURES
+
+Dev Notes
+- part of refactoring fmcmc.
+- function seems excessive
+"""
+function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()) where G <: AbstractDFG
+  d = Dict{Symbol,EasyMessage}()
+  for vsym in lbls
+    vert = DFG.getVariable(fgl,vsym)
+    pden = getKDE(vert)
+    bws = vec(getBW(pden)[:,1])
+    manis = getSofttype(vert).manifolds
+    d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
+    with_logger(logger) do
+      @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
+    end
+  end
+  return d
+end
+
+function doFMCIteration(fgl::G,
+                        vsym::Symbol,
+                        cliq::Graphs.ExVertex,
+                        fmsgs,
+                        N::Int,
+                        dbg::Bool,
+                        logger=ConsoleLogger()  ) where G <: AbstractDFG
+  #
+  vert = DFG.getVariable(fgl, vsym)
+  if !getData(vert).ismargin
+    # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+
+    if size(densPts,1)>0
+      updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
+      setValKDE!(updvert, densPts, true, inferdim)
+      if dbg
+        push!(dbgvals.prods, potprod)
+        push!(dbgvals.lbls, Symbol(updvert.label))
+      end
+    end
+  end
+  nothing
+end
+
+"""
     $(SIGNATURES)
 
 Iterate successive approximations of clique marginal beliefs by means
@@ -473,62 +520,57 @@ function fmcmc!(fgl::G,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
-                logger=ConsoleLogger()  ) where G <: AbstractDFG
+                logger=ConsoleLogger(),
+                multithreaded::Bool=false  ) where G <: AbstractDFG
   #
   with_logger(logger) do
     @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
   end
-    # repeat several iterations of functional Gibbs sampling for fixed point convergence
-    if length(lbls) == 1
-        MCMCIter=1
-    end
-    mcmcdbg = Array{CliqGibbsMC,1}()
+  # repeat several iterations of functional Gibbs sampling for fixed point convergence
+  if length(lbls) == 1
+      MCMCIter=1
+  end
+  mcmcdbg = Array{CliqGibbsMC,1}()
 
-    for iter in 1:MCMCIter
-      # iterate through each of the variables, KL-divergence tolerence would be nice test here
-      with_logger(logger) do
-        @info "#$(iter)\t -- "
-      end
-      dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
-      # @show lbls
-      for vsym in lbls
-        vert = DFG.getVariable(fgl, vsym)
-        if !getData(vert).ismargin
-          # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-          densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
-
-          if size(densPts,1)>0
-            updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-            setValKDE!(updvert, densPts, true, inferdim)
-            if dbg
-              push!(dbgvals.prods, potprod)
-              push!(dbgvals.lbls, Symbol(updvert.label))
-            end
-          end
-        end
-      end
-      !dbg ? nothing : push!(mcmcdbg, dbgvals)
-    end
-
-    # populate dictionary for return NBPMessage in multiple dispatch
-    d = Dict{Symbol,EasyMessage}()
-    for vsym in lbls
-      vert = DFG.getVariable(fgl,vsym)
-      pden = getKDE(vert)
-      bws = vec(getBW(pden)[:,1])
-      manis = getSofttype(vert).manifolds
-      d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
-      with_logger(logger) do
-        @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
-      end
-    end
+  for iter in 1:MCMCIter
+    # iterate through each of the variables, KL-divergence tolerence would be nice test here
     with_logger(logger) do
-      @info "fmcmc! -- finished on $(cliq.attributes["label"])"
+      @info "#$(iter)\t -- "
     end
+    dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
 
-    return mcmcdbg, d
+    for vsym in lbls
+        doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, logger)
+
+      # vert = DFG.getVariable(fgl, vsym)
+      # if !getData(vert).ismargin
+      #   # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+      #   densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+      #
+      #   if size(densPts,1)>0
+      #     updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
+      #     setValKDE!(updvert, densPts, true, inferdim)
+      #     if dbg
+      #       push!(dbgvals.prods, potprod)
+      #       push!(dbgvals.lbls, Symbol(updvert.label))
+      #     end
+      #   end
+      # end
+    end
+    !dbg ? nothing : push!(mcmcdbg, dbgvals)
+  end
+
+  # populate dictionary for return NBPMessage in multiple dispatch
+  msgdict = compileFMCMessages(fgl, lbls, logger)
+
+  return mcmcdbg, msgdict
 end
 
+"""
+    $SIGNATURES
+
+MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
+"""
 function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
@@ -603,7 +645,7 @@ function treeProductDwn(fg::G,
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   cl = parentCliq(tree, cliq)
-  msgdict = dwnMsg(cl[1])
+  msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, EasyMessage}()
   for (dsy, btd) in msgdict
       dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
@@ -666,19 +708,19 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
     mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
-    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger)
+    # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
+    dummy, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
     if length(cliqdata.msgskipIDs) > 0
-      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger)
+      dummy, dd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
       for md in dd d[md[1]] = md[2]; end
     end
-    # NOTE -- previous mistake, must iterate over directsvarIDs also
     if length(cliqdata.itervarIDs) > 0
-      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger)
+      mcmcdbg, ddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, cliqdata.itervarIDs, N, iters, dbg, logger, false)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger)
+      priorprods, dddd = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, doids, N, 1, dbg, logger, true)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
@@ -695,12 +737,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   # prepare and convert upward belief messages
-  upmsgs = Dict{Symbol, BallTreeDensity}()
+  upmsgs = TempBeliefMsg() #Dict{Symbol, BallTreeDensity}()
   # @show collect(keys(inp.fg.g.vertices))
-  for (ke, va) in m.p
-    # msgsym = Symbol(inp.fg.g.vertices[ke].label)
-    msgsym = ke
-    upmsgs[msgsym] = convert(BallTreeDensity, va)
+  for (msgsym, val) in m.p
+    upmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val) # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
 
@@ -716,23 +756,26 @@ end
 function dwnPrepOutMsg(fg::G,
                        cliq::Graphs.ExVertex,
                        dwnMsgs::Array{NBPMessage,1},
-                       d::Dict{Symbol, T}) where {G <: AbstractDFG, T}
-    # pack all downcoming conditionals in a dictionary too.
+                       d::Dict{Symbol, T},
+                       logger=ConsoleLogger()) where {G <: AbstractDFG, T}
+  # pack all downcoming conditionals in a dictionary too.
+  with_logger(logger) do
     if cliq.index != 1
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
+      @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
-    @info "Outgoing msg density on: "
-    m = NBPMessage(Dict{Symbol,T}())
-    i = 0
-    for vid in getData(cliq).frontalIDs
-      m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-    end
-    for cvid in getData(cliq).conditIDs
-        i+=1
-        # TODO -- convert to points only since kde replace by rkhs in future
-        m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
-    end
-    return m
+  end
+  m = NBPMessage(Dict{Symbol,T}())
+  i = 0
+  for vid in getData(cliq).frontalIDs
+    m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+  end
+  for cvid in getData(cliq).conditIDs
+    i+=1
+    # TODO -- convert to points only since kde replace by rkhs in future
+    m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
+  end
+  return m
 end
 
 """
@@ -749,15 +792,20 @@ function downGibbsCliqueDensity(fg::G,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
+                                usemsgpriors::Bool=false,
                                 logger=ConsoleLogger()) where G <: AbstractDFG
   #
   # TODO standardize function call to have similar stride to upGibbsCliqueDensity
   # @info "down"
   with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc."
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc, keys=$(keys(dwnMsgs))"
   end
-  mcmcdbg, d = fmcmc!(fg, cliq, dwnMsgs, getFrontals(cliq), N, MCMCIter, dbg)
-  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d)
+  fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
+  frtls = getFrontals(cliq)
+  niters = length(frtls) == 1 ? 1 : MCMCIter
+  # TODO standize with upsolve and variable solver order
+  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
 
   outmsglbl = Dict{Symbol, Int}()
   if dbg
@@ -771,12 +819,9 @@ function downGibbsCliqueDensity(fg::G,
   end
 
   # Always keep dwn messages in cliq data
-  dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-  for (msgsym, va) in m.p
-    # @show ke
-    # @show collect(keys(fg.g.vertices))
-    # msgsym = Symbol(fg.g.vertices[ke].label)
-    dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
+  dwnkeepmsgs = TempBeliefMsg() # Dict{Symbol, BallTreeDensity}()
+  for (msgsym, val) in m.p
+    dwnkeepmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
   end
   setDwnMsg!(cliq, dwnkeepmsgs)
 
@@ -791,10 +836,11 @@ function downGibbsCliqueDensity(fg::G,
 end
 function downGibbsCliqueDensity(fg::G,
                                 cliq::Graphs.ExVertex,
-                                dwnMsgs::Dict{Symbol,BallTreeDensity},
+                                dwnMsgs::TempBeliefMsg, # Dict{Symbol,BallTreeDensity},
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
+                                usemsgpriors::Bool=false,
                                 logger=ConsoleLogger()) where G <: AbstractDFG
   #
   with_logger(logger) do
@@ -811,7 +857,7 @@ function downGibbsCliqueDensity(fg::G,
   with_logger(logger) do
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- call with NBPMessages."
   end
-  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, logger)
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
 end
 
 """
@@ -835,7 +881,8 @@ function updateFGBT!(fg::G,
                      cliqID::Int,
                      drt::DownReturnBPType;
                      dbg::Bool=false,
-                     fillcolor::String=""  ) where G <: AbstractDFG
+                     fillcolor::String="",
+                     logger=ConsoleLogger()  ) where G <: AbstractDFG
     #
     cliq = bt.cliques[cliqID]
     # if dbg
@@ -846,11 +893,16 @@ function updateFGBT!(fg::G,
     if fillcolor != ""
       setCliqDrawColor(cliq, fillcolor)
     end
-    for dat in drt.IDvals
-      #TODO -- should become an update call
-        updvert = DFG.getVariable(fg, dat[1])
-        setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+    with_logger(logger) do
+      for (sym, emsg) in drt.IDvals
+        #TODO -- should become an update call
+        updvert = DFG.getVariable(fg, sym)
+        # TODO -- not sure if deepcopy is required , updateMAPest=true)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
+        setValKDE!(updvert, deepcopy(emsg) )
+        updvert = DFG.getVariable(fg, sym)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
+      end
     end
     nothing
 end
@@ -882,7 +934,7 @@ function updateFGBT!(fg::G,
       @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
     end
     updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true, dat.inferdim) ## TODO -- not sure if deepcopy is required
+    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
     @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
@@ -920,8 +972,8 @@ function getCliqChildMsgsUp(fg_::G,
     nbpchild = NBPMessage(Dict{Symbol,EasyMessage}())
     for (key, bel) in getUpMsgs(child)
       manis = getManifolds(fg_, key)
-      inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = convert(EasyMessage, bel, manis, inferdim)
+      # inferdim = getVariableInferredDim(fg_, key)
+      nbpchild.p[key] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end
@@ -937,7 +989,7 @@ function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{Ball
       if !haskey(childmsgs, key)
         childmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()  # Vector{Bool}
       end
-      push!(childmsgs[key], (bel,Bool[false;]) )
+      push!(childmsgs[key], bel )
     end
   end
   return childmsgs
@@ -953,13 +1005,14 @@ Notes
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
 function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
-  downmsgs = Dict{Symbol,Vector{BallTreeDensity}}()
+  downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
         downmsgs[key] = BallTreeDensity[]
       end
-      push!(downmsgs[key], bel)
+      # TODO insert true inferred dim
+      push!(downmsgs[key], (bel, 0.0))
     end
   end
   return downmsgs
@@ -1307,9 +1360,10 @@ function tryCliqStateMachineSolve!(dfg::G,
   syms = getCliqFrontalVarIds(cliq) # ids =
   oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
   oldcliqdata = getData(oldcliq)
-  Base.rm("/tmp/caesar/logs/cliq$i", recursive=true, force=true)
-  mkpath("/tmp/caesar/logs/cliq$i/")
-  logger = SimpleLogger(open("/tmp/caesar/logs/cliq$i/log.txt", "w+")) # NullLogger()
+  opts = getSolverParams(dfg)
+  # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
+  mkpath(joinpath(opts.logpath,"logs/cliq$i/"))
+  logger = SimpleLogger(open(joinpath(opts.logpath,"logs/cliq$i/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
@@ -1321,9 +1375,9 @@ function tryCliqStateMachineSolve!(dfg::G,
     #
     # cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
-      @warn "writing /tmp/caesar/logs/cliq$i/csm.txt"
+      # @warn "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
-      fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
+      fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
       close(fid)
     end
@@ -1335,12 +1389,12 @@ function tryCliqStateMachineSolve!(dfg::G,
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    @warn "writing /tmp/caesar/logs/cliq$i/*.txt"
-    fid = open("/tmp/caesar/logs/cliq$i/stack.txt", "w")
+    # @warn "writing /tmp/caesar/logs/cliq$i/*.txt"
+    fid = open(joinpath(opts.logpath,"logs/cliq$i/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
-    fid = open("/tmp/caesar/logs/cliq$i/csm.txt", "w")
+    fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     flush(logger.stream)

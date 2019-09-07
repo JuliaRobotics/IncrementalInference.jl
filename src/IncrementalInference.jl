@@ -108,6 +108,7 @@ export
   Prior,
   PackedPrior,
   MsgPrior,
+  PackedMsgPrior,
   PartialPrior,
   PackedPartialPrior,
   LinearConditional,
@@ -219,6 +220,7 @@ export
   isCliqUpSolved_StateMachine,
   determineAllChildrenNeedDownMsg_StateMachine,
   testCliqCanRecycled_StateMachine,
+  buildCliqSubgraphForDown_StateMachine,
 
   #
   isPartial,
@@ -427,6 +429,9 @@ export
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
+  saveDFG,
+  loadDFG,
+  rebuildFactorMetadata!,
 
   setUpMsg!,
   upMsg,

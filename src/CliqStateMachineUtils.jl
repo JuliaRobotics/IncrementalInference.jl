@@ -88,6 +88,12 @@ function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, Cli
   printCliqHistorySummary(stdout, hist)
 end
 
+function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}, tree::BayesTree, sym::Symbol)
+  hist = hists[getCliq(tree, sym).index]
+  printCliqHistorySummary(stdout, hist)
+end
+
+
 function printCliqHistorySummary(cliq::Graphs.ExVertex)
   hist = getCliqSolveHistory(cliq)
   printCliqHistorySummary(hist)
@@ -146,6 +152,7 @@ function animateCliqStateMachines(tree::BayesTree,
     end
     if first
       stopT = hist[end][1]
+      first = false
     end
     if stopT < hist[end][1]
       stopT= hist[end][1]
@@ -293,9 +300,10 @@ function csmAnimate(fg::G,
     end
     if first
       stopT = hist[end][1]
+      first = false
     end
     if stopT < hist[end][1]
-      stopT= hist[end][1]
+      stopT = hist[end][1]
     end
   end
 

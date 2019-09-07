@@ -112,34 +112,60 @@ function findCliqueFromFrontal(bt::BayesTree, frtlID::Int)
   error("Clique with desired frontal ID not found")
 end
 
+"""
+    $SIGNATURES
+
+Find parent clique Cp that containts the first eliminated variable of Sj as frontal.
+"""
+function identifyFirstEliminatedSeparator(dfg::G,
+                                          elimorder::Vector{Symbol},
+                                          firvert::DFGVariable,
+                                          Sj=getData(firvert).separator)::DFGVariable where G <: AbstractDFG
+  #
+  firstelim = 99999999999
+  for s in Sj
+    temp = something(findfirst(isequal(s), elimorder), 0) # findfirst(p, s)
+    if (temp < firstelim)
+      firstelim = temp
+    end
+  end
+  DFG.getVariable(dfg, elimorder[firstelim])
+end
 
 """
     $SIGNATURES
 
 Eliminate a variable and add to tree cliques accordingly.
+
+Dev Notes
+- `p` should be elimination order.
+- `var` is next variable to be added to the tree.
+
+References
+Kaess et al.: Bayes Tree, WAFR, 2010, [Alg. 2]
+Kaess et al.: iSAM2, IJRR, 2011, [Alg. 3]
+Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 """
-function newPotential(tree::BayesTree, dfg::G, var::Symbol, p::Array{Symbol,1}) where G <: AbstractDFG
+function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFG.getVariable(dfg,var)
+    # no parent
     if (length(getData(firvert).separator) == 0)
-      if (length(tree.cliques) == 0)
+      # if (length(tree.cliques) == 0)
+        # create new root
         addClique!(tree, dfg, var)
-      else
-        appendClique!(tree, 1, dfg, var) # add to root
-      end
+      # else
+      #   # add to root
+      #   @warn "root append clique is happening"
+      #   appendClique!(tree, 1, dfg, var)
+      # end
     else
-      Sj = getData(firvert).separator
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      firstelim = 99999999999
-      for s in Sj
-        temp = something(findfirst(isequal(s), p), 0) # findfirst(p, s)
-        if (temp < firstelim)
-          firstelim = temp
-        end
-      end
-      felbl = DFG.getVariable(dfg, p[firstelim]).label
+      Sj = getData(firvert).separator
+      felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
-      unFC = union(getCliqFrontalVarIds(tree.cliques[CpID]), getCliqSeparatorVarIds(tree.cliques[CpID]))
+      cliq = tree.cliques[CpID]
+      unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
       if (sort(unFC) == sort(Sj))
         appendClique!(tree, CpID, dfg, var)
       else
@@ -153,11 +179,11 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::BayesTree, dfg::G, p::Array{Symbol,1}) where G <: AbstractDFG
-  rp = reverse(p,dims=1) # flipdim(p, 1)
+function buildTree!(tree::BayesTree, dfg::G, elimorder::Array{Symbol,1}) where G <: AbstractDFG
+  revorder = reverse(elimorder,dims=1) # flipdim(p, 1)
   # prevVar = 0
-  for var in rp
-    newPotential(tree, dfg, var, p)
+  for var in revorder
+    newPotential(tree, dfg, var, elimorder)
     prevVar = var
   end
 end
@@ -424,9 +450,22 @@ getCliqDepth(tree::BayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tre
     $(SIGNATURES)
 
 Set the upward passing message for Bayes (Junction) tree clique `cliql`.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
 """
 function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+  @error "setUpMsg!, use inferred dimension version instead"
   getData(cliql).upMsg = msgs
+end
+
+function setUpMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+  # ms = Dict{Symbol, BallTreeDensity}()
+  # for (id, val) in msgs
+  #   ms[id] = val[1]
+  # end
+  getData(cliql).upMsg = msgs #ms
+  nothing
 end
 
 """
@@ -435,7 +474,7 @@ end
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
 getUpMsgs(cliql::Graphs.ExVertex) = getData(cliql).upMsg
-getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsg(whichCliq(btl, sym))
+getUpMsgs(btl::BayesTree, sym::Symbol) = getUpMsgs(whichCliq(btl, sym))
 
 """
     $(SIGNATURES)
@@ -450,7 +489,7 @@ getCliqMsgsUp(treel::BayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+function setDwnMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
   getData(cliql).dwnMsg = msgs
 end
 
@@ -745,13 +784,14 @@ Return dictionary of down messages consisting of all frontal and separator belie
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity} where G <: AbstractDFG
+function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::TempBeliefMsg where G <: AbstractDFG
+  # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = Dict{Symbol,BallTreeDensity}()
+  container = TempBeliefMsg() # Dict{Symbol,BallTreeDensity}()
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container[sym] = getKDE(subdfg, sym)
+    container[sym] = (getKDE(subdfg, sym), getVariableInferredDim(subdfg, sym))
   end
 
   # return the result

@@ -485,11 +485,16 @@ end
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
 function prepCliqInitMsgsUp(subfg::G,
-                            cliq::Graphs.ExVertex)::TempBeliefMsg  where G <: AbstractDFG
+                            cliq::Graphs.ExVertex,
+                            logger=ConsoleLogger() )::TempBeliefMsg  where G <: AbstractDFG
   #
   # construct init's up msg to place in parent from initialized separator variables
   msg = TempBeliefMsg()
-  for vid in getCliqSeparatorVarIds(cliq)
+  seps = getCliqSeparatorVarIds(cliq)
+  with_logger(logger) do
+    @info "prepCliqInitMsgsUp, seps=$seps"
+  end
+  for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
       msg[Symbol(var.label)] = (getKDE(var), getData(var).inferdim)
@@ -526,14 +531,6 @@ function doCliqAutoInitUpPart1!(subfg::G,
   # init up msg has special procedure for incomplete messages
   varorder = Int[]
 
-  # get incoming clique up messages
-  upmsgs = getCliqInitUpMsgs(cliq)
-
-  # add incoming up messages as priors to subfg
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- adding up message factors"
-  end
-  msgfcts = addMsgFactors!(subfg, upmsgs)
 
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)
@@ -551,7 +548,7 @@ function doCliqAutoInitUpPart1!(subfg::G,
   end
   flush(logger.stream)
 
-  return msgfcts
+  return nothing
 end
 
 """
@@ -568,8 +565,8 @@ Notes
 """
 function doCliqAutoInitUpPart2!(subfg::G,
                                 tree::BayesTree,
-                                cliq::Graphs.ExVertex,
-                                msgfcts;
+                                cliq::Graphs.ExVertex;
+                                # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
                                 logger=ConsoleLogger()  )::Symbol where {G <: AbstractDFG}
@@ -623,12 +620,6 @@ function doCliqAutoInitUpPart2!(subfg::G,
     # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
-
-  # remove msg factors that were added to the subfg
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))"
-  end
-  deleteMsgFactors!(subfg, msgfcts)
 
   return status
 end
@@ -775,12 +766,12 @@ function prepCliqInitMsgsDown!(fgl::G,
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
-    @info "$(tt) cliq $(prnt.index), prepCliqInitMsgsDown! --"
+    @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
   # get the current messages stored in the parent
   currmsgs = getCliqInitUpMsgs(prnt)
   with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
+    @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
 
   # check if any msgs should be multiplied together for the same variable
@@ -789,6 +780,9 @@ function prepCliqInitMsgsDown!(fgl::G,
     for (msgsym, msg) in msgs
       if !haskey(msgspervar, msgsym)
         msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
+      end
+      with_logger(logger) do
+        @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg[2])"
       end
       push!(msgspervar[msgsym], msg)
     end
@@ -844,7 +838,10 @@ Notes:
 - similar to upward initialization, but uses different message structure
   - first draft assumes upward messages will not be used,
   - full up solve still required which explicitly depends on upward messages.
-- TODO replace with nested 'minimum degree' type variable ordering
+
+Dev Notes
+- Streamline add/delete msg priors from calling function and csm.
+- TODO replace with nested 'minimum degree' type variable ordering.
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::Graphs.ExVertex,
@@ -921,6 +918,18 @@ function addMsgFactors!(subfg::G,
     end
   end
   return msgfcts
+end
+function addMsgFactors!(subfg::G, msgs::Dict{Symbol, BallTreeDensity}) where G <: AbstractDFG
+  @warn "addMsgFactors! use TempBeliefMsg format instead"
+
+  # assemble new temporary list
+  tmpmsgs = TempBeliefMsg()
+  for (id, val) in msgs
+    tmpmsgs[id] = (val, 0.0)
+  end
+
+  # call intended function with temporary message work around
+  return addMsgFactors!(subfg, tmpmsgs)
 end
 function addMsgFactors!(subfg::G,
                         msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}})::Vector{DFGFactor} where G <: AbstractDFG
@@ -1017,41 +1026,61 @@ Algorithm:
 """
 function doCliqInitDown!(subfg::G,
                          cliq::Graphs.ExVertex,
-                         dwinmsgs::TempBeliefMsg ) where G <: AbstractDFG
+                         dwinmsgs::TempBeliefMsg;
+                         dbg::Bool=false,
+                         logpath::String="/tmp/caesar/",
+                         logger=ConsoleLogger() ) where G <: AbstractDFG
   #
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
+  end
   status = :needdownmsg #:badinit
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
+  end
 
   # add messages as priors to this sub factor graph
   msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
+  # store the cliqSubFg for later debugging
+  if dbg
+    DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit"))
+  end
+
   # cycle through vars and attempt init
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
+  end
   if cycleInitByVarOrder!(subfg, initorder)
     status = :initialized
   end
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 6, current status: $status"
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 6, current status: $status"
+  end
   # remove msg factors previously added
   deleteMsgFactors!(subfg, msgfcts)
 
-  @info "$(current_task()) Clique $(cliq.index), doCliqInitDown! -- 7, current status: $status"
+  # store the cliqSubFg for later debugging
+  if dbg
+      DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit"))
+  end
 
   return status
 end
 
 function doCliqInitDown!(subfg::G,
                          tree::BayesTree,
-                         cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                         cliq::Graphs.ExVertex;
+                         dbg::Bool=false ) where G <: AbstractDFG
   #
   @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
   prnt = getParent(tree, cliq)[1]
   dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  status = doCliqInitDown!(subfg, cliq, dwinmsgs)
+  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
 
   return status
 end
