@@ -566,6 +566,11 @@ function fmcmc!(fgl::G,
   return mcmcdbg, msgdict
 end
 
+"""
+    $SIGNATURES
+
+MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
+"""
 function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
@@ -640,7 +645,7 @@ function treeProductDwn(fg::G,
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   cl = parentCliq(tree, cliq)
-  msgdict = dwnMsg(cl[1])
+  msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, EasyMessage}()
   for (dsy, btd) in msgdict
       dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
@@ -735,7 +740,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   upmsgs = TempBeliefMsg() #Dict{Symbol, BallTreeDensity}()
   # @show collect(keys(inp.fg.g.vertices))
   for (msgsym, val) in m.p
-    upmsgs[msgsym] = (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
+    upmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val) # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
 
@@ -814,9 +819,9 @@ function downGibbsCliqueDensity(fg::G,
   end
 
   # Always keep dwn messages in cliq data
-  dwnkeepmsgs = Dict{Symbol, BallTreeDensity}()
-  for (msgsym, va) in m.p
-    dwnkeepmsgs[msgsym] = convert(BallTreeDensity, va)
+  dwnkeepmsgs = TempBeliefMsg() # Dict{Symbol, BallTreeDensity}()
+  for (msgsym, val) in m.p
+    dwnkeepmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
   end
   setDwnMsg!(cliq, dwnkeepmsgs)
 
@@ -831,7 +836,7 @@ function downGibbsCliqueDensity(fg::G,
 end
 function downGibbsCliqueDensity(fg::G,
                                 cliq::Graphs.ExVertex,
-                                dwnMsgs::Dict{Symbol,BallTreeDensity},
+                                dwnMsgs::TempBeliefMsg, # Dict{Symbol,BallTreeDensity},
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
@@ -876,7 +881,8 @@ function updateFGBT!(fg::G,
                      cliqID::Int,
                      drt::DownReturnBPType;
                      dbg::Bool=false,
-                     fillcolor::String=""  ) where G <: AbstractDFG
+                     fillcolor::String="",
+                     logger=ConsoleLogger()  ) where G <: AbstractDFG
     #
     cliq = bt.cliques[cliqID]
     # if dbg
@@ -887,11 +893,16 @@ function updateFGBT!(fg::G,
     if fillcolor != ""
       setCliqDrawColor(cliq, fillcolor)
     end
-    for dat in drt.IDvals
-      #TODO -- should become an update call
-        updvert = DFG.getVariable(fg, dat[1])
-        setValKDE!(updvert, deepcopy(dat[2])) # TODO -- not sure if deepcopy is required
-        # dlapi.updatevertex!(fg, updvert, updateMAPest=true)
+    with_logger(logger) do
+      for (sym, emsg) in drt.IDvals
+        #TODO -- should become an update call
+        updvert = DFG.getVariable(fg, sym)
+        # TODO -- not sure if deepcopy is required , updateMAPest=true)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
+        setValKDE!(updvert, deepcopy(emsg) )
+        updvert = DFG.getVariable(fg, sym)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
+      end
     end
     nothing
 end
@@ -923,7 +934,7 @@ function updateFGBT!(fg::G,
       @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
     end
     updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true, dat.inferdim) ## TODO -- not sure if deepcopy is required
+    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
     @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
@@ -962,7 +973,7 @@ function getCliqChildMsgsUp(fg_::G,
     for (key, bel) in getUpMsgs(child)
       manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = convert(EasyMessage, bel[1], manis, bel[2]) #inferdim
+      nbpchild.p[key] = convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end

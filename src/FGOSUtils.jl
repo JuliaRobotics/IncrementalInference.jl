@@ -210,7 +210,7 @@ end
 """
     $SIGNATURES
 
-Return N=100 measurement samples for a factor in `<:AbstractDFG`. 
+Return N=100 measurement samples for a factor in `<:AbstractDFG`.
 """
 function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDFG
   fnc = getFactorFunction(dfg, fsym)
@@ -219,12 +219,15 @@ end
 
 
 
-function convert(::Type{BallTreeDensity}, p::EasyMessage)
-  AMP.manikde!(p.pts, p.bws, p.manifolds)
+function convert(::Type{Tuple{BallTreeDensity,Float64}},
+                 p::EasyMessage )
+  (AMP.manikde!(p.pts, p.bws, p.manifolds), p.inferdim)
 end
 
-function convert(::Type{EasyMessage}, p::BallTreeDensity, manifolds::T, inferdim=0.0) where {T <: Tuple}
-  EasyMessage(getPoints(p), getBW(p)[:,1], manifolds, inferdim)
+function convert(::Type{EasyMessage},
+                 bel::Tuple{BallTreeDensity,Float64},
+                 manifolds::T) where {T <: Tuple}
+  EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
 end
 
 

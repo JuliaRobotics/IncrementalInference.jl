@@ -489,7 +489,7 @@ getCliqMsgsUp(treel::BayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+function setDwnMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
   getData(cliql).dwnMsg = msgs
 end
 
@@ -784,13 +784,14 @@ Return dictionary of down messages consisting of all frontal and separator belie
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::Dict{Symbol, BallTreeDensity} where G <: AbstractDFG
+function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::TempBeliefMsg where G <: AbstractDFG
+  # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = Dict{Symbol,BallTreeDensity}()
+  container = TempBeliefMsg() # Dict{Symbol,BallTreeDensity}()
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container[sym] = getKDE(subdfg, sym)
+    container[sym] = (getKDE(subdfg, sym), getVariableInferredDim(subdfg, sym))
   end
 
   # return the result

@@ -70,7 +70,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
   # update clique subgraph with new status
-  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
+  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
 
   # store the cliqSubFg for later debugging
   if opts.dbg
@@ -139,7 +139,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     if prntst != :downsolved
       infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going around again.")
       return determineCliqIfDownSolve_StateMachine
-    end
+end
   else
     # special case for down solve on root clique.  When using solveCliq! following an up pass.
 

@@ -119,7 +119,7 @@ mutable struct BayesTreeNodeData
   # future might concentrate these four fields down to two
   # these should become specialized BeliefMessage type
   upMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
-  dwnMsg::Dict{Symbol, BallTreeDensity}
+  dwnMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
   upInitMsgs::Dict{Int, TempBeliefMsg}
   downInitMsg::TempBeliefMsg
 
@@ -186,12 +186,12 @@ end
 $(TYPEDEF)
 """
 mutable struct DebugCliqMCMC
-    mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-    outmsg::NBPMessage
-    outmsglbls::Dict{Symbol, Symbol} # Int
-    priorprods::Vector{CliqGibbsMC}
-    DebugCliqMCMC() = new()
-    DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
+  mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
+  outmsg::NBPMessage
+  outmsglbls::Dict{Symbol, Symbol} # Int
+  priorprods::Vector{CliqGibbsMC}
+  DebugCliqMCMC() = new()
+  DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
 """
@@ -209,12 +209,14 @@ end
 
 """
 $(TYPEDEF)
+
+TODO refactor msgs into only a single variable
 """
 mutable struct DownReturnBPType
-    dwnMsg::NBPMessage
-    dbgDwn::DebugCliqMCMC
-    IDvals::Dict{Symbol,EasyMessage} # Int
-    keepdwnmsgs::Dict{Symbol, BallTreeDensity}
+  dwnMsg::NBPMessage
+  dbgDwn::DebugCliqMCMC
+  IDvals::Dict{Symbol,EasyMessage} # Int
+  keepdwnmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
 end
 
 """

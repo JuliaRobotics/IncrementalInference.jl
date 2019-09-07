@@ -234,10 +234,10 @@ end
 function setValKDE!(v::DFGVariable,
                     em::EasyMessage,
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0;
+                    # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
-  setValKDE!(v, em.pts, em.bws, setinit, Float64(inferdim), solveKey=solveKey) # getBW(p)[:,1]
+  setValKDE!(v, em.pts, em.bws, setinit, em.inferdim, solveKey=solveKey) # getBW(p)[:,1]
   # setinit ? (getData(v, solveKey=solveKey).initialized = true) : nothing
   # getData(v).inferdim = inferdim
   nothing
