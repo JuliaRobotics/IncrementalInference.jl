@@ -266,14 +266,14 @@ end
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
-function buildTreeFromOrdering!(dfg::DFG.CloudGraphsDFG,
+function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
                                 maxparallel::Int=50  )
   #
   println()
 
-  @info "Copying to MetaGraphsDFG"
+  @info "Copying to a local DFG"
   fge = InMemDFGType(params=SolverParams())#GraphsDFG{SolverParams}(params=SolverParams())
   DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
 
