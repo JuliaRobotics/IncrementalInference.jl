@@ -630,6 +630,18 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
 end
 
 
+function setVariablePosteriorEstimates!(subfg::G,
+                                        sym::Symbol )::Nothing where G <: AbstractDFG
+  #
+
+  var = getVariable(subfg,sym)
+  bel = getKDE(var)
+  ops = buildHybridManifoldCallbacks(getManifolds(var))
+
+  getMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
+
+  nothing
+end
 
 
 #

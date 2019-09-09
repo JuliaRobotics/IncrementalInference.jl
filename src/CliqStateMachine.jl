@@ -72,6 +72,11 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # update clique subgraph with new status
   updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
 
+  # set MAP est
+  # for sym in getCliqFrontalVarIds(csmc.cliq)
+  #   setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+  # end
+
   # store the cliqSubFg for later debugging
   if opts.dbg
     DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
