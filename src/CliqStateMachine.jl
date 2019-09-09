@@ -40,6 +40,14 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   dwnmsgs = getDwnMsgs(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs)))")
 
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs)
+
+  opts = getSolverParams(csmc.dfg)
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
+  end
+
   # multiproc = false
   # call down inference, TODO multiproc
   if csmc.opts.multiproc
@@ -52,22 +60,38 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
     # NOTE Cannot send logger to separate process memory
-    drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false)
+    drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false, true)
   else
     infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
-    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, csmc.logger)
+    # usemsgpriors = true so that old plumbing is used properly
+    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, true, csmc.logger)
   end
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
   # update clique subgraph with new status
-  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue")
+  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
+
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
+  end
+
+  # transfer results to main factor graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
 
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
   notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
+  # remove msg factors that were added to the subfg
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(msgfcts))")
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # show tree if required
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
@@ -86,7 +110,7 @@ Notes
 - State machine function nr. 10
 """
 function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
-    infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, csmc.dodownsolve=$(csmc.dodownsolve).")
+  infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, csmc.dodownsolve=$(csmc.dodownsolve).")
   # finished and exit downsolve
   if !csmc.dodownsolve
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine -- shortcut exit since downsolve not required.")
@@ -97,6 +121,12 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing
 
+  # assume separate down solve via solveCliq! call, but need a csmc.cliqSubFg this late in CSM anyway -- so just go copy one
+  if length(ls(csmc.cliqSubFg)) == 0
+    # first need to fetch cliq sub graph
+    # go to 2b
+    return buildCliqSubgraphForDown_StateMachine
+  end
 
   # block here until parent is downsolved
   prnt = getParent(csmc.tree, csmc.cliq)
@@ -109,8 +139,10 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     if prntst != :downsolved
       infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going around again.")
       return determineCliqIfDownSolve_StateMachine
-    end
+end
   else
+    # special case for down solve on root clique.  When using solveCliq! following an up pass.
+
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -209,14 +241,9 @@ Notes
 - TODO: Make multi-core
 """
 function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
-
-
+  # get a few pointers to relevant data
   cliqst = getCliqStatus(csmc.cliq)
-  # OBSOLETE
-  # if csmc.delay
-  #   infocsm(csmc, "8b, attemptCliqInitUp, delay required -- sleeping for 10s.")
-  #   sleep(30)
-  # end
+  opts = getSolverParams(csmc.dfg)
 
   infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
@@ -225,11 +252,31 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
     # check if init is required and possible
     infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
-    msgfcts = doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+    # get incoming clique up messages
+    upmsgs = getCliqInitUpMsgs(csmc.cliq)
+    # add incoming up messages as priors to subfg
+    infocsm(csmc, "8b, doCliqAutoInitUpPart1! -- adding up message factors")
+    msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
+
+    # store the cliqSubFg for later debugging
+    if opts.dbg
+      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
+    end
+
+    doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
     infocsm(csmc, "8b, attemptCliqInitUp, areCliqVariablesAllInitialized(subfg, cliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
 
     # do actual up solve
-    retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, msgfcts, multiproc=csmc.opts.multiproc, logger=csmc.logger)
+    retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, multiproc=csmc.opts.multiproc, logger=csmc.logger)
+
+    # remove msg factors that were added to the subfg
+    infocsm(csmc, "8b, doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))")
+    deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+    # store the cliqSubFg for later debugging
+    if opts.dbg
+      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
+    end
 
     # notify of results
     if cliqst != retstatus
@@ -308,14 +355,16 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
   # unlock
   unlockUpStatus!(getData(prnt))
+  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
-  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt )
+  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
+  infocsm(csmc, "8a, attemptCliqInitD., before are Siblings")
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
   infocsm(csmc, "8a, attemptCliqInitD., $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
     # go to 8c
-    infocsm(csmc, "8a, attemptCliqInitD., mustwait so wait on change.")
+    infocsm(csmc, "8a, attemptCliqInitD., mustwait, so wait on change.")
     return waitChangeOnParentCondition_StateMachine
   end
 
@@ -323,7 +372,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
+  infocsm(csmc, "8a, attemptCliqInitD.,do cliq init down dwinmsgs=$(keys(dwinmsgs))")
+  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=getSolverParams(csmc.dfg).dbg, logger=csmc.logger, logpath=getSolverParams(csmc.dfg).logpath )
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
   # # TODO: is status of notify required here?
@@ -336,7 +386,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     # set messages if children :needdownmsg
     infocsm(csmc, "8a, doCliqInitDown! -- must set messages for future down init")
     # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq) # , tree,
+    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
 
     infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
@@ -560,10 +610,41 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "2, build subgraph syms=$(syms)")
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
 
+  # store the cliqSubFg for later debugging
+  opts = getSolverParams(csmc.dfg)
+  if opts.dbg
+    mkpath(joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_build"))
+  end
+
   # go to 4
   return isCliqNull_StateMachine
 end
 
+"""
+    $SIGNATURES
+
+Build a sub factor graph for clique variables from the larger factor graph.
+
+Notes
+- State machine function nr.2r
+"""
+function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
+  # build a local subgraph for inference operations
+  syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2r, build subgraph syms=$(syms)")
+  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+
+  opts = getSolverParams(csmc.dfg)
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    mkpath(joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_build_down"))
+  end
+
+  # go to 10
+  return determineCliqIfDownSolve_StateMachine
+end
 
 """
     $SIGNATURES
@@ -620,6 +701,11 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
   # all children can be used for uprecycled -- i.e. no children have new information
   if sum(count) == length(chldr)
     # set up msg and exit go to 1
+    sdims = Dict{Symbol,Float64}()
+    for varid in getCliqAllVarIds(csmc.cliq)
+      sdims[varid] = 0.0
+    end
+    updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
     csmc.drawtree ? drawTree(csmc.tree, show=false) : nothing

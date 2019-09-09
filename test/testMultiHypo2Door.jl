@@ -65,7 +65,9 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)))
 
 
 ## Solve graph
-tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
+tree, smt, hist = solveTree!(fg)
+# tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
+# drawTree(tree, show=true)
 
 
 @test abs(getKDEMean(getKDE(fg, :x0))[1]) < 1.0
@@ -76,7 +78,11 @@ tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
 @test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 2.0
 
 
+# using RoMEPlotting
+# plotKDE(fg, [:l0;:l1])
+
 end
+
 
 
 #

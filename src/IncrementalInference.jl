@@ -108,6 +108,7 @@ export
   Prior,
   PackedPrior,
   MsgPrior,
+  PackedMsgPrior,
   PartialPrior,
   PackedPartialPrior,
   LinearConditional,
@@ -219,6 +220,7 @@ export
   isCliqUpSolved_StateMachine,
   determineAllChildrenNeedDownMsg_StateMachine,
   testCliqCanRecycled_StateMachine,
+  buildCliqSubgraphForDown_StateMachine,
 
   #
   isPartial,
@@ -346,7 +348,7 @@ export
   #development interface
   getTreeCliqSolveOrderUp,
   getCliqOrderUpSolve,
-  getCliqInitVarOrderUp,
+  getCliqVarInitOrderUp,
   getCliqInitVarOrderDown,
   getCliqStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
@@ -427,6 +429,9 @@ export
 
   # Temp placeholder for evaluating string types to real types
   _evalType,
+  saveDFG,
+  loadDFG,
+  rebuildFactorMetadata!,
 
   setUpMsg!,
   upMsg,
@@ -437,6 +442,7 @@ export
   getDwnMsgs,
   getCliqMsgsUp,
   getCliqMsgsDown,
+  getCliqVarSolveOrderUp,
 
   getSym,
   doCliqInferenceUp!,
@@ -461,6 +467,7 @@ export
   getIdx,
   showFactor,
   showVariable,
+  getMeasurements,
 
   # For 1D example,
 
@@ -495,6 +502,7 @@ include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
+include("CompareUtils.jl")
 
 include("JunctionTreeTypes.jl")
 include("JunctionTree.jl")

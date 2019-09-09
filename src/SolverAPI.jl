@@ -29,7 +29,7 @@ function solveTree!(dfgl::G,
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
-  hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag
@@ -81,7 +81,7 @@ function solveCliq!(dfgl::G,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
                     maxparallel::Int=50  ) where G <: DFG.AbstractDFG
   #
-  hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  # hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag
@@ -91,7 +91,7 @@ function solveCliq!(dfgl::G,
 
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = whichCliq(tree, cliqid)
-  cliqtask = @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, cliqHistories, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  cliqtask = @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   # end # if
 
 

@@ -365,18 +365,31 @@ Related
 fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
 function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
-                                          prnt::Graphs.ExVertex )::Vector{Int}
+                                          prnt::Graphs.ExVertex,
+                                          logger=ConsoleLogger() )::Vector{Int}
   #
   sibs = getChildren(tree, prnt)
   len = length(sibs)
   tdims = Vector{Int}(undef, len)
   sidx = Vector{Int}(undef, len)
   for idx in 1:len
+    cliqd = getData(sibs[idx])
+    with_logger(logger) do
+      @info "getCliqSiblingsPriorityInitOrder, idx=$idx of $len, $(cliqd.frontalIDs[1]) length solvableDims=$(length(cliqd.solvableDims.data))"
+    end
+    flush(logger.stream)
     sidims = fetchCliqSolvableDims(sibs[idx])
     sidx[idx] = sibs[idx].index
     tdims[idx] = sum(collect(values(sidims)))
+    with_logger(logger) do
+      @info "getCliqSiblingsPriorityInitOrder, finished idx=$idx of $len, length solvableDims=$(length(cliqd.solvableDims.data))"
+    end
+    flush(logger.stream)
   end
   p = sortperm(tdims, rev=true)
+  with_logger(logger) do
+    @info "getCliqSiblingsPriorityInitOrder, done p=$p"
+  end
   return sidx[p]
 end
 
