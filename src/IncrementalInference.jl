@@ -299,7 +299,9 @@ export
   freshSamples!,
 
   #Visualization
-  writeGraphPdf,
+  writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
+  drawGraph,
+  drawGraphCliq,
   drawCliqSubgraphUp,
   drawTree,
   printgraphmax,
