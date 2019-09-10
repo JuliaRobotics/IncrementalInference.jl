@@ -1009,10 +1009,11 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
-        downmsgs[key] = BallTreeDensity[]
+        downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
       end
       # TODO insert true inferred dim
-      push!(downmsgs[key], (bel, 0.0))
+      @show typeof(bel)
+      push!(downmsgs[key], bel)
     end
   end
   return downmsgs

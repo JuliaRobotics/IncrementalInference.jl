@@ -65,13 +65,7 @@ export
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
-
-  # OBSOLETE TODO REMOVE #TODO TODO
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI,
+  BayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -79,6 +73,7 @@ export
   getCliqSolveHistory,
   filterHistAllToArray,
   cliqHistFilterTransitions,
+  printCliqSummary,
   printCliqHistorySummary,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
@@ -404,6 +399,7 @@ export
   getCliqVarIdsPriors,
   getCliqVarSingletons,
   getCliqAllFactIds,
+  getCliqFactorIdsAll,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
@@ -480,7 +476,14 @@ export
   addGraphsVert!,
   makeAddEdge!,
   shuffleXAltD,
-  reshapeVec2Mat # TODO deprecate
+  reshapeVec2Mat, # TODO deprecate
+
+  # OBSOLETE TODO REMOVE #TODO TODO
+  dlapi,
+  localapi,
+  showcurrentdlapi,
+  setdatalayerAPI!,
+  DataLayerAPI
 
 
 
