@@ -302,7 +302,7 @@ export
   writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
   drawGraph,
   drawGraphCliq,
-  drawCliqSubgraphUp,
+  drawCliqSubgraphUpMocking,
   drawTree,
   printgraphmax,
   # allnums,

@@ -681,4 +681,22 @@ function printCliqSummary(dfg::G,
 end
 
 
+
+function updateSubFgFromDownMsgs!(sfg::G,
+                                  dwnmsgs::Dict,
+                                  seps::Vector{Symbol} ) where G <: AbstractDFG
+  #
+  # sanity check basic Bayes (Junction) tree property
+  # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
+
+  # update specific variables in sfg from msgs
+  for (key,beldim) in dwnmsgs
+    if key in seps
+      setValKDE!(sfg, key, beldim[1], false, beldim[2])
+    end
+  end
+
+  nothing
+end
+
 #

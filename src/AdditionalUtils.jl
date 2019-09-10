@@ -11,17 +11,17 @@ Related
 
 drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels
 """
-function drawCliqSubgraphUp(fgl::FactorGraph,
-                            treel::BayesTree,
-                            frontalSym::Symbol;
-                            show::Bool=true,
-                            filepath::String="/tmp/cliq_sfg.pdf",
-                            engine::AS1="sfdp",
-                            viewerapp::AS2="evince"  )::FactorGraph where {AS1 <: AbstractString, AS2 <: AbstractString}
+function drawCliqSubgraphUpMocking(fgl::G,
+                                   treel::BayesTree,
+                                   frontalSym::Symbol;
+                                   show::Bool=true,
+                                   filepath::String="/tmp/cliq_sfg.pdf",
+                                   engine::AS1="sfdp",
+                                   viewerapp::AS2="evince"  )::Nothing where {G <: AbstractDFG, AS1 <: AbstractString, AS2 <: AbstractString}
   #
   sfg = buildCliqSubgraphUp(fgl, treel, frontalSym)
   writeGraphPdf(sfg, show=show, viewerapp=viewerapp, engine=engine, filepath=filepath)
-  return sfg
+  nothing
 end
 
 
@@ -45,7 +45,7 @@ Draw the factor graph from a clique state machine history at a particular step a
 
 Related
 
-drawCliqSubgraphUp, drawGraph, drawTree
+drawCliqSubgraphUpMocking, drawGraph, drawTree
 """
 function drawGraphCliq(hists::Dict{Int, <: Tuple},
                        step::Int,

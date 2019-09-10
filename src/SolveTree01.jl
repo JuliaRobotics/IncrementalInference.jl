@@ -802,6 +802,8 @@ function downGibbsCliqueDensity(fg::G,
   end
   fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
   frtls = getFrontals(cliq)
+
+  # TODO, do better check if there is structure between multiple frontals
   niters = length(frtls) == 1 ? 1 : MCMCIter
   # TODO standize with upsolve and variable solver order
   mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)

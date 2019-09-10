@@ -1285,7 +1285,7 @@ function getTreeCliqUpMsgsAll(tree::BayesTree)::Dict{Int,TempBeliefMsg}
     allUpMsgs[cliq.index] = TempBeliefMsg()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index][lbl] = (msg, 0.0)
+      allUpMsgs[cliq.index][lbl] = msg
     end
   end
   return allUpMsgs
