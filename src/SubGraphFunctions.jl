@@ -266,9 +266,6 @@ function transferUpdateSubGraph!(dest::G1,
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
   end
-  for sym in syms
-    vari = DFG.getVariable(src, sym)
-    updateFullVertData!(dest, vari, updateMAPest=true)
-  end
-  nothing
+  DistributedFactorGraphs.updateGraphSolverData!(src, dest, syms)
+  return nothing
 end
