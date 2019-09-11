@@ -802,6 +802,8 @@ function downGibbsCliqueDensity(fg::G,
   end
   fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
   frtls = getFrontals(cliq)
+
+  # TODO, do better check if there is structure between multiple frontals
   niters = length(frtls) == 1 ? 1 : MCMCIter
   # TODO standize with upsolve and variable solver order
   mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
@@ -1009,10 +1011,11 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
-        downmsgs[key] = BallTreeDensity[]
+        downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
       end
       # TODO insert true inferred dim
-      push!(downmsgs[key], (bel, 0.0))
+      @show typeof(bel)
+      push!(downmsgs[key], bel)
     end
   end
   return downmsgs

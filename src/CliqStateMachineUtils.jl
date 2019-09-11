@@ -110,13 +110,16 @@ end
 
 Repeat a solver state machine step without changing history or primary values.
 
-printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
+printCliqSummary, printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::BayesTree,
                                 frontal::Symbol,
                                 step::Int)
   #
   hist = getCliqSolveHistory(tree, frontal)
+    # clear Condition states to allow step solve
+    cond = getSolveCondition(hist[step][4].cliq)
+    cond.waitq = Any[]
   return sandboxStateMachineStep(hist, step)
 end
 
@@ -597,6 +600,9 @@ Retrieve a clique's cached solvable dimensions (since last update).
 """
 function fetchCliqSolvableDims(cliq::Graphs.ExVertex)::Dict{Symbol,Float64}
   cliqd = getData(cliq)
+  if isready(cliqd.solvableDims)
+    return cliqd.solvableDims.data[1]
+  end
   return fetch(cliqd.solvableDims)
   # if isready(cliqd.solvableDims)
   # end
@@ -630,6 +636,67 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
 end
 
 
+"""
+    $SIGNATURES
 
+Print basic statistics about a clique variables and factors.
+
+Related
+
+printCliqHistorySummary
+"""
+function printCliqSummary(dfg::G,
+                          cliq::Graphs.ExVertex,
+                          logger=ConsoleLogger() ) where G <: AbstractDFG
+  #
+  frtl = getCliqFrontalVarIds(cliq)
+  seps = getCliqSeparatorVarIds(cliq)
+  fcts = getCliqFactorIdsAll(cliq)
+
+  isinit = map(x->isInitialized(dfg,x), [frtl;seps])
+  infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
+
+  with_logger(logger) do
+    @info "Clique $(cliq.index) summary:"
+    @info "  num frontals:    $(length(frtl))"
+    @info "  num separators:  $(length(seps))"
+    @info "  num factors:     $(length(fcts))"
+    @info "  num initialized: $(sum(isinit)) of $(length(isinit))"
+    @info ""
+    @info "  frontals:  $(frtl)"
+    @info "  separator: $(seps)"
+    @info "  factors:   $(fcts)"
+    @info "  init'ed:   $(Int.(isinit))"
+    @info "  infr'dims: $(infdim)"
+  end
+  nothing
+end
+
+function printCliqSummary(dfg::G,
+                          tree::BayesTree,
+                          frs::Symbol,
+                          logger=ConsoleLogger() ) where G <: AbstractDFG
+  #
+  printCliqSummary(dfg, getCliq(tree, frs), logger)
+end
+
+
+
+function updateSubFgFromDownMsgs!(sfg::G,
+                                  dwnmsgs::Dict,
+                                  seps::Vector{Symbol} ) where G <: AbstractDFG
+  #
+  # sanity check basic Bayes (Junction) tree property
+  # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
+
+  # update specific variables in sfg from msgs
+  for (key,beldim) in dwnmsgs
+    if key in seps
+      setValKDE!(sfg, key, beldim[1], false, beldim[2])
+    end
+  end
+
+  nothing
+end
 
 #

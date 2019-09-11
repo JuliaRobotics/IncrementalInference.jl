@@ -153,13 +153,13 @@ function runFullBatchIterations(;N=100, iters=50)
   pts0 = getSample(npx,N)[1]
   addVariable!(fg, :xy, pts0, N=N)
 
-  addFactor!(fg, [getVert(fg, :xy)], npx)
+  addFactor!(fg, [getVariable(fg, :xy)], npx)
   #
   # xey = AreEqual(Distributions.Normal(0.0,0.01))
-  # addFactor!(fg, [getVert(fg, :x);getVert(fg, :y)], xey)
+  # addFactor!(fg, [getVariable(fg, :x);getVariable(fg, :y)], xey)
 
   # xty = ProductNumbers(Distributions.Normal(0.0,0.01))
-  # addFactor!(fg, [getVert(fg, :x);getVert(fg, :y);getVert(fg, :xy)], xty)
+  # addFactor!(fg, [getVariable(fg, :x);getVariable(fg, :y);getVariable(fg, :xy)], xty)
 
   xty = Square(Distributions.Normal(0.0,0.01))
   addFactor!(fg, [:x,:xy], xty)
