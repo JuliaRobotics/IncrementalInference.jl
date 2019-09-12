@@ -758,12 +758,36 @@ getCliqVarIdsAll(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqAllVarIds(cliq:
 
 Get all `cliq` factor ids`::Symbol`.
 
+DEPRECATED, use getCliqFactorIdsAll instead.
+
 Related
 
-getCliqAllVarIds
+getCliqVarIdsAll
 """
-getCliqAllFactIds(cliqd::BayesTreeNodeData) = cliqd.potentials
-getCliqAllFactIds(cliq::Graphs.ExVertex) = getCliqAllFactIds(getData(cliq))
+getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
+getCliqFactorIdsAll(cliq::Graphs.ExVertex) = getCliqFactorIdsAll(getData(cliq))
+
+"""
+    $SIGNATURES
+
+Get all `cliq` factor ids`::Symbol`.
+
+DEPRECATED, use getCliqFactorIdsAll instead.
+
+Related
+
+getCliqVarIdsAll
+"""
+function getCliqAllFactIds(cliqd::BayesTreeNodeData)
+    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
+    return getCliqFactorIdsAll(cliqd)
+end
+
+function getCliqAllFactIds(cliq::Graphs.ExVertex)
+    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
+    return getCliqFactorIdsAll(getData(cliq))
+end
+
 
 """
     $SIGNATURES
@@ -1261,7 +1285,7 @@ function getTreeCliqUpMsgsAll(tree::BayesTree)::Dict{Int,TempBeliefMsg}
     allUpMsgs[cliq.index] = TempBeliefMsg()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index][lbl] = (msg, 0.0)
+      allUpMsgs[cliq.index][lbl] = msg
     end
   end
   return allUpMsgs

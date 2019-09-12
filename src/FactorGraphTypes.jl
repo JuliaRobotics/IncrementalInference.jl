@@ -182,6 +182,8 @@ end
 
 """
 $(TYPEDEF)
+
+TODO remove Union types -- issue #383
 """
 mutable struct FactorMetadata
   factoruserdata

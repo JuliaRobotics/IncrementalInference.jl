@@ -40,7 +40,11 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   dwnmsgs = getDwnMsgs(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs)))")
 
+  # maybe cycle through separators (or better yet, just use values directly -- see next line)
   msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs)
+  # force separator variables to adopt down message values
+  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
