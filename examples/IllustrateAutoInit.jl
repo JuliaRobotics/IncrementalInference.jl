@@ -148,7 +148,7 @@ plotKDE(fg, [:x0, :x1, :x2, :x3])
 # import Graphs: plot
 # import RoMEPlotting: plot
 # function plot(fgl::FactorGraph, sym::Symbol; api::DataLayerAPI=IncrementalInference.dlapi)
-#   PX = getKDE(getVert(fgl, sym, api=api))
+#   PX = getKDE(getVariable(fgl, sym))
 #   plot(PX)
 # end
 
