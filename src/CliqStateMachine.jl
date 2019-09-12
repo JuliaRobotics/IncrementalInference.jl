@@ -73,9 +73,9 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
 
   # set MAP est
-  # for sym in getCliqFrontalVarIds(csmc.cliq)
-  #   setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-  # end
+  for sym in getCliqFrontalVarIds(csmc.cliq)
+    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+  end
 
   # store the cliqSubFg for later debugging
   if opts.dbg
