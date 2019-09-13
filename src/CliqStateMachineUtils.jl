@@ -672,6 +672,30 @@ function printCliqSummary(dfg::G,
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Get the main factor graph stored in a history object from a particular step in CSM.
+
+Related
+
+getCliqSubgraphFromHistory, printCliqHistorySummary, printCliqSummary
+"""
+getGraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].dfg
+
+"""
+    $SIGNATURES
+
+Get the cliq sub graph fragment stored in a history object from a particular step in CSM.
+
+Related
+
+getGraphFromHistory, printCliqHistorySummary, printCliqSummary
+"""
+getCliqSubgraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].cliqSubFg
+getCliqSubgraphFromHistory(tree::BayesTree, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(getCliqSolveHistory(tree, frnt), step)
+
+
 function printCliqSummary(dfg::G,
                           tree::BayesTree,
                           frs::Symbol,
@@ -698,5 +722,78 @@ function updateSubFgFromDownMsgs!(sfg::G,
 
   nothing
 end
+
+
+
+
+"""
+    $SIGNATURES
+
+Find all factors that go `from` variable to any other complete variable set within `between`.
+
+Notes
+- Developed for downsolve in CSM, expanding the cliqSubFg to include all frontal factors.
+"""
+function findFactorsBetweenFrom(dfg::G,
+                                between::Vector{Symbol},
+                                from::Symbol ) where {G <: AbstractDFG}
+  # get all associated factors
+  allfcts = ls(dfg, from)
+
+  # remove candidates with neighbors outside between with mask
+  mask = ones(Bool, length(allfcts))
+  i = 0
+  for fct in allfcts
+    i += 1
+    # check if immediate neighbors are all in the `between` list
+    immnei = ls(dfg, fct)
+    if length(immnei) != length(intersect(immnei, between))
+      mask[i] = false
+    end
+  end
+
+  # return only masked factors
+  return allfcts[mask]
+end
+
+"""
+    $SIGNATURES
+
+Special function to add a few variables and factors to the clique sub graph required for downward solve in CSM.
+
+Dev Notes
+- There is still some disparity on whether up and down solves of tree should use exactly the same subgraph...  'between for up and frontal connected for down'
+"""
+function addDownVariableFactors!(dfg::G1,
+                                 subfg::G2,
+                                 cliq::Graphs.ExVertex,
+                                 logger=ConsoleLogger()  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
+  #
+  # determine which variables and factors needs to be added
+  currsyms = ls(subfg)
+  allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
+  newsyms = setdiff(allclsyms, currsyms)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newsyms=$newsyms"
+  end
+  frtls = getCliqFrontalVarIds(cliq)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), frtls=$frtls"
+  end
+  allnewfcts = union(map(x->findFactorsBetweenFrom(dfg,union(currsyms, newsyms),x), frtls)...)
+  newfcts = setdiff(allnewfcts, lsf(subfg))
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newfcts=$newfcts, allnewfcts=$allnewfcts"
+  end
+
+  # add the variables
+  DFG.getSubgraph(dfg, newsyms, false, subfg)
+  # add the factors
+  DFG.getSubgraph(dfg, newfcts, false, subfg)
+
+  return newsyms, newfcts
+end
+
+
 
 #

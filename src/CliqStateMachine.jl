@@ -45,46 +45,60 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # force separator variables to adopt down message values
   updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
+  # add required all frontal connected factors
+  newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
   if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
   end
 
-  # multiproc = false
-  # call down inference, TODO multiproc
-  if csmc.opts.multiproc
-    cliqc = deepcopy(csmc.cliq)
-    cliqcd = getData(cliqc)
-    # redirect to new unused so that CAN be serialized
-    cliqcd.initUpChannel = Channel{Symbol}(1)
-    cliqcd.initDownChannel = Channel{Symbol}(1)
-    cliqcd.solveCondition = Condition()
-    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-    infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
-    # NOTE Cannot send logger to separate process memory
-    drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false, true)
-  else
-    infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
-    # usemsgpriors = true so that old plumbing is used properly
-    drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, true, csmc.logger)
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  # use new localproduct approach
+  for fr in frsyms
+    pp, dens, parts, lbl, infdim = localProduct(csmc.cliqSubFg, fr, logger=csmc.logger)
+    # currvar = getVariable(csmc.cliqSubFg, fr)
+    setValKDE!(csmc.cliqSubFg, fr, pp, false, infdim)
   end
+
+  # old approach
+      # # multiproc = false
+      # # call down inference, TODO multiproc
+      # if csmc.opts.multiproc
+      #   cliqc = deepcopy(csmc.cliq)
+      #   cliqcd = getData(cliqc)
+      #   # redirect to new unused so that CAN be serialized
+      #   cliqcd.initUpChannel = Channel{Symbol}(1)
+      #   cliqcd.initDownChannel = Channel{Symbol}(1)
+      #   cliqcd.solveCondition = Condition()
+      #   cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
+      #   # NOTE Cannot send logger to separate process memory
+      #   drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false, true)
+      # else
+      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
+      #   # usemsgpriors = true so that old plumbing is used properly
+      #   drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, true, csmc.logger)
+      # end
+
+      # # update clique subgraph with new status
+      # updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
+      setCliqDrawColor(csmc.cliq, "lightblue")
+
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
-  # update clique subgraph with new status
-  updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
-
   # store the cliqSubFg for later debugging
   if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve.pdf"))
   end
 
   # transfer results to main factor graph
-  frsyms = getCliqFrontalVarIds(csmc.cliq)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
 
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
@@ -176,7 +190,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
       frsyms = getCliqFrontalVarIds(csmc.cliq)
     infocsm(csmc, "9, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
     # TODO what about down solve??
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
@@ -264,7 +278,8 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
     # store the cliqSubFg for later debugging
     if opts.dbg
-      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
+      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
+      drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
     end
 
     doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
@@ -279,7 +294,8 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
 
     # store the cliqSubFg for later debugging
     if opts.dbg
-      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
+      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
+      drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
     end
 
     # notify of results
@@ -610,15 +626,19 @@ Notes
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  syms = getCliqAllVarIds(csmc.cliq)
+  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
+  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
+
   infocsm(csmc, "2, build subgraph syms=$(syms)")
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
   if opts.dbg
-    mkpath(joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_build"))
+    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build.pdf"))
   end
 
   # go to 4
@@ -635,15 +655,16 @@ Notes
 """
 function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  syms = getCliqAllVarSyms(csmc.dfg, csmc.cliq)
+  syms = getCliqAllVarIds(csmc.cliq)
   infocsm(csmc, "2r, build subgraph syms=$(syms)")
   csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
   if opts.dbg
-    mkpath(joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"cliqSubFgs/cliq$(csmc.cliq.index)/fg_build_down"))
+    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down.pdf"))
   end
 
   # go to 10

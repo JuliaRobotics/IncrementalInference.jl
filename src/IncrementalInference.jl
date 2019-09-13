@@ -75,6 +75,8 @@ export
   cliqHistFilterTransitions,
   printCliqSummary,
   printCliqHistorySummary,
+  getGraphFromHistory,
+  getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
   # draw and animate state machine
@@ -466,6 +468,8 @@ export
   showFactor,
   showVariable,
   getMeasurements,
+  findFactorsBetweenFrom,
+  addDownVariableFactors!,
 
   # For 1D example,
 

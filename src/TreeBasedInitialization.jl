@@ -1048,7 +1048,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-    DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit"))
+    DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_beforedowninit"))
   end
 
   # cycle through vars and attempt init
@@ -1067,7 +1067,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-      DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit"))
+      DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
   end
 
   return status

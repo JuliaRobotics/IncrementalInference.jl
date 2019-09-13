@@ -34,8 +34,12 @@ Related
 
 drawGraphCliq, drawTree
 """
-function drawGraph(fgl::G; show::Bool=true) where {G <: AbstractDFG}
-  writeGraphPdf(fgl, show=show)
+function drawGraph(fgl::G;
+                   viewerapp::String="evince",
+                   filepath::AS="/tmp/caesar/random/fg.pdf",
+                   engine::AS="neato", #sfdp
+                   show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
+  writeGraphPdf(fgl, filepath=filepath, show=show, viewerapp=viewerapp, engine=engine)
 end
 
 """

@@ -394,7 +394,7 @@ function localProduct(dfg::G,
   vari = DFG.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vari).manifolds )
 
-  return pp, dens, partials, lb
+  return pp, dens, partials, lb, sum(inferdim)
 end
 localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
 
@@ -411,7 +411,7 @@ function initVariable!(fgl::G,
   @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
-  belief,b,c,d  = localProduct(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym)
   setValKDE!(vert, belief)
 
   nothing
@@ -1014,7 +1014,6 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
         downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
       end
       # TODO insert true inferred dim
-      @show typeof(bel)
       push!(downmsgs[key], bel)
     end
   end
@@ -1396,8 +1395,14 @@ function tryCliqStateMachineSolve!(dfg::G,
     fid = open(joinpath(opts.logpath,"logs/cliq$i/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
+    fid = open(joinpath(opts.logpath,"logs/cliq$(i)_stacktrace.txt"), "w")
+    showerror(fid, err, bt)
+    close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
     fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
+    printCliqHistorySummary(fid, history)
+    close(fid)
+    fid = open(joinpath(opts.logpath,"logs/cliq$(i)_csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     flush(logger.stream)
