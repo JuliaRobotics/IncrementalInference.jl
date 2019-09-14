@@ -221,9 +221,9 @@ function drawTree(treel::BayesTree;
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
-  mkpath("/tmp/caesar/")
-  fext = split(filepath, '.')[end]
-  fpwoext = split(filepath, '.')[end-1]
+  fext = filepath[(end-2):end] #split(filepath, '.')[end]
+  fpwoext = filepath[1:(end-4)]# split(filepath, '.')[end-1]
+  mkpath(dirname(fpwoext))
 
   # modify a deepcopy
   btc = deepcopy(treel)
@@ -242,7 +242,7 @@ function drawTree(treel::BayesTree;
     fid = open("$(fpwoext).dot","w+")
     write(fid,to_dot(btc.bt))
     close(fid)
-    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+    run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
   catch ex
     @warn ex
     @show stacktrace()

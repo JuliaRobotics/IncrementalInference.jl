@@ -639,42 +639,6 @@ end
 """
     $SIGNATURES
 
-Print basic statistics about a clique variables and factors.
-
-Related
-
-printCliqHistorySummary
-"""
-function printCliqSummary(dfg::G,
-                          cliq::Graphs.ExVertex,
-                          logger=ConsoleLogger() ) where G <: AbstractDFG
-  #
-  frtl = getCliqFrontalVarIds(cliq)
-  seps = getCliqSeparatorVarIds(cliq)
-  fcts = getCliqFactorIdsAll(cliq)
-
-  isinit = map(x->isInitialized(dfg,x), [frtl;seps])
-  infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
-
-  with_logger(logger) do
-    @info "Clique $(cliq.index) summary:"
-    @info "  num frontals:    $(length(frtl))"
-    @info "  num separators:  $(length(seps))"
-    @info "  num factors:     $(length(fcts))"
-    @info "  num initialized: $(sum(isinit)) of $(length(isinit))"
-    @info ""
-    @info "  frontals:  $(frtl)"
-    @info "  separator: $(seps)"
-    @info "  factors:   $(fcts)"
-    @info "  init'ed:   $(Int.(isinit))"
-    @info "  infr'dims: $(infdim)"
-  end
-  nothing
-end
-
-"""
-    $SIGNATURES
-
 Get the main factor graph stored in a history object from a particular step in CSM.
 
 Related
@@ -795,5 +759,19 @@ function addDownVariableFactors!(dfg::G1,
 end
 
 
+"""
+    $SIGNATURES
+
+Basic wrapper to take local product and then set the value of `sym` in `dfg`.
+"""
+function localProductAndUpdate!(dfg::G,
+                                sym::Symbol,
+                                logger=ConsoleLogger())::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
+  #
+  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, logger=logger)
+  setValKDE!(dfg, sym, pp, false, infdim)
+
+  return pp, infdim, lbl
+end
 
 #

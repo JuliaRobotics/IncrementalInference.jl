@@ -8,7 +8,13 @@ function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDF
   getSample(fnc, N)
 end
 
+"""
+    $SIGNATURES
 
+Get graph node (variable or factor) dimension.
+"""
+getDimension(var::DFGVariable) = getSofttype(var).dims
+getDimension(fct::DFGFactor) = getData(fct).fnc.zDim
 
 
 """
@@ -169,12 +175,11 @@ isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.
 
 Free all variables from marginalization.
 """
-function unmarginalizeVariablesAll!(fgl::FactorGraph)
+function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
-  vsyms = union(ls(fgl)...)
-  for sym in vsyms
-    getData(fgl, sym).ismargin = false
+  for sym in ls(fgl)
+    getData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
@@ -186,9 +191,11 @@ Free all variables from marginalization.
 
 Related
 
-unmarginalizeVariablesAll!
+dontMarginalizeVariablesAll!
 """
-unfreezeVariablesAll!(fgl::FactorGraph) = unmarginalizeVariablesAll!(fgl)
+function unfreezeVariablesAll!(fgl::G) where G <: AbstractDFG
+  dontMarginalizeVariablesAll!(fgl)
+end
 
 """
     $SIGNATURES
