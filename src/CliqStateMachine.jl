@@ -55,28 +55,37 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
   end
 
-  frsyms = getCliqFrontalVarIds(csmc.cliq)
-  # use new localproduct approach
-  # TODO refactor with @spawn jl 1.3
-  if csmc.opts.multiproc
-    downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
-    @sync for i in 1:length(frsyms)
-      @async begin
-        downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), csmc.cliqSubFg, frsyms[i])
-      end
-    end
-    infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))")
-    for fr in frsyms
-      infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc, setValKDE! $fr, inferdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])")
-      setValKDE!(csmc.cliqSubFg, fr, downresult[fr][1], false, downresult[fr][2])
-    end
-  else
-    for fr in frsyms
-      localProductAndUpdate!(csmc.cliqSubFg, fr, csmc.logger)
-    end
-  end
+  ## new way
+  # calculate belief on each of the frontal variables and iterate if required
+  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
 
-  # old approach
+  # compute new down messages
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- going to set new down msgs.")
+  getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
+  # setDwnMsg!(cliq, drt.keepdwnmsgs)
+
+      # frsyms = getCliqFrontalVarIds(csmc.cliq)
+      # # use new localproduct approach
+      # # TODO refactor with @spawn jl 1.3
+      # if csmc.opts.multiproc
+      #   downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
+      #   @sync for i in 1:length(frsyms)
+      #     @async begin
+      #       downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), csmc.cliqSubFg, frsyms[i])
+      #     end
+      #   end
+      #   infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))")
+      #   for fr in frsyms
+      #     infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc, setValKDE! $fr, inferdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])")
+      #     setValKDE!(csmc.cliqSubFg, fr, downresult[fr][1], false, downresult[fr][2])
+      #   end
+      # else
+      #   for fr in frsyms
+      #     localProductAndUpdate!(csmc.cliqSubFg, fr, csmc.logger)
+      #   end
+      # end
+
+    ## old approach
       # # multiproc = false
       # # call down inference, TODO multiproc
       # if csmc.opts.multiproc
@@ -110,6 +119,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # transfer results to main factor graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
 

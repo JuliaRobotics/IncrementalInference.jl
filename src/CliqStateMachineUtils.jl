@@ -774,4 +774,109 @@ function localProductAndUpdate!(dfg::G,
   return pp, infdim, lbl
 end
 
+"""
+    $SIGNATURES
+
+Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
+"""
+function getSetDownMessagesComplete!(subfg::G,
+                                     cliq::Graphs.ExVertex,
+                                     prntDwnMsgs::TempBeliefMsg,
+                                     logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
+  #
+  allvars = getCliqVarIdsAll(cliq)
+  allprntkeys = collect(keys(prntDwnMsgs))
+  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
+  remainkeys = setdiff(allvars, passkeys)
+  newDwnMsgs = TempBeliefMsg()
+
+  # some msgs are just pass through from parent
+  for pk in passkeys
+    newDwnMsgs[pk] = prntDwnMsgs[pk]
+  end
+
+  # other messages must be extracted from subfg
+  for mk in remainkeys
+    newDwnMsgs[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+  end
+
+  # set the downward keys
+  with_logger(logger) do
+    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
+  end
+  setDwnMsg!(cliq, newDwnMsgs)
+
+  return nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Determine which variables to iterate or compute directly for downward tree pass of inference.
+
+Up Related Functions
+
+directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
+"""
+function determineCliqVariableDownSequence(subfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Perform downward direction solves on a sub graph fragment.
+Calculates belief on each of the frontal variables and iterate if required.
+
+Notes
+- uses all factors connected to the frontal variables.
+- assumes `subfg` was properly prepared before calling.
+- has multi-process option.
+
+Dev Notes
+- TODO incorporate variation possible due to cross frontal factors.
+- cleanup and updates required, and @spawn jl 1.3
+"""
+function solveCliqDownFrontalProducts!(subfg::G,
+                                       cliq::Graphs.ExVertex,
+                                       opts::SolverParams,
+                                       logger=ConsoleLogger())::Nothing where G <: AbstractDFG
+  #
+  # get frontal variables for this clique
+  frsyms = getCliqFrontalVarIds(cliq)
+
+  # determine if cliq has cross frontal factors
+  # iterdwn, directdwns, passmsgs?
+
+  # use new localproduct approach
+  if opts.multiproc
+    downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
+    @sync for i in 1:length(frsyms)
+      @async begin
+        downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, frsyms[i])
+      end
+    end
+    with_logger(logger) do
+      @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))"
+    end
+    for fr in frsyms
+        with_logger(logger) do
+            @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
+        end
+      setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
+    end
+  else
+    for fr in frsyms
+      localProductAndUpdate!(subfg, fr, logger)
+    end
+  end
+
+  return nothing
+end
+
+
+
+
 #
