@@ -383,6 +383,7 @@ getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: Ab
 function updateFullVertData!(fgl::G,
                              nv::N;  # nv::Graphs.ExVertex;
                              updateMAPest::Bool=false ) where {G <: AbstractDFG, N <: DFGNode}
+  #
   @warn "Deprecated"
 
   sym = Symbol(nv.label)

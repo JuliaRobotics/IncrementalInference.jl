@@ -75,6 +75,10 @@ export
   cliqHistFilterTransitions,
   printCliqSummary,
   printCliqHistorySummary,
+  printGraphSummary,
+  printSummary,
+  getGraphFromHistory,
+  getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
   # draw and animate state machine
@@ -319,7 +323,7 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
-  unmarginalizeVariablesAll!,
+  dontMarginalizeVariablesAll!,
   unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
@@ -466,6 +470,9 @@ export
   showFactor,
   showVariable,
   getMeasurements,
+  findFactorsBetweenFrom,
+  addDownVariableFactors!,
+  getDimension,
 
   # For 1D example,
 

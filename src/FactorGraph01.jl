@@ -861,7 +861,7 @@ function addFactor!(dfg::G,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     ready::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=false,
+                    autoinit::Bool=true,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=50  ) where
                       {G <: AbstractDFG,
@@ -892,7 +892,7 @@ function addFactor!(
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=false,
+      autoinit::Bool=true,
       threadmodel=SingleThreaded,
       maxparallel::Int=50  ) where
         {G <: AbstractDFG,
