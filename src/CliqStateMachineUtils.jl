@@ -766,10 +766,11 @@ Basic wrapper to take local product and then set the value of `sym` in `dfg`.
 """
 function localProductAndUpdate!(dfg::G,
                                 sym::Symbol,
-                                logger=ConsoleLogger())::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
+                                setkde::Bool=true,
+                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
   #
   pp, dens, parts, lbl, infdim = localProduct(dfg, sym, logger=logger)
-  setValKDE!(dfg, sym, pp, false, infdim)
+  setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
 
   return pp, infdim, lbl
 end
@@ -815,12 +816,30 @@ end
 
 Determine which variables to iterate or compute directly for downward tree pass of inference.
 
-Up Related Functions
+Related Functions from Upward Inference
 
 directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 """
 function determineCliqVariableDownSequence(subfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
-  nothing
+  frtl = getCliqFrontalVarIds(cliq)
+
+  adj = DFG.getAdjacencyMatrix(subfg)
+  mask = map(x->(x in frtl), adj[1,:])
+  subAdj = adj[2:end,mask] .!= nothing
+  newFrtlOrder = Symbol.(adj[1,mask])
+  crossCheck = sum(Int.(subAdj), dims=2) .> 1
+  iterVars = Symbol[]
+  for i in 1:length(crossCheck)
+    # must add associated variables to iterVars
+    if crossCheck[i]
+      # find which variables are associated
+      varSym = newFrtlOrder[subAdj[i,:]]
+      union!(iterVars, varSym)
+    end
+  end
+
+  # return iteration list ordered by frtl
+  return intersect(frtl, iterVars)
 end
 
 
@@ -842,34 +861,51 @@ Dev Notes
 function solveCliqDownFrontalProducts!(subfg::G,
                                        cliq::Graphs.ExVertex,
                                        opts::SolverParams,
-                                       logger=ConsoleLogger())::Nothing where G <: AbstractDFG
+                                       logger=ConsoleLogger();
+                                       MCIters::Int=3 )::Nothing where G <: AbstractDFG
   #
   # get frontal variables for this clique
   frsyms = getCliqFrontalVarIds(cliq)
 
   # determine if cliq has cross frontal factors
   # iterdwn, directdwns, passmsgs?
+  iterFrtls = determineCliqVariableDownSequence(subfg,cliq)
+
+  # direct frontals
+  directs = setdiff(frsyms, iterFrtls)
 
   # use new localproduct approach
   if opts.multiproc
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
-    @sync for i in 1:length(frsyms)
+    @sync for i in 1:length(directs)
       @async begin
-        downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, frsyms[i])
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
     with_logger(logger) do
       @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))"
     end
-    for fr in frsyms
+    for fr in directs
         with_logger(logger) do
             @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
         end
       setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
     end
+    for mc in 1:MCIters, fr in iterFrtls
+      result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+      setValKDE!(subfg, fr, result[1], false, result[2])
+      with_logger(logger) do
+          @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
+      end
+    end
   else
-    for fr in frsyms
-      localProductAndUpdate!(subfg, fr, logger)
+    # do directs first
+    for fr in directs
+      localProductAndUpdate!(subfg, fr, true, logger)
+    end
+    #do iters next
+    for mc in 1:MCIters, fr in iterFrtls
+      localProductAndUpdate!(subfg, fr, true, logger)
     end
   end
 
