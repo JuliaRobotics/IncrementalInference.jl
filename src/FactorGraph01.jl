@@ -817,6 +817,11 @@ function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing wher
   # getData(dfg, sym).initialized = true
   return nothing
 end
+function manualinit!(dfg::G, sym::Symbol, pts::Array{Float64,2}) where G <: AbstractDFG
+  var = getVariable(dfg, sym)
+  pp = manikde!(pts, getManifolds(var))
+  manualinit!(dfg,sym,pp)
+end
 
 function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)
