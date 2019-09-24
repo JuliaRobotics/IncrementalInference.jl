@@ -45,6 +45,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   stateless::Bool
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
+  limitfixeddown::Bool # if true, then fixed lag will also not update marginalized during down (default false)
   # new functions
   incremental::Bool
   upsolve::Bool
@@ -64,6 +65,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 stateless::Bool=false,
                 qfl::Int=99999999999,
                 isfixedlag::Bool=false,
+                limitfixeddown::Bool=false,
                 incremental::Bool=true,
                 upsolve::Bool=true,
                 downsolve::Bool=true,
@@ -81,6 +83,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             stateless,
                                                                             qfl,
                                                                             isfixedlag,
+                                                                            limitfixeddown,
                                                                             incremental,
                                                                             upsolve,
                                                                             downsolve,
