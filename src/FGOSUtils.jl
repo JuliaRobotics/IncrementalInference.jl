@@ -166,7 +166,7 @@ end
 Return `::Bool` on whether this variable has been marginalized.
 """
 isMarginalized(vert::DFGVariable) = getData(vert).ismargin
-isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.getVariable(fg, sym))
+isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.getVariable(dfg, sym))
 
 
 
