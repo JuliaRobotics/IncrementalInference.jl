@@ -874,6 +874,16 @@ function solveCliqDownFrontalProducts!(subfg::G,
   # direct frontals
   directs = setdiff(frsyms, iterFrtls)
 
+  # ignore limited fixed lag variables
+  fixd = map(x->opts.limitfixeddown && isMarginalized(subfg,x), frsyms)
+  skip = frsyms[fixd]
+  iterFrtls = setdiff(iterFrtls, skip)
+  directs = setdiff(directs, skip)
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, skipping marginalized keys=$(skip)"
+  end
+
+
   # use new localproduct approach
   if opts.multiproc
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
