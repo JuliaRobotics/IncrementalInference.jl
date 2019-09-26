@@ -24,7 +24,7 @@ function writeGraphPdf(fgl::G;
                        engine::AS="neato", #sfdp
                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
   #
-  @warn "writeGraphPdf function might be changed, see DFG.toDotFile(dfg) as part of the long term solution."
+  @warn "writeGraphPdf is function changing to drawGraph, see DFG.toDotFile(dfg) as part of the long term solution."
 
   fgd = fgl
   @info "Writing factor graph file"
