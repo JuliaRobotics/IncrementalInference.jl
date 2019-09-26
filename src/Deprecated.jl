@@ -24,21 +24,20 @@ function writeGraphPdf(fgl::G;
                        engine::AS="neato", #sfdp
                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
   #
-  @warn "writeGraphPdf function might changed, see DFG.toDotFile(dfg) as part of the long term solution."
+  @warn "writeGraphPdf function might be changed, see DFG.toDotFile(dfg) as part of the long term solution."
 
   fgd = fgl
   @info "Writing factor graph file"
   fext = split(filepath, '.')[end]
-  fpwoext = split(filepath, '.')[end-1]
+  fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
-  # fid = open(dotfile,"w")
-  # write(fid,Graphs.to_dot(fgd.g))
-  # close(fid)
+
+  # create the dot file
   DFG.toDotFile(fgl, dotfile)
-  show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
 
   try
-    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+    run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
+    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
@@ -108,7 +107,10 @@ function dwnMsg(btl::BayesTree, sym::Symbol)
 end
 
 
-
+function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
+    @error "getCliquePotentials! deprecated, use setCliqPotentials! with DFG objects instead of FactorGraph"
+    setCliqPotentials!(fg, bt.cliques[chkcliq])
+end
 
 """
     $(SIGNATURES)

@@ -106,6 +106,10 @@ mutable struct BayesTreeNodeData
   potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
   partialpotential::Vector{Bool}
+
+  dwnPotentials::Vector{Symbol}
+  dwnPartialPotential::Vector{Bool}
+
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
   directvarIDs::Vector{Symbol} # Int
@@ -137,26 +141,27 @@ mutable struct BayesTreeNodeData
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29],
+                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29], x[30], x[31],
                                 Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
 # TODO -- this should be a constructor
 function emptyBTNodeData()
-  BayesTreeNodeData(Int[],Int[],Int[],
-                    Int[],Int[],Bool[],      # 6
+  BayesTreeNodeData(Symbol[],Symbol[],Symbol[],
+                    Symbol[],Symbol[],Bool[], # 6
+                    Symbol[],Bool[],
                     Array{Bool}(undef, 0,0),
                     Array{Bool}(undef, 0,0),
-                    Int[],Int[],             # 10
-                    Int[],Int[],Int[],       # 13
-                    nothing, nothing,        # 15
+                    Int[],Int[],             # 10+2
+                    Int[],Int[],Int[],       # 13+2
+                    nothing, nothing,        # 15+2
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Int, TempBeliefMsg}(),
-                    TempBeliefMsg(),         # 19
+                    TempBeliefMsg(),         # 19+2
                     false, :null,
-                    false, false,            # 23
-                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26
+                    false, false,            # 23+2
+                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26+2
                     Channel{Int}(1), Channel{Int}(1),
                     Channel{Dict{Symbol,Float64}}(1) )
 end
