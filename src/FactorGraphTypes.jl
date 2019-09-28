@@ -45,6 +45,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   stateless::Bool
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
+  limitfixeddown::Bool # if true, then fixed lag will also not update marginalized during down (default false)
   # new functions
   incremental::Bool
   upsolve::Bool
@@ -64,6 +65,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 stateless::Bool=false,
                 qfl::Int=99999999999,
                 isfixedlag::Bool=false,
+                limitfixeddown::Bool=false,
                 incremental::Bool=true,
                 upsolve::Bool=true,
                 downsolve::Bool=true,
@@ -81,6 +83,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             stateless,
                                                                             qfl,
                                                                             isfixedlag,
+                                                                            limitfixeddown,
                                                                             incremental,
                                                                             upsolve,
                                                                             downsolve,
@@ -182,6 +185,8 @@ end
 
 """
 $(TYPEDEF)
+
+TODO remove Union types -- issue #383
 """
 mutable struct FactorMetadata
   factoruserdata
@@ -381,6 +386,7 @@ getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: Ab
 function updateFullVertData!(fgl::G,
                              nv::N;  # nv::Graphs.ExVertex;
                              updateMAPest::Bool=false ) where {G <: AbstractDFG, N <: DFGNode}
+  #
   @warn "Deprecated"
 
   sym = Symbol(nv.label)

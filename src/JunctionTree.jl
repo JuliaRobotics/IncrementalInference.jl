@@ -221,9 +221,9 @@ function drawTree(treel::BayesTree;
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
-  mkpath("/tmp/caesar/")
-  fext = split(filepath, '.')[end]
-  fpwoext = split(filepath, '.')[end-1]
+  fext = filepath[(end-2):end] #split(filepath, '.')[end]
+  fpwoext = filepath[1:(end-4)]# split(filepath, '.')[end-1]
+  mkpath(dirname(fpwoext))
 
   # modify a deepcopy
   btc = deepcopy(treel)
@@ -242,7 +242,7 @@ function drawTree(treel::BayesTree;
     fid = open("$(fpwoext).dot","w+")
     write(fid,to_dot(btc.bt))
     close(fid)
-    run(`dot $(fpwoext).dot -T$(fext) -o $(filepath)`)
+    run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
   catch ex
     @warn ex
     @show stacktrace()
@@ -509,14 +509,19 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 getCliqMsgsDown(cliql::Graphs.ExVertex) = getDwnMsgs(cliql)
 
 
-function appendUseFcts!(usefcts, lblid::Int, fct::Graphs.ExVertex, fid::Int)
-  for tp in usefcts
-    if tp == fct.index
-      return nothing
-    end
-  end
-  tpl = fct.index
-  push!(usefcts, tpl )
+function appendUseFcts!(usefcts,
+                        lblid::Symbol,
+                        fct::DFGFactor )
+                        # fid::Symbol )
+  #
+  union!(usefcts, Symbol(fct.label))
+  # for tp in usefcts
+  #   if tp == fct.index
+  #     return nothing
+  #   end
+  # end
+  # tpl = fct.label
+  # push!(usefcts, tpl )
   nothing
 end
 
@@ -563,45 +568,58 @@ function getFactorsAmongVariablesOnly(dfg::G,
   return usefcts
 end
 
-# function getCliqFactorsFromFrontals(fgl::FactorGraph,
-#                                     varlist::Vector{Symbol};
-#                                     unused::Bool=true,
-#                                     api::DataLayerAPI=localapi )
-#   #
-#   frtl = getData(cliq).frontalIDs
-#   cond = getData(cliq).conditIDs
-#   allids = [frtl;cond]
-#
-#   usefcts = Int[]
-#   for fid in frtl
-#     usefcts = Int[]
-#     for fct in api.outneighbors(fgl, getVert(fg,fid, api=api))
-# #         if getData(fct).potentialused!=tfrue
-# #             loutn = localapi.outneighbors(fg, fct)
-# #             if length(loutn)==1
-# #                 appendUseFcts!(usefcts, fg.IDs[Symbol(loutn[1].label)], fct, fid)
-# #                 fct.attributes["data"].potentialused = true
-# #                 localapi.updatevertex!(fg, fct)
-# #             end
-# #             for sepSearch in loutn
-# #                 sslbl = Symbol(sepSearch.label)
-# #                 if (fg.IDs[sslbl] == fid)
-# #                     continue # skip the fid itself
-# #                 end
-# #                 sea = findmin(abs.(allids .- fg.IDs[sslbl]))
-# #                 if sea[1]==0.0
-# #                     appendUseFcts!(usefcts, fg.IDs[sslbl], fct, fid)
-# #                     fct.attributes["data"].potentialused = true
-# #                     localapi.updatevertex!(fg, fct)
-# #                 end
-# #             end
-# #         end
-#     end
-# #     getData(cliq).potentials = union(getData(cliq).potentials, usefcts)
-#   end
-#
-#   return usefcts
-# end
+
+"""
+    $SIGNATURES
+
+Get all factors connected to frontal variables
+
+Dev Notes
+- Why not just do this, `ffcs = union( map(x->ls(fgl, x), frtl) )`?
+"""
+function getCliqFactorsFromFrontals(fgl::G,
+                                    cliq::Graphs.ExVertex,
+                                    varlist::Vector{Symbol};
+                                    inseparator::Bool=true,
+                                    unused::Bool=true  ) where {G <: AbstractDFG}
+  #
+  frtls = getData(cliq).frontalIDs
+  conds = getData(cliq).conditIDs
+  allids = [frtls;conds]
+
+  usefcts = Symbol[]
+  for frsym in frtls
+    # usefcts = Int[]
+    for fctid in ls(fgl, frsym)
+        fct = getFactor(fgl, fctid)
+        if !unused || !getData(fct).potentialused
+            loutn = ls(fgl, fctid)
+            # deal with unary factors
+            if length(loutn)==1
+                union!(usefcts, Symbol[Symbol(fct.label);])
+                # appendUseFcts!(usefcts, loutn, fct) # , frsym)
+                getData(fct).potentialused = true
+            end
+            # deal with n-ary factors
+            for sep in loutn
+                if sep == frsym
+                    continue # skip the frsym itself
+                end
+                insep = sep in allids
+                if !inseparator || insep
+                    union!(usefcts, Symbol[Symbol(fct.label);])
+                    getData(fct).potentialused = true
+                    if !insep
+                        @info "cliq=$(cliq.index) adding factor that is no in separator, $sep"
+                    end
+                end
+            end
+        end
+    end
+  end
+
+  return usefcts
+end
 
 """
     $SIGNATURES
@@ -617,45 +635,40 @@ end
 """
     $SIGNATURES
 
-Get and set the potentials for a particular `cliq` in the Bayes (Junction) tree.
+Determine and set the potentials for a particular `cliq` in the Bayes (Junction) tree.
 """
-function getCliquePotentials!(dfg::G,
-                              bt::BayesTree,
-                              cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+function setCliqPotentials!(dfg::G,
+                            bt::BayesTree,
+                            cliq::Graphs.ExVertex  ) where G <: AbstractDFG
   #
-  frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  allids = [frtl;cond]
+  varlist = getCliqVarIdsAll(cliq)
 
-  if true
-    varlist = Symbol[]
-    for id in allids
-      push!(varlist, id)
-    end
-    fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
-    for fsym in fctsyms
-      push!(getData(cliq).potentials, fsym)
-      fct = DFG.getFactor(dfg, fsym)
-      getData(fct).potentialused = true
-      push!(getData(cliq).partialpotential, isPartial(fct))
-    end
+  @info "using all factors among cliq variables"
+  fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
 
+  getData(cliq).potentials = fctsyms
+  getData(cliq).partialpotential = Vector{Bool}(undef, length(fctsyms))
+  fcts = map(x->getFactor(dfg, x), fctsyms)
+  getData(cliq).partialpotential = map(x->isPartial(x), fcts)
+  for fct in fcts
+    getData(fct).potentialused = true
   end
 
-  # check if any of the factors are partial constraints
-  # prfctsids = getCliqFactorIds(cliq)[prfcts]
-  # len = length(prfctsids)
-  # fulls = zeros(Bool, len)
-  # for i in 1:len
-  #   fulls = !isPartial()
-  # end
-
+  @info "finding all frontals for down WIP"
+  ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false)
+  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
+  getData(cliq).dwnPotentials = ffctsyms
+  getData(cliq).dwnPartialPotential = map(x->isPartial(getFactor(dfg,x)), ffctsyms )
 
   nothing
 end
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
-    getCliquePotentials!(fg, bt.cliques[chkcliq])
+function getCliquePotentials!(dfg::G,
+                            bt::BayesTree,
+                            cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+  #
+  @warn "getCliquePotentials! deprecated, use getCliqPotentials instead."
+  getCliqPotentials(dfg, bt, cliq)
 end
 
 function cliqPotentialIDs(cliq::Graphs.ExVertex)
@@ -734,12 +747,42 @@ Get all `cliq` variable ids`::Symbol`.
 
 Related
 
-getCliqVarIdsAll, getCliqAllFactIds
+getCliqVarIdsAll, getCliqAllFactIds, getCliqVarsWithFrontalNeighbors
 """
 function getCliqAllVarIds(cliq::Graphs.ExVertex)::Vector{Symbol}
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
   union(frtl,cond)
+end
+
+
+"""
+    $SIGNATURES
+
+Return all variables (including frontal factor neighbors).
+
+Dev Notes
+- TODO needs to be refactored and optimized.
+
+Related
+
+getCliqAllVarIds
+"""
+function getCliqVarsWithFrontalNeighbors(fgl::G,
+                                         cliq::Graphs.ExVertex) where {G <: AbstractDFG}
+  #
+  frtl = getCliqFrontalVarIds(cliq)
+  cond = getCliqSeparatorVarIds(cliq)
+  syms = Symbol[]
+  union!(syms,Symbol.(frtl))
+  union!(syms,Symbol.(cond))
+
+  # TODO Can we trust factors are frontal connected?
+  ffcs = union( map(x->ls(fgl, x), frtl)... )
+  # @show ffcs = getData(cliq).potentials
+  neig = union( map(x->ls(fgl, x), ffcs)... )
+  union!(syms, Symbol.(neig))
+  return syms
 end
 
 """
@@ -758,12 +801,36 @@ getCliqVarIdsAll(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqAllVarIds(cliq:
 
 Get all `cliq` factor ids`::Symbol`.
 
+DEPRECATED, use getCliqFactorIdsAll instead.
+
 Related
 
-getCliqAllVarIds
+getCliqVarIdsAll
 """
-getCliqAllFactIds(cliqd::BayesTreeNodeData) = cliqd.potentials
-getCliqAllFactIds(cliq::Graphs.ExVertex) = getCliqAllFactIds(getData(cliq))
+getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
+getCliqFactorIdsAll(cliq::Graphs.ExVertex) = getCliqFactorIdsAll(getData(cliq))
+
+"""
+    $SIGNATURES
+
+Get all `cliq` factor ids`::Symbol`.
+
+DEPRECATED, use getCliqFactorIdsAll instead.
+
+Related
+
+getCliqVarIdsAll
+"""
+function getCliqAllFactIds(cliqd::BayesTreeNodeData)
+    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
+    return getCliqFactorIdsAll(cliqd)
+end
+
+function getCliqAllFactIds(cliq::Graphs.ExVertex)
+    @warn "getCliqAllFactIds deprecated, use getCliqFactorIdsAll instead."
+    return getCliqFactorIdsAll(getData(cliq))
+end
+
 
 """
     $SIGNATURES
@@ -773,7 +840,7 @@ Get all `cliq` variable labels as `::Symbol`.
 function getCliqAllVarSyms(dfg::G, cliq::Graphs.ExVertex)::Vector{Symbol} where G <: AbstractDFG
   # Symbol[getSym(dfg, varid) for varid in getCliqAllVarIds(cliq)]
   @warn "deprecated getCliqAllVarSyms, use getCliqAllVarIds instead."
-  getCliqAllVarIds(cliq)
+  getCliqAllVarIds(cliq) # not doing all frontals
 end
 
 """
@@ -826,7 +893,7 @@ Notes
 function buildCliqSubgraphUp(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
   # build a subgraph copy of clique
   cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarSyms(fgl, cliq)
+  syms = getCliqAllVarIds(cliq)
   subfg = buildSubgraphFromLabels(fgl,syms)
 
   # add upward messages to subgraph
@@ -851,7 +918,7 @@ Notes
 function buildCliqSubgraphDown(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
   # build a subgraph copy of clique
   cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarSyms(fgl, cliq)
+  syms = getCliqAllVarIds(cliq)
   subfg = buildSubgraphFromLabels(fgl,syms)
 
   # add upward messages to subgraph
@@ -1142,7 +1209,7 @@ function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) whe
         buildCliquePotentials(dfg, bt, child)
     end
     @info "Get potentials $(cliq.attributes["label"])"
-    getCliquePotentials!(dfg, bt, cliq)
+    setCliqPotentials!(dfg, bt, cliq)
 
     compCliqAssocMatrices!(dfg, bt, cliq)
     setCliqMCIDs!(cliq)
@@ -1261,7 +1328,7 @@ function getTreeCliqUpMsgsAll(tree::BayesTree)::Dict{Int,TempBeliefMsg}
     allUpMsgs[cliq.index] = TempBeliefMsg()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index][lbl] = (msg, 0.0)
+      allUpMsgs[cliq.index][lbl] = msg
     end
   end
   return allUpMsgs

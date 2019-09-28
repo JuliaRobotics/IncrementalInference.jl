@@ -136,10 +136,11 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=C
     # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
-  notify(getSolveCondition(cliq))
+  cond = getSolveCondition(cliq)
+  notify(cond)
     # hack to avoid a race condition  -- remove with atomic lock logic upgrade
     sleep(0.1)
-    notify(getSolveCondition(cliq))
+    notify(cond) # getSolveCondition(cliq)
 
   # TODO unlock
   unlockUpStatus!(cd)
@@ -1047,7 +1048,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-    DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit"))
+    DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_beforedowninit"))
   end
 
   # cycle through vars and attempt init
@@ -1066,7 +1067,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-      DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit"))
+      DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
   end
 
   return status

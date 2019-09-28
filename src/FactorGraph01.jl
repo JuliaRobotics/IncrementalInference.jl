@@ -71,6 +71,8 @@ getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getData(v
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
+getManifolds(vartype::InferenceVariable) = vartype.manifolds
+getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
 
 """
     $(SIGNATURES)
@@ -817,6 +819,11 @@ function manualinit!(dfg::T, sym::Symbol, usefcts::Vector{Symbol})::Nothing wher
   # getData(dfg, sym).initialized = true
   return nothing
 end
+function manualinit!(dfg::G, sym::Symbol, pts::Array{Float64,2}) where G <: AbstractDFG
+  var = getVariable(dfg, sym)
+  pp = manikde!(pts, getManifolds(var))
+  manualinit!(dfg,sym,pp)
+end
 
 function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)
@@ -861,7 +868,7 @@ function addFactor!(dfg::G,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     ready::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=false,
+                    autoinit::Bool=true,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=50  ) where
                       {G <: AbstractDFG,
@@ -892,7 +899,7 @@ function addFactor!(
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       ready::Int=1,
       labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=false,
+      autoinit::Bool=true,
       threadmodel=SingleThreaded,
       maxparallel::Int=50  ) where
         {G <: AbstractDFG,

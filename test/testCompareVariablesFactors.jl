@@ -37,7 +37,7 @@ fg2 = deepcopy(fg)
 @test compareFactorGraphs(fg, fg)
 @test compareFactorGraphs(fg, fg2)
 
-solveTree!(fg)
+tree, smt, hist = solveTree!(fg)
 
 x1a = getVariable(fg, :x0)
 x1b = getVariable(fg2, :x0)
@@ -90,7 +90,7 @@ sfg = buildSubgraphFromLabels(fg, [:x0;:x1])
 
 @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
 
-# writeGraphPdf(sfg)
+# drawGraph(sfg)
 
 end
 

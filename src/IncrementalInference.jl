@@ -39,7 +39,7 @@ import Base: convert
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
-import ApproxManifoldProducts: kde!
+import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
 
@@ -65,13 +65,7 @@ export
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
-
-  # OBSOLETE TODO REMOVE #TODO TODO
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI,
+  BayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -79,7 +73,12 @@ export
   getCliqSolveHistory,
   filterHistAllToArray,
   cliqHistFilterTransitions,
+  printCliqSummary,
   printCliqHistorySummary,
+  printGraphSummary,
+  printSummary,
+  getGraphFromHistory,
+  getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
   # draw and animate state machine
@@ -268,6 +267,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  buildCliquePotentials,
   hasCliq,
   getCliq,
   whichCliq,
@@ -304,8 +304,10 @@ export
   freshSamples!,
 
   #Visualization
-  writeGraphPdf,
-  drawCliqSubgraphUp,
+  writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
+  drawGraph,
+  drawGraphCliq,
+  drawCliqSubgraphUpMocking,
   drawTree,
   printgraphmax,
   # allnums,
@@ -322,7 +324,7 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
-  unmarginalizeVariablesAll!,
+  dontMarginalizeVariablesAll!,
   unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
@@ -404,6 +406,7 @@ export
   getCliqVarIdsPriors,
   getCliqVarSingletons,
   getCliqAllFactIds,
+  getCliqFactorIdsAll,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
@@ -447,6 +450,7 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+  setfreeze!,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
@@ -468,6 +472,9 @@ export
   showFactor,
   showVariable,
   getMeasurements,
+  findFactorsBetweenFrom,
+  addDownVariableFactors!,
+  getDimension,
 
   # For 1D example,
 
@@ -480,11 +487,18 @@ export
   addGraphsVert!,
   makeAddEdge!,
   shuffleXAltD,
-  reshapeVec2Mat # TODO deprecate
+  reshapeVec2Mat, # TODO deprecate
+
+  # OBSOLETE TODO REMOVE #TODO TODO
+  dlapi,
+  localapi,
+  showcurrentdlapi,
+  setdatalayerAPI!,
+  DataLayerAPI
 
 
 
-
+# TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
 # non-free, but not currently use!
@@ -515,6 +529,10 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
+
+# special variables and factors, see RoME.jl for more examples
+include("Variables/Sphere1D.jl")
+include("Factors/Sphere1D.jl")
 
 include("Deprecated.jl")
 

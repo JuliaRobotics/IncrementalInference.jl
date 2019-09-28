@@ -110,13 +110,16 @@ end
 
 Repeat a solver state machine step without changing history or primary values.
 
-printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
+printCliqSummary, printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::BayesTree,
                                 frontal::Symbol,
                                 step::Int)
   #
   hist = getCliqSolveHistory(tree, frontal)
+    # clear Condition states to allow step solve
+    cond = getSolveCondition(hist[step][4].cliq)
+    cond.waitq = Any[]
   return sandboxStateMachineStep(hist, step)
 end
 
@@ -597,6 +600,9 @@ Retrieve a clique's cached solvable dimensions (since last update).
 """
 function fetchCliqSolvableDims(cliq::Graphs.ExVertex)::Dict{Symbol,Float64}
   cliqd = getData(cliq)
+  if isready(cliqd.solvableDims)
+    return cliqd.solvableDims.data[1]
+  end
   return fetch(cliqd.solvableDims)
   # if isready(cliqd.solvableDims)
   # end
@@ -627,6 +633,293 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
 
   # nope, everybody is waiting for something to change -- proceed with forcing a cliq solve
   return true
+end
+
+
+"""
+    $SIGNATURES
+
+Get the main factor graph stored in a history object from a particular step in CSM.
+
+Related
+
+getCliqSubgraphFromHistory, printCliqHistorySummary, printCliqSummary
+"""
+getGraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].dfg
+
+"""
+    $SIGNATURES
+
+Get the cliq sub graph fragment stored in a history object from a particular step in CSM.
+
+Related
+
+getGraphFromHistory, printCliqHistorySummary, printCliqSummary
+"""
+getCliqSubgraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].cliqSubFg
+getCliqSubgraphFromHistory(tree::BayesTree, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(getCliqSolveHistory(tree, frnt), step)
+
+
+function printCliqSummary(dfg::G,
+                          tree::BayesTree,
+                          frs::Symbol,
+                          logger=ConsoleLogger() ) where G <: AbstractDFG
+  #
+  printCliqSummary(dfg, getCliq(tree, frs), logger)
+end
+
+
+
+function updateSubFgFromDownMsgs!(sfg::G,
+                                  dwnmsgs::Dict,
+                                  seps::Vector{Symbol} ) where G <: AbstractDFG
+  #
+  # sanity check basic Bayes (Junction) tree property
+  # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
+
+  # update specific variables in sfg from msgs
+  for (key,beldim) in dwnmsgs
+    if key in seps
+      setValKDE!(sfg, key, beldim[1], false, beldim[2])
+    end
+  end
+
+  nothing
+end
+
+
+
+
+"""
+    $SIGNATURES
+
+Find all factors that go `from` variable to any other complete variable set within `between`.
+
+Notes
+- Developed for downsolve in CSM, expanding the cliqSubFg to include all frontal factors.
+"""
+function findFactorsBetweenFrom(dfg::G,
+                                between::Vector{Symbol},
+                                from::Symbol ) where {G <: AbstractDFG}
+  # get all associated factors
+  allfcts = ls(dfg, from)
+
+  # remove candidates with neighbors outside between with mask
+  mask = ones(Bool, length(allfcts))
+  i = 0
+  for fct in allfcts
+    i += 1
+    # check if immediate neighbors are all in the `between` list
+    immnei = ls(dfg, fct)
+    if length(immnei) != length(intersect(immnei, between))
+      mask[i] = false
+    end
+  end
+
+  # return only masked factors
+  return allfcts[mask]
+end
+
+"""
+    $SIGNATURES
+
+Special function to add a few variables and factors to the clique sub graph required for downward solve in CSM.
+
+Dev Notes
+- There is still some disparity on whether up and down solves of tree should use exactly the same subgraph...  'between for up and frontal connected for down'
+"""
+function addDownVariableFactors!(dfg::G1,
+                                 subfg::G2,
+                                 cliq::Graphs.ExVertex,
+                                 logger=ConsoleLogger()  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
+  #
+  # determine which variables and factors needs to be added
+  currsyms = ls(subfg)
+  allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
+  newsyms = setdiff(allclsyms, currsyms)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newsyms=$newsyms"
+  end
+  frtls = getCliqFrontalVarIds(cliq)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), frtls=$frtls"
+  end
+  allnewfcts = union(map(x->findFactorsBetweenFrom(dfg,union(currsyms, newsyms),x), frtls)...)
+  newfcts = setdiff(allnewfcts, lsf(subfg))
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newfcts=$newfcts, allnewfcts=$allnewfcts"
+  end
+
+  # add the variables
+  DFG.getSubgraph(dfg, newsyms, false, subfg)
+  # add the factors
+  DFG.getSubgraph(dfg, newfcts, false, subfg)
+
+  return newsyms, newfcts
+end
+
+
+"""
+    $SIGNATURES
+
+Basic wrapper to take local product and then set the value of `sym` in `dfg`.
+"""
+function localProductAndUpdate!(dfg::G,
+                                sym::Symbol,
+                                setkde::Bool=true,
+                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
+  #
+  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, logger=logger)
+  setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
+
+  return pp, infdim, lbl
+end
+
+"""
+    $SIGNATURES
+
+Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
+"""
+function getSetDownMessagesComplete!(subfg::G,
+                                     cliq::Graphs.ExVertex,
+                                     prntDwnMsgs::TempBeliefMsg,
+                                     logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
+  #
+  allvars = getCliqVarIdsAll(cliq)
+  allprntkeys = collect(keys(prntDwnMsgs))
+  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
+  remainkeys = setdiff(allvars, passkeys)
+  newDwnMsgs = TempBeliefMsg()
+
+  # some msgs are just pass through from parent
+  for pk in passkeys
+    newDwnMsgs[pk] = prntDwnMsgs[pk]
+  end
+
+  # other messages must be extracted from subfg
+  for mk in remainkeys
+    newDwnMsgs[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+  end
+
+  # set the downward keys
+  with_logger(logger) do
+    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
+  end
+  setDwnMsg!(cliq, newDwnMsgs)
+
+  return nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Determine which variables to iterate or compute directly for downward tree pass of inference.
+
+Related Functions from Upward Inference
+
+directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
+"""
+function determineCliqVariableDownSequence(subfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+  frtl = getCliqFrontalVarIds(cliq)
+
+  adj = DFG.getAdjacencyMatrix(subfg)
+  mask = map(x->(x in frtl), adj[1,:])
+  subAdj = adj[2:end,mask] .!= nothing
+  newFrtlOrder = Symbol.(adj[1,mask])
+  crossCheck = sum(Int.(subAdj), dims=2) .> 1
+  iterVars = Symbol[]
+  for i in 1:length(crossCheck)
+    # must add associated variables to iterVars
+    if crossCheck[i]
+      # find which variables are associated
+      varSym = newFrtlOrder[subAdj[i,:]]
+      union!(iterVars, varSym)
+    end
+  end
+
+  # return iteration list ordered by frtl
+  return intersect(frtl, iterVars)
+end
+
+
+"""
+    $SIGNATURES
+
+Perform downward direction solves on a sub graph fragment.
+Calculates belief on each of the frontal variables and iterate if required.
+
+Notes
+- uses all factors connected to the frontal variables.
+- assumes `subfg` was properly prepared before calling.
+- has multi-process option.
+
+Dev Notes
+- TODO incorporate variation possible due to cross frontal factors.
+- cleanup and updates required, and @spawn jl 1.3
+"""
+function solveCliqDownFrontalProducts!(subfg::G,
+                                       cliq::Graphs.ExVertex,
+                                       opts::SolverParams,
+                                       logger=ConsoleLogger();
+                                       MCIters::Int=3 )::Nothing where G <: AbstractDFG
+  #
+  # get frontal variables for this clique
+  frsyms = getCliqFrontalVarIds(cliq)
+
+  # determine if cliq has cross frontal factors
+  # iterdwn, directdwns, passmsgs?
+  iterFrtls = determineCliqVariableDownSequence(subfg,cliq)
+
+  # direct frontals
+  directs = setdiff(frsyms, iterFrtls)
+
+  # ignore limited fixed lag variables
+  fixd = map(x->opts.limitfixeddown && isMarginalized(subfg,x), frsyms)
+  skip = frsyms[fixd]
+  iterFrtls = setdiff(iterFrtls, skip)
+  directs = setdiff(directs, skip)
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, skipping marginalized keys=$(skip)"
+  end
+
+
+  # use new localproduct approach
+  if opts.multiproc
+    downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
+    @sync for i in 1:length(directs)
+      @async begin
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
+      end
+    end
+    with_logger(logger) do
+      @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))"
+    end
+    for fr in directs
+        with_logger(logger) do
+            @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
+        end
+      setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
+    end
+    for mc in 1:MCIters, fr in iterFrtls
+      result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+      setValKDE!(subfg, fr, result[1], false, result[2])
+      with_logger(logger) do
+          @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
+      end
+    end
+  else
+    # do directs first
+    for fr in directs
+      localProductAndUpdate!(subfg, fr, true, logger)
+    end
+    #do iters next
+    for mc in 1:MCIters, fr in iterFrtls
+      localProductAndUpdate!(subfg, fr, true, logger)
+    end
+  end
+
+  return nothing
 end
 
 
