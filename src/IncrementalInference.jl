@@ -39,7 +39,7 @@ import Base: convert
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
-import ApproxManifoldProducts: kde!
+import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
 
@@ -267,6 +267,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  buildCliquePotentials,
   hasCliq,
   getCliq,
   whichCliq,
@@ -496,7 +497,7 @@ export
 
 
 
-
+# TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
 # non-free, but not currently use!
@@ -527,6 +528,10 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
+
+# special variables and factors, see RoME.jl for more examples
+include("Variables/Sphere1D.jl")
+include("Factors/Sphere1D.jl")
 
 include("Deprecated.jl")
 
