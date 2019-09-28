@@ -449,6 +449,7 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+  setfreeze!,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
