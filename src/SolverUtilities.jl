@@ -192,6 +192,7 @@ function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
+  # the fifo history
   tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
