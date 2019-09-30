@@ -71,6 +71,8 @@ getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getData(v
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
+getManifolds(vartype::InferenceVariable) = vartype.manifolds
+getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
 
 """
     $(SIGNATURES)
