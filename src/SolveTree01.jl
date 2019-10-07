@@ -1474,7 +1474,10 @@ function asyncTreeInferUp!(dfg::G,
   #
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
-  drawtree ? drawTree(treel, show=false, filepath=joinpath(getSolverParams(dfg).logpath),"bt.pdf") : nothing
+  if drawtree
+    pdfpath = joinpath(getSolverParams(dfg).logpath,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+  end
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))

@@ -39,6 +39,8 @@ function drawGraph(fgl::G;
                    filepath::AS="/tmp/caesar/random/fg.pdf",
                    engine::AS="neato", #sfdp
                    show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
+  #
+  mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )
   writeGraphPdf(fgl, filepath=filepath, show=show, viewerapp=viewerapp, engine=engine)
 end
 
