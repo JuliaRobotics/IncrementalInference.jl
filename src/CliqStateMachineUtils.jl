@@ -639,6 +639,27 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
 end
 
 
+function setVariablePosteriorEstimates!(subfg::G,
+                                        sym::Symbol )::Nothing where G <: AbstractDFG
+  #
+
+  var = getVariable(subfg, sym)
+  bel = getKDE(var)
+  ops = buildHybridManifoldCallbacks(getManifolds(var))
+
+  @show varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
+  @show varMean = getKDEMean(bel)
+  # TODO: We need to populate PPE.
+  @show varPpe = deepcopy(varMax) #TODO
+
+  var.estimateDict[:default] = Dict{Symbol, VariableEstimate}(
+    :max => VariableEstimate(:default, :max, varMax),
+    :mean => VariableEstimate(:default, :mean, varMean),
+    :ppe => VariableEstimate(:default, :ppe, varPpe))
+
+  return nothing
+end
+
 """
     $SIGNATURES
 

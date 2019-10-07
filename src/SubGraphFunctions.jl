@@ -265,6 +265,8 @@ function transferUpdateSubGraph!(dest::G1,
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
+
+    # TODO add with DFG v0.4
     # DFG.updateGraphSolverData!(src, dest, syms)
     for sym in syms
       vari = DFG.getVariable(src, sym)
