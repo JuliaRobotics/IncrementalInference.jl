@@ -61,16 +61,13 @@ end
     include("fourdoortest.jl")
 end
 
-@testset "saving to and loading from .jld2 file" begin
-
-# DFG.savedfg(fg)
-# DFG.loaddfg() # some convert problem on DFGVariable
-
-savejld(fg, file="tempfg.jld2" )
-@warn "not able to load a new DFG object yet"
-# fgu = loadjld( file="tempfg.jld2" )
-Base.rm("tempfg.jld2")
-
+@testset "saving to and loading from FileDFG" begin
+    saveFolder = "/tmp/dfg_test"
+    saveDFG(fg, saveFolder)
+    retDFG = GraphsDFG{SolverParams}(params=SolverParams())
+    retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
+    @test symdiff(ls(fg), ls(retDFG)) == []
+    @test symdiff(lsf(fg), lsf(retDFG)) == []
 end
 
 @warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
