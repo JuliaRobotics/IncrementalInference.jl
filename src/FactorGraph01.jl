@@ -984,12 +984,11 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
-  adjMat = DFG.getAdjacencyMatrix(dfg)
-  # Get the variable and factor IDs
-  permutedsf = Symbol.(adjMat[2:end, 1])
-  permuteds = Symbol.(adjMat[1, 2:end])
-  # Create true/false adjacency matrix
-  A = Int.(adjMat[2:end, 2:end] .!= nothing)
+  # Get the sparse adjacency matrix, variable, and factor labels
+  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg)
+
+  # Create dense adjacency matrix
+  A = Array(adjMat)
 
   p = Int[]
   if ordering==:chol

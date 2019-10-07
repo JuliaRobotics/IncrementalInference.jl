@@ -261,7 +261,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50  ) where G <: AbstractDFG
+                                maxparallel::Int=50  ) where G <: InMemoryDFGTypes
   #
   println()
   fge = deepcopy(dfg)

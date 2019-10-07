@@ -506,6 +506,10 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
+
+# const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
+const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
