@@ -46,6 +46,99 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+# Using unique index into graph data structure
+function subgraphFromVerts(fgl::FactorGraph,
+    verts::Array{Int,1};
+    neighbors::Int=0  )
+
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    vertdict[vert] = fgl.g.vertices[vert]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+"""
+    $(SIGNATURES)
+
+Explore all shortest paths combinations in verts, add neighbors and reference
+subgraph using unique index into graph data structure.
+"""
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
+  #
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    id = -1
+    vsym = Symbol(vert)
+    if haskey(fgl.IDs, vsym)
+      id = fgl.IDs[vsym]
+    else
+      error("FactorGraph01 only supports variable node subgraph search at this point")
+    end
+    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+
+function subgraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,Graphs.ExVertex}}}
+  #
+  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
+  subGraphFromVerts(fgl, verts, neighbors=neighbors)
+end
+
+
+
+
+
+
+"""
+    $SIGNATURES
+
+Return array of all variable vertices in a clique.
+"""
+function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
+  verts = Graphs.ExVertex[]
+  for vid in getCliqVars(subfg, cliq)
+    push!(verts, getVert(subfg, vid, api=localapi))
+  end
+  return verts
+end
+
+
+
+
+### TODO: TO BE REFACTORED FOR DFG
+
+# some plotting functions on the factor graph
+function stackVertXY(fg::FactorGraph, lbl::String)
+    v = dlapi.getvertex(fg,lbl)
+    vals = getVal(v)
+    X=vec(vals[1,:])
+    Y=vec(vals[2,:])
+    return X,Y
+end
+
+### TODO: TO BE REFACTORED FOR DFG
+
 """
     $(SIGNATURES)
 
@@ -553,6 +646,78 @@ function addNode!(fg::FactorGraph,
                       uid=uid,
                       smalldata=smalldata  )
 end
+
+
+
+"""
+    $(SIGNATURES)
+
+Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
+"""
+function decodefg(fgs::FactorGraph)
+  fgu = deepcopy(fgs)
+  fgu.cg = nothing # will be deprecated or replaced
+  fgu.registeredModuleFunctions = nothing # TODO: obsolete
+  fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
+    cpvert = deepcopy(getVert(fgs, vid, api=api))
+    api.addvertex!(fgu, cpvert) #, labels=vnlbls)  # currently losing labels
+  end
+
+  @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
+    fdata = solverData(fgs, fid)
+    data = decodePackedType(fdata, "")
+
+    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
+    newvert = ExVertex(fid,string(fsym))
+    for (key,val) in getVert(fgs,fid,api=api).attributes
+      newvert.attributes[key] = val
+    end
+    setData!(newvert, data)
+    api.addvertex!(fgu, newvert)
+  end
+  fgu.g.inclist = typeof(fgs.g.inclist)()
+
+  # iterated over all edges
+  @showprogress 1 "Decoding edges..." for (eid, edges) in fgs.g.inclist
+    fgu.g.inclist[eid] = Vector{typeof(edges[1])}()
+    for ed in edges
+      newed = Graphs.Edge(ed.index,
+          fgu.g.vertices[ed.source.index],
+          fgu.g.vertices[ed.target.index]  )
+      push!(fgu.g.inclist[eid], newed)
+    end
+  end
+
+  # rebuild factormetadata
+  @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
+    varuserdata = []
+    fcnode = getVert(fgu, fsym, nt=:fnc)
+    # ccw = solverData(fcnode)
+    ccw_jld = deepcopy(solverData(fcnode))
+    allnei = Graphs.ExVertex[]
+    for nei in out_neighbors(fcnode, fgu.g)
+        push!(allnei, nei)
+        data = IncrementalInference.solverData(nei)
+        push!(varuserdata, data.softtype)
+    end
+    setDefaultFactorNode!(fgu, fcnode, allnei, ccw_jld.fnc.usrfnc!, threadmodel=ccw_jld.fnc.threadmodel, multihypo=veeCategorical(ccw_jld.fnc.hypotheses))
+    ccw_new = IncrementalInference.solverData(fcnode)
+    for i in 1:Threads.nthreads()
+      ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
+    end
+    ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+    # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
+    for field in fieldnames(typeof(ccw_jld))
+      if field != :fnc
+        setfield!(ccw_new, field, getfield(ccw_jld, field))
+      end
+    end
+  end
+  return fgu
+end
+
+
 
 # """
 #     $(SIGNATURES)

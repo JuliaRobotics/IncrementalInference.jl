@@ -61,18 +61,18 @@ end
 
 Add all potentials associated with this clique and vertid to dens.
 """
-function packFromLocalPotentials!(dfg::G,
+function packFromLocalPotentials!(dfg::AbstractDFG,
                                   dens::Vector{BallTreeDensity},
                                   wfac::Vector{Symbol},
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )::Float64 where G <: AbstractDFG
+                                  dbg::Bool=false )::Float64
   #
   inferdim = 0.0
   for idfct in getData(cliq).potentials
     fct = DFG.getFactor(dfg, idfct)
-    data = getData(fct)
+    data = solverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
@@ -97,7 +97,7 @@ function packFromLocalPartials!(fgl::G,
 
   for idfct in getData(cliq).potentials
     vert = DFG.getFactor(fgl, idfct)
-    data = getData(vert)
+    data = solverData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
@@ -275,7 +275,7 @@ function proposalbeliefs!(dfg::G,
   count = 0
   for fct in factors
     count += 1
-    data = getData(fct)
+    data = solverData(fct)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
@@ -473,24 +473,24 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
     pden = getKDE(vert)
     bws = vec(getBW(pden)[:,1])
     manis = getSofttype(vert).manifolds
-    d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
+    d[vsym] = EasyMessage(getVal(vert), bws, manis, solverData(vert).inferdim)
     with_logger(logger) do
-      @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
+      @info "fmcmc! -- solverData(vert=$(vert.label)).inferdim=$(solverData(vert).inferdim)"
     end
   end
   return d
 end
 
-function doFMCIteration(fgl::G,
+function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
                         cliq::Graphs.ExVertex,
                         fmsgs,
                         N::Int,
                         dbg::Bool,
-                        logger=ConsoleLogger()  ) where G <: AbstractDFG
+                        logger=ConsoleLogger()  )
   #
   vert = DFG.getVariable(fgl, vsym)
-  if !getData(vert).ismargin
+  if !solverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
 
@@ -541,21 +541,6 @@ function fmcmc!(fgl::G,
 
     for vsym in lbls
         doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, logger)
-
-      # vert = DFG.getVariable(fgl, vsym)
-      # if !getData(vert).ismargin
-      #   # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-      #   densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
-      #
-      #   if size(densPts,1)>0
-      #     updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-      #     setValKDE!(updvert, densPts, true, inferdim)
-      #     if dbg
-      #       push!(dbgvals.prods, potprod)
-      #       push!(dbgvals.lbls, Symbol(updvert.label))
-      #     end
-      #   end
-      # end
     end
     !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end
@@ -587,12 +572,12 @@ end
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductUp(fg::G,
+function treeProductUp(fg::AbstractDFG,
                        tree::BayesTree,
                        cliq::Symbol,
                        sym::Symbol;
                        N::Int=100,
-                       dbg::Bool=false  ) where G <: AbstractDFG
+                       dbg::Bool=false  )
   #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
@@ -608,7 +593,7 @@ function treeProductUp(fg::G,
     msgdict = upMsg(cl)
     dict = Dict{Int, EasyMessage}()
     for (dsy, btd) in msgdict
-      manis = getSofttype(getVert(fg, dsy, api=localapi)).manifolds
+      manis = getSofttype(getVariable(fg, dsy)).manifolds
 
       dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
     end
@@ -616,7 +601,7 @@ function treeProductUp(fg::G,
   end
 
   # perform the actual computation
-  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  manis = getSofttype(getVariable(fg, vertid)).manifolds
   pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
 
   return pGM, potprod

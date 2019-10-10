@@ -201,53 +201,6 @@ function subGraphFromVerts(fgl::FactorGraph,
 end
 
 
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-# Using unique index into graph data structure
-function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{Int,1};
-    neighbors::Int=0  )
-
-  vertdict = Dict{Int,Graphs.ExVertex}()
-  for vert in verts
-    vertdict[vert] = fgl.g.vertices[vert]
-  end
-
-  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
-end
-
-"""
-    $(SIGNATURES)
-
-Explore all shortest paths combinations in verts, add neighbors and reference
-subgraph using unique index into graph data structure.
-"""
-function subGraphFromVerts(fgl::FactorGraph,
-                           verts::T;
-                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
-  #
-  vertdict = Dict{Int,Graphs.ExVertex}()
-  for vert in verts
-    id = -1
-    vsym = Symbol(vert)
-    if haskey(fgl.IDs, vsym)
-      id = fgl.IDs[vsym]
-    else
-      error("FactorGraph01 only supports variable node subgraph search at this point")
-    end
-    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
-  end
-
-  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
-end
-
-
-function subgraphFromVerts(fgl::FactorGraph,
-                           verts::T;
-                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,Graphs.ExVertex}}}
-  #
-  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
-  subGraphFromVerts(fgl, verts, neighbors=neighbors)
-end
 
 
 """
@@ -270,7 +223,7 @@ function transferUpdateSubGraph!(dest::G1,
     # DFG.updateGraphSolverData!(src, dest, syms)
     for sym in syms
       vari = DFG.getVariable(src, sym)
-      rc = size(getData(vari).val)
+      rc = size(solverData(vari).val)
       pp = getKDE(vari)
       rc2 = size(getPoints(pp))
       @info "sym=$sym, mem size of val=$rc and $(rc2)"

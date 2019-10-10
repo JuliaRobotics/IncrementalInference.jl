@@ -354,39 +354,10 @@ end
 
 
 
-
-function addGraphsVert!(fgl::FactorGraph,
-            exvert::Graphs.ExVertex;
-            labels::Vector{<:AbstractString}=String[])
-  #
-  @warn "Deprecated"
-  Graphs.add_vertex!(fgl.g, exvert)
-end
-
-function getVertNode(fgl::G, id::Int; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
-  @warn "getVertNode is deprecated, use DFG.getVariable or DFG.getFactor instead"
-  return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
-  # return nt == :var ? fgl.v[id] : fgl.f[id]
-end
-function getVertNode(fgl::G, lbl::Symbol; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
-  @warn "getVertNode is deprecated, use DFG.getVariable or DFG.getFactor instead"
-  if nt == :var
-    return DFG.getVariable(fgl, lbl)
-  elseif nt == :fct
-    return DFG.getFactor(fgl, lbl)
-  else
-    error("unknown getVertNode request for nt=$nt")
-  end
-  # return getVertNode(fgl, (nt == :var ? fgl.IDs[lbl] : fgl.fIDs[lbl]), nt=nt, bigData=bigData)
-end
-getVertNode(fgl::G, lbl::T; nt::Symbol=:var, bigData::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = getVertNode(fgl, Symbol(lbl), nt=nt, bigData=bigData)
-
-
-
 # excessive function, needs refactoring
-function updateFullVertData!(fgl::G,
-                             nv::N;  # nv::Graphs.ExVertex;
-                             updateMAPest::Bool=false ) where {G <: AbstractDFG, N <: DFGNode}
+function updateFullVertData!(fgl::AbstractDFG,
+                             nv::DFGNode;
+                             updateMAPest::Bool=false )
   #
   @warn "Deprecated"
 
@@ -394,8 +365,8 @@ function updateFullVertData!(fgl::G,
   isvar = isVariable(fgl, sym)
 
   lvert = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = getData(lvert)
-  nvd = getData(nv)
+  lvd = solverData(lvert)
+  nvd = solverData(nv)
 
   if isvar
     lvd.val[:,:] = nvd.val[:,:]
@@ -406,33 +377,5 @@ function updateFullVertData!(fgl::G,
     # assuming nothing to be done
   end
 
-  nothing
-end
-
-
-function makeAddEdge!(fgl::FactorGraph, v1::Graphs.ExVertex, v2::Graphs.ExVertex; saveedgeID::Bool=true)
-  @warn "Deprecated"
-  edge = Graphs.make_edge(fgl.g, v1, v2)
-  Graphs.add_edge!(fgl.g, edge)
-  if saveedgeID push!(getData(v2).edgeIDs,edge.index) end #.attributes["data"]
-  edge
-end
-
-function graphsOutNeighbors(fgl::FactorGraph, vert::Graphs.ExVertex; ready::Int=1,backendset::Int=1, needdata::Bool=false)
-  @warn "Deprecated"
-  Graphs.out_neighbors(vert, fgl.g)
-end
-function graphsOutNeighbors(fgl::FactorGraph, exVertId::Int; ready::Int=1,backendset::Int=1, needdata::Bool=false)
-  @warn "Deprecated"
-  graphsOutNeighbors(fgl.g, getVert(fgl,exVertId), ready=ready, backendset=backendset, needdata=needdata)
-end
-
-function graphsGetEdge(fgl::FactorGraph, id::Int)
-  @warn "Deprecated"
-  nothing
-end
-
-function graphsDeleteVertex!(fgl::FactorGraph, vert::Graphs.ExVertex)
-  @warn "graphsDeleteVertex! -- not deleting Graphs.jl vertex id=$(vert.index)"
   nothing
 end

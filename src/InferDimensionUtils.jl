@@ -32,7 +32,7 @@ Related
 getVariableInferredDim, getVariableInferredDimFraction
 """
 getVariableDim(vard::VariableNodeData)::Int = getSofttype(vard).dims
-getVariableDim(var::DFGVariable)::Int = getVariableDim(getData(var))
+getVariableDim(var::DFGVariable)::Int = getVariableDim(solverData(var))
 
 """
     $SIGNATURES
@@ -47,14 +47,14 @@ Related
 getVariableDim, getVariableInferredDimFraction, getVariableInferredDim, getVariableDim
 """
 getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
-getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(getData(var), saturate)
+getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(solverData(var), saturate)
 function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) where G <: AbstractDFG
   getVariableInferredDim(getVariable(fg, varid), saturate)
 end
 
 
 getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
-getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(getData(var), saturate)
+getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(solverData(var), saturate)
 function getVariableInferredDimFraction(dfg::G, varid::Symbol, saturate::Bool=false)::Float64 where G <: AbstractDFG
   getVariableInferredDimFraction(getVariable(dfg, varid), saturate)
 end
@@ -68,7 +68,7 @@ end
 Return the number of dimensions this factor vertex `fc` influences.
 """
 getFactorDim(fcd::GenericFunctionNodeData)::Float64 = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Float64(fcd.fnc.zDim)
-getFactorDim(fc::DFGFactor)::Int = getFactorDim(getData(fc))
+getFactorDim(fc::DFGFactor)::Int = getFactorDim(solverData(fc))
 function getFactorDim(fg::G, fctid::Symbol)::Int where G <: AbstractDFG
   getFactorDim(getFactor(fg, fctid))
 end

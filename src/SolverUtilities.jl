@@ -163,17 +163,17 @@ end
 
 Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
-function setfreeze!(dfg::G, sym::Symbol) where G <: AbstractDFG
+function setfreeze!(dfg::AbstractDFG, sym::Symbol)
   if !isInitialized(dfg, sym)
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
   vert = DFG.getVariable(dfg, sym)
-  data = getData(vert)
+  data = solverData(vert)
   data.ismargin = true
   nothing
 end
-function setfreeze!(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
   for sym in syms
     setfreeze!(dfg, sym)
   end

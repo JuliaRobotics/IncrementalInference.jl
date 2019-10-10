@@ -190,7 +190,7 @@ export
   isCliqFullDim,
   hasFactor,
   getVariable,
-  getVert,
+  # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
   getManifolds,
