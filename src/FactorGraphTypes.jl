@@ -339,15 +339,15 @@ function CommonConvWrapper(fnc::T,
 end
 
 
+## moved to DFG
 
+# # where {T <: Union{InferenceType, FunctorInferenceType}}
+# const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
+# FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
 
-# where {T <: Union{InferenceType, FunctorInferenceType}}
-const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
-FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
-
-# where {T <: PackedInferenceType}
-const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
-PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
+# # where {T <: PackedInferenceType}
+# const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
+# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
 
 
 
@@ -364,6 +364,7 @@ function addGraphsVert!(fgl::FactorGraph,
 end
 
 function getVertNode(fgl::G, id::Int; nt::Symbol=:var, bigData::Bool=false) where G <: AbstractDFG
+  @warn "getVertNode is deprecated, use DFG.getVariable or DFG.getFactor instead"
   return fgl.g.vertices[id] # check equivalence between fgl.v/f[i] and fgl.g.vertices[i]
   # return nt == :var ? fgl.v[id] : fgl.f[id]
 end

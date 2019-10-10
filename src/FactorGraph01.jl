@@ -1,22 +1,27 @@
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 
-import DistributedFactorGraphs: getData
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Retrieve data structure stored in a node.
+# """
+# getData(v::DFGFactor)::GenericFunctionNodeData = v.data
+# getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
+# # For Bayes tree
 
-Retrieve data structure stored in a node.
-"""
-getData(v::DFGFactor)::GenericFunctionNodeData = v.data
-getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
-# For Bayes tree
+# still used for Bayes Tree
+import DistributedFactorGraphs: getData
+
 getData(v::Graphs.ExVertex) = v.attributes["data"]
+
+
 """
     $SIGNATURES
 
 Retrieve data structure stored in a variable.
 """
-function getVariableData(dfg::T, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData where {T <: AbstractDFG}
+function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
   return getData(getVariable(dfg, lbl, solveKey=solveKey))
 end
 
@@ -48,18 +53,18 @@ function setData!(v::Graphs.ExVertex, data)
 end
 
 ## has been moved to DFG
-import DistributedFactorGraphs: getSofttype
-"""
-   $(SIGNATURES)
-
-Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
-"""
-function getSofttype(vnd::VariableNodeData)
-  return vnd.softtype
-end
-function getSofttype(v::DFGVariable; solveKey::Symbol=:default)
-  return getSofttype(getData(v, solveKey=solveKey))
-end
+# import DistributedFactorGraphs: getSofttype
+# """
+#    $(SIGNATURES)
+#
+# Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
+# """
+# function getSofttype(vnd::VariableNodeData)
+#   return vnd.softtype
+# end
+# function getSofttype(v::DFGVariable; solveKey::Symbol=:default)
+#   return getSofttype(getData(v, solveKey=solveKey))
+# end
 
 
 """
@@ -96,23 +101,23 @@ function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
   return size(getData(v, solveKey=solveKey).val,2)
 end
 
-import DistributedFactorGraphs: getfnctype
-# TODO: Refactor - was is das?
-function getfnctype(data::GenericFunctionNodeData)
-  if typeof(data).name.name == :VariableNodeData
-    return VariableNodeData
-  end
-  return data.fnc.usrfnc!
-end
-
-function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
-  data = getData(fact) # TODO , solveKey=solveKey)
-  return getfnctype(data)
-end
-
-function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
-  getfnctype(getFactor(dfg, exvertid))
-end
+# import DistributedFactorGraphs: getfnctype
+# # TODO: Refactor - was is das?
+# function getfnctype(data::GenericFunctionNodeData)
+#   if typeof(data).name.name == :VariableNodeData
+#     return VariableNodeData
+#   end
+#   return data.fnc.usrfnc!
+# end
+#
+# function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
+#   data = getData(fact) # TODO , solveKey=solveKey)
+#   return getfnctype(data)
+# end
+#
+# function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
+#   getfnctype(getFactor(dfg, exvertid))
+# end
 
 function getBW(vnd::VariableNodeData)
   return vnd.bw
