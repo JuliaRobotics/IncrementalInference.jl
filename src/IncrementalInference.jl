@@ -531,12 +531,13 @@ include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
-include("AdditionalUtils.jl")
-include("SolverAPI.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")
+
+include("AdditionalUtils.jl")
+include("SolverAPI.jl")
 
 include("Deprecated.jl")
 
