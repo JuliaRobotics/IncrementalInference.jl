@@ -638,26 +638,27 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
   return true
 end
 
+function setVariablePosteriorEstimates!(var::DFG.DFGVariable )::Nothing
 
-function setVariablePosteriorEstimates!(subfg::G,
-                                        sym::Symbol )::Nothing where G <: AbstractDFG
-  #
-
-  var = getVariable(subfg, sym)
   bel = getKDE(var)
   ops = buildHybridManifoldCallbacks(getManifolds(var))
 
-  @show varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
-  @show varMean = getKDEMean(bel)
-  # TODO: We need to populate PPE.
-  @show varPpe = deepcopy(varMax) #TODO
+  varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
+  varMean = getKDEMean(bel)
+  # TODO: We need to populate varModeMeans.
+  # varModeMeans = ...
 
-  var.estimateDict[:default] = Dict{Symbol, VariableEstimate}(
-    :max => VariableEstimate(:default, :max, varMax),
-    :mean => VariableEstimate(:default, :mean, varMean),
-    :ppe => VariableEstimate(:default, :ppe, varPpe))
+  defaultestdict = get!(var.estimateDict, :default, Dict{Symbol, VariableEstimate}())
+  defaultestdict[:max] = VariableEstimate(:default, :max, varMax)
+  defaultestdict[:mean] = VariableEstimate(:default, :mean, varMean)
+  #FIXME defaultestdict[:mode_means] = VariableEstimate(:default, softtype, varModeMeans)
 
   return nothing
+end
+
+function setVariablePosteriorEstimates!(subfg::AbstractDFG,
+                                        sym::Symbol )::Nothing
+  setVariablePosteriorEstimates!(getVariable(subfg, sym))
 end
 
 """
