@@ -388,6 +388,7 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
+  solveFactorMeasurements,
 
   # user functions
   proposalbeliefs,
