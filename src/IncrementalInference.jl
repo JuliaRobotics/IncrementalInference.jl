@@ -42,6 +42,8 @@ import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
+# missing exports
+import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
@@ -145,7 +147,7 @@ export
   getpackedtype,
   encodePackedType,
   FunctionNodeData,
-  PackedFunctionNodeData,
+  PackedFunctionNodeData, # moved to DFG
   encodePackedType,
   decodePackedType,
   normalfromstring,
@@ -188,7 +190,7 @@ export
   isCliqFullDim,
   hasFactor,
   getVariable,
-  getVert,
+  # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
   getManifolds,

@@ -8,7 +8,12 @@ manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(p
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 
 
-function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDFG
+"""
+    $SIGNATURES
+
+Return N=100 measurement samples for a factor in `<:AbstractDFG`.
+"""
+function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   fnc = getFactorFunction(dfg, fsym)
   getSample(fnc, N)
 end
@@ -19,7 +24,7 @@ end
 Get graph node (variable or factor) dimension.
 """
 getDimension(var::DFGVariable) = getSofttype(var).dims
-getDimension(fct::DFGFactor) = getData(fct).fnc.zDim
+getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
 
 
 """
@@ -81,7 +86,7 @@ end
 
 function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
   for (key, id) in fgl.fIDs
-    getData(getVert(fgl, key,nt=:fnc)).fnc.threadmodel = model
+    solverData(getFactor(fgl, key)).fnc.threadmodel = model
   end
   nothing
 end
@@ -154,7 +159,7 @@ Dev Notes
 """
 function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
   vert = DFG.getVariable(fg, vsym)
-  vnd = getData(vert)
+  vnd = solverData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
   println("size marginal samples $(size(getVal(vnd)))")
@@ -170,8 +175,8 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::DFGVariable) = getData(vert).ismargin
-isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.getVariable(dfg, sym))
+isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
+isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
 
 
@@ -184,7 +189,7 @@ function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
   for sym in ls(fgl)
-    getData(getVariable(fgl, sym)).ismargin = false
+    solverData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
@@ -219,15 +224,7 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
 end
 
 
-"""
-    $SIGNATURES
 
-Return N=100 measurement samples for a factor in `<:AbstractDFG`.
-"""
-function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDFG
-  fnc = getFactorFunction(dfg, fsym)
-  getSample(fnc, N)
-end
 
 
 

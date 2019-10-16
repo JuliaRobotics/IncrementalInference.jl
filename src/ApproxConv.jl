@@ -293,13 +293,13 @@ function evalFactor2(dfg::G,
                      dbg::Bool=false) where G <: AbstractDFG
   #
 
-  ccw = getData(fct).fnc
+  ccw = solverData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
   # TODO replace fncargvID with neighbors
-  variablelist = Vector{Symbol}(undef, length(getData(fct).fncargvID))
-  for id in getData(fct).fncargvID
+  variablelist = Vector{Symbol}(undef, length(solverData(fct).fncargvID))
+  for id in solverData(fct).fncargvID
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
