@@ -117,10 +117,10 @@ end
 
 Find parent clique Cp that containts the first eliminated variable of Sj as frontal.
 """
-function identifyFirstEliminatedSeparator(dfg::G,
+function identifyFirstEliminatedSeparator(dfg::AbstractDFG,
                                           elimorder::Vector{Symbol},
                                           firvert::DFGVariable,
-                                          Sj=getData(firvert).separator)::DFGVariable where G <: AbstractDFG
+                                          Sj=solverData(firvert).separator)::DFGVariable
   #
   firstelim = 99999999999
   for s in Sj
@@ -149,7 +149,7 @@ Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFG.getVariable(dfg,var)
     # no parent
-    if (length(getData(firvert).separator) == 0)
+    if (length(solverData(firvert).separator) == 0)
       # if (length(tree.cliques) == 0)
         # create new root
         addClique!(tree, dfg, var)
@@ -160,7 +160,7 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Sym
       # end
     else
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      Sj = getData(firvert).separator
+      Sj = solverData(firvert).separator
       felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
@@ -333,7 +333,7 @@ Build Bayes/Junction/Elimination tree.
 Notes
 - Default to free qr factorization for variable elimination order.
 """
-function prepBatchTree!(dfg::G;
+function prepBatchTree!(dfg::AbstractDFG;
                         ordering::Symbol=:qr,
                         drawpdf::Bool=false,
                         show::Bool=false,
@@ -341,7 +341,7 @@ function prepBatchTree!(dfg::G;
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50  ) where G <: AbstractDFG
+                        maxparallel::Int=50  )
   #
   p = getEliminationOrder(dfg, ordering=ordering)
 
@@ -383,12 +383,12 @@ end
 Wipe data from `dfg` object so that a completely fresh Bayes/Junction/Elimination tree
 can be constructed.
 """
-function resetFactorGraphNewTree!(dfg::G)::Nothing where G <: AbstractDFG
+function resetFactorGraphNewTree!(dfg::AbstractDFG)::Nothing
   for v in DFG.getVariables(dfg)
-    resetData!(getData(v))
+    resetData!(solverData(v))
   end
   for f in DFG.getFactors(dfg)
-    resetData!(getData(f))
+    resetData!(solverData(f))
   end
   nothing
 end
@@ -588,7 +588,7 @@ function getFactorsAmongVariablesOnly(dfg::G,
     # now check if those factors have already been added
     for fct in prefcts
       vert = DFG.getFactor(dfg, fct)
-      if !getData(vert).potentialused
+      if !solverData(vert).potentialused
         push!(almostfcts, fct)
       end
     end
@@ -631,13 +631,13 @@ function getCliqFactorsFromFrontals(fgl::G,
     # usefcts = Int[]
     for fctid in ls(fgl, frsym)
         fct = getFactor(fgl, fctid)
-        if !unused || !getData(fct).potentialused
+        if !unused || !solverData(fct).potentialused
             loutn = ls(fgl, fctid)
             # deal with unary factors
             if length(loutn)==1
                 union!(usefcts, Symbol[Symbol(fct.label);])
                 # appendUseFcts!(usefcts, loutn, fct) # , frsym)
-                getData(fct).potentialused = true
+                solverData(fct).potentialused = true
             end
             # deal with n-ary factors
             for sep in loutn
@@ -647,7 +647,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                 insep = sep in allids
                 if !inseparator || insep
                     union!(usefcts, Symbol[Symbol(fct.label);])
-                    getData(fct).potentialused = true
+                    solverData(fct).potentialused = true
                     if !insep
                         @info "cliq=$(cliq.index) adding factor that is no in separator, $sep"
                     end
@@ -667,7 +667,7 @@ Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
 function isPartial(fct::DFGFactor)  #fct::Graphs.ExVertex
-  fcf = getData(fct).fnc.usrfnc!
+  fcf = solverData(fct).fnc.usrfnc!
   isPartial(fcf)
 end
 
@@ -690,7 +690,7 @@ function setCliqPotentials!(dfg::G,
   fcts = map(x->getFactor(dfg, x), fctsyms)
   getData(cliq).partialpotential = map(x->isPartial(x), fcts)
   for fct in fcts
-    getData(fct).potentialused = true
+    solverData(fct).potentialused = true
   end
 
   @info "finding all frontals for down WIP"
@@ -904,18 +904,6 @@ function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::TempBe
   return container
 end
 
-"""
-    $SIGNATURES
-
-Return array of all variable vertices in a clique.
-"""
-function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
-  verts = Graphs.ExVertex[]
-  for vid in getCliqVars(subfg, cliq)
-    push!(verts, getVert(subfg, vid, api=localapi))
-  end
-  return verts
-end
 
 """
     $SIGNATURES
@@ -1046,11 +1034,9 @@ function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) wh
     end
     for i in 1:length(potIDs)
       idfct = getData(cliq).potentials[i]
-      # @show i, potIDs[i], idfct
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in getData(DFG.getFactor(dfg, idfct)).fncargvID
-        # for vertidx in getData(getVertNode(dfg, idfct)).fncargvID
+        for vertidx in solverData(DFG.getFactor(dfg, idfct)).fncargvID
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end

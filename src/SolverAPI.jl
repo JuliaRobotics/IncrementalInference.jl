@@ -38,7 +38,7 @@ function solveTree!(dfgl::G,
   end
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel  )
+  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"))
   # setAllSolveFlags!(tree, false)
 
   @info "Do tree based init-inference on tree"

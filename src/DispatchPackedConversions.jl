@@ -124,7 +124,7 @@ function convert2packedfunctionnode(fgl::G,
   # fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, getData(getFactor(fgl, fsym)) )
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, solverData(getFactor(fgl, fsym)) )
   return cfnd, usrtyp
 end
 
@@ -152,20 +152,20 @@ completely rebuild the factor's CCW and user data.
 function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->getData(v).softtype, neighbors)
+  neighborUserData = map(v->solverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
   setDefaultFactorNode!(dfg, factor, neighbors, factor.data.fnc.usrfnc!)
 
   #... Copying neighbor data into the factor?
-  ccw_new = getData(factor)
+  ccw_new = solverData(factor)
   for i in 1:Threads.nthreads()
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
 
   # Copying all other fields in the factor
   # TODO: Confirm whether we still need to do this?
-  ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
+  ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
   # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
   # for field in fieldnames(typeof(ccw_jld))
   #   if field != :fnc
@@ -230,75 +230,6 @@ end
 
 veeCategorical(val::Categorical) = val.p
 veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
-
-
-"""
-    $(SIGNATURES)
-
-Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
-"""
-function decodefg(fgs::FactorGraph)
-  fgu = deepcopy(fgs)
-  fgu.cg = nothing # will be deprecated or replaced
-  fgu.registeredModuleFunctions = nothing # TODO: obsolete
-  fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
-  @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
-    cpvert = deepcopy(getVert(fgs, vid, api=api))
-    api.addvertex!(fgu, cpvert) #, labels=vnlbls)  # currently losing labels
-  end
-
-  @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
-    fdata = getData(fgs, fid)
-    data = decodePackedType(fdata, "")
-
-    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    newvert = ExVertex(fid,string(fsym))
-    for (key,val) in getVert(fgs,fid,api=api).attributes
-      newvert.attributes[key] = val
-    end
-    setData!(newvert, data)
-    api.addvertex!(fgu, newvert)
-  end
-  fgu.g.inclist = typeof(fgs.g.inclist)()
-
-  # iterated over all edges
-  @showprogress 1 "Decoding edges..." for (eid, edges) in fgs.g.inclist
-    fgu.g.inclist[eid] = Vector{typeof(edges[1])}()
-    for ed in edges
-      newed = Graphs.Edge(ed.index,
-          fgu.g.vertices[ed.source.index],
-          fgu.g.vertices[ed.target.index]  )
-      push!(fgu.g.inclist[eid], newed)
-    end
-  end
-
-  # rebuild factormetadata
-  @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
-    varuserdata = []
-    fcnode = getVert(fgu, fsym, nt=:fnc)
-    # ccw = getData(fcnode)
-    ccw_jld = deepcopy(getData(fcnode))
-    allnei = Graphs.ExVertex[]
-    for nei in out_neighbors(fcnode, fgu.g)
-        push!(allnei, nei)
-        data = IncrementalInference.getData(nei)
-        push!(varuserdata, data.softtype)
-    end
-    setDefaultFactorNode!(fgu, fcnode, allnei, ccw_jld.fnc.usrfnc!, threadmodel=ccw_jld.fnc.threadmodel, multihypo=veeCategorical(ccw_jld.fnc.hypotheses))
-    ccw_new = IncrementalInference.getData(fcnode)
-    for i in 1:Threads.nthreads()
-      ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
-    end
-    ## Rebuild getData(fcnode).fncargvID, however, the list is order sensitive
-    # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
-    for field in fieldnames(typeof(ccw_jld))
-      if field != :fnc
-        setfield!(ccw_new, field, getfield(ccw_jld, field))
-      end
-    end
-  end
-  return fgu
-end
 
 
 

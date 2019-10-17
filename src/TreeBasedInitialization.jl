@@ -265,10 +265,10 @@ end
 
 Return true if all variables in clique are considered marginalized (and initialized).
 """
-function areCliqVariablesAllMarginalized(subfg::G,
-                                         cliq::Graphs.ExVertex) where G <: AbstractDFG
+function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
+                                         cliq::Graphs.ExVertex)
   for vsym in getCliqAllVarIds(cliq)
-    vert = getVert(subfg, vsym)
+    vert = getVariable(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
       return false
     end
@@ -498,7 +498,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), getData(var).inferdim)
+      msg[Symbol(var.label)] = (getKDE(var), solverData(var).inferdim)
     end
   end
   return msg
@@ -580,8 +580,8 @@ function doCliqAutoInitUpPart2!(subfg::G,
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
-    initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getData(getVariable(subfg, varids[i])).inferdim
+    initstatus[i] = solverData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = solverData(getVariable(subfg, varids[i])).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]

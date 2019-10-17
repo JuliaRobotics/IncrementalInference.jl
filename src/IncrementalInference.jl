@@ -39,9 +39,11 @@ import Base: convert
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
-import ApproxManifoldProducts: kde!
+import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
 
+# missing exports
+import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
@@ -145,7 +147,7 @@ export
   getpackedtype,
   encodePackedType,
   FunctionNodeData,
-  PackedFunctionNodeData,
+  PackedFunctionNodeData, # moved to DFG
   encodePackedType,
   decodePackedType,
   normalfromstring,
@@ -188,7 +190,7 @@ export
   isCliqFullDim,
   hasFactor,
   getVariable,
-  getVert,
+  # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
   getManifolds,
@@ -267,6 +269,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  buildCliquePotentials,
   hasCliq,
   getCliq,
   whichCliq,
@@ -387,6 +390,7 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
+  solveFactorMeasurements,
 
   # user functions
   proposalbeliefs,
@@ -449,6 +453,7 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+  setfreeze!,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
@@ -496,7 +501,7 @@ export
 
 
 
-
+# TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
 # non-free, but not currently use!
@@ -529,6 +534,11 @@ include("ApproxConv.jl")
 include("SolveTree01.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+
+# special variables and factors, see RoME.jl for more examples
+include("Variables/Sphere1D.jl")
+include("Factors/Sphere1D.jl")
+
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
