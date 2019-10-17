@@ -156,7 +156,7 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=GraphsDFG{SolverParams}(params=SolverParams());
+function initfg(dfg::T=InMemDFGType(params=SolverParams());
                                                sessionname="NA",
                                                robotname="",
                                                username="",
