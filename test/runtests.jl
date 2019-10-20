@@ -74,6 +74,8 @@ end
 # include("testExpandedJLD.jl")
 
 
+include("testTexTreeIllustration.jl")
+
 
 
 
