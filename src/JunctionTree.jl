@@ -268,7 +268,7 @@ Related:
 drawTree
 """
 function generateTexTree(treel::BayesTree;
-                         filepath::String="/tmp/caesar/bt")
+                         filepath::String="/tmp/caesar/bayes/bt")
     btc = deepcopy(treel)
     for (cid, cliq) in btc.cliques
         label = cliq.attributes["label"]
@@ -315,7 +315,7 @@ function generateTexTree(treel::BayesTree;
     # Use new labels to produce `.dot` and `.tex` files.
     fid = IOStream("")
     try
-        mkpath(filepath)
+        mkpath(joinpath((split(filepath,'/')[1:(end-1)])...) )
         fid = open("$(filepath).dot","w+")
         write(fid, to_dot(btc.bt))
         close(fid)

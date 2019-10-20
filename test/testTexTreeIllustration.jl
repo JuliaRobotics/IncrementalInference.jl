@@ -44,7 +44,7 @@ tree = wipeBuildNewTree!(fg)
 # drawTree(tree, show=true, imgs=false)
 
 # Now, let's generate the corresponding `.dot` and `.tex`.
-texTree = generateTexTree(tree)
+texTree = generateTexTree(tree, filepath=joinpath(@__DIR__,"tmp","bt"))
 
 # All you have to do now is compile your newly created `.tex` file, probably
 # include the `bm` package (`\usepackage{bm}`), and enjoy!
