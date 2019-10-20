@@ -21,6 +21,7 @@ addons:
   apt:
     packages:
     - hdf5-tools
+    - texlive-latex-base
     - dot2tex
 
 before_script:
