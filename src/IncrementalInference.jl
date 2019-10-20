@@ -419,7 +419,6 @@ export
 
   uppA,
   convert,
-  compare,
   extractdistribution,
 
   # factor graph operating system utils (fgos)
@@ -460,17 +459,8 @@ export
   getCliqSiblingsPartialNeeds,
 
   # some utils
-  compareField,
-  compareFields,
-  compareAll,
+  compare,
   compareAllSpecial,
-  compareVariable,
-  compareFactor,
-  compareAllVariables,
-  compareSimilarVariables,
-  compareSubsetFactorGraph,
-  compareSimilarFactors,
-  compareFactorGraphs,
   getIdx,
   showFactor,
   showVariable,
