@@ -315,11 +315,13 @@ function generateTexTree(treel::BayesTree;
     # Use new labels to produce `.dot` and `.tex` files.
     fid = IOStream("")
     try
+        mkpath(filepath)
         fid = open("$(filepath).dot","w+")
         write(fid, to_dot(btc.bt))
         close(fid)
         # All in one command.
-        run(`dot2tex -tmath --preproc $(filepath).dot` |> `dot2tex $(filepath).tex`)
+        run(`dot2tex -tmath --preproc $(filepath).dot -o $(filepath)proc.dot`)
+        run(`dot2tex $(filepath)proc.dot -o $(filepath).tex`)
     catch ex
         @warn ex
         @show stacktrace()
