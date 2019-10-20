@@ -23,6 +23,9 @@ addons:
     - hdf5-tools
     - dot2tex
 
+before_script:
+  - pip install dot2tex
+
 # script:
 #   - julia --color=yes -e 'using Pkg; Pkg.build()'
 #   - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'
