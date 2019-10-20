@@ -3,6 +3,9 @@
 
 using IncrementalInference
 
+# EXPERIMENTAL FEATURE, 4Q19: need `sudo apt install dot2tex`
+import IncrementalInference: generateTexTree
+
 # Create a dummy factor graph, with variables and constraints.
 fg = initfg()
 
