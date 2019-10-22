@@ -22,6 +22,7 @@ addons:
     packages:
     - hdf5-tools
     - texlive-latex-base
+    - texlive-pictures
     - preview-latex-style
     - dot2tex
 
