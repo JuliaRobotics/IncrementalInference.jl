@@ -20,6 +20,7 @@ notifications:
 matrix:
   allow_failures:
     - julia: nightly
+    - arch: arm64
 
 addons:
   apt:
