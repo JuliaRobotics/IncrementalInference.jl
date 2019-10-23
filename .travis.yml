@@ -22,6 +22,9 @@ matrix:
     - julia: nightly
     - arch: arm64
 
+jobs:
+  fast_finish: true
+
 addons:
   apt:
     packages:
