@@ -638,27 +638,36 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
   return true
 end
 
-function setVariablePosteriorEstimates!(var::DFG.DFGVariable )::Nothing
+# TODO consider a more fiting name.
+function setVariablePosteriorEstimates!(var::DFG.DFGVariable, solveKey::Symbol=:default)::DFG.DFGVariable
+  # JT TODO solve key might be needed if one only wants to update one
+  # I guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
 
-  bel = getKDE(var)
-  ops = buildHybridManifoldCallbacks(getManifolds(var))
+  vnd = solverData(var, solveKey)
+
+  bel = getKDE(vnd)
+  ops = buildHybridManifoldCallbacks(getManifolds(vnd))
 
   varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
   varMean = getKDEMean(bel)
-  # TODO: We need to populate varModeMeans.
-  # varModeMeans = ...
 
-  defaultestdict = get!(var.estimateDict, :default, Dict{Symbol, VariableEstimate}())
-  defaultestdict[:max] = VariableEstimate(:default, :max, varMax)
-  defaultestdict[:mean] = VariableEstimate(:default, :mean, varMean)
-  #FIXME defaultestdict[:mode_means] = VariableEstimate(:default, softtype, varModeMeans)
+  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof estimateDict entries
+  var.estimateDict[solveKey] = MeanMaxPPE(solveKey, varMax, varMean)
 
-  return nothing
+  return var
 end
 
 function setVariablePosteriorEstimates!(subfg::AbstractDFG,
-                                        sym::Symbol )::Nothing
-  setVariablePosteriorEstimates!(getVariable(subfg, sym))
+                                        sym::Symbol )::DFG.DFGVariable
+  var = setVariablePosteriorEstimates!(getVariable(subfg, sym))
+  # JT - TODO if subfg is in the cloud or from another fg it has to be updated
+  # it feels like a waste to update the whole vairable for one field.
+  # currently i could find mergeUpdateVariableSolverData()
+  # might be handy to use a setter such as updatePointParametricEst(dfg, variable, solverkey)
+  # This might also not be the correct place, if it is uncomment:
+  # if (subfg <: InMemoryDFGTypes)
+  #   updateVariable!(subfg, var)
+  # end
 end
 
 """
