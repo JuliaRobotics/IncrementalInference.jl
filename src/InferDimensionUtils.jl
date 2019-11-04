@@ -52,7 +52,18 @@ function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) wher
   getVariableInferredDim(getVariable(fg, varid), saturate)
 end
 
+"""
+    $SIGNATURES
 
+Return the number of projected dimensions into a variable during inference as a percentage fraction.
+
+Notes
+- `saturate` clamps return value to no greater than variable dimension
+
+Related
+
+getVariableDim, getVariableInferredDim, getVariableDim
+"""
 getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
 getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(solverData(var), saturate)
 function getVariableInferredDimFraction(dfg::G, varid::Symbol, saturate::Bool=false)::Float64 where G <: AbstractDFG

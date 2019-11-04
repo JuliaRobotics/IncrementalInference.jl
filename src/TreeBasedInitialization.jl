@@ -246,6 +246,7 @@ Notes:
 """
 getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
 getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(getData(cliq))
+
 getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
 
 """

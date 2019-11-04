@@ -205,7 +205,6 @@ export
   buildCliqSubgraphUp,
   buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
-  cliqInitSolveUp!,
   cliqInitSolveUpByStateMachine!,
 
   # state machine functions
@@ -244,7 +243,6 @@ export
   getCliqStatus,
   setCliqStatus!,
   getSolveCondition,
-  getMaxVertId,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
@@ -258,8 +256,6 @@ export
   initfg,
   buildSubgraphFromLabels,
   subgraphShortestPath,
-  subgraphFromVerts,
-  subGraphFromVerts,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
@@ -330,6 +326,7 @@ export
   unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
+  isMultihypo,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,
   setCliqAsMarginalized!,
@@ -493,6 +490,8 @@ export
   reshapeVec2Mat, # TODO deprecate
 
   # OBSOLETE TODO REMOVE #TODO TODO
+  subGraphFromVerts,
+  getMaxVertId,
   dlapi,
   localapi,
   showcurrentdlapi,

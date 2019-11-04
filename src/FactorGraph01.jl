@@ -692,7 +692,7 @@ end
     $(SIGNATURES)
 
 EXPERIMENTAL: initialize target variable `xi` based on connected factors in the
-factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!`.
+factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!` (?).
 
 Development Notes:
 > Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
