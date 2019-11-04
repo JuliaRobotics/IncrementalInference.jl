@@ -130,6 +130,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # multihypo, take other value case
       # sfidx=2, mhidx=3:  2 should take a value from 3
       # sfidx=3, mhidx=2:  3 should take a value from 2
+         # DEBUG sfidx=2, mhidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")

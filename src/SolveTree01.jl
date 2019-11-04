@@ -302,12 +302,12 @@ Calculate the proposals and products on `destvert` using `factors` in factor gra
 Notes
 - Returns tuple of product and whether full dimensional (=true) or partial (=false).
 """
-function predictbelief(dfg::G,
+function predictbelief(dfg::AbstractDFG,
                        destvert::DFGVariable,
-                       factors::Vector{F};
+                       factors::Vector{<:DFGFactor};
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where {G <: AbstractDFG, F <: DFGNode}
+                       logger=ConsoleLogger()  ) # where {G <: , F <: }
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()

@@ -178,7 +178,12 @@ Return `::Bool` on whether this variable has been marginalized.
 isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
+"""
+    $SIGNATURES
 
+Return bool on whether a certain factor has user defined multihypothesis.
+"""
+isMultihypo(fct) = isa(solverData(fct).fnc.hypotheses, Distribution)
 
 """
     $SIGNATURES
