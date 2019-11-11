@@ -182,8 +182,23 @@ isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(d
     $SIGNATURES
 
 Return bool on whether a certain factor has user defined multihypothesis.
+
+Related
+
+getMultihypoDistribution
 """
-isMultihypo(fct) = isa(solverData(fct).fnc.hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+
+"""
+    $SIGNATURES
+
+Return the categorical distributed used for multihypothesis selection in a factor.
+
+Related
+
+isMultihypo
+"""
+getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES
