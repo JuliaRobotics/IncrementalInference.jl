@@ -57,6 +57,13 @@ addFactor!(fg, [:x2; :l2; :l2_0], LinearConditional(Normal(-40., meas_noise)), m
 
 # ensureAllInitialized!(fg)
 
+approxConv(fg, :x1l1l1_0f1, :l1_0)
+approxConv(fg, :x1l1l1_0f1, :x1)
+# doautoinit!(fg, :l1_0)
+# doautoinit!(fg, :x1)
+
+
+## Run solver
 getSolverParams(fg).limititers = 20
 getSolverParams(fg).dbg = true
 getSolverParams(fg).async = true
@@ -66,45 +73,20 @@ getSolverParams(fg).showtree = true
 tree, smt, hist = solveTree!(fg, recordcliqs=ls(fg))
 
 
-fetchAssignTaskHistoryAll!(tree, smt)
-
-getTreeCliqsSolverHistories(fg, tree)
-
-csmAnimate(fg, tree, [:l1;:l2])
-
-# Base.rm("/tmp/caesar/csmCompound/out.ogv")
-run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 /tmp/caesar/csmCompound/out.ogv`)
-@async run(`totem /tmp/caesar/csmCompound/out.ogv`)
-
-
-
-drawGraph(fg)
-
-printCliqHistorySummary(tree, :l1)
+# drawGraph(fg)
+# fetchAssignTaskHistoryAll!(tree, smt)
+# printCliqHistorySummary(tree, :l1)
+# getTreeCliqsSolverHistories(fg, tree)
+#
+# csmAnimate(fg, tree, [:l1;:l2])
+#
+# # Base.rm("/tmp/caesar/csmCompound/out.ogv")
+# run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libtheora -vf fps=25 -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -q 10 /tmp/caesar/csmCompound/out.ogv`)
+# @async run(`totem /tmp/caesar/csmCompound/out.ogv`)
 
 
-
-sandboxCliqResolveStep(tree, :l1, )
-
-
-syms = ls(fg)
-map(x->isInitialized(fg, x), syms)
-
-
-
-doautoinit!(fg, :l1_0)
-doautoinit!(fg, :x1)
-
-ls(fg, :l1_0)
-approxConv(fg, :x1l1l1_0f1, :l1_0)
-approxConv(fg, :x1l1l1_0f1, :x1)
-
-
-
-##
-using RoMEPlotting
-
-plotKDE(fg, ls(fg))
+# using RoMEPlotting
+# plotKDE(fg, ls(fg))
 
 
 end
