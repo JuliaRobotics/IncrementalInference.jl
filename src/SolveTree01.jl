@@ -1418,10 +1418,18 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
   end
 end
 
+"""
+    $SIGNATURES
+
+Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary. 
+"""
 function fetchCliqTaskHistoryAll!(smt, hist)
   for i in 1:length(smt)
-    # sm = smt[i]
-    hist[i] = fetch(smt[i])
+    sm = smt[i]
+    # only fetch states that have completed processing
+    if sm.state == :done
+      hist[i] = fetch(sm)
+    end
   end
 end
 
