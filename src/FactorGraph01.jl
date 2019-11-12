@@ -631,6 +631,22 @@ end
 """
     $SIGNATURES
 
+Return `::Bool` on whether at least one hypothesis is available for intended computations (assuming direction `sfidx`).
+"""
+function isLeastOneHypoAvailable(sfidx::Int,
+                                 certainidx::Vector{Int},
+                                 uncertnidx::Vector{Int},
+                                 isinit::Vector{Bool})::Bool
+  #
+  # @show sfidx in certainidx, sum(isinit[uncertnidx])
+  # @show sfidx in uncertnidx, sum(isinit[certainidx])
+  return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
+         sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+end
+
+"""
+    $SIGNATURES
+
 Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
 attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
 
@@ -680,10 +696,7 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
     # multihypo=[1;0.5;0.5] : sfidx=2|3, isinit=[1,0,0] -- true
     mhp = getMultihypoDistribution(fctnode).p
     allmhp,certainidx,uncertnidx = getHypothesesVectors(mhp)
-    # @show sfidx in certainidx, sum(isinit[uncertnidx])
-    # @show sfidx in uncertnidx, sum(isinit[certainidx])
-    if sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
-        sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+    if isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
        # special case works
        @info "allowing init from incomplete set of previously initialized hypotheses, fct=$fct"
        canuse = true
@@ -824,18 +837,18 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
+function manualinit!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
   # getData(vert).initialized = true
   return nothing
 end
-function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
+function manualinit!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
   vert = getVariable(dfg, sym)
   manualinit!(dfg, vert, pX)
   return nothing
 end
 function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
-  @warn "manual_init being used as a workaround for temporary autoinit issues."
+  @info "manualinit! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
@@ -843,11 +856,14 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   # getData(dfg, sym).initialized = true
   return nothing
 end
+
+
 function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
   manualinit!(dfg,sym,pp)
 end
+
 
 function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)
