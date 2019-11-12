@@ -77,8 +77,8 @@ function assembleHypothesesElements!(mh::Categorical,
   mhidx = Int[]
 
   allidx = 1:maxlen
-  @show sfidx
-  @show allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
+  # @show sfidx
+  allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
   # allmhp = 1:length(mh.p)
   # certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
   # uncertnidx = allmhp[0.0 .< mh.p]
@@ -90,8 +90,10 @@ function assembleHypothesesElements!(mh::Categorical,
     @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
     @info "not all hypotheses initialized, but at least one available -- see #427"
     mhp = deepcopy(mh.p)
-    @show mhp[isinit .== false] .= 0.0
-    @show mhp ./= sum(mhp)
+    suppressmask = isinit .== false
+    suppressmask[sfidx] = false
+    mhp[suppressmask] .= 0.0
+    mhp ./= sum(mhp)
     Categorical(mhp)
   else
     mh

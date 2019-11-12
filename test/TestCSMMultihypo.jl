@@ -64,11 +64,11 @@ approxConv(fg, :x1l1l1_0f1, :x1)
 
 
 ## Run solver
-getSolverParams(fg).limititers = 20
-getSolverParams(fg).dbg = true
-getSolverParams(fg).async = true
-getSolverParams(fg).drawtree = true
-getSolverParams(fg).showtree = true
+getSolverParams(fg).limititers = 30 # previous runaway CSM issue due to excessive limits on autoinit.
+# getSolverParams(fg).dbg = false
+# getSolverParams(fg).async = false
+# getSolverParams(fg).drawtree = false
+# getSolverParams(fg).showtree = false
 
 tree, smt, hist = solveTree!(fg, recordcliqs=ls(fg))
 
@@ -90,3 +90,7 @@ tree, smt, hist = solveTree!(fg, recordcliqs=ls(fg))
 
 
 end
+
+
+
+#

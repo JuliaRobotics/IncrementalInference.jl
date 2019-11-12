@@ -638,6 +638,7 @@ function isLeastOneHypoAvailable(sfidx::Int,
                                  uncertnidx::Vector{Int},
                                  isinit::Vector{Bool})::Bool
   #
+  # @show isinit
   # @show sfidx in certainidx, sum(isinit[uncertnidx])
   # @show sfidx in uncertnidx, sum(isinit[certainidx])
   return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
