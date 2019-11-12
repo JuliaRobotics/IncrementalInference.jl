@@ -191,12 +191,13 @@ Planned changes will fold null hypothesis in as a standard feature and no longer
 """
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol;
-                               N::Int=100,
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,100),);
+                               N::Int=size(measurement[1],2),
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
-
+  @warn "FunctorPairwiseNH will be deprecated in favor of common `nullhypo=` interface."
   # TODO -- could be constructed and maintained at addFactor! time
   sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
   # prepare nullhypothesis
@@ -210,16 +211,18 @@ end
 
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol;
-                               N::Int=100,
-                               dbg::Bool=false ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,100),);
+                               N::Int=size(measurement[1],2),
+                               dbg::Bool=false  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
   sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
-  # if 0 < size(measurement[1],1)
-  #   ccwl.measurement = measurement
-  # end
+  # check for user desired measurement values
+  if 0 < size(measurement[1],1)
+    ccwl.measurement = measurement
+  end
 
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
@@ -237,14 +240,15 @@ end
 
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol;
-                               N::Int=0,
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,0),);
+                               N::Int=size(measurement[1],2),
                                dbg::Bool=false ) where {T <: FunctorSingleton}
   #
   fnc = ccwl.usrfnc!
 
   nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  ccwl.measurement = getSample(ccwl.usrfnc!, nn)
+  ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
   if !ccwl.partial
     return ccwl.measurement[1]
   else
@@ -260,11 +264,13 @@ end
 
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol;
-                               N::Int=100,
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,100),);
+                               N::Int=size(measurement[1],2),
                                spreadfactor::Float64=10.0,
                                dbg::Bool=false ) where {T <: FunctorSingletonNH}
   #
+  @warn "FunctorSingletonNH will be deprecated in favor of common `nullhypo=` interface."
   fnc = ccwl.usrfnc!
 
   val = getVal(Xi[1])
@@ -295,11 +301,12 @@ end
 
 Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
 """
-function evalFactor2(dfg::G,
+function evalFactor2(dfg::AbstractDFG,
                      fct::DFGFactor,
-                     solvefor::Symbol;
-                     N::Int=100,
-                     dbg::Bool=false) where G <: AbstractDFG
+                     solvefor::Symbol,
+                     measurement::Tuple=(zeros(0,100),);
+                     N::Int=size(measurement[1],2),
+                     dbg::Bool=false  )
   #
 
   ccw = solverData(fct).fnc
@@ -327,23 +334,33 @@ function evalFactor2(dfg::G,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
-  return evalPotentialSpecific(Xi, ccw, solvefor, N=N, dbg=dbg)
+  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, N=N, dbg=dbg)
 end
+
 # import IncrementalInference: evalFactor2, approxConv
 """
     $(SIGNATURES)
 
 Draw samples from the approximate convolution of `towards` symbol using factor `fct` relative to the other variables.  In addition the `api` can be adjusted to recover the data from elsewhere (likely to be replaced/removed in the future).
 """
-function approxConv(dfg::G,
+function approxConv(dfg::AbstractDFG,
+                    fc::DFGFactor,
+                    towards::Symbol,
+                    measurement::Tuple=(zeros(0,0),);
+                    N::Int=size(measurement[1],2) )
+  #
+  v1 = getVariable(dfg, towards)
+  N = N == 0 ? getNumPts(v1) : N
+  return evalFactor2(dfg, fc, v1.label, N=N)
+end
+function approxConv(dfg::AbstractDFG,
                     fct::Symbol,
-                    towards::Symbol;
-                    N::Int=-1  ) where G <: AbstractDFG
+                    towards::Symbol,
+                    measurement::Tuple=(zeros(0,0),);
+                    N::Int=size(measurement[1],2) )
   #
   fc = getFactor(dfg, fct)
-  v1 = getVariable(dfg, towards)
-  N = N == -1 ? getNumPts(v1) : N
-  return evalFactor2(dfg, fc, v1.label, N=N)
+  return approxConv(dfg, fc, towards, measurement, N=N)
 end
 
 

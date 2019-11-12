@@ -60,6 +60,7 @@ export
   hasVariable,
   getSolverParams,
 
+  *,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
@@ -125,6 +126,8 @@ export
   ls,
   lsf,
   getVariableIds,
+  getVariablePPE!,
+  getVariablePPE,
   sortVarNested,
   hasOrphans,
   drawCopyFG,
