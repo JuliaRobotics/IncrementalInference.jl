@@ -1,4 +1,4 @@
-using Revise
+# using Revise
 
 using DistributedFactorGraphs
 using IncrementalInference
