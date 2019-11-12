@@ -227,7 +227,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
 
-  @info "going to assemble multi hypo"
+  # assemble how hypotheses should be computed
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit)
   certainidx = ccwl.certainhypo
 
