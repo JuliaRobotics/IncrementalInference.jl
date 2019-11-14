@@ -379,7 +379,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   println()
 
   @info "Copying to a local DFG"
-  fge = InMemDFGType(params=SolverParams())#GraphsDFG{SolverParams}(params=SolverParams())
+  fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
   DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
 
   println("Building Bayes net from cloud...")
