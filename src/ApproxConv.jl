@@ -219,10 +219,16 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
 
   # Prep computation variables
   sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  # check for user desired measurement values
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
   end
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi))
+
+  # Check which variables have been initialized
+  isinit = map(x->isInitialized(x), Xi)
+
+  # assemble how hypotheses should be computed
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit)
   certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements

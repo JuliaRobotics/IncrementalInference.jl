@@ -631,31 +631,80 @@ end
 """
     $SIGNATURES
 
+Return `::Bool` on whether at least one hypothesis is available for intended computations (assuming direction `sfidx`).
+"""
+function isLeastOneHypoAvailable(sfidx::Int,
+                                 certainidx::Vector{Int},
+                                 uncertnidx::Vector{Int},
+                                 isinit::Vector{Bool})::Bool
+  #
+  # @show isinit
+  # @show sfidx in certainidx, sum(isinit[uncertnidx])
+  # @show sfidx in uncertnidx, sum(isinit[certainidx])
+  return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
+         sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+end
+
+"""
+    $SIGNATURES
+
 Return `(::Bool, ::OKVarlist, ::NotOkayVarList)` on whether all other variables (besides `loovar::Symbol`)
 attached to factor `fct::Symbol` are all initialized -- i.e. `fct` is usable.
 
+Notes:
+- Special carve out for multihypo cases, see issue 427, where at least one hypothesis should be available, but not all required at first.
+
 Development Notes
 * TODO get faster version of isInitialized for database version
+
+Related
+
+doautoinit!, manualinit!, isInitialized, isMultihypo
 """
-function factorCanInitFromOtherVars(dfg::T,
+function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,
-                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}} where T <: AbstractDFG
+                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
   #
   # all variables attached to this factor
   varsyms = DFG.getNeighbors(dfg, fct)
 
+  # which element is being solved for
+  sfidx = (1:length(varsyms))[varsyms .== loovar][1]
   # list of factors to use in init operation
   fctlist = []
+  # list fo variables that cannot be used
   faillist = Symbol[]
+  isinit = Bool[]
   for vsym in varsyms
+    # check each variable one by one
     xi = DFG.getVariable(dfg, vsym)
-    if !isInitialized(xi)
+    isi = isInitialized(xi)
+    push!(isinit, isi)
+    if !isi
       push!(faillist, vsym)
     end
   end
 
-  # determine if this factor can be used
+  ## determine if this factor can be used
+  # priors and general n-ary cases
   canuse = length(varsyms)==1 || (length(faillist)==1 && loovar in faillist)
+  ## special multihypo case (at least one hypothesis is available or initializing first hypo)
+  fctnode = getFactor(dfg, fct)
+  # @show canuse, isMultihypo(fctnode), isinit
+  if !canuse && isMultihypo(fctnode)
+    # multihypo=[1;0.5;0.5] : sfidx=1, isinit=[0,1,0] -- true
+    # multihypo=[1;0.5;0.5] : sfidx=1, isinit=[0,0,1] -- true
+    # multihypo=[1;0.5;0.5] : sfidx=2|3, isinit=[1,0,0] -- true
+    mhp = getMultihypoDistribution(fctnode).p
+    allmhp,certainidx,uncertnidx = getHypothesesVectors(mhp)
+    if isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
+       # special case works
+       @info "allowing init from incomplete set of previously initialized hypotheses, fct=$fct"
+       canuse = true
+    end
+  end
+
+  # should add the factor for use?
   if canuse
     push!(fctlist, fct)
   end
@@ -693,6 +742,9 @@ end
 
 EXPERIMENTAL: initialize target variable `xi` based on connected factors in the
 factor graph `fgl`.  Possibly called from `addFactor!`, or `doCliqAutoInitUp!` (?).
+
+Notes:
+- Special carve out for multihypo cases, see issue 427.
 
 Development Notes:
 > Target factor is first (singletons) or second (dim 2 pairwise) variable vertex in `xi`.
@@ -786,18 +838,18 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(dfg::T, vert::DFGVariable, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
+function manualinit!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
   # getData(vert).initialized = true
   return nothing
 end
-function manualinit!(dfg::T, sym::Symbol, pX::BallTreeDensity)::Nothing where T <: AbstractDFG
+function manualinit!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
   vert = getVariable(dfg, sym)
   manualinit!(dfg, vert, pX)
   return nothing
 end
 function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
-  @warn "manual_init being used as a workaround for temporary autoinit issues."
+  @info "manualinit! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
@@ -805,11 +857,14 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   # getData(dfg, sym).initialized = true
   return nothing
 end
+
+
 function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
   manualinit!(dfg,sym,pp)
 end
+
 
 function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
   allvarnodes = getVariables(dfg)

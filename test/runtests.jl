@@ -44,6 +44,8 @@ include("testFactorMetadata.jl")
 
 include("testExplicitMultihypo.jl")
 
+include("TestCSMMultihypo.jl")
+
 include("testMultiHypo2Door.jl")
 
 include("testMultithreaded.jl")

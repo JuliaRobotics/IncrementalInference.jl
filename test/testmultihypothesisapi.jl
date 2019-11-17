@@ -1,5 +1,9 @@
+# using Revise
+
 using Test
+
 using IncrementalInference, Distributions
+using DistributedFactorGraphs
 using Statistics
 # going to introduce two new constraint types
 import Base: convert
@@ -65,7 +69,7 @@ global v3 = addVariable!(fg, :x3, ContinuousScalar, N=N)
 global v4 = addVariable!(fg, :x4, ContinuousScalar, N=N)
 
 global ppMH = DevelopLikelihood(Normal(90.0,1.0))
-global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(1.0,0.5,0.5))
+global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 
 
 # @test getData(f3).fnc.hypoverts == [:x3, :x4]
@@ -73,9 +77,9 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=(1.0,0.5,0.5))
 @test sum(abs.(solverData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
-setVal!(v2,1*ones(1,100))
-setVal!(v3,2*ones(1,100))
-setVal!(v4,3*ones(1,100))
+manualinit!(fg, :x2, 1*ones(1,100))
+manualinit!(fg, :x3, 2*ones(1,100))
+manualinit!(fg, :x4, 3*ones(1,100))
 
 end
 
@@ -204,10 +208,10 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=(1.0,0.333,0.333,0
 @test sum(abs.(solverData(f3).fnc.hypotheses.p[4] .- 0.334)) < 0.001
 
 
-setVal!(v2,1*ones(1,100))
-setVal!(v3,2*ones(1,100))
-setVal!(v4,3*ones(1,100))
-setVal!(v5,4*ones(1,100))
+manualinit!(fg, :x2 ,1*ones(1,100))
+manualinit!(fg, :x3 ,2*ones(1,100))
+manualinit!(fg, :x4 ,3*ones(1,100))
+manualinit!(fg, :x5 ,4*ones(1,100))
 
 
 # solve for certain idx

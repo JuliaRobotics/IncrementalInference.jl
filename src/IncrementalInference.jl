@@ -330,6 +330,8 @@ export
   resetVariableAllInitializations!,
   isMarginalized,
   isMultihypo,
+  getMultihypoDistribution,
+  getHypothesesVectors,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,
   setCliqAsMarginalized!,
