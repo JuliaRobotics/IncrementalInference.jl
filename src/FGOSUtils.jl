@@ -2,10 +2,6 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import Base:*
-
-*(a::Symbol, b::AbstractString)::Symbol = Symbol(string(a,b))
-
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
@@ -63,6 +59,9 @@ function calcVariablePPE!(retval::Vector{Float64},
   nothing
 end
 
+function calcVariablePPE()
+
+end
 
 """
     $SIGNATURES
@@ -70,8 +69,8 @@ end
 Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
 """
 function calcVariablePPE(var::DFGVariable,
-                        softt::InferenceVariable;
-                        method::Symbol=:meanmax  )::Vector{Float64}
+                         softt::InferenceVariable;
+                         method::Symbol=:meanmax  )::Vector{Float64}
   #
   vect = zeros(softt.dims)
   calcVariablePPE!(vect, var, softt, method=method)
