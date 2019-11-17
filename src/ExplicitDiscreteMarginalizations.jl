@@ -11,9 +11,24 @@
 
 
 """
+    $SIGNATURES
+
+Return common vectors `(allmhp, certainidx,uncertnidx)` used for dealing with multihypo cases.
+"""
+function getHypothesesVectors(mhp::Vector{Float64})::Tuple{Vector{Int},Vector{Int},Vector{Int}}
+  allmhp = 1:length(mhp)
+  certainidx = allmhp[mhp .== 0.0]  # TODO remove after gwp removed
+  uncertnidx = allmhp[0.0 .< mhp]
+  return (allmhp,certainidx,uncertnidx)
+end
+
+"""
     $(SIGNATURES)
 
 This function explicitly codes that marginalization of a discrete categorical selection variable for ambiguous data association situations.  Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.  This function populates `allelements` with particle indices associated with particular multihypothesis selection while `activehypo` simultaneously contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
+
+Notes:
+- Issue 427, race condition during initialization since n-ary variables not resolvable without other init.
 
 ```
 # `allelements` example BearingRange [:x1, 0.5:l1a, 0.5:l1b]
@@ -51,23 +66,41 @@ sfidx=4, mhidx=3:  4 should take a value from 3
 sfidx=4, mhidx=4:  ah = [1;4]
 ```
 """
-function assembleHypothesesElements!(
-            mh::Categorical,
-            maxlen::Int,
-            sfidx::Int,
-            lenXi::Int  )
+function assembleHypothesesElements!(mh::Categorical,
+                                     maxlen::Int,
+                                     sfidx::Int,
+                                     lenXi::Int,
+                                     isinit::Vector{Bool}=ones(Bool, lenXi)  )
   #
   allelements = []
   activehypo = []
   mhidx = Int[]
 
   allidx = 1:maxlen
-  allmhp = 1:length(mh.p)
-  certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
-  uncertnidx = allmhp[0.0 .< mh.p]
+  # @show sfidx
+  allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
+  # allmhp = 1:length(mh.p)
+  # certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
+  # uncertnidx = allmhp[0.0 .< mh.p]
+
+  # select only hypotheses that can be used (ie variables have been initialized)
+  @assert !(sum(isinit) == 0 && sfidx == certainidx) # cannot init from nothing for any hypothesis
+
+  mhh = if sum(isinit) < lenXi - 1
+    @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
+    @info "not all hypotheses initialized, but at least one available -- see #427"
+    mhp = deepcopy(mh.p)
+    suppressmask = isinit .== false
+    suppressmask[sfidx] = false
+    mhp[suppressmask] .= 0.0
+    mhp ./= sum(mhp)
+    Categorical(mhp)
+  else
+    mh
+  end
 
   # prep mmultihypothesis selection values
-  mhidx = rand(mh, maxlen) # selection of which hypothesis is correct
+  mhidx = rand(mhh, maxlen) # selection of which hypothesis is correct
 
   pidx = 0
   sfincer = sfidx in certainidx
@@ -102,11 +135,11 @@ function assembleHypothesesElements!(
 
   return certainidx, allelements, activehypo, mhidx
 end
-function assembleHypothesesElements!(
-            mh::Nothing,
-            maxlen::Int,
-            sfidx::Int,
-            lenXi::Int  )
+function assembleHypothesesElements!(mh::Nothing,
+                                     maxlen::Int,
+                                     sfidx::Int,
+                                     lenXi::Int,
+                                     isinit::Vector{Bool}=ones(Bool, lenXi)  )
   #
   allelements = []
   activehypo = []

@@ -268,7 +268,7 @@ Related:
 drawTree
 """
 function generateTexTree(treel::BayesTree;
-                         filepath::String="/tmp/caesar/bt")
+                         filepath::String="/tmp/caesar/bayes/bt")
     btc = deepcopy(treel)
     for (cid, cliq) in btc.cliques
         label = cliq.attributes["label"]
@@ -315,7 +315,7 @@ function generateTexTree(treel::BayesTree;
     # Use new labels to produce `.dot` and `.tex` files.
     fid = IOStream("")
     try
-        mkpath(filepath)
+        mkpath(joinpath((split(filepath,'/')[1:(end-1)])...) )
         fid = open("$(filepath).dot","w+")
         write(fid, to_dot(btc.bt))
         close(fid)
@@ -364,6 +364,45 @@ function buildTreeFromOrdering!(dfg::G,
 
   return tree
 end
+
+
+"""
+    $SIGNATURES
+
+Build Bayes/Junction/Elimination tree from a given variable ordering.
+"""
+function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
+                                p::Vector{Symbol};
+                                drawbayesnet::Bool=false,
+                                maxparallel::Int=50  )
+  #
+  println()
+
+  @info "Copying to a local DFG"
+  fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
+  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
+
+  println("Building Bayes net from cloud...")
+  buildBayesNet!(fge, p, maxparallel=maxparallel)
+
+  tree = emptyBayesTree()
+  buildTree!(tree, fge, p)
+
+  if drawbayesnet
+    println("Bayes Net")
+    sleep(0.1)
+    fid = open("bn.dot","w+")
+    write(fid,to_dot(fge.bn))
+    close(fid)
+  end
+
+  println("Find potential functions for each clique")
+  cliq = tree.cliques[1] # start at the root
+  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+
+  return tree
+end
+
 
 """
     $SIGNATURES
@@ -438,7 +477,7 @@ end
 
 Reset factor graph and build a new tree from the provided variable ordering `p`.
 """
-function resetBuildTreeFromOrder!(fgl::FactorGraph, p::Vector{Int})::BayesTree
+function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Int})::BayesTree
   resetFactorGraphNewTree!(fgl)
   return buildTreeFromOrdering!(fgl, p)
 end

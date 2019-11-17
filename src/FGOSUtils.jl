@@ -2,6 +2,9 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
+import Base:*
+
+*(a::Symbol, b::AbstractString)::Symbol = Symbol(string(a,b))
 
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
@@ -233,7 +236,27 @@ Return `::Bool` on whether this variable has been marginalized.
 isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
+"""
+    $SIGNATURES
 
+Return bool on whether a certain factor has user defined multihypothesis.
+
+Related
+
+getMultihypoDistribution
+"""
+isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+
+"""
+    $SIGNATURES
+
+Return the categorical distributed used for multihypothesis selection in a factor.
+
+Related
+
+isMultihypo
+"""
+getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES

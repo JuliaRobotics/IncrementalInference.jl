@@ -8,7 +8,7 @@ using Test
 lm_prior_noise = 0.01
 meas_noise = 0.25
 odom_noise = 0.1
-n_samples = 100
+n_samples = 200
 
 # initialize mean landmark locations
 l0 = 0.0
@@ -26,7 +26,7 @@ x3 = 40.0
 
 ## Initialize empty factor graph
 fg = initfg()
-
+fg.solverParams.N = n_samples
 # Place strong prior on locations of three "doors"
 addVariable!(fg, Symbol("l0"), ContinuousScalar, N=n_samples)
 addFactor!(fg, [:l0], Prior(Normal(l0, lm_prior_noise)))

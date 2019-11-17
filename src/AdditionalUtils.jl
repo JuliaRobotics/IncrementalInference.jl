@@ -158,7 +158,7 @@ Build an approximate density `[Y|X,DX,.]=[X|Y,DX][DX|.]` as proposed by the cond
 Notes
 - Assume both are on circular manifold, `manikde!(pts, (:Circular,))`
 """
-function approxConvCircular(pX::BallTreeDensity, pDX::BallTreeDensity)
+function approxConvCircular(pX::BallTreeDensity, pDX::BallTreeDensity; N::Int=100)
   #
 
   # building basic factor graph
@@ -170,6 +170,19 @@ function approxConvCircular(pX::BallTreeDensity, pDX::BallTreeDensity)
 
   # solve for outgoing proposal value
   approxConv(tfg,:s1s2f1,:s2)
+end
+
+function approxConvCircular(pX::BallTreeDensity, pDX::SamplableBelief; N::Int=100)
+  pts = reshape(rand(pDX, N), 1, :)
+  pC = manikde!(pts, Sphere1)
+  approxConvCircular(pX, pC)
+end
+
+
+function approxConvCircular(pX::SamplableBelief, pDX::BallTreeDensity; N::Int=100)
+  pts = reshape(rand(pX, N), 1, :)
+  pC = manikde!(pts, Sphere1)
+  approxConvCircular(pC, pDX)
 end
 
 

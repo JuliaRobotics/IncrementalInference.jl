@@ -44,6 +44,8 @@ include("testFactorMetadata.jl")
 
 include("testExplicitMultihypo.jl")
 
+include("TestCSMMultihypo.jl")
+
 include("testMultiHypo2Door.jl")
 
 include("testMultithreaded.jl")
@@ -73,6 +75,8 @@ end
 @warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
 # include("testExpandedJLD.jl")
 
+
+include("testTexTreeIllustration.jl")
 
 
 
