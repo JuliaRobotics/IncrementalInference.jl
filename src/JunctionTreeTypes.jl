@@ -4,7 +4,7 @@
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
 
 #supported in Memory fg types
-const InMemoryDFGTypes = Union{DFG.GraphsDFG,DFG.MetaGraphsDFG, DFG.SymbolDFG, DFG.LightDFG}
+const InMemoryDFGTypes = Union{DFG.GraphsDFG, DFG.LightDFG}
 
 # BayesTree declarations
 """
