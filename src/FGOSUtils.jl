@@ -27,6 +27,61 @@ getDimension(var::DFGVariable) = getSofttype(var).dims
 getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
 
 
+
+"""
+    $SIGNATURES
+
+In-place memory version of `calcVariablePPE`.
+
+DevNotes
+- TODO update for manifold subgroups.
+"""
+function calcVariablePPE!(retval::Vector{Float64},
+                          var::DFGVariable,
+                          softt::InferenceVariable;
+                          method::Symbol=:meanmax  )::Nothing
+  #
+  @assert method == :meanmax
+  P = getKDE(var)
+  manis = getManifolds(softt) # getManifolds(vnd)
+  ops = buildHybridManifoldCallbacks(manis)
+  Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
+  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  for i in 1:length(manis)
+    mani = manis[i]
+    if mani == :Euclid
+      retval[i] = Pme[i]
+    elseif mani == :Circular
+      retval[i] = Pma[i]
+    else
+      error("Unknown manifold to find PPE, $softt, $mani")
+    end
+  end
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
+"""
+function calcVariablePPE(var::DFGVariable,
+                        softt::InferenceVariable;
+                        method::Symbol=:meanmax  )::Vector{Float64}
+  #
+  vect = zeros(softt.dims)
+  calcVariablePPE!(vect, var, softt, method=method)
+  return vect
+end
+
+calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Symbol=:meanmax) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
+calcVariablePPE(var::DFGVariable; method::Symbol=:meanmax) = calcVariablePPE(var, getSofttype(var), method=method)
+function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Symbol=:meanmax)
+  var = getVariable(dfg, sym)
+  calcVariablePPE(var, getSofttype(var), method=method)
+end
+
 """
     $(SIGNATURES)
 

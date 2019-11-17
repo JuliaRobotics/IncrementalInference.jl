@@ -638,22 +638,35 @@ function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
   return true
 end
 
-# TODO consider a more fiting name.
+"""
+    $SIGNATURES
+
+Calculate new and then set PPE estimates for variable from some distributed factor graph.
+
+DevNotes
+- TODO solve key might be needed if one only wants to update one
+- TODO consider a more fiting name.
+- guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
+
+Related
+
+calcVariablePPE
+"""
 function setVariablePosteriorEstimates!(var::DFG.DFGVariable, solveKey::Symbol=:default)::DFG.DFGVariable
-  # JT TODO solve key might be needed if one only wants to update one
-  # I guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
 
   vnd = solverData(var, solveKey)
 
-  bel = getKDE(vnd)
-  ops = buildHybridManifoldCallbacks(getManifolds(vnd))
-
-  varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
-  varMean = getKDEMean(bel)
+  # bel = getKDE(vnd)
+  # ops = buildHybridManifoldCallbacks(getManifolds(vnd))
+  #
+  # varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
+  # varMean = getKDEMean(bel)
 
   #TODO in the future one can perhaps populate other solver data types here by looking at the typeof estimateDict entries
-  var.estimateDict[solveKey] = MeanMaxPPE(solveKey, varMax, varMean)
+  ## calcVariablePPE!(var.estimateDict[solveKey], var)
+  var.estimateDict[solveKey] = calcVariablePPE(MeanMaxPPE, var)
 
+  # var.estimateDict[solveKey] = MeanMaxPPE(solveKey, varMax, varMean)
   return var
 end
 
@@ -669,6 +682,7 @@ function setVariablePosteriorEstimates!(subfg::AbstractDFG,
   #   updateVariable!(subfg, var)
   # end
 end
+
 
 """
     $SIGNATURES
