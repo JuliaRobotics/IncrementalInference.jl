@@ -241,7 +241,7 @@ function solveCliqWithStateMachine!(dfg::G,
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
-  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
+  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
   statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc)
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
@@ -793,7 +793,7 @@ function localProductAndUpdate!(dfg::G,
                                 setkde::Bool=true,
                                 logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
   #
-  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, logger=logger)
+  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
   setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
 
   return pp, infdim, lbl

@@ -411,7 +411,7 @@ function initVariable!(fgl::G,
   @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
-  belief,b,c,d,infdim  = localProduct(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
   setValKDE!(vert, belief)
 
   nothing
@@ -1536,7 +1536,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N) # N=N,
         end # if
       end # for
     end # sync
