@@ -246,6 +246,7 @@ Notes:
 """
 getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
 getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(getData(cliq))
+
 getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
 
 """
@@ -475,7 +476,7 @@ function doCliqUpSolve!(subfg::G,
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger, multiproc=multiproc)
+  approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
   getData(cliq).upsolved = true
   return :upsolved
 end

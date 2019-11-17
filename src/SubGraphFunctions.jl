@@ -60,10 +60,10 @@ function buildSubgraphFromLabels(dfg::G,
   # data structure for cliq sub graph
   if G <: InMemoryDFGTypes
     #Same type
-    cliqSubFg = initfg(G)
+    cliqSubFg = initfg(G, params=getSolverParams(dfg))
   else
     #Default
-    cliqSubFg = initfg(destType)
+    cliqSubFg = initfg(destType, params=getSolverParams(dfg))
   end
 
   # add a little too many variables (since we need the factors)

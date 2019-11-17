@@ -302,12 +302,12 @@ Calculate the proposals and products on `destvert` using `factors` in factor gra
 Notes
 - Returns tuple of product and whether full dimensional (=true) or partial (=false).
 """
-function predictbelief(dfg::G,
+function predictbelief(dfg::AbstractDFG,
                        destvert::DFGVariable,
-                       factors::Vector{F};
+                       factors::Vector{<:DFGFactor};
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where {G <: AbstractDFG, F <: DFGNode}
+                       logger=ConsoleLogger()  ) # where {G <: , F <: }
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -411,7 +411,7 @@ function initVariable!(fgl::G,
   @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
-  belief,b,c,d,infdim  = localProduct(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
   setValKDE!(vert, belief)
 
   nothing
@@ -1418,10 +1418,18 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
   end
 end
 
+"""
+    $SIGNATURES
+
+Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary. 
+"""
 function fetchCliqTaskHistoryAll!(smt, hist)
   for i in 1:length(smt)
-    # sm = smt[i]
-    hist[i] = fetch(smt[i])
+    sm = smt[i]
+    # only fetch states that have completed processing
+    if sm.state == :done
+      hist[i] = fetch(sm)
+    end
   end
 end
 
@@ -1528,7 +1536,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N) # N=N,
         end # if
       end # for
     end # sync

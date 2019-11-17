@@ -256,6 +256,85 @@ end
 """
     $SIGNATURES
 
+Draw the Bayes (junction) tree with LaTeX labels by means of `.dot` and `.tex`
+files.
+
+Notes
+- Uses system install of graphviz.org.
+- Uses external python `dot2tex` tool (`pip install dot2tex`).
+
+Related:
+
+drawTree
+"""
+function generateTexTree(treel::BayesTree;
+                         filepath::String="/tmp/caesar/bayes/bt")
+    btc = deepcopy(treel)
+    for (cid, cliq) in btc.cliques
+        label = cliq.attributes["label"]
+
+        # Get frontals and separator, and split into elements.
+        frt, sep = split(label,':')
+        efrt = split(frt,',')
+        esep = split(sep,',')
+
+        # Transform frontals into latex.
+        newfrontals = ""
+        for l in efrt
+            # Split into symbol and subindex (letter and number).
+            parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
+            if size(parts)[1] == 2
+                newfrontals = string(newfrontals, "\\bm{", parts[1], "}_{", parts[2], "}, ")
+            elseif size(parts)[1] == 3
+                newfrontals = string(newfrontals, "\\bm{", parts[2], "}_{", parts[3], "}, ")
+            end
+        end
+        # Remove the trailing comma.
+        newfrontals = newfrontals[1:end-2]
+
+        # Transform separator into latex.
+        newseparator = ""
+        if length(sep) > 1
+            for l in esep
+                # Split into symbol and subindex.
+                parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
+                if size(parts)[1] == 2
+                    newseparator = string(newseparator, "\\bm{", parts[1], "}_{", parts[2], "}, ")
+                elseif size(parts)[1] == 3
+                    newseparator = string(newseparator, "\\bm{", parts[2], "}_{", parts[3], "}, ")
+                end
+            end
+        end
+        # Remove the trailing comma.
+        newseparator = newseparator[1:end-2]
+        # Create full label and replace the old one.
+        newlabel = string(newfrontals, ":", newseparator)
+        cliq.attributes["label"] = newlabel
+    end
+
+    # Use new labels to produce `.dot` and `.tex` files.
+    fid = IOStream("")
+    try
+        mkpath(joinpath((split(filepath,'/')[1:(end-1)])...) )
+        fid = open("$(filepath).dot","w+")
+        write(fid, to_dot(btc.bt))
+        close(fid)
+        # All in one command.
+        run(`dot2tex -tmath --preproc $(filepath).dot -o $(filepath)proc.dot`)
+        run(`dot2tex $(filepath)proc.dot -o $(filepath).tex`)
+    catch ex
+        @warn ex
+        @show stacktrace()
+    finally
+        close(fid)
+    end
+
+    return btc
+end
+
+"""
+    $SIGNATURES
+
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
 function buildTreeFromOrdering!(dfg::G,
@@ -285,6 +364,45 @@ function buildTreeFromOrdering!(dfg::G,
 
   return tree
 end
+
+
+"""
+    $SIGNATURES
+
+Build Bayes/Junction/Elimination tree from a given variable ordering.
+"""
+function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
+                                p::Vector{Symbol};
+                                drawbayesnet::Bool=false,
+                                maxparallel::Int=50  )
+  #
+  println()
+
+  @info "Copying to a local DFG"
+  fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
+  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
+
+  println("Building Bayes net from cloud...")
+  buildBayesNet!(fge, p, maxparallel=maxparallel)
+
+  tree = emptyBayesTree()
+  buildTree!(tree, fge, p)
+
+  if drawbayesnet
+    println("Bayes Net")
+    sleep(0.1)
+    fid = open("bn.dot","w+")
+    write(fid,to_dot(fge.bn))
+    close(fid)
+  end
+
+  println("Find potential functions for each clique")
+  cliq = tree.cliques[1] # start at the root
+  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+
+  return tree
+end
+
 
 """
     $SIGNATURES
@@ -359,7 +477,7 @@ end
 
 Reset factor graph and build a new tree from the provided variable ordering `p`.
 """
-function resetBuildTreeFromOrder!(fgl::FactorGraph, p::Vector{Int})::BayesTree
+function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Int})::BayesTree
   resetFactorGraphNewTree!(fgl)
   return buildTreeFromOrdering!(fgl, p)
 end
