@@ -1,5 +1,6 @@
 # using Revise
 
+using DistributedFactorGraphs
 using IncrementalInference
 using Test
 
@@ -52,7 +53,9 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:estimateDict])
+# fg2 has been solved, so it should fail on the estimate dictionary
+@test !compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
 
 tree = wipeBuildNewTree!(fg2)
 
@@ -60,7 +63,7 @@ tree = wipeBuildNewTree!(fg2)
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
-@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim])
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:estimateDict])
 
 end
 
