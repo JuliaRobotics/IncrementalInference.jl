@@ -58,23 +58,6 @@ end
 
 
 
-
-
-# Compare FunctionNodeData
-function compare(a::GenericFunctionNodeData{T1,S},b::GenericFunctionNodeData{T2,S}) where {T1, T2, S}
-  # TODO -- beef up this comparison to include the gwp
-  TP = true
-  TP = TP && a.fncargvID == b.fncargvID
-  TP = TP && a.eliminated == b.eliminated
-  TP = TP && a.potentialused == b.potentialused
-  TP = TP && a.edgeIDs == b.edgeIDs
-  TP = TP && a.frommodule == b.frommodule
-  # TP = TP && typeof(a.fnc) == typeof(b.fnc)
-  return TP
-end
-
-
-
 function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
   getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
