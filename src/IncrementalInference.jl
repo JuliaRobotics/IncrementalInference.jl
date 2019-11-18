@@ -126,7 +126,6 @@ export
   ls,
   lsf,
   getVariableIds,
-  calcVariablePPE!,
   calcVariablePPE,
   sortVarNested,
   hasOrphans,
