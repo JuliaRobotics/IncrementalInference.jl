@@ -2,6 +2,7 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
+import DistributedFactorGraphs: AbstractPointParametricEst
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
@@ -43,7 +44,7 @@ function calcVariablePPE(var::DFGVariable,
   P = getKDE(var)
   manis = getManifolds(softt) # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
-  Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
+  Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
   suggested = zeros(getDimension(var))
   # TODO standardize after AMP3D
@@ -89,7 +90,7 @@ end
 # """
 # function calcVariablePPE(var::DFGVariable,
 #                          softt::InferenceVariable;
-#                          method::Type{<:AbstractParametricEst}=MeanMaxPPE  )::Vector{Float64}
+#                          method::Type{<:AbstractPointParametricEst}=MeanMaxPPE  )::Vector{Float64}
 #   #
 #   # vect = zeros(softt.dims)
 #   mmppe = calcVariablePPE(MeanMaxPPE, var, softt, method=method)
@@ -97,9 +98,9 @@ end
 # end
 
 
-# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
-calcVariablePPE(var::DFGVariable; method::Type{<:AbstractParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
-function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
+# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
+calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
   var = getVariable(dfg, sym)
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
