@@ -789,6 +789,8 @@ function doautoinit!(dfg::T,
         end
         pts,inferdim = predictbelief(dfg, vsym, useinitfct, logger=logger)
         setValKDE!(xi, pts, true, inferdim)
+        #TODO test
+        setVariablePosteriorEstimates!(xi)
         didinit = true
       end
     end
