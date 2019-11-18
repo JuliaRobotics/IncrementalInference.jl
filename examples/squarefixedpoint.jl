@@ -9,7 +9,7 @@ using Gadfly, DataFrames
 import IncrementalInference: getSample
 
 
-include(joinpath(@__DIR__, "SuareRootTypes.jl"))
+include(joinpath(@__DIR__, "SquareRootTypes.jl"))
 
 ## Direct example
 
