@@ -656,17 +656,9 @@ function setVariablePosteriorEstimates!(var::DFG.DFGVariable, solveKey::Symbol=:
 
   vnd = solverData(var, solveKey)
 
-  # bel = getKDE(vnd)
-  # ops = buildHybridManifoldCallbacks(getManifolds(vnd))
-  #
-  # varMax = getKDEMax(bel, addop=ops[1], diffop=ops[2])
-  # varMean = getKDEMean(bel)
-
   #TODO in the future one can perhaps populate other solver data types here by looking at the typeof estimateDict entries
-  ## calcVariablePPE!(var.estimateDict[solveKey], var)
-  var.estimateDict[solveKey] = calcVariablePPE(MeanMaxPPE, var)
+  var.estimateDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
 
-  # var.estimateDict[solveKey] = MeanMaxPPE(solveKey, varMax, varMean)
   return var
 end
 

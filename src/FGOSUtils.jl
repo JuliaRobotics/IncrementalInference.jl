@@ -37,7 +37,7 @@ DevNotes
 """
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;
-                         solverKey::Symbol=:default,
+                         solveKey::Symbol=:default,
                          method::Type{MeanMaxPPE}=MeanMaxPPE  )::MeanMaxPPE
   #
   P = getKDE(var)
@@ -58,7 +58,7 @@ function calcVariablePPE(var::DFGVariable,
       error("Unknown manifold to find PPE, $softt, $mani")
     end
   end
-  MeanMaxPPE(solverKey, suggested, Pma, Pme, now())
+  MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
 end
 # function calcVariablePPE!(retval::Vector{Float64},
 #                           var::DFGVariable,
@@ -98,10 +98,10 @@ end
 
 
 # calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
-calcVariablePPE(var::DFGVariable; method::Type{<:AbstractParametricEst}=MeanMaxPPE) = calcVariablePPE(var, getSofttype(var), method=method)
-function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractParametricEst}=MeanMaxPPE)
+calcVariablePPE(var::DFGVariable; method::Type{<:AbstractParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
   var = getVariable(dfg, sym)
-  calcVariablePPE(var, getSofttype(var), method=method)
+  calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
 
 """
