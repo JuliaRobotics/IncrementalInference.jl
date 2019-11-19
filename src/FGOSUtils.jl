@@ -7,6 +7,18 @@ import DistributedFactorGraphs: AbstractPointParametricEst
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 
+"""
+    $SIGNATURES
+
+Return the order sensitive list of variables related to factor `fct`.
+
+Related
+
+ls, lsf, lsfPriors
+"""
+getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
+getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
+
 
 """
     $SIGNATURES
@@ -26,7 +38,12 @@ Get graph node (variable or factor) dimension.
 getDimension(var::DFGVariable) = getSofttype(var).dims
 getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
 
+"""
+    $SIGNATURES
 
+Get the folder location where debug and solver information is recorded for a particular factor graph.
+"""
+getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
 """
     $SIGNATURES

@@ -1421,7 +1421,7 @@ end
 """
     $SIGNATURES
 
-Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary. 
+Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
 """
 function fetchCliqTaskHistoryAll!(smt, hist)
   for i in 1:length(smt)
@@ -1536,7 +1536,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync
