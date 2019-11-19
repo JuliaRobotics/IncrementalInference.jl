@@ -668,7 +668,12 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
 
   infocsm(csmc, "2, build subgraph syms=$(syms)")
-  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+  # TODO review, are all updates atomic???
+  # if isa(csmc.dfg, InMemDFGType)
+  #   csmc.cliqSubFg = csmc.dfg
+  # else
+    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+  # end
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
