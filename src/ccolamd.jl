@@ -84,7 +84,7 @@ end
 ccolamd(n_row, A::Vector{SuiteSparse_long}, p::Vector{SuiteSparse_long}, constraints=zeros(SuiteSparse_long, length(p) - 1)) =
     ccolamd!(n_row, copy(A), copy(p), constraints)
 
-ccolamd(A::SparseMatrixCSC, constraints=zeros(SuiteSparse_long, length(A.colptr) - 1)) = ccolamd(size(A, 1), A.rowval, A.colptr)
+ccolamd(A::SparseMatrixCSC, constraints=zeros(SuiteSparse_long, length(A.colptr) - 1)) = ccolamd(size(A, 1), A.rowval, A.colptr, constraints)
 
 report(stats::Vector{SuiteSparse_long}) =
     ccall((:ccolamd_l_report, :libccolamd), Nothing, (Ptr{SuiteSparse_long},), stats)
