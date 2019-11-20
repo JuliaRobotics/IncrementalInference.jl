@@ -351,6 +351,43 @@ function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::I
   return nodes
 end
 
+
+
+function DefaultNodeDataParametric(dodims::Int,
+                                   dims::Int,
+                                   softtype::InferenceVariable;
+                                   initialized::Bool=true,
+                                   dontmargin::Bool=false)::VariableNodeData
+
+  # this should be the only function allocating memory for the node points
+  if initialized
+    error("not implemented yet")
+    # pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+    #
+    # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    # gbw = getBW(pN)[:,1]
+    # gbw2 = Array{Float64}(undef, length(gbw),1)
+    # gbw2[:,1] = gbw[:]
+    # pNpts = getPoints(pN)
+    # #initval, stdev
+    # return VariableNodeData(pNpts,
+    #                         gbw2, Symbol[], sp,
+    #                         dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin)
+  else
+    sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    return VariableNodeData(zeros(dims, 1),
+                            zeros(dims,1), Symbol[], sp,
+                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin)
+  end
+
+end
+
+function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
+  vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
+  setSolverData(v, vnd, :parametric)
+  return nothing
+end
+
 function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
@@ -417,7 +454,8 @@ function addVariable!(dfg::G,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
-                      checkduplicates::Bool=true  )::DFGVariable where
+                      checkduplicates::Bool=true,
+                      initsolvekeys::Vector{Symbol}=[:default, :parametric])::DFGVariable where
                         {G <: AbstractDFG,
                          T <: InferenceVariable}
   #
@@ -426,7 +464,13 @@ function addVariable!(dfg::G,
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
-  setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  (:default in initsolvekeys) &&
+    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  (:parametric in initsolvekeys) &&
+    setDefaultNodeDataParametric!(v, softtype, initialized=!autoinit, dontmargin=dontmargin)
+
   DFG.addVariable!(dfg, v)
 
   return v

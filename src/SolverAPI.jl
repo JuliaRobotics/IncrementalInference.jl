@@ -247,3 +247,36 @@ function batchSolve!(dfg::G,
   # later development allows tasks for each cliq state machine to be returned also
   return tree, smtasks
 end
+
+## Experimental Parametric
+"""
+    $SIGNATURES
+
+Perform parametric inference over the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree, smt, hist = solveTree!(fg ,tree)
+```
+"""
+function solveTreeParametric!(dfgl::DFG.AbstractDFG,
+                    tree::BayesTree;
+                    delaycliqs::Vector{Symbol}=Symbol[],
+                    recordcliqs::Vector{Symbol}=Symbol[],
+                    skipcliqids::Vector{Symbol}=Symbol[],
+                    maxparallel::Int=50)
+  #
+  @info "Solving over the Bayes (Junction) tree."
+  smtasks=Vector{Task}()
+  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  opt = DFG.getSolverParams(dfgl)
+
+  @info "Do tree based init-inference on tree"
+  # if opt.async
+  smtasks, hist = initInferTreeUpParametric!(dfgl, tree, oldtree=tree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+
+  @info "Finished tree based init-inference"
+
+
+  return tree, smtasks, hist
+end
