@@ -421,7 +421,7 @@ function addVariable!(dfg::G,
                         {G <: AbstractDFG,
                          T <: InferenceVariable}
   #
-  v = DFGVariable(lbl)
+  v = DFGVariable(lbl, softtype)
   v.ready = ready
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
