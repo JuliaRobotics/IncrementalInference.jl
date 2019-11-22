@@ -413,14 +413,14 @@ function addVariable!(dfg::AbstractDFG,
                       softtype::InferenceVariable;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true  )::DFGVariable
   #
   v = DFGVariable(lbl, softtype)
-  v.ready = ready
+  v.ready = solvable
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
@@ -436,11 +436,12 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Bool=true,
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
+  #
   sto = softtype()
   #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
@@ -451,7 +452,7 @@ function addVariable!(dfg::G,
                sto,
                N=N,
                autoinit=autoinit,
-               ready=ready,
+               solvable=solveable,
                dontmargin=dontmargin,
                labels=labels,
                smalldata=smalldata  )
