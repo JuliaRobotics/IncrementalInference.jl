@@ -908,7 +908,7 @@ function addFactor!(dfg::G,
                     Xi::Vector{DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-                    ready::Int=1,
+                    solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit::Bool=true,
                     threadmodel=SingleThreaded,
@@ -919,6 +919,7 @@ function addFactor!(dfg::G,
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
+  newFactor.ready = solvable
   # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
   newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
 
@@ -939,7 +940,7 @@ function addFactor!(
       xisyms::Vector{Symbol},
       usrfnc::R;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      ready::Int=1,
+      solvable::Int=1,
       labels::Vector{Symbol}=Symbol[],
       autoinit::Bool=true,
       threadmodel=SingleThreaded,
@@ -948,7 +949,7 @@ function addFactor!(
          R <: Union{FunctorInferenceType, InferenceType}}
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
