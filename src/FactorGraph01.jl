@@ -408,18 +408,16 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(dfg::G,
+function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
-                      softtype::T;
+                      softtype::InferenceVariable;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
                       ready::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
-                      checkduplicates::Bool=true  )::DFGVariable where
-                        {G <: AbstractDFG,
-                         T <: InferenceVariable}
+                      checkduplicates::Bool=true  )::DFGVariable
   #
   v = DFGVariable(lbl, softtype)
   v.ready = ready
