@@ -452,7 +452,7 @@ function addVariable!(dfg::G,
                sto,
                N=N,
                autoinit=autoinit,
-               solvable=solveable,
+               solvable=solvable,
                dontmargin=dontmargin,
                labels=labels,
                smalldata=smalldata  )
@@ -935,18 +935,15 @@ function addFactor!(dfg::G,
 
   return newFactor
 end
-function addFactor!(
-      dfg::G,
-      xisyms::Vector{Symbol},
-      usrfnc::R;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      solvable::Int=1,
-      labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded,
-      maxparallel::Int=50  ) where
-        {G <: AbstractDFG,
-         R <: Union{FunctorInferenceType, InferenceType}}
+function addFactor!(dfg::AbstractDFG,
+                    xisyms::Vector{Symbol},
+                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    solvable::Int=1,
+                    labels::Vector{Symbol}=Symbol[],
+                    autoinit::Bool=true,
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  )
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )

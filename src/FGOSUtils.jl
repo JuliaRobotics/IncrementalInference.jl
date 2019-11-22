@@ -45,19 +45,6 @@ Get the folder location where debug and solver information is recorded for a par
 """
 getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
-"""
-    $SIGNATURES
-
-Variables or factors may or may not be 'solvable', depending on a user definition.  Useful for ensuring atomic transactions.
-
-DevNotes:
-- Will be renamed to `var.solvable` -- see DFG #201
-
-Related
-
-isSolveInProgress
-"""
-isSolvable(var::Union{DFGVariable, DFGFactor}) = var.ready
 
 """
     $SIGNATURES
