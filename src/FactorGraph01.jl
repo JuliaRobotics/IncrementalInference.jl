@@ -413,7 +413,7 @@ function addVariable!(dfg::G,
                       softtype::T;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
@@ -422,7 +422,7 @@ function addVariable!(dfg::G,
                          T <: InferenceVariable}
   #
   v = DFGVariable(lbl, softtype)
-  v.ready = ready
+  v.solvable = solvable
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
@@ -438,7 +438,7 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Bool=true,
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
@@ -453,7 +453,7 @@ function addVariable!(dfg::G,
                sto,
                N=N,
                autoinit=autoinit,
-               ready=ready,
+               solvable=solvable,
                dontmargin=dontmargin,
                labels=labels,
                smalldata=smalldata  )
@@ -909,7 +909,7 @@ function addFactor!(dfg::G,
                     Xi::Vector{DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-                    ready::Int=1,
+                    solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit::Bool=true,
                     threadmodel=SingleThreaded,
@@ -920,7 +920,8 @@ function addFactor!(dfg::G,
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
-  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
+  newFactor.solvable = solvable
+  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, solvable)
   newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
 
   # TODO: Need to remove this...
@@ -940,7 +941,7 @@ function addFactor!(
       xisyms::Vector{Symbol},
       usrfnc::R;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      ready::Int=1,
+      solvable::Int=1,
       labels::Vector{Symbol}=Symbol[],
       autoinit::Bool=true,
       threadmodel=SingleThreaded,
@@ -949,7 +950,7 @@ function addFactor!(
          R <: Union{FunctorInferenceType, InferenceType}}
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
