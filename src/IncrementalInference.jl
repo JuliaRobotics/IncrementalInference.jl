@@ -196,7 +196,6 @@ export
   getFactorInferFraction,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
-  hasFactor,
   getVariable,
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
