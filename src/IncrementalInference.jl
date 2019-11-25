@@ -471,8 +471,6 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
-  isSolvable,
-  isSolveInProgress,
 
   # For 1D example,
 
