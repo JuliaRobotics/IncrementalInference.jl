@@ -45,7 +45,6 @@ Get the folder location where debug and solver information is recorded for a par
 """
 getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
-
 """
     $SIGNATURES
 
