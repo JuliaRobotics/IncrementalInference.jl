@@ -420,7 +420,7 @@ function addVariable!(dfg::AbstractDFG,
                       checkduplicates::Bool=true  )::DFGVariable
   #
   v = DFGVariable(lbl, softtype)
-  v.ready = solvable
+  v.solvable = solvable
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
@@ -919,8 +919,8 @@ function addFactor!(dfg::G,
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
-  newFactor.ready = solvable
-  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
+  newFactor.solvable = solvable
+  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, solvable)
   newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
 
   # TODO: Need to remove this...
@@ -935,6 +935,7 @@ function addFactor!(dfg::G,
 
   return newFactor
 end
+
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
@@ -1019,13 +1020,14 @@ Notes
 - **NOT USING SUITE SPARSE** -- which would requires commercial license.
 - For now `A::Array{<:Number,2}` as a dense matrix.
 - Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
+- default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
-function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
+function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
-  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg)
+  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
   A = Array(adjMat)
@@ -1116,7 +1118,8 @@ end
 
 function buildBayesNet!(dfg::G,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=50)::Nothing where G <: AbstractDFG
+                        maxparallel::Int=50,
+                        solvable::Int=1)::Nothing where G <: AbstractDFG
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -1132,11 +1135,11 @@ function buildBayesNet!(dfg::G,
     gm = DFGFactor[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert)
+    for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
       fct = DFG.getFactor(dfg, fctId)
       if (solverData(fct).eliminated != true)
         push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct)
+        for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
             push!(Si,sepNode)

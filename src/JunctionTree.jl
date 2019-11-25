@@ -63,7 +63,12 @@ end
 
 Add a new frontal variable to clique.
 """
-function appendClique!(bt::BayesTree, clqID::Int, dfg::G, varID::Symbol, condIDs::Array{Symbol,1}=Symbol[])::Nothing where G <: AbstractDFG
+function appendClique!(bt::BayesTree,
+                       clqID::Int,
+                       dfg::AbstractDFG,
+                       varID::Symbol,
+                       condIDs::Array{Symbol,1}=Symbol[] )::Nothing
+  #
   clq = bt.cliques[clqID]
   var = DFG.getVariable(dfg, varID)
 
@@ -340,12 +345,13 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50  ) where G <: InMemoryDFGTypes
+                                maxparallel::Int=50 ,
+                                solvable::Int=1 ) where G <: InMemoryDFGTypes
   #
   println()
   fge = deepcopy(dfg)
   println("Building Bayes net...")
-  buildBayesNet!(fge, p, maxparallel=maxparallel)
+  buildBayesNet!(fge, p, maxparallel=maxparallel, solvable=solvable)
 
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
@@ -360,7 +366,7 @@ function buildTreeFromOrdering!(dfg::G,
 
   println("Find potential functions for each clique")
   cliq = tree.cliques[1] # start at the root
-  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+  buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
 
   return tree
 end
@@ -887,7 +893,8 @@ Related
 getCliqAllVarIds
 """
 function getCliqVarsWithFrontalNeighbors(fgl::G,
-                                         cliq::Graphs.ExVertex) where {G <: AbstractDFG}
+                                         cliq::Graphs.ExVertex;
+                                         solvable::Int=1  ) where {G <: AbstractDFG}
   #
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
@@ -896,9 +903,9 @@ function getCliqVarsWithFrontalNeighbors(fgl::G,
   union!(syms,Symbol.(cond))
 
   # TODO Can we trust factors are frontal connected?
-  ffcs = union( map(x->ls(fgl, x), frtl)... )
+  ffcs = union( map(x->ls(fgl, x, solvable=solvable), frtl)... )
   # @show ffcs = getData(cliq).potentials
-  neig = union( map(x->ls(fgl, x), ffcs)... )
+  neig = union( map(x->ls(fgl, x, solvable=solvable), ffcs)... )
   union!(syms, Symbol.(neig))
   return syms
 end
@@ -1308,7 +1315,7 @@ end
 
 
 # post order tree traversal and build potential functions
-function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex) where G <: AbstractDFG
+function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex; solvable::Int=1) where G <: AbstractDFG
     for child in out_neighbors(cliq, bt.bt)#tree
         buildCliquePotentials(dfg, bt, child)
     end
