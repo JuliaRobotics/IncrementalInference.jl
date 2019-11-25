@@ -66,6 +66,15 @@ function buildSubgraphFromLabels(dfg::G,
     cliqSubFg = initfg(destType, params=getSolverParams(dfg))
   end
 
+  buildSubgraphFromLabels!(dfg, cliqSubFg, syms)
+
+  return cliqSubFg
+end
+
+function buildSubgraphFromLabels!(dfg::AbstractDFG,
+                                  cliqSubFg::AbstractDFG
+                                  syms::Vector{Symbol})
+
   # add a little too many variables (since we need the factors)
   for sym in syms
     DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg)
@@ -86,6 +95,7 @@ function buildSubgraphFromLabels(dfg::G,
 
   return cliqSubFg
 end
+
 # function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
 #   fgseg = initfg() #sessionname=dfg.sessionname, robotname=dfg.robotname)
 #

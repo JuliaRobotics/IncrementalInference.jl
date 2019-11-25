@@ -530,6 +530,10 @@ include("SolveTree01.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
+#EXPERIMENTAL parametric
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
+
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")

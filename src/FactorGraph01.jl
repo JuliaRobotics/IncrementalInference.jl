@@ -455,16 +455,17 @@ function addVariable!(dfg::G,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true,
-                      initsolvekeys::Vector{Symbol}=[:default, :parametric])::DFGVariable where
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable where
                         {G <: AbstractDFG,
                          T <: InferenceVariable}
   #
-  v = DFGVariable(lbl)
+  v = DFGVariable(lbl, softtype)
   v.ready = ready
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
 
+  #JT, Ek weet nie of ek van die manier hou nie. Daar gaan nie so baie algoritmes wees nie so dit sal seker nie so groot raak nie
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
 
