@@ -319,7 +319,6 @@ function evalFactor2(dfg::AbstractDFG,
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
-    # push!(Xi, dlapi.getvertex(fgl,id))
 
     # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
     variablelist[count] = xi.label
@@ -351,7 +350,7 @@ function approxConv(dfg::AbstractDFG,
   #
   v1 = getVariable(dfg, towards)
   N = N == 0 ? getNumPts(v1) : N
-  return evalFactor2(dfg, fc, v1.label, N=N)
+  return evalFactor2(dfg, fc, v1.label, measurement, N=N)
 end
 function approxConv(dfg::AbstractDFG,
                     fct::Symbol,
@@ -364,16 +363,23 @@ function approxConv(dfg::AbstractDFG,
 end
 
 
-function approxConvBinary(arr::Array{Float64,2}, meas::T, outdims::Int; N::Int=0) where {T <: FunctorInferenceType}
-  N = N == 0 ? size(arr,2) : N
+function approxConvBinary(arr::Array{Float64,2},
+                          meas::FunctorInferenceType,
+                          outdims::Int,
+                          measurement::Tuple=(zeros(0,size(arr,2)),);
+                          varidx::Int=2,
+                          N::Int=size(arr,2)  )
+  #
+  # N = N == 0 ? size(arr,2) : N
   pts = zeros(outdims,N);
   t = Array{Array{Float64,2},1}()
   push!(t,arr)
   push!(t,pts)
 
-  measurement = getSample(meas, N)
+  measurement = size(measurement[1],2) == 0 ? getSample(meas, N) : measurement
 
-  ccw = CommonConvWrapper(meas, t[2], size(measurement[1],2), t, varidx=2, measurement=measurement)
+  zDim = size(measurement[1],1)
+  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n

@@ -48,6 +48,35 @@ getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 """
     $SIGNATURES
 
+Variables or factors may or may not be 'solvable', depending on a user definition.  Useful for ensuring atomic transactions.
+
+DevNotes:
+- Will be renamed to `var.solvable` -- see DFG #201
+
+Related
+
+isSolveInProgress
+"""
+isSolvable(var::Union{DFGVariable, DFGFactor}) = var.ready
+
+"""
+    $SIGNATURES
+
+Which variables or factors are currently being used by an active solver.  Useful for ensuring atomic transactions.
+
+DevNotes:
+- Will be renamed to `data.solveinprogress` which will be in VND, not DFGNode -- see DFG #201
+
+Related
+
+isSolvable
+"""
+isSolveInProgress(var::Union{DFGVariable, DFGFactor}; solveKey::Symbol=:default) = var.backendset
+
+
+"""
+    $SIGNATURES
+
 Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
 
 DevNotes

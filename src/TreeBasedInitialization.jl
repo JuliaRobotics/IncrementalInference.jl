@@ -635,7 +635,7 @@ function condenseDownMsgsProductOnly!(fgl::G,
   # multiply multiple messages together
   for (msgsym, msgsBo) in msgspervar
     # check if this particular down message requires msgsym
-    if DFG.hasVariable(fgl, msgsym)
+    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
       if length(msgspervar[msgsym]) > 1
         msgs = getindex.(msgsBo, 1)
         haspars = 0.0
