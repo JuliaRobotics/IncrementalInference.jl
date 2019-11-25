@@ -60,7 +60,7 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
 
   infocsm(csmc, "Par-1, build subgraph syms=$(syms)")
 
-  buildSubgraphFromLabels!(dfg, csmc.cliqSubFg, syms)
+  buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
   # TODO review, are all updates atomic???
   # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
   #   csmc.cliqSubFg = csmc.dfg

@@ -41,3 +41,13 @@ mutable struct NBPMessage <: Singleton
 end
 
 ### SOME CONVERGENCE REQUIRED ^^^
+
+abstract type AbstractBeliefMessage end
+#JT Ek maak nog whahahaha, maar kom ons inheret van AbstractBeliefMessage?
+# of ons gebruik T parameter in belief::Dict{Symbol, T} where T <: Union{BallTreeDensity, Vector{Float64}}
+struct ParametricBelieveMessage <: AbstractBeliefMessage
+  # TODO JT nog velde, maar dis wat ek sover aan kan dink
+  status::Symbol #ek voel mens kan dit dalk nodig he
+  belief::Dict{Symbol, Vector{Float64}}
+  inferdim::Dict{Symbol, Float64} #dink dis die ene wat Dehann soek
+end
