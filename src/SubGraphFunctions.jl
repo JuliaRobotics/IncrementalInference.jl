@@ -72,7 +72,7 @@ function buildSubgraphFromLabels(dfg::G,
 end
 
 function buildSubgraphFromLabels!(dfg::AbstractDFG,
-                                  cliqSubFg::AbstractDFG
+                                  cliqSubFg::AbstractDFG,
                                   syms::Vector{Symbol})
 
   # add a little too many variables (since we need the factors)

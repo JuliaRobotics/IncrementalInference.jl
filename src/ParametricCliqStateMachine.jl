@@ -138,6 +138,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   else
     #seems like a nice place to update remote variables here
     return updateRemote_ParametricStateMachine
+  end
 end
 
 """
