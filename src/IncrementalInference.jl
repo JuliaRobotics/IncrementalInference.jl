@@ -45,6 +45,10 @@ import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 
+# will be deprecated in IIF
+import DistributedFactorGraphs: isSolvable
+
+
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 

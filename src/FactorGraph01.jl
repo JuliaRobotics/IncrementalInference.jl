@@ -408,18 +408,16 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(dfg::G,
+function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
-                      softtype::T;
+                      softtype::InferenceVariable;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
-                      checkduplicates::Bool=true  )::DFGVariable where
-                        {G <: AbstractDFG,
-                         T <: InferenceVariable}
+                      checkduplicates::Bool=true  )::DFGVariable
   #
   v = DFGVariable(lbl, softtype)
   v.solvable = solvable
@@ -443,6 +441,7 @@ function addVariable!(dfg::G,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
+  #
   sto = softtype()
   #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
@@ -936,18 +935,16 @@ function addFactor!(dfg::G,
 
   return newFactor
 end
-function addFactor!(
-      dfg::G,
-      xisyms::Vector{Symbol},
-      usrfnc::R;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      solvable::Int=1,
-      labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded,
-      maxparallel::Int=50  ) where
-        {G <: AbstractDFG,
-         R <: Union{FunctorInferenceType, InferenceType}}
+
+function addFactor!(dfg::AbstractDFG,
+                    xisyms::Vector{Symbol},
+                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    solvable::Int=1,
+                    labels::Vector{Symbol}=Symbol[],
+                    autoinit::Bool=true,
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  )
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
