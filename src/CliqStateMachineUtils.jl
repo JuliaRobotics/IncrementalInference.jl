@@ -771,11 +771,12 @@ Dev Notes
 function addDownVariableFactors!(dfg::G1,
                                  subfg::G2,
                                  cliq::Graphs.ExVertex,
-                                 logger=ConsoleLogger()  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
+                                 logger=ConsoleLogger();
+                                 solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
   #
   # determine which variables and factors needs to be added
   currsyms = ls(subfg)
-  allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
+  allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq, solvable=solvable)
   newsyms = setdiff(allclsyms, currsyms)
   with_logger(logger) do
     @info "addDownVariableFactors!, cliq=$(cliq.index), newsyms=$newsyms"
@@ -860,10 +861,10 @@ Related Functions from Upward Inference
 
 directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 """
-function determineCliqVariableDownSequence(subfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::Graphs.ExVertex; solvable::Int=1)
   frtl = getCliqFrontalVarIds(cliq)
 
-  adj = DFG.getAdjacencyMatrix(subfg)
+  adj = DFG.getAdjacencyMatrix(subfg, solvable=solvable)
   mask = map(x->(x in frtl), adj[1,:])
   subAdj = adj[2:end,mask] .!= nothing
   newFrtlOrder = Symbol.(adj[1,mask])

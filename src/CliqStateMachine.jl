@@ -47,7 +47,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
   # add required all frontal connected factors
-  newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger)
+  newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
 
   # store the cliqSubFg for later debugging
   if opts.dbg
@@ -672,7 +672,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # if isa(csmc.dfg, InMemDFGType)
   #   csmc.cliqSubFg = csmc.dfg
   # else
-    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
   # end
 
   # store the cliqSubFg for later debugging
