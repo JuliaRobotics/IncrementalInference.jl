@@ -93,6 +93,9 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-2, wait for up messages of needed")
 
+  setCliqDrawColor(csmc.cliq, "purple") #TODO don't know if this is correct color
+  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
   for e in Graphs.out_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): take! on edge $(e.index)"
     # Blocks until data is available.
@@ -128,6 +131,9 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-3, Solving Up")
 
+  setCliqDrawColor(csmc.cliq, "red")
+  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
   #TODO UpSolve cliqSubFg here
   # slaap om somme te simileer
   sleep(rand()*2)
@@ -154,6 +160,9 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-4, wait for up messages of needed")
 
+  setCliqDrawColor(csmc.cliq, "turquoise")
+  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
   for e in Graphs.in_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): take! on edge $(e.index)"
     # Blocks until data is available.
@@ -176,6 +185,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-5, Solving down")
 
+  setCliqDrawColor(csmc.cliq, "red")
+  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   #TODO UpDown cliqSubFg here
   # slaap om somme te simileer
@@ -190,9 +201,12 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
   end
 
-
   if isa(csmc.dfg, DFG.InMemoryDFGTypes)
     #in memory type exit as variables should be up to date
+    #solve finished change color
+    setCliqDrawColor(csmc.cliq, "lightblue")
+    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
     #Finish en klaar
     return IncrementalInference.exitStateMachine
   else

@@ -25,7 +25,7 @@ function initInferTreeUpParametric!(dfg::AbstractDFG,
   #TODO JT needs to be updated
   # setTreeCliquesMarginalized!(dfg, treel)
 
-  drawtree ? drawTree(treel, show=false, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
+  drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
