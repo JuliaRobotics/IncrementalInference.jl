@@ -96,8 +96,8 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   for e in Graphs.out_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): take! on edge $(e.index)"
     # Blocks until data is available.
-    believeMsg = take!(csmc.tree.messages[e.index].upMsg)
-    @info "$(csmc.cliq.index): Believe message recieved with status $(believeMsg.status)"
+    beliefMsg = take!(csmc.tree.messages[e.index].upMsg)
+    @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
     #TODO save up message and add priors to cliqSubFg
   end
 
@@ -133,12 +133,12 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   sleep(rand()*2)
 
   #TODO fill in belief
-  believeMsg = ParametricBelieveMessage(:upsolved)
+  beliefMsg = ParametricBeliefMessage(:upsolved)
 
   #NOTE Graphs.jl in_edges does not work. So extended above
   for e in in_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): put! on edge $(e.index)"
-    put!(csmc.tree.messages[e.index].upMsg, believeMsg)
+    put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
   end
 
   return waitForDown_ParametricStateMachine
@@ -157,8 +157,8 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   for e in Graphs.in_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): take! on edge $(e.index)"
     # Blocks until data is available.
-    believeMsg = take!(csmc.tree.messages[e.index].downMsg)
-    @info "$(csmc.cliq.index): Believe message recieved with status $(believeMsg.status)"
+    beliefMsg = take!(csmc.tree.messages[e.index].downMsg)
+    @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
     #TODO save up message and add priors to cliqSubFg
   end
 
@@ -182,12 +182,12 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   sleep(rand()*2)
 
   #TODO fill in belief
-  believeMsg = ParametricBelieveMessage(:downSolved)
+  beliefMsg = ParametricBeliefMessage(:downSolved)
 
   #TODO send a specific message to only the child that needs it
   for e in out_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): put! on edge $(e.index)"
-    put!(csmc.tree.messages[e.index].downMsg, believeMsg)
+    put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
   end
 
 

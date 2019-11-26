@@ -24,7 +24,7 @@ function emptyBayesTree()
                      Dict{Int,Graphs.ExVertex}(),
                      #[],
                      Dict{AbstractString, Int}(),
-                     Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{ParametricBelieveMessage},Channel{ParametricBelieveMessage}}}}())
+                     Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{ParametricBeliefMessage},Channel{ParametricBeliefMessage}}}}())
     return bt
 end
 

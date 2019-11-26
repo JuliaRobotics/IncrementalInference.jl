@@ -45,12 +45,12 @@ end
 abstract type AbstractBeliefMessage end
 #JT Ek maak nog whahahaha, maar kom ons inheret van AbstractBeliefMessage?
 # of ons gebruik T parameter in belief::Dict{Symbol, T} where T <: Union{BallTreeDensity, Vector{Float64}}
-struct ParametricBelieveMessage <: AbstractBeliefMessage
+struct ParametricBeliefMessage <: AbstractBeliefMessage
   # TODO JT nog velde, maar dis wat ek sover aan kan dink
   status::Symbol #ek voel mens kan dit dalk nodig he
   belief::Dict{Symbol, Vector{Float64}}
   inferdim::Dict{Symbol, Float64} #dink dis die ene wat Dehann soek
 end
 
-ParametricBelieveMessage(status::Symbol) =
-        ParametricBelieveMessage(status, Dict{Symbol, Vector{Float64}}(),Dict{Symbol, Float64}())
+ParametricBeliefMessage(status::Symbol) =
+        ParametricBeliefMessage(status, Dict{Symbol, Vector{Float64}}(),Dict{Symbol, Float64}())
