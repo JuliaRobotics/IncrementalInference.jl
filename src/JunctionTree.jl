@@ -507,6 +507,17 @@ end
 
 """
     $(SIGNATURES)
+Experimental create and initialize tree message channels
+"""
+function initTreeMessageChannels!(tree::BayesTree) # TODO as dit lekker werk gebruik T vir ParametricBelieveMessage
+  for e = 1:tree.bt.nedges
+    push!(tree.messages, e=>(upMsg=Channel{ParametricBelieveMessage}(0),downMsg=Channel{ParametricBelieveMessage}(0)))
+  end
+  return nothing
+end
+
+"""
+    $(SIGNATURES)
 
 Return the Graphs.ExVertex node object that represents a clique in the Bayes
 (Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.

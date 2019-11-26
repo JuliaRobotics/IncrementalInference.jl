@@ -14,6 +14,8 @@ mutable struct BayesTree
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}
+  #TEMP JT for evaluation, to store message channels in tree, would be better stored on edges
+  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{<:AbstractBeliefMessage},Channel{<:AbstractBeliefMessage}}}}
 end
 
 function emptyBayesTree()
@@ -21,7 +23,8 @@ function emptyBayesTree()
                      0,
                      Dict{Int,Graphs.ExVertex}(),
                      #[],
-                     Dict{AbstractString, Int}())
+                     Dict{AbstractString, Int}(),
+                     Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{ParametricBelieveMessage},Channel{ParametricBelieveMessage}}}}())
     return bt
 end
 

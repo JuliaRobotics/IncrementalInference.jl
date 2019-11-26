@@ -1,3 +1,5 @@
+# STATUS messages [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]
+
 """
     $SIGNATURES
 
@@ -91,7 +93,29 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-2, wait for up messages of needed")
 
+  for e in Graphs.out_edges(csmc.cliq, csmc.tree.bt)
+    @info "$(csmc.cliq.index): take! on edge $(e.index)"
+    # Blocks until data is available.
+    believeMsg = take!(csmc.tree.messages[e.index].upMsg)
+    @info "$(csmc.cliq.index): Believe message recieved with status $(believeMsg.status)"
+    #TODO save up message and add priors to cliqSubFg
+  end
+
   return solveUp_ParametricStateMachine
+end
+
+function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
+  inclist = gr.inclist
+  targid = vert.index
+  inlist = Edge{V}[]
+  for edgelist in inclist
+    for ed in edgelist
+      if ed.target.index == targid
+        push!(inlist, ed)
+      end
+    end
+  end
+  return inlist
 end
 
 """
@@ -103,6 +127,19 @@ Notes
 function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-3, Solving Up")
+
+  #TODO UpSolve cliqSubFg here
+  # slaap om somme te simileer
+  sleep(rand()*2)
+
+  #TODO fill in belief
+  believeMsg = ParametricBelieveMessage(:upsolved)
+
+  #NOTE Graphs.jl in_edges does not work. So extended above
+  for e in in_edges(csmc.cliq, csmc.tree.bt)
+    @info "$(csmc.cliq.index): put! on edge $(e.index)"
+    put!(csmc.tree.messages[e.index].upMsg, believeMsg)
+  end
 
   return waitForDown_ParametricStateMachine
 end
@@ -117,6 +154,14 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-4, wait for up messages of needed")
 
+  for e in Graphs.in_edges(csmc.cliq, csmc.tree.bt)
+    @info "$(csmc.cliq.index): take! on edge $(e.index)"
+    # Blocks until data is available.
+    believeMsg = take!(csmc.tree.messages[e.index].downMsg)
+    @info "$(csmc.cliq.index): Believe message recieved with status $(believeMsg.status)"
+    #TODO save up message and add priors to cliqSubFg
+  end
+
   return solveDown_ParametricStateMachine
 end
 
@@ -130,6 +175,21 @@ Notes
 function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-5, Solving down")
+
+
+  #TODO UpDown cliqSubFg here
+  # slaap om somme te simileer
+  sleep(rand()*2)
+
+  #TODO fill in belief
+  believeMsg = ParametricBelieveMessage(:downSolved)
+
+  #TODO send a specific message to only the child that needs it
+  for e in out_edges(csmc.cliq, csmc.tree.bt)
+    @info "$(csmc.cliq.index): put! on edge $(e.index)"
+    put!(csmc.tree.messages[e.index].downMsg, believeMsg)
+  end
+
 
   if isa(csmc.dfg, DFG.InMemoryDFGTypes)
     #in memory type exit as variables should be up to date

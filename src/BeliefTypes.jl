@@ -51,3 +51,6 @@ struct ParametricBelieveMessage <: AbstractBeliefMessage
   belief::Dict{Symbol, Vector{Float64}}
   inferdim::Dict{Symbol, Float64} #dink dis die ene wat Dehann soek
 end
+
+ParametricBelieveMessage(status::Symbol) =
+        ParametricBelieveMessage(status, Dict{Symbol, Vector{Float64}}(),Dict{Symbol, Float64}())
