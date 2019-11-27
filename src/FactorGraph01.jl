@@ -22,7 +22,7 @@ getData(v::Graphs.ExVertex) = v.attributes["data"]
 Retrieve data structure stored in a variable.
 """
 function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return solverData(getVariable(dfg, lbl, solveKey=solveKey))
+  return solverData(getVariable(dfg, lbl), solveKey)
 end
 
 """

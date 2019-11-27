@@ -48,7 +48,7 @@ abstract type AbstractBeliefMessage end
 struct ParametricBeliefMessage <: AbstractBeliefMessage
   # TODO JT nog velde, maar dis wat ek sover aan kan dink
   status::Symbol #ek voel mens kan dit dalk nodig he
-  belief::Dict{Symbol, Vector{Float64}}
+  belief::Dict{Symbol, Vector{Float64}}#TODO Marix
   inferdim::Dict{Symbol, Float64} #dink dis die ene wat Dehann soek
 end
 

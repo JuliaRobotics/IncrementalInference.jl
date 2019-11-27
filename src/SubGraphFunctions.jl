@@ -72,7 +72,7 @@ function buildSubgraphFromLabels(dfg::G,
 end
 
 #TODO JT
-function removeSeperatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq)
+function removeSeperatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::Graphs.ExVertex)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
   priorIds = Symbol[]
   for v in cliqSeparatorVarIds

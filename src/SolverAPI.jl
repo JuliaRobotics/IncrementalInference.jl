@@ -275,7 +275,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   # if opt.async
   smtasks, hist = initInferTreeUpParametric!(dfgl, tree, oldtree=tree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
-  @info "Finished tree based init-inference"
+  @info "Finished tree based Parametric inference"
 
 
   return tree, smtasks, hist

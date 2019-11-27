@@ -66,7 +66,7 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
 
   # TODO JT toets om priors van seperators af te haal
   removedIds = removeSeperatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
-  @info "Removed ids $removedIds"
+  infocsm(csmc, "Par-1 Removed ids $removedIds")
 
 
   # TODO review, are all updates atomic???
@@ -88,10 +88,25 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   return waitForUp_ParametricStateMachine
 end
 
-#TODO
+#TODO get this to work
 struct ParametricMsgPrior{T} <: IncrementalInference.FunctorSingleton
   Z::Vector{Float64}
   inferdim::Float64
+end
+
+#TODO pack and unpack
+getSample(s::ParametricMsgPrior, N::Int=1) = (s.Z, )
+
+struct PackedParametricMsgPrior <: PackedInferenceType where T
+  Z::String
+  inferdim::Float64
+end
+
+function convert(::Type{PackedParametricMsgPrior}, d::ParametricMsgPrior)
+  PackedParametricMsgPrior(string(d.Z), d.inferdim)
+end
+function convert(::Type{ParametricMsgPrior}, d::PackedParametricMsgPrior)
+  ParametricMsgPrior([0.0], d.inferdim)
 end
 
 #TODO move to TreeBasedInitialization.jl
@@ -106,7 +121,7 @@ function addMsgFactors!(subfg::G,
       # TODO add MsgPrior parametric type
       @warn "TODO I just made up a ParametricMsgPrior type"
       inferdim = msgs.inferdim[msym]
-      fc = addFactor!(subfg, [msym], ParametricMsgPrior(belief, inferdim), autoinit=false)
+      fc = addFactor!(subfg, [msym], ParametricMsgPrior{Int}(belief, inferdim), autoinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -183,6 +198,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO UpSolve cliqSubFg here
   # slaap om somme te simileer
   sleep(rand()*2)
+  # solveFactorGraphParametric!(csmc.cliqSubFg)
 
   # Done with solve delete factors
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
@@ -194,7 +210,14 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   #TODO fill in belief
+  # createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
+  cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
   beliefMsg = ParametricBeliefMessage(:upsolved)
+  for si in cliqSeparatorVarIds
+    vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
+    beliefMsg.belief[si] = vnd.val[:] #TODO JT
+    beliefMsg.inferdim[si] = vnd.inferdim #TODO JT
+  end
 
   #NOTE Graphs.jl in_edges does not work. So extended above
   for e in in_edges(csmc.cliq, csmc.tree.bt)
@@ -256,13 +279,16 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
   end
 
+  @info "$(csmc.cliq.index): Solve Finished"
+
   if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-    #in memory type exit as variables should be up to date
+    #TODO update frontal variables here directly
+
     #solve finished change color
     setCliqDrawColor(csmc.cliq, "lightblue")
     csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-    #Finish en klaar
+    @info "$(csmc.cliq.index): Finish en klaar"
     return IncrementalInference.exitStateMachine
   else
     #seems like a nice place to update remote variables here
@@ -279,8 +305,34 @@ Notes
 function updateRemote_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-6, Updating Remote")
+  #TODO update frontal variables remotely here
+  #NOTE a new state is made to allow for coms retries and error traping kind of behaviour
 
-  #Finish en klaar
+  @info "$(csmc.cliq.index): Finish en klaar"
   return IncrementalInference.exitStateMachine
 
+end
+
+
+"""
+    $SIGNATURES
+
+Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
+
+Notes
+- Reads, `dest` := `src`, for all `syms`
+"""
+function transferUpdateSubGraphParametric!(dest::T,
+                                           src::T,
+                                           syms::Vector{Symbol},
+                                           solveKey::Symbol=:parametric,
+                                           logger=ConsoleLogger()  ) where {T <: DFG.InMemoryDFGTypes}
+  #
+  with_logger(logger) do
+    @info "transferUpdateSubGraph! -- syms=$syms"
+
+    DFG.mergeUpdateVariableSolverData(dest, src, syms)
+
+  end
+  nothing
 end
