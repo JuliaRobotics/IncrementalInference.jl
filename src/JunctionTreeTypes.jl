@@ -54,6 +54,8 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
+  parametricMsgsUp::Vector{ParametricBeliefMessage} #TODO TEMP net om te kyk hoe dit werk, dit moet eintelik <: abstact wees
+  parametricMsgsDown::Vector{ParametricBeliefMessage}
   CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::InMemoryDFGTypes,
@@ -69,7 +71,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
                                   x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13, ParametricBeliefMessage[], ParametricBeliefMessage[])
 end
 
 function CliqStateMachineContainer(x1::G,

@@ -63,6 +63,12 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   infocsm(csmc, "Par-1, build subgraph syms=$(syms)")
 
   buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
+
+  # TODO JT toets om priors van seperators af te haal
+  removedIds = removeSeperatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
+  @info "Removed ids $removedIds"
+
+
   # TODO review, are all updates atomic???
   # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
   #   csmc.cliqSubFg = csmc.dfg
@@ -82,6 +88,30 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   return waitForUp_ParametricStateMachine
 end
 
+#TODO
+struct ParametricMsgPrior{T} <: IncrementalInference.FunctorSingleton
+  Z::Vector{Float64}
+  inferdim::Float64
+end
+
+#TODO move to TreeBasedInitialization.jl
+function addMsgFactors!(subfg::G,
+                        msgs::ParametricBeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
+  # add messages as priors to this sub factor graph
+  msgfcts = DFGFactor[]
+  svars = DFG.getVariableIds(subfg)
+  for (msym, belief) = (msgs.belief)
+    if msym in svars
+      # TODO prior missing manifold information
+      # TODO add MsgPrior parametric type
+      @warn "TODO I just made up a ParametricMsgPrior type"
+      inferdim = msgs.inferdim[msym]
+      fc = addFactor!(subfg, [msym], ParametricMsgPrior(belief, inferdim), autoinit=false)
+      push!(msgfcts, fc)
+    end
+  end
+  return msgfcts
+end
 
 """
     $SIGNATURES
@@ -101,7 +131,9 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # Blocks until data is available.
     beliefMsg = take!(csmc.tree.messages[e.index].upMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
-    #TODO save up message and add priors to cliqSubFg
+    #TODO save up message (and add priors to cliqSubFg) gaan eers in volgende stap kyk hoe dit werk
+    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
+    push!(csmc.parametricMsgsUp, beliefMsg)
   end
 
   return solveUp_ParametricStateMachine
@@ -134,9 +166,32 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
+  # is dit nodig om vir parametric die factors by te sit?
+  #TODO maybe change to symbols
+  msgfcts = DFGFactor[]
+  for upmsgs in csmc.parametricMsgsUp
+    append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsgs))
+  end
+
+  # store the cliqSubFg for later debugging
+  opts = getSolverParams(csmc.dfg)
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
+  end
+
   #TODO UpSolve cliqSubFg here
   # slaap om somme te simileer
   sleep(rand()*2)
+
+  # Done with solve delete factors
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
+  end
 
   #TODO fill in belief
   beliefMsg = ParametricBeliefMessage(:upsolved)

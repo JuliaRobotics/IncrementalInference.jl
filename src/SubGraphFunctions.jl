@@ -71,6 +71,21 @@ function buildSubgraphFromLabels(dfg::G,
   return cliqSubFg
 end
 
+#TODO JT
+function removeSeperatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq)
+  cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
+  priorIds = Symbol[]
+  for v in cliqSeparatorVarIds
+    facs = getNeighbors(cliqSubFg, v)
+    for f in facs
+      isprior = length(getFactor(cliqSubFg, f)._variableOrderSymbols) == 1
+      isprior && push!(priorIds, f)
+      isprior && DFG.deleteFactor!(cliqSubFg, f)
+    end
+  end
+  return priorIds
+end
+
 function buildSubgraphFromLabels!(dfg::AbstractDFG,
                                   cliqSubFg::AbstractDFG,
                                   syms::Vector{Symbol})
@@ -92,6 +107,8 @@ function buildSubgraphFromLabels!(dfg::AbstractDFG,
     # and the variable itself
     DFG.deleteVariable!(cliqSubFg, dv)
   end
+
+  #TODO JT Delete priors not on frontals dalk hier
 
   return cliqSubFg
 end
