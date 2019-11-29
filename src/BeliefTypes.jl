@@ -78,4 +78,4 @@ struct ParametricBeliefMessage <: AbstractBeliefMessage
 end
 
 ParametricBeliefMessage(status::Symbol) =
-        ParametricBeliefMessage(status, Dict{Symbol, Dict{Symbol, TreeBelief}())
+        ParametricBeliefMessage(status, Dict{Symbol, TreeBelief}())

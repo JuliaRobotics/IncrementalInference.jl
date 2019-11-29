@@ -117,11 +117,11 @@ function addMsgFactors!(subfg::G,
   svars = DFG.getVariableIds(subfg)
   for (msym, belief) = (msgs.belief)
     if msym in svars
-      # TODO prior missing manifold information
+      # TODO prior missing manifold information? is it not available in variable?
       # TODO add MsgPrior parametric type
-      @warn "TODO I just made up a ParametricMsgPrior type"
-      inferdim = msgs.inferdim[msym]
-      fc = addFactor!(subfg, [msym], ParametricMsgPrior{Int}(belief, inferdim), autoinit=false)
+      @warn "TODO I just packed in MvNormal and ignored cov"
+      msgPrior =  MsgPrior(MvNormal(belief.val[:,1], 1), belief.inferdim)
+      fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -215,8 +215,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMsg = ParametricBeliefMessage(:upsolved)
   for si in cliqSeparatorVarIds
     vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
-    beliefMsg.belief[si] = vnd.val[:] #TODO JT
-    beliefMsg.inferdim[si] = vnd.inferdim #TODO JT
+    beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
   end
 
   #NOTE Graphs.jl in_edges does not work. So extended above
