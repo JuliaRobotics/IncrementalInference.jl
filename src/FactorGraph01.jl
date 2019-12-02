@@ -867,12 +867,25 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
 end
 
 
-function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
-  allvarnodes = getVariables(dfg)
-  for var in allvarnodes
-    if !isInitialized(var)
-      @info "$(var.label) is not initialized, and will do so now..."
-      doautoinit!(dfg, [var;], singles=true)
+function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+  # allvarnodes = getVariables(dfg)
+  syms = ls(dfg, solvable=solvable) |> sortDFG
+  repeatCount = 0
+  repeatFlag = true
+  while repeatFlag
+    repeatFlag = false
+    repeatCount += 1
+    if 10 < repeatCount
+      @info "not able to initialize all variables via the factor graph, abort autoinit."
+      break;
+    end
+    for sym in syms
+      var = getVariable(dfg, sym)
+      if !isInitialized(var)
+        @info "$(var.label) is not initialized, and will do so now..."
+        doautoinit!(dfg, [var;], singles=true)
+        !isInitialized(var) ? (repeatFlag = true) : nothing
+      end
     end
   end
   nothing
