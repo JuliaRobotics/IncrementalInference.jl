@@ -705,7 +705,8 @@ function getCliqFactorsFromFrontals(fgl::G,
                                     cliq::Graphs.ExVertex,
                                     varlist::Vector{Symbol};
                                     inseparator::Bool=true,
-                                    unused::Bool=true  ) where {G <: AbstractDFG}
+                                    unused::Bool=true,
+                                    solvable::Int=1  ) where {G <: AbstractDFG}
   #
   frtls = getData(cliq).frontalIDs
   conds = getData(cliq).conditIDs
@@ -717,7 +718,7 @@ function getCliqFactorsFromFrontals(fgl::G,
     for fctid in ls(fgl, frsym)
         fct = getFactor(fgl, fctid)
         if !unused || !solverData(fct).potentialused
-            loutn = ls(fgl, fctid)
+            loutn = ls(fgl, fctid, solvable=solvable)
             # deal with unary factors
             if length(loutn)==1
                 union!(usefcts, Symbol[Symbol(fct.label);])
@@ -763,7 +764,8 @@ Determine and set the potentials for a particular `cliq` in the Bayes (Junction)
 """
 function setCliqPotentials!(dfg::G,
                             bt::BayesTree,
-                            cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                            cliq::Graphs.ExVertex;
+                            solvable::Int=1  ) where G <: AbstractDFG
   #
   varlist = getCliqVarIdsAll(cliq)
 
@@ -779,7 +781,7 @@ function setCliqPotentials!(dfg::G,
   end
 
   @info "finding all frontals for down WIP"
-  ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false)
+  ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false, solvable=solvable)
   # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
   getData(cliq).dwnPotentials = ffctsyms
   getData(cliq).dwnPartialPotential = map(x->isPartial(getFactor(dfg,x)), ffctsyms )
@@ -1320,7 +1322,7 @@ function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex; sol
         buildCliquePotentials(dfg, bt, child)
     end
     @info "Get potentials $(cliq.attributes["label"])"
-    setCliqPotentials!(dfg, bt, cliq)
+    setCliqPotentials!(dfg, bt, cliq, solvable=solvable)
 
     compCliqAssocMatrices!(dfg, bt, cliq)
     setCliqMCIDs!(cliq)
