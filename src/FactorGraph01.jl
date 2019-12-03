@@ -445,19 +445,19 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(dfg::G,
+function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
-                      softtype::T;
+                      softtype::InferenceVariable;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
+
                       checkduplicates::Bool=true,
-                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable where
-                        {G <: AbstractDFG,
-                         T <: InferenceVariable}
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
+
   #
   v = DFGVariable(lbl, softtype)
   v.solvable = solvable
@@ -488,6 +488,7 @@ function addVariable!(dfg::G,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
+  #
   sto = softtype()
   #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
@@ -913,12 +914,25 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
 end
 
 
-function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
-  allvarnodes = getVariables(dfg)
-  for var in allvarnodes
-    if !isInitialized(var)
-      @info "$(var.label) is not initialized, and will do so now..."
-      doautoinit!(dfg, [var;], singles=true)
+function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+  # allvarnodes = getVariables(dfg)
+  syms = ls(dfg, solvable=solvable) |> sortDFG
+  repeatCount = 0
+  repeatFlag = true
+  while repeatFlag
+    repeatFlag = false
+    repeatCount += 1
+    if 10 < repeatCount
+      @info "not able to initialize all variables via the factor graph, abort autoinit."
+      break;
+    end
+    for sym in syms
+      var = getVariable(dfg, sym)
+      if !isInitialized(var)
+        @info "$(var.label) is not initialized, and will do so now..."
+        doautoinit!(dfg, [var;], singles=true)
+        !isInitialized(var) ? (repeatFlag = true) : nothing
+      end
     end
   end
   nothing
@@ -981,18 +995,16 @@ function addFactor!(dfg::G,
 
   return newFactor
 end
-function addFactor!(
-      dfg::G,
-      xisyms::Vector{Symbol},
-      usrfnc::R;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      solvable::Int=1,
-      labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded,
-      maxparallel::Int=50  ) where
-        {G <: AbstractDFG,
-         R <: Union{FunctorInferenceType, InferenceType}}
+
+function addFactor!(dfg::AbstractDFG,
+                    xisyms::Vector{Symbol},
+                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    solvable::Int=1,
+                    labels::Vector{Symbol}=Symbol[],
+                    autoinit::Bool=true,
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  )
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
@@ -1068,13 +1080,14 @@ Notes
 - **NOT USING SUITE SPARSE** -- which would requires commercial license.
 - For now `A::Array{<:Number,2}` as a dense matrix.
 - Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
+- default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
-function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
+function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
-  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg)
+  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
   A = Array(adjMat)
@@ -1165,7 +1178,8 @@ end
 
 function buildBayesNet!(dfg::G,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=50)::Nothing where G <: AbstractDFG
+                        maxparallel::Int=50,
+                        solvable::Int=1)::Nothing where G <: AbstractDFG
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -1181,11 +1195,11 @@ function buildBayesNet!(dfg::G,
     gm = DFGFactor[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert)
+    for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
       fct = DFG.getFactor(dfg, fctId)
       if (solverData(fct).eliminated != true)
         push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct)
+        for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
             push!(Si,sepNode)

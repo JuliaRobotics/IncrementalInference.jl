@@ -55,7 +55,8 @@ getVariableIds
 """
 function buildSubgraphFromLabels(dfg::G,
                                  syms::Vector{Symbol},
-                                 destType::Type{<:AbstractDFG}=InMemDFGType ) where G <: AbstractDFG
+                                 destType::Type{<:AbstractDFG}=InMemDFGType;
+                                 solvable::Int=0  ) where G <: AbstractDFG
 
   # data structure for cliq sub graph
   if G <: InMemoryDFGTypes
@@ -92,7 +93,7 @@ function buildSubgraphFromLabels!(dfg::AbstractDFG,
 
   # add a little too many variables (since we need the factors)
   for sym in syms
-    DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg)
+    DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg, solvable=solvable)
   end
 
   # remove excessive variables that were copied by neighbors distance 2

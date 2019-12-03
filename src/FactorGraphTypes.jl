@@ -362,7 +362,7 @@ function updateFullVertData!(fgl::AbstractDFG,
                              nv::DFGNode;
                              updateMAPest::Bool=false )
   #
-  @warn "Deprecated"
+  @warn "Deprecated updateFullVertData!, need alternative"
 
   sym = Symbol(nv.label)
   isvar = isVariable(fgl, sym)
