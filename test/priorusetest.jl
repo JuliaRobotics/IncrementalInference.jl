@@ -23,7 +23,7 @@ using Test
         addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 0.1)))
 
         #solve
-        tree2, smt, hist = IIF.solveTree!(fg)
+        tree2, smt, hist = solveTree!(fg)
         x0_m = getKDEMean(getKDE(getVariable(fg, :x0)))[1]
         x1_m = getKDEMean(getKDE(getVariable(fg, :x1)))[1]
         x2_m = getKDEMean(getKDE(getVariable(fg, :x2)))[1]
