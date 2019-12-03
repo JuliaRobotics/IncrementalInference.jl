@@ -1,17 +1,14 @@
 """
     $SIGNATURES
 
-Perform tree based initialization of all variables not yet initialized in factor graph.
-
+Start async tasks to solve (parametric) on the tree.
 Related
-
-asyncTreeInferUp!
+TODO multithrededSolveTreeParametric!
 """
-function initInferTreeUpParametric!(dfg::AbstractDFG,
+function taskSolveTreeParametric!(dfg::AbstractDFG,
                           treel::BayesTree;
                           oldtree::BayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
-                          N::Int=100,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
@@ -36,7 +33,7 @@ function initInferTreeUpParametric!(dfg::AbstractDFG,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
+          alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
         end # if
       end # for
     end # sync
@@ -64,7 +61,6 @@ function tryCliqStateMachineSolveParametric!(dfg::G,
                                              treel::BayesTree,
                                              i::Int;
                                              # cliqHistories;
-                                             N::Int=100,
                                              oldtree::BayesTree=emptyBayesTree(),
                                              drawtree::Bool=false,
                                              limititers::Int=-1,
@@ -88,7 +84,7 @@ function tryCliqStateMachineSolveParametric!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachineParametric!(dfg, treel, cliq, N=N, drawtree=drawtree,
+    history = initStartCliqStateMachineParametric!(dfg, treel, cliq, drawtree=drawtree,
                                              # oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #

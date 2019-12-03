@@ -15,7 +15,6 @@ Notes:
 function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::BayesTree,
                                               cliq::Graphs.ExVertex;
-                                              N::Int=100,
                                               oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                               drawtree::Bool=false,
                                               show::Bool=false,
