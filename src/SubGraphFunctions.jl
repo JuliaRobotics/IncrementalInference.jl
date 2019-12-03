@@ -89,7 +89,8 @@ end
 
 function buildSubgraphFromLabels!(dfg::AbstractDFG,
                                   cliqSubFg::AbstractDFG,
-                                  syms::Vector{Symbol})
+                                  syms::Vector{Symbol};
+                                  solvable::Int=0)
 
   # add a little too many variables (since we need the factors)
   for sym in syms
