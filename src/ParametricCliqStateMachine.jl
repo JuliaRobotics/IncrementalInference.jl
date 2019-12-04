@@ -211,7 +211,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO fill in belief
   # createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
-  beliefMsg = ParametricBeliefMessage(:upsolved)
+  beliefMsg = ParametricBeliefMessage(upsolved)
   for si in cliqSeparatorVarIds
     vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
     beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
@@ -269,7 +269,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   sleep(rand()*2)
 
   #TODO fill in belief
-  beliefMsg = ParametricBeliefMessage(:downSolved)
+  beliefMsg = ParametricBeliefMessage(downsolved)
 
   #TODO send a specific message to only the child that needs it
   for e in out_edges(csmc.cliq, csmc.tree.bt)
