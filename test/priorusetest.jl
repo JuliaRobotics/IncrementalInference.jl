@@ -19,8 +19,8 @@ using Test
         addVariable!(fg, :x2, ContinuousScalar, autoinit = graphinit, N=N)
         addFactor!(fg, [:x2], Prior(Normal(+1.0, 1.0)))
 
-        addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 0.1)))
-        addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 0.1)))
+        addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 0.01)))
+        addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 0.01)))
 
         #solve
         tree, smt, hist = solveTree!(fg)
@@ -49,17 +49,17 @@ using Test
 
         addVariable!(fg, :l1, ContinuousScalar, autoinit = graphinit, N=N)
 
-        addFactor!(fg, [:x0; :l0], LinearConditional(Normal(0, 0.1)))
-        addFactor!(fg, [:x0; :l1], LinearConditional(Normal(0, 0.1)))
+        addFactor!(fg, [:x0; :l0], LinearConditional(Normal(0, 0.01)))
+        addFactor!(fg, [:x0; :l1], LinearConditional(Normal(0, 0.01)))
 
         addVariable!(fg, :x1, ContinuousScalar, autoinit = graphinit, N=N)
-        addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0, 0.1)))
+        addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0, 0.01)))
 
         addVariable!(fg, :x2, ContinuousScalar, autoinit = graphinit, N=N)
-        addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0, 0.1)))
+        addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0, 0.01)))
 
-        addFactor!(fg, [:x2; :l0], LinearConditional(Normal(0, 0.1)))
-        addFactor!(fg, [:x2; :l1], LinearConditional(Normal(0, 0.1)))
+        addFactor!(fg, [:x2; :l0], LinearConditional(Normal(0, 0.01)))
+        addFactor!(fg, [:x2; :l1], LinearConditional(Normal(0, 0.01)))
 
         #solve
         tree, smt, hist = solveTree!(fg)
