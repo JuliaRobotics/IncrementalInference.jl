@@ -70,12 +70,12 @@ tree, smt, hist = solveTree!(fg)
 # drawTree(tree, show=true)
 
 
-@test abs(getKDEMean(getKDE(fg, :x0))[1]) < 1.0
-@test abs(getKDEMean(getKDE(fg, :x1))[1]-10) < 1.0
-@test abs(getKDEMean(getKDE(fg, :x2))[1]-20) < 1.0
+@test abs(getKDEMean(getKDE(fg, :x0))[1]) < 2.0
+@test abs(getKDEMean(getKDE(fg, :x1))[1]-10) < 2.0
+@test abs(getKDEMean(getKDE(fg, :x2))[1]-20) < 2.0
 
-@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 2.0
-@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 2.0
+@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 3.0
+@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 3.0
 
 
 # using RoMEPlotting

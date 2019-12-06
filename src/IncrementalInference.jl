@@ -45,6 +45,10 @@ import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 
+# will be deprecated in IIF
+import DistributedFactorGraphs: isSolvable
+
+
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
@@ -192,7 +196,6 @@ export
   getFactorInferFraction,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
-  hasFactor,
   getVariable,
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
@@ -527,8 +530,13 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
+include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+
+#EXPERIMENTAL parametric
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")

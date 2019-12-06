@@ -55,7 +55,8 @@ getVariableIds
 """
 function buildSubgraphFromLabels(dfg::G,
                                  syms::Vector{Symbol},
-                                 destType::Type{<:AbstractDFG}=InMemDFGType ) where G <: AbstractDFG
+                                 destType::Type{<:AbstractDFG}=InMemDFGType;
+                                 solvable::Int=0  ) where G <: AbstractDFG
 
   # data structure for cliq sub graph
   if G <: InMemoryDFGTypes
@@ -66,9 +67,34 @@ function buildSubgraphFromLabels(dfg::G,
     cliqSubFg = initfg(destType, params=getSolverParams(dfg))
   end
 
+  buildSubgraphFromLabels!(dfg, cliqSubFg, syms)
+
+  return cliqSubFg
+end
+
+#TODO JT
+function removeSeperatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::Graphs.ExVertex)
+  cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
+  priorIds = Symbol[]
+  for v in cliqSeparatorVarIds
+    facs = getNeighbors(cliqSubFg, v)
+    for f in facs
+      isprior = length(getFactor(cliqSubFg, f)._variableOrderSymbols) == 1
+      isprior && push!(priorIds, f)
+      isprior && DFG.deleteFactor!(cliqSubFg, f)
+    end
+  end
+  return priorIds
+end
+
+function buildSubgraphFromLabels!(dfg::AbstractDFG,
+                                  cliqSubFg::AbstractDFG,
+                                  syms::Vector{Symbol};
+                                  solvable::Int=0)
+
   # add a little too many variables (since we need the factors)
   for sym in syms
-    DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg)
+    DFG.getSubgraphAroundNode(dfg, DFG.getVariable(dfg, sym), 2, false, cliqSubFg, solvable=solvable)
   end
 
   # remove excessive variables that were copied by neighbors distance 2
@@ -84,8 +110,11 @@ function buildSubgraphFromLabels(dfg::G,
     DFG.deleteVariable!(cliqSubFg, dv)
   end
 
+  #TODO JT Delete priors not on frontals dalk hier
+
   return cliqSubFg
 end
+
 # function buildSubgraphFromLabels(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
 #   fgseg = initfg() #sessionname=dfg.sessionname, robotname=dfg.robotname)
 #

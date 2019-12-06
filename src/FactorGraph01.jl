@@ -22,7 +22,7 @@ getData(v::Graphs.ExVertex) = v.attributes["data"]
 Retrieve data structure stored in a variable.
 """
 function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return solverData(getVariable(dfg, lbl, solveKey=solveKey))
+  return solverData(getVariable(dfg, lbl), solveKey)
 end
 
 """
@@ -351,6 +351,43 @@ function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::I
   return nodes
 end
 
+
+
+function DefaultNodeDataParametric(dodims::Int,
+                                   dims::Int,
+                                   softtype::InferenceVariable;
+                                   initialized::Bool=true,
+                                   dontmargin::Bool=false)::VariableNodeData
+
+  # this should be the only function allocating memory for the node points
+  if initialized
+    error("not implemented yet")
+    # pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+    #
+    # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    # gbw = getBW(pN)[:,1]
+    # gbw2 = Array{Float64}(undef, length(gbw),1)
+    # gbw2[:,1] = gbw[:]
+    # pNpts = getPoints(pN)
+    # #initval, stdev
+    # return VariableNodeData(pNpts,
+    #                         gbw2, Symbol[], sp,
+    #                         dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin)
+  else
+    sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    return VariableNodeData(zeros(dims, 1),
+                            zeros(dims,1), Symbol[], sp,
+                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin)
+  end
+
+end
+
+function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
+  vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
+  setSolverData(v, vnd, :parametric)
+  return nothing
+end
+
 function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
@@ -408,25 +445,33 @@ fg = initfg()
 addVariable!(fg, :x0, Pose2)
 ```
 """
-function addVariable!(dfg::G,
+function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
-                      softtype::T;
+                      softtype::InferenceVariable;
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
-                      checkduplicates::Bool=true  )::DFGVariable where
-                        {G <: AbstractDFG,
-                         T <: InferenceVariable}
+
+                      checkduplicates::Bool=true,
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
+
   #
-  v = DFGVariable(lbl)
-  v.ready = ready
+  v = DFGVariable(lbl, softtype)
+  v.solvable = solvable
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
-  setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  #JT, Ek weet nie of ek van die manier hou nie. Daar gaan nie so baie algoritmes wees nie so dit sal seker nie so groot raak nie
+  (:default in initsolvekeys) &&
+    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  (:parametric in initsolvekeys) &&
+    setDefaultNodeDataParametric!(v, softtype, initialized=!autoinit, dontmargin=dontmargin)
+
   DFG.addVariable!(dfg, v)
 
   return v
@@ -438,11 +483,12 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Bool=true,
-                      ready::Int=1,
+                      solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
+  #
   sto = softtype()
   #TODO: Refactor
   if :ut in fieldnames(typeof(sto))
@@ -453,7 +499,7 @@ function addVariable!(dfg::G,
                sto,
                N=N,
                autoinit=autoinit,
-               ready=ready,
+               solvable=solvable,
                dontmargin=dontmargin,
                labels=labels,
                smalldata=smalldata  )
@@ -868,12 +914,25 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
 end
 
 
-function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
-  allvarnodes = getVariables(dfg)
-  for var in allvarnodes
-    if !isInitialized(var)
-      @info "$(var.label) is not initialized, and will do so now..."
-      doautoinit!(dfg, [var;], singles=true)
+function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+  # allvarnodes = getVariables(dfg)
+  syms = ls(dfg, solvable=solvable) |> sortDFG
+  repeatCount = 0
+  repeatFlag = true
+  while repeatFlag
+    repeatFlag = false
+    repeatCount += 1
+    if 10 < repeatCount
+      @info "not able to initialize all variables via the factor graph, abort autoinit."
+      break;
+    end
+    for sym in syms
+      var = getVariable(dfg, sym)
+      if !isInitialized(var)
+        @info "$(var.label) is not initialized, and will do so now..."
+        doautoinit!(dfg, [var;], singles=true)
+        !isInitialized(var) ? (repeatFlag = true) : nothing
+      end
     end
   end
   nothing
@@ -909,7 +968,7 @@ function addFactor!(dfg::G,
                     Xi::Vector{DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-                    ready::Int=1,
+                    solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit::Bool=true,
                     threadmodel=SingleThreaded,
@@ -920,7 +979,8 @@ function addFactor!(dfg::G,
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
   newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
-  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, ready)
+  newFactor.solvable = solvable
+  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, solvable)
   newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
 
   # TODO: Need to remove this...
@@ -935,21 +995,19 @@ function addFactor!(dfg::G,
 
   return newFactor
 end
-function addFactor!(
-      dfg::G,
-      xisyms::Vector{Symbol},
-      usrfnc::R;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
-      ready::Int=1,
-      labels::Vector{Symbol}=Symbol[],
-      autoinit::Bool=true,
-      threadmodel=SingleThreaded,
-      maxparallel::Int=50  ) where
-        {G <: AbstractDFG,
-         R <: Union{FunctorInferenceType, InferenceType}}
+
+function addFactor!(dfg::AbstractDFG,
+                    xisyms::Vector{Symbol},
+                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    solvable::Int=1,
+                    labels::Vector{Symbol}=Symbol[],
+                    autoinit::Bool=true,
+                    threadmodel=SingleThreaded,
+                    maxparallel::Int=50  )
   #
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, ready=ready, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
@@ -1022,13 +1080,14 @@ Notes
 - **NOT USING SUITE SPARSE** -- which would requires commercial license.
 - For now `A::Array{<:Number,2}` as a dense matrix.
 - Columns of `A` are system variables, rows are factors (without differentiating between partial or full factor).
+- default is to use `solvable=1` and ignore factors and variables that might be used for dead reckoning or similar.
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 """
-function getEliminationOrder(dfg::G; ordering::Symbol=:qr) where G <: AbstractDFG
+function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
-  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg)
+  adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
   A = Array(adjMat)
@@ -1119,7 +1178,8 @@ end
 
 function buildBayesNet!(dfg::G,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=50)::Nothing where G <: AbstractDFG
+                        maxparallel::Int=50,
+                        solvable::Int=1)::Nothing where G <: AbstractDFG
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -1135,11 +1195,11 @@ function buildBayesNet!(dfg::G,
     gm = DFGFactor[]
 
     vert = DFG.getVariable(dfg, v)
-    for fctId in DFG.getNeighbors(dfg, vert)
+    for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
       fct = DFG.getFactor(dfg, fctId)
       if (solverData(fct).eliminated != true)
         push!(fi, fctId)
-        for sepNode in DFG.getNeighbors(dfg, fct)
+        for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
           if sepNode != v && !(sepNode in Si) # Symbol comparison!
             push!(Si,sepNode)

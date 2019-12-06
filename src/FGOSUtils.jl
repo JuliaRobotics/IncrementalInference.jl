@@ -4,6 +4,9 @@
 
 import DistributedFactorGraphs: AbstractPointParametricEst
 
+# export setSolvable!
+
+
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 
@@ -44,6 +47,20 @@ getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
 Get the folder location where debug and solver information is recorded for a particular factor graph.
 """
 getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
+
+# """
+#     $SIGNATURES
+#
+# Set the `solvable` parameter for either a variable or factor.
+# """
+# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
+#   if isVariable(dfg, sym)
+#     getVariable(dfg, sym).solvable = solvable
+#   elseif isFactor(dfg, sym)
+#     getFactor(dfg, sym).solvable = solvable
+#   end
+#   return solvable
+# end
 
 """
     $SIGNATURES

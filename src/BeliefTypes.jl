@@ -41,3 +41,49 @@ mutable struct NBPMessage <: Singleton
 end
 
 ### SOME CONVERGENCE REQUIRED ^^^
+
+#DEV NOTE it looks like it can be consolidated into one type
+# if we can pass messages similar to EasyMessage:
+# pts::Array{Float64,2}
+# bws::Array{Float64,1}
+# option a tuple
+# bellief::Dict{Symbol, NamedTuple{(:vec, :bw, :inferdim),Tuple{Array{Int64,1},Array{Int64,1},Float64}}}
+# or an extra type
+# or the MsgPrior/PackedMessagePrior, depending on the serialization requirement of the channel
+# but I would think only one message type
+
+# mutable struct NBPMessage <: Singleton
+#   status::Symbol # Ek kort die in die boodskap
+#   p::Dict{Symbol, EasyMessage}
+# end
+
+struct TreeBelief
+  val::Array{Float64,2}
+  bw::Array{Float64,2}
+  inferdim::Float64
+  # manifolds::T TODO ? JT not needed as you have the variable with all the info in it?
+end
+TreeBelief(p::BallTreeDensity, inferdim::Real=0.0) = TreeBelief(getPoints(p), getBW(p), inferdim)
+TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = TreeBelief(val, bw, inferdim)
+
+"""
+    CliqStatus
+Clique status message enumerated type with status:  
+initialized, upsolved, marginalized, downsolved, uprecycled
+"""
+@enum CliqStatus initialized upsolved marginalized downsolved uprecycled
+
+abstract type AbstractBeliefMessage end
+#JT Ek maak nog whahahaha, maar kom ons inheret van AbstractBeliefMessage?
+# of ons gebruik T parameter in belief::Dict{Symbol, T} where T <: Union{BallTreeDensity, Vector{Float64}}
+# It should be possible to use this as a standard message for all. Then just BeliefMessage
+struct ParametricBeliefMessage <: AbstractBeliefMessage
+  # TODO JT nog velde, maar dis wat ek sover aan kan dink
+  status::CliqStatus
+  belief::Dict{Symbol, TreeBelief}
+  # of dalk named tuple maak
+  # bellief::Dict{Symbol, NamedTuple{(:val, :bw, :inferdim),Tuple{Array{Int64,1},Array{Int64,1},Float64}}}
+end
+
+ParametricBeliefMessage(status::CliqStatus) =
+        ParametricBeliefMessage(status, Dict{Symbol, TreeBelief}())

@@ -635,7 +635,7 @@ function condenseDownMsgsProductOnly!(fgl::G,
   # multiply multiple messages together
   for (msgsym, msgsBo) in msgspervar
     # check if this particular down message requires msgsym
-    if DFG.hasVariable(fgl, msgsym)
+    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
       if length(msgspervar[msgsym]) > 1
         msgs = getindex.(msgsBo, 1)
         haspars = 0.0
@@ -701,7 +701,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
     # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-    if hasFactor(lsfg, delf)
+    if exists(lsfg, delf) # hasFactor
       deleteFactor!(lsfg,delf)
     end
   end

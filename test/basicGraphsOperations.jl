@@ -10,8 +10,8 @@ addVariable!(fg, :x2, ContinuousScalar)
 addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), autoinit=false)
 addFactor!(fg, [:x2], Prior(Normal()), autoinit=false)
 
-@test hasVariable(fg, :x1)
+@test exists(fg, :x1)
 
-@test !hasVariable(fg, :l13)
+@test !exists(fg, :l13)
 
 end
