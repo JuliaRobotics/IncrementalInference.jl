@@ -122,7 +122,7 @@ function addMsgFactors!(subfg::G,
     if msym in svars
       # TODO prior missing manifold information? is it not available in variable?
       # TODO add MsgPrior parametric type
-      @warn "TODO I just packed in MvNormal and ignored cov"
+      # @warn "TODO I just packed in MvNormal and ignored cov"
         #TODO use belief.bw for covaraince
       msgPrior =  MsgPrior(MvNormal(belief.val[:,1], 1), belief.inferdim)
       #FIXME just TEMP
@@ -147,6 +147,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "purple") #TODO don't know if this is correct color
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
+  childrenOk = true
   for e in Graphs.out_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): take! on edge $(e.index)"
     # Blocks until data is available.
@@ -154,8 +155,32 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
     #TODO save up message (and add priors to cliqSubFg) gaan eers in volgende stap kyk hoe dit werk
     #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
-    push!(csmc.parametricMsgsUp, beliefMsg)
+
+    if beliefMsg.status == upsolved
+      push!(csmc.parametricMsgsUp, beliefMsg)
+
+    else
+      setCliqDrawColor(csmc.cliq, "red")
+      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
+      for e in in_edges(csmc.cliq, csmc.tree.bt)
+        @info "$(csmc.cliq.index): put! on edge $(e.index)"
+        put!(csmc.tree.messages[e.index].upMsg,  ParametricBeliefMessage(error_status))
+      end
+      #if its the root, propagate error down
+      if csmc.cliq.index == 1
+        for e in out_edges(csmc.cliq, csmc.tree.bt)
+          @info "$(csmc.cliq.index): put! on edge $(e.index)"
+          put!(csmc.tree.messages[e.index].downMsg,  ParametricBeliefMessage(error_status))
+        end
+        return IncrementalInference.exitStateMachine
+      end
+      childrenOk = false
+    end
+
   end
+
+  !childrenOk && (return waitForDown_ParametricStateMachine)
 
   return solveUp_ParametricStateMachine
 end
@@ -218,11 +243,11 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     # propagate error to cleanly exit all cliques?
     beliefMsg = ParametricBeliefMessage(error_status)
-    for e in out_edges(csmc.cliq, csmc.tree.bt)
+    for e in in_edges(csmc.cliq, csmc.tree.bt)
       @info "$(csmc.cliq.index): put! on edge $(e.index)"
       put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
     end
-
+    return waitForDown_ParametricStateMachine
   end
 
   # Done with solve delete factors
@@ -260,7 +285,7 @@ Notes
 """
 function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
-  infocsm(csmc, "Par-4, wait for up messages of needed")
+  infocsm(csmc, "Par-4, wait for down messages of needed")
 
   setCliqDrawColor(csmc.cliq, "turquoise")
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
@@ -271,7 +296,20 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     beliefMsg = take!(csmc.tree.messages[e.index].downMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
     #save down messages in parametricMsgsDown
-    push!(csmc.parametricMsgsDown, beliefMsg)
+    if beliefMsg.status == downsolved
+      push!(csmc.parametricMsgsDown, beliefMsg)
+
+    else
+      setCliqDrawColor(csmc.cliq, "red")
+      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
+      for e in out_edges(csmc.cliq, csmc.tree.bt)
+        @info "$(csmc.cliq.index): put! on edge $(e.index)"
+        put!(csmc.tree.messages[e.index].downMsg,  ParametricBeliefMessage(error_status))
+      end
+
+      return IncrementalInference.exitStateMachine
+    end
   end
 
   return solveDown_ParametricStateMachine
@@ -317,7 +355,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #   drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
   # end
 
-  #TODO UpDown cliqSubFg here
+  #TODO DownSolve cliqSubFg here
   vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
   # Pack all results in variables
   if result.g_converged
