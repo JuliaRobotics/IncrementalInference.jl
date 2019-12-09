@@ -48,6 +48,28 @@ struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBel
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
+
+# TODO maybe replace X with a type.
+function (s::Prior)(X1::Vector{Float64};
+                    userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  meas = s.Z.μ
+  σ = s.Z.σ
+  #TODO confirm signs
+  res = [meas - X1[1]]
+  return (res./σ) .^ 2
+end
+
+function (s::Prior)(X1::Float64;
+                    userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  meas = s.Z.μ
+  σ = s.Z.σ
+  #TODO confirm signs
+  res = meas - X1
+  return (res./σ) .^ 2
+end
+
 """
 $(TYPEDEF)
 
@@ -66,6 +88,28 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
     MsgPrior{T}(z, infd)
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+function (s::MsgPrior)(X1::Vector{Float64};
+                       userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  #TODO getFactorMean(s)
+  #TODO getFactorCov(s)                       #
+  meas = s.Z.μ[1]
+  σ = s.Z.σ[1]
+  #TODO confirm signs
+  res = [meas - X1[1]]
+  return (res/σ) .^ 2
+end
+
+function (s::MsgPrior)(X1::Float64;
+                    userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  meas = s.Z.μ
+  σ = s.Z.σ
+  #TODO confirm signs
+  res = meas - X1
+  return (res./σ) .^ 2
+end
 
 struct PackedMsgPrior <: PackedInferenceType where T
   Z::String
@@ -134,6 +178,34 @@ function (s::LinearConditional)(res::Array{Float64},
   nothing
 end
 
+# parametric specific functor
+function (s::LinearConditional)(X1::Vector{Float64},
+                                X2::Vector{Float64};
+                                userdata::Union{Nothing,FactorMetadata}=nothing)
+                                #can I change userdata to a keyword arg
+
+  #TODO getFactorMean(s)
+  meas = s.Z.μ
+  #TODO getFactorCov(s)
+  σ = s.Z.σ
+  # res = similar(X2)
+  res = [meas - (X2[1] - X1[1])]
+  return (res/σ) .^ 2
+end
+
+function (s::LinearConditional)(X1::Float64,
+                                X2::Float64;
+                                userdata::Union{Nothing,FactorMetadata}=nothing)
+                                #can I change userdata to a keyword arg
+
+  #TODO getFactorMean(s)
+  meas = s.Z.μ
+  #TODO getFactorCov(s)
+  σ = s.Z.σ
+  # res = similar(X2)
+  res = meas - (X2 - X1)
+  return (res./σ) .^ 2
+end
 
 """
 $(TYPEDEF)

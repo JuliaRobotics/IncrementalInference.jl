@@ -68,10 +68,10 @@ TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = Tr
 
 """
     CliqStatus
-Clique status message enumerated type with status:  
+Clique status message enumerated type with status:
 initialized, upsolved, marginalized, downsolved, uprecycled
 """
-@enum CliqStatus initialized upsolved marginalized downsolved uprecycled
+@enum CliqStatus initialized upsolved marginalized downsolved uprecycled error_status
 
 abstract type AbstractBeliefMessage end
 #JT Ek maak nog whahahaha, maar kom ons inheret van AbstractBeliefMessage?

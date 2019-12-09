@@ -61,10 +61,14 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
 
   infocsm(csmc, "Par-1, build subgraph syms=$(syms)")
 
-  buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
+  # buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
+  frontsyms = getCliqFrontalVarIds(csmc.cliq)
+  sepsyms = getCliqSeparatorVarIds(csmc.cliq)
+  buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
 
-  # TODO JT toets om priors van seperators af te haal
-  removedIds = removeSeperatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
+  # TODO JT toets om priors van separators af te haal
+  removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
+  length(removedIds) > 0 && @error "removeSeparatorPriorsFromSubgraph, removed priors should not happen"
   infocsm(csmc, "Par-1 Removed ids $removedIds")
 
 
@@ -87,26 +91,26 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   return waitForUp_ParametricStateMachine
 end
 
-#TODO get this to work
-struct ParametricMsgPrior{T} <: IncrementalInference.FunctorSingleton
-  Z::Vector{Float64}
-  inferdim::Float64
-end
-
-#TODO pack and unpack
-getSample(s::ParametricMsgPrior, N::Int=1) = (s.Z, )
-
-struct PackedParametricMsgPrior <: PackedInferenceType where T
-  Z::String
-  inferdim::Float64
-end
-
-function convert(::Type{PackedParametricMsgPrior}, d::ParametricMsgPrior)
-  PackedParametricMsgPrior(string(d.Z), d.inferdim)
-end
-function convert(::Type{ParametricMsgPrior}, d::PackedParametricMsgPrior)
-  ParametricMsgPrior([0.0], d.inferdim)
-end
+# #TODO get this to work
+# struct ParametricMsgPrior{T} <: IncrementalInference.FunctorSingleton
+#   Z::Vector{Float64}
+#   inferdim::Float64
+# end
+#
+# #TODO pack and unpack
+# getSample(s::ParametricMsgPrior, N::Int=1) = (s.Z, )
+#
+# struct PackedParametricMsgPrior <: PackedInferenceType where T
+#   Z::String
+#   inferdim::Float64
+# end
+#
+# function convert(::Type{PackedParametricMsgPrior}, d::ParametricMsgPrior)
+#   PackedParametricMsgPrior(string(d.Z), d.inferdim)
+# end
+# function convert(::Type{ParametricMsgPrior}, d::PackedParametricMsgPrior)
+#   ParametricMsgPrior([0.0], d.inferdim)
+# end
 
 #TODO move to TreeBasedInitialization.jl
 function addMsgFactors!(subfg::G,
@@ -119,7 +123,10 @@ function addMsgFactors!(subfg::G,
       # TODO prior missing manifold information? is it not available in variable?
       # TODO add MsgPrior parametric type
       @warn "TODO I just packed in MvNormal and ignored cov"
+        #TODO use belief.bw for covaraince
       msgPrior =  MsgPrior(MvNormal(belief.val[:,1], 1), belief.inferdim)
+      #FIXME just TEMP
+      msgPrior =  Prior(Normal(belief.val[1,1], 1))
       fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
       push!(msgfcts, fc)
     end
@@ -180,7 +187,6 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-  # is dit nodig om vir parametric die factors by te sit?
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
   for upmsgs in csmc.parametricMsgsUp
@@ -195,9 +201,29 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   #TODO UpSolve cliqSubFg here
-  # slaap om somme te simileer
-  sleep(rand()*2)
-  # solveFactorGraphParametric!(csmc.cliqSubFg)
+  # TODO MsgPrior not working
+  vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
+  # Pack all results in variables
+  if result.g_converged
+    @info "$(csmc.cliq.index): subfg optim converged updating variables"
+    for (v,val) in vardict
+      vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
+      #TODO
+      vnd.val .= val
+      #TODO covariance
+      # vnd.bw .= bw
+    end
+  else
+    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
+
+    # propagate error to cleanly exit all cliques?
+    beliefMsg = ParametricBeliefMessage(error_status)
+    for e in out_edges(csmc.cliq, csmc.tree.bt)
+      @info "$(csmc.cliq.index): put! on edge $(e.index)"
+      put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
+    end
+
+  end
 
   # Done with solve delete factors
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
@@ -244,7 +270,8 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # Blocks until data is available.
     beliefMsg = take!(csmc.tree.messages[e.index].downMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
-    #TODO save up message and add priors to cliqSubFg
+    #save down messages in parametricMsgsDown
+    push!(csmc.parametricMsgsDown, beliefMsg)
   end
 
   return solveDown_ParametricStateMachine
@@ -264,14 +291,71 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
+  #TODO maybe change to symbols
+  for downmsgs in csmc.parametricMsgsDown
+    # TODO
+    # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
+    svars = getCliqSeparatorVarIds(csmc.cliq)
+    # svars = DFG.getVariableIds(csmc.cliqSubFg)
+    for (msym, belief) = (downmsgs.belief)
+      if msym in svars
+        #TODO maybe combine variable and factor in new prior?
+        vnd = getVariableData(csmc.cliqSubFg, msym, solveKey=:parametric)
+        @info "$(csmc.cliq.index): Updating separator $msym from message $(vnd.val)"
+        vnd.val .= belief.val
+        #TODO covar
+        # vnd.bw .= belief.bw
+      end
+    end
+  end
+
+  # store the cliqSubFg for later debugging
+  # NOTE ITS not changed for now but keep here for possible future use
+  # opts = getSolverParams(csmc.dfg)
+  # if opts.dbg
+  #   DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
+  #   drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
+  # end
+
   #TODO UpDown cliqSubFg here
-  # slaap om somme te simileer
-  sleep(rand()*2)
+  vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
+  # Pack all results in variables
+  if result.g_converged
+    @info "$(csmc.cliq.index): subfg optim converged updating variables"
+    for (v,val) in vardict
+      vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
+      #TODO
+      vnd.val .= val
+      #TODO covariance
+      # vnd.bw .= bw
+    end
+  else
+    @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
+
+    #propagate error to cleanly exit all cliques?
+    beliefMsg = ParametricBeliefMessage(error_status)
+    for e in out_edges(csmc.cliq, csmc.tree.bt)
+      @info "$(csmc.cliq.index): put! on edge $(e.index)"
+      put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
+    end
+
+    return IncrementalInference.exitStateMachine
+
+  end
+
 
   #TODO fill in belief
+  cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
+  #TODO createBeliefMessageParametric
+  # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
   beliefMsg = ParametricBeliefMessage(downsolved)
+  for fi in cliqFrontalVarIds
+    vnd = getVariableData(csmc.cliqSubFg, fi, solveKey=:parametric)
+    beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
+  end
 
-  #TODO send a specific message to only the child that needs it
+  #TODO sendBeliefMessageParametric(csmc, beliefMsg)
+  #TODO maybe send a specific message to only the child that needs it
   for e in out_edges(csmc.cliq, csmc.tree.bt)
     @info "$(csmc.cliq.index): put! on edge $(e.index)"
     put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
@@ -281,7 +365,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   if isa(csmc.dfg, DFG.InMemoryDFGTypes)
     #TODO update frontal variables here directly
-
+    frontsyms = getFrontals(csmc.cliq)
+    transferUpdateSubGraphParametric!(csmc.dfg, csmc.cliqSubFg, frontsyms)
     #solve finished change color
     setCliqDrawColor(csmc.cliq, "lightblue")
     csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
@@ -328,9 +413,10 @@ function transferUpdateSubGraphParametric!(dest::T,
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
-
-    DFG.mergeUpdateVariableSolverData(dest, src, syms)
-
   end
+  for v in getVariables(src)
+    println("\n ", v.label,": ",  solverData(v, :parametric).val[1])
+  end
+  DFG.mergeUpdateGraphSolverData!(dest, src, syms)
   nothing
 end

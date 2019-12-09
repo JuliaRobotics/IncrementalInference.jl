@@ -798,7 +798,7 @@ function prepCliqInitMsgsDown!(fgl::G,
   products = getData(prnt).downInitMsg
 
   ## TODO use parent factors too
-  # intersect with the asking clique's seperator variables
+  # intersect with the asking clique's separator variables
 
     # products only method
     if dbgnew
