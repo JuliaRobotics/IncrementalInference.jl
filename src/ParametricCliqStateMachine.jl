@@ -455,6 +455,13 @@ function transferUpdateSubGraphParametric!(dest::T,
   for v in getVariables(src)
     println("\n ", v.label,": ",  solverData(v, :parametric).val[1])
   end
-  DFG.mergeUpdateGraphSolverData!(dest, src, syms)
+
+  #TEMP force the solver data
+  for v in syms
+    solverData(getVariable(dest,v),:parametric).val .= solverData(getVariable(src, v),:parametric).val
+  end
+
+  #TODO this does not work
+  # DFG.mergeUpdateGraphSolverData!(dest, src, syms)
   nothing
 end
