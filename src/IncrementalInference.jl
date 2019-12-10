@@ -477,6 +477,7 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 

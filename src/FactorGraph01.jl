@@ -162,7 +162,7 @@ function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; sol
   setVal!(solverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: AbstractDFG
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -393,6 +393,32 @@ end
 #   pN = AMP.manikde!(initval, softtype.manifolds)
 # end
 # dims = size(initval,1) # rows indicate dimensions
+
+
+
+"""
+    $SIGNATURES
+
+Reference data can be stored in the factor graph as a super-solve.
+
+Notes
+- Intended as a mechanism to store reference data alongside the numerical computations.
+"""
+function setVariableRefence!(dfg::AbstractDFG,
+                             sym::Symbol,
+                             val::Vector{Float64};
+                             refKey::Symbol=:reference)
+  #
+  # which variable to update
+  var = getVariable(dfg, sym)
+
+  # Construct an empty VND object
+  vnd = VariableNodeData(zeros(getDimension(var),1), zeros(getDimension(var),1), Symbol[], Int[0;],
+                    getDimension(var), false, :_null, Symbol[], getSofttype(var), true, 0.0, false, true)
+
+  # set the value in the DFGVariable
+  setSolverData(var, vnd, refKey)
+end
 
 
 """
