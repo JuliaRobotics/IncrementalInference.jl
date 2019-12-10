@@ -147,6 +147,7 @@ export
   isPrior,
   lsTypes,
   lsfTypes,
+  findClosestTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -435,6 +436,8 @@ export
   loadjld,
   landmarks,
   setCliqDrawColor,
+
+  # csm utils
   fetchCliqTaskHistoryAll!,
   fetchAssignTaskHistoryAll!,
 
