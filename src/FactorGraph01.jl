@@ -360,7 +360,7 @@ function DefaultNodeDataParametric(dodims::Int,
                                    dontmargin::Bool=false)::VariableNodeData
 
   # this should be the only function allocating memory for the node points
-  if initialized
+  if false && initialized
     error("not implemented yet")
     # pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
     #

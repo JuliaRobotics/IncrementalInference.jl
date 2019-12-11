@@ -2,6 +2,9 @@
 
 SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
 
+#Supported types for parametric
+ParametricTypes = Union{Normal, MvNormal}
+
 
 """
 $(TYPEDEF)
@@ -50,24 +53,28 @@ getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
 # TODO maybe replace X with a type.
-function (s::Prior)(X1::Vector{Float64};
+#TODO ParametricTypes or dispatch on each? I like it together for now. Maybe compiler will split it?
+function (s::Prior{<:ParametricTypes})(X1::Vector{Float64};
                     userdata::Union{Nothing,FactorMetadata}=nothing)
 
-  meas = s.Z.μ
-  σ = s.Z.σ
-  #TODO confirm signs
-  res = [meas - X1[1]]
-  return (res./σ) .^ 2
-end
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = [meas - X1[1]]
+    return (res./σ) .^ 2
 
-function (s::Prior)(X1::Float64;
-                    userdata::Union{Nothing,FactorMetadata}=nothing)
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res #((res) .^ 2)
 
-  meas = s.Z.μ
-  σ = s.Z.σ
-  #TODO confirm signs
-  res = meas - X1
-  return (res./σ) .^ 2
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
 end
 
 """
@@ -89,26 +96,27 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-function (s::MsgPrior)(X1::Vector{Float64};
+function (s::MsgPrior{<:ParametricTypes})(X1::Vector{Float64};
                        userdata::Union{Nothing,FactorMetadata}=nothing)
 
-  #TODO getFactorMean(s)
-  #TODO getFactorCov(s)                       #
-  meas = s.Z.μ[1]
-  σ = s.Z.σ[1]
-  #TODO confirm signs
-  res = [meas - X1[1]]
-  return (res/σ) .^ 2
-end
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = [meas - X1[1]]
+    return (res./σ) .^ 2
 
-function (s::MsgPrior)(X1::Float64;
-                    userdata::Union{Nothing,FactorMetadata}=nothing)
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res
 
-  meas = s.Z.μ
-  σ = s.Z.σ
-  #TODO confirm signs
-  res = meas - X1
-  return (res./σ) .^ 2
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end                    #
 end
 
 struct PackedMsgPrior <: PackedInferenceType where T
@@ -179,33 +187,31 @@ function (s::LinearConditional)(res::Array{Float64},
 end
 
 # parametric specific functor
-function (s::LinearConditional)(X1::Vector{Float64},
+function (s::LinearConditional{<:ParametricTypes})(X1::Vector{Float64},
                                 X2::Vector{Float64};
                                 userdata::Union{Nothing,FactorMetadata}=nothing)
                                 #can I change userdata to a keyword arg
 
-  #TODO getFactorMean(s)
-  meas = s.Z.μ
-  #TODO getFactorCov(s)
-  σ = s.Z.σ
-  # res = similar(X2)
-  res = [meas - (X2[1] - X1[1])]
-  return (res/σ) .^ 2
+  if isa(s.Z, Normal)
+    meas = mean(s.Z)
+    σ = std(s.Z)
+    # res = similar(X2)
+    res = [meas - (X2[1] - X1[1])]
+    return (res/σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- (X2 .- X1)
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
 end
 
-function (s::LinearConditional)(X1::Float64,
-                                X2::Float64;
-                                userdata::Union{Nothing,FactorMetadata}=nothing)
-                                #can I change userdata to a keyword arg
-
-  #TODO getFactorMean(s)
-  meas = s.Z.μ
-  #TODO getFactorCov(s)
-  σ = s.Z.σ
-  # res = similar(X2)
-  res = meas - (X2 - X1)
-  return (res./σ) .^ 2
-end
 
 """
 $(TYPEDEF)

@@ -7,10 +7,12 @@ Solve a Gaussian factor graph.
 function solveFactorGraphParametric!(fg::AbstractDFG; solvekey::Symbol=:parametric)
 
   varIds = getVariableIds(fg)
-  #TODO dimention di
-  di = 1
+  #TODO dimention di, its set to maximim and assumes all is the same
+  vardims = map(v->getDimension(v), getVariables(fg))
+  di = maximum(vardims)
+
   #TODO stoor dalk in kolomme
-  initValues = Array{Float64}(undef, di, length(varIds))
+  initValues = zeros(di, length(varIds))
   varSymbols = Dict{Symbol, Int}()
   for (i,v) in enumerate(varIds)
     initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
@@ -45,7 +47,8 @@ function solveFactorGraphParametric!(fg::AbstractDFG; solvekey::Symbol=:parametr
 
     res = zeros(dim)
     for (cf, idx) in costfuns
-      res .+=  cf(X[:,idx]...) #TODO splat performance?
+      Xparams = [X[:,i] for i in idx]
+      res .+=  cf(Xparams...) #TODO splat performance?
     end
     # res[1]
     #TODO to get optim to work
@@ -71,8 +74,9 @@ function solveFrontalsParametric!(fg::AbstractDFG, frontals::Vector{Symbol}; sol
   varIds = getVariableIds(fg)
   separators = setdiff(varIds, frontals)
 
-  #TODO dimention di
-  di = 1
+  #TODO dimention di, its set to maximim and assumes all is the same
+  vardims = map(v->getDimension(v), getVariables(fg))
+  di = maximum(vardims)
 
   initValues = Array{Float64}(undef, di, length(varIds))
   varSymbols = Dict{Symbol, Int}()
@@ -115,7 +119,9 @@ function solveFrontalsParametric!(fg::AbstractDFG, frontals::Vector{Symbol}; sol
 
     res = zeros(dim)
     for (cf, idx) in costfuns
-      res .+=  cf(X[:,idx]...) #TODO splat performance?
+      Xparams = [X[:,i] for i in idx]
+      res .+=  cf(Xparams...) #TODO splat performance?
+      # res .+=  cf(X[:,idx]...) #TODO splat performance?
     end
     # res[1]
     #TODO to get optim to work
