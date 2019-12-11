@@ -672,8 +672,13 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # if isa(csmc.dfg, InMemDFGType)
   #   csmc.cliqSubFg = csmc.dfg
   # else
-    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
+    # csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
   # end
+  frontals = getCliqFrontalVarIds(csmc.cliq)
+  separators = getCliqSeparatorVarIds(csmc.cliq)
+
+  csmc.cliqSubFg = buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, frontals, separators, solvable=1)
+
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
