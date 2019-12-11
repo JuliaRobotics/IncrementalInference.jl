@@ -355,32 +355,37 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #   drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
   # end
 
-  #TODO DownSolve cliqSubFg here
-  vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
-  # Pack all results in variables
-  if result.g_converged
-    @info "$(csmc.cliq.index): subfg optim converged updating variables"
-    for (v,val) in vardict
-      vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
-      #TODO
-      vnd.val .= val
-      #TODO covariance
-      # vnd.bw .= bw
+  #TODO DownSolve cliqSubFg
+  #only down solve if its not the root
+  if csmc.cliq.index != 1
+    frontals = getCliqSeparatorVarIds(csmc.cliq)
+    vardict, result = solveFrontalsParametric!(csmc.cliqSubFg, frontals)
+    #TEMP testing difference
+    # vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
+    # Pack all results in variables
+    if result.g_converged
+      @info "$(csmc.cliq.index): subfg optim converged updating variables"
+      for (v,val) in vardict
+        vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
+        #TODO
+        vnd.val .= val
+        #TODO covariance
+        # vnd.bw .= bw
+      end
+    else
+      @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
+
+      #propagate error to cleanly exit all cliques?
+      beliefMsg = ParametricBeliefMessage(error_status)
+      for e in out_edges(csmc.cliq, csmc.tree.bt)
+        @info "$(csmc.cliq.index): put! on edge $(e.index)"
+        put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
+      end
+
+      return IncrementalInference.exitStateMachine
+
     end
-  else
-    @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
-
-    #propagate error to cleanly exit all cliques?
-    beliefMsg = ParametricBeliefMessage(error_status)
-    for e in out_edges(csmc.cliq, csmc.tree.bt)
-      @info "$(csmc.cliq.index): put! on edge $(e.index)"
-      put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
-    end
-
-    return IncrementalInference.exitStateMachine
-
   end
-
 
   #TODO fill in belief
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)

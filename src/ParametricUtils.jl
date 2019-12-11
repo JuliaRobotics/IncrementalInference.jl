@@ -62,3 +62,79 @@ function solveFactorGraphParametric!(fg::AbstractDFG; solvekey::Symbol=:parametr
 
   return d, result
 end
+
+
+
+
+function solveFrontalsParametric!(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
+
+  varIds = getVariableIds(fg)
+  separators = setdiff(varIds, frontals)
+
+  #TODO dimention di
+  di = 1
+
+  initValues = Array{Float64}(undef, di, length(varIds))
+  varSymbols = Dict{Symbol, Int}()
+  i = 1
+
+  # pack frontals first and then seperators in the same array
+  for v in frontals
+    initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
+    varSymbols[v] = i
+    i +=1
+  end
+
+  for v in separators
+    initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
+    varSymbols[v] = i
+    i +=1
+  end
+
+  #get all the cost functions of the factors.
+  costfuns = []
+  for fct in getFactors(fg)
+    fac_cost_fx =  getFactorType(fct)
+
+    varOrder = getVariableOrder(fct)
+    # varsdata = [solverData(getVariable(fg, v), solvekey) for v in varOrder]
+    #TODO findfirst or dictionary lookup
+    # idx = [findfirst(v->v==varId, varIds) for varId in varOrder]
+    idx = [varSymbols[varId] for varId in varOrder]
+
+    push!(costfuns, (fac_cost_fx, idx))
+
+  end
+
+
+  #build the cost function
+  function totalCost(F, S)
+    X = [F S]
+    # dim = maximum(length.(X))
+    dim = size(X)[1]
+
+    res = zeros(dim)
+    for (cf, idx) in costfuns
+      res .+=  cf(X[:,idx]...) #TODO splat performance?
+    end
+    # res[1]
+    #TODO to get optim to work
+    return norm(res)
+  end
+
+  # build variables for frontals and seperators
+  fX = initValues[:,1:length(frontals)]
+  sX = initValues[:,length(frontals)+1:end]
+
+  result = optimize(x->totalCost(x,sX), fX, BFGS())
+  rv = Optim.minimizer(result)
+
+
+  d = Dict{Symbol,Vector{Float64}}()
+  for (i,key) in enumerate(frontals)
+    push!(d,key=>rv[:,i])
+  end
+
+  return d, result
+
+end
