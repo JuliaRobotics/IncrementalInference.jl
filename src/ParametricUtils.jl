@@ -138,3 +138,16 @@ function solveFrontalsParametric!(fg::AbstractDFG, frontals::Vector{Symbol}; sol
   return d, result
 
 end
+
+
+function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
+  for var in getVariables(fg)
+      #TODO only supports Normal now
+      # expand to MvNormal
+      nf = fit(Normal, solverData(var, fromkey).val)
+      solverData(var, parkey).val[1,1] = nf.μ
+      solverData(var, parkey).bw[1,1] = nf.σ
+      @show nf
+      # m = var.estimateDict[:default].mean
+  end
+end
