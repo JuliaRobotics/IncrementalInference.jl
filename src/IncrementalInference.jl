@@ -537,6 +537,7 @@ include("CliqStateMachineUtils.jl")
 #EXPERIMENTAL parametric
 include("ParametricSolveTree.jl")
 include("ParametricCliqStateMachine.jl")
+include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")
