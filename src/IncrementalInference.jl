@@ -143,6 +143,7 @@ export
   getSofttype,
   getVariableType,
   getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
