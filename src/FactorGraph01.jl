@@ -406,16 +406,27 @@ Notes
 """
 function setVariableRefence!(dfg::AbstractDFG,
                              sym::Symbol,
-                             val::Vector{Float64};
+                             val::Array{Float64,2};
                              refKey::Symbol=:reference)
   #
   # which variable to update
   var = getVariable(dfg, sym)
 
   # Construct an empty VND object
-  vnd = VariableNodeData(zeros(getDimension(var),1), zeros(getDimension(var),1), Symbol[], Int[0;],
-                    getDimension(var), false, :_null, Symbol[], getSofttype(var), true, 0.0, false, true)
-
+  vnd = VariableNodeData(val,
+                         zeros(getDimension(var),1),
+                         Symbol[],
+                         Int[0;],
+                         getDimension(var),
+                         false,
+                         :_null,
+                         Symbol[],
+                         getSofttype(var),
+                         true,
+                         0.0,
+                         false,
+                         true  )
+  #
   # set the value in the DFGVariable
   setSolverData(var, vnd, refKey)
 end
