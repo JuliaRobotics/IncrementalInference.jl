@@ -143,6 +143,7 @@ export
   getSofttype,
   getVariableType,
   getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
@@ -477,6 +478,7 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 

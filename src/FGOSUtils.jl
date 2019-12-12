@@ -48,6 +48,13 @@ Get the folder location where debug and solver information is recorded for a par
 """
 getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
+"""
+    $SIGNATURES
+
+Append `str` onto factor graph log path as convenience function.
+"""
+joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+
 # """
 #     $SIGNATURES
 #
