@@ -217,6 +217,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     for (v,val) in vardict
       vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
       # fill in the variable node data value
+      @info "$(csmc.cliq.index) up: updating $v : $val"
       vnd.val .= val
       #TODO calculate and fill in covariance
       # vnd.bw .= bw
@@ -324,7 +325,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       if msym in svars
         #TODO maybe combine variable and factor in new prior?
         vnd = getVariableData(csmc.cliqSubFg, msym, solveKey=:parametric)
-        @info "$(csmc.cliq.index): Updating separator $msym from message $(vnd.val)"
+        @info "$(csmc.cliq.index): Updating separator $msym from message $(belief.val)"
         vnd.val .= belief.val
         #TODO covar
         vnd.bw .= belief.bw
@@ -343,7 +344,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO DownSolve cliqSubFg
   #only down solve if its not the root
   if csmc.cliq.index != 1
-    frontals = getCliqSeparatorVarIds(csmc.cliq)
+    frontals = getCliqFrontalVarIds(csmc.cliq)
     vardict, result = solveFrontalsParametric!(csmc.cliqSubFg, frontals)
     #TEMP testing difference
     # vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
@@ -351,6 +352,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     if result.g_converged
       @info "$(csmc.cliq.index): subfg optim converged updating variables"
       for (v,val) in vardict
+        @info "$(csmc.cliq.index) down: updating $v : $val"
         vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
         #TODO
         vnd.val .= val
@@ -382,6 +384,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   for fi in cliqFrontalVarIds
     vnd = getVariableData(csmc.cliqSubFg, fi, solveKey=:parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
+    @info "$(csmc.cliq.index): down message $fi : $beliefMsg"
   end
 
   #TODO sendBeliefMessageParametric(csmc, beliefMsg)
