@@ -91,27 +91,6 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   return waitForUp_ParametricStateMachine
 end
 
-# #TODO get this to work
-# struct ParametricMsgPrior{T} <: IncrementalInference.FunctorSingleton
-#   Z::Vector{Float64}
-#   inferdim::Float64
-# end
-#
-# #TODO pack and unpack
-# getSample(s::ParametricMsgPrior, N::Int=1) = (s.Z, )
-#
-# struct PackedParametricMsgPrior <: PackedInferenceType where T
-#   Z::String
-#   inferdim::Float64
-# end
-#
-# function convert(::Type{PackedParametricMsgPrior}, d::ParametricMsgPrior)
-#   PackedParametricMsgPrior(string(d.Z), d.inferdim)
-# end
-# function convert(::Type{ParametricMsgPrior}, d::PackedParametricMsgPrior)
-#   ParametricMsgPrior([0.0], d.inferdim)
-# end
-
 #TODO move to TreeBasedInitialization.jl
 function addMsgFactors!(subfg::G,
                         msgs::ParametricBeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
@@ -124,9 +103,13 @@ function addMsgFactors!(subfg::G,
       # TODO add MsgPrior parametric type
       # @warn "TODO I just packed in MvNormal and ignored cov"
         #TODO use belief.bw for covaraince
-      msgPrior =  MsgPrior(MvNormal(belief.val[:,1], 1), belief.inferdim)
+      if size(belief.val)[1] == 1
+        msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
+      else
+        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
+      end
       #FIXME just TEMP
-      msgPrior =  Prior(Normal(belief.val[1,1], 1))
+      # msgPrior =  Prior(Normal(belief.val[1,1], 1))
       fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
       push!(msgfcts, fc)
     end
@@ -233,10 +216,12 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @info "$(csmc.cliq.index): subfg optim converged updating variables"
     for (v,val) in vardict
       vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
-      #TODO
+      # fill in the variable node data value
       vnd.val .= val
-      #TODO covariance
+      #TODO calculate and fill in covariance
       # vnd.bw .= bw
+      # TEMP remove, filled in ones for the covariance
+      vnd.bw = diagm(ones(size(vnd.val)[1]))
     end
   else
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
@@ -342,7 +327,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         @info "$(csmc.cliq.index): Updating separator $msym from message $(vnd.val)"
         vnd.val .= belief.val
         #TODO covar
-        # vnd.bw .= belief.bw
+        vnd.bw .= belief.bw
       end
     end
   end
@@ -369,8 +354,10 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
         #TODO
         vnd.val .= val
-        #TODO covariance
+        #TODO calculate and fill in covariance
         # vnd.bw .= bw
+        # TEMP remove, filled in ones for the covariance
+        vnd.bw = diagm(ones(size(vnd.val)[1]))
       end
     else
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
