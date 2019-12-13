@@ -44,10 +44,10 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
-    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",") #fgl.v[fr].
+    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",")
   end
-  for cond in getData(clq).conditIDs
-    clbl = string(clbl, DFG.getVariable(dfg,cond).label, ",") # fgl.v[cond].
+  for sepr in getData(clq).separatorIDs
+    clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
@@ -57,8 +57,8 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
-  union!(getData(bt.cliques[clqID]).conditIDs, condIDs)
+function appendSeparatorToClique(bt::BayesTree, clqID::Int, seprIDs::Array{Symbol,1})
+  union!(getData(bt.cliques[clqID]).separatorIDs, seprIDs)
   nothing
 end
 
@@ -726,8 +726,8 @@ function getCliqFactorsFromFrontals(fgl::G,
                                     solvable::Int=1  ) where {G <: AbstractDFG}
   #
   frtls = getData(cliq).frontalIDs
-  conds = getData(cliq).conditIDs
-  allids = [frtls;conds]
+  seprs = getData(cliq).separatorIDs
+  allids = [frtls;seprs]
 
   usefcts = Symbol[]
   for frsym in frtls
@@ -830,7 +830,7 @@ Collect and returl all child clique separator variables.
 function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)::Vector{Symbol}
   allseps = Symbol[]
   for child in out_neighbors(cliq, bt.bt)#tree
-      allseps = [allseps; getData(child).conditIDs]
+      allseps = [allseps; getData(child).separatorIDs]
   end
   return allseps
 end
@@ -872,7 +872,7 @@ end
 
 Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-getCliqSeparatorVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.conditIDs
+getCliqSeparatorVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.separatorIDs
 getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqSeparatorVarIds(getData(cliq))
 
 """
@@ -1177,14 +1177,14 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   mabM = sum(map(Int,condMsgMat),dims=1) .== 1
   mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliqdata.conditIDs[vec(collect(mab))]
+  msgidx = cliqdata.separatorIDs[vec(collect(mab))]
   return msgidx
 end
 
 function directPriorMsgIDs(cliq::Graphs.ExVertex)
   frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  sepr = getData(cliq).separatorIDs
+  cols = [frtl;sepr]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),dims=2) .== 1
   rerows = collect(1:length(singr))
@@ -1215,9 +1215,10 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   mab = sum(map(Int,mat),dims=1) .== 1
   mabA = sum(map(Int,assocMat),dims=1) .== 1
   mab = mab .& mabA
+  # TODO -- use proper accessor methods
   frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  sepr = getData(cliq).separatorIDs
+  cols = [frtl;sepr]
   return cols[vec(collect(mab))]
   # also calculate how which are conditionals
 end

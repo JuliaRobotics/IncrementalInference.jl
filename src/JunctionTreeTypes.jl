@@ -98,7 +98,7 @@ Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
   frontalIDs::Vector{Symbol}
-  conditIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
   inmsgIDs::Vector{Symbol} # Int
   potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
@@ -261,7 +261,7 @@ end
 
 mutable struct PackedBayesTreeNodeData
   frontalIDs::Vector{Symbol}
-  conditIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
   inmsgIDs::Vector{Symbol} # Int
   potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
@@ -282,7 +282,7 @@ end
 function convert(::Type{PackedBayesTreeNodeData}, btnd::BayesTreeNodeData)
   return PackedBayesTreeNodeData(
     btnd.frontalIDs,
-    btnd.conditIDs,
+    btnd.separatorIDs,
     btnd.inmsgIDs,
     btnd.potIDs,
     btnd.potentials,
@@ -302,7 +302,7 @@ end
 function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
   btnd = emptyBTNodeData()
     btnd.frontalIDs = pbtnd.frontalIDs
-    btnd.conditIDs = pbtnd.conditIDs
+    btnd.separatorIDs = pbtnd.separatorIDs
     btnd.inmsgIDs = pbtnd.inmsgIDs
     btnd.potIDs = pbtnd.potIDs
     btnd.potentials = pbtnd.potentials
