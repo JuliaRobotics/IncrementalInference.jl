@@ -73,6 +73,7 @@ export
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
   BayesTreeNodeData,
+  PackedBayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -143,10 +144,12 @@ export
   getSofttype,
   getVariableType,
   getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
   lsfTypes,
+  findClosestTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -435,6 +438,8 @@ export
   loadjld,
   landmarks,
   setCliqDrawColor,
+
+  # csm utils
   fetchCliqTaskHistoryAll!,
   fetchAssignTaskHistoryAll!,
 
@@ -474,6 +479,7 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 
@@ -582,7 +588,7 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp

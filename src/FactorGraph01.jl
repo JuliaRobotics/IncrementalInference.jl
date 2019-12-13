@@ -162,7 +162,7 @@ function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; sol
   setVal!(solverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: AbstractDFG
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -393,6 +393,43 @@ end
 #   pN = AMP.manikde!(initval, softtype.manifolds)
 # end
 # dims = size(initval,1) # rows indicate dimensions
+
+
+
+"""
+    $SIGNATURES
+
+Reference data can be stored in the factor graph as a super-solve.
+
+Notes
+- Intended as a mechanism to store reference data alongside the numerical computations.
+"""
+function setVariableRefence!(dfg::AbstractDFG,
+                             sym::Symbol,
+                             val::Array{Float64,2};
+                             refKey::Symbol=:reference)
+  #
+  # which variable to update
+  var = getVariable(dfg, sym)
+
+  # Construct an empty VND object
+  vnd = VariableNodeData(val,
+                         zeros(getDimension(var),1),
+                         Symbol[],
+                         Int[0;],
+                         getDimension(var),
+                         false,
+                         :_null,
+                         Symbol[],
+                         getSofttype(var),
+                         true,
+                         0.0,
+                         false,
+                         true  )
+  #
+  # set the value in the DFGVariable
+  setSolverData(var, vnd, refKey)
+end
 
 
 """
@@ -1037,6 +1074,7 @@ Notes
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
+- TODO: Incidence matrix is rectagular and adjacency is the square.
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -1056,7 +1094,7 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) wher
   end
 
   # Return the variable ordering that we should use for the Bayes map
-  return permuteds[p]
+  return permuteds[p] |> reverse
 end
 
 

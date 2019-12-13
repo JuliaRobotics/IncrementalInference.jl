@@ -298,7 +298,7 @@ end
 function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
 
   cliqdata = getData(cliq)
-  IDS = [cliqdata.frontalIDs; cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+  IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
 
 
   @error "findVertsAssocCliq -- not completed yet"
