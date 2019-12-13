@@ -1074,6 +1074,7 @@ Notes
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
+- TODO: Incidence matrix is rectagular and adjacency is the square.
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -1093,7 +1094,7 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) wher
   end
 
   # Return the variable ordering that we should use for the Bayes map
-  return permuteds[p]
+  return permuteds[p] |> reverse
 end
 
 

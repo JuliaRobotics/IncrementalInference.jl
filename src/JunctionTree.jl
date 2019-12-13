@@ -3,7 +3,7 @@
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getCliqFrontalVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.frontalIDs
+getCliqFrontalVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.frontalIDs
 getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarIds(getData(cliq))
 
 """
@@ -52,16 +52,23 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
 
-# add a conditional ID to clique
-function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
-  clq = bt.cliques[clqID]
-  getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
+"""
+    $SIGNATURES
+
+Add the separator for the newly created clique.
+"""
+function appendSeparatorToClique(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
+  union!(getData(bt.cliques[clqID]).conditIDs, condIDs)
+  nothing
 end
 
 """
     $SIGNATURES
 
 Add a new frontal variable to clique.
+
+DevNotes
+- TODO, define what "conditionals" are CLEARLY!!
 """
 function appendClique!(bt::BayesTree,
                        clqID::Int,
@@ -79,7 +86,7 @@ function appendClique!(bt::BayesTree,
   bt.frontals[varID] = clqID
 
   # append to cliq conditionals
-  appendConditional(bt, clqID, condIDs)
+  appendSeparatorToClique(bt, clqID, condIDs)
   makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
@@ -89,7 +96,8 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::BayesTree, dfg::G, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1}) where G <: AbstractDFG
+function newChildClique!(bt::BayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
+  # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
   # Staying with Graphs.jl for tree in first stage
@@ -145,6 +153,8 @@ Eliminate a variable and add to tree cliques accordingly.
 Dev Notes
 - `p` should be elimination order.
 - `var` is next variable to be added to the tree.
+- TODO, make sure this works for disjoint graphs
+  - Check laplacian, check eigen == 1 is disjoint sets
 
 References
 Kaess et al.: Bayes Tree, WAFR, 2010, [Alg. 2]
@@ -167,13 +177,18 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Sym
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       Sj = solverData(firvert).separator
       felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
+      # get clique id of first eliminated frontal
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       cliq = tree.cliques[CpID]
+      # clique of the first eliminated frontal
       unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
+      # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
       if (sort(unFC) == sort(Sj))
+        # just add new variable as frontal to this clique
         appendClique!(tree, CpID, dfg, var)
       else
+        # a new child clique is required here (this becomes parent)
         newChildClique!(tree, dfg, CpID, var, Sj)
       end
     end
@@ -188,6 +203,7 @@ function buildTree!(tree::BayesTree, dfg::G, elimorder::Array{Symbol,1}) where G
   revorder = reverse(elimorder,dims=1) # flipdim(p, 1)
   # prevVar = 0
   for var in revorder
+    @info "Adding $var to tree..."
     newPotential(tree, dfg, var, elimorder)
     prevVar = var
   end
@@ -350,9 +366,10 @@ function buildTreeFromOrdering!(dfg::G,
   #
   println()
   fge = deepcopy(dfg)
-  println("Building Bayes net...")
+  @info "Building Bayes net..."
   buildBayesNet!(fge, p, maxparallel=maxparallel, solvable=solvable)
 
+  @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
   buildTree!(tree, fge, p)
 
@@ -483,7 +500,7 @@ end
 
 Reset factor graph and build a new tree from the provided variable ordering `p`.
 """
-function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Int})::BayesTree
+function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})::BayesTree
   resetFactorGraphNewTree!(fgl)
   return buildTreeFromOrdering!(fgl, p)
 end
@@ -855,7 +872,7 @@ end
 
 Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-getCliqSeparatorVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.conditIDs
+getCliqSeparatorVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.conditIDs
 getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqSeparatorVarIds(getData(cliq))
 
 """

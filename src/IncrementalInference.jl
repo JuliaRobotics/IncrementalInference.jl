@@ -73,6 +73,7 @@ export
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
   BayesTreeNodeData,
+  PackedBayesTreeNodeData,
 
   # state machine methods
   StateMachine,
