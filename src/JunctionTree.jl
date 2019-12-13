@@ -74,7 +74,7 @@ function appendClique!(bt::BayesTree,
                        clqID::Int,
                        dfg::AbstractDFG,
                        varID::Symbol,
-                       condIDs::Array{Symbol,1}=Symbol[] )::Nothing
+                       seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
   #
   clq = bt.cliques[clqID]
   var = DFG.getVariable(dfg, varID)
@@ -85,8 +85,9 @@ function appendClique!(bt::BayesTree,
   # total dictionary of frontals for easy access
   bt.frontals[varID] = clqID
 
-  # append to cliq conditionals
-  appendSeparatorToClique(bt, clqID, condIDs)
+  # TODO - confirm this, append to cliq separator ??
+  # @info "going for: appendSeparatorToClique on (clqID, seprIDs)=($clqID, $seprIDs)"
+  appendSeparatorToClique(bt, clqID, seprIDs)
   makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
@@ -186,9 +187,12 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Sym
       # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
       if (sort(unFC) == sort(Sj))
         # just add new variable as frontal to this clique
+        # insert conditional (p(var|sepr)) into clique CpID -- i.e. just adding a frontal
+        # @info "adding new frontal $var to existing clique $CpID"
         appendClique!(tree, CpID, dfg, var)
       else
         # a new child clique is required here (this becomes parent)
+        # @info "adding new child clique with parent separator."
         newChildClique!(tree, dfg, CpID, var, Sj)
       end
     end
@@ -752,7 +756,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                     union!(usefcts, Symbol[Symbol(fct.label);])
                     solverData(fct).potentialused = true
                     if !insep
-                        @info "cliq=$(cliq.index) adding factor that is no in separator, $sep"
+                        @info "cliq=$(cliq.index) adding factor that is not in separator, $sep"
                     end
                 end
             end
