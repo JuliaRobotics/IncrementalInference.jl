@@ -499,6 +499,8 @@ Notes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
+  infocsm(csmc, "7, start, forceproceed=$(csmc.forceproceed)")
+
   # fetch children status
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
 
@@ -510,20 +512,29 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     # :needdownmsg # 'send' downward init msg direction
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? (proceed = false) : nothing
   end
-  infocsm(csmc, "7, proceed=$(proceed), forceproceed=$(csmc.forceproceed)")
+  infocsm(csmc, "7, proceed=$(proceed)")
 
 
   if proceed || csmc.forceproceed
+    # TODO, remove csmc.forceproceed
     csmc.forceproceed = false
     # return doCliqInferAttempt_StateMachine
     cliqst = getCliqStatus(csmc.cliq)
     infocsm(csmc, "7, status=$(cliqst), before attemptCliqInitDown_StateMachine")
     # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
     if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq, csmc.logger)
+      # go to 8a
       return attemptCliqInitDown_StateMachine
+    elseif cliqst == :marginalized
+      ## Add case for IIF issue #474
+      # go to 10
+      return determineCliqIfDownSolve_StateMachine
     end
+
+    # go to 8b
     return attemptCliqInitUp_StateMachine
   else
+    # go to 7b
     return slowCliqIfChildrenNotUpsolved_StateMachine
   end
 end
