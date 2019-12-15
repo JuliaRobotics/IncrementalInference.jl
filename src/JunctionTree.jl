@@ -365,7 +365,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50 ,
+                                maxparallel::Int=50,
                                 solvable::Int=1 ) where G <: InMemoryDFGTypes
   #
   println()
@@ -447,9 +447,17 @@ function prepBatchTree!(dfg::AbstractDFG;
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50  )
+                        maxparallel::Int=50 )
   #
   p = getEliminationOrder(dfg, ordering=ordering)
+
+  # for debuggin , its useful to have the variable ordering
+  if drawpdf
+    ispath(getLogPath(dfg)) ? nothing : Base.mkpath(getLogPath(dfg))
+    open(joinLogPath(dfg,"variableOrder.txt"), "a") do io
+      writedlm(io, string.(reshape(p,1,:)), ',')
+    end
+  end
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
