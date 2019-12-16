@@ -527,8 +527,11 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
       return attemptCliqInitDown_StateMachine
     # HALF DUPLICATED IN STEP 4
     elseif cliqst == :marginalized
+      # go to 1
+      return isCliqUpSolved_StateMachine
+      ## NOTE -- what about notifyCliqUpInitStatus! ??
       # go to 10
-      return determineCliqIfDownSolve_StateMachine
+      # return determineCliqIfDownSolve_StateMachine
     end
 
     # go to 8b
@@ -550,6 +553,7 @@ function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMac
   infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, logger=csmc.logger)
 
+  # go to 7
   return determineCliqNeedDownMsg_StateMachine
 end
 
@@ -583,7 +587,7 @@ end
     $SIGNATURES
 
 Notes
-- State machine function nr. 4
+- State machine function nr.4
 """
 function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -637,6 +641,7 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
 
   if cliqst != :null
     if cliqst != :needdownmsg
+      # go to 6c
       return blockCliqSiblingsParentChildrenNeedDown_StateMachine
     end
   else
@@ -661,9 +666,11 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
     return blockCliqSiblingsParentChildrenNeedDown_StateMachine
   end # != :null
 
+  areChildDown = areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  infocsm(csmc, "4b, areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)=$(areChildDown)")
   # if cliqst == :needdownmsg
-    if areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-      infocsm(csmc, "4, must deal with child :needdownmsg")
+    if areChildDown
+      infocsm(csmc, "4b, must deal with child :needdownmsg")
       csmc.forceproceed = true
     else
       # go to 5
