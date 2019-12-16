@@ -441,6 +441,7 @@ Notes
 """
 function prepBatchTree!(dfg::AbstractDFG;
                         ordering::Symbol=:qr,
+                        variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
@@ -449,7 +450,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         drawbayesnet::Bool=false,
                         maxparallel::Int=50 )
   #
-  p = getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
 
   # for debuggin , its useful to have the variable ordering
   if drawpdf
@@ -534,10 +535,11 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=50  )::BayesTree where G <: AbstractDFG
+                           maxparallel::Int=50,
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::BayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
 end
 
 """
