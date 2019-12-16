@@ -525,8 +525,8 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq, csmc.logger)
       # go to 8a
       return attemptCliqInitDown_StateMachine
+    # HALF DUPLICATED IN STEP 4
     elseif cliqst == :marginalized
-      ## Add case for IIF issue #474
       # go to 10
       return determineCliqIfDownSolve_StateMachine
     end
@@ -588,13 +588,25 @@ Notes
 function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
   prnt = getParent(csmc.tree, csmc.cliq)
-  infocsm(csmc, "4, isCliqNull_StateMachine, csmc.incremental=$(csmc.incremental), len(prnt)=$(length(prnt))")
+  cliqst = getCliqStatus(csmc.oldcliqdata)
+  infocsm(csmc, "4, isCliqNull_StateMachine, $cliqst, len(prnt)=$(length(prnt)), csmc.incremental=$(csmc.incremental)")
+
+  if cliqst in [:marginalized;]
+      # if cliqst == :marginalized || cliqst in [:downsolved; :uprecycled] && ( length(prnt) == 0 ) # ||
+      # 0 < length(prnt) && getCliqStatus(prnt) in [:downsolved; :uprecycled; :marginalized;] )
+      # go to 10 -- Add case for IIF issue #474
+      return determineCliqIfDownSolve_StateMachine
+  end
+
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
   csmc.forceproceed = false
 
+  # if clique is marginalized, then no reason to continue here
+  # if no parent or parent will not update
+
   # for recycle computed clique values case
-  if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+  if csmc.incremental && cliqst == :downsolved
     csmc.incremental = false
     # might be able to recycle the previous clique solve, go to 0b
     return checkChildrenAllUpRecycled_StateMachine
