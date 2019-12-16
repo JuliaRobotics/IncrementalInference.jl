@@ -36,6 +36,9 @@ end
 @testset "GenericWrapParam functors..." begin
     include("testCommonConvWrapper.jl")
 end
+
+include("testBasicForwardConvolve.jl")
+
 @testset "with simple local constraint examples Odo, Obsv2..." begin
     include("testlocalconstraintexamples.jl")
 end
