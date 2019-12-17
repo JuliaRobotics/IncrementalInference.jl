@@ -25,7 +25,8 @@ function solveTree!(dfgl::G,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Int=50  ) where G <: DFG.AbstractDFG
+                    maxparallel::Int=50,
+                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
@@ -38,7 +39,7 @@ function solveTree!(dfgl::G,
   end
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"))
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"))
   # setAllSolveFlags!(tree, false)
 
   @info "Do tree based init-inference on tree"

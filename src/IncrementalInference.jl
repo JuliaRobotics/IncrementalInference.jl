@@ -15,6 +15,7 @@ using Reexport
 using
   Dates,
   DistributedFactorGraphs,
+  DelimitedFiles,
   Statistics,
   Random,
   NLsolve,
@@ -73,6 +74,7 @@ export
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
   BayesTreeNodeData,
+  PackedBayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -143,10 +145,12 @@ export
   getSofttype,
   getVariableType,
   getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
   lsfTypes,
+  findClosestTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -196,7 +200,6 @@ export
   getFactorInferFraction,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
-  hasFactor,
   getVariable,
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
@@ -436,6 +439,8 @@ export
   loadjld,
   landmarks,
   setCliqDrawColor,
+
+  # csm utils
   fetchCliqTaskHistoryAll!,
   fetchAssignTaskHistoryAll!,
 
@@ -475,6 +480,7 @@ export
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 
@@ -531,6 +537,7 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
+include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
@@ -582,7 +589,7 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp

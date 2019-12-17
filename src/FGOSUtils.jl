@@ -4,6 +4,9 @@
 
 import DistributedFactorGraphs: AbstractPointParametricEst
 
+# export setSolvable!
+
+
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 
@@ -44,6 +47,27 @@ getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
 Get the folder location where debug and solver information is recorded for a particular factor graph.
 """
 getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
+
+"""
+    $SIGNATURES
+
+Append `str` onto factor graph log path as convenience function.
+"""
+joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+
+# """
+#     $SIGNATURES
+#
+# Set the `solvable` parameter for either a variable or factor.
+# """
+# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
+#   if isVariable(dfg, sym)
+#     getVariable(dfg, sym).solvable = solvable
+#   elseif isFactor(dfg, sym)
+#     getFactor(dfg, sym).solvable = solvable
+#   end
+#   return solvable
+# end
 
 """
     $SIGNATURES
@@ -303,6 +327,7 @@ Free all variables from marginalization.
 function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
+  fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
     solverData(getVariable(fgl, sym)).ismargin = false
   end
@@ -342,7 +367,6 @@ end
 
 
 
-
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
                  p::EasyMessage )
   (AMP.manikde!(p.pts, p.bws, p.manifolds), p.inferdim)
@@ -353,6 +377,7 @@ function convert(::Type{EasyMessage},
                  manifolds::T) where {T <: Tuple}
   EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
 end
+
 
 
 #

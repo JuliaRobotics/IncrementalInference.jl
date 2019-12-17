@@ -98,7 +98,7 @@ Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
   frontalIDs::Vector{Symbol}
-  conditIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
   inmsgIDs::Vector{Symbol} # Int
   potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
@@ -254,4 +254,67 @@ mutable struct MsgPassType
   vid::Symbol # Int
   msgs::Array{NBPMessage,1}
   N::Int
+end
+
+
+
+
+mutable struct PackedBayesTreeNodeData
+  frontalIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
+  inmsgIDs::Vector{Symbol} # Int
+  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
+  potentials::Vector{Symbol}
+  partialpotential::Vector{Bool}
+  dwnPotentials::Vector{Symbol}
+  dwnPartialPotential::Vector{Bool}
+  cliqAssocMat::Array{Bool,2}
+  cliqMsgMat::Array{Bool,2}
+  directvarIDs::Vector{Symbol} # Int
+  directFrtlMsgIDs::Vector{Symbol} # Int
+  msgskipIDs::Vector{Symbol} # Int
+  itervarIDs::Vector{Symbol} # Int
+  directPriorMsgIDs::Vector{Symbol} # Int
+end
+
+
+
+function convert(::Type{PackedBayesTreeNodeData}, btnd::BayesTreeNodeData)
+  return PackedBayesTreeNodeData(
+    btnd.frontalIDs,
+    btnd.separatorIDs,
+    btnd.inmsgIDs,
+    btnd.potIDs,
+    btnd.potentials,
+    btnd.partialpotential,
+    btnd.dwnPotentials,
+    btnd.dwnPartialPotential,
+    btnd.cliqAssocMat,
+    btnd.cliqMsgMat,
+    btnd.directvarIDs,
+    btnd.directFrtlMsgIDs,
+    btnd.msgskipIDs,
+    btnd.itervarIDs,
+    btnd.directPriorMsgIDs  )
+end
+
+
+function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
+  btnd = emptyBTNodeData()
+    btnd.frontalIDs = pbtnd.frontalIDs
+    btnd.separatorIDs = pbtnd.separatorIDs
+    btnd.inmsgIDs = pbtnd.inmsgIDs
+    btnd.potIDs = pbtnd.potIDs
+    btnd.potentials = pbtnd.potentials
+    btnd.partialpotential = pbtnd.partialpotential
+    btnd.dwnPotentials = pbtnd.dwnPotentials
+    btnd.dwnPartialPotential = pbtnd.dwnPartialPotential
+    btnd.cliqAssocMat = pbtnd.cliqAssocMat
+    btnd.cliqMsgMat = pbtnd.cliqMsgMat
+    btnd.directvarIDs = pbtnd.directvarIDs
+    btnd.directFrtlMsgIDs = pbtnd.directFrtlMsgIDs
+    btnd.msgskipIDs = pbtnd.msgskipIDs
+    btnd.itervarIDs = pbtnd.itervarIDs
+    btnd.directPriorMsgIDs = pbtnd.directPriorMsgIDs
+  return btnd
 end
