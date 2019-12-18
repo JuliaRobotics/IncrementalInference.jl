@@ -1,4 +1,57 @@
 
+### DONT DELETE YET -- see more likely list below
+
+
+function getShortestPathNeighbors(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0 )
+
+  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  edgedict = edgelist2edgedict(edgelist)
+  expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  for i in 1:neighbors
+    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+    expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  end
+  return vertdict
+end
+
+function subgraphShortestPath(fgl::FactorGraph;
+                              from::Graphs.ExVertex=nothing,
+                              to::Graphs.ExVertex=nothing,
+                              neighbors::Int=0  )
+  #
+  vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+  return genSubgraph(fgl, vertdict)
+end
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::Dict{Int,Graphs.ExVertex};
+                           neighbors::Int=0  )
+  #
+  allverts = Dict{Int,Graphs.ExVertex}()
+  allkeys = collect(keys(verts))
+  len = length(allkeys)
+  # union all shortest path combinations in a vertdict
+  for i in 1:len, j in (i+1):len
+    from = verts[allkeys[i]]
+    to = verts[allkeys[j]]
+    vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+    for vert in vertdict
+      if !haskey(allverts, vert[1])
+        allverts[vert[1]] = vert[2]
+      end
+    end
+  end
+
+  return genSubgraph(fgl, allverts)
+end
+
+
+
 """
     $SIGNATURES
 
@@ -106,6 +159,9 @@ function subgraphFromVerts(fgl::FactorGraph,
 end
 
 
+
+
+### MORE LIKELY TO BE DELETED BELOW
 
 
 
