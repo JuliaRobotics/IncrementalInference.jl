@@ -30,11 +30,11 @@ addFactor!(dfg, [VAR1], Prior(Normal()))
 # drawGraph(dfg, show=true)
 
 
-tree = wipeBuildNewTree!(dfg)
-# drawTree(tree, show=true)
-
-getCliqFactors(tree, VAR3)
-getCliqFactors(tree, VAR1)
+# tree = wipeBuildNewTree!(dfg)
+# # drawTree(tree, show=true)
+#
+# getCliqFactors(tree, VAR3)
+# getCliqFactors(tree, VAR1)
 
 ensureAllInitialized!(dfg)
 
@@ -64,6 +64,8 @@ tree, smtasks, hist = solveTree!(dfg) #, recordcliqs=ls(dfg))
 # drawTree(tree, show=true, imgs=true)
 
 end
+
+
 
 
 #
