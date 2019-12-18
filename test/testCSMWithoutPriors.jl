@@ -27,7 +27,7 @@ f2 = addFactor!(dfg, [VAR2; VAR3], LinearConditional(Normal(50.0,2.0)) )
 
 addFactor!(dfg, [VAR1], Prior(Normal()))
 
-drawGraph(dfg, show=true)
+# drawGraph(dfg, show=true)
 
 
 tree = wipeBuildNewTree!(dfg)
