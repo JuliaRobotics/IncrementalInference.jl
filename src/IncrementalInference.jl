@@ -420,6 +420,7 @@ export
   getCliqVarSingletons,
   getCliqAllFactIds,
   getCliqFactorIdsAll,
+  getCliqFactors,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
