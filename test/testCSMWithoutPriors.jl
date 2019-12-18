@@ -25,11 +25,11 @@ getSolverParams(dfg).dbg = true
 getSolverParams(dfg).drawtree = true
 getSolverParams(dfg).showtree = true
 
-tree = wipeBuildNewTree!(dfg)
-
-using Gadfly, Cairo, Fontconfig
-
-drawTree(tree, show=true, imgs=true)
+# tree = wipeBuildNewTree!(dfg)
+#
+# using Gadfly, Cairo, Fontconfig
+#
+# drawTree(tree, show=true, imgs=true)
 
 tree, smtasks, hist = solveTree!(dfg, recordcliqs=ls(dfg))
 
