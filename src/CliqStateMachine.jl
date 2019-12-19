@@ -677,7 +677,8 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   frontals = getCliqFrontalVarIds(csmc.cliq)
   separators = getCliqSeparatorVarIds(csmc.cliq)
 
-  csmc.cliqSubFg = buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, [frontals; separators], solvable=1)
+  # Make a clique subgraph of in-memory type
+  csmc.cliqSubFg = DFG.buildSubgraphFromLabels!(csmc.dfg, [frontals; separators], typeof(csmc.cliqSubFg); solvable=1)
 
 
   # store the cliqSubFg for later debugging
