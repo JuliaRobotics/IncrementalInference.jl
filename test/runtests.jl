@@ -3,7 +3,6 @@ using Test
 # using Compat
 # using IncrementalInference
 
-# include("priorusetest.jl")
 
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
@@ -48,6 +47,10 @@ end
 include("testFactorMetadata.jl")
 
 include("testBasicCSM.jl")
+
+include("testCliqueFactors.jl")
+
+# include("priorusetest.jl")
 
 include("testExplicitMultihypo.jl")
 
