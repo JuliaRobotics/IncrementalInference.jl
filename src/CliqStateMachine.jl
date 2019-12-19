@@ -674,8 +674,8 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
 
   # the subgraph with subset of factors from frontals only
   factorFilter = union(map(s->getNeighbors(csmc.dfg, s), frontals)...)
-  buildSubgraphFromLabels!(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter )
-  # buildSubgraphFromLabels!_SPECIAL(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter )
+  buildSubgraphFromLabels(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter )
+  # buildSubgraphFromLabels!_SPECIAL(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter ) # DFG v0.5.2
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
