@@ -71,6 +71,7 @@ function packFromLocalPotentials!(dfg::AbstractDFG,
   #
   inferdim = 0.0
   for idfct in getData(cliq).potentials
+    !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     fct = DFG.getFactor(dfg, idfct)
     data = solverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
@@ -96,6 +97,7 @@ function packFromLocalPartials!(fgl::G,
   #
 
   for idfct in getData(cliq).potentials
+    !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
     data = solverData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
