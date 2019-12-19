@@ -30,3 +30,29 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
   nothing
 end
 
+
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::AbstractDFG, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarIds(cliq)
+  subfg = buildSubgraphFromLabels(fgl,syms)
+
+  # add upward messages to subgraph
+  msgs = getCliqParentMsgDown(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end

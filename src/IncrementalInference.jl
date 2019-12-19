@@ -213,8 +213,9 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
-  buildCliqSubgraphUp,
-  buildCliqSubgraphDown,
+  buildCliqSubgraph,
+  # buildCliqSubgraphUp,
+  # buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
@@ -523,13 +524,13 @@ include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("FactorGraph01.jl")
-include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
 include("JunctionTreeTypes.jl")
+include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
