@@ -2,14 +2,149 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
+import DistributedFactorGraphs: AbstractPointParametricEst
 
-function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDFG
+# export setSolvable!
+
+
+manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
+
+"""
+    $SIGNATURES
+
+Return the order sensitive list of variables related to factor `fct`.
+
+Related
+
+ls, lsf, lsfPriors
+"""
+getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
+getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
+
+
+"""
+    $SIGNATURES
+
+Return N=100 measurement samples for a factor in `<:AbstractDFG`.
+"""
+function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   fnc = getFactorFunction(dfg, fsym)
   getSample(fnc, N)
 end
 
+"""
+    $SIGNATURES
+
+Get graph node (variable or factor) dimension.
+"""
+getDimension(var::DFGVariable) = getSofttype(var).dims
+getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
+
+"""
+    $SIGNATURES
+
+Get the folder location where debug and solver information is recorded for a particular factor graph.
+"""
+getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
+
+"""
+    $SIGNATURES
+
+Append `str` onto factor graph log path as convenience function.
+"""
+joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+
+# """
+#     $SIGNATURES
+#
+# Set the `solvable` parameter for either a variable or factor.
+# """
+# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
+#   if isVariable(dfg, sym)
+#     getVariable(dfg, sym).solvable = solvable
+#   elseif isFactor(dfg, sym)
+#     getFactor(dfg, sym).solvable = solvable
+#   end
+#   return solvable
+# end
+
+"""
+    $SIGNATURES
+
+Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
+
+DevNotes
+- TODO update for manifold subgroups.
+"""
+function calcVariablePPE(var::DFGVariable,
+                         softt::InferenceVariable;
+                         solveKey::Symbol=:default,
+                         method::Type{MeanMaxPPE}=MeanMaxPPE  )::MeanMaxPPE
+  #
+  P = getKDE(var)
+  manis = getManifolds(softt) # getManifolds(vnd)
+  ops = buildHybridManifoldCallbacks(manis)
+  Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
+  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  suggested = zeros(getDimension(var))
+  # TODO standardize after AMP3D
+  @assert length(manis) == getDimension(var)
+  for i in 1:length(manis)
+    mani = manis[i]
+    if mani == :Euclid
+      suggested[i] = Pme[i]
+    elseif mani == :Circular
+      suggested[i] = Pma[i]
+    else
+      error("Unknown manifold to find PPE, $softt, $mani")
+    end
+  end
+  MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
+end
+# function calcVariablePPE!(retval::Vector{Float64},
+#                           var::DFGVariable,
+#                           softt::InferenceVariable;
+#                           method::Type{MeanMaxPPE}=MeanMaxPPE )::Nothing
+#   #
+#   P = getKDE(var)
+#   manis = getManifolds(softt) # getManifolds(vnd)
+#   ops = buildHybridManifoldCallbacks(manis)
+#   Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
+#   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+#   for i in 1:length(manis)
+#     mani = manis[i]
+#     if mani == :Euclid
+#       retval[i] = Pme[i]
+#     elseif mani == :Circular
+#       retval[i] = Pma[i]
+#     else
+#       error("Unknown manifold to find PPE, $softt, $mani")
+#     end
+#   end
+#   nothing
+# end
+# """
+#     $SIGNATURES
+#
+# Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
+# """
+# function calcVariablePPE(var::DFGVariable,
+#                          softt::InferenceVariable;
+#                          method::Type{<:AbstractPointParametricEst}=MeanMaxPPE  )::Vector{Float64}
+#   #
+#   # vect = zeros(softt.dims)
+#   mmppe = calcVariablePPE(MeanMaxPPE, var, softt, method=method)
+#   return mmppe.suggested
+# end
 
 
+# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
+calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
+  var = getVariable(dfg, sym)
+  calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+end
 
 """
     $(SIGNATURES)
@@ -70,7 +205,7 @@ end
 
 function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
   for (key, id) in fgl.fIDs
-    getData(getVert(fgl, key,nt=:fnc)).fnc.threadmodel = model
+    solverData(getFactor(fgl, key)).fnc.threadmodel = model
   end
   nothing
 end
@@ -143,7 +278,7 @@ Dev Notes
 """
 function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
   vert = DFG.getVariable(fg, vsym)
-  vnd = getData(vert)
+  vnd = solverData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
   println("size marginal samples $(size(getVal(vnd)))")
@@ -159,22 +294,42 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::DFGVariable) = getData(vert).ismargin
-isMarginalized(dfg::G, sym::Symbol) where G <: AbstractDFG = isMarginalized(DFG.getVariable(fg, sym))
+isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
+isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
+"""
+    $SIGNATURES
 
+Return bool on whether a certain factor has user defined multihypothesis.
+
+Related
+
+getMultihypoDistribution
+"""
+isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+
+"""
+    $SIGNATURES
+
+Return the categorical distributed used for multihypothesis selection in a factor.
+
+Related
+
+isMultihypo
+"""
+getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES
 
 Free all variables from marginalization.
 """
-function unmarginalizeVariablesAll!(fgl::FactorGraph)
+function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
-  vsyms = union(ls(fgl)...)
-  for sym in vsyms
-    getData(fgl, sym).ismargin = false
+  fgl.solverParams.limitfixeddown = false
+  for sym in ls(fgl)
+    solverData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
@@ -186,9 +341,11 @@ Free all variables from marginalization.
 
 Related
 
-unmarginalizeVariablesAll!
+dontMarginalizeVariablesAll!
 """
-unfreezeVariablesAll!(fgl::FactorGraph) = unmarginalizeVariablesAll!(fgl)
+function unfreezeVariablesAll!(fgl::G) where G <: AbstractDFG
+  dontMarginalizeVariablesAll!(fgl)
+end
 
 """
     $SIGNATURES
@@ -207,15 +364,6 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
 end
 
 
-"""
-    $SIGNATURES
-
-Return N=100 measurement samples for a factor in `<:AbstractDFG`.
-"""
-function getMeasurements(dfg::G, fsym::Symbol, N::Int=100) where G <: AbstractDFG
-  fnc = getFactorFunction(dfg, fsym)
-  getSample(fnc, N)
-end
 
 
 
@@ -229,6 +377,7 @@ function convert(::Type{EasyMessage},
                  manifolds::T) where {T <: Tuple}
   EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
 end
+
 
 
 #

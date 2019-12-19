@@ -1,4 +1,57 @@
 
+### DONT DELETE YET -- see more likely list below
+
+
+function getShortestPathNeighbors(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0 )
+
+  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  edgedict = edgelist2edgedict(edgelist)
+  expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  for i in 1:neighbors
+    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+    expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  end
+  return vertdict
+end
+
+function subgraphShortestPath(fgl::FactorGraph;
+                              from::Graphs.ExVertex=nothing,
+                              to::Graphs.ExVertex=nothing,
+                              neighbors::Int=0  )
+  #
+  vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+  return genSubgraph(fgl, vertdict)
+end
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::Dict{Int,Graphs.ExVertex};
+                           neighbors::Int=0  )
+  #
+  allverts = Dict{Int,Graphs.ExVertex}()
+  allkeys = collect(keys(verts))
+  len = length(allkeys)
+  # union all shortest path combinations in a vertdict
+  for i in 1:len, j in (i+1):len
+    from = verts[allkeys[i]]
+    to = verts[allkeys[j]]
+    vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+    for vert in vertdict
+      if !haskey(allverts, vert[1])
+        allverts[vert[1]] = vert[2]
+      end
+    end
+  end
+
+  return genSubgraph(fgl, allverts)
+end
+
+
+
 """
     $SIGNATURES
 
@@ -24,21 +77,20 @@ function writeGraphPdf(fgl::G;
                        engine::AS="neato", #sfdp
                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
   #
-  @warn "writeGraphPdf function might changed, see DFG.toDotFile(dfg) as part of the long term solution."
+  @warn "writeGraphPdf is function changing to drawGraph, see DFG.toDotFile(dfg) as part of the long term solution."
 
   fgd = fgl
   @info "Writing factor graph file"
   fext = split(filepath, '.')[end]
-  fpwoext = split(filepath, '.')[end-1]
+  fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
-  # fid = open(dotfile,"w")
-  # write(fid,Graphs.to_dot(fgd.g))
-  # close(fid)
+
+  # create the dot file
   DFG.toDotFile(fgl, dotfile)
-  show ? (@async run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)) : nothing
 
   try
-    viewerapp != nothing ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+    run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
+    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
   catch e
     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
@@ -46,6 +98,133 @@ function writeGraphPdf(fgl::G;
 end
 
 
+
+
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+# Using unique index into graph data structure
+function subgraphFromVerts(fgl::FactorGraph,
+    verts::Array{Int,1};
+    neighbors::Int=0  )
+
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    vertdict[vert] = fgl.g.vertices[vert]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+"""
+    $(SIGNATURES)
+
+Explore all shortest paths combinations in verts, add neighbors and reference
+subgraph using unique index into graph data structure.
+"""
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
+  #
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  for vert in verts
+    id = -1
+    vsym = Symbol(vert)
+    if haskey(fgl.IDs, vsym)
+      id = fgl.IDs[vsym]
+    else
+      error("FactorGraph01 only supports variable node subgraph search at this point")
+    end
+    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
+  end
+
+  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
+end
+
+
+function subgraphFromVerts(fgl::FactorGraph,
+                           verts::T;
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,Graphs.ExVertex}}}
+  #
+  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
+  subGraphFromVerts(fgl, verts, neighbors=neighbors)
+end
+
+
+
+
+### MORE LIKELY TO BE DELETED BELOW
+
+
+
+# TODO -- convert to use add_vertex! instead, since edges type must be made also
+function addVerticesSubgraph(fgl::FactorGraph,
+    fgseg::FactorGraph,
+    vertdict::Dict{Int,Graphs.ExVertex})
+
+    for vert in vertdict
+      fgseg.g.vertices[vert[1]] = vert[2]
+      if haskey(fgl.v,vert[1])
+        fgseg.g.vertices[vert[1]] = vert[2]
+        fgseg.IDs[Symbol(vert[2].label)] = vert[1]
+
+        # add edges going in opposite direction
+        elr = Graphs.out_edges(vert[2], fgl.g)
+        len = length(elr)
+        keeprm = trues(len)
+        j = 0
+        for i in 1:len
+          if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
+            keeprm[i] = false
+            j+=1
+          end
+        end
+        if j < len
+          elridx = elr[1].source.index
+          fgseg.g.inclist[elridx] = elr[keeprm]
+        end
+      elseif haskey(fgl.f, vert[1])
+        fgseg.f[vert[1]] = vert[2] # adding element to subgraph
+        fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
+        # get edges associated with function nodes and push edges onto incidence list
+        el = Graphs.out_edges(vert[2], fgl.g)
+        elidx = el[1].source.index
+        fgseg.g.inclist[elidx] = el # okay because treating function nodes only
+        fgseg.g.nedges += length(el)
+      else
+        error("Unknown type factor graph vertex type, something is wrong")
+      end
+    end
+    nothing
+end
+
+"""
+    $SIGNATURES
+
+Return array of all variable vertices in a clique.
+"""
+function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
+  verts = Graphs.ExVertex[]
+  for vid in getCliqVars(subfg, cliq)
+    push!(verts, getVert(subfg, vid, api=localapi))
+  end
+  return verts
+end
+
+
+
+
+### TODO: TO BE REFACTORED FOR DFG
+
+# some plotting functions on the factor graph
+function stackVertXY(fg::FactorGraph, lbl::String)
+    v = dlapi.getvertex(fg,lbl)
+    vals = getVal(v)
+    X=vec(vals[1,:])
+    Y=vec(vals[2,:])
+    return X,Y
+end
+
+### TODO: TO BE REFACTORED FOR DFG
 
 """
     $(SIGNATURES)
@@ -108,7 +287,10 @@ function dwnMsg(btl::BayesTree, sym::Symbol)
 end
 
 
-
+function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
+    @error "getCliquePotentials! deprecated, use setCliqPotentials! with DFG objects instead of FactorGraph"
+    setCliqPotentials!(fg, bt.cliques[chkcliq])
+end
 
 """
     $(SIGNATURES)
@@ -203,7 +385,7 @@ end
 function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
 
   cliqdata = getData(cliq)
-  IDS = [cliqdata.frontalIDs; cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+  IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
 
 
   @error "findVertsAssocCliq -- not completed yet"
@@ -552,165 +734,237 @@ function addNode!(fg::FactorGraph,
                       smalldata=smalldata  )
 end
 
+
+
 """
     $(SIGNATURES)
 
-Return all elements `ls(fg)` as tuples, or nodes connected to the a specific element, eg. `ls(fg, :x1)
+Unpack PackedFunctionNodeData formats back to regular FunctonNodeData.
 """
-function ls(fgl::FactorGraph, lbl::Symbol; ring::Int=1)
-  @warn "Deprecated, please use DFG.ls"
-  # TODO ring functionality must still be implemented
-  lsa = Symbol[]
-  # v = nothing
-  if haskey(fgl.IDs, lbl)
-    id = fgl.IDs[lbl]
-  else
-    return lsa
+function decodefg(fgs::FactorGraph)
+  fgu = deepcopy(fgs)
+  fgu.cg = nothing # will be deprecated or replaced
+  fgu.registeredModuleFunctions = nothing # TODO: obsolete
+  fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
+    cpvert = deepcopy(getVert(fgs, vid, api=api))
+    api.addvertex!(fgu, cpvert) #, labels=vnlbls)  # currently losing labels
   end
-  # this is unnecessary
-  v = getVert(fgl,id, api=api)
-  for outn in api.outneighbors(fgl, v)
-    # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
-      push!(lsa, Symbol(outn.label))
-    # end
+
+  @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
+    fdata = solverData(fgs, fid)
+    data = decodePackedType(fdata, "")
+
+    # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
+    newvert = ExVertex(fid,string(fsym))
+    for (key,val) in getVert(fgs,fid,api=api).attributes
+      newvert.attributes[key] = val
+    end
+    setData!(newvert, data)
+    api.addvertex!(fgu, newvert)
   end
-  return lsa
-end
-ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
+  fgu.g.inclist = typeof(fgs.g.inclist)()
 
-"""
-    $(SIGNATURES)
+  # iterated over all edges
+  @showprogress 1 "Decoding edges..." for (eid, edges) in fgs.g.inclist
+    fgu.g.inclist[eid] = Vector{typeof(edges[1])}()
+    for ed in edges
+      newed = Graphs.Edge(ed.index,
+          fgu.g.vertices[ed.source.index],
+          fgu.g.vertices[ed.target.index]  )
+      push!(fgu.g.inclist[eid], newed)
+    end
+  end
 
-Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
-"""
-function ls(fgl::FactorGraph,
-            lbls::Vector{Symbol};
-            ring::Int=1)
-  @warn "Deprecated, please use DFG.ls"
-  union(ls.(fgl, lbls, ring=ring, api=api)[:]...)
-end
-
-"""
-    $(SIGNATURES)
-
-List the nodes in a factor graph.
-
-# Examples
-```julia-repl
-ls(fg)
-```
-"""
-function ls(fgl::FactorGraph; key1='x', key2='l')
-  @warn "Deprecated, please use DFG.ls"
-  k = collect(keys(fgl.IDs))
-  x, l = String[], String[]
-  xval, lval = Int[], Int[]
-  xstr, lstr = String[], String[]
-  xvalnested, lvalnested = String[], String[]
-  xstrnested, lstrnested = String[], String[]
-  canparse1, canparse2 = true,true
-  nestedparse1, nestedparse2 = true, true
-  idx = 0
-  for id in k
-    idx += 1
-    idstr = string(id)
-    # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
-    node_idx = idstr[2:end]
-    canparse = allnums(node_idx)
-    nested = isnestednum(node_idx)
-    if idstr[1] == key1
-      keystr = string(key1,node_idx)
-      if canparse
-        push!(xstr, keystr)
-        push!(xval, parse(Int, node_idx))
-      elseif nested
-        push!(xvalnested, node_idx)
-        push!(xstrnested, string(node_idx))
-      else
-        push!(x,keystr)
-      end
-    elseif idstr[1] == key2
-      keystr = string(key2,node_idx)
-      if canparse
-        push!(lstr, keystr)
-        push!(lval, parse(Int, node_idx))
-      elseif nested
-        push!(lstrnested, keystr)
-        push!(lvalnested, string(node_idx))
-      else
-        push!(l,string(key2,node_idx))
+  # rebuild factormetadata
+  @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
+    varuserdata = []
+    fcnode = getVert(fgu, fsym, nt=:fnc)
+    # ccw = solverData(fcnode)
+    ccw_jld = deepcopy(solverData(fcnode))
+    allnei = Graphs.ExVertex[]
+    for nei in out_neighbors(fcnode, fgu.g)
+        push!(allnei, nei)
+        data = IncrementalInference.solverData(nei)
+        push!(varuserdata, data.softtype)
+    end
+    setDefaultFactorNode!(fgu, fcnode, allnei, ccw_jld.fnc.usrfnc!, threadmodel=ccw_jld.fnc.threadmodel, multihypo=veeCategorical(ccw_jld.fnc.hypotheses))
+    ccw_new = IncrementalInference.solverData(fcnode)
+    for i in 1:Threads.nthreads()
+      ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
+    end
+    ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+    # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
+    for field in fieldnames(typeof(ccw_jld))
+      if field != :fnc
+        setfield!(ccw_new, field, getfield(ccw_jld, field))
       end
     end
   end
-  x1 = xstr[sortperm(xval)]
-  x2 = xstrnested[sortnestedperm(xvalnested)]
-  x = [x1; x2; sort(x)]
-
-  l1 = lstr[sortperm(lval)]
-  l2 = lstrnested[sortnestedperm(lvalnested)]
-  l = [l1; l2; sort(l)]
-
-  xx = Symbol.(x)
-  ll = Symbol.(l)
-  return xx, ll #return poses, landmarks
-end
-
-lsf(fgl::FactorGraph) = collect(keys(fgl.fIDs))
-
-"""
-    $(SIGNATURES)
-
-List factors in a factor graph.
-
-# Examples
-```julia-repl
-lsf(fg, :x1)
-```
-"""
-function lsf(fgl::FactorGraph, lbl::Symbol)
-  @warn "Deprecated, please use DFG.lsf"
-  lsa = Symbol[]
-  if haskey(fgl.fIDs, lbl)
-    id = fgl.fIDs[lbl]
-  else
-    return lsa
-  end
-  v = getVert(fgl, id, api=api) # fgl.g.vertices[id] #fgl.f[id]
-  for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
-    push!(lsa, Symbol(outn.label))
-  end
-  return lsa
+  return fgu
 end
 
 
-"""
-    $(SIGNATURES)
 
-List factors in a factor graph.
-
-# Examples
-```julia-repl
-lsf(fg)
-```
-"""
-lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
-
-function lsf(fgl::FactorGraph,
-             mt::Type{T}) where {T <: FunctorInferenceType}
-  @warn "Deprecated, please use DFG.lsf"
-  syms = Symbol[]
-  for (fsym,fid) in fgl.fIDs
-    if typeof(getfnctype(fgl, fid, api=api))==T
-      push!(syms, fsym)
-    end
-  end
-  return syms
-end
-
-function lsf(fgl::FactorGraph)
-  @warn "Deprecated, please use DFG.lsf"
-  collect(keys(fgl.fIDs))
-end
+# """
+#     $(SIGNATURES)
+#
+# Return all elements `ls(fg)` as tuples, or nodes connected to the a specific element, eg. `ls(fg, :x1)
+# """
+# function ls(fgl::FactorGraph, lbl::Symbol; ring::Int=1)
+#   @warn "Deprecated, please use DFG.ls"
+#   # TODO ring functionality must still be implemented
+#   lsa = Symbol[]
+#   # v = nothing
+#   if haskey(fgl.IDs, lbl)
+#     id = fgl.IDs[lbl]
+#   else
+#     return lsa
+#   end
+#   # this is unnecessary
+#   v = getVariable(fgl,id)
+#   for outn in api.outneighbors(fgl, v)
+#     # if outn.attributes["ready"] = 1 && outn.attributes["backendset"]=1
+#       push!(lsa, Symbol(outn.label))
+#     # end
+#   end
+#   return lsa
+# end
+# ls(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = ls(fgl, Symbol(lbl))
+#
+# """
+#     $(SIGNATURES)
+#
+# Experimental union of elements version of ls(::FactorGraph, ::Symbol).  Not mean't to replace broadcasting `ls.(fg, [:x1;:x2])`
+# """
+# function ls(fgl::FactorGraph,
+#             lbls::Vector{Symbol};
+#             ring::Int=1)
+#   @warn "Deprecated, please use DFG.ls"
+#   union(ls.(fgl, lbls, ring=ring)[:]...)
+# end
+#
+# """
+#     $(SIGNATURES)
+#
+# List the nodes in a factor graph.
+#
+# # Examples
+# ```julia-repl
+# ls(fg)
+# ```
+# """
+# function ls(fgl::FactorGraph; key1='x', key2='l')
+#   @warn "Deprecated, please use DFG.ls"
+#   k = collect(keys(fgl.IDs))
+#   x, l = String[], String[]
+#   xval, lval = Int[], Int[]
+#   xstr, lstr = String[], String[]
+#   xvalnested, lvalnested = String[], String[]
+#   xstrnested, lstrnested = String[], String[]
+#   canparse1, canparse2 = true,true
+#   nestedparse1, nestedparse2 = true, true
+#   idx = 0
+#   for id in k
+#     idx += 1
+#     idstr = string(id)
+#     # val = parse(Int,kstr[2:end]) # TODO: handle non-int labels
+#     node_idx = idstr[2:end]
+#     canparse = allnums(node_idx)
+#     nested = isnestednum(node_idx)
+#     if idstr[1] == key1
+#       keystr = string(key1,node_idx)
+#       if canparse
+#         push!(xstr, keystr)
+#         push!(xval, parse(Int, node_idx))
+#       elseif nested
+#         push!(xvalnested, node_idx)
+#         push!(xstrnested, string(node_idx))
+#       else
+#         push!(x,keystr)
+#       end
+#     elseif idstr[1] == key2
+#       keystr = string(key2,node_idx)
+#       if canparse
+#         push!(lstr, keystr)
+#         push!(lval, parse(Int, node_idx))
+#       elseif nested
+#         push!(lstrnested, keystr)
+#         push!(lvalnested, string(node_idx))
+#       else
+#         push!(l,string(key2,node_idx))
+#       end
+#     end
+#   end
+#   x1 = xstr[sortperm(xval)]
+#   x2 = xstrnested[sortnestedperm(xvalnested)]
+#   x = [x1; x2; sort(x)]
+#
+#   l1 = lstr[sortperm(lval)]
+#   l2 = lstrnested[sortnestedperm(lvalnested)]
+#   l = [l1; l2; sort(l)]
+#
+#   xx = Symbol.(x)
+#   ll = Symbol.(l)
+#   return xx, ll #return poses, landmarks
+# end
+#
+# lsf(fgl::FactorGraph) = collect(keys(fgl.fIDs))
+#
+# """
+#     $(SIGNATURES)
+#
+# List factors in a factor graph.
+#
+# # Examples
+# ```julia-repl
+# lsf(fg, :x1)
+# ```
+# """
+# function lsf(fgl::FactorGraph, lbl::Symbol)
+#   @warn "Deprecated, please use DFG.lsf"
+#   lsa = Symbol[]
+#   if haskey(fgl.fIDs, lbl)
+#     id = fgl.fIDs[lbl]
+#   else
+#     return lsa
+#   end
+#   v = getVariable(fgl, id) # fgl.g.vertices[id] #fgl.f[id]
+#   for outn in api.outneighbors(fgl, v) # out_neighbors(v, fgl.g)
+#     push!(lsa, Symbol(outn.label))
+#   end
+#   return lsa
+# end
+#
+#
+# """
+#     $(SIGNATURES)
+#
+# List factors in a factor graph.
+#
+# # Examples
+# ```julia-repl
+# lsf(fg)
+# ```
+# """
+# lsf(fgl::FactorGraph, lbl::T) where {T <: AbstractString} = lsf(fgl,Symbol(lbl))
+#
+# function lsf(fgl::FactorGraph,
+#              mt::Type{T}) where {T <: FunctorInferenceType}
+#   @warn "Deprecated, please use DFG.lsf"
+#   syms = Symbol[]
+#   for (fsym,fid) in fgl.fIDs
+#     if typeof(getfnctype(fgl, fid))==T
+#       push!(syms, fsym)
+#     end
+#   end
+#   return syms
+# end
+#
+# function lsf(fgl::FactorGraph)
+#   @warn "Deprecated, please use DFG.lsf"
+#   collect(keys(fgl.fIDs))
+# end
 
 """
     $SIGNATURES

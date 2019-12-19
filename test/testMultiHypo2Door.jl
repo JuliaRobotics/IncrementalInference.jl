@@ -8,7 +8,7 @@ using Test
 lm_prior_noise = 0.01
 meas_noise = 0.25
 odom_noise = 0.1
-n_samples = 100
+n_samples = 200
 
 # initialize mean landmark locations
 l0 = 0.0
@@ -26,7 +26,7 @@ x3 = 40.0
 
 ## Initialize empty factor graph
 fg = initfg()
-
+fg.solverParams.N = n_samples
 # Place strong prior on locations of three "doors"
 addVariable!(fg, Symbol("l0"), ContinuousScalar, N=n_samples)
 addFactor!(fg, [:l0], Prior(Normal(l0, lm_prior_noise)))
@@ -70,12 +70,12 @@ tree, smt, hist = solveTree!(fg)
 # drawTree(tree, show=true)
 
 
-@test abs(getKDEMean(getKDE(fg, :x0))[1]) < 1.0
-@test abs(getKDEMean(getKDE(fg, :x1))[1]-10) < 1.0
-@test abs(getKDEMean(getKDE(fg, :x2))[1]-20) < 1.0
+@test abs(getKDEMean(getKDE(fg, :x0))[1]) < 2.0
+@test abs(getKDEMean(getKDE(fg, :x1))[1]-10) < 2.0
+@test abs(getKDEMean(getKDE(fg, :x2))[1]-20) < 2.0
 
-@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 2.0
-@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 2.0
+@test abs(getKDEMean(getKDE(fg, :l0))[1]) < 3.0
+@test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 3.0
 
 
 # using RoMEPlotting

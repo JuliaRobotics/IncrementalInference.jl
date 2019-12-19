@@ -61,18 +61,19 @@ end
 
 Add all potentials associated with this clique and vertid to dens.
 """
-function packFromLocalPotentials!(dfg::G,
+function packFromLocalPotentials!(dfg::AbstractDFG,
                                   dens::Vector{BallTreeDensity},
                                   wfac::Vector{Symbol},
                                   cliq::Graphs.ExVertex,
                                   vsym::Symbol,
                                   N::Int,
-                                  dbg::Bool=false )::Float64 where G <: AbstractDFG
+                                  dbg::Bool=false )::Float64
   #
   inferdim = 0.0
   for idfct in getData(cliq).potentials
+    !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     fct = DFG.getFactor(dfg, idfct)
-    data = getData(fct)
+    data = solverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
@@ -96,8 +97,9 @@ function packFromLocalPartials!(fgl::G,
   #
 
   for idfct in getData(cliq).potentials
+    !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
-    data = getData(vert)
+    data = solverData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
@@ -275,7 +277,7 @@ function proposalbeliefs!(dfg::G,
   count = 0
   for fct in factors
     count += 1
-    data = getData(fct)
+    data = solverData(fct)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
@@ -302,12 +304,12 @@ Calculate the proposals and products on `destvert` using `factors` in factor gra
 Notes
 - Returns tuple of product and whether full dimensional (=true) or partial (=false).
 """
-function predictbelief(dfg::G,
+function predictbelief(dfg::AbstractDFG,
                        destvert::DFGVariable,
-                       factors::Vector{F};
+                       factors::Vector{<:DFGFactor};
                        N::Int=0,
                        dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where {G <: AbstractDFG, F <: DFGNode}
+                       logger=ConsoleLogger()  ) # where {G <: , F <: }
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -394,7 +396,7 @@ function localProduct(dfg::G,
   vari = DFG.getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getSofttype(vari).manifolds )
 
-  return pp, dens, partials, lb
+  return pp, dens, partials, lb, sum(inferdim)
 end
 localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
 
@@ -411,7 +413,7 @@ function initVariable!(fgl::G,
   @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
-  belief,b,c,d  = localProduct(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
   setValKDE!(vert, belief)
 
   nothing
@@ -473,24 +475,24 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
     pden = getKDE(vert)
     bws = vec(getBW(pden)[:,1])
     manis = getSofttype(vert).manifolds
-    d[vsym] = EasyMessage(getVal(vert), bws, manis, getData(vert).inferdim)
+    d[vsym] = EasyMessage(getVal(vert), bws, manis, solverData(vert).inferdim)
     with_logger(logger) do
-      @info "fmcmc! -- getData(vert=$(vert.label)).inferdim=$(getData(vert).inferdim)"
+      @info "fmcmc! -- solverData(vert=$(vert.label)).inferdim=$(solverData(vert).inferdim)"
     end
   end
   return d
 end
 
-function doFMCIteration(fgl::G,
+function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
                         cliq::Graphs.ExVertex,
                         fmsgs,
                         N::Int,
                         dbg::Bool,
-                        logger=ConsoleLogger()  ) where G <: AbstractDFG
+                        logger=ConsoleLogger()  )
   #
   vert = DFG.getVariable(fgl, vsym)
-  if !getData(vert).ismargin
+  if !solverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
 
@@ -541,21 +543,6 @@ function fmcmc!(fgl::G,
 
     for vsym in lbls
         doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, logger)
-
-      # vert = DFG.getVariable(fgl, vsym)
-      # if !getData(vert).ismargin
-      #   # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-      #   densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
-      #
-      #   if size(densPts,1)>0
-      #     updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-      #     setValKDE!(updvert, densPts, true, inferdim)
-      #     if dbg
-      #       push!(dbgvals.prods, potprod)
-      #       push!(dbgvals.lbls, Symbol(updvert.label))
-      #     end
-      #   end
-      # end
     end
     !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end
@@ -587,16 +574,16 @@ end
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductUp(fg::G,
+function treeProductUp(fg::AbstractDFG,
                        tree::BayesTree,
                        cliq::Symbol,
                        sym::Symbol;
                        N::Int=100,
-                       dbg::Bool=false  ) where G <: AbstractDFG
+                       dbg::Bool=false  )
   #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
-  # IDS = [cliqdata.frontalIDs; cliqdata.conditIDs]
+  # IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs]
 
   # get the local variable id::Int identifier
   vertid = fg.IDs[sym]
@@ -608,7 +595,7 @@ function treeProductUp(fg::G,
     msgdict = upMsg(cl)
     dict = Dict{Int, EasyMessage}()
     for (dsy, btd) in msgdict
-      manis = getSofttype(getVert(fg, dsy, api=localapi)).manifolds
+      manis = getSofttype(getVariable(fg, dsy)).manifolds
 
       dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
     end
@@ -616,7 +603,7 @@ function treeProductUp(fg::G,
   end
 
   # perform the actual computation
-  manis = getSofttype(getVert(fg, vertid, api=localapi)).manifolds
+  manis = getSofttype(getVariable(fg, vertid)).manifolds
   pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
@@ -705,7 +692,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
-    IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+    IDS = [cliqdata.frontalIDs;cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
     mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
@@ -726,7 +713,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
-  m = upPrepOutMsg!(d, cliqdata.conditIDs)
+  m = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
   # TODO can remove this outmsglbl Symbol => Symbol
   outmsglbl = Dict{Symbol, Symbol}()
@@ -770,7 +757,7 @@ function dwnPrepOutMsg(fg::G,
   for vid in getData(cliq).frontalIDs
     m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
   end
-  for cvid in getData(cliq).conditIDs
+  for cvid in getData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
     m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
@@ -802,6 +789,8 @@ function downGibbsCliqueDensity(fg::G,
   end
   fmmsgs = usemsgpriors ? Array{NBPMessage,1}() : dwnMsgs
   frtls = getFrontals(cliq)
+
+  # TODO, do better check if there is structure between multiple frontals
   niters = length(frtls) == 1 ? 1 : MCMCIter
   # TODO standize with upsolve and variable solver order
   mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
@@ -1009,10 +998,10 @@ function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
-        downmsgs[key] = BallTreeDensity[]
+        downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
       end
       # TODO insert true inferred dim
-      push!(downmsgs[key], (bel, 0.0))
+      push!(downmsgs[key], bel)
     end
   end
   return downmsgs
@@ -1393,8 +1382,14 @@ function tryCliqStateMachineSolve!(dfg::G,
     fid = open(joinpath(opts.logpath,"logs/cliq$i/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
+    fid = open(joinpath(opts.logpath,"logs/cliq$(i)_stacktrace.txt"), "w")
+    showerror(fid, err, bt)
+    close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
     fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
+    printCliqHistorySummary(fid, history)
+    close(fid)
+    fid = open(joinpath(opts.logpath,"logs/cliq$(i)_csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     flush(logger.stream)
@@ -1425,10 +1420,18 @@ function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
   end
 end
 
+"""
+    $SIGNATURES
+
+Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
+"""
 function fetchCliqTaskHistoryAll!(smt, hist)
   for i in 1:length(smt)
-    # sm = smt[i]
-    hist[i] = fetch(smt[i])
+    sm = smt[i]
+    # only fetch states that have completed processing
+    if sm.state == :done
+      hist[i] = fetch(sm)
+    end
   end
 end
 
@@ -1466,7 +1469,10 @@ function asyncTreeInferUp!(dfg::G,
   #
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
-  drawtree ? drawTree(treel, show=false) : nothing
+  if drawtree
+    pdfpath = joinpath(getSolverParams(dfg).logpath,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+  end
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
@@ -1521,7 +1527,7 @@ function initInferTreeUp!(dfg::G,
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
-  drawtree ? drawTree(treel, show=false) : nothing
+  drawtree ? drawTree(treel, show=false, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(treel.cliques))
@@ -1532,7 +1538,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(treel.cliques)
         scsym = getCliqFrontalVarIds(treel.cliques[i])
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs) # N=N,
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync

@@ -18,8 +18,8 @@ savejld(fgt)
 # savejld(fgt, file=joinpath(Pkg.dir("IncrementalInference"),"test","testdata","compatibility_test_fg.jld"))
 fgl, = loadjld()
 
-fct = getData(getFactor(fgt, :x1x2f1)).fnc.cpt[1].factormetadata
-fcl = getData(getFactor(fgl, :x1x2f1)).fnc.cpt[1].factormetadata
+fct = solverData(getFactor(fgt, :x1x2f1)).fnc.cpt[1].factormetadata
+fcl = solverData(getFactor(fgl, :x1x2f1)).fnc.cpt[1].factormetadata
 
 @test fct.solvefor == fcl.solvefor
 @test length(fct.variableuserdata) == length(fcl.variableuserdata)
@@ -37,8 +37,8 @@ fgl, = loadjld(file="tempfg.jld2")
 
 Base.rm("tempfg.jld2")
 
-fct = getData(getFactor(fgt, :x1x2f1)).fnc.cpt[1].factormetadata
-fcl = getData(getFactor(fgl, :x1x2f1)).fnc.cpt[1].factormetadata
+fct = solverData(getFactor(fgt, :x1x2f1)).fnc.cpt[1].factormetadata
+fcl = solverData(getFactor(fgl, :x1x2f1)).fnc.cpt[1].factormetadata
 
 # @test fct.solvefor == fcl.solvefor # defaults to :null during load
 @test length(fct.variableuserdata) == length(fcl.variableuserdata)
@@ -54,11 +54,12 @@ filename = joinpath(dirname(pathof(IncrementalInference)), "..", "test","testdat
 # savejld(fgt, file=filename)  # when changing to a new compat test file (human required)
 fgprev, = loadjld(file=filename )
 
-fc = getData(getVert(fgprev, :x1x2f1, nt=:fnc))
+fc = solverData(getFactor(fgprev, :x1x2f1))
 @test length(fc.fnc.cpt[1].factormetadata.variableuserdata) == 2
 @test fc.fnc.cpt[1].factormetadata.solvefor == :null
 
-batchSolve!(fgprev)
+# batchSolve!(fgprev)
+solveTree!(fgprev)
 
 
 end

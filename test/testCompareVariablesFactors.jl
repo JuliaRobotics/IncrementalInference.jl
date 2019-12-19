@@ -1,5 +1,6 @@
 # using Revise
 
+using DistributedFactorGraphs
 using IncrementalInference
 using Test
 
@@ -37,7 +38,7 @@ fg2 = deepcopy(fg)
 @test compareFactorGraphs(fg, fg)
 @test compareFactorGraphs(fg, fg2)
 
-solveTree!(fg)
+tree, smt, hist = solveTree!(fg)
 
 x1a = getVariable(fg, :x0)
 x1b = getVariable(fg2, :x0)
@@ -52,7 +53,9 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:estimateDict])
+# fg2 has been solved, so it should fail on the estimate dictionary
+@test !compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
 
 tree = wipeBuildNewTree!(fg2)
 
@@ -60,7 +63,7 @@ tree = wipeBuildNewTree!(fg2)
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
-@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim])
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:estimateDict])
 
 end
 
@@ -85,12 +88,12 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 
 
-sfg = buildSubgraphFromLabels(fg, [:x0;:x1])
+sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 
 
 @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
 
-# writeGraphPdf(sfg)
+# drawGraph(sfg)
 
 end
 

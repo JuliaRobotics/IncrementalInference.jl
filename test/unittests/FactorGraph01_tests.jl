@@ -49,13 +49,13 @@ buildBayesNet!(dfgPrime, elimOrder)
 # IncrementalInference.rmVarFromMarg(dfgPrime, lm[1], )
 DFG.toDotFile(dfgPrime, "/tmp/testRmMarg.dot")
 # Assert that everything was eliminated and every variable has a BayesNetVertID
-@test all(map(v -> getData(v.dfgNode).eliminated, values(dfgPrime.g.vertices)))
+@test all(map(v -> solverData(v.dfgNode).eliminated, values(dfgPrime.g.vertices)))
 # @test all(map(v -> getData(v).BayesNetVertID != nothing, DFG.getVariables(dfgPrime)))
 # Assert that we have the expected Bayes tree
 expectedBayesOutVertDict = Dict{Symbol, Vector{Symbol}}(:x2 => [:x3], :l1 => [:x1, :x2], :x3 => [], :l2 => [:x3], :x1 => [:x2])
 for (vId,linkIds) in expectedBayesOutVertDict
     v = DFG.getVariable(dfgPrime, vId)
-    @test setdiff(getData(v).BayesNetOutVertIDs, linkIds) == []
+    @test setdiff(solverData(v).BayesNetOutVertIDs, linkIds) == []
 end
 
 # Now build the tree

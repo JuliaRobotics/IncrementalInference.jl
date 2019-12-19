@@ -136,10 +136,11 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=C
     # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
   end
   put!(cd.initUpChannel, status)
-  notify(getSolveCondition(cliq))
+  cond = getSolveCondition(cliq)
+  notify(cond)
     # hack to avoid a race condition  -- remove with atomic lock logic upgrade
     sleep(0.1)
-    notify(getSolveCondition(cliq))
+    notify(cond) # getSolveCondition(cliq)
 
   # TODO unlock
   unlockUpStatus!(cd)
@@ -245,6 +246,7 @@ Notes:
 """
 getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
 getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(getData(cliq))
+
 getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
 
 """
@@ -264,10 +266,10 @@ end
 
 Return true if all variables in clique are considered marginalized (and initialized).
 """
-function areCliqVariablesAllMarginalized(subfg::G,
-                                         cliq::Graphs.ExVertex) where G <: AbstractDFG
+function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
+                                         cliq::Graphs.ExVertex)
   for vsym in getCliqAllVarIds(cliq)
-    vert = getVert(subfg, vsym)
+    vert = getVariable(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
       return false
     end
@@ -311,6 +313,7 @@ function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=ConsoleLog
   with_logger(logger) do
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
+  flush(logger.stream)
   while fetch(getData(prnt).initDownChannel) != :downsolved
     # @sync begin
     #   @async begin
@@ -353,7 +356,11 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     with_logger(logger) do
       @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
     end
+    flush(logger.stream)
     ret[ch.index] = fetch(getData(ch).initUpChannel)
+  end
+  with_logger(logger) do
+      @info "cliq $(prnt.index), fetched all."
   end
   return ret
 end
@@ -474,7 +481,7 @@ function doCliqUpSolve!(subfg::G,
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false, logger=logger, multiproc=multiproc)
+  approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
   getData(cliq).upsolved = true
   return :upsolved
 end
@@ -497,7 +504,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), getData(var).inferdim)
+      msg[Symbol(var.label)] = (getKDE(var), solverData(var).inferdim)
     end
   end
   return msg
@@ -579,8 +586,8 @@ function doCliqAutoInitUpPart2!(subfg::G,
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
-    initstatus[i] = getData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getData(getVariable(subfg, varids[i])).inferdim
+    initstatus[i] = solverData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = solverData(getVariable(subfg, varids[i])).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
@@ -633,7 +640,7 @@ function condenseDownMsgsProductOnly!(fgl::G,
   # multiply multiple messages together
   for (msgsym, msgsBo) in msgspervar
     # check if this particular down message requires msgsym
-    if DFG.hasVariable(fgl, msgsym)
+    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
       if length(msgspervar[msgsym]) > 1
         msgs = getindex.(msgsBo, 1)
         haspars = 0.0
@@ -699,7 +706,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
     # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-    if hasFactor(lsfg, delf)
+    if exists(lsfg, delf) # hasFactor
       deleteFactor!(lsfg,delf)
     end
   end
@@ -1047,7 +1054,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-    DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_beforedowninit"))
+    DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_beforedowninit"))
   end
 
   # cycle through vars and attempt init
@@ -1066,7 +1073,7 @@ function doCliqInitDown!(subfg::G,
 
   # store the cliqSubFg for later debugging
   if dbg
-      DFG.saveDFG(subfg, joinpath(logpath,"cliqSubFgs/cliq$(cliq.index)/fg_afterdowninit"))
+      DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
   end
 
   return status

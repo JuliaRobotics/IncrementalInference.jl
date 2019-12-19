@@ -3,9 +3,6 @@
 
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
 
-#supported in Memory fg types
-const InMemoryDFGTypes = Union{DFG.GraphsDFG,DFG.LightGraphsDFG}
-
 # BayesTree declarations
 """
 $(TYPEDEF)
@@ -101,11 +98,15 @@ Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
   frontalIDs::Vector{Symbol}
-  conditIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
   inmsgIDs::Vector{Symbol} # Int
   potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
   potentials::Vector{Symbol}
   partialpotential::Vector{Bool}
+
+  dwnPotentials::Vector{Symbol}
+  dwnPartialPotential::Vector{Bool}
+
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
   directvarIDs::Vector{Symbol} # Int
@@ -137,26 +138,27 @@ mutable struct BayesTreeNodeData
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29],
+                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29], x[30], x[31],
                                 Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
 end
 
 # TODO -- this should be a constructor
 function emptyBTNodeData()
-  BayesTreeNodeData(Int[],Int[],Int[],
-                    Int[],Int[],Bool[],      # 6
+  BayesTreeNodeData(Symbol[],Symbol[],Symbol[],
+                    Symbol[],Symbol[],Bool[], # 6
+                    Symbol[],Bool[],
                     Array{Bool}(undef, 0,0),
                     Array{Bool}(undef, 0,0),
-                    Int[],Int[],             # 10
-                    Int[],Int[],Int[],       # 13
-                    nothing, nothing,        # 15
+                    Int[],Int[],             # 10+2
+                    Int[],Int[],Int[],       # 13+2
+                    nothing, nothing,        # 15+2
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
                     Dict{Int, TempBeliefMsg}(),
-                    TempBeliefMsg(),         # 19
+                    TempBeliefMsg(),         # 19+2
                     false, :null,
-                    false, false,            # 23
-                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26
+                    false, false,            # 23+2
+                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26+2
                     Channel{Int}(1), Channel{Int}(1),
                     Channel{Dict{Symbol,Float64}}(1) )
 end
@@ -252,4 +254,67 @@ mutable struct MsgPassType
   vid::Symbol # Int
   msgs::Array{NBPMessage,1}
   N::Int
+end
+
+
+
+
+mutable struct PackedBayesTreeNodeData
+  frontalIDs::Vector{Symbol}
+  separatorIDs::Vector{Symbol}
+  inmsgIDs::Vector{Symbol} # Int
+  potIDs::Vector{Symbol} # Int # this is likely redundant TODO -- remove
+  potentials::Vector{Symbol}
+  partialpotential::Vector{Bool}
+  dwnPotentials::Vector{Symbol}
+  dwnPartialPotential::Vector{Bool}
+  cliqAssocMat::Array{Bool,2}
+  cliqMsgMat::Array{Bool,2}
+  directvarIDs::Vector{Symbol} # Int
+  directFrtlMsgIDs::Vector{Symbol} # Int
+  msgskipIDs::Vector{Symbol} # Int
+  itervarIDs::Vector{Symbol} # Int
+  directPriorMsgIDs::Vector{Symbol} # Int
+end
+
+
+
+function convert(::Type{PackedBayesTreeNodeData}, btnd::BayesTreeNodeData)
+  return PackedBayesTreeNodeData(
+    btnd.frontalIDs,
+    btnd.separatorIDs,
+    btnd.inmsgIDs,
+    btnd.potIDs,
+    btnd.potentials,
+    btnd.partialpotential,
+    btnd.dwnPotentials,
+    btnd.dwnPartialPotential,
+    btnd.cliqAssocMat,
+    btnd.cliqMsgMat,
+    btnd.directvarIDs,
+    btnd.directFrtlMsgIDs,
+    btnd.msgskipIDs,
+    btnd.itervarIDs,
+    btnd.directPriorMsgIDs  )
+end
+
+
+function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
+  btnd = emptyBTNodeData()
+    btnd.frontalIDs = pbtnd.frontalIDs
+    btnd.separatorIDs = pbtnd.separatorIDs
+    btnd.inmsgIDs = pbtnd.inmsgIDs
+    btnd.potIDs = pbtnd.potIDs
+    btnd.potentials = pbtnd.potentials
+    btnd.partialpotential = pbtnd.partialpotential
+    btnd.dwnPotentials = pbtnd.dwnPotentials
+    btnd.dwnPartialPotential = pbtnd.dwnPartialPotential
+    btnd.cliqAssocMat = pbtnd.cliqAssocMat
+    btnd.cliqMsgMat = pbtnd.cliqMsgMat
+    btnd.directvarIDs = pbtnd.directvarIDs
+    btnd.directFrtlMsgIDs = pbtnd.directFrtlMsgIDs
+    btnd.msgskipIDs = pbtnd.msgskipIDs
+    btnd.itervarIDs = pbtnd.itervarIDs
+    btnd.directPriorMsgIDs = pbtnd.directPriorMsgIDs
+  return btnd
 end

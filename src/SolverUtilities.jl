@@ -163,17 +163,17 @@ end
 
 Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
 """
-function setfreeze!(dfg::G, sym::Symbol) where G <: AbstractDFG
+function setfreeze!(dfg::AbstractDFG, sym::Symbol)
   if !isInitialized(dfg, sym)
     @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
     return nothing
   end
   vert = DFG.getVariable(dfg, sym)
-  data = getData(vert)
+  data = solverData(vert)
   data.ismargin = true
   nothing
 end
-function setfreeze!(dfg::G, syms::Vector{Symbol}) where G <: AbstractDFG
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
   for sym in syms
     setfreeze!(dfg, sym)
   end
@@ -192,6 +192,7 @@ function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
 
+  # the fifo history
   tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
@@ -264,6 +265,68 @@ function resetCliqSolve!(dfg::G,
                          solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
   #
   resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
+end
+
+
+
+
+"""
+    $SIGNATURES
+
+Inverse solve of predicted noise value and returns the associated "measured" noise value (also used as starting point for the solve).
+"""
+function solveFactorMeasurements(dfg::AbstractDFG,
+                                 fctsym::Symbol  )
+  #
+  fcto = getFactor(dfg, fctsym)
+  varsyms = fcto._variableOrderSymbols
+  vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
+  fcttype = getFactorType(fcto)
+  zDim = getData(fcto).fnc.zDim
+
+  N = size(vars[1])[2]
+  res = zeros(zDim)
+  ud = FactorMetadata()
+  meas = getSample(fcttype, N)
+  meas0 = deepcopy(meas[1])
+
+  function makemeas!(i, meas, dm)
+    meas[1][:,i] = dm
+    return meas
+  end
+
+  ggo = (i, dm) -> fcttype(res,ud,i,makemeas!(i, meas, dm),vars...)
+  # ggo(1, [0.0;0.0])
+
+  for idx in 1:N
+    retry = 10
+    while 0 < retry
+      if isa(fcttype, FunctorPairwiseMinimize)
+        r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
+        retry -= 1
+        if !r.g_converged
+          nsm = getSample(fcttype, 1)
+          for count in 1:length(meas)
+            meas[count][:,idx] = nsm[count][:,idx]
+          end
+        else
+          break
+        end
+      elseif isa(fcttype, FunctorPairwise)
+        ggnl = (rs, dm) -> fcttype(rs,ud,idx,makemeas!(idx, meas, dm),vars...)
+        r = nlsolve(ggnl, meas[1][:,idx])
+        break
+      elseif isa(fcttype, FunctorSingleton)
+        # assuming no partials at this point
+        meas[1][:,:] .= vars[1][:,:]
+        break
+      end
+    end
+    # @assert meas[1][:,idx] == r.minimizer
+  end
+
+  # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
+  return meas[1], meas0
 end
 
 

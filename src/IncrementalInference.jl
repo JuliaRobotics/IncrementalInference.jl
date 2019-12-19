@@ -15,6 +15,7 @@ using Reexport
 using
   Dates,
   DistributedFactorGraphs,
+  DelimitedFiles,
   Statistics,
   Random,
   NLsolve,
@@ -39,8 +40,14 @@ import Base: convert
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
-import ApproxManifoldProducts: kde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans
+import ApproxManifoldProducts: kde!, manikde!
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+
+# missing exports
+import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
+
+# will be deprecated in IIF
+import DistributedFactorGraphs: isSolvable
 
 
 # TODO temporary for initial version of on-manifold products
@@ -58,6 +65,7 @@ export
   hasVariable,
   getSolverParams,
 
+  *,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
@@ -65,13 +73,8 @@ export
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
-
-  # OBSOLETE TODO REMOVE #TODO TODO
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI,
+  BayesTreeNodeData,
+  PackedBayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -79,7 +82,12 @@ export
   getCliqSolveHistory,
   filterHistAllToArray,
   cliqHistFilterTransitions,
+  printCliqSummary,
   printCliqHistorySummary,
+  printGraphSummary,
+  printSummary,
+  getGraphFromHistory,
+  getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
   sandboxCliqResolveStep,
   # draw and animate state machine
@@ -124,6 +132,8 @@ export
   ls,
   lsf,
   getVariableIds,
+  getVariableOrder,
+  calcVariablePPE,
   sortVarNested,
   hasOrphans,
   drawCopyFG,
@@ -134,10 +144,13 @@ export
   getFactorType,
   getSofttype,
   getVariableType,
+  getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
   lsfTypes,
+  findClosestTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -146,7 +159,7 @@ export
   getpackedtype,
   encodePackedType,
   FunctionNodeData,
-  PackedFunctionNodeData,
+  PackedFunctionNodeData, # moved to DFG
   encodePackedType,
   decodePackedType,
   normalfromstring,
@@ -187,9 +200,8 @@ export
   getFactorInferFraction,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
-  hasFactor,
   getVariable,
-  getVert,
+  # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
   getManifolds,
@@ -204,7 +216,6 @@ export
   buildCliqSubgraphUp,
   buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
-  cliqInitSolveUp!,
   cliqInitSolveUpByStateMachine!,
 
   # state machine functions
@@ -243,7 +254,6 @@ export
   getCliqStatus,
   setCliqStatus!,
   getSolveCondition,
-  getMaxVertId,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
@@ -257,8 +267,6 @@ export
   initfg,
   buildSubgraphFromLabels,
   subgraphShortestPath,
-  subgraphFromVerts,
-  subGraphFromVerts,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
@@ -268,6 +276,7 @@ export
   resetBuildTreeFromOrder!,
   prepBatchTree!,
   wipeBuildNewTree!,
+  buildCliquePotentials,
   hasCliq,
   getCliq,
   whichCliq,
@@ -304,8 +313,10 @@ export
   freshSamples!,
 
   #Visualization
-  writeGraphPdf,
-  drawCliqSubgraphUp,
+  writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
+  drawGraph,
+  drawGraphCliq,
+  drawCliqSubgraphUpMocking,
   drawTree,
   printgraphmax,
   # allnums,
@@ -322,10 +333,13 @@ export
   localProduct,
   treeProductUp,
   approxCliqMarginalUp!,
-  unmarginalizeVariablesAll!,
+  dontMarginalizeVariablesAll!,
   unfreezeVariablesAll!,
   resetVariableAllInitializations!,
   isMarginalized,
+  isMultihypo,
+  getMultihypoDistribution,
+  getHypothesesVectors,
   isCliqMarginalizedFromVars,
   isCliqParentNeedDownMsg,
   setCliqAsMarginalized!,
@@ -386,6 +400,7 @@ export
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
+  solveFactorMeasurements,
 
   # user functions
   proposalbeliefs,
@@ -404,6 +419,8 @@ export
   getCliqVarIdsPriors,
   getCliqVarSingletons,
   getCliqAllFactIds,
+  getCliqFactorIdsAll,
+  getCliqFactors,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
@@ -413,7 +430,6 @@ export
 
   uppA,
   convert,
-  compare,
   extractdistribution,
 
   # factor graph operating system utils (fgos)
@@ -424,6 +440,8 @@ export
   loadjld,
   landmarks,
   setCliqDrawColor,
+
+  # csm utils
   fetchCliqTaskHistoryAll!,
   fetchAssignTaskHistoryAll!,
 
@@ -447,27 +465,23 @@ export
   getSym,
   doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
+  setfreeze!,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
   getCliqSiblingsPartialNeeds,
 
   # some utils
-  compareField,
-  compareFields,
-  compareAll,
+  compare,
   compareAllSpecial,
-  compareVariable,
-  compareFactor,
-  compareAllVariables,
-  compareSimilarVariables,
-  compareSubsetFactorGraph,
-  compareSimilarFactors,
-  compareFactorGraphs,
   getIdx,
   showFactor,
   showVariable,
   getMeasurements,
+  findFactorsBetweenFrom,
+  addDownVariableFactors!,
+  getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 
@@ -480,11 +494,20 @@ export
   addGraphsVert!,
   makeAddEdge!,
   shuffleXAltD,
-  reshapeVec2Mat # TODO deprecate
+  reshapeVec2Mat, # TODO deprecate
+
+  # OBSOLETE TODO REMOVE #TODO TODO
+  subGraphFromVerts,
+  getMaxVertId,
+  dlapi,
+  localapi,
+  showcurrentdlapi,
+  setdatalayerAPI!,
+  DataLayerAPI
 
 
 
-
+# TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
 # non-free, but not currently use!
@@ -492,6 +515,10 @@ include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
+
+# const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
+const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -511,8 +538,14 @@ include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
 include("SolveTree01.jl")
+include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+
+# special variables and factors, see RoME.jl for more examples
+include("Variables/Sphere1D.jl")
+include("Factors/Sphere1D.jl")
+
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
@@ -557,7 +590,7 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
