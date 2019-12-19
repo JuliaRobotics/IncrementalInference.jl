@@ -15,6 +15,7 @@ using Reexport
 using
   Dates,
   DistributedFactorGraphs,
+  DelimitedFiles,
   Statistics,
   Random,
   NLsolve,
@@ -419,6 +420,7 @@ export
   getCliqVarSingletons,
   getCliqAllFactIds,
   getCliqFactorIdsAll,
+  getCliqFactors,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 

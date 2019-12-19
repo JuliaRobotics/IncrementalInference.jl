@@ -365,7 +365,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50 ,
+                                maxparallel::Int=50,
                                 solvable::Int=1 ) where G <: InMemoryDFGTypes
   #
   println()
@@ -441,15 +441,24 @@ Notes
 """
 function prepBatchTree!(dfg::AbstractDFG;
                         ordering::Symbol=:qr,
+                        variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50  )
+                        maxparallel::Int=50 )
   #
-  p = getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
+
+  # for debuggin , its useful to have the variable ordering
+  if drawpdf
+    ispath(getLogPath(dfg)) ? nothing : Base.mkpath(getLogPath(dfg))
+    open(joinLogPath(dfg,"variableOrder.txt"), "a") do io
+      writedlm(io, string.(reshape(p,1,:)), ',')
+    end
+  end
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
@@ -526,10 +535,11 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=50  )::BayesTree where G <: AbstractDFG
+                           maxparallel::Int=50,
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::BayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
 end
 
 """
@@ -953,10 +963,13 @@ DEPRECATED, use getCliqFactorIdsAll instead.
 
 Related
 
-getCliqVarIdsAll
+getCliqVarIdsAll, getCliqFactors
 """
 getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
 getCliqFactorIdsAll(cliq::Graphs.ExVertex) = getCliqFactorIdsAll(getData(cliq))
+getCliqFactorIdsAll(treel::BayesTree, frtl::Symbol) = getCliqFactorIdsAll(getCliq(treel, frtl))
+
+const getCliqFactors = getCliqFactorIdsAll
 
 """
     $SIGNATURES
