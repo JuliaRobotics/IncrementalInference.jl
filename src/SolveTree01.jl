@@ -583,7 +583,7 @@ function treeProductUp(fg::AbstractDFG,
   #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
-  # IDS = [cliqdata.frontalIDs; cliqdata.conditIDs]
+  # IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs]
 
   # get the local variable id::Int identifier
   vertid = fg.IDs[sym]
@@ -692,7 +692,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # use nested structure for more fficient Chapman-Kolmogorov solution approximation
   if false
-    IDS = [cliqdata.frontalIDs;cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+    IDS = [cliqdata.frontalIDs;cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
     mcmcdbg, d = fmcmc!(inp.fg, inp.cliq, inp.sendmsgs, IDS, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
@@ -713,7 +713,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
-  m = upPrepOutMsg!(d, cliqdata.conditIDs)
+  m = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
   # TODO can remove this outmsglbl Symbol => Symbol
   outmsglbl = Dict{Symbol, Symbol}()
@@ -757,7 +757,7 @@ function dwnPrepOutMsg(fg::G,
   for vid in getData(cliq).frontalIDs
     m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
   end
-  for cvid in getData(cliq).conditIDs
+  for cvid in getData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
     m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)

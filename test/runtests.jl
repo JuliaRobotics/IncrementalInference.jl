@@ -3,7 +3,7 @@ using Test
 # using Compat
 # using IncrementalInference
 
-include("priorusetest.jl")
+# include("priorusetest.jl")
 
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
