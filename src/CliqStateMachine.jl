@@ -668,17 +668,14 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
 
   infocsm(csmc, "2, build subgraph syms=$(syms)")
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, InMemDFGType)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-    # csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
-  # end
+  # TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
   frontals = getCliqFrontalVarIds(csmc.cliq)
-  separators = getCliqSeparatorVarIds(csmc.cliq)
+  # separators = getCliqSeparatorVarIds(csmc.cliq)
 
-  csmc.cliqSubFg = buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, [frontals; separators], solvable=1)
-
+  # the subgraph with subset of factors from frontals only
+  factorFilter = union(map(s->getNeighbors(csmc.dfg, s), frontals)...)
+  buildSubgraphFromLabels!(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter )
+  # buildSubgraphFromLabels!_SPECIAL(csmc.dfg, syms, subfg=csmc.cliqSubFg, solvable=1, allowedFactors=factorFilter )
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
