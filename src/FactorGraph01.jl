@@ -906,7 +906,8 @@ end
 
 function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   # allvarnodes = getVariables(dfg)
-  syms = ls(dfg, solvable=solvable) |> sortDFG
+  syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
+  # syms = ls(dfg, solvable=solvable) # |> sortDFG
   repeatCount = 0
   repeatFlag = true
   while repeatFlag

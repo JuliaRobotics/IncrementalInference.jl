@@ -963,10 +963,13 @@ DEPRECATED, use getCliqFactorIdsAll instead.
 
 Related
 
-getCliqVarIdsAll
+getCliqVarIdsAll, getCliqFactors
 """
 getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
 getCliqFactorIdsAll(cliq::Graphs.ExVertex) = getCliqFactorIdsAll(getData(cliq))
+getCliqFactorIdsAll(treel::BayesTree, frtl::Symbol) = getCliqFactorIdsAll(getCliq(treel, frtl))
+
+const getCliqFactors = getCliqFactorIdsAll
 
 """
     $SIGNATURES

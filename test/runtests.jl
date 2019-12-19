@@ -45,6 +45,8 @@ end
 
 include("testFactorMetadata.jl")
 
+include("testBasicCSM.jl")
+
 include("testExplicitMultihypo.jl")
 
 include("TestCSMMultihypo.jl")
