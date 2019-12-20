@@ -50,6 +50,8 @@ include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
 
+include("testBasicGraphs.jl")
+
 # include("priorusetest.jl")
 
 include("testExplicitMultihypo.jl")
