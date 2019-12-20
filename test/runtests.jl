@@ -40,9 +40,6 @@ end
 
 include("testBasicForwardConvolve.jl")
 
-@testset "with simple local constraint examples Odo, Obsv2..." begin
-    include("testlocalconstraintexamples.jl")
-end
 
 include("testFactorMetadata.jl")
 
@@ -51,6 +48,11 @@ include("testBasicCSM.jl")
 include("testCliqueFactors.jl")
 
 include("testBasicGraphs.jl")
+
+@testset "with simple local constraint examples Odo, Obsv2..." begin
+    # old names should be removed, like Odo, Obsv2
+    include("testlocalconstraintexamples.jl")
+end
 
 # include("priorusetest.jl")
 
