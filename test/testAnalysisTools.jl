@@ -21,3 +21,11 @@ end
     @test nnzClique(tree.cliques[2]) == 5
     @test nnzClique(tree.cliques[3]) == 2
 end
+
+@testset "Number of non-zero calculation for full trees." begin
+    fg = loadCanonicalFG_Kaess()
+    vo = [:l1, :l2, :x1, :x2, :x3]
+    tree = buildTreeFromOrdering!(fg, vo)
+    # Must agree with hand-calculated values, iSAM2 paper.
+    @test nnzTree(tree) == 10
+end

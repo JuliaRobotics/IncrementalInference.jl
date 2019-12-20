@@ -83,3 +83,18 @@ function nnzClique(clique)
     separator_dim = length(getCliqSeparatorVarIds(clique))
     return nnzFrontals(frontal_dim) + (frontal_dim * separator_dim)
 end
+
+
+"""
+    $SIGNATURES
+
+Get total number of non-zero entries for a Bayes tree. Num of non-zero matrix
+entries is the sum of all non-zero entries for each individual clique.
+"""
+function nnzTree(tree::BayesTree)
+  nnzTot = 0
+  for (cliqid, cliq) in tree.cliques
+    nnzTot += nnzClique(cliq)
+  end
+  return nnzTot
+end
