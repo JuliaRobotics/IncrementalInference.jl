@@ -375,6 +375,7 @@ function buildTreeFromOrdering!(dfg::G,
 
   @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
+  tree.variableOrdering = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
