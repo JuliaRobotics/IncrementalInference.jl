@@ -38,8 +38,15 @@ tree = buildTreeFromOrdering!(fg,eo)
 # drawTree(tree, show=true, imgs=false)
 # drawTree(tree, show=true, imgs=true)
 #
+end
 
-
+@testset "Variable ordering Bayes tree member check." begin
+    # Would be nice to just be able to do that.
+    fg = loadCanonicalFG_Kaess()
+    # Choose specific variable ordering and perform check.
+    vo = [:l1, :l2, :x1, :x2, :x3]
+    tree = buildTreeFromOrdering!(fg, vo)
+    @test vo == tree.variableOrdering
 end
 
 
