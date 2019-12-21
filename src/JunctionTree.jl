@@ -1525,11 +1525,11 @@ function stackCliqUpMsgsByVariable(tree::BayesTree,
   return stack
 end
 
-“””
+"""
     $SIGNATURES
 
 Return the variable order stored in a tree object.
-“””
+"""
 getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
 
 getEliminationOrder(treel::BayesTree) = treel.variableOrder
