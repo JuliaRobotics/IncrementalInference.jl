@@ -268,26 +268,6 @@ function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: Infer
 end
 
 
-"""
-   $SIGNATURES
-
-Display the content of `VariableNodeData` to console for a given factor graph and variable tag`::Symbol`.
-
-Dev Notes
-- TODO split as two show macros between AMP and DFG
-"""
-function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
-  vert = DFG.getVariable(fg, vsym)
-  vnd = solverData(vert)
-  println("label: $(vert.label), exVertexId: $(vert.index)")
-  println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
-  println("size marginal samples $(size(getVal(vnd)))")
-  println("kde bandwidths: $(getBW(vnd)[:,1])")
-  println("kde mean: $(round.(getKDEMean(getKDE(vnd)),digits=4))")
-  println("kde max: $(round.(getKDEMax(getKDE(vnd)),digits=4))")
-  println()
-  vnd
-end
 
 """
     $SIGNATURES

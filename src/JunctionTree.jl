@@ -802,6 +802,9 @@ function setCliqPotentials!(dfg::G,
 
   @info "using all factors among cliq variables"
   fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
+  # filter only factors connected to frontals (for upward)
+  frtfcts = union(map(x->ls(dfg, x), getCliqFrontalVarIds(cliq))...)
+  fctsyms = intersect(fctsyms, frtfcts)
 
   getData(cliq).potentials = fctsyms
   getData(cliq).partialpotential = Vector{Bool}(undef, length(fctsyms))

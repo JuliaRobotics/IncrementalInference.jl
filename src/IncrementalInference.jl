@@ -476,8 +476,6 @@ export
   compare,
   compareAllSpecial,
   getIdx,
-  showFactor,
-  showVariable,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
