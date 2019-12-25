@@ -88,7 +88,7 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.8
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
 
 end
 
@@ -223,11 +223,11 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 @test abs(X1+X3) < 2.2
 @test abs(X2) < 2.2
 
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.8
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 1.8
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 1.8
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.3
 
 end
 
