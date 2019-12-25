@@ -219,9 +219,9 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 
 @test X0 < X1 < X2 < X3 < X4
 
-@test abs(X0+X4) < 1.8
-@test abs(X1+X3) < 1.8
-@test abs(X2) < 1.8
+@test abs(X0+X4) < 2.2
+@test abs(X1+X3) < 2.2
+@test abs(X2) < 2.2
 
 @test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
 @test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
