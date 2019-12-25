@@ -11,7 +11,7 @@ Notes
 
 Related
 
-drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels
+drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels!
 """
 function drawCliqSubgraphUpMocking(fgl::G,
                                    treel::BayesTree,
