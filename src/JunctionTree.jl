@@ -800,7 +800,7 @@ function setCliqPotentials!(dfg::G,
   #
   varlist = getCliqVarIdsAll(cliq)
 
-  @info "using all factors among cliq variables"
+  @info "using all factors connected to frontals and attached to separator"
   fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
   # filter only factors connected to frontals (for upward)
   frtfcts = union(map(x->ls(dfg, x), getCliqFrontalVarIds(cliq))...)
