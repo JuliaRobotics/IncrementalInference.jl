@@ -68,7 +68,7 @@ include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
 
-# include("priorusetest.jl")
+include("priorusetest.jl")
 
 include("testVariousNSolveSize.jl")
 
