@@ -86,7 +86,7 @@ addFactor!(fg, [:x0;], Prior(Normal(+1.0,1.0)))
 tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance -- should be zero
-@test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
+@test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.8
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
 @test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
 
