@@ -173,9 +173,9 @@ tree, smt, hist = solveTree!(fg)
 
 
 # check mean and covariance -- should between two priors somewhere
-@test abs((getKDE(fg, :x0) |> getKDEMean)[1] + 1) < 0.7
-@test abs((getKDE(fg, :x1) |> getKDEMean)[1]) < 0.75
-@test abs((getKDE(fg, :x2) |> getKDEMean)[1] - 1) < 0.8
+@test abs((getKDE(fg, :x0) |> getKDEMean)[1] + 1) < 0.8
+@test abs((getKDE(fg, :x1) |> getKDEMean)[1]) < 0.9
+@test abs((getKDE(fg, :x2) |> getKDEMean)[1] - 1) < 0.9
 
 @test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
 @test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
