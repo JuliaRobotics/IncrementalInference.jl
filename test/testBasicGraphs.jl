@@ -16,7 +16,7 @@ tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.5
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
 
 end
 
@@ -32,7 +32,7 @@ tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance
 @test abs((getKDE(fg, :x0) |> getKDEMean)[1]-1000) < 0.5
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
 
 end
 
@@ -128,8 +128,8 @@ tree, smt, hist = solveTree!(fg)
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
 @test (getKDE(fg, :x1) |> getKDEMean .|> abs)[1] < 0.6
 
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
 
 end
 
@@ -150,8 +150,8 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getKDE(fg, :x0) |> getKDEMean)[1]+1) < 0.5
 @test abs((getKDE(fg, :x1) |> getKDEMean)[1]-1) < 0.5
 
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
 
 end
 
@@ -177,9 +177,9 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getKDE(fg, :x1) |> getKDEMean)[1]) < 0.6
 @test abs((getKDE(fg, :x2) |> getKDEMean)[1] - 1) < 0.6
 
-@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
-@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
-@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.7
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.8
 
 end
 
@@ -219,15 +219,15 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 
 @test X0 < X1 < X2 < X3 < X4
 
-@test abs(X0+X4) < 1.7
-@test abs(X1+X3) < 1.7
-@test abs(X2) < 1.7
+@test abs(X0+X4) < 1.8
+@test abs(X1+X3) < 1.8
+@test abs(X2) < 1.8
 
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 1.7
-@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 1.7
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 1.8
+@test 0.5 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 1.8
 
 end
 
