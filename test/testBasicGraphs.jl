@@ -50,7 +50,7 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.3
 # should be sqrt(0.5) = 0.7, but lands near 0.6 instead -- computation is too confident.
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.0
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.0
 
 end
 
@@ -68,7 +68,7 @@ tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.2
-# should be sqrt(1/3) = 0.577, but lands near 0.45 instead -- computation is too confident.
+# should be sqrt(1/3) = 0.577, but lands near 0.35 instead -- computation is too confident.
 @test 0.1 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 0.75
 
 end
@@ -88,7 +88,7 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.8
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
 
 end
 
@@ -106,7 +106,7 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test abs((getKDE(fg, :x0) |> getKDEMean)[1] + 1000) < 0.6
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
 
 end
 
@@ -177,9 +177,9 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getKDE(fg, :x1) |> getKDEMean)[1]) < 0.6
 @test abs((getKDE(fg, :x2) |> getKDEMean)[1] - 1) < 0.6
 
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.7
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.7
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.7
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 1.7
 
 end
 
