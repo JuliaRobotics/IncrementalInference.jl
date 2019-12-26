@@ -1,3 +1,5 @@
+export getVariableOrder
+
 """
     $SIGNATURES
 
@@ -375,6 +377,7 @@ function buildTreeFromOrdering!(dfg::G,
 
   @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -413,6 +416,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   buildBayesNet!(fge, p, maxparallel=maxparallel)
 
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -1475,3 +1479,12 @@ function stackCliqUpMsgsByVariable(tree::BayesTree,
 
   return stack
 end
+
+"""
+    $SIGNATURES
+
+Return the variable order stored in a tree object.
+"""
+getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
+
+getEliminationOrder(treel::BayesTree) = treel.variableOrder
