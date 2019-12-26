@@ -1032,7 +1032,7 @@ function approxCliqMarginalUp!(fgl::G,
                                logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
-  onduplicate
+  # onduplicate
   with_logger(logger) do
     @warn "rebuilding new Bayes tree on deepcopy of factor graph"
   end

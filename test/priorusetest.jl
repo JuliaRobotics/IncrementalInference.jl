@@ -10,7 +10,7 @@ using Test
 N=100
 graphinits = [false, true]
 
-# TEMP value
+# TEMP value when not using for loop
 graphinit = true
 
 for  graphinit = graphinits
