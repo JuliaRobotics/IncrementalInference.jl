@@ -456,11 +456,8 @@ function addVariable!(dfg::AbstractDFG,
                       smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true  )::DFGVariable
   #
-  v = DFGVariable(lbl, softtype)
-  v.solvable = solvable
-  # v.backendset = backendset
-  v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
-  v.smallData = smalldata
+  tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
+  v = DFGVariable(lbl, softtype; tags=tags, smallData=smalldata, solvable=solvable)
   setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
   DFG.addVariable!(dfg, v)
 
@@ -502,7 +499,7 @@ end
 
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
-function getVal(vA::Vector{DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
+function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
   @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
@@ -541,7 +538,7 @@ Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-            Xi::Vector{DFGVariable},
+            Xi::Vector{<:DFGVariable},
             N::Int,
             solvefor::Union{Nothing, Symbol}  ) # TODO: Confirm we can use symbols here
   #
@@ -598,7 +595,7 @@ end
 # import IncrementalInference: prepgenericconvolution, convert
 
 function prepgenericconvolution(
-            Xi::Vector{DFGVariable},
+            Xi::Vector{<:DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
@@ -630,10 +627,14 @@ function prepgenericconvolution(
   return ccw
 end
 
-function setDefaultFactorNode!(
+"""
+$SIGNATURES
+
+Generate the default factor data for a new DFGFactor.
+"""
+function getDefaultFactorData(
       dfg::G,
-      factor::DFGFactor,
-      Xi::Vector{DFGVariable},
+      Xi::Vector{<:DFGVariable},
       usrfnc::T;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       threadmodel=SingleThreaded  )::GenericFunctionNodeData where
@@ -645,24 +646,8 @@ function setDefaultFactorNode!(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
   data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(ftyp.name.module), ccw)
-  factor.data = data_ccw
-
-  return factor.data
+  return data_ccw
 end
-
-"""
-    $SIGNATURES
-
-Returns state of vertex data `.initialized` flag.
-
-Notes:
-- used by Bayes tree clique logic.
-- similar method in DFG
-"""
-function isInitialized(vert::Graphs.ExVertex)::Bool
-  return solverData(vert).initialized
-end
-
 
 """
     $SIGNATURES
@@ -835,7 +820,7 @@ function doautoinit!(dfg::T,
 end
 
 function doautoinit!(dfg::T,
-                     Xi::Vector{DFGVariable};
+                     Xi::Vector{<:DFGVariable};
                      singles::Bool=true,
                      N::Int=100,
                      logger=ConsoleLogger() )::Bool where T <: AbstractDFG
@@ -929,7 +914,7 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
+function assembleFactorName(dfg::T, Xi::Vector{<:DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
   existingFactorLabels = getFactorIds(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
@@ -956,7 +941,7 @@ performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
 """
 function addFactor!(dfg::G,
-                    Xi::Vector{DFGVariable},
+                    Xi::Vector{<:DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
@@ -968,15 +953,16 @@ function addFactor!(dfg::G,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
-  newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
-  newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
-  newFactor.solvable = solvable
-  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, solvable)
-  newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
+  solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
+  newFactor = DFGFactor(
+    Symbol(namestring);
+    tags=union(labels, [:FACTOR]),
+    solvable=solvable,
+    data=solverData)
 
   # TODO: Need to remove this...
   for vert in Xi
-    push!(newData.fncargvID, vert.label) # vert._internalId # YUCK :/ -- Yup, this is a problem
+    push!(solverData.fncargvID, vert.label)
   end
 
   success = DFG.addFactor!(dfg, Xi, newFactor)
