@@ -1490,3 +1490,48 @@ Return the variable order stored in a tree object.
 getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
 
 getEliminationOrder(treel::BayesTree) = treel.variableOrder
+
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function saveTree(treel::BayesTree, filepath=joinpath("/tmp","caesar","savetree.jld2"))
+  savetree = deepcopy(treel)
+  for i in 1:length(savetree.cliques)
+    if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
+  data = @load filepath savetree
+
+  @warn "loadTree implementation not complete yet, got data=$data"
+end

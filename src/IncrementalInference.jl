@@ -434,11 +434,13 @@ export
   extractdistribution,
 
   # factor graph operating system utils (fgos)
-  convert2packedfunctionnode,
-  encodefg,
-  decodefg,
-  savejld,
-  loadjld,
+  saveTree,
+  loadTree,
+  # convert2packedfunctionnode,
+  # encodefg,
+  # decodefg,
+  # savejld,
+  # loadjld,
   landmarks,
   setCliqDrawColor,
 
