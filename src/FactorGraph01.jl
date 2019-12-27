@@ -1095,6 +1095,7 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) wher
   end
 
   # Return the variable ordering that we should use for the Bayes map
+  # reverse order checked in #475 and #499
   return permuteds[p] |> reverse
 end
 

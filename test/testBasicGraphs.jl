@@ -106,7 +106,7 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test abs((getKDE(fg, :x0) |> getKDEMean)[1] + 1000) < 0.6
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1
 
 end
 
