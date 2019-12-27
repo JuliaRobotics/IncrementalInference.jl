@@ -39,7 +39,7 @@ end
 Get graph node (variable or factor) dimension.
 """
 getDimension(var::DFGVariable) = getSofttype(var).dims
-getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
+getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 """
     $SIGNATURES
@@ -205,7 +205,7 @@ end
 
 function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
   for (key, id) in fgl.fIDs
-    solverData(getFactor(fgl, key)).fnc.threadmodel = model
+    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
   end
   nothing
 end
@@ -278,7 +278,7 @@ Dev Notes
 """
 function showVariable(fgl::G, vsym::Symbol) where G <: AbstractDFG
   vert = DFG.getVariable(fg, vsym)
-  vnd = solverData(vert)
+  vnd = getSolverData(vert)
   println("label: $(vert.label), exVertexId: $(vert.index)")
   println("tags: $( haskey(vert.attributes, string(:tags)) ? vert.attributes[string(:tags)] : string(:none))")
   println("size marginal samples $(size(getVal(vnd)))")
@@ -294,7 +294,7 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
+isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
 """
@@ -306,7 +306,7 @@ Related
 
 getMultihypoDistribution
 """
-isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(getSolverData(fct).fnc.hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -317,7 +317,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
+getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES
@@ -329,7 +329,7 @@ function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
-    solverData(getVariable(fgl, sym)).ismargin = false
+    getSolverData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
