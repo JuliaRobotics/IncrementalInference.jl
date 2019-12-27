@@ -548,6 +548,7 @@ include("Factors/Sphere1D.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
+include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")

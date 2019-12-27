@@ -40,8 +40,9 @@ end
 
 include("testBasicForwardConvolve.jl")
 
-
 include("testFactorMetadata.jl")
+
+include("testJunctionTreeConstruction.jl")
 
 include("testBasicCSM.jl")
 
