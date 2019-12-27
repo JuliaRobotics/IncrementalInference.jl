@@ -1533,5 +1533,13 @@ IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
 function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   data = @load filepath savetree
 
-  @warn "loadTree implementation not complete yet, got data=$data"
+  # convert back to a type that which could not be serialized by JLD2
+  for i in 1:length(savetree.cliques)
+    if  savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+      savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  # return loaded and converted tree
+  return savetree
 end
