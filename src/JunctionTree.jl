@@ -1490,3 +1490,80 @@ Return the variable order stored in a tree object.
 getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
 
 getEliminationOrder(treel::BayesTree) = treel.variableOrder
+
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function saveTree(treel::BayesTree,
+                  filepath=joinpath("/tmp","caesar","savetree.jld2") )
+  #
+  savetree = deepcopy(treel)
+  for i in 1:length(savetree.cliques)
+    if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+function saveTree(treeArr::Vector{BayesTree},
+                  filepath=joinpath("/tmp","caesar","savetrees.jld2") )
+  #
+  savetree = deepcopy(treeArr)
+  for savtre in savetree, i in 1:length(savtre.cliques)
+    if savtre.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savtre.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savtre.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
+  data = @load filepath savetree
+
+  # convert back to a type that which could not be serialized by JLD2
+  if savetree isa Vector
+      for savtre in savetree, i in 1:length(savtre.cliques)
+        if savtre.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+          savtre.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savtre.cliques[i].attributes["data"])
+        end
+      end
+  else
+    for i in 1:length(savetree.cliques)
+      if savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+        savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+      end
+    end
+  end
+
+  # return loaded and converted tree
+  return savetree
+end
