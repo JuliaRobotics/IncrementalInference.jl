@@ -1505,11 +1505,27 @@ Related
 
 IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
 """
-function saveTree(treel::BayesTree, filepath=joinpath("/tmp","caesar","savetree.jld2"))
+function saveTree(treel::BayesTree,
+                  filepath=joinpath("/tmp","caesar","savetree.jld2") )
+  #
   savetree = deepcopy(treel)
   for i in 1:length(savetree.cliques)
     if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
       savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+function saveTree(treeArr::Vector{BayesTree},
+                  filepath=joinpath("/tmp","caesar","savetrees.jld2") )
+  #
+  savetree = deepcopy(treeArr)
+  for savtre in savetree, i in 1:length(savtre.cliques)
+    if savtre.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savtre.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savtre.cliques[i].attributes["data"])
     end
   end
 
@@ -1534,9 +1550,17 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   data = @load filepath savetree
 
   # convert back to a type that which could not be serialized by JLD2
-  for i in 1:length(savetree.cliques)
-    if  savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
-      savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+  if savetree isa Vector
+      for savtre in savetree, i in 1:length(savtre.cliques)
+        if savtre.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+          savtre.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savtre.cliques[i].attributes["data"])
+        end
+      end
+  else
+    for i in 1:length(savetree.cliques)
+      if savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+        savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+      end
     end
   end
 
