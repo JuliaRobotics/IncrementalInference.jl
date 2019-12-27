@@ -24,7 +24,7 @@ fg = loadCanonicalFG_CaesarRing1D()
 eo = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
 
 tree = buildTreeFromOrdering!(fg,eo)
-drawTree(tree, show=true)
+# drawTree(tree, show=true)
 
 @test length(tree.cliques) == 6
 
