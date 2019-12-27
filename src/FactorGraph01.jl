@@ -162,7 +162,7 @@ function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; sol
   setVal!(solverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::T, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default) where T <: AbstractDFG
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -393,6 +393,43 @@ end
 #   pN = AMP.manikde!(initval, softtype.manifolds)
 # end
 # dims = size(initval,1) # rows indicate dimensions
+
+
+
+"""
+    $SIGNATURES
+
+Reference data can be stored in the factor graph as a super-solve.
+
+Notes
+- Intended as a mechanism to store reference data alongside the numerical computations.
+"""
+function setVariableRefence!(dfg::AbstractDFG,
+                             sym::Symbol,
+                             val::Array{Float64,2};
+                             refKey::Symbol=:reference)
+  #
+  # which variable to update
+  var = getVariable(dfg, sym)
+
+  # Construct an empty VND object
+  vnd = VariableNodeData(val,
+                         zeros(getDimension(var),1),
+                         Symbol[],
+                         Int[0;],
+                         getDimension(var),
+                         false,
+                         :_null,
+                         Symbol[],
+                         getSofttype(var),
+                         true,
+                         0.0,
+                         false,
+                         true  )
+  #
+  # set the value in the DFGVariable
+  setSolverData(var, vnd, refKey)
+end
 
 
 """
@@ -867,12 +904,26 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
 end
 
 
-function ensureAllInitialized!(dfg::T) where T <: AbstractDFG
-  allvarnodes = getVariables(dfg)
-  for var in allvarnodes
-    if !isInitialized(var)
-      @info "$(var.label) is not initialized, and will do so now..."
-      doautoinit!(dfg, [var;], singles=true)
+function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+  # allvarnodes = getVariables(dfg)
+  syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
+  # syms = ls(dfg, solvable=solvable) # |> sortDFG
+  repeatCount = 0
+  repeatFlag = true
+  while repeatFlag
+    repeatFlag = false
+    repeatCount += 1
+    if 10 < repeatCount
+      @info "not able to initialize all variables via the factor graph, abort autoinit."
+      break;
+    end
+    for sym in syms
+      var = getVariable(dfg, sym)
+      if !isInitialized(var)
+        @info "$(var.label) is not initialized, and will do so now..."
+        doautoinit!(dfg, [var;], singles=true)
+        !isInitialized(var) ? (repeatFlag = true) : nothing
+      end
     end
   end
   nothing
@@ -1024,6 +1075,7 @@ Notes
 
 Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
+- TODO: Incidence matrix is rectagular and adjacency is the square.
 """
 function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -1043,7 +1095,8 @@ function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) wher
   end
 
   # Return the variable ordering that we should use for the Bayes map
-  return permuteds[p]
+  # reverse order checked in #475 and #499
+  return permuteds[p] |> reverse
 end
 
 

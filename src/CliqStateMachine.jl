@@ -499,6 +499,8 @@ Notes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
+  infocsm(csmc, "7, start, forceproceed=$(csmc.forceproceed)")
+
   # fetch children status
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
 
@@ -510,20 +512,32 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     # :needdownmsg # 'send' downward init msg direction
     !(clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? (proceed = false) : nothing
   end
-  infocsm(csmc, "7, proceed=$(proceed), forceproceed=$(csmc.forceproceed)")
+  infocsm(csmc, "7, proceed=$(proceed)")
 
 
   if proceed || csmc.forceproceed
+    # TODO, remove csmc.forceproceed
     csmc.forceproceed = false
     # return doCliqInferAttempt_StateMachine
     cliqst = getCliqStatus(csmc.cliq)
     infocsm(csmc, "7, status=$(cliqst), before attemptCliqInitDown_StateMachine")
     # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
     if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq, csmc.logger)
+      # go to 8a
       return attemptCliqInitDown_StateMachine
+    # HALF DUPLICATED IN STEP 4
+    elseif cliqst == :marginalized
+      # go to 1
+      return isCliqUpSolved_StateMachine
+      ## NOTE -- what about notifyCliqUpInitStatus! ??
+      # go to 10
+      # return determineCliqIfDownSolve_StateMachine
     end
+
+    # go to 8b
     return attemptCliqInitUp_StateMachine
   else
+    # go to 7b
     return slowCliqIfChildrenNotUpsolved_StateMachine
   end
 end
@@ -539,6 +553,7 @@ function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMac
   infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
   blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, logger=csmc.logger)
 
+  # go to 7
   return determineCliqNeedDownMsg_StateMachine
 end
 
@@ -572,18 +587,30 @@ end
     $SIGNATURES
 
 Notes
-- State machine function nr. 4
+- State machine function nr.4
 """
 function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
   prnt = getParent(csmc.tree, csmc.cliq)
-  infocsm(csmc, "4, isCliqNull_StateMachine, csmc.incremental=$(csmc.incremental), len(prnt)=$(length(prnt))")
+  cliqst = getCliqStatus(csmc.oldcliqdata)
+  infocsm(csmc, "4, isCliqNull_StateMachine, $cliqst, len(prnt)=$(length(prnt)), csmc.incremental=$(csmc.incremental)")
+
+  if cliqst in [:marginalized;]
+      # if cliqst == :marginalized || cliqst in [:downsolved; :uprecycled] && ( length(prnt) == 0 ) # ||
+      # 0 < length(prnt) && getCliqStatus(prnt) in [:downsolved; :uprecycled; :marginalized;] )
+      # go to 10 -- Add case for IIF issue #474
+      return determineCliqIfDownSolve_StateMachine
+  end
+
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
   csmc.forceproceed = false
 
+  # if clique is marginalized, then no reason to continue here
+  # if no parent or parent will not update
+
   # for recycle computed clique values case
-  if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+  if csmc.incremental && cliqst == :downsolved
     csmc.incremental = false
     # might be able to recycle the previous clique solve, go to 0b
     return checkChildrenAllUpRecycled_StateMachine
@@ -614,6 +641,7 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
 
   if cliqst != :null
     if cliqst != :needdownmsg
+      # go to 6c
       return blockCliqSiblingsParentChildrenNeedDown_StateMachine
     end
   else
@@ -638,9 +666,11 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
     return blockCliqSiblingsParentChildrenNeedDown_StateMachine
   end # != :null
 
+  areChildDown = areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+  infocsm(csmc, "4b, areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)=$(areChildDown)")
   # if cliqst == :needdownmsg
-    if areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-      infocsm(csmc, "4, must deal with child :needdownmsg")
+    if areChildDown
+      infocsm(csmc, "4b, must deal with child :needdownmsg")
       csmc.forceproceed = true
     else
       # go to 5
@@ -663,25 +693,11 @@ Notes
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  syms = getCliqAllVarIds(csmc.cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2, build subgraph syms=$(getCliqAllVarIds(csmc.cliq))")
+  buildCliqSubgraph(csmc.dfg, csmc.tree, csmc.cliq, csmc.cliqSubFg)
 
-  infocsm(csmc, "2, build subgraph syms=$(syms)")
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, InMemDFGType)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
-  # end
-
-  # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build.pdf"))
-  end
+  # if dfg, store the cliqSubFg for later debugging
+  dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
 
   # go to 4
   return isCliqNull_StateMachine

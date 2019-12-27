@@ -1,9 +1,11 @@
+export getVariableOrder
+
 """
     $SIGNATURES
 
 Get the frontal variable IDs `::Int` for a given clique in a Bayes (Junction) tree.
 """
-getCliqFrontalVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.frontalIDs
+getCliqFrontalVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.frontalIDs
 getCliqFrontalVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqFrontalVarIds(getData(cliq))
 
 """
@@ -44,30 +46,37 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
-    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",") #fgl.v[fr].
+    flbl = string(flbl, DFG.getVariable(dfg,fr).label, ",")
   end
-  for cond in getData(clq).conditIDs
-    clbl = string(clbl, DFG.getVariable(dfg,cond).label, ",") # fgl.v[cond].
+  for sepr in getData(clq).separatorIDs
+    clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
   clq.attributes["label"] = string(flbl, ": ", clbl)
 end
 
-# add a conditional ID to clique
-function appendConditional(bt::BayesTree, clqID::Int, condIDs::Array{Symbol,1})
-  clq = bt.cliques[clqID]
-  getData(clq).conditIDs = union(getData(clq).conditIDs, condIDs)
+"""
+    $SIGNATURES
+
+Add the separator for the newly created clique.
+"""
+function appendSeparatorToClique(bt::BayesTree, clqID::Int, seprIDs::Array{Symbol,1})
+  union!(getData(bt.cliques[clqID]).separatorIDs, seprIDs)
+  nothing
 end
 
 """
     $SIGNATURES
 
 Add a new frontal variable to clique.
+
+DevNotes
+- TODO, define what "conditionals" are CLEARLY!!
 """
 function appendClique!(bt::BayesTree,
                        clqID::Int,
                        dfg::AbstractDFG,
                        varID::Symbol,
-                       condIDs::Array{Symbol,1}=Symbol[] )::Nothing
+                       seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
   #
   clq = bt.cliques[clqID]
   var = DFG.getVariable(dfg, varID)
@@ -78,8 +87,9 @@ function appendClique!(bt::BayesTree,
   # total dictionary of frontals for easy access
   bt.frontals[varID] = clqID
 
-  # append to cliq conditionals
-  appendConditional(bt, clqID, condIDs)
+  # TODO - confirm this, append to cliq separator ??
+  # @info "going for: appendSeparatorToClique on (clqID, seprIDs)=($clqID, $seprIDs)"
+  appendSeparatorToClique(bt, clqID, seprIDs)
   makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
@@ -89,7 +99,8 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::BayesTree, dfg::G, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1}) where G <: AbstractDFG
+function newChildClique!(bt::BayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
+  # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
   # Staying with Graphs.jl for tree in first stage
@@ -145,6 +156,8 @@ Eliminate a variable and add to tree cliques accordingly.
 Dev Notes
 - `p` should be elimination order.
 - `var` is next variable to be added to the tree.
+- TODO, make sure this works for disjoint graphs
+  - Check laplacian, check eigen == 1 is disjoint sets
 
 References
 Kaess et al.: Bayes Tree, WAFR, 2010, [Alg. 2]
@@ -167,13 +180,21 @@ function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Sym
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
       Sj = solverData(firvert).separator
       felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
+      # get clique id of first eliminated frontal
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
       cliq = tree.cliques[CpID]
+      # clique of the first eliminated frontal
       unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
+      # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
       if (sort(unFC) == sort(Sj))
+        # just add new variable as frontal to this clique
+        # insert conditional (p(var|sepr)) into clique CpID -- i.e. just adding a frontal
+        # @info "adding new frontal $var to existing clique $CpID"
         appendClique!(tree, CpID, dfg, var)
       else
+        # a new child clique is required here (this becomes parent)
+        # @info "adding new child clique with parent separator."
         newChildClique!(tree, dfg, CpID, var, Sj)
       end
     end
@@ -184,13 +205,16 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::BayesTree, dfg::G, elimorder::Array{Symbol,1}) where G <: AbstractDFG
-  revorder = reverse(elimorder,dims=1) # flipdim(p, 1)
+function buildTree!(tree::BayesTree, dfg::AbstractDFG, elimorder::Array{Symbol,1})
+  revorder = reverse(elimorder,dims=1) # flipdim(p, 1), fixing #499
   # prevVar = 0
   for var in revorder
+    @info "Adding $var to tree..."
     newPotential(tree, dfg, var, elimorder)
     prevVar = var
   end
+
+  return tree
 end
 
 """
@@ -345,15 +369,17 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::G,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50 ,
+                                maxparallel::Int=50,
                                 solvable::Int=1 ) where G <: InMemoryDFGTypes
   #
   println()
   fge = deepcopy(dfg)
-  println("Building Bayes net...")
+  @info "Building Bayes net..."
   buildBayesNet!(fge, p, maxparallel=maxparallel, solvable=solvable)
 
+  @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -392,6 +418,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   buildBayesNet!(fge, p, maxparallel=maxparallel)
 
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -420,15 +447,24 @@ Notes
 """
 function prepBatchTree!(dfg::AbstractDFG;
                         ordering::Symbol=:qr,
+                        variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50  )
+                        maxparallel::Int=50 )
   #
-  p = getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
+
+  # for debuggin , its useful to have the variable ordering
+  if drawpdf
+    ispath(getLogPath(dfg)) ? nothing : Base.mkpath(getLogPath(dfg))
+    open(joinLogPath(dfg,"variableOrder.txt"), "a") do io
+      writedlm(io, string.(reshape(p,1,:)), ',')
+    end
+  end
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
 
@@ -483,7 +519,7 @@ end
 
 Reset factor graph and build a new tree from the provided variable ordering `p`.
 """
-function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Int})::BayesTree
+function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})::BayesTree
   resetFactorGraphNewTree!(fgl)
   return buildTreeFromOrdering!(fgl, p)
 end
@@ -505,10 +541,11 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=50  )::BayesTree where G <: AbstractDFG
+                           maxparallel::Int=50,
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::BayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
 end
 
 """
@@ -705,11 +742,12 @@ function getCliqFactorsFromFrontals(fgl::G,
                                     cliq::Graphs.ExVertex,
                                     varlist::Vector{Symbol};
                                     inseparator::Bool=true,
-                                    unused::Bool=true  ) where {G <: AbstractDFG}
+                                    unused::Bool=true,
+                                    solvable::Int=1  ) where {G <: AbstractDFG}
   #
   frtls = getData(cliq).frontalIDs
-  conds = getData(cliq).conditIDs
-  allids = [frtls;conds]
+  seprs = getData(cliq).separatorIDs
+  allids = [frtls;seprs]
 
   usefcts = Symbol[]
   for frsym in frtls
@@ -717,7 +755,7 @@ function getCliqFactorsFromFrontals(fgl::G,
     for fctid in ls(fgl, frsym)
         fct = getFactor(fgl, fctid)
         if !unused || !solverData(fct).potentialused
-            loutn = ls(fgl, fctid)
+            loutn = ls(fgl, fctid, solvable=solvable)
             # deal with unary factors
             if length(loutn)==1
                 union!(usefcts, Symbol[Symbol(fct.label);])
@@ -734,7 +772,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                     union!(usefcts, Symbol[Symbol(fct.label);])
                     solverData(fct).potentialused = true
                     if !insep
-                        @info "cliq=$(cliq.index) adding factor that is no in separator, $sep"
+                        @info "cliq=$(cliq.index) adding factor that is not in separator, $sep"
                     end
                 end
             end
@@ -763,12 +801,16 @@ Determine and set the potentials for a particular `cliq` in the Bayes (Junction)
 """
 function setCliqPotentials!(dfg::G,
                             bt::BayesTree,
-                            cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                            cliq::Graphs.ExVertex;
+                            solvable::Int=1  ) where G <: AbstractDFG
   #
   varlist = getCliqVarIdsAll(cliq)
 
-  @info "using all factors among cliq variables"
+  @info "using all factors connected to frontals and attached to separator"
   fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
+  # filter only factors connected to frontals (for upward)
+  frtfcts = union(map(x->ls(dfg, x), getCliqFrontalVarIds(cliq))...)
+  fctsyms = intersect(fctsyms, frtfcts)
 
   getData(cliq).potentials = fctsyms
   getData(cliq).partialpotential = Vector{Bool}(undef, length(fctsyms))
@@ -779,7 +821,7 @@ function setCliqPotentials!(dfg::G,
   end
 
   @info "finding all frontals for down WIP"
-  ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false)
+  ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false, solvable=solvable)
   # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
   getData(cliq).dwnPotentials = ffctsyms
   getData(cliq).dwnPartialPotential = map(x->isPartial(getFactor(dfg,x)), ffctsyms )
@@ -811,7 +853,7 @@ Collect and returl all child clique separator variables.
 function collectSeparators(bt::BayesTree, cliq::Graphs.ExVertex)::Vector{Symbol}
   allseps = Symbol[]
   for child in out_neighbors(cliq, bt.bt)#tree
-      allseps = [allseps; getData(child).conditIDs]
+      allseps = [allseps; getData(child).separatorIDs]
   end
   return allseps
 end
@@ -853,7 +895,7 @@ end
 
 Get `cliq` separator (a.k.a. conditional) variable ids`::Symbol`.
 """
-getCliqSeparatorVarIds(cliqdata::BayesTreeNodeData)::Vector{Symbol} = cliqdata.conditIDs
+getCliqSeparatorVarIds(cliqdata::Union{BayesTreeNodeData, PackedBayesTreeNodeData})::Vector{Symbol} = cliqdata.separatorIDs
 getCliqSeparatorVarIds(cliq::Graphs.ExVertex)::Vector{Symbol} = getCliqSeparatorVarIds(getData(cliq))
 
 """
@@ -930,10 +972,13 @@ DEPRECATED, use getCliqFactorIdsAll instead.
 
 Related
 
-getCliqVarIdsAll
+getCliqVarIdsAll, getCliqFactors
 """
 getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
 getCliqFactorIdsAll(cliq::Graphs.ExVertex) = getCliqFactorIdsAll(getData(cliq))
+getCliqFactorIdsAll(treel::BayesTree, frtl::Symbol) = getCliqFactorIdsAll(getCliq(treel, frtl))
+
+const getCliqFactors = getCliqFactorIdsAll
 
 """
     $SIGNATURES
@@ -990,55 +1035,6 @@ function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::TempBe
   return container
 end
 
-
-"""
-    $SIGNATURES
-
-Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-"""
-function buildCliqSubgraphUp(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
-  # build a subgraph copy of clique
-  cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarIds(cliq)
-  subfg = buildSubgraphFromLabels(fgl,syms)
-
-  # add upward messages to subgraph
-  msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
-  addMsgFactors!(subfg, msgs)
-  return subfg
-end
-
-
-"""
-    $SIGNATURES
-
-Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-"""
-function buildCliqSubgraphDown(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
-  # build a subgraph copy of clique
-  cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarIds(cliq)
-  subfg = buildSubgraphFromLabels(fgl,syms)
-
-  # add upward messages to subgraph
-  msgs = getCliqParentMsgDown(treel, cliq)
-  addMsgFactors!(subfg, msgs)
-  return subfg
-end
 
 
 """
@@ -1158,14 +1154,14 @@ function skipThroughMsgsIDs(cliq::Graphs.ExVertex)
   mabM = sum(map(Int,condMsgMat),dims=1) .== 1
   mab = mab .& mabM
   # rang = 1:size(condMsgMat,2)
-  msgidx = cliqdata.conditIDs[vec(collect(mab))]
+  msgidx = cliqdata.separatorIDs[vec(collect(mab))]
   return msgidx
 end
 
 function directPriorMsgIDs(cliq::Graphs.ExVertex)
   frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  sepr = getData(cliq).separatorIDs
+  cols = [frtl;sepr]
   mat = getCliqMat(cliq, showmsg=true)
   singr = sum(map(Int,mat),dims=2) .== 1
   rerows = collect(1:length(singr))
@@ -1196,9 +1192,10 @@ function directAssignmentIDs(cliq::Graphs.ExVertex)
   mab = sum(map(Int,mat),dims=1) .== 1
   mabA = sum(map(Int,assocMat),dims=1) .== 1
   mab = mab .& mabA
+  # TODO -- use proper accessor methods
   frtl = getData(cliq).frontalIDs
-  cond = getData(cliq).conditIDs
-  cols = [frtl;cond]
+  sepr = getData(cliq).separatorIDs
+  cols = [frtl;sepr]
   return cols[vec(collect(mab))]
   # also calculate how which are conditionals
 end
@@ -1320,7 +1317,7 @@ function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::Graphs.ExVertex; sol
         buildCliquePotentials(dfg, bt, child)
     end
     @info "Get potentials $(cliq.attributes["label"])"
-    setCliqPotentials!(dfg, bt, cliq)
+    setCliqPotentials!(dfg, bt, cliq, solvable=solvable)
 
     compCliqAssocMatrices!(dfg, bt, cliq)
     setCliqMCIDs!(cliq)
@@ -1483,4 +1480,90 @@ function stackCliqUpMsgsByVariable(tree::BayesTree,
   end
 
   return stack
+end
+
+"""
+    $SIGNATURES
+
+Return the variable order stored in a tree object.
+"""
+getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
+
+getEliminationOrder(treel::BayesTree) = treel.variableOrder
+
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function saveTree(treel::BayesTree,
+                  filepath=joinpath("/tmp","caesar","savetree.jld2") )
+  #
+  savetree = deepcopy(treel)
+  for i in 1:length(savetree.cliques)
+    if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+function saveTree(treeArr::Vector{BayesTree},
+                  filepath=joinpath("/tmp","caesar","savetrees.jld2") )
+  #
+  savetree = deepcopy(treeArr)
+  for savtre in savetree, i in 1:length(savtre.cliques)
+    if savtre.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savtre.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savtre.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
+  data = @load filepath savetree
+
+  # convert back to a type that which could not be serialized by JLD2
+  if savetree isa Vector
+      for savtre in savetree, i in 1:length(savtre.cliques)
+        if savtre.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+          savtre.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savtre.cliques[i].attributes["data"])
+        end
+      end
+  else
+    for i in 1:length(savetree.cliques)
+      if savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+        savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+      end
+    end
+  end
+
+  # return loaded and converted tree
+  return savetree
 end
