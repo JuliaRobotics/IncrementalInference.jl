@@ -1,5 +1,5 @@
 
-export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic
+export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D
 
 
 """
@@ -37,10 +37,10 @@ end
 """
     $SIGNATURES
 
-Canonical example from literature, Kaess, et al.: ISAM2, IJRR, 2011.
+Canonical example introduced by Borglab.
 
 Notes
-- Paper variable ordering: p = [:l1;:l2;:x1;:x2;:x3]
+- Known variable ordering: p = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
 """
 function loadCanonicalFG_TestSymbolic()
   fg = initfg()
@@ -64,6 +64,43 @@ function loadCanonicalFG_TestSymbolic()
   addFactor!(fg, [:l2;:x5], LinearConditional(Normal()))
   addFactor!(fg, [:x4;:l3], LinearConditional(Normal()))
   addFactor!(fg, [:x5;:l3], LinearConditional(Normal()))
+
+  return fg
+end
+
+
+
+"""
+    $SIGNATURES
+
+Canonical example introduced originally as Caesar Hex Example.
+
+Notes
+- Paper variable ordering: p = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
+"""
+function loadCanonicalFG_CaesarRing1D()
+
+  fg = initfg()
+
+  addVariable!(fg, :x0, ContinuousScalar)
+  addVariable!(fg, :x1, ContinuousScalar)
+  addVariable!(fg, :x2, ContinuousScalar)
+  addVariable!(fg, :x3, ContinuousScalar)
+  addVariable!(fg, :x4, ContinuousScalar)
+  addVariable!(fg, :x5, ContinuousScalar)
+  addVariable!(fg, :x6, ContinuousScalar)
+
+  addFactor!(fg, [:x0], Prior(Normal()))
+  addFactor!(fg, [:x0;:x1], LinearConditional(Normal()))
+  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()))
+  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()))
+  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()))
+  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()))
+  addFactor!(fg, [:x5;:x6], LinearConditional(Normal()))
+
+  addVariable!(fg, :l1, ContinuousScalar)
+  addFactor!(fg, [:x0;:l1], LinearConditional(Normal()))
+  addFactor!(fg, [:x6;:l1], LinearConditional(Normal()))
 
   return fg
 end
