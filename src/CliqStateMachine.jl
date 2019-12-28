@@ -693,25 +693,11 @@ Notes
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  syms = getCliqAllVarIds(csmc.cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2, build subgraph syms=$(getCliqAllVarIds(csmc.cliq))")
+  buildCliqSubgraph(csmc.dfg, csmc.tree, csmc.cliq, csmc.cliqSubFg)
 
-  infocsm(csmc, "2, build subgraph syms=$(syms)")
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, InMemDFGType)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
-  # end
-
-  # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build.pdf"))
-  end
+  # if dfg, store the cliqSubFg for later debugging
+  dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
 
   # go to 4
   return isCliqNull_StateMachine

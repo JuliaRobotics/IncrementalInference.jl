@@ -1,3 +1,5 @@
+export getVariableOrder
+
 """
     $SIGNATURES
 
@@ -203,14 +205,16 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::BayesTree, dfg::G, elimorder::Array{Symbol,1}) where G <: AbstractDFG
-  revorder = reverse(elimorder,dims=1) # flipdim(p, 1)
+function buildTree!(tree::BayesTree, dfg::AbstractDFG, elimorder::Array{Symbol,1})
+  revorder = reverse(elimorder,dims=1) # flipdim(p, 1), fixing #499
   # prevVar = 0
   for var in revorder
     @info "Adding $var to tree..."
     newPotential(tree, dfg, var, elimorder)
     prevVar = var
   end
+
+  return tree
 end
 
 """
@@ -375,6 +379,7 @@ function buildTreeFromOrdering!(dfg::G,
 
   @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -413,6 +418,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   buildBayesNet!(fge, p, maxparallel=maxparallel)
 
   tree = emptyBayesTree()
+  tree.variableOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -800,8 +806,11 @@ function setCliqPotentials!(dfg::G,
   #
   varlist = getCliqVarIdsAll(cliq)
 
-  @info "using all factors among cliq variables"
+  @info "using all factors connected to frontals and attached to separator"
   fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
+  # filter only factors connected to frontals (for upward)
+  frtfcts = union(map(x->ls(dfg, x), getCliqFrontalVarIds(cliq))...)
+  fctsyms = intersect(fctsyms, frtfcts)
 
   getData(cliq).potentials = fctsyms
   getData(cliq).partialpotential = Vector{Bool}(undef, length(fctsyms))
@@ -1026,55 +1035,6 @@ function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::Graphs.ExVertex)::TempBe
   return container
 end
 
-
-"""
-    $SIGNATURES
-
-Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-"""
-function buildCliqSubgraphUp(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
-  # build a subgraph copy of clique
-  cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarIds(cliq)
-  subfg = buildSubgraphFromLabels(fgl,syms)
-
-  # add upward messages to subgraph
-  msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
-  addMsgFactors!(subfg, msgs)
-  return subfg
-end
-
-
-"""
-    $SIGNATURES
-
-Build a new subgraph from `fgl::FactorGraph` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-"""
-function buildCliqSubgraphDown(fgl::FactorGraph, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
-  # build a subgraph copy of clique
-  cliq = whichCliq(treel, cliqsym)
-  syms = getCliqAllVarIds(cliq)
-  subfg = buildSubgraphFromLabels(fgl,syms)
-
-  # add upward messages to subgraph
-  msgs = getCliqParentMsgDown(treel, cliq)
-  addMsgFactors!(subfg, msgs)
-  return subfg
-end
 
 
 """
@@ -1520,4 +1480,90 @@ function stackCliqUpMsgsByVariable(tree::BayesTree,
   end
 
   return stack
+end
+
+"""
+    $SIGNATURES
+
+Return the variable order stored in a tree object.
+"""
+getVariableOrder(treel::BayesTree)::Vector{Symbol} = treel.variableOrder
+
+getEliminationOrder(treel::BayesTree) = treel.variableOrder
+
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.loadTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function saveTree(treel::BayesTree,
+                  filepath=joinpath("/tmp","caesar","savetree.jld2") )
+  #
+  savetree = deepcopy(treel)
+  for i in 1:length(savetree.cliques)
+    if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+function saveTree(treeArr::Vector{BayesTree},
+                  filepath=joinpath("/tmp","caesar","savetrees.jld2") )
+  #
+  savetree = deepcopy(treeArr)
+  for savtre in savetree, i in 1:length(savtre.cliques)
+    if savtre.cliques[i].attributes["data"] isa BayesTreeNodeData
+      savtre.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savtre.cliques[i].attributes["data"])
+    end
+  end
+
+  JLD2.@save filepath savetree
+  return filepath
+end
+
+"""
+    $SIGNATURES
+
+EXPERIMENTAL, Save a Bayes (Junction) tree object to file.
+
+Notes
+- Converts and saves to JLD2 format a set of `PackedBayesTreeNodeData` objects.
+- IIF issue #481
+
+Related
+
+IIF.saveTree, DFG.saveDFG, DFG.loadDFG, JLD2.@save, JLD2.@load
+"""
+function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
+  data = @load filepath savetree
+
+  # convert back to a type that which could not be serialized by JLD2
+  if savetree isa Vector
+      for savtre in savetree, i in 1:length(savtre.cliques)
+        if savtre.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+          savtre.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savtre.cliques[i].attributes["data"])
+        end
+      end
+  else
+    for i in 1:length(savetree.cliques)
+      if savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
+        savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+      end
+    end
+  end
+
+  # return loaded and converted tree
+  return savetree
 end
