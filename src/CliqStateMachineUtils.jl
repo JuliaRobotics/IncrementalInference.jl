@@ -144,7 +144,7 @@ function sandboxCliqResolveStep(tree::BayesTree,
   hist = getCliqSolveHistory(tree, frontal)
   # clear Condition states to allow step solve
   getData(hist[step][4].cliq).solveCondition = Condition()
-  
+
   # cond = getSolveCondition(hist[step][4].cliq)
   # cond = Any[]
   return sandboxStateMachineStep(hist, step)
@@ -1011,7 +1011,7 @@ DevNotes
 function buildCliqSubgraph(dfg::AbstractDFG,
                            treel::BayesTree,
                            cliq::Graphs.ExVertex,
-                           subfg::InMemDFGType=GraphsDFG(params=getSolverParams(dfg)) )
+                           subfg::InMemoryDFGTypes=GraphsDFG(params=getSolverParams(dfg)) )
   #
   # get cliq and variable labels
   syms = getCliqAllVarIds(cliq)
