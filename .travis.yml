@@ -1,4 +1,6 @@
-language: julia
+language: 
+  - julia
+  - python
 
 os:
   - linux
