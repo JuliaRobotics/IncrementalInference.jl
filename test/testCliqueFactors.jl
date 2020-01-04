@@ -95,9 +95,32 @@ end
 
 
 
-@testset "Test clique factors, #458 Example 1" begin
+@testset "Test clique factors, #458 Example 2" begin
 
 @warn "Test for Example 2 from 458 must still be coded."
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+addVariable!(fg, :x2, ContinuousScalar)
+addVariable!(fg, :x3, ContinuousScalar)
+
+addVariable!(fg, :lm0, ContinuousScalar)
+addVariable!(fg, :lm3, ContinuousScalar)
+
+lc = LinearConditional(Normal())
+lp = Prior(Normal())
+addFactor!(fg, [:x0;:x1], lc, autoinit=false)
+addFactor!(fg, [:x1;:x2], lc, autoinit=false)
+addFactor!(fg, [:x2;:x3], lc, autoinit=false)
+addFactor!(fg, [:x3;:x4], lc, autoinit=false)
+
+addFactor!(fg, [:x0;:lm0], lc, autoinit=false)
+addFactor!(fg, [:x1;:lm0], lc, autoinit=false)
+addFactor!(fg, [:x2;:lm3], lc, autoinit=false)
+addFactor!(fg, [:x3;:lm3], lc, autoinit=false)
+
 
 end
 
