@@ -114,12 +114,25 @@ lp = Prior(Normal())
 addFactor!(fg, [:x0;:x1], lc, autoinit=false)
 addFactor!(fg, [:x1;:x2], lc, autoinit=false)
 addFactor!(fg, [:x2;:x3], lc, autoinit=false)
-addFactor!(fg, [:x3;:x4], lc, autoinit=false)
 
 addFactor!(fg, [:x0;:lm0], lc, autoinit=false)
 addFactor!(fg, [:x1;:lm0], lc, autoinit=false)
 addFactor!(fg, [:x2;:lm3], lc, autoinit=false)
 addFactor!(fg, [:x3;:lm3], lc, autoinit=false)
+
+# particular order from 458
+vo = Symbol[:x0, :x2, :x1, :lm3, :lm0, :x3]
+
+tree = resetBuildTreeFromOrder!(fg, vo)
+drawTree(tree, show=true)
+# getSolverParams(fg).dbg = true
+# tree, smt, hist = solveTree!(fg, variableOrder=vo)
+
+sfg = buildCliqSubgraph(fg,tree,:x3)
+# drawGraph(sfg, show=true)
+
+## WIP
+# getCliqFactorIdsAll(tree, :x3)
 
 
 end
