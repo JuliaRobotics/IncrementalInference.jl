@@ -120,22 +120,45 @@ addFactor!(fg, [:x1;:lm0], lc, autoinit=false)
 addFactor!(fg, [:x2;:lm3], lc, autoinit=false)
 addFactor!(fg, [:x3;:lm3], lc, autoinit=false)
 
+
 # particular order from 458
 vo = Symbol[:x0, :x2, :x1, :lm3, :lm0, :x3]
-
 tree = resetBuildTreeFromOrder!(fg, vo)
-drawTree(tree, show=true)
-# getSolverParams(fg).dbg = true
-# tree, smt, hist = solveTree!(fg, variableOrder=vo)
+# drawTree(tree, show=true)
 
-sfg = buildCliqSubgraph(fg,tree,:x3)
-# drawGraph(sfg, show=true)
+sfg_1 = buildCliqSubgraph(fg,tree,:x3)
+sfg_2 = buildCliqSubgraph(fg,tree,:x2)
+sfg_3 = buildCliqSubgraph(fg,tree,:x0)
+# drawGraph(sfg_1, show=true)
+# drawGraph(sfg_2, show=true)
+# drawGraph(sfg_3, show=true)
 
 ## WIP
-# getCliqFactorIdsAll(tree, :x3)
+C1_fcts = [:x1lm0f1; :x3lm3f1]
+C2_fcts = [:x1x2f1; :x2x3f1; :x2lm3f1]
+C3_fcts = [:x0x1f1; :x0lm0f1]
+
+# check all factors are accounted for
+@test union(C1_fcts, C2_fcts, C3_fcts) |> length == lsf(fg) |> length
+@test intersect(C1_fcts, C2_fcts) |> length == 0
+@test intersect(C1_fcts, C3_fcts) |> length == 0
+@test intersect(C2_fcts, C3_fcts) |> length == 0
+
+# clique 1
+@test intersect(getCliqFactorIdsAll(tree, :x3), C1_fcts) |> length == 2
+@test intersect(lsf(sfg_1), C1_fcts) |> length == 2
+
+# clique 2
+@test intersect( getCliqFactorIdsAll(tree, :x2), C2_fcts) |> length == 3
+@test intersect( lsf(sfg_2), C2_fcts) |> length == 3
+
+# clique 3
+@test intersect( getCliqFactorIdsAll(tree, :x0), C3_fcts) |> length == 2
+@test intersect( lsf(sfg_3), C3_fcts) |> length == 2
 
 
 end
+
 
 
 
