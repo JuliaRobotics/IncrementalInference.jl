@@ -15,6 +15,7 @@ using Reexport
 using
   Dates,
   DistributedFactorGraphs,
+  DelimitedFiles,
   Statistics,
   Random,
   NLsolve,
@@ -73,6 +74,7 @@ export
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
   BayesTreeNodeData,
+  PackedBayesTreeNodeData,
 
   # state machine methods
   StateMachine,
@@ -143,10 +145,12 @@ export
   getSofttype,
   getVariableType,
   getLogPath,
+  joinLogPath,
   lsfPriors,
   isPrior,
   lsTypes,
   lsfTypes,
+  findClosestTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -209,8 +213,9 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
-  buildCliqSubgraphUp,
-  buildCliqSubgraphDown,
+  buildCliqSubgraph,
+  # buildCliqSubgraphUp,
+  # buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
@@ -416,6 +421,7 @@ export
   getCliqVarSingletons,
   getCliqAllFactIds,
   getCliqFactorIdsAll,
+  getCliqFactors,
   areCliqVariablesAllMarginalized,
   setTreeCliquesMarginalized!,
 
@@ -428,13 +434,17 @@ export
   extractdistribution,
 
   # factor graph operating system utils (fgos)
-  convert2packedfunctionnode,
-  encodefg,
-  decodefg,
-  savejld,
-  loadjld,
+  saveTree,
+  loadTree,
+  # convert2packedfunctionnode,
+  # encodefg,
+  # decodefg,
+  # savejld,
+  # loadjld,
   landmarks,
   setCliqDrawColor,
+
+  # csm utils
   fetchCliqTaskHistoryAll!,
   fetchAssignTaskHistoryAll!,
 
@@ -468,12 +478,11 @@ export
   compare,
   compareAllSpecial,
   getIdx,
-  showFactor,
-  showVariable,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  setVariableRefence!,
 
   # For 1D example,
 
@@ -515,13 +524,13 @@ include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("FactorGraph01.jl")
-include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
 include("JunctionTreeTypes.jl")
+include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
@@ -546,6 +555,7 @@ include("Factors/Sphere1D.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
+include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
 
 include("CanonicalGraphsExamples2.jl")
@@ -589,7 +599,7 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].conditIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp

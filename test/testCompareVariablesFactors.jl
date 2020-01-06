@@ -88,7 +88,7 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 
 
-sfg = buildSubgraphFromLabels(fg, [:x0;:x1])
+sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 
 
 @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
