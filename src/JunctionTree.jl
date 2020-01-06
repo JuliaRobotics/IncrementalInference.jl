@@ -372,6 +372,7 @@ function buildTreeFromOrdering!(dfg::G,
                                 maxparallel::Int=50,
                                 solvable::Int=1 ) where G <: InMemoryDFGTypes
   #
+  t0 =time_ns()
   println()
   fge = deepcopy(dfg)
   @info "Building Bayes net..."
@@ -394,6 +395,7 @@ function buildTreeFromOrdering!(dfg::G,
   cliq = tree.cliques[1] # start at the root
   buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
 
+  tree.buildTime = (time_ns()-t0)/1e9
   return tree
 end
 
