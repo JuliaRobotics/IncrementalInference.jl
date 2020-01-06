@@ -14,8 +14,8 @@ mutable struct BayesTree
   btid::Int
   cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}
-  #TEMP JT for evaluation, to store message channels in tree, would be better stored on edges
-  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{<:AbstractBeliefMessage},Channel{<:AbstractBeliefMessage}}}}
+  #TEMP JT for evaluation, store message channels associated with edges between nodes Int -> edge id.  TODO rather store in graph
+  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}
 end
 
 function emptyBayesTree()
@@ -24,7 +24,7 @@ function emptyBayesTree()
                      Dict{Int,Graphs.ExVertex}(),
                      #[],
                      Dict{AbstractString, Int}(),
-                     Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{ParametricBeliefMessage},Channel{ParametricBeliefMessage}}}}())
+                     Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}())
     return bt
 end
 
@@ -54,8 +54,8 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  parametricMsgsUp::Vector{ParametricBeliefMessage} #TODO TEMP net om te kyk hoe dit werk, dit moet eintelik <: abstact wees
-  parametricMsgsDown::Vector{ParametricBeliefMessage}
+  msgsUp::Vector{BeliefMessage} #TODO towards consolidated messages
+  msgsDown::Vector{BeliefMessage}
   CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::InMemoryDFGTypes,
@@ -71,7 +71,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
                                   x10aaa::SolverParams,
 								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                   x11::BTND=emptyBTNodeData(),
-                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13, ParametricBeliefMessage[], ParametricBeliefMessage[])
+                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13, BeliefMessage[], BeliefMessage[])
 end
 
 function CliqStateMachineContainer(x1::G,

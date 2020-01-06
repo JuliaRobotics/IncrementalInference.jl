@@ -515,9 +515,9 @@ end
     $(SIGNATURES)
 Experimental create and initialize tree message channels
 """
-function initTreeMessageChannels!(tree::BayesTree) # TODO as dit lekker werk gebruik T vir ParametricBeliefMessage
+function initTreeMessageChannels!(tree::BayesTree)
   for e = 1:tree.bt.nedges
-    push!(tree.messages, e=>(upMsg=Channel{ParametricBeliefMessage}(0),downMsg=Channel{ParametricBeliefMessage}(0)))
+    push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
   end
   return nothing
 end
