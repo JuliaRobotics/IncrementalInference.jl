@@ -3,6 +3,10 @@ using Test
 # using Compat
 # using IncrementalInference
 
+@testset "Parametric Tests" begin
+    include("testBasicParametric.jl")
+end
+
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
 end

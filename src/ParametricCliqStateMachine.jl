@@ -56,28 +56,18 @@ Notes
 function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   syms = getCliqAllVarIds(csmc.cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
 
   infocsm(csmc, "Par-1, build subgraph syms=$(syms)")
 
-  # buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
   frontsyms = getCliqFrontalVarIds(csmc.cliq)
   sepsyms = getCliqSeparatorVarIds(csmc.cliq)
-  buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
+  buildCliqSubgraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
 
-  # TODO JT toets om priors van separators af te haal
+  #TODO remove, just as a sanity check if any priors remains on seperators
   removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
   length(removedIds) > 0 && @error "removeSeparatorPriorsFromSubgraph, removed priors should not happen"
   infocsm(csmc, "Par-1 Removed ids $removedIds")
 
-
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-  #  buildSubgraphFromLabels!(dfg, csmc.cliqSubFg, syms)
-  # end
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
@@ -99,17 +89,13 @@ function addMsgFactors!(subfg::G,
   svars = DFG.getVariableIds(subfg)
   for (msym, belief) = (msgs.belief)
     if msym in svars
-      # TODO prior missing manifold information? is it not available in variable?
-      # TODO add MsgPrior parametric type
-      # @warn "TODO I just packed in MvNormal and ignored cov"
-        #TODO use belief.bw for covaraince
+      #TODO covaraince
+      #TODO Maybe always use MvNormal
       if size(belief.val)[1] == 1
         msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
       else
         msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
       end
-      #FIXME just TEMP
-      # msgPrior =  Prior(Normal(belief.val[1,1], 1))
       fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
       push!(msgfcts, fc)
     end
@@ -136,9 +122,9 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # Blocks until data is available.
     beliefMsg = take!(csmc.tree.messages[e.index].upMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
-    #TODO save up message (and add priors to cliqSubFg) gaan eers in volgende stap kyk hoe dit werk
-    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
 
+    #save up message (and add priors to cliqSubFg)
+    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
     if beliefMsg.status == upsolved
       push!(csmc.msgsUp, beliefMsg)
 
@@ -151,6 +137,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
         put!(csmc.tree.messages[e.index].upMsg,  BeliefMessage(error_status))
       end
       #if its the root, propagate error down
+      #FIXME rather check if no parents to allow multiple tree segments
       if csmc.cliq.index == 1
         for e in out_edges(csmc.cliq, csmc.tree.bt)
           @info "$(csmc.cliq.index): put! on edge $(e.index)"
