@@ -15,6 +15,7 @@ mutable struct BayesTree
   cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}
   variableOrder::Vector{Symbol}
+  buildTime::Float64
 end
 
 function emptyBayesTree()
@@ -23,7 +24,8 @@ function emptyBayesTree()
                      Dict{Int,Graphs.ExVertex}(),
                      #[],
                      Dict{AbstractString, Int}(),
-                     Symbol[] )
+                     Symbol[],
+					 0.0 )
     return bt
 end
 
