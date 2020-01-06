@@ -4,7 +4,7 @@
 
 Solve a Gaussian factor graph.
 """
-function solveFactorGraphParametric!(fg::AbstractDFG; solvekey::Symbol=:parametric)
+function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametric)
 
   varIds = getVariableIds(fg)
   #TODO dimention di, its set to maximim and assumes all is the same
@@ -69,7 +69,7 @@ end
 
 
 
-function solveFrontalsParametric!(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
+function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
 
   varIds = getVariableIds(fg)
   separators = setdiff(varIds, frontals)

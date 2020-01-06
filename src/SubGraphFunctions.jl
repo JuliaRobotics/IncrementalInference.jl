@@ -87,12 +87,12 @@ function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::Graphs
   return priorIds
 end
 
-# TODO JT buildSubgraphFromLabels with only factors on frontals
-function buildSubgraphFromLabels!(dfg::AbstractDFG,
-                                  cliqSubFg::AbstractDFG,
-                                  frontals::Vector{Symbol},
-                                  separators::Vector{Symbol};
-                                  solvable::Int=0)
+# TODO JT solvable
+function buildCliqSubgraph!(dfg::AbstractDFG,
+                            cliqSubFg::AbstractDFG,
+                            frontals::Vector{Symbol},
+                            separators::Vector{Symbol};
+                            solvable::Int=0)
 
   for sym in separators
     DFG.addVariable!(cliqSubFg, deepcopy(DFG.getVariable(dfg, sym)))
@@ -108,12 +108,12 @@ function buildSubgraphFromLabels!(dfg::AbstractDFG,
   for sym in addfac
     fac = DFG.getFactor(dfg, sym)
     vos = fac._variableOrderSymbols
-    if !exists(cliqSubFg,fac) && vos ⊆ allvars   #TODO don't add duplicates to start with
+    if !exists(cliqSubFg,fac) && vos ⊆ allvars   #duplicates not added to start with
       DFG.addFactor!(cliqSubFg, fac._variableOrderSymbols, deepcopy(fac))
     end
   end
 
-  # remove orphans
+  #TODO remove, just as a sanity check to see if there is any orphans to remove
   for fct in DFG.getFactors(cliqSubFg)
     # delete any neighboring factors first
     if length(getNeighbors(cliqSubFg, fct)) != length(fct._variableOrderSymbols)

@@ -56,28 +56,18 @@ Notes
 function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   syms = getCliqAllVarIds(csmc.cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
 
   infocsm(csmc, "Par-1, build subgraph syms=$(syms)")
 
-  # buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, syms)
   frontsyms = getCliqFrontalVarIds(csmc.cliq)
   sepsyms = getCliqSeparatorVarIds(csmc.cliq)
-  buildSubgraphFromLabels!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
+  buildCliqSubgraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
 
-  # TODO JT toets om priors van separators af te haal
+  #TODO remove, just as a sanity check if any priors remains on seperators
   removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
   length(removedIds) > 0 && @error "removeSeparatorPriorsFromSubgraph, removed priors should not happen"
   infocsm(csmc, "Par-1 Removed ids $removedIds")
 
-
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-  #  buildSubgraphFromLabels!(dfg, csmc.cliqSubFg, syms)
-  # end
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
@@ -93,23 +83,19 @@ end
 
 #TODO move to TreeBasedInitialization.jl
 function addMsgFactors!(subfg::G,
-                        msgs::ParametricBeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
+                        msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.getVariableIds(subfg)
   for (msym, belief) = (msgs.belief)
     if msym in svars
-      # TODO prior missing manifold information? is it not available in variable?
-      # TODO add MsgPrior parametric type
-      # @warn "TODO I just packed in MvNormal and ignored cov"
-        #TODO use belief.bw for covaraince
+      #TODO covaraince
+      #TODO Maybe always use MvNormal
       if size(belief.val)[1] == 1
         msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
       else
         msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
       end
-      #FIXME just TEMP
-      # msgPrior =  Prior(Normal(belief.val[1,1], 1))
       fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
       push!(msgfcts, fc)
     end
@@ -136,11 +122,11 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # Blocks until data is available.
     beliefMsg = take!(csmc.tree.messages[e.index].upMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
-    #TODO save up message (and add priors to cliqSubFg) gaan eers in volgende stap kyk hoe dit werk
-    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
 
+    #save up message (and add priors to cliqSubFg)
+    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
     if beliefMsg.status == upsolved
-      push!(csmc.parametricMsgsUp, beliefMsg)
+      push!(csmc.msgsUp, beliefMsg)
 
     else
       setCliqDrawColor(csmc.cliq, "red")
@@ -148,13 +134,14 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
       for e in in_edges(csmc.cliq, csmc.tree.bt)
         @info "$(csmc.cliq.index): put! on edge $(e.index)"
-        put!(csmc.tree.messages[e.index].upMsg,  ParametricBeliefMessage(error_status))
+        put!(csmc.tree.messages[e.index].upMsg,  BeliefMessage(error_status))
       end
       #if its the root, propagate error down
+      #FIXME rather check if no parents to allow multiple tree segments
       if csmc.cliq.index == 1
         for e in out_edges(csmc.cliq, csmc.tree.bt)
           @info "$(csmc.cliq.index): put! on edge $(e.index)"
-          put!(csmc.tree.messages[e.index].downMsg,  ParametricBeliefMessage(error_status))
+          put!(csmc.tree.messages[e.index].downMsg,  BeliefMessage(error_status))
         end
         return IncrementalInference.exitStateMachine
       end
@@ -197,7 +184,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
-  for upmsgs in csmc.parametricMsgsUp
+  for upmsgs in csmc.msgsUp
     append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsgs))
   end
 
@@ -210,7 +197,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO UpSolve cliqSubFg here
   # TODO MsgPrior not working
-  vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
+  vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
   # Pack all results in variables
   if result.g_converged
     @info "$(csmc.cliq.index): subfg optim converged updating variables"
@@ -228,7 +215,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
 
     # propagate error to cleanly exit all cliques?
-    beliefMsg = ParametricBeliefMessage(error_status)
+    beliefMsg = BeliefMessage(error_status)
     for e in in_edges(csmc.cliq, csmc.tree.bt)
       @info "$(csmc.cliq.index): put! on edge $(e.index)"
       put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
@@ -248,7 +235,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO fill in belief
   # createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
-  beliefMsg = ParametricBeliefMessage(upsolved)
+  beliefMsg = BeliefMessage(upsolved)
   for si in cliqSeparatorVarIds
     vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
     beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
@@ -281,9 +268,9 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # Blocks until data is available.
     beliefMsg = take!(csmc.tree.messages[e.index].downMsg)
     @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
-    #save down messages in parametricMsgsDown
+    #save down messages in msgsDown
     if beliefMsg.status == downsolved
-      push!(csmc.parametricMsgsDown, beliefMsg)
+      push!(csmc.msgsDown, beliefMsg)
 
     else
       setCliqDrawColor(csmc.cliq, "red")
@@ -291,7 +278,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
       for e in out_edges(csmc.cliq, csmc.tree.bt)
         @info "$(csmc.cliq.index): put! on edge $(e.index)"
-        put!(csmc.tree.messages[e.index].downMsg,  ParametricBeliefMessage(error_status))
+        put!(csmc.tree.messages[e.index].downMsg,  BeliefMessage(error_status))
       end
 
       return IncrementalInference.exitStateMachine
@@ -316,7 +303,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   #TODO maybe change to symbols
-  for downmsgs in csmc.parametricMsgsDown
+  for downmsgs in csmc.msgsDown
     # TODO
     # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
     svars = getCliqSeparatorVarIds(csmc.cliq)
@@ -345,9 +332,9 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #only down solve if its not the root
   if csmc.cliq.index != 1
     frontals = getCliqFrontalVarIds(csmc.cliq)
-    vardict, result = solveFrontalsParametric!(csmc.cliqSubFg, frontals)
+    vardict, result = solveFrontalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
-    # vardict, result = solveFactorGraphParametric!(csmc.cliqSubFg)
+    # vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
     if result.g_converged
       @info "$(csmc.cliq.index): subfg optim converged updating variables"
@@ -365,7 +352,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
 
       #propagate error to cleanly exit all cliques?
-      beliefMsg = ParametricBeliefMessage(error_status)
+      beliefMsg = BeliefMessage(error_status)
       for e in out_edges(csmc.cliq, csmc.tree.bt)
         @info "$(csmc.cliq.index): put! on edge $(e.index)"
         put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
@@ -380,7 +367,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = ParametricBeliefMessage(downsolved)
+  beliefMsg = BeliefMessage(downsolved)
   for fi in cliqFrontalVarIds
     vnd = getVariableData(csmc.cliqSubFg, fi, solveKey=:parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)

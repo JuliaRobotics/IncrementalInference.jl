@@ -1,0 +1,127 @@
+using Test
+
+using DistributedFactorGraphs
+using IncrementalInference
+IIF = IncrementalInference
+
+##
+fg = lineStepFG(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2)
+
+d, result = IIF.solveFactorGraphParametric(fg)
+
+for i in 0:7
+  sym = Symbol("x",i)
+  @test isapprox(d[sym][1], i, atol=1e-6)
+end
+
+
+########
+
+fg = lineStepFG(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3)
+    # addFactor!(fg, [:x5; :x15], LinearConditional(Normal(10, 0.1)))
+    # addFactor!(fg, [:x15; :x25], LinearConditional(Normal(10, 0.1)))
+
+#check all factors
+foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+
+IIF.initParametricFrom(fg)
+
+# @profiler d,st = IIF.solveFactorGraphParametric(fg)
+d,st = IIF.solveFactorGraphParametric(fg)
+
+for i in 0:10
+  sym = Symbol("x",i)
+  @test isapprox(d[sym][1], i, atol=1e-6)
+  @test isapprox(d[sym][2], i, atol=1e-6)
+end
+
+foreach(println, d)
+
+foreach(x->solverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+
+
+tree = wipeBuildNewTree!(fg)#
+
+IIF.initTreeMessageChannels!(tree)
+
+# fg.solverParams.showtree = true
+# fg.solverParams.drawtree = true
+# fg.solverParams.dbg = true
+
+task = @async begin
+  global tree2
+  global smt
+  global hist
+  tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+end
+
+
+for i in 0:10
+  sym = Symbol("x",i)
+  var = getVariable(fg,sym)
+  val = var.solverDataDict[:parametric].val
+  @test isapprox(val[1,1], i, atol=1e-6)
+  @test isapprox(val[2,1], i, atol=1e-6)
+end
+
+vsds = DFG.solverData.(getVariables(fg), :parametric)
+
+foreach(v->println(v.label, ": ", DFG.solverData(v, :parametric).val), getVariables(fg))
+
+
+
+###################################################################
+fg = LightDFG{SolverParams}( params=SolverParams(algorithms=[:default, :parametric]))
+# fg = LightDFG{SolverParams}( params=SolverParams())
+N = 100
+fg.solverParams.N = N
+graphinit = false
+
+addVariable!(fg, :x0, ContinuousScalar, autoinit = graphinit, N=N)
+addFactor!(fg, [:x0], Prior(Normal(-1.0, 1.0)))
+
+addVariable!(fg, :x1, ContinuousScalar, autoinit = graphinit, N=N)
+
+addVariable!(fg, :x2, ContinuousScalar, autoinit = graphinit, N=N)
+addFactor!(fg, [:x2], Prior(Normal(+1.0, 1.0)))
+
+addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 1e-1)))
+addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 1e-1)))
+
+
+
+
+foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+
+d,st = IIF.solveFactorGraphParametric(fg)
+
+foreach(println, d)
+@test isapprox(d[:x0][1], -0.01, atol=1e-4)
+@test isapprox(d[:x1][1], 0.0, atol=1e-4)
+@test isapprox(d[:x2][1], 0.01, atol=1e-4)
+
+foreach(x->solverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+
+tree = wipeBuildNewTree!(fg)#
+
+IIF.initTreeMessageChannels!(tree)
+
+# fg.solverParams.showtree = true
+# fg.solverParams.drawtree = true
+# fg.solverParams.dbg = true
+
+task = @async begin
+  global tree2
+  global smt
+  global hist
+  tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+end
+foreach(v->println(v.label, ": ", DFG.solverData(v, :parametric).val), getVariables(fg))
+
+#TODO tests needs covariance to pass
+r = isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
+@test_skip r
+r = isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
+@test_skip r
+r = isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
+@test_skip r
