@@ -313,6 +313,7 @@ function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=ConsoleLog
   with_logger(logger) do
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
+  flush(logger.stream)
   while fetch(getData(prnt).initDownChannel) != :downsolved
     # @sync begin
     #   @async begin
@@ -355,7 +356,11 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     with_logger(logger) do
       @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
     end
+    flush(logger.stream)
     ret[ch.index] = fetch(getData(ch).initUpChannel)
+  end
+  with_logger(logger) do
+      @info "cliq $(prnt.index), fetched all."
   end
   return ret
 end

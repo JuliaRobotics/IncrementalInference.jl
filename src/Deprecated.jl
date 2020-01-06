@@ -1,4 +1,57 @@
 
+### DONT DELETE YET -- see more likely list below
+
+
+function getShortestPathNeighbors(fgl::FactorGraph;
+    from::Graphs.ExVertex=nothing,
+    to::Graphs.ExVertex=nothing,
+    neighbors::Int=0 )
+
+  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+  vertdict = Dict{Int,Graphs.ExVertex}()
+  edgedict = edgelist2edgedict(edgelist)
+  expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  for i in 1:neighbors
+    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+    expandVertexList!(fgl, edgedict, vertdict) # grow verts
+  end
+  return vertdict
+end
+
+function subgraphShortestPath(fgl::FactorGraph;
+                              from::Graphs.ExVertex=nothing,
+                              to::Graphs.ExVertex=nothing,
+                              neighbors::Int=0  )
+  #
+  vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+  return genSubgraph(fgl, vertdict)
+end
+
+# explore all shortest paths combinations in verts, add neighbors and reference subgraph
+function subGraphFromVerts(fgl::FactorGraph,
+                           verts::Dict{Int,Graphs.ExVertex};
+                           neighbors::Int=0  )
+  #
+  allverts = Dict{Int,Graphs.ExVertex}()
+  allkeys = collect(keys(verts))
+  len = length(allkeys)
+  # union all shortest path combinations in a vertdict
+  for i in 1:len, j in (i+1):len
+    from = verts[allkeys[i]]
+    to = verts[allkeys[j]]
+    vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+    for vert in vertdict
+      if !haskey(allverts, vert[1])
+        allverts[vert[1]] = vert[2]
+      end
+    end
+  end
+
+  return genSubgraph(fgl, allverts)
+end
+
+
+
 """
     $SIGNATURES
 
@@ -43,15 +96,6 @@ function writeGraphPdf(fgl::G;
   end
   nothing
 end
-
-
-
-
-
-
-
-
-
 
 
 
@@ -108,7 +152,50 @@ end
 
 
 
+### MORE LIKELY TO BE DELETED BELOW
 
+
+
+# TODO -- convert to use add_vertex! instead, since edges type must be made also
+function addVerticesSubgraph(fgl::FactorGraph,
+    fgseg::FactorGraph,
+    vertdict::Dict{Int,Graphs.ExVertex})
+
+    for vert in vertdict
+      fgseg.g.vertices[vert[1]] = vert[2]
+      if haskey(fgl.v,vert[1])
+        fgseg.g.vertices[vert[1]] = vert[2]
+        fgseg.IDs[Symbol(vert[2].label)] = vert[1]
+
+        # add edges going in opposite direction
+        elr = Graphs.out_edges(vert[2], fgl.g)
+        len = length(elr)
+        keeprm = trues(len)
+        j = 0
+        for i in 1:len
+          if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
+            keeprm[i] = false
+            j+=1
+          end
+        end
+        if j < len
+          elridx = elr[1].source.index
+          fgseg.g.inclist[elridx] = elr[keeprm]
+        end
+      elseif haskey(fgl.f, vert[1])
+        fgseg.f[vert[1]] = vert[2] # adding element to subgraph
+        fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
+        # get edges associated with function nodes and push edges onto incidence list
+        el = Graphs.out_edges(vert[2], fgl.g)
+        elidx = el[1].source.index
+        fgseg.g.inclist[elidx] = el # okay because treating function nodes only
+        fgseg.g.nedges += length(el)
+      else
+        error("Unknown type factor graph vertex type, something is wrong")
+      end
+    end
+    nothing
+end
 
 """
     $SIGNATURES
@@ -298,7 +385,7 @@ end
 function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
 
   cliqdata = getData(cliq)
-  IDS = [cliqdata.frontalIDs; cliqdata.conditIDs] #inp.cliq.attributes["frontalIDs"]
+  IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
 
 
   @error "findVertsAssocCliq -- not completed yet"
