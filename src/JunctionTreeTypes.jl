@@ -53,7 +53,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}() # NOTE JT - GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::InMemoryDFGTypes,
                                   x3::BayesTree,
