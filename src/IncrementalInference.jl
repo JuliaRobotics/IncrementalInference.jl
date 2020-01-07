@@ -558,7 +558,6 @@ include("SolverAPI.jl")
 include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
 
-include("CanonicalGraphsExamples2.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
