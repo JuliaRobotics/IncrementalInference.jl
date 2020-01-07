@@ -298,7 +298,7 @@ end
 Pass NBPMessages back down the tree -- pre order tree traversal.
 """
 function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
-  @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+  @info "====================== Clique $(getLabel(inp.cliq)) ============================="
 
   mcmciter = inp.prnt != nothing ? 3 : 0; # skip mcmc in root on dwn pass
   rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
@@ -322,26 +322,26 @@ end
 
 # post order tree traversal and build potential functions
 function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
-    @info "Start Clique $(inp.cliq.attributes["label"]) ============================="
+    @info "Start Clique $(getLabel(inp.cliq)) ============================="
     childMsgs = Array{NBPMessage,1}()
 
     outnei = out_neighbors(inp.cliq, inp.bt.bt)
     len = length(outnei)
     for child in outnei
         ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[])
-        @info "upMsgRec -- calling new recursive on $(ett.cliq.attributes["label"])"
+        @info "upMsgRec -- calling new recursive on $(getLabel(ett.cliq))"
         newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
-        @info "upMsgRec -- finished with $(ett.cliq.attributes["label"]), w $(keys(newmsgs.p)))"
+        @info "upMsgRec -- finished with $(getLabel(ett.cliq)), w $(keys(newmsgs.p)))"
         push!(  childMsgs, newmsgs )
     end
 
-    @info "====================== Clique $(inp.cliq.attributes["label"]) ============================="
+    @info "====================== Clique $(getLabel(inp.cliq)) ============================="
     ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, nothing, childMsgs)
 
     urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
     updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
     drawpdf ? drawTree(inp.bt) : nothing
-    @info "End Clique $(inp.cliq.attributes["label"]) ============================="
+    @info "End Clique $(getLabel(inp.cliq)) ============================="
     urt.upMsgs
 end
 
@@ -352,7 +352,7 @@ function downGibbsCliqueDensity(inp::ExploreTreeType{T},
                                 logger=ConsoleLogger()  ) where {T}
   #
   with_logger(logger) do
-    @info "=================== Iter Clique $(inp.cliq.attributes["label"]) ==========================="
+    @info "=================== Iter Clique $(getLabel(inp.cliq)) ==========================="
   end
   mcmciter = inp.prnt != nothing ? 3 : 0
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
@@ -511,7 +511,7 @@ function prepPostOrderUpPassStacks!(bt::BayesTree,
       end
   end
   for child in childStack
-    @show child.attributes["label"]
+    @show getLabel(child)
   end
   nothing
 end
@@ -536,13 +536,13 @@ function asyncProcessPostStacks!(fgl::G,
   end
   cliq = chldstk[stkcnt]
   gomulti = true
-  @info "Start Clique $(cliq.attributes["label"]) ============================="
+  @info "Start Clique $(getLabel(cliq)) ============================="
   childMsgs = Array{NBPMessage,1}()
   ur = nothing
   for child in out_neighbors(cliq, bt.bt)
-      @info "asyncProcessPostStacks -- $(stkcnt), cliq=$(cliq.attributes["label"]), start on child $(child.attributes["label"]) haskey=$(haskey(child.attributes, "remoteref"))"
+      @info "asyncProcessPostStacks -- $(stkcnt), cliq=$(getLabel(cliq)), start on child $(getLabel(child)) haskey=$(haskey(child.attributes, "remoteref"))"
         while !haskey(refdict, child.index)
-          # info("Sleeping $(cliq.attributes["label"]) on lack of remoteref from $(child.attributes["label"])")
+          # info("Sleeping $(getLabel(cliq)) on lack of remoteref from $(getLabel(child))")
           # @show child.index, keys(refdict)
           sleep(0.25)
         end
@@ -559,7 +559,7 @@ function asyncProcessPostStacks!(fgl::G,
       push!(childMsgs, ur.upMsgs)
 
   end
-  @info "====================== Clique $(cliq.attributes["label"]) ============================="
+  @info "====================== Clique $(getLabel(cliq)) ============================="
   emptr = BayesTree(nothing, 0, Dict{Int,TreeClique}(), Dict{String,Int}());
   pett = partialExploreTreeType(fgl, emptr, cliq, nothing, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
@@ -581,7 +581,7 @@ function asyncProcessPostStacks!(fgl::G,
       delete!(refdict, child.index)
   end
 
-  @info "End Clique $(cliq.attributes["label"]) ============================="
+  @info "End Clique $(getLabel(cliq)) ============================="
   nothing
 end
 

@@ -26,7 +26,7 @@ function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}
   clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
 
-  clq.attributes["label"] = ""
+  setLabel(clq, "")
 
   # Specific data container
   setData!(clq, emptyBTNodeData())
@@ -51,7 +51,7 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   for sepr in getData(clq).separatorIDs
     clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
-  clq.attributes["label"] = string(flbl, ": ", clbl)
+  setLabel(clq, string(flbl, ": ", clbl))
 end
 
 """
@@ -258,10 +258,10 @@ function drawTree(treel::BayesTree;
   btc = deepcopy(treel)
   for (cid, cliq) in btc.cliques
     if imgs
-      firstlabel = split(cliq.attributes["label"],',')[1]
+      firstlabel = split(getLabel(cliq),',')[1]
       spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/$firstlabel.png")
       cliq.attributes["image"] = "/tmp/$firstlabel.png"
-      cliq.attributes["label"] = ""
+      setLabel(cliq, "")
     end
     delete!(cliq.attributes, "data")
   end
@@ -300,7 +300,7 @@ function generateTexTree(treel::BayesTree;
                          filepath::String="/tmp/caesar/bayes/bt")
     btc = deepcopy(treel)
     for (cid, cliq) in btc.cliques
-        label = cliq.attributes["label"]
+        label = getLabel(cliq)
 
         # Get frontals and separator, and split into elements.
         frt, sep = split(label,':')
@@ -338,7 +338,7 @@ function generateTexTree(treel::BayesTree;
         newseparator = newseparator[1:end-2]
         # Create full label and replace the old one.
         newlabel = string(newfrontals, ":", newseparator)
-        cliq.attributes["label"] = newlabel
+        setLabel(cliq, newlabel)
     end
 
     # Use new labels to produce `.dot` and `.tex` files.
@@ -1318,7 +1318,7 @@ function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::TreeClique; solvable
     for child in out_neighbors(cliq, bt.bt)#tree
         buildCliquePotentials(dfg, bt, child)
     end
-    @info "Get potentials $(cliq.attributes["label"])"
+    @info "Get potentials $(getLabel(cliq))"
     setCliqPotentials!(dfg, bt, cliq, solvable=solvable)
 
     compCliqAssocMatrices!(dfg, bt, cliq)

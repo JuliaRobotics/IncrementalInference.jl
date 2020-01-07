@@ -510,6 +510,12 @@ export
 #TreeClique
 const TreeClique = Graphs.ExVertex
 
+DFG.getLabel(cliq::Graphs.ExVertex) = cliq.attributes["label"]
+function setLabel(cliq::Graphs.ExVertex, lbl::String)
+  cliq.attributes["label"] = lbl
+  lbl
+end
+
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
@@ -594,7 +600,7 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp

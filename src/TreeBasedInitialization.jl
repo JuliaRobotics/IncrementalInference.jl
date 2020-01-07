@@ -308,7 +308,7 @@ end
 
 function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #
-  lbl = prnt.attributes["label"]
+  lbl = getLabel(prnt)
 
   with_logger(logger) do
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."

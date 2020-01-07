@@ -11,7 +11,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
-  lbl = csmc.cliq.attributes["label"]
+  lbl = getLabel(csmc.cliq)
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 

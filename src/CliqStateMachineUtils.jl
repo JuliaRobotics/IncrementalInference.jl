@@ -489,7 +489,7 @@ function getSiblingsDelayOrder(tree::BayesTree, cliq::TreeClique, prnt, dwinmsgs
         end
         if rows[sibidx] == minimum(rows[maxcan])
           with_logger(logger) do
-            @info "getSiblingsDelayOrder -- FORCE DOWN INIT SOLVE ON THIS CLIQUE: $(cliq.index), $(cliq.attributes["label"])"
+            @info "getSiblingsDelayOrder -- FORCE DOWN INIT SOLVE ON THIS CLIQUE: $(cliq.index), $(getLabel(cliq))"
           end
           return false
         end
@@ -571,7 +571,7 @@ function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::TreeClique, prnt, dw
   localsep = getCliqSeparatorVarIds(cliq)
   seps = Dict{Int, Vector{Symbol}}()
   for si in sibs
-    # @show si.attributes["label"]
+    # @show getLabel(si)
     mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
     if length(mighthave) > 0
       seps[si.index] = mighthave

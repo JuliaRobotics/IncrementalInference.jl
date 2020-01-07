@@ -526,7 +526,7 @@ function fmcmc!(fgl::G,
                 multithreaded::Bool=false  ) where G <: AbstractDFG
   #
   with_logger(logger) do
-    @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
+    @info "---------- successive fnc approx ------------$(getLabel(cliq))"
   end
   # repeat several iterations of functional Gibbs sampling for fixed point convergence
   if length(lbls) == 1
@@ -926,7 +926,7 @@ function updateFGBT!(fg::G,
     setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
-    @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
+    @info "updateFGBT! up -- updated $(getLabel(cliq))"
   end
   nothing
 end
@@ -1056,7 +1056,7 @@ function approxCliqMarginalUp!(fgl::G,
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   with_logger(logger) do
-    @info "=== start Clique $(cliq.attributes["label"]) ======================"
+    @info "=== start Clique $(getLabel(cliq)) ======================"
   end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
   urt = UpReturnBPType()
@@ -1093,7 +1093,7 @@ function approxCliqMarginalUp!(fgl::G,
 
   drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
-    @info "=== end Clique $(cliq.attributes["label"]) ========================"
+    @info "=== end Clique $(getLabel(cliq)) ========================"
   end
   return urt
 end
@@ -1290,7 +1290,7 @@ function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeN
   # inner convenience function for returning empty clique
   function EMPTYCLIQ()
     clq = ExVertex(-1,"null")
-    clq.attributes["label"] = ""
+    setLabel(clq, "")
     setData!(clq, emptyBTNodeData())
     return clq
   end
