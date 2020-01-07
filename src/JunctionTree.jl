@@ -30,7 +30,6 @@ function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}
 
   # Specific data container
   setData!(clq, emptyBTNodeData())
-  # clq.attributes["data"] = emptyBTNodeData()
 
   appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
@@ -1512,8 +1511,8 @@ function saveTree(treel::BayesTree,
   #
   savetree = deepcopy(treel)
   for i in 1:length(savetree.cliques)
-    if  savetree.cliques[i].attributes["data"] isa BayesTreeNodeData
-      savetree.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savetree.cliques[i].attributes["data"])
+    if  getData(savetree.cliques[i]) isa BayesTreeNodeData
+      setData!(savetree.cliques[i], convert(PackedBayesTreeNodeData, getData(savetree.cliques[i])))
     end
   end
 
@@ -1526,8 +1525,8 @@ function saveTree(treeArr::Vector{BayesTree},
   #
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(savtre.cliques)
-    if savtre.cliques[i].attributes["data"] isa BayesTreeNodeData
-      savtre.cliques[i].attributes["data"] = convert(PackedBayesTreeNodeData, savtre.cliques[i].attributes["data"])
+    if getData(savtre.cliques[i]) isa BayesTreeNodeData
+      setData!(savtre.cliques[i], convert(PackedBayesTreeNodeData, getData(savtre.cliques[i])))
     end
   end
 
@@ -1554,14 +1553,14 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   # convert back to a type that which could not be serialized by JLD2
   if savetree isa Vector
       for savtre in savetree, i in 1:length(savtre.cliques)
-        if savtre.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
-          savtre.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savtre.cliques[i].attributes["data"])
+        if getData(savtre.cliques[i]) isa PackedBayesTreeNodeData
+          setData!(savtre.cliques[i], convert(BayesTreeNodeData, getData(savtre.cliques[i])))
         end
       end
   else
     for i in 1:length(savetree.cliques)
-      if savetree.cliques[i].attributes["data"] isa PackedBayesTreeNodeData
-        savetree.cliques[i].attributes["data"] = convert(BayesTreeNodeData, savetree.cliques[i].attributes["data"])
+      if getData(savetree.cliques[i]) isa PackedBayesTreeNodeData
+        setData!(savetree.cliques[i], convert(BayesTreeNodeData, getData(savetree.cliques[i])))
       end
     end
   end

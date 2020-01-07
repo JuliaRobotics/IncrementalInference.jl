@@ -600,8 +600,8 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end

@@ -854,7 +854,7 @@ end
 
 Set the color of a cliq in the Bayes (Junction) tree.
 """
-function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
+function setCliqDrawColor(cliq::Graphs.ExVertex, fillcolor::String)::Nothing
   cliq.attributes["fillcolor"] = fillcolor
   cliq.attributes["style"] = "filled"
   nothing

@@ -13,7 +13,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # still used for Bayes Tree
 import DistributedFactorGraphs: getData
 
-getData(v::TreeClique) = v.attributes["data"]
+getData(v::Graphs.ExVertex) = v.attributes["data"]
 
 
 """
@@ -46,7 +46,7 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   return nothing
 end
 # For Bayes tree
-function setData!(v::TreeClique, data)
+function setData!(v::Graphs.ExVertex, data)
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
   v.attributes["data"] = data
   nothing
@@ -1115,7 +1115,7 @@ end
 
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
   bnv = DFG.getVariable(dfg, vertId)
-  bnvd = solverData(bnv) # bnv.attributes["data"]
+  bnvd = solverData(bnv)
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -1198,7 +1198,7 @@ function buildBayesNet!(dfg::G,
             push!(Si,sepNode)
           end
         end
-        solverData(fct).eliminated = true #fct.attributes["data"].eliminated = true
+        solverData(fct).eliminated = true
       end
 
       if typeof(solverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
