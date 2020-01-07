@@ -171,7 +171,7 @@ are used for database persistence with CloudGraphs.jl.
 function encodefg(fgl::G ) where G <: AbstractDFG
   #
   fgs = deepcopy(fgl)
-  # fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
 
   # @showprogress 1 "Encoding variables..."
   for vsym in getVariableIds(fgl)

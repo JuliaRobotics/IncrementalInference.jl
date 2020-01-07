@@ -3,12 +3,12 @@
 
 
 function getShortestPathNeighbors(fgl::FactorGraph;
-    from::Graphs.ExVertex=nothing,
-    to::Graphs.ExVertex=nothing,
+    from::TreeClique=nothing,
+    to::TreeClique=nothing,
     neighbors::Int=0 )
 
   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
-  vertdict = Dict{Int,Graphs.ExVertex}()
+  vertdict = Dict{Int,TreeClique}()
   edgedict = edgelist2edgedict(edgelist)
   expandVertexList!(fgl, edgedict, vertdict) # grow verts
   for i in 1:neighbors
@@ -19,8 +19,8 @@ function getShortestPathNeighbors(fgl::FactorGraph;
 end
 
 function subgraphShortestPath(fgl::FactorGraph;
-                              from::Graphs.ExVertex=nothing,
-                              to::Graphs.ExVertex=nothing,
+                              from::TreeClique=nothing,
+                              to::TreeClique=nothing,
                               neighbors::Int=0  )
   #
   vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
@@ -29,10 +29,10 @@ end
 
 # explore all shortest paths combinations in verts, add neighbors and reference subgraph
 function subGraphFromVerts(fgl::FactorGraph,
-                           verts::Dict{Int,Graphs.ExVertex};
+                           verts::Dict{Int,TreeClique};
                            neighbors::Int=0  )
   #
-  allverts = Dict{Int,Graphs.ExVertex}()
+  allverts = Dict{Int,TreeClique}()
   allkeys = collect(keys(verts))
   len = length(allkeys)
   # union all shortest path combinations in a vertdict
@@ -107,7 +107,7 @@ function subgraphFromVerts(fgl::FactorGraph,
     verts::Array{Int,1};
     neighbors::Int=0  )
 
-  vertdict = Dict{Int,Graphs.ExVertex}()
+  vertdict = Dict{Int,TreeClique}()
   for vert in verts
     vertdict[vert] = fgl.g.vertices[vert]
   end
@@ -125,7 +125,7 @@ function subGraphFromVerts(fgl::FactorGraph,
                            verts::T;
                            neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
   #
-  vertdict = Dict{Int,Graphs.ExVertex}()
+  vertdict = Dict{Int,TreeClique}()
   for vert in verts
     id = -1
     vsym = Symbol(vert)
@@ -143,7 +143,7 @@ end
 
 function subgraphFromVerts(fgl::FactorGraph,
                            verts::T;
-                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,Graphs.ExVertex}}}
+                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,TreeClique}}}
   #
   @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
   subGraphFromVerts(fgl, verts, neighbors=neighbors)
@@ -159,7 +159,7 @@ end
 # TODO -- convert to use add_vertex! instead, since edges type must be made also
 function addVerticesSubgraph(fgl::FactorGraph,
     fgseg::FactorGraph,
-    vertdict::Dict{Int,Graphs.ExVertex})
+    vertdict::Dict{Int,TreeClique})
 
     for vert in vertdict
       fgseg.g.vertices[vert[1]] = vert[2]
@@ -202,8 +202,8 @@ end
 
 Return array of all variable vertices in a clique.
 """
-function getCliqVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
-  verts = Graphs.ExVertex[]
+function getCliqVars(subfg::FactorGraph, cliq::TreeClique)
+  verts = TreeClique[]
   for vid in getCliqVars(subfg, cliq)
     push!(verts, getVert(subfg, vid, api=localapi))
   end
@@ -263,7 +263,7 @@ end
 
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
-function upMsg(cliq::Graphs.ExVertex)
+function upMsg(cliq::TreeClique)
   @warn "deprecated upMsg, use getUpMsg instead"
   getData(cliq).upMsg
 end
@@ -277,7 +277,7 @@ end
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
-function dwnMsg(cliq::Graphs.ExVertex)
+function dwnMsg(cliq::TreeClique)
   @warn "deprecated dwnMsg, use getDwnMsgs instead"
   getData(cliq).dwnMsg
 end
@@ -359,10 +359,10 @@ function downGibbsCliqueDensity(inp::ExploreTreeType{T},
 end
 
 function prepDwnPreOrderStack!(bt::BayesTree,
-                               parentStack::Array{Graphs.ExVertex,1})
+                               parentStack::Array{TreeClique,1})
   # dwn message passing function
   nodedata = nothing
-  tempStack = Array{Graphs.ExVertex,1}()
+  tempStack = Array{TreeClique,1}()
   push!(tempStack, parentStack[1])
 
   while ( length(tempStack) != 0 || nodedata != nothing )
@@ -382,7 +382,7 @@ function prepDwnPreOrderStack!(bt::BayesTree,
   nothing
 end
 
-function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
+function findVertsAssocCliq(fgl::FactorGraph, cliq::TreeClique)
 
   cliqdata = getData(cliq)
   IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
@@ -392,7 +392,7 @@ function findVertsAssocCliq(fgl::FactorGraph, cliq::Graphs.ExVertex)
   nothing
 end
 
-function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::Graphs.ExVertex, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
+function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::TreeClique, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
     # info("starting pett")
     # TODO -- expand this to grab only partial subsection from the fg and bt data structures
 
@@ -407,7 +407,7 @@ end
 
 function dispatchNewDwnProc!(fg::G,
                              bt::BayesTree,
-                             parentStack::Array{Graphs.ExVertex,1},
+                             parentStack::Array{TreeClique,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
                              N::Int=100,
@@ -428,7 +428,7 @@ function dispatchNewDwnProc!(fg::G,
     drawpdf ? drawTree(bt) : nothing
   end
 
-  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+  emptr = BayesTree(nothing, 0, Dict{Int,TreeClique}(), Dict{String,Int}());
 
   for child in out_neighbors(cliq, bt.bt) # nodedata.cliq, nodedata.bt.bt
       haskey(refdict, child.index) ? error("dispatchNewDwnProc! -- why you already have dwnremoteref?") : nothing
@@ -448,7 +448,7 @@ Notes
 """
 function processPreOrderStack!(fg::G,
                                bt::BayesTree,
-                               parentStack::Array{Graphs.ExVertex,1},
+                               parentStack::Array{TreeClique,1},
                                refdict::Dict{Int,Future};
                                N::Int=100,
                                dbg::Bool=false,
@@ -478,7 +478,7 @@ function downMsgPassingIterative!(startett::ExploreTreeType{T};
                                   drawpdf::Bool=false  ) where {T}
   #
   # this is where we launch the downward iteration process from
-  parentStack = Array{Graphs.ExVertex,1}()
+  parentStack = Array{TreeClique,1}()
   refdict = Dict{Int,Future}()
 
   # start at the given clique in the tree -- shouldn't have to be the root.
@@ -496,8 +496,8 @@ function downMsgPassingIterative!(startett::ExploreTreeType{T};
 end
 
 function prepPostOrderUpPassStacks!(bt::BayesTree,
-                                    parentStack::Array{Graphs.ExVertex,1},
-                                    childStack::Array{Graphs.ExVertex,1}  )
+                                    parentStack::Array{TreeClique,1},
+                                    childStack::Array{TreeClique,1}  )
   # upward message passing preparation
   while ( length(parentStack) != 0 )
       #2.1 Pop a node from first stack and push it to second stack
@@ -523,7 +523,7 @@ Asynchronously perform up message passing, based on previoulsy prepared `chldstk
 """
 function asyncProcessPostStacks!(fgl::G,
                                  bt::BayesTree,
-                                 chldstk::Vector{Graphs.ExVertex},
+                                 chldstk::Vector{TreeClique},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
                                  N::Int=100,
@@ -560,7 +560,7 @@ function asyncProcessPostStacks!(fgl::G,
 
   end
   @info "====================== Clique $(cliq.attributes["label"]) ============================="
-  emptr = BayesTree(nothing, 0, Dict{Int,Graphs.ExVertex}(), Dict{String,Int}());
+  emptr = BayesTree(nothing, 0, Dict{Int,TreeClique}(), Dict{String,Int}());
   pett = partialExploreTreeType(fgl, emptr, cliq, nothing, childMsgs) # bt   # parent cliq pointer is not needed here, fix Graphs.jl first
 
   if haskey(cliq.attributes, "remoteref")
@@ -596,7 +596,7 @@ Notes
 """
 function processPostOrderStacks!(fg::G,
                                  bt::BayesTree,
-                                 childStack::Array{Graphs.ExVertex,1};
+                                 childStack::Array{TreeClique,1};
                                  N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  ) where G <: AbstractDFG
@@ -636,8 +636,8 @@ Return clique pointers for the given order in which they will be solved (sequent
 function getCliqOrderUpSolve(treel::BayesTree, startcliq=treel.cliques[1])
   # http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
-  parentStack = Vector{Graphs.ExVertex}()
-  childStack = Vector{Graphs.ExVertex}()
+  parentStack = Vector{TreeClique}()
+  childStack = Vector{TreeClique}()
   #Loop while first stack is not empty
   push!(parentStack, startcliq)
   # Starting at the root means we have a top down view of the tree
@@ -745,7 +745,7 @@ function decodefg(fgs::FactorGraph)
   fgu = deepcopy(fgs)
   fgu.cg = nothing # will be deprecated or replaced
   fgu.registeredModuleFunctions = nothing # TODO: obsolete
-  fgu.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  fgu.g = Graphs.incdict(TreeClique,is_directed=false)
   @showprogress 1 "Decoding variables..." for (vsym,vid) in fgs.IDs
     cpvert = deepcopy(getVert(fgs, vid, api=api))
     api.addvertex!(fgu, cpvert) #, labels=vnlbls)  # currently losing labels
@@ -782,7 +782,7 @@ function decodefg(fgs::FactorGraph)
     fcnode = getVert(fgu, fsym, nt=:fnc)
     # ccw = solverData(fcnode)
     ccw_jld = deepcopy(solverData(fcnode))
-    allnei = Graphs.ExVertex[]
+    allnei = TreeClique[]
     for nei in out_neighbors(fcnode, fgu.g)
         push!(allnei, nei)
         data = IncrementalInference.solverData(nei)

@@ -53,7 +53,7 @@ Return clique state machine history from `tree` if it was solved with `recordcli
 Notes
 - Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
 """
-function getCliqSolveHistory(cliq::Graphs.ExVertex)
+function getCliqSolveHistory(cliq::TreeClique)
   getData(cliq).statehistory
 end
 function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
@@ -119,7 +119,7 @@ function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Fun
 end
 
 
-function printCliqHistorySummary(cliq::Graphs.ExVertex)
+function printCliqHistorySummary(cliq::TreeClique)
   hist = getCliqSolveHistory(cliq)
   printCliqHistorySummary(hist)
 end
@@ -260,7 +260,7 @@ function solveCliqWithStateMachine!(dfg::G,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
-  children = Graphs.ExVertex[]
+  children = TreeClique[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
     push!(children, ch)
   end
@@ -397,7 +397,7 @@ Dev Notes
 - Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
 - should precompute `allinters`.
 """
-function getSiblingsDelayOrder(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getSiblingsDelayOrder(tree::BayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -546,7 +546,7 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::Graphs.ExVertex, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs
@@ -605,7 +605,7 @@ notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(wh
 
 Store/cache a clique's solvable dimensions.
 """
-function updateCliqSolvableDims!(cliq::Graphs.ExVertex,
+function updateCliqSolvableDims!(cliq::TreeClique,
                                  sdims::Dict{Symbol, Float64},
                                  logger=ConsoleLogger() )::Nothing
   #
@@ -628,7 +628,7 @@ end
 
 Retrieve a clique's cached solvable dimensions (since last update).
 """
-function fetchCliqSolvableDims(cliq::Graphs.ExVertex)::Dict{Symbol,Float64}
+function fetchCliqSolvableDims(cliq::TreeClique)::Dict{Symbol,Float64}
   cliqd = getData(cliq)
   if isready(cliqd.solvableDims)
     return cliqd.solvableDims.data[1]
@@ -648,7 +648,7 @@ Notes
 - Return false if one of the siblings is still busy
 """
 function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
-                                        cliq::Graphs.ExVertex  )::Bool
+                                        cliq::TreeClique  )::Bool
   #
   stillbusylist = [:null; :initialized;]
   prnt = getParent(tree, cliq)
@@ -797,7 +797,7 @@ Dev Notes
 """
 function addDownVariableFactors!(dfg::G1,
                                  subfg::G2,
-                                 cliq::Graphs.ExVertex,
+                                 cliq::TreeClique,
                                  logger=ConsoleLogger();
                                  solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
   #
@@ -849,7 +849,7 @@ end
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
 function getSetDownMessagesComplete!(subfg::G,
-                                     cliq::Graphs.ExVertex,
+                                     cliq::TreeClique,
                                      prntDwnMsgs::TempBeliefMsg,
                                      logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
   #
@@ -888,7 +888,7 @@ Related Functions from Upward Inference
 
 directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 """
-function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::Graphs.ExVertex; solvable::Int=1)
+function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
   frtl = getCliqFrontalVarIds(cliq)
 
   adj = DFG.getAdjacencyMatrix(subfg, solvable=solvable)
@@ -927,7 +927,7 @@ Dev Notes
 - cleanup and updates required, and @spawn jl 1.3
 """
 function solveCliqDownFrontalProducts!(subfg::G,
-                                       cliq::Graphs.ExVertex,
+                                       cliq::TreeClique,
                                        opts::SolverParams,
                                        logger=ConsoleLogger();
                                        MCIters::Int=3 )::Nothing where G <: AbstractDFG
@@ -1010,7 +1010,7 @@ DevNotes
 """
 function buildCliqSubgraph(dfg::AbstractDFG,
                            treel::BayesTree,
-                           cliq::Graphs.ExVertex,
+                           cliq::TreeClique,
                            subfg::InMemoryDFGTypes=GraphsDFG(params=getSolverParams(dfg)) )
   #
   # get cliq and variable labels

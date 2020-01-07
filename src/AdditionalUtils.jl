@@ -77,7 +77,7 @@ Related
 printCliqHistorySummary
 """
 function printCliqSummary(dfg::G,
-                          cliq::Graphs.ExVertex,
+                          cliq::TreeClique,
                           logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   frtl = getCliqFrontalVarIds(cliq)

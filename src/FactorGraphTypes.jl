@@ -24,8 +24,8 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 # abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
 
 
-const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
-const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
+const FGG = Graphs.GenericIncidenceList{TreeClique,Graphs.Edge{TreeClique},Array{TreeClique,1},Array{Array{Graphs.Edge{TreeClique},1},1}}
+const FGGdict = Graphs.GenericIncidenceList{TreeClique,Graphs.Edge{TreeClique},Dict{Int,TreeClique},Dict{Int,Array{Graphs.Edge{TreeClique},1}}}
 
 
 
@@ -112,7 +112,7 @@ mutable struct FactorGraph
   id::Int
   nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
   factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
+  bnverts::Dict{Int,TreeClique} # TODO -- not sure if this is still used, remove
   bnid::Int # TODO -- not sure if this is still used
   dimID::Int
   cg
@@ -126,16 +126,16 @@ mutable struct FactorGraph
   fifo::Vector{Symbol}
   qfl::Int # Quasi fixed length
   isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      #  Dict{Int,Graphs.ExVertex}(),
+  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(TreeClique,is_directed=false),
+                      Graphs.incdict(TreeClique,is_directed=is_directed),
+                      #  Dict{Int,TreeClique}(),
+                      #  Dict{Int,TreeClique}(),
                       Dict{Symbol,Int}(),
                       Dict{Symbol,Int}(),
                       0,
                       [],
                       [],
-                      Dict{Int,Graphs.ExVertex}(),
+                      Dict{Int,TreeClique}(),
                       0,
                       0,
                       nothing,

@@ -507,6 +507,8 @@ export
   DataLayerAPI
 
 
+#TreeClique
+const TreeClique = Graphs.ExVertex
 
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
@@ -574,7 +576,7 @@ function __init__()
       * Frontal, separator, and upmessages are all drawn at different intensity of red.
       * Downward messages not shown, as they would just be singletons of the full separator set.
       """
-      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
         mat = map(Float64, mat)*2.0.-1.0

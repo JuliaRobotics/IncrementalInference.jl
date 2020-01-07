@@ -13,7 +13,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # still used for Bayes Tree
 import DistributedFactorGraphs: getData
 
-getData(v::Graphs.ExVertex) = v.attributes["data"]
+getData(v::TreeClique) = v.attributes["data"]
 
 
 """
@@ -46,7 +46,7 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   return nothing
 end
 # For Bayes tree
-function setData!(v::Graphs.ExVertex, data)
+function setData!(v::TreeClique, data)
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
   v.attributes["data"] = data
   nothing
@@ -659,7 +659,7 @@ Notes:
 - used by Bayes tree clique logic.
 - similar method in DFG
 """
-function isInitialized(vert::Graphs.ExVertex)::Bool
+function isInitialized(vert::TreeClique)::Bool
   return solverData(vert).initialized
 end
 
@@ -1273,8 +1273,8 @@ function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int,Graphs.ExVertex},
-                              edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}})
+                              vertdict::Dict{Int,TreeClique},
+                              edgedict::Dict{Int,Graphs.Edge{TreeClique}})
   #asfd
   for vert in vertdict
     for newedge in out_edges(vert[2],fgl.g)
@@ -1289,8 +1289,8 @@ end
 
 # dictionary of unique vertices from edgelist
 function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
-  vertdict::Dict{Int,Graphs.ExVertex})
+  edgedict::Dict{Int,Graphs.Edge{TreeClique}},
+  vertdict::Dict{Int,TreeClique})
 
   # go through all source and target nodes
   for edge in edgedict
@@ -1304,8 +1304,8 @@ function expandVertexList!(fgl::FactorGraph,
   nothing
 end
 
-function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
-  edgedict = Dict{Int,Graphs.Edge{Graphs.ExVertex}}()
+function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
+  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
   for edge in edgelist
     edgedict[edge.index] = edge
   end
