@@ -1,4 +1,6 @@
+using MetaGraphs
 
+abstract type AbstractBayesTree end
 
 
 const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
@@ -9,10 +11,10 @@ $(TYPEDEF)
 
 Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
 """
-mutable struct BayesTree
+mutable struct BayesTree <: AbstractBayesTree
   bt::BTGdict
   btid::Int
-  cliques::Dict{Int,TreeClique}
+  cliques::Dict{Int,Graphs.ExVertex}
   frontals::Dict{Symbol,Int}
   variableOrder::Vector{Symbol}
   buildTime::Float64
@@ -28,6 +30,61 @@ function emptyBayesTree()
 					 0.0 )
     return bt
 end
+
+
+# TODO DEV MetaGraphs bayes tree
+"""
+$(TYPEDEF)
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
+"""
+mutable struct MetaBayesTree <: AbstractBayesTree
+  bt::MetaDiGraph{Int,Float64}
+  btid::Int
+  # cliques::Dict{Int,Graphs.ExVertex}
+  frontals::Dict{Symbol,Int}
+  variableOrder::Vector{Symbol}
+  buildTime::Float64
+end
+
+MetaBayesTree() = MetaBayesTree(MetaDiGraph{Int,Float64}(), 0, Dict{AbstractString, Int}(), Symbol[], 0.0)
+
+Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :cliques, :frontals, :variableOrder, :buildTime)
+
+Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
+    if f == :cliques
+      @warn "Moet die dalk nie gebruik nie"
+      # for (key,value) in x.bt.vprops
+      #
+      # end
+      x.bt.vprops
+    else
+      getfield(x,f)
+    end
+  end
+
+function MetaBayesTree(tree::BayesTree)
+  # create graph from Graphs.jl adjacency_matrix
+  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals)
+
+  #deep copy over properties
+  for v in tree.bt.vertices
+    set_prop!(mtree.bt, v.index, :label, deepcopy(v.attributes["label"]))
+    set_prop!(mtree.bt, v.index, :data, deepcopy(v.attributes["data"]))
+    set_prop!(mtree.bt, v.index, :attributes, Dict{String,Any}())
+  end
+
+  ##  TODO: placeholder for edge stored Channels
+  ## set message passing properties,
+  # for e in MetaGraphs.edges(mtree.bt)
+  #   set_prop!(mtree.bt, e, :upMsg, Channel{BelieveMessage}(0))
+  #   set_prop!(mtree.bt, e, :downMsg, Channel{BelieveMessage}(0))
+  # end
+
+  return mtree
+
+end
+
+# abstract type AbstractBayesTreeNodeData end
 
 
 """
