@@ -1011,7 +1011,7 @@ DevNotes
 function buildCliqSubgraph(dfg::AbstractDFG,
                            treel::BayesTree,
                            cliq::TreeClique,
-                           subfg::InMemoryDFGTypes=GraphsDFG(params=getSolverParams(dfg)) )
+                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
   #
   # get cliq and variable labels
   syms = getCliqAllVarIds(cliq)
@@ -1041,7 +1041,7 @@ end
 function buildCliqSubgraph(fgl::AbstractDFG,
                            treel::BayesTree,
                            cliqsym::Symbol,
-                           subfg::InMemDFGType=GraphsDFG(params=getSolverParams(fgl)) )
+                           subfg::InMemDFGType=InMemDFGType(params=getSolverParams(fgl)) )
   #
   buildCliqSubgraph(fgl, treel, getCliq(treel, cliqsym), subfg)
 end
