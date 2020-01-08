@@ -1,5 +1,5 @@
 
-export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D, lineStepFG
+export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D, generateCanonicalFG_lineStep
 
 """
     $SIGNATURES

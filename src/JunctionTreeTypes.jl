@@ -11,13 +11,18 @@ DEV NOTES: To replace TreeClique completely
 mutable struct TreeClique
   index::Int
   label::Symbol
-  data::Any #BayesTreeNodeData #FIXME There is a circular types for BayesTreeNodeData -> CliqStateMachineContainer https://github.com/JuliaLang/julia/issues/269
-  attributes::Dict{String, Any}
+  data::Any #BayesTreeNodeData #FIXME There is circular type usage in TreeClique, BayesTreeNodeData, CliqStateMachineContainer https://github.com/JuliaLang/julia/issues/269
+  attributes::Dict{String, Any} #The drawing attributes
 end
 
-TreeClique(i::Int, label::Symbol) = TreeClique(i, label, emptyBTNodeData(), Dict{String,Any}("label"=>label))
+TreeClique(i::Int, label::Symbol) = TreeClique(i, label, emptyBTNodeData(), Dict{String,Any}())
 TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
 
+Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
+Graphs.vertex_index(v::TreeClique) = v.index
+Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
+
+#TODO the label field and label atribute is a bit confusing with accessors.
 DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
 function setLabel!(cliq::TreeClique, lbl::String)
   cliq.attributes["label"] = lbl
@@ -30,9 +35,9 @@ end
 
 abstract type AbstractBayesTree end
 
-const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
 
 # BayesTree declarations
+const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
 """
 $(TYPEDEF)
 
@@ -79,10 +84,7 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      @warn "Moet die dalk nie gebruik nie"
-      # for (key,value) in x.bt.vprops
-      #
-      # end
+      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
       x.bt.vprops
     else
       getfield(x,f)
@@ -95,9 +97,8 @@ function MetaBayesTree(tree::BayesTree)
 
   #deep copy over properties
   for v in tree.bt.vertices
-    set_prop!(mtree.bt, v.index, :label, deepcopy(v.attributes["label"]))
-    set_prop!(mtree.bt, v.index, :data, deepcopy(v.attributes["data"]))
-    set_prop!(mtree.bt, v.index, :attributes, Dict{String,Any}())
+    # set_prop!(mtree.bt, v.index, :label, deepcopy(v.label))
+    set_prop!(mtree.bt, v.index, :clique, deepcopy(v.data))
   end
 
   ##  TODO: placeholder for edge stored Channels
@@ -110,8 +111,6 @@ function MetaBayesTree(tree::BayesTree)
   return mtree
 
 end
-
-# abstract type AbstractBayesTreeNodeData end
 
 
 """
@@ -139,7 +138,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}() # NOTE JT - GraphsDFG as default?
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}()
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::InMemoryDFGTypes,
                                   x3::BayesTree,
