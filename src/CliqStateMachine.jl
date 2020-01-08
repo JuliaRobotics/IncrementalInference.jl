@@ -11,7 +11,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
-  lbl = csmc.cliq.attributes["label"]
+  lbl = getLabel(csmc.cliq)
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -693,25 +693,11 @@ Notes
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
-  syms = getCliqAllVarIds(csmc.cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
+  infocsm(csmc, "2, build subgraph syms=$(getCliqAllVarIds(csmc.cliq))")
+  buildCliqSubgraph(csmc.dfg, csmc.tree, csmc.cliq, csmc.cliqSubFg)
 
-  infocsm(csmc, "2, build subgraph syms=$(syms)")
-  # TODO review, are all updates atomic???
-  # if isa(csmc.dfg, InMemDFGType)
-  #   csmc.cliqSubFg = csmc.dfg
-  # else
-    csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms, solvable=1)
-  # end
-
-  # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build.pdf"))
-  end
+  # if dfg, store the cliqSubFg for later debugging
+  dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
 
   # go to 4
   return isCliqNull_StateMachine
@@ -860,7 +846,7 @@ Notes:
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
-                                        cliq::Graphs.ExVertex;
+                                        cliq::TreeClique;
                                         N::Int=100,
 										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
@@ -873,7 +859,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = Graphs.ExVertex[]
+  children = TreeClique[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
     push!(children, ch)
   end

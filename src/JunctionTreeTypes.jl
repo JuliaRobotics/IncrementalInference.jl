@@ -12,16 +12,20 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct BayesTree
   bt::BTGdict
   btid::Int
-  cliques::Dict{Int,Graphs.ExVertex}
+  cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
+  variableOrder::Vector{Symbol}
+  buildTime::Float64
 end
 
 function emptyBayesTree()
-    bt =   BayesTree(Graphs.inclist(Graphs.ExVertex,is_directed=true),
+    bt =   BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                      0,
-                     Dict{Int,Graphs.ExVertex}(),
+                     Dict{Int,TreeClique}(),
                      #[],
-                     Dict{AbstractString, Int}())
+                     Dict{AbstractString, Int}(),
+                     Symbol[],
+					 0.0 )
     return bt
 end
 
@@ -39,9 +43,9 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   dfg::T
   cliqSubFg::InMemG
   tree::BayesTree
-  cliq::Graphs.ExVertex
-  parentCliq::Vector{Graphs.ExVertex}
-  childCliqs::Vector{Graphs.ExVertex}
+  cliq::TreeClique
+  parentCliq::Vector{TreeClique}
+  childCliqs::Vector{TreeClique}
   forceproceed::Bool # TODO: bad flag that must be removed by refactoring sm
   incremental::Bool
   drawtree::Bool
@@ -51,13 +55,13 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, DFG.GraphsDFG, DFG.GraphsDFG}() # NOTE JT - GraphsDFG as default?
+  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}() # NOTE JT - GraphsDFG as default?
   CliqStateMachineContainer{BTND}(x1::G,
                                   x2::InMemoryDFGTypes,
                                   x3::BayesTree,
-                                  x4::Graphs.ExVertex,
-                                  x5::Vector{Graphs.ExVertex},
-                                  x6::Vector{Graphs.ExVertex},
+                                  x4::TreeClique,
+                                  x5::Vector{TreeClique},
+                                  x6::Vector{TreeClique},
                                   x7::Bool,
                                   x8::Bool,
                                   x9::Bool,
@@ -72,9 +76,9 @@ end
 function CliqStateMachineContainer(x1::G,
                                    x2::InMemoryDFGTypes,
                                    x3::BayesTree,
-                                   x4::Graphs.ExVertex,
-                                   x5::Vector{Graphs.ExVertex},
-                                   x6::Vector{Graphs.ExVertex},
+                                   x4::TreeClique,
+                                   x5::Vector{TreeClique},
+                                   x6::Vector{TreeClique},
                                    x7::Bool,
                                    x8::Bool,
                                    x9::Bool,
@@ -227,7 +231,7 @@ $(TYPEDEF)
 mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
   fg::T3
   bt::T2
-  cliq::Graphs.ExVertex
+  cliq::TreeClique
   prnt::T
   sendmsgs::Vector{NBPMessage}
 end
@@ -238,7 +242,7 @@ const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
 
 function ExploreTreeType(fgl::G,
                          btl::BayesTree,
-                         vertl::Graphs.ExVertex,
+                         vertl::TreeClique,
                          prt::T,
                          msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}
   #
@@ -250,7 +254,7 @@ $(TYPEDEF)
 """
 mutable struct MsgPassType
   fg::GraphsDFG
-  cliq::Graphs.ExVertex
+  cliq::TreeClique
   vid::Symbol # Int
   msgs::Array{NBPMessage,1}
   N::Int

@@ -55,6 +55,8 @@ function solveTree!(dfgl::G,
   oldtree.btid = tree.btid
   oldtree.cliques = tree.cliques
   oldtree.frontals = tree.frontals
+  oldtree.variableOrder = tree.variableOrder
+  oldtree.buildTime = tree.buildTime
 
   return oldtree, smtasks, hist
 end

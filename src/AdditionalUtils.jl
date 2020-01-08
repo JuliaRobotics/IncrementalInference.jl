@@ -11,7 +11,7 @@ Notes
 
 Related
 
-drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels
+drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels!
 """
 function drawCliqSubgraphUpMocking(fgl::G,
                                    treel::BayesTree,
@@ -77,7 +77,7 @@ Related
 printCliqHistorySummary
 """
 function printCliqSummary(dfg::G,
-                          cliq::Graphs.ExVertex,
+                          cliq::TreeClique,
                           logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   frtl = getCliqFrontalVarIds(cliq)

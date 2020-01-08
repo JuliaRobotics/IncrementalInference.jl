@@ -213,8 +213,9 @@ export
   getBWVal,
   setBW!,
   setValKDE!,
-  buildCliqSubgraphUp,
-  buildCliqSubgraphDown,
+  buildCliqSubgraph,
+  # buildCliqSubgraphUp,
+  # buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
@@ -433,11 +434,13 @@ export
   extractdistribution,
 
   # factor graph operating system utils (fgos)
-  convert2packedfunctionnode,
-  encodefg,
-  decodefg,
-  savejld,
-  loadjld,
+  saveTree,
+  loadTree,
+  # convert2packedfunctionnode,
+  # encodefg,
+  # decodefg,
+  # savejld,
+  # loadjld,
   landmarks,
   setCliqDrawColor,
 
@@ -475,8 +478,6 @@ export
   compare,
   compareAllSpecial,
   getIdx,
-  showFactor,
-  showVariable,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
@@ -506,6 +507,14 @@ export
   DataLayerAPI
 
 
+#TreeClique
+const TreeClique = Graphs.ExVertex
+
+DFG.getLabel(cliq::Graphs.ExVertex) = cliq.attributes["label"]
+function setLabel(cliq::Graphs.ExVertex, lbl::String)
+  cliq.attributes["label"] = lbl
+  lbl
+end
 
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
@@ -523,13 +532,13 @@ include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("FactorGraph01.jl")
-include("SubGraphFunctions.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
 include("JunctionTreeTypes.jl")
+include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
@@ -549,6 +558,7 @@ include("Factors/Sphere1D.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
+include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
@@ -572,7 +582,7 @@ function __init__()
       * Frontal, separator, and upmessages are all drawn at different intensity of red.
       * Downward messages not shown, as they would just be singletons of the full separator set.
       """
-      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
         mat = map(Float64, mat)*2.0.-1.0
@@ -590,8 +600,8 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end

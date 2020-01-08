@@ -64,13 +64,14 @@ Add all potentials associated with this clique and vertid to dens.
 function packFromLocalPotentials!(dfg::AbstractDFG,
                                   dens::Vector{BallTreeDensity},
                                   wfac::Vector{Symbol},
-                                  cliq::Graphs.ExVertex,
+                                  cliq::TreeClique,
                                   vsym::Symbol,
                                   N::Int,
                                   dbg::Bool=false )::Float64
   #
   inferdim = 0.0
   for idfct in getData(cliq).potentials
+    !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     fct = DFG.getFactor(dfg, idfct)
     data = solverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
@@ -89,13 +90,14 @@ end
 
 function packFromLocalPartials!(fgl::G,
                                 partials::Dict{Int, Vector{BallTreeDensity}},
-                                cliq::Graphs.ExVertex,
+                                cliq::TreeClique,
                                 vsym::Symbol,
                                 N::Int,
                                 dbg::Bool=false  ) where G <: AbstractDFG
   #
 
   for idfct in getData(cliq).potentials
+    !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
     data = solverData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
@@ -426,7 +428,7 @@ trasit integral -- here involving separate approximate functional convolution an
 product operations.
 """
 function cliqGibbs(fg::G,
-                   cliq::Graphs.ExVertex,
+                   cliq::TreeClique,
                    vsym::Symbol,
                    inmsgs::Array{NBPMessage,1},
                    N::Int,
@@ -483,7 +485,7 @@ end
 
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
-                        cliq::Graphs.ExVertex,
+                        cliq::TreeClique,
                         fmsgs,
                         N::Int,
                         dbg::Bool,
@@ -514,7 +516,7 @@ of the stipulated proposal convolutions and products of the functional objects
 for tree clique `cliq`.
 """
 function fmcmc!(fgl::G,
-                cliq::Graphs.ExVertex,
+                cliq::TreeClique,
                 fmsgs::Vector{NBPMessage},
                 lbls::Vector{Symbol},
                 N::Int,
@@ -524,7 +526,7 @@ function fmcmc!(fgl::G,
                 multithreaded::Bool=false  ) where G <: AbstractDFG
   #
   with_logger(logger) do
-    @info "---------- successive fnc approx ------------$(cliq.attributes["label"])"
+    @info "---------- successive fnc approx ------------$(getLabel(cliq))"
   end
   # repeat several iterations of functional Gibbs sampling for fixed point convergence
   if length(lbls) == 1
@@ -739,7 +741,7 @@ end
 
 
 function dwnPrepOutMsg(fg::G,
-                       cliq::Graphs.ExVertex,
+                       cliq::TreeClique,
                        dwnMsgs::Array{NBPMessage,1},
                        d::Dict{Symbol, T},
                        logger=ConsoleLogger()) where {G <: AbstractDFG, T}
@@ -772,7 +774,7 @@ Notes
 - Only update frontal variables of the clique.
 """
 function downGibbsCliqueDensity(fg::G,
-                                cliq::Graphs.ExVertex,
+                                cliq::TreeClique,
                                 dwnMsgs::Array{NBPMessage,1},
                                 N::Int=100,
                                 MCMCIter::Int=3,
@@ -822,7 +824,7 @@ function downGibbsCliqueDensity(fg::G,
   return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
 end
 function downGibbsCliqueDensity(fg::G,
-                                cliq::Graphs.ExVertex,
+                                cliq::TreeClique,
                                 dwnMsgs::TempBeliefMsg, # Dict{Symbol,BallTreeDensity},
                                 N::Int=100,
                                 MCMCIter::Int=3,
@@ -900,7 +902,7 @@ end
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
 function updateFGBT!(fg::G,
-                     cliq::Graphs.ExVertex,
+                     cliq::TreeClique,
                      urt::UpReturnBPType;
                      dbg::Bool=false,
                      fillcolor::String="",
@@ -924,7 +926,7 @@ function updateFGBT!(fg::G,
     setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
   end
   with_logger(logger) do
-    @info "updateFGBT! up -- updated $(cliq.attributes["label"])"
+    @info "updateFGBT! up -- updated $(getLabel(cliq))"
   end
   nothing
 end
@@ -951,7 +953,7 @@ Notes
 """
 function getCliqChildMsgsUp(fg_::G,
                             treel::BayesTree,
-                            cliq::Graphs.ExVertex,
+                            cliq::TreeClique,
                             ::Type{EasyMessage} ) where G <: AbstractDFG
   #
   childmsgs = NBPMessage[]
@@ -967,7 +969,7 @@ function getCliqChildMsgsUp(fg_::G,
   return childmsgs
 end
 
-function getCliqChildMsgsUp(treel::BayesTree, cliq::Graphs.ExVertex, ::Type{BallTreeDensity})
+function getCliqChildMsgsUp(treel::BayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
   childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Float64}}}()  # Vector{Bool}
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child)
@@ -991,7 +993,7 @@ Notes
 - Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
-function getCliqParentMsgDown(treel::BayesTree, cliq::Graphs.ExVertex)
+function getCliqParentMsgDown(treel::BayesTree, cliq::TreeClique)
   downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
@@ -1030,7 +1032,7 @@ function approxCliqMarginalUp!(fgl::G,
                                logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
-  onduplicate
+  # onduplicate
   with_logger(logger) do
     @warn "rebuilding new Bayes tree on deepcopy of factor graph"
   end
@@ -1054,7 +1056,7 @@ function approxCliqMarginalUp!(fgl::G,
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   with_logger(logger) do
-    @info "=== start Clique $(cliq.attributes["label"]) ======================"
+    @info "=== start Clique $(getLabel(cliq)) ======================"
   end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
   urt = UpReturnBPType()
@@ -1091,7 +1093,7 @@ function approxCliqMarginalUp!(fgl::G,
 
   drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
-    @info "=== end Clique $(cliq.attributes["label"]) ========================"
+    @info "=== end Clique $(getLabel(cliq)) ========================"
   end
   return urt
 end
@@ -1131,7 +1133,7 @@ end
 # """
 # function doCliqInferenceUp!(fgl::FactorGraph,
 #                             treel::BayesTree,
-#                             cliql::Graphs.ExVertex;
+#                             cliql::TreeClique;
 #                             N::Int=100,
 #                             dbg::Bool=false,
 #                             iters::Int=3  )
@@ -1211,7 +1213,7 @@ end
 
 Return `::Bool` on whether all variables in this `cliq` are marginalzed.
 """
-function isCliqMarginalizedFromVars(subfg::FactorGraph, cliq::Graphs.ExVertex)
+function isCliqMarginalizedFromVars(subfg::FactorGraph, cliq::TreeClique)
   for vert in getCliqVars(subfg, cliq)
     if !isMarginalized(vert)
       return false
@@ -1225,7 +1227,7 @@ end
 
 Set the marginalized status of a clique.
 """
-function setCliqAsMarginalized!(cliq::Graphs.ExVertex, status::Bool)
+function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
   if status
     getData(cliq).initialized = :marginalized
   else
@@ -1284,11 +1286,11 @@ based on contents of `seeksSimilar::BayesTreeNodeData`.
 Notes
 - Used to identify and skip similar cliques (i.e. recycle computations)
 """
-function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeNodeData)::Graphs.ExVertex
+function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeNodeData)::TreeClique
   # inner convenience function for returning empty clique
   function EMPTYCLIQ()
     clq = ExVertex(-1,"null")
-    clq.attributes["label"] = ""
+    setLabel(clq, "")
     setData!(clq, emptyBTNodeData())
     return clq
   end

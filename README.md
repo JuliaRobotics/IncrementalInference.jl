@@ -1,7 +1,10 @@
 # IncrementalInference.jl
 
-[![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl)
-[![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
+> Click on badges to follow links
+
+Stable | Dev | Coverage | Documentation
+-------|-----|----------|--------------
+[![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.8)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master) | [![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/)
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
@@ -11,10 +14,6 @@ Optimization routines for incremental non-parametric and parametric solutions ba
 
 This package furthermore forms a cardinal piece of the [Caesar.jl](https://github.com/JuliaRobotics/Caesar.jl) robotics toolkit, including 3D visualization and database interaction, which can serve as a base station for a robotic platform. A standalone [Robot Motion Estimate](https://github.com/JuliaRobotics/RoME.jl) package is also available.
 
-# Documentation
-
-Please see the [common Caesar.jl documentation](http://juliarobotics.github.io/Caesar.jl/latest/): 
-[![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/)
 
 Introduction
 ------------

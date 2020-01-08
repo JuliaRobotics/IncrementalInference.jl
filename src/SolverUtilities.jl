@@ -238,7 +238,7 @@ Dev Notes
 """
 function resetCliqSolve!(dfg::G,
                          treel::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
   cda = getData(cliq)
@@ -282,7 +282,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   varsyms = fcto._variableOrderSymbols
   vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
   fcttype = getFactorType(fcto)
-  zDim = getData(fcto).fnc.zDim
+  zDim = solverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)
