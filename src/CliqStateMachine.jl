@@ -845,7 +845,7 @@ Notes:
 - Doesn't do partial initialized state properly yet.
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
-                                        tree::BayesTree,
+                                        tree::AbstractBayesTree,
                                         cliq::TreeClique;
                                         N::Int=100,
 										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),

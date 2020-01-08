@@ -57,7 +57,7 @@ drawCliqSubgraphUpMocking, drawGraph, drawTree
 """
 function drawGraphCliq(hists::Dict{Int, <: Tuple},
                        step::Int,
-                       tree::BayesTree,
+                       tree::AbstractBayesTree,
                        frontal::Symbol;
                        show::Bool=true  )
   #

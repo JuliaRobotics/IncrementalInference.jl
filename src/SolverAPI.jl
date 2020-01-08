@@ -21,7 +21,7 @@ Related
 solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::G,
-                    oldtree::BayesTree=emptyBayesTree();
+                    oldtree::AbstractBayesTree=emptyBayesTree();
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
@@ -78,7 +78,7 @@ Related
 solveTree!, wipeBuildNewTree!
 """
 function solveCliq!(dfgl::G,
-                    tree::BayesTree,
+                    tree::AbstractBayesTree,
                     cliqid::Symbol;
                     recordcliq::Bool=false,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
@@ -117,7 +117,7 @@ Notes
 """
 function inferOverTree!(dfg::G,
                         bt::BayesTree;
-                        oldtree::BayesTree=emptyBayesTree(),
+                        oldtree::AbstractBayesTree=emptyBayesTree(),
                         N::Int=100,
                         upsolve::Bool=true,
                         downsolve::Bool=true,
@@ -212,7 +212,7 @@ end
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
 function batchSolve!(dfg::G,
-                     oldtree::BayesTree=emptyBayesTree();
+                     oldtree::AbstractBayesTree=emptyBayesTree();
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,

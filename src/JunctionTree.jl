@@ -21,10 +21,18 @@ getFrontals(cliqd::Union{TreeClique,BayesTreeNodeData})::Vector{Symbol} = getCli
 
 Create a new clique.
 """
-function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::TreeClique where G <: AbstractDFG
+function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::TreeClique where G <: AbstractDFG
   bt.btid += 1
-  clq = Graphs.add_vertex!(bt.bt, TreeClique(bt.btid,string("Clique",bt.btid)))
-  bt.cliques[bt.btid] = clq
+
+  if isa(bt.bt,GenericIncidenceList)
+    clq = Graphs.add_vertex!(bt.bt, TreeClique(bt.btid,string("Clique",bt.btid)))
+    bt.cliques[bt.btid] = clq
+  elseif isa(bt.bt, MetaDiGraph)
+    clq = TreeClique(bt.btid, string("Clique", bt.btid))
+    MetaGraphs.add_vertex!(bt.bt, :clique, clq)
+  else
+    error("Oops, something went wrong")
+  end
 
   setLabel!(clq, "")
 
@@ -35,12 +43,13 @@ function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}
   return clq
 end
 
+
 """
     $SIGNATURES
 
 Generate the label for particular clique (used by graphviz for visualization).
 """
-function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: AbstractDFG
+function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::Int)::String where G <: AbstractDFG
   clq = bt.cliques[clqID]
   flbl = ""
   clbl = ""
@@ -58,7 +67,7 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique(bt::BayesTree, clqID::Int, seprIDs::Array{Symbol,1})
+function appendSeparatorToClique(bt::AbstractBayesTree, clqID::Int, seprIDs::Array{Symbol,1})
   union!(getData(bt.cliques[clqID]).separatorIDs, seprIDs)
   nothing
 end
@@ -71,13 +80,13 @@ Add a new frontal variable to clique.
 DevNotes
 - TODO, define what "conditionals" are CLEARLY!!
 """
-function appendClique!(bt::BayesTree,
+function appendClique!(bt::AbstractBayesTree,
                        clqID::Int,
                        dfg::AbstractDFG,
                        varID::Symbol,
                        seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
   #
-  clq = bt.cliques[clqID]
+  clq = bt.cliques[clqID] #TODO replace with getClique
   var = DFG.getVariable(dfg, varID)
 
   # add frontal variable
@@ -98,13 +107,22 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::BayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
+function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
   # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = bt.cliques[CpID]
-  # Staying with Graphs.jl for tree in first stage
-  edge = Graphs.make_edge(bt.bt, parent, chclq)
-  Graphs.add_edge!(bt.bt, edge)
+
+  if isa(bt.bt,GenericIncidenceList)
+    # Staying with Graphs.jl for tree in first stage
+    edge = Graphs.make_edge(bt.bt, parent, chclq)
+    Graphs.add_edge!(bt.bt, edge)
+  elseif isa(bt.bt, MetaDiGraph)
+    # TODO EDGE properties here
+    MetaGraphs.add_edge!(bt.bt, parent.index, chclq.index)
+  else
+    error("Oops, something went wrong")
+  end
+
 
   return chclq
 end
@@ -163,7 +181,7 @@ Kaess et al.: Bayes Tree, WAFR, 2010, [Alg. 2]
 Kaess et al.: iSAM2, IJRR, 2011, [Alg. 3]
 Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 """
-function newPotential(tree::BayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
+function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFG.getVariable(dfg,var)
     # no parent
     if (length(solverData(firvert).separator) == 0)
@@ -204,7 +222,7 @@ end
 
 Build the whole tree in batch format.
 """
-function buildTree!(tree::BayesTree, dfg::AbstractDFG, elimorder::Array{Symbol,1})
+function buildTree!(tree::AbstractBayesTree, dfg::AbstractDFG, elimorder::Array{Symbol,1})
   revorder = reverse(elimorder,dims=1) # flipdim(p, 1), fixing #499
   # prevVar = 0
   for var in revorder
@@ -543,7 +561,7 @@ function wipeBuildNewTree!(dfg::G;
                            viewerapp::String="evince",
                            imgs::Bool=false,
                            maxparallel::Int=50,
-                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::BayesTree where G <: AbstractDFG
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::AbstractBayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
   return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
@@ -604,7 +622,7 @@ function getCliqDepth(tree, cliq)::Int
   end
   return getCliqDepth(tree, prnt[1]) + 1
 end
-getCliqDepth(tree::BayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
+getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
 
 
 
@@ -801,7 +819,7 @@ end
 Determine and set the potentials for a particular `cliq` in the Bayes (Junction) tree.
 """
 function setCliqPotentials!(dfg::G,
-                            bt::BayesTree,
+                            bt::AbstractBayesTree,
                             cliq::TreeClique;
                             solvable::Int=1  ) where G <: AbstractDFG
   #
@@ -851,9 +869,9 @@ end
 
 Collect and returl all child clique separator variables.
 """
-function collectSeparators(bt::BayesTree, cliq::TreeClique)::Vector{Symbol}
+function collectSeparators(bt::AbstractBayesTree, cliq::TreeClique)::Vector{Symbol}
   allseps = Symbol[]
-  for child in out_neighbors(cliq, bt.bt)#tree
+  for child in childCliqs(bt, cliq)#tree
       allseps = [allseps; getData(child).separatorIDs]
   end
   return allseps
@@ -1095,7 +1113,7 @@ end
 
 Get each clique subgraph association matrix.
 """
-function compCliqAssocMatrices!(dfg::G, bt::BayesTree, cliq::TreeClique) where G <: AbstractDFG
+function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique) where G <: AbstractDFG
   frtl = getCliqFrontalVarIds(cliq)
   cond = getCliqSeparatorVarIds(cliq)
   inmsgIDs = collectSeparators(bt, cliq)
@@ -1313,8 +1331,8 @@ end
 
 
 # post order tree traversal and build potential functions
-function buildCliquePotentials(dfg::G, bt::BayesTree, cliq::TreeClique; solvable::Int=1) where G <: AbstractDFG
-    for child in out_neighbors(cliq, bt.bt)#tree
+function buildCliquePotentials(dfg::G, bt::AbstractBayesTree, cliq::TreeClique; solvable::Int=1) where G <: AbstractDFG
+    for child in childCliqs(bt, cliq)#tree
         buildCliquePotentials(dfg, bt, child)
     end
     @info "Get potentials $(getLabel(cliq))"
@@ -1340,6 +1358,15 @@ function childCliqs(treel::BayesTree, cliq::TreeClique)
 end
 function childCliqs(treel::BayesTree, frtsym::Symbol)
   childCliqs(treel,  whichCliq(treel, frtsym))
+end
+
+
+function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
+    childcliqs = TreeClique[]
+    for cIdx in MetaGraphs.outneighbors(treel.bt, cliq.index)
+        push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
+    end
+    return childcliqs
 end
 
 """
@@ -1403,7 +1430,7 @@ Related:
 
 whichCliq, printCliqHistorySummary
 """
-function getTreeAllFrontalSyms(fgl::G, tree::BayesTree) where G <: AbstractDFG
+function getTreeAllFrontalSyms(fgl::G, tree::AbstractBayesTree) where G <: AbstractDFG
   cliqs = tree.cliques
   syms = Vector{Symbol}(undef, length(cliqs))
   for (id,cliq) in cliqs
@@ -1430,7 +1457,7 @@ Related
 
 getUpMsgs
 """
-function getTreeCliqUpMsgsAll(tree::BayesTree)::Dict{Int,TempBeliefMsg}
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,TempBeliefMsg}
   allUpMsgs = Dict{Int,TempBeliefMsg}()
   for (idx,cliq) in tree.cliques
     msgs = getUpMsgs(cliq)
@@ -1458,7 +1485,7 @@ Notes
       inferredDim  -- Information count
      }
 """
-function stackCliqUpMsgsByVariable(tree::BayesTree,
+function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
                                    tmpmsgs::Dict{Int, TempBeliefMsg}  )::TempUpMsgPlotting
   #
   # start of the return data structure

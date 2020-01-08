@@ -575,7 +575,7 @@ Calculate a fresh (single step) approximation to the variable `sym` in clique `c
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductUp(fg::AbstractDFG,
-                       tree::BayesTree,
+                       tree::AbstractBayesTree,
                        cliq::Symbol,
                        sym::Symbol;
                        N::Int=100,
@@ -617,7 +617,7 @@ Calculate a fresh---single step---approximation to the variable `sym` in clique 
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductDwn(fg::G,
-                        tree::BayesTree,
+                        tree::AbstractBayesTree,
                         cliq::Symbol,
                         sym::Symbol;
                         N::Int=100,
@@ -1248,7 +1248,7 @@ Run through entire tree and set cliques as marginalized if all clique variables 
 Notes:
 - TODO can be made fully parallel, consider converting for use with `@threads` `for`.
 """
-function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::BayesTree)::Nothing
+function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::AbstractBayesTree)::Nothing
   for (clid, cliq) in tree.cliques
     if isCliqMarginalizedFromVars(fgl, cliq)
       setCliqAsMarginalized!(cliq, true)
@@ -1286,7 +1286,7 @@ based on contents of `seeksSimilar::BayesTreeNodeData`.
 Notes
 - Used to identify and skip similar cliques (i.e. recycle computations)
 """
-function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeNodeData)::TreeClique
+function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::BayesTreeNodeData)::TreeClique
   # inner convenience function for returning empty clique
   function EMPTYCLIQ()
     clq = TreeClique(-1,"null")
@@ -1435,7 +1435,7 @@ function fetchCliqTaskHistoryAll!(smt, hist)
   end
 end
 
-function fetchAssignTaskHistoryAll!(tree::BayesTree, smt)
+function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
   hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
   fetchCliqTaskHistoryAll!(smt, hist)
   assignTreeHistory!(tree, hist)
@@ -1457,7 +1457,7 @@ initInferTreeUp!
 """
 function asyncTreeInferUp!(dfg::G,
                            treel::BayesTree;
-                           oldtree::BayesTree=emptyBayesTree(),
+                           oldtree::AbstractBayesTree=emptyBayesTree(),
                            drawtree::Bool=false,
                            N::Int=100,
                            limititers::Int=-1,
@@ -1514,7 +1514,7 @@ asyncTreeInferUp!
 """
 function initInferTreeUp!(dfg::G,
                           treel::BayesTree;
-                          oldtree::BayesTree=emptyBayesTree(),
+                          oldtree::AbstractBayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,

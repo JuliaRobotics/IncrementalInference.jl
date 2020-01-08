@@ -62,7 +62,7 @@ function emptyBayesTree()
 					 0.0 )
     return bt
 end
-
+# emptyBayesTree() = MetaBayesTree()
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
@@ -85,7 +85,11 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
       @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-      x.bt.vprops
+      d = Dict{Int,Any}()
+      for (k,v) in x.bt.vprops
+        d[k] = v[:clique]
+      end
+      return d
     else
       getfield(x,f)
     end
@@ -98,7 +102,7 @@ function MetaBayesTree(tree::BayesTree)
   #deep copy over properties
   for v in tree.bt.vertices
     # set_prop!(mtree.bt, v.index, :label, deepcopy(v.label))
-    set_prop!(mtree.bt, v.index, :clique, deepcopy(v.data))
+    set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
   end
 
   ##  TODO: placeholder for edge stored Channels
@@ -122,10 +126,10 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemoryDFGTypes}
+mutable struct CliqStateMachineContainer{BTND, BT <: AbstractBayesTree, T <: AbstractDFG, InMemG <: InMemoryDFGTypes}
   dfg::T
   cliqSubFg::InMemG
-  tree::BayesTree
+  tree::BT
   cliq::TreeClique
   parentCliq::Vector{TreeClique}
   childCliqs::Vector{TreeClique}
@@ -138,27 +142,27 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}()
-  CliqStateMachineContainer{BTND}(x1::G,
-                                  x2::InMemoryDFGTypes,
-                                  x3::BayesTree,
-                                  x4::TreeClique,
-                                  x5::Vector{TreeClique},
-                                  x6::Vector{TreeClique},
-                                  x7::Bool,
-                                  x8::Bool,
-                                  x9::Bool,
-                                  x10a::Bool,
-                                  x10aa::Bool,
-                                  x10aaa::SolverParams,
-								  x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
-                                  x11::BTND=emptyBTNodeData(),
-                                  x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
+  # CliqStateMachineContainer{BTND}() where {BTND} = new{BTND, InMemDFGType, InMemDFGType}()
+  # CliqStateMachineContainer{BTND}(x1::G,
+  #                                 x2::InMemoryDFGTypes,
+  #                                 x3::BayesTree,
+  #                                 x4::TreeClique,
+  #                                 x5::Vector{TreeClique},
+  #                                 x6::Vector{TreeClique},
+  #                                 x7::Bool,
+  #                                 x8::Bool,
+  #                                 x9::Bool,
+  #                                 x10a::Bool,
+  #                                 x10aa::Bool,
+  #                                 x10aaa::SolverParams,
+  #                                 x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
+  #                                 x11::BTND=emptyBTNodeData(),
+  #                                 x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG} = new{BTND, G, typeof(x2)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10a,x10aa,x10aaa,x10b,x11, x13)
 end
 
 function CliqStateMachineContainer(x1::G,
                                    x2::InMemoryDFGTypes,
-                                   x3::BayesTree,
+                                   x3::AbstractBayesTree,
                                    x4::TreeClique,
                                    x5::Vector{TreeClique},
                                    x6::Vector{TreeClique},
