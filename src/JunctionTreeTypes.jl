@@ -1,9 +1,36 @@
 using MetaGraphs
 
+## Cliques
+
+"""
+    $(TYPEDEF)
+Structure to store clique data
+DEV NOTES: To replace TreeClique completely
+    $(FIELDS)
+"""
+mutable struct TreeClique
+  index::Int
+  label::Symbol
+  data::Any #BayesTreeNodeData #FIXME There is a circular types for BayesTreeNodeData -> CliqStateMachineContainer https://github.com/JuliaLang/julia/issues/269
+  attributes::Dict{String, Any}
+end
+
+TreeClique(i::Int, label::Symbol) = TreeClique(i, label, emptyBTNodeData(), Dict{String,Any}("label"=>label))
+TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
+
+DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
+function setLabel!(cliq::TreeClique, lbl::String)
+  cliq.attributes["label"] = lbl
+  lbl
+end
+
+## end Cliques
+
+## Bayes Trees
+
 abstract type AbstractBayesTree end
 
-
-const BTGdict = GenericIncidenceList{ExVertex,Edge{ExVertex},Array{ExVertex,1},Array{Array{Edge{ExVertex},1},1}}
+const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
 
 # BayesTree declarations
 """
@@ -14,7 +41,7 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct BayesTree <: AbstractBayesTree
   bt::BTGdict
   btid::Int
-  cliques::Dict{Int,Graphs.ExVertex}
+  cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
   variableOrder::Vector{Symbol}
   buildTime::Float64
@@ -32,7 +59,7 @@ function emptyBayesTree()
 end
 
 
-# TODO DEV MetaGraphs bayes tree
+# TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
 $(TYPEDEF)
 Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
@@ -40,7 +67,7 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
-  # cliques::Dict{Int,Graphs.ExVertex}
+  # cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
   variableOrder::Vector{Symbol}
   buildTime::Float64
@@ -64,7 +91,7 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
 
 function MetaBayesTree(tree::BayesTree)
   # create graph from Graphs.jl adjacency_matrix
-  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals)
+  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals, tree.variableOrder, tree.buildTime)
 
   #deep copy over properties
   for v in tree.bt.vertices
@@ -149,7 +176,6 @@ function CliqStateMachineContainer(x1::G,
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
-
 
 
 """

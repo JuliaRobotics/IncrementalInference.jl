@@ -21,12 +21,12 @@ getFrontals(cliqd::Union{TreeClique,BayesTreeNodeData})::Vector{Symbol} = getCli
 
 Create a new clique.
 """
-function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::ExVertex where G <: AbstractDFG
+function addClique!(bt::BayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::TreeClique where G <: AbstractDFG
   bt.btid += 1
-  clq = Graphs.add_vertex!(bt.bt, ExVertex(bt.btid,string("Clique",bt.btid)))
+  clq = Graphs.add_vertex!(bt.bt, TreeClique(bt.btid,string("Clique",bt.btid)))
   bt.cliques[bt.btid] = clq
 
-  setLabel(clq, "")
+  setLabel!(clq, "")
 
   # Specific data container
   setData!(clq, emptyBTNodeData())
@@ -50,7 +50,7 @@ function makeCliqueLabel(dfg::G, bt::BayesTree, clqID::Int)::String where G <: A
   for sepr in getData(clq).separatorIDs
     clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
-  setLabel(clq, string(flbl, ": ", clbl))
+  setLabel!(clq, string(flbl, ": ", clbl))
 end
 
 """
@@ -260,7 +260,7 @@ function drawTree(treel::BayesTree;
       firstlabel = split(getLabel(cliq),',')[1]
       spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/$firstlabel.png")
       cliq.attributes["image"] = "/tmp/$firstlabel.png"
-      setLabel(cliq, "")
+      setLabel!(cliq, "")
     end
     delete!(cliq.attributes, "data")
   end
@@ -337,7 +337,7 @@ function generateTexTree(treel::BayesTree;
         newseparator = newseparator[1:end-2]
         # Create full label and replace the old one.
         newlabel = string(newfrontals, ":", newseparator)
-        setLabel(cliq, newlabel)
+        setLabel!(cliq, newlabel)
     end
 
     # Use new labels to produce `.dot` and `.tex` files.
@@ -616,12 +616,12 @@ Set the upward passing message for Bayes (Junction) tree clique `cliql`.
 Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
-function setUpMsg!(cliql::ExVertex, msgs::Dict{Symbol, BallTreeDensity})
+function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
   @error "setUpMsg!, use inferred dimension version instead"
   getData(cliql).upMsg = msgs
 end
 
-function setUpMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+function setUpMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
   # ms = Dict{Symbol, BallTreeDensity}()
   # for (id, val) in msgs
   #   ms[id] = val[1]
@@ -651,7 +651,7 @@ getCliqMsgsUp(treel::BayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::ExVertex, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
+function setDwnMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
   getData(cliql).dwnMsg = msgs
 end
 

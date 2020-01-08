@@ -519,7 +519,7 @@ end
 """
     $SIGNATURES
 
-Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{ExVertex}`.
+Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{TreeClique}`.
 """
 function asyncProcessPostStacks!(fgl::G,
                                  bt::BayesTree,
@@ -756,7 +756,7 @@ function decodefg(fgs::FactorGraph)
     data = decodePackedType(fdata, "")
 
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    newvert = ExVertex(fid,string(fsym))
+    newvert = TreeClique(fid,string(fsym))
     for (key,val) in getVert(fgs,fid,api=api).attributes
       newvert.attributes[key] = val
     end

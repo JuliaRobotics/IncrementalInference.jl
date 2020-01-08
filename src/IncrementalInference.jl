@@ -507,15 +507,6 @@ export
   DataLayerAPI
 
 
-#TreeClique
-const TreeClique = Graphs.ExVertex
-
-DFG.getLabel(cliq::Graphs.ExVertex) = cliq.attributes["label"]
-function setLabel(cliq::Graphs.ExVertex, lbl::String)
-  cliq.attributes["label"] = lbl
-  lbl
-end
-
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
@@ -531,13 +522,13 @@ const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere mor
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("JunctionTreeTypes.jl")
 include("FactorGraph01.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
-include("JunctionTreeTypes.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")

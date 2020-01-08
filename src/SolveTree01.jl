@@ -854,7 +854,7 @@ end
 
 Set the color of a cliq in the Bayes (Junction) tree.
 """
-function setCliqDrawColor(cliq::Graphs.ExVertex, fillcolor::String)::Nothing
+function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
   cliq.attributes["fillcolor"] = fillcolor
   cliq.attributes["style"] = "filled"
   nothing
@@ -1289,8 +1289,8 @@ Notes
 function attemptTreeSimilarClique(othertree::BayesTree, seeksSimilar::BayesTreeNodeData)::TreeClique
   # inner convenience function for returning empty clique
   function EMPTYCLIQ()
-    clq = ExVertex(-1,"null")
-    setLabel(clq, "")
+    clq = TreeClique(-1,"null")
+    setLabel!(clq, "")
     setData!(clq, emptyBTNodeData())
     return clq
   end
