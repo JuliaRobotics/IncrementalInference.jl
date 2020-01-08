@@ -11,7 +11,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
-  lbl = csmc.cliq.attributes["label"]
+  lbl = getLabel(csmc.cliq)
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -846,7 +846,7 @@ Notes:
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::BayesTree,
-                                        cliq::Graphs.ExVertex;
+                                        cliq::TreeClique;
                                         N::Int=100,
 										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
@@ -859,7 +859,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = Graphs.ExVertex[]
+  children = TreeClique[]
   for ch in Graphs.out_neighbors(cliq, tree.bt)
     push!(children, ch)
   end

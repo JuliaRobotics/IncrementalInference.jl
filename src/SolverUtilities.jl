@@ -238,7 +238,7 @@ Dev Notes
 """
 function resetCliqSolve!(dfg::G,
                          treel::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
   cda = getData(cliq)
