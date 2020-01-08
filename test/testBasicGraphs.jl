@@ -128,8 +128,8 @@ tree, smt, hist = solveTree!(fg)
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
 @test (getKDE(fg, :x1) |> getKDEMean .|> abs)[1] < 0.6
 
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.2
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.3
 
 end
 
