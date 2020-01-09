@@ -261,7 +261,7 @@ Notes
 - Uses system install of graphviz.org.
 - Can also use Linux tool `xdot`.
 """
-function drawTree(treel::BayesTree;
+function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/caesar/bt.pdf",
                   viewerapp::String="evince",
@@ -1564,8 +1564,8 @@ function saveTree(treel::AbstractBayesTree,
   return filepath
 end
 
-function saveTree(treeArr::Vector{BayesTree},
-                  filepath=joinpath("/tmp","caesar","savetrees.jld2") )
+function saveTree(treeArr::Vector{T},
+                  filepath=joinpath("/tmp","caesar","savetrees.jld2") ) where T <: AbstractBayesTree
   #
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(savtre.cliques)

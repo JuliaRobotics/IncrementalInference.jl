@@ -132,6 +132,53 @@ function MetaBayesTree(tree::BayesTree)
 
 end
 
+# A replacement for to_dot that saves only plotting attributes
+function savedot_attributes(io::IO, g::MetaDiGraph)
+    write(io, "digraph G {\n")
+    for p in props(g)
+        write(io, "$(p[1])=$(p[2]);\n")
+    end
+
+    for v in MetaGraphs.vertices(g)
+        write(io, "$v")
+        if length(props(g, v)) > 0
+            write(io, " [ ")
+        end
+        for p in props(g, v)
+            # key = p[1]
+            # write(io, "$key=\"$(p[2])\",")
+            for (k,v) in p[2]
+              write(io, "\"$k\"=\"$v\",")
+            end
+        end
+        if length(props(g, v)) > 0
+            write(io, "];")
+        end
+        write(io, "\n")
+    end
+
+    for e in MetaGraphs.edges(g)
+        write(io, "$(MetaGraphs.src(e)) -> $(MetaGraphs.dst(e)) [ ")
+        # for p in props(g,e)
+        #     write(io, "$(p[1])=$(p[2]), ")
+        # end
+        write(io, "]\n")
+    end
+    write(io, "}\n")
+end
+
+function Graphs.to_dot(mdigraph::MetaDiGraph)
+  g = deepcopy(mdigraph)
+  for (i,val) in g.vprops
+    push!(g.vprops[i],:attributes=>val[:clique].attributes)
+    delete!(g.vprops[i],:clique)
+  end
+  m = PipeBuffer()
+  savedot_attributes(m, g)
+  data = take!(m)
+  close(m)
+  return String(data)
+end
 
 """
     $TYPEDEF
