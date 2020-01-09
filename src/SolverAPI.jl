@@ -53,7 +53,7 @@ function solveTree!(dfgl::G,
   # transfer new tree to outside parameter
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
-  oldtree.cliques = tree.cliques
+  oldtree.cliques = tree.cliques #TODO JT kyk meer detail, this is a bit strange as its a copy of data in graph
   oldtree.frontals = tree.frontals
   oldtree.variableOrder = tree.variableOrder
   oldtree.buildTime = tree.buildTime
@@ -116,7 +116,7 @@ Notes
 - For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
 """
 function inferOverTree!(dfg::G,
-                        bt::BayesTree;
+                        bt::AbstractBayesTree;
                         oldtree::AbstractBayesTree=emptyBayesTree(),
                         N::Int=100,
                         upsolve::Bool=true,
@@ -157,7 +157,7 @@ Notes
 - Even older code is available as `inferOverTreeR!`
 """
 function inferOverTreeIterative!(dfg::G,
-                                 bt::BayesTree;
+                                 bt::AbstractBayesTree;
                                  N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  ) where G <: AbstractDFG
@@ -179,7 +179,7 @@ end
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
 function inferOverTreeR!(fgl::G,
-                         bt::BayesTree;
+                         bt::AbstractBayesTree;
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,

@@ -267,7 +267,7 @@ function upMsg(cliq::TreeClique)
   @warn "deprecated upMsg, use getUpMsg instead"
   getData(cliq).upMsg
 end
-function upMsg(btl::BayesTree, sym::Symbol)
+function upMsg(btl::AbstractBayesTree, sym::Symbol)
   @warn "deprecated upMsg, use getUpMsg instead"
   upMsg(whichCliq(btl, sym))
 end
@@ -281,13 +281,13 @@ function dwnMsg(cliq::TreeClique)
   @warn "deprecated dwnMsg, use getDwnMsgs instead"
   getData(cliq).dwnMsg
 end
-function dwnMsg(btl::BayesTree, sym::Symbol)
+function dwnMsg(btl::AbstractBayesTree, sym::Symbol)
   @warn "deprecated dwnMsg, use getDwnMsgs instead"
   dwnMsg(whichCliq(btl, sym))
 end
 
 
-function getCliquePotentials!(fg::FactorGraph, bt::BayesTree, chkcliq::Int)
+function getCliquePotentials!(fg::FactorGraph, bt::AbstractBayesTree, chkcliq::Int)
     @error "getCliquePotentials! deprecated, use setCliqPotentials! with DFG objects instead of FactorGraph"
     setCliqPotentials!(fg, bt.cliques[chkcliq])
 end
@@ -358,7 +358,7 @@ function downGibbsCliqueDensity(inp::ExploreTreeType{T},
   return downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg)
 end
 
-function prepDwnPreOrderStack!(bt::BayesTree,
+function prepDwnPreOrderStack!(bt::AbstractBayesTree,
                                parentStack::Array{TreeClique,1})
   # dwn message passing function
   nodedata = nothing
@@ -392,7 +392,7 @@ function findVertsAssocCliq(fgl::FactorGraph, cliq::TreeClique)
   nothing
 end
 
-function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::TreeClique, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
+function partialExploreTreeType(pfg::G, pbt::AbstractBayesTree, cliqCursor::TreeClique, prnt, pmsgs::Array{NBPMessage,1}) where G <: AbstractDFG
     # info("starting pett")
     # TODO -- expand this to grab only partial subsection from the fg and bt data structures
 
@@ -406,7 +406,7 @@ function partialExploreTreeType(pfg::G, pbt::BayesTree, cliqCursor::TreeClique, 
 end
 
 function dispatchNewDwnProc!(fg::G,
-                             bt::BayesTree,
+                             bt::AbstractBayesTree,
                              parentStack::Array{TreeClique,1},
                              stkcnt::Int,
                              refdict::Dict{Int,Future};
@@ -447,7 +447,7 @@ Notes
 - Simultaenously launches as many async dispatches to remote processes as there are cliques in the tree.
 """
 function processPreOrderStack!(fg::G,
-                               bt::BayesTree,
+                               bt::AbstractBayesTree,
                                parentStack::Array{TreeClique,1},
                                refdict::Dict{Int,Future};
                                N::Int=100,
@@ -495,7 +495,7 @@ function downMsgPassingIterative!(startett::ExploreTreeType{T};
   nothing
 end
 
-function prepPostOrderUpPassStacks!(bt::BayesTree,
+function prepPostOrderUpPassStacks!(bt::AbstractBayesTree,
                                     parentStack::Array{TreeClique,1},
                                     childStack::Array{TreeClique,1}  )
   # upward message passing preparation
@@ -522,7 +522,7 @@ end
 Asynchronously perform up message passing, based on previoulsy prepared `chldstk::Vector{TreeClique}`.
 """
 function asyncProcessPostStacks!(fgl::G,
-                                 bt::BayesTree,
+                                 bt::AbstractBayesTree,
                                  chldstk::Vector{TreeClique},
                                  stkcnt::Int,
                                  refdict::Dict{Int,Future};
@@ -595,7 +595,7 @@ Notes
 - separate multithreaded calls can occur on each separate process.
 """
 function processPostOrderStacks!(fg::G,
-                                 bt::BayesTree,
+                                 bt::AbstractBayesTree,
                                  childStack::Array{TreeClique,1};
                                  N::Int=100,
                                  dbg::Bool=false,
@@ -633,7 +633,7 @@ end
 
 Return clique pointers for the given order in which they will be solved (sequentially).
 """
-function getCliqOrderUpSolve(treel::BayesTree, startcliq=treel.cliques[1])
+function getCliqOrderUpSolve(treel::AbstractBayesTree, startcliq=treel.cliques[1])
   # http://www.geeksforgeeks.org/iterative-postorder-traversal/
   # this is where we launch the downward iteration process from
   parentStack = Vector{TreeClique}()
@@ -650,7 +650,7 @@ end
 
 Return clique pointers for the given order in which they will be solved (sequentially).
 """
-getTreeCliqSolveOrderUp(treel::BayesTree, startcliq=treel.cliques[1]) = getCliqOrderUpSolve(treel, startcliq)
+getTreeCliqSolveOrderUp(treel::AbstractBayesTree, startcliq=treel.cliques[1]) = getCliqOrderUpSolve(treel, startcliq)
 
 """
     $SIGNATURES

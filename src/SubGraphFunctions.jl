@@ -44,7 +44,7 @@ Notes
 - `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
   separator variable is required instead.
 """
-function buildCliqSubgraphDown(fgl::AbstractDFG, treel::BayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+function buildCliqSubgraphDown(fgl::AbstractDFG, treel::AbstractBayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
   @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
   # build a subgraph copy of clique
   cliq = whichCliq(treel, cliqsym)

@@ -990,7 +990,7 @@ end
 
 Return true or false depending on whether child cliques are all up solved.
 """
-function areCliqChildrenAllUpSolved(treel::BayesTree,
+function areCliqChildrenAllUpSolved(treel::AbstractBayesTree,
                                     prnt::TreeClique)::Bool
   #
   for ch in getChildren(treel, prnt)

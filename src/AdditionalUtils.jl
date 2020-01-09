@@ -14,7 +14,7 @@ Related
 drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels!
 """
 function drawCliqSubgraphUpMocking(fgl::G,
-                                   treel::BayesTree,
+                                   treel::AbstractBayesTree,
                                    frontalSym::Symbol;
                                    show::Bool=true,
                                    filepath::String="/tmp/cliq_sfg.pdf",

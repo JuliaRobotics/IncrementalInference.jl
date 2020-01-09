@@ -848,7 +848,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::AbstractBayesTree,
                                         cliq::TreeClique;
                                         N::Int=100,
-										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                        oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
@@ -859,16 +859,14 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = TreeClique[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 

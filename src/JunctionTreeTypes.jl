@@ -52,16 +52,15 @@ mutable struct BayesTree <: AbstractBayesTree
   buildTime::Float64
 end
 
-function emptyBayesTree()
-    bt =   BayesTree(Graphs.inclist(TreeClique,is_directed=true),
-                     0,
-                     Dict{Int,TreeClique}(),
-                     #[],
-                     Dict{AbstractString, Int}(),
-                     Symbol[],
-					 0.0 )
-    return bt
-end
+BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
+                         0,
+                         Dict{Int,TreeClique}(),
+                         Dict{AbstractString, Int}(),
+                         Symbol[],
+                         0.0 )
+
+#NOTE select type for development
+emptyBayesTree() = BayesTree()
 # emptyBayesTree() = MetaBayesTree()
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
@@ -84,7 +83,10 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
+      if !(@isdefined getCliquesWarnOnce)
+        @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
+        global getCliquesWarnOnce = true
+      end
       d = Dict{Int,Any}()
       for (k,v) in x.bt.vprops
         d[k] = v[:clique]
@@ -94,6 +96,20 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
       getfield(x,f)
     end
   end
+
+function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
+  if f == :cliques
+    if !(@isdefined setCliquesWarnOnce)
+      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
+      global setCliquesWarnOnce = true
+    end
+    for (k,v) in val
+      set_prop!(x.bt, k, :clique, v)
+    end
+  else
+    setfield!(x,f,val)
+  end
+end
 
 function MetaBayesTree(tree::BayesTree)
   # create graph from Graphs.jl adjacency_matrix
@@ -126,7 +142,7 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND, BT <: AbstractBayesTree, T <: AbstractDFG, InMemG <: InMemoryDFGTypes}
+mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemoryDFGTypes, BT <: AbstractBayesTree}
   dfg::T
   cliqSubFg::InMemG
   tree::BT
@@ -172,10 +188,11 @@ function CliqStateMachineContainer(x1::G,
                                    x10::Bool,
                                    x10aa::Bool,
                                    x10aaa::SolverParams,
+                                   x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                    x11::BTND=emptyBTNodeData(),
                                    x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,Dict{Symbol,String}(),x11,x13)
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13)
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -327,7 +344,7 @@ const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
 
 
 function ExploreTreeType(fgl::G,
-                         btl::BayesTree,
+                         btl::AbstractBayesTree,
                          vertl::TreeClique,
                          prt::T,
                          msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}

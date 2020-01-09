@@ -866,7 +866,7 @@ end
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
 function updateFGBT!(fg::G,
-                     bt::BayesTree,
+                     bt::AbstractBayesTree,
                      cliqID::Int,
                      drt::DownReturnBPType;
                      dbg::Bool=false,
@@ -932,7 +932,7 @@ function updateFGBT!(fg::G,
 end
 
 function updateFGBT!(fg::G,
-                     bt::BayesTree,
+                     bt::AbstractBayesTree,
                      cliqID::Int,
                      urt::UpReturnBPType;
                      dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
@@ -946,13 +946,13 @@ end
 """
     $SIGNATURES
 
-Get and return upward belief messages as stored in child cliques from `treel::BayesTree`.
+Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
 
 Notes
 - Use last parameter to select the return format.
 """
 function getCliqChildMsgsUp(fg_::G,
-                            treel::BayesTree,
+                            treel::AbstractBayesTree,
                             cliq::TreeClique,
                             ::Type{EasyMessage} ) where G <: AbstractDFG
   #
@@ -969,7 +969,7 @@ function getCliqChildMsgsUp(fg_::G,
   return childmsgs
 end
 
-function getCliqChildMsgsUp(treel::BayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
+function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
   childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Float64}}}()  # Vector{Bool}
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child)
@@ -993,7 +993,7 @@ Notes
 - Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
-function getCliqParentMsgDown(treel::BayesTree, cliq::TreeClique)
+function getCliqParentMsgDown(treel::AbstractBayesTree, cliq::TreeClique)
   downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
@@ -1021,7 +1021,7 @@ Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
 function approxCliqMarginalUp!(fgl::G,
-                               treel::BayesTree,
+                               treel::AbstractBayesTree,
                                csym::Symbol,
                                onduplicate=true;
                                N::Int=100,
@@ -1108,7 +1108,7 @@ Notes
 - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 """
 function doCliqInferenceUp!(fgl::FactorGraph,
-                            treel::BayesTree,
+                            treel::AbstractBayesTree,
                             csym::Symbol,
                             onduplicate=true;
                             N::Int=100,
@@ -1132,7 +1132,7 @@ end
 # * Can adjust the number of `iters::Int=3` must be performed on the `itervars` of this clique.
 # """
 # function doCliqInferenceUp!(fgl::FactorGraph,
-#                             treel::BayesTree,
+#                             treel::AbstractBayesTree,
 #                             cliql::TreeClique;
 #                             N::Int=100,
 #                             dbg::Bool=false,
@@ -1172,7 +1172,7 @@ end
 
 Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 """
-function setAllSolveFlags!(treel::BayesTree, to::Bool=false)::Nothing
+function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in treel.cliques
     cliqdata = getData(cliq)
     cliqdata.initialized = :null
@@ -1187,7 +1187,7 @@ end
 
 Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
 """
-function isTreeSolved(treel::BayesTree; skipinitialized::Bool=false)::Bool
+function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)::Bool
   acclist = Symbol[:upsolved; :downsolved; :marginalized]
   skipinitialized ? nothing : push!(acclist, :initialized)
   for (clid, cliq) in treel.cliques
@@ -1198,7 +1198,7 @@ function isTreeSolved(treel::BayesTree; skipinitialized::Bool=false)::Bool
   return true
 end
 
-function isTreeSolvedUp(treel::BayesTree)::Bool
+function isTreeSolvedUp(treel::AbstractBayesTree)::Bool
   for (clid, cliq) in treel.cliques
     if getCliqStatus(cliq) != :upsolved
       return false
@@ -1266,7 +1266,7 @@ Notes
 - Will change previous clique status from `:downsolved` to `:initialized` only.
 - Sets the color of tree clique to `lightgreen`.
 """
-function resetTreeCliquesForUpSolve!(treel::BayesTree)::Nothing
+function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
   acclist = Symbol[:downsolved;]
   for (clid, cliq) in treel.cliques
     if getCliqStatus(cliq) in acclist
@@ -1280,7 +1280,7 @@ end
 """
     $SIGNATURES
 
-Special internal function to try return the clique data if succesfully identified in `othertree::BayesTree`,
+Special internal function to try return the clique data if succesfully identified in `othertree::AbstractBayesTree`,
 based on contents of `seeksSimilar::BayesTreeNodeData`.
 
 Notes
@@ -1332,11 +1332,11 @@ end
 
 
 function tryCliqStateMachineSolve!(dfg::G,
-                                   treel::BayesTree,
+                                   treel::AbstractBayesTree,
                                    i::Int;
                                    # cliqHistories;
                                    N::Int=100,
-                                   oldtree::BayesTree=emptyBayesTree(),
+                                   oldtree::AbstractBayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
                                    limititers::Int=-1,
                                    downsolve::Bool=false,
@@ -1408,7 +1408,7 @@ end
 After solving, clique histories can be inserted back into the tree for later reference.
 This function helps do the required assigment task.
 """
-function assignTreeHistory!(treel::BayesTree, cliqHistories::Dict)
+function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
   for i in 1:length(treel.cliques)
     if haskey(cliqHistories, i)
       hist = cliqHistories[i]
@@ -1456,7 +1456,7 @@ Related
 initInferTreeUp!
 """
 function asyncTreeInferUp!(dfg::G,
-                           treel::BayesTree;
+                           treel::AbstractBayesTree;
                            oldtree::AbstractBayesTree=emptyBayesTree(),
                            drawtree::Bool=false,
                            N::Int=100,
@@ -1513,7 +1513,7 @@ Related
 asyncTreeInferUp!
 """
 function initInferTreeUp!(dfg::G,
-                          treel::BayesTree;
+                          treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
                           N::Int=100,

@@ -1,4 +1,3 @@
-
 """
     $SIGNATURES
 
@@ -260,10 +259,9 @@ function solveCliqWithStateMachine!(dfg::G,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
-  children = TreeClique[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
@@ -1009,7 +1007,7 @@ DevNotes
 - TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
 """
 function buildCliqSubgraph(dfg::AbstractDFG,
-                           treel::BayesTree,
+                           treel::AbstractBayesTree,
                            cliq::TreeClique,
                            subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
   #
@@ -1039,7 +1037,7 @@ end
 # addMsgFactors!(subfg, msgs)
 
 function buildCliqSubgraph(fgl::AbstractDFG,
-                           treel::BayesTree,
+                           treel::AbstractBayesTree,
                            cliqsym::Symbol,
                            subfg::InMemDFGType=InMemDFGType(params=getSolverParams(fgl)) )
   #

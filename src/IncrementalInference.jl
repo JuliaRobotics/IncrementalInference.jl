@@ -294,6 +294,7 @@ export
   parentCliq,
   getParent,
   getCliqSiblings,
+  getNumCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -596,7 +597,7 @@ function __init__()
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
-      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
         spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end
