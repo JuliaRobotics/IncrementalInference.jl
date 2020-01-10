@@ -19,7 +19,7 @@ all_trees = getAllTrees(deepcopy(fg))
 # scores stores: (tree key ID, nnz, cost fxn 1, cost fxn 2).
 unsorted_scores = Vector{Tuple{Int, Float64, Float64, Float64}}()
 for key in keys(all_trees)
-    e = all_trees[key] # (Bayes tree, var order, nnz)
+    e = all_trees[key] # (Bayes tree, var order, nnz
     tree = e[1] # Get the Bayes tree.
     cost1 = getTreeCost_01(tree)
     cost2 = getTreeCost_02(tree)
@@ -34,11 +34,31 @@ all_nnzs = (x->(x[2])).(scores)
 costs_01 = (x->(x[3])).(scores)
 costs_02 = (x->(x[4])).(scores)
 
-bincnt = 20
-Gadfly.plot(x=all_nnzs, y=costs_02,
-            Geom.hexbin(xbincount=bincnt, ybincount=bincnt),
-            Guide.xlabel("Number of non zeros [int]"),
-            Guide.ylabel("Tree cost [cfxn2]"))
+# HACKING
+# plotting tricks with gadfly
+# trick 1
+# using Colors
+# PL = []
+# push!(PL, Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"red")))
+# push!(PL, Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"magenta")))
+# # push!(PL, ThemeLege...)
+# pl = Gadfly.plot(PL...)
+#
+# pl |> typeof |> fieldnames
+# # fieldnames(typeof(pl))
+#
+# pl.coord = Coord.Cartesian(xmin=0,xmax=10,ymin=-5,ymax=2)
+#
+# pl
+# pll = Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"green"))
+# union!(pl.layers, pll)
+# pl
+# pl |> SVG("/tmp/test.svg")
+# using Cairo
+# pl |> PDF("/tmp/test.pdf")
+# pl |> PNG("/tmp/test.png")
+
+
 
 min_ids_02 = findall(x->x == minimum(costs_02), costs_02)
 max_ids_02 = findall(x->x == maximum(costs_02), costs_02)
@@ -75,4 +95,24 @@ ccolamd_tree = buildTreeFromOrdering!(deepcopy(fg), ccolamd_ordering)
 ccolamd_tree_nnz = nnzTree(ccolamd_tree)
 ccolamd_tree_cost02 = getTreeCost_02(ccolamd_tree)
 
-# Plot both data points.
+# Plot data points and underlying histogram.
+bincnt = 20
+layers = []
+push!(layers, Gadfly.layer(x=[amd_tree_nnz],
+                           y=[amd_tree_cost02],
+                           Theme(default_color=colorant"green")))
+push!(layers, Gadfly.layer(x=[colamd_tree_nnz],
+                           y=[colamd_tree_cost02],
+                           Theme(default_color=colorant"blue")))
+push!(layers, Gadfly.layer(x=[ccolamd_tree_nnz],
+                           y=[ccolamd_tree_cost02],
+                           Theme(default_color=colorant"red")))
+push!(layers, Gadfly.layer(x=all_nnzs,
+                           y=costs_02,
+                           Geom.hexbin(xbincount=bincnt, ybincount=bincnt)))
+pl = Gadfly.plot(layers...,
+            Guide.xlabel("Number of non zeros [int]"),
+            Guide.ylabel("Tree cost [cfxn2]"),
+            Guide.manual_color_key("",
+             ["AMD", "COLAMD", "iSAM2"],
+             ["green", "blue", "red"]))
