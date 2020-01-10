@@ -22,26 +22,47 @@ getFrontals(cliqd::Union{TreeClique,BayesTreeNodeData})::Vector{Symbol} = getCli
 Create a new clique.
 """
 function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::TreeClique where G <: AbstractDFG
-  bt.btid += 1
+  bt.btid += 1 #used by Graphs.jl for id
 
+  clq = TreeClique(bt.btid, string("Clique", bt.btid))
+  setLabel!(clq, "")
+
+  #TODO addClique!(bt, clq), can't we already have the parent here
   if isa(bt.bt,GenericIncidenceList)
-    clq = Graphs.add_vertex!(bt.bt, TreeClique(bt.btid,string("Clique",bt.btid)))
+    Graphs.add_vertex!(bt.bt, clq)
     bt.cliques[bt.btid] = clq
   elseif isa(bt.bt, MetaDiGraph)
-    clq = TreeClique(bt.btid, string("Clique", bt.btid))
     MetaGraphs.add_vertex!(bt.bt, :clique, clq)
   else
     error("Oops, something went wrong")
   end
 
-  setLabel!(clq, "")
-
   # Specific data container
-  setData!(clq, emptyBTNodeData())
+  # already emptyBTNodeData() in constructor
+  # setData!(clq, emptyBTNodeData())
 
   appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
+
+
+#NOTE TODO Ideas towards a standard clique interface
+#TODO export
+export getClique, getCliques, getCliqueIds, getCliqueData
+
+getClique(tree::AbstractBayesTree, cId::Int)::TreeClique = tree.cliques[cId]
+
+#TODO
+addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique)::Bool = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
+updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
+deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
+
+getCliques(tree::AbstractBayesTree) = tree.cliques
+getCliqueIds(tree::AbstractBayesTree) = keys(getCliques(tree))
+
+getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
+getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
+
 
 
 """
@@ -50,7 +71,7 @@ end
 Generate the label for particular clique (used by graphviz for visualization).
 """
 function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::Int)::String where G <: AbstractDFG
-  clq = bt.cliques[clqID]
+  clq = getClique(bt, clqID)
   flbl = ""
   clbl = ""
   for fr in getData(clq).frontalIDs
@@ -68,7 +89,7 @@ end
 Add the separator for the newly created clique.
 """
 function appendSeparatorToClique(bt::AbstractBayesTree, clqID::Int, seprIDs::Array{Symbol,1})
-  union!(getData(bt.cliques[clqID]).separatorIDs, seprIDs)
+  union!(getCliqueData(bt, clqID).separatorIDs, seprIDs)
   nothing
 end
 
@@ -86,7 +107,7 @@ function appendClique!(bt::AbstractBayesTree,
                        varID::Symbol,
                        seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
   #
-  clq = bt.cliques[clqID] #TODO replace with getClique
+  clq = getClique(bt, clqID)
   var = DFG.getVariable(dfg, varID)
 
   # add frontal variable
@@ -108,9 +129,11 @@ end
 Instantiate a new child clique in the tree.
 """
 function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
+  #TODO this is too manual, replace with just addClique that takes as argument the parent
+        # addClique!(bt, dfg, CpID, varID, Sepj)
   # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
-  parent = bt.cliques[CpID]
+  parent = getClique(bt,CpID)
 
   if isa(bt.bt,GenericIncidenceList)
     # Staying with Graphs.jl for tree in first stage
@@ -133,7 +156,7 @@ end
 Post order tree traversal and build potential functions
 """
 function findCliqueFromFrontal(bt::AbstractBayesTree, frtlID::Int)
-  for cliqPair in bt.cliques
+  for cliqPair in getCliques(bt, cliques)
     id = cliqPair[1]
     cliq = cliqPair[2]
     for frtl in getFrontals(cliq)
@@ -185,7 +208,7 @@ function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::A
     firvert = DFG.getVariable(dfg,var)
     # no parent
     if (length(solverData(firvert).separator) == 0)
-      # if (length(tree.cliques) == 0)
+      # if (length(getCliques(tree)) == 0)
         # create new root
         addClique!(tree, dfg, var)
       # else
@@ -200,7 +223,7 @@ function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::A
       # get clique id of first eliminated frontal
       CpID = tree.frontals[felbl]
       # look to add this conditional to the tree
-      cliq = tree.cliques[CpID]
+      cliq = getClique(tree, CpID)
       # clique of the first eliminated frontal
       unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
       # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
@@ -273,7 +296,7 @@ function drawTree(treel::AbstractBayesTree;
 
   # modify a deepcopy
   btc = deepcopy(treel)
-  for (cid, cliq) in btc.cliques
+  for (cid, cliq) in getCliques(btc)
     if imgs
       firstlabel = split(getLabel(cliq),',')[1]
       spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/$firstlabel.png")
@@ -316,7 +339,7 @@ drawTree
 function generateTexTree(treel::AbstractBayesTree;
                          filepath::String="/tmp/caesar/bayes/bt")
     btc = deepcopy(treel)
-    for (cid, cliq) in btc.cliques
+    for (cid, cliq) in getCliques(btc)
         label = getLabel(cliq)
 
         # Get frontals and separator, and split into elements.
@@ -409,7 +432,7 @@ function buildTreeFromOrdering!(dfg::G,
   end
 
   println("Find potential functions for each clique")
-  cliq = tree.cliques[1] # start at the root
+  cliq = getClique(tree, 1) # start at the root #TODO might not always be the root in case of multiple roots and deleted nodes in light graphs?
   buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
 
   tree.buildTime = (time_ns()-t0)/1e9
@@ -449,7 +472,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   end
 
   println("Find potential functions for each clique")
-  cliq = tree.cliques[1] # start at the root
+  cliq = getClique(tree, 1) # start at the root
   buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
@@ -580,7 +603,7 @@ Related:
 
 getCliq, getTreeAllFrontalSyms
 """
-getCliq(bt::AbstractBayesTree, frt::Symbol) = bt.cliques[bt.frontals[frt]]
+getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 
 """
     $(SIGNATURES)
@@ -1155,7 +1178,7 @@ end
 
 function countSkips(bt::AbstractBayesTree)
   skps = 0
-  for cliq in bt.cliques
+  for cliq in getCliques(bt)
     m = getCliqMat(cliq[2])
     mi = map(Int,m)
     skps += sum(map(Int,sum(mi, dims=1) .== 1))
@@ -1448,7 +1471,7 @@ Related:
 whichCliq, printCliqHistorySummary
 """
 function getTreeAllFrontalSyms(fgl::G, tree::AbstractBayesTree) where G <: AbstractDFG
-  cliqs = tree.cliques
+  cliqs = getCliques(tree)
   syms = Vector{Symbol}(undef, length(cliqs))
   for (id,cliq) in cliqs
     syms[id] = getCliqFrontalVarIds(cliq)[1]
@@ -1476,7 +1499,7 @@ getUpMsgs
 """
 function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,TempBeliefMsg}
   allUpMsgs = Dict{Int,TempBeliefMsg}()
-  for (idx,cliq) in tree.cliques
+  for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
     allUpMsgs[cliq.index] = TempBeliefMsg()
     for (lbl,msg) in msgs
@@ -1517,7 +1540,7 @@ function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
         stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
       end
       # assemble metadata
-      cliq = tree.cliques[cidx]
+      cliq = getCliques(tree,cidx)
       frt = getCliqFrontalVarIds(cliq)[1]
       # add this belief msg and meta data to vector of variable entry
       push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))
@@ -1554,9 +1577,9 @@ function saveTree(treel::AbstractBayesTree,
                   filepath=joinpath("/tmp","caesar","savetree.jld2") )
   #
   savetree = deepcopy(treel)
-  for i in 1:length(savetree.cliques)
-    if  getData(savetree.cliques[i]) isa BayesTreeNodeData
-      setData!(savetree.cliques[i], convert(PackedBayesTreeNodeData, getData(savetree.cliques[i])))
+  for i in 1:length(getCliques(savetree))
+    if  getCliqueData(savetree, i) isa BayesTreeNodeData
+      setData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
     end
   end
 
@@ -1568,9 +1591,9 @@ function saveTree(treeArr::Vector{T},
                   filepath=joinpath("/tmp","caesar","savetrees.jld2") ) where T <: AbstractBayesTree
   #
   savetree = deepcopy(treeArr)
-  for savtre in savetree, i in 1:length(savtre.cliques)
-    if getData(savtre.cliques[i]) isa BayesTreeNodeData
-      setData!(savtre.cliques[i], convert(PackedBayesTreeNodeData, getData(savtre.cliques[i])))
+  for savtre in savetree, i in 1:length(getCliques(savtre))
+    if getCliqueData(savtre, i) isa BayesTreeNodeData
+      setData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
     end
   end
 
@@ -1596,15 +1619,15 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
 
   # convert back to a type that which could not be serialized by JLD2
   if savetree isa Vector
-      for savtre in savetree, i in 1:length(savtre.cliques)
-        if getData(savtre.cliques[i]) isa PackedBayesTreeNodeData
-          setData!(savtre.cliques[i], convert(BayesTreeNodeData, getData(savtre.cliques[i])))
+      for savtre in savetree, i in 1:length(getCliques(savtre))
+        if getCliqueData(savtre, i) isa PackedBayesTreeNodeData
+          setData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
         end
       end
   else
-    for i in 1:length(savetree.cliques)
-      if getData(savetree.cliques[i]) isa PackedBayesTreeNodeData
-        setData!(savetree.cliques[i], convert(BayesTreeNodeData, getData(savetree.cliques[i])))
+    for i in 1:length(getCliques(savetree))
+      if getCliqueData(savetree, i) isa PackedBayesTreeNodeData
+        setData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
       end
     end
   end

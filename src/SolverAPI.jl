@@ -167,9 +167,9 @@ function inferOverTreeIterative!(dfg::G,
   @info "Ensure all nodes are initialized"
   ensureAllInitialized!(dfg)
   @info "Do multi-process upward pass of inference on tree"
-  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  upMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
@@ -195,10 +195,10 @@ function inferOverTreeR!(fgl::G,
   else
     @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   end
   @info "Do recursive down inference over tree"
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 

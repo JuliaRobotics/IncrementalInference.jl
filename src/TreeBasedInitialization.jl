@@ -286,7 +286,7 @@ Set all Bayes (Junction) tree cliques that have all marginalized and initialized
 function setTreeCliquesMarginalized!(dfg::G,
                                      tree::AbstractBayesTree) where G <: AbstractDFG
   #
-  for (cliid, cliq) in tree.cliques
+  for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
       # need to set the upward messages
       msgs = prepCliqInitMsgsUp(dfg, cliq)
