@@ -13,7 +13,10 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # still used for Bayes Tree
 import DistributedFactorGraphs: getData
 
-getData(v::Graphs.ExVertex) = v.attributes["data"]
+function getData(v::TreeClique)
+  # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
+  getCliqueData(v)
+end
 
 
 """
@@ -46,9 +49,10 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   return nothing
 end
 # For Bayes tree
-function setData!(v::Graphs.ExVertex, data)
+function setData!(v::TreeClique, data)
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  v.attributes["data"] = data
+  # v.attributes["data"] = data
+  v.data = data
   nothing
 end
 

@@ -375,7 +375,7 @@ Related
 
 fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
-function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
+function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
                                           prnt::TreeClique,
                                           logger=ConsoleLogger() )::Vector{Int}
   #

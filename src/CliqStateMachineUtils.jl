@@ -1,4 +1,3 @@
-
 """
     $SIGNATURES
 
@@ -31,7 +30,7 @@ end
 Return dict of all histories in a Bayes Tree.
 """
 function getTreeCliqsSolverHistories(fg::G,
-                                     tree::BayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
+                                     tree::AbstractBayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
   #
   fsy = getTreeAllFrontalSyms(fg, tree)
   histories = Dict{Symbol, CSMHistory}()
@@ -56,7 +55,7 @@ Notes
 function getCliqSolveHistory(cliq::TreeClique)
   getData(cliq).statehistory
 end
-function getCliqSolveHistory(tree::BayesTree, frntal::Symbol)
+function getCliqSolveHistory(tree::AbstractBayesTree, frntal::Symbol)
   cliq = whichCliq(tree, frntal)
   getCliqSolveHistory(cliq)
 end
@@ -113,7 +112,7 @@ function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, Cli
   printCliqHistorySummary(stdout, hist)
 end
 
-function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}, tree::BayesTree, sym::Symbol)
+function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}, tree::AbstractBayesTree, sym::Symbol)
   hist = hists[getCliq(tree, sym).index]
   printCliqHistorySummary(stdout, hist)
 end
@@ -124,7 +123,7 @@ function printCliqHistorySummary(cliq::TreeClique)
   printCliqHistorySummary(hist)
 end
 
-function printCliqHistorySummary(tree::BayesTree, frontal::Symbol)
+function printCliqHistorySummary(tree::AbstractBayesTree, frontal::Symbol)
   hist = getCliqSolveHistory(tree, frontal)
   printCliqHistorySummary(hist)
 end
@@ -137,7 +136,7 @@ Repeat a solver state machine step without changing history or primary values.
 
 printCliqSummary, printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
 """
-function sandboxCliqResolveStep(tree::BayesTree,
+function sandboxCliqResolveStep(tree::AbstractBayesTree,
                                 frontal::Symbol,
                                 step::Int)
   #
@@ -166,7 +165,7 @@ Related
 
 printCliqHistorySummary
 """
-function animateCliqStateMachines(tree::BayesTree,
+function animateCliqStateMachines(tree::AbstractBayesTree,
                                   cliqsyms::Vector{Symbol};
                                   frames::Int=100  )
   #
@@ -228,7 +227,7 @@ Related:
 
 getCliqSolveHistory, printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
-function filterHistAllToArray(tree::BayesTree, frontals::Vector{Symbol}, nextfnc::Function)
+function filterHistAllToArray(tree::AbstractBayesTree, frontals::Vector{Symbol}, nextfnc::Function)
   ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   for sym in frontals
     hist = getCliqSolveHistory(tree, sym)
@@ -250,7 +249,7 @@ Related:
 initInferTreeUp!
 """
 function solveCliqWithStateMachine!(dfg::G,
-                                    tree::BayesTree,
+                                    tree::AbstractBayesTree,
                                     frontal::Symbol;
                                     iters::Int=200,
                                     downsolve::Bool=true,
@@ -260,10 +259,9 @@ function solveCliqWithStateMachine!(dfg::G,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, frontal)
-  children = TreeClique[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
@@ -313,7 +311,7 @@ run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
 function csmAnimate(fg::G,
-                    tree::BayesTree,
+                    tree::AbstractBayesTree,
                     cliqsyms::Vector{Symbol};
                     frames::Int=100,
                     rmfirst::Bool=true  ) where G <: AbstractDFG
@@ -362,7 +360,7 @@ Related
 csmAnimate, printCliqHistorySummary
 """
 function makeCsmMovie(fg::G,
-                      tree::BayesTree,
+                      tree::AbstractBayesTree,
                       cliqs=ls(fg);
                       assignhist=nothing,
                       show::Bool=true,
@@ -397,7 +395,7 @@ Dev Notes
 - Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
 - should precompute `allinters`.
 """
-function getSiblingsDelayOrder(tree::BayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getSiblingsDelayOrder(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -546,7 +544,7 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::BayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs
@@ -597,7 +595,7 @@ end
 
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
-notifyCSMCondition(tree::BayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
 
 
 """
@@ -647,7 +645,7 @@ Notes
 - Relies on sibling priority order with only one "currently best" option that will force progress in global upward inference.
 - Return false if one of the siblings is still busy
 """
-function areSiblingsRemaingNeedDownOnly(tree::BayesTree,
+function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
                                         cliq::TreeClique  )::Bool
   #
   stillbusylist = [:null; :initialized;]
@@ -724,11 +722,11 @@ Related
 getGraphFromHistory, printCliqHistorySummary, printCliqSummary
 """
 getCliqSubgraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].cliqSubFg
-getCliqSubgraphFromHistory(tree::BayesTree, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(getCliqSolveHistory(tree, frnt), step)
+getCliqSubgraphFromHistory(tree::AbstractBayesTree, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(getCliqSolveHistory(tree, frnt), step)
 
 
 function printCliqSummary(dfg::G,
-                          tree::BayesTree,
+                          tree::AbstractBayesTree,
                           frs::Symbol,
                           logger=ConsoleLogger() ) where G <: AbstractDFG
   #
@@ -1009,7 +1007,7 @@ DevNotes
 - TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
 """
 function buildCliqSubgraph(dfg::AbstractDFG,
-                           treel::BayesTree,
+                           treel::AbstractBayesTree,
                            cliq::TreeClique,
                            subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
   #
@@ -1039,7 +1037,7 @@ end
 # addMsgFactors!(subfg, msgs)
 
 function buildCliqSubgraph(fgl::AbstractDFG,
-                           treel::BayesTree,
+                           treel::AbstractBayesTree,
                            cliqsym::Symbol,
                            subfg::InMemDFGType=InMemDFGType(params=getSolverParams(fgl)) )
   #

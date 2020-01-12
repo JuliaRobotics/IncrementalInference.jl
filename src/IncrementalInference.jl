@@ -294,6 +294,7 @@ export
   parentCliq,
   getParent,
   getCliqSiblings,
+  getNumCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -507,15 +508,6 @@ export
   DataLayerAPI
 
 
-#TreeClique
-const TreeClique = Graphs.ExVertex
-
-DFG.getLabel(cliq::Graphs.ExVertex) = cliq.attributes["label"]
-function setLabel(cliq::Graphs.ExVertex, lbl::String)
-  cliq.attributes["label"] = lbl
-  lbl
-end
-
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
@@ -531,13 +523,13 @@ const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere mor
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("JunctionTreeTypes.jl")
 include("FactorGraph01.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
-include("JunctionTreeTypes.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
@@ -605,7 +597,7 @@ function __init__()
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
-      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
         spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end

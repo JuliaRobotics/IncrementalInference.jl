@@ -237,7 +237,7 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 """
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
+                         treel::AbstractBayesTree,
                          cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
@@ -260,7 +260,7 @@ function resetCliqSolve!(dfg::G,
 end
 
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
+                         treel::AbstractBayesTree,
                          frt::Symbol;
                          solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
   #
