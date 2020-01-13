@@ -1,5 +1,5 @@
 
-export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D, lineStepFG
+export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D, generateCanonicalFG_lineStep
 
 """
     $SIGNATURES
@@ -111,7 +111,7 @@ end
 Continuous, linear scalar and multivariate test graph generation. Follows a line
 with the pose id equal to the ground truth.
 """
-function lineStepFG(lineLength::Int;
+function generateCanonicalFG_lineStep(lineLength::Int;
                     poseEvery::Int=2,
                     landmarkEvery::Int=4,
                     posePriorsAt = Int[0],
@@ -124,7 +124,8 @@ function lineStepFG(lineLength::Int;
                     σ_lm_prior = 1.0,
                     σ_pose_pose = 1.0,
                     σ_pose_lm = 1.0,
-                    params=SolverParams(algorithms=[:default, :parametric]))
+                    params=SolverParams())
+                    # params=SolverParams(algorithms=[:default, :parametric]))
 
     vtype = (vardims == 1) ? ContinuousScalar() : ContinuousMultivariate(vardims)
 
