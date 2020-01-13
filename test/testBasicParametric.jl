@@ -5,7 +5,7 @@ using IncrementalInference
 IIF = IncrementalInference
 
 ##
-fg = lineStepFG(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2)
+fg = generateCanonicalFG_lineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, params=SolverParams(algorithms=[:default, :parametric]))
 
 d, result = IIF.solveFactorGraphParametric(fg)
 
@@ -17,7 +17,7 @@ end
 
 ########
 
-fg = lineStepFG(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3)
+fg = generateCanonicalFG_lineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, params=SolverParams(algorithms=[:default, :parametric]))
     # addFactor!(fg, [:x5; :x15], LinearConditional(Normal(10, 0.1)))
     # addFactor!(fg, [:x15; :x25], LinearConditional(Normal(10, 0.1)))
 
@@ -102,7 +102,8 @@ foreach(println, d)
 
 foreach(x->solverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
 
-tree = wipeBuildNewTree!(fg)#
+#force message passing with maunaul variable order
+tree = wipeBuildNewTree!(fg, variableOrder=[:x0, :x2, :x1])#
 
 IIF.initTreeMessageChannels!(tree)
 

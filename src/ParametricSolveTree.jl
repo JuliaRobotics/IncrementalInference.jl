@@ -6,8 +6,8 @@ Related
 TODO multithrededSolveTreeParametric!
 """
 function taskSolveTreeParametric!(dfg::AbstractDFG,
-                          treel::BayesTree;
-                          oldtree::BayesTree=emptyBayesTree(),
+                          treel::AbstractBayesTree;
+                          oldtree::AbstractBayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
                           limititers::Int=-1,
                           downsolve::Bool=false,
@@ -58,10 +58,10 @@ end
 
 
 function tryCliqStateMachineSolveParametric!(dfg::G,
-                                             treel::BayesTree,
+                                             treel::AbstractBayesTree,
                                              i::Int;
                                              # cliqHistories;
-                                             oldtree::BayesTree=emptyBayesTree(),
+                                             oldtree::AbstractBayesTree=emptyBayesTree(),
                                              drawtree::Bool=false,
                                              limititers::Int=-1,
                                              downsolve::Bool=false,

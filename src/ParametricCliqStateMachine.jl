@@ -13,8 +13,8 @@ Notes:
 - Doesn't do partial initialized state properly yet.
 """
 function initStartCliqStateMachineParametric!(dfg::G,
-                                              tree::BayesTree,
-                                              cliq::Graphs.ExVertex;
+                                              tree::AbstractBayesTree,
+                                              cliq::TreeClique;
                                               oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                               drawtree::Bool=false,
                                               show::Bool=false,
@@ -26,16 +26,14 @@ function initStartCliqStateMachineParametric!(dfg::G,
                                               delay::Bool=false,
                                               logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = Graphs.ExVertex[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+  children = getChildren(tree, cliq)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine

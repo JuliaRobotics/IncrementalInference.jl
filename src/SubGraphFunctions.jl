@@ -1,5 +1,5 @@
 #TODO JT
-function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::Graphs.ExVertex)
+function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
   priorIds = Symbol[]
   for v in cliqSeparatorVarIds
