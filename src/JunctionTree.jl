@@ -601,6 +601,14 @@ function initTreeMessageChannels!(tree::BayesTree)
   return nothing
 end
 
+function initTreeMessageChannels!(tree::MetaBayesTree)
+  for e = MetaGraphs.edges(tree.bt)
+    # set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{BeliefMessage}(0),:downMsg=>Channel{BeliefMessage}(0)))
+    push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
+end
+
 """
     $(SIGNATURES)
 

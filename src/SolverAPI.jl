@@ -263,7 +263,7 @@ tree, smt, hist = solveTree!(fg ,tree)
 ```
 """
 function solveTreeParametric!(dfgl::DFG.AbstractDFG,
-                    tree::BayesTree;
+                    tree::AbstractBayesTree;
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
