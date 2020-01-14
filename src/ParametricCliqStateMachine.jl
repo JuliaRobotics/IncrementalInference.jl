@@ -111,6 +111,8 @@ function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
 end
 
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, cliq.index)
+
 """
     $SIGNATURES
 Get edges to parent clique
@@ -120,6 +122,8 @@ getEdgesParent(tree::BayesTree, cliq::TreeClique) = Graphs.in_edges(cliq, tree.b
 function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
 end
+
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, cliq.index)
 
 """
     $SIGNATURES
@@ -134,7 +138,7 @@ end
 
 function takeBeliefMessageDown!(tree::MetaBayesTree, edge)
   # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge].downMsg)
+  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :downMsg))
   return beliefMsg
 end
 
@@ -152,7 +156,7 @@ end
 
 function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
   # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge].upMsg)
+  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :upMsg))
   return beliefMsg
 end
 
@@ -170,7 +174,7 @@ end
 
 function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
   # Blocks until data is available.
-  put!(tree.messages[edge].downMsg, beliefMsg)
+  put!(MetaGraphs.get_prop(tree.bt, edge, :downMsg), beliefMsg)
   return beliefMsg
 end
 
@@ -188,7 +192,7 @@ end
 
 function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
   # Blocks until data is available.
-  put!(tree.messages[edge].upMsg, beliefMsg)
+  put!(MetaGraphs.get_prop(tree.bt, edge, :upMsg), beliefMsg)
   return beliefMsg
 end
 """
