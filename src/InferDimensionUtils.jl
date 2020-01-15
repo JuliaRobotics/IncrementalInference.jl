@@ -228,7 +228,7 @@ end
 Return the current dimensionality of solve for each variable in a clique.
 """
 function getCliqVariableInferDims(dfg::G,
-                                  cliq::Graphs.ExVertex,
+                                  cliq::TreeClique,
                                   saturate::Bool=true,
                                   fraction::Bool=true  )::Dict{Symbol,Float64} where G <: AbstractDFG
   #
@@ -254,7 +254,7 @@ end
 # getFactorSolvableDim
 # """
 # function getCliqVarPossibleDim(dfg::G,
-#                                     cliq::Graphs.ExVertex,
+#                                     cliq::TreeClique,
 #                                     saturate::Bool=true,
 #                                     fraction::Bool=true  )::Dict{Symbol, Float64}
 #   #
@@ -286,7 +286,7 @@ Related
 
 getCliqVariableMoreInitDims
 """
-function getCliqVariableInferredPercent(dfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+function getCliqVariableInferredPercent(dfg::G, cliq::TreeClique) where G <: AbstractDFG
 
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -321,7 +321,7 @@ Related
 getCliqVariableInferredPercent
 """
 function getCliqVariableMoreInitDims(dfg::G,
-                                     cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                                     cliq::TreeClique  ) where G <: AbstractDFG
   #
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -351,7 +351,7 @@ Related
 getVariableInferredDimFraction, getVariableDim, getVariableInferredDim, getVariablePossibleDim
 """
 function isCliqFullDim(fg::G,
-                       cliq::Graphs.ExVertex )::Bool where G <: AbstractDFG
+                       cliq::TreeClique )::Bool where G <: AbstractDFG
   #
   # get various variable percentages
   red = getCliqVariableInferredPercent(fg, cliq)
@@ -375,8 +375,8 @@ Related
 
 fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
-function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
-                                          prnt::Graphs.ExVertex,
+function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
+                                          prnt::TreeClique,
                                           logger=ConsoleLogger() )::Vector{Int}
   #
   sibs = getChildren(tree, prnt)

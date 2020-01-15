@@ -24,6 +24,7 @@ include("testPartialFactors.jl")
     include("testBayesTreeiSAM2Example.jl")
 end
 
+#FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
 @testset "Ensure converter types can be run from extending namespaces..." begin

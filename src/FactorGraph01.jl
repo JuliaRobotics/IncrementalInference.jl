@@ -13,7 +13,10 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # still used for Bayes Tree
 import DistributedFactorGraphs: getData
 
-getData(v::Graphs.ExVertex) = v.attributes["data"]
+function getData(v::TreeClique)
+  # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
+  getCliqueData(v)
+end
 
 
 """
@@ -46,9 +49,10 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   return nothing
 end
 # For Bayes tree
-function setData!(v::Graphs.ExVertex, data)
+function setData!(v::TreeClique, data)
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  v.attributes["data"] = data
+  # v.attributes["data"] = data
+  v.data = data
   nothing
 end
 
@@ -659,7 +663,7 @@ Notes:
 - used by Bayes tree clique logic.
 - similar method in DFG
 """
-function isInitialized(vert::Graphs.ExVertex)::Bool
+function isInitialized(vert::TreeClique)::Bool
   return solverData(vert).initialized
 end
 
@@ -1115,7 +1119,7 @@ end
 
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
   bnv = DFG.getVariable(dfg, vertId)
-  bnvd = solverData(bnv) # bnv.attributes["data"]
+  bnvd = solverData(bnv)
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -1198,7 +1202,7 @@ function buildBayesNet!(dfg::G,
             push!(Si,sepNode)
           end
         end
-        solverData(fct).eliminated = true #fct.attributes["data"].eliminated = true
+        solverData(fct).eliminated = true
       end
 
       if typeof(solverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
@@ -1273,8 +1277,8 @@ function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int,Graphs.ExVertex},
-                              edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}})
+                              vertdict::Dict{Int,TreeClique},
+                              edgedict::Dict{Int,Graphs.Edge{TreeClique}})
   #asfd
   for vert in vertdict
     for newedge in out_edges(vert[2],fgl.g)
@@ -1289,8 +1293,8 @@ end
 
 # dictionary of unique vertices from edgelist
 function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
-  vertdict::Dict{Int,Graphs.ExVertex})
+  edgedict::Dict{Int,Graphs.Edge{TreeClique}},
+  vertdict::Dict{Int,TreeClique})
 
   # go through all source and target nodes
   for edge in edgedict
@@ -1304,8 +1308,8 @@ function expandVertexList!(fgl::FactorGraph,
   nothing
 end
 
-function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
-  edgedict = Dict{Int,Graphs.Edge{Graphs.ExVertex}}()
+function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
+  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
   for edge in edgelist
     edgedict[edge.index] = edge
   end

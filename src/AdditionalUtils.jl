@@ -14,7 +14,7 @@ Related
 drawGraphCliq, spyCliqMat, drawTree, buildCliqSubgraphUp, buildSubgraphFromLabels!
 """
 function drawCliqSubgraphUpMocking(fgl::G,
-                                   treel::BayesTree,
+                                   treel::AbstractBayesTree,
                                    frontalSym::Symbol;
                                    show::Bool=true,
                                    filepath::String="/tmp/cliq_sfg.pdf",
@@ -57,7 +57,7 @@ drawCliqSubgraphUpMocking, drawGraph, drawTree
 """
 function drawGraphCliq(hists::Dict{Int, <: Tuple},
                        step::Int,
-                       tree::BayesTree,
+                       tree::AbstractBayesTree,
                        frontal::Symbol;
                        show::Bool=true  )
   #
@@ -77,7 +77,7 @@ Related
 printCliqHistorySummary
 """
 function printCliqSummary(dfg::G,
-                          cliq::Graphs.ExVertex,
+                          cliq::TreeClique,
                           logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   frtl = getCliqFrontalVarIds(cliq)
