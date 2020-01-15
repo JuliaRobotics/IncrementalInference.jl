@@ -5,7 +5,7 @@ using Test
 
 
 
-@testset "Test forest of orphaned graphs"
+@testset "Test forest of orphaned graphs" begin
 
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
