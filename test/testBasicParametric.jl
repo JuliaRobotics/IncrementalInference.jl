@@ -126,3 +126,53 @@ r = isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1
 @test_skip r
 r = isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
 @test_skip r
+
+################################################################################
+## multiple sections
+
+fg = generateCanonicalFG_lineStep(10, poseEvery=1, landmarkEvery=10, posePriorsAt=Int[0,10], sightDistance=5, params=SolverParams(algorithms=[:default, :parametric]))
+# break fg in 2
+deleteFactor!(fg, :x5x6f1)
+# dfgplot(fg)
+
+#check all factors
+foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
+
+# @profiler d,st = IIF.solveFactorGraphParametric(fg)
+d,st = IIF.solveFactorGraphParametric(fg)
+
+foreach(println, d)
+
+for i in 0:10
+  sym = Symbol("x",i)
+  @test isapprox(d[sym][1], i, atol=1e-6)
+end
+
+foreach(x->solverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+
+tree = wipeBuildNewTree!(fg)#
+
+IIF.initTreeMessageChannels!(tree)
+
+# fg.solverParams.showtree = true
+# fg.solverParams.drawtree = true
+# fg.solverParams.dbg = false
+
+task = @async begin
+  global tree2
+  global smt
+  global hist
+  tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+end
+
+
+vsds = DFG.solverData.(getVariables(fg), :parametric)
+
+foreach(v->println(v.label, ": ", DFG.solverData(v, :parametric).val), getVariables(fg))
+
+for i in 0:10
+  sym = Symbol("x",i)
+  var = getVariable(fg,sym)
+  val = var.solverDataDict[:parametric].val
+  @test isapprox(val[1], i, atol=1e-6)
+end

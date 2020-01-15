@@ -31,8 +31,10 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   if isa(bt.bt,GenericIncidenceList)
     Graphs.add_vertex!(bt.bt, clq)
     bt.cliques[bt.btid] = clq
+    # clId = bt.btid
   elseif isa(bt.bt, MetaDiGraph)
     MetaGraphs.add_vertex!(bt.bt, :clique, clq)
+    # clId = MetaGraphs.nv(bt.bt)
   else
     error("Oops, something went wrong")
   end
@@ -41,6 +43,7 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   # already emptyBTNodeData() in constructor
   # setData!(clq, emptyBTNodeData())
 
+  # appendClique!(bt, clId, dfg, varID, condIDs)
   appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
@@ -52,13 +55,28 @@ export getClique, getCliques, getCliqueIds, getCliqueData
 
 getClique(tree::AbstractBayesTree, cId::Int)::TreeClique = tree.cliques[cId]
 
+getClique(tree::MetaBayesTree, cId::Int)::TreeClique = MetaGraphs.get_prop(tree.bt, cId, :clique)
+
 #TODO
 addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique)::Bool = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
 updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
 deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
 
 getCliques(tree::AbstractBayesTree) = tree.cliques
+
+function getCliques(tree::MetaBayesTree)
+  d = Dict{Int,Any}()
+  for (k,v) in tree.bt.vprops
+    d[k] = v[:clique]
+  end
+  return d
+end
+
 getCliqueIds(tree::AbstractBayesTree) = keys(getCliques(tree))
+
+function getCliqueIds(tree::MetaBayesTree)
+  MetaGraphs.vertices(tree.bt)
+end
 
 getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
 getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
@@ -597,6 +615,14 @@ Experimental create and initialize tree message channels
 function initTreeMessageChannels!(tree::BayesTree)
   for e = 1:tree.bt.nedges
     push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
+end
+
+function initTreeMessageChannels!(tree::MetaBayesTree)
+  for e = MetaGraphs.edges(tree.bt)
+    set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{BeliefMessage}(0),:downMsg=>Channel{BeliefMessage}(0)))
+    # push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
   end
   return nothing
 end

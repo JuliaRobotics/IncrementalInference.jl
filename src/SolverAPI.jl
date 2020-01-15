@@ -263,7 +263,7 @@ tree, smt, hist = solveTree!(fg ,tree)
 ```
 """
 function solveTreeParametric!(dfgl::DFG.AbstractDFG,
-                    tree::BayesTree;
+                    tree::AbstractBayesTree;
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
@@ -274,7 +274,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
-  @info "Do tree based init-inference on tree"
+  @info "Do tree based init-inference"
   # if opt.async
   smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
