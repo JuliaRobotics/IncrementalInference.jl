@@ -432,13 +432,25 @@ function buildTreeFromOrdering!(dfg::G,
   end
 
   println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root #TODO might not always be the root in case of multiple roots and deleted nodes in light graphs?
-  buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-
+  for cliqIds in getCliqueIds(tree)
+    if isRoot(tree, cliqIds)
+      cliq = getClique(tree, cliqIds) # start at the root
+      buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+    end
+  end
   tree.buildTime = (time_ns()-t0)/1e9
   return tree
 end
 
+isRoot(treel::AbstractBayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
+
+function isRoot(treel::MetaBayesTree, cliqKey::Int)
+  length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
+end
+
+function isRoot(treel::BayesTree, cliqKey::Int)
+  length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
+end
 
 """
     $SIGNATURES

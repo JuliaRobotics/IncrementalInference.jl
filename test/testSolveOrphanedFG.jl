@@ -13,12 +13,12 @@ addFactor!(fg, [:x0;], Prior(Normal()))
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0;:x1], LinearConditional(Normal()))
 
-fg = initfg()
 addVariable!(fg, :x10, ContinuousScalar)
 addFactor!(fg, [:x10;], Prior(Normal()))
 addVariable!(fg, :x11, ContinuousScalar)
 addFactor!(fg, [:x10;:x11], LinearConditional(Normal()))
 
+# dfgplot(fg)
 # solve factor graph with two orphaned components
 tree, smt, hist = solveTree!(fg)
 
