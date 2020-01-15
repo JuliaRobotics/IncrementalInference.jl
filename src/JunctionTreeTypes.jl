@@ -201,6 +201,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
+  cliqKey::Int
   parentCliq::Vector{TreeClique}
   childCliqs::Vector{TreeClique}
   forceproceed::Bool # TODO: bad flag that must be removed by refactoring sm
@@ -246,9 +247,10 @@ function CliqStateMachineContainer(x1::G,
                                    x10aaa::SolverParams,
                                    x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
                                    x11::BTND=emptyBTNodeData(),
-                                   x13::SimpleLogger=SimpleLogger(Base.stdout) ) where {BTND, G <: AbstractDFG}
+                                   x13::SimpleLogger=SimpleLogger(Base.stdout);
+                                   x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, BeliefMessage[], BeliefMessage[])
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, BeliefMessage[], BeliefMessage[])
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}

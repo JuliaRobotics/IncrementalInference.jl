@@ -14,7 +14,8 @@ Notes:
 """
 function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
-                                              cliq::TreeClique;
+                                              cliq::TreeClique,
+                                              cliqKey::Int;
                                               oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                               drawtree::Bool=false,
                                               show::Bool=false,
@@ -25,15 +26,19 @@ function initStartCliqStateMachineParametric!(dfg::G,
                                               recordhistory::Bool=false,
                                               delay::Bool=false,
                                               logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
-  #
-  children = getChildren(tree, cliq)
 
-  prnt = getParent(tree, cliq)
+  # TODO Taking out, use tree and messages for operations involving children and parents
+  children = TreeClique[]#getChildren(tree, cliq)
+  prnt = TreeClique[]#getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, cliqKey,
+                                    prnt, children,
+                                    false, incremental, drawtree, downsolve, delay,
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
+                                    BeliefMessage[], BeliefMessage[])
 
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine
@@ -425,7 +430,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO DownSolve cliqSubFg
   #only down solve if its not a root
-  if length(getParent(csmc.tree, csmc.cliq)) != 0#csmc.cliq.index != 1
+  if length(getParent(csmc.tree, csmc.cliq)) != 0#csmc.cliqKey != 1
     frontals = getCliqFrontalVarIds(csmc.cliq)
     vardict, result = solveFrontalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
