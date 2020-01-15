@@ -67,8 +67,16 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                          0.0 )
 
 #NOTE select type for development
-emptyBayesTree() = BayesTree()
+# emptyBayesTree() = BayesTree()
 # emptyBayesTree() = MetaBayesTree()
+
+#TEMP switch the default tree for development
+global UseMetaBayesTree = false
+setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
+function emptyBayesTree()
+  global UseMetaBayesTree
+  UseMetaBayesTree ? MetaBayesTree() : BayesTree()
+end
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
@@ -179,6 +187,7 @@ function Graphs.to_dot(mdigraph::MetaDiGraph)
   for (i,val) in g.vprops
     push!(g.vprops[i],:attributes=>val[:clique].attributes)
     delete!(g.vprops[i],:clique)
+    delete!(g.vprops[i],:index)
   end
   m = PipeBuffer()
   savedot_attributes(m, g)

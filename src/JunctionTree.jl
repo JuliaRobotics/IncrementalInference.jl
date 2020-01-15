@@ -31,10 +31,11 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   if isa(bt.bt,GenericIncidenceList)
     Graphs.add_vertex!(bt.bt, clq)
     bt.cliques[bt.btid] = clq
-    # clId = bt.btid
+    clId = bt.btid
   elseif isa(bt.bt, MetaDiGraph)
-    MetaGraphs.add_vertex!(bt.bt, :clique, clq)
-    # clId = MetaGraphs.nv(bt.bt)
+    @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "add_vertex! failed"
+    clId = MetaGraphs.nv(bt.bt)
+    MetaGraphs.set_indexing_prop!(bt.bt, clId, :index, bt.btid)
   else
     error("Oops, something went wrong")
   end
@@ -43,8 +44,8 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   # already emptyBTNodeData() in constructor
   # setData!(clq, emptyBTNodeData())
 
-  # appendClique!(bt, clId, dfg, varID, condIDs)
-  appendClique!(bt, bt.btid, dfg, varID, condIDs)
+  appendClique!(bt, clId, dfg, varID, condIDs)
+  # appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
 
@@ -159,7 +160,7 @@ function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, var
     Graphs.add_edge!(bt.bt, edge)
   elseif isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
-    MetaGraphs.add_edge!(bt.bt, parent.index, chclq.index)
+    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.index]) "Add edge failed"
   else
     error("Oops, something went wrong")
   end
@@ -450,13 +451,25 @@ function buildTreeFromOrdering!(dfg::G,
   end
 
   println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root #TODO might not always be the root in case of multiple roots and deleted nodes in light graphs?
-  buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-
+  for cliqIds in getCliqueIds(tree)
+    if isRoot(tree, cliqIds)
+      cliq = getClique(tree, cliqIds) # start at the root
+      buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+    end
+  end
   tree.buildTime = (time_ns()-t0)/1e9
   return tree
 end
 
+isRoot(treel::AbstractBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
+
+function isRoot(treel::MetaBayesTree, cliqKey::Int)
+  length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
+end
+
+function isRoot(treel::BayesTree, cliqKey::Int)
+  length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
+end
 
 """
     $SIGNATURES
@@ -1284,7 +1297,7 @@ function mcmcIterationIDs(cliq::TreeClique)
   # assocMat = getData(cliq).cliqAssocMat
   # msgMat = getData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
-
+  @show mat
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
   cols = getCliqAllVarIds(cliq)
@@ -1422,10 +1435,14 @@ end
 
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
+    cliqKey = treel.bt[:index][cliq.index]
+    @warn cliqKey
+    @show treel.bt.graph.fadjlist
     childcliqs = TreeClique[]
-    for cIdx in MetaGraphs.outneighbors(treel.bt, cliq.index)
+    for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
         push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
     end
+    @show childcliqs
     return childcliqs
 end
 
@@ -1472,8 +1489,9 @@ function parentCliq(treel::BayesTree, frtsym::Symbol)
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)
+  cliqKey = treel.bt[:index][cliq.index]
   parentcliqs = TreeClique[]
-  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliq.index)
+  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliqKey)
     push!(parentcliqs, get_prop(treel.bt, pIdx, :clique))
   end
   return parentcliqs
