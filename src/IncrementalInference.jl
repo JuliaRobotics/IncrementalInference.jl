@@ -294,6 +294,7 @@ export
   parentCliq,
   getParent,
   getCliqSiblings,
+  getNumCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -507,7 +508,6 @@ export
   DataLayerAPI
 
 
-
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
@@ -523,13 +523,13 @@ const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere mor
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("JunctionTreeTypes.jl")
 include("FactorGraph01.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
-include("JunctionTreeTypes.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
@@ -574,7 +574,7 @@ function __init__()
       * Frontal, separator, and upmessages are all drawn at different intensity of red.
       * Downward messages not shown, as they would just be singletons of the full separator set.
       """
-      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
         mat = map(Float64, mat)*2.0.-1.0
@@ -592,12 +592,12 @@ function __init__()
           @show getData(cliq).directPriorMsgIDs
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
-      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
         spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end
