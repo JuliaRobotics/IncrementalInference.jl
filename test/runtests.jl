@@ -84,6 +84,8 @@ end
     include("fourdoortest.jl")
 end
 
+include("testAnalysisTools.jl")
+
 @testset "saving to and loading from FileDFG" begin
     saveFolder = "/tmp/dfg_test"
     saveDFG(fg, saveFolder)
