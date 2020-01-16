@@ -61,10 +61,10 @@ struct TreeBelief
   val::Array{Float64,2}
   bw::Array{Float64,2}
   inferdim::Float64
-  # manifolds::T TODO ? JT not needed as you have the variable with all the info in it?
+  manifolds::Tuple{Vararg{Symbol}}# TODO #459
 end
-TreeBelief(p::BallTreeDensity, inferdim::Real=0.0) = TreeBelief(getPoints(p), getBW(p), inferdim)
-TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = TreeBelief(val, bw, inferdim)
+TreeBelief(p::BallTreeDensity, inferdim::Real=0.0) = TreeBelief(getPoints(p), getBW(p), inferdim, ())
+TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = TreeBelief(val, bw, inferdim, ())
 
 """
     CliqStatus

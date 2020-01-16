@@ -35,7 +35,7 @@ function ContinuousMultivariate(x::Int;
                                 labels::Vector{<:AbstractString}=String[],
                                 manifolds::T1=(:Euclid,)  )  where {T1 <: Tuple}
   #
-  @show maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
+  maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
   ContinuousMultivariate{typeof(maniT)}(x, labels=labels, manifolds=maniT)
 end
 

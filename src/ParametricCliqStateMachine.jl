@@ -335,7 +335,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMsg = BeliefMessage(upsolved)
   for si in cliqSeparatorVarIds
     vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
-    beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
+    beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
   end
 
   #NOTE Graphs.jl in_edges does not work. So extended above
@@ -470,7 +470,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMsg = BeliefMessage(downsolved)
   for fi in cliqFrontalVarIds
     vnd = getVariableData(csmc.cliqSubFg, fi, solveKey=:parametric)
-    beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim)
+    beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     @info "$(csmc.cliq.index): down message $fi : $beliefMsg"
   end
 

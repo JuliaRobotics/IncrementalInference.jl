@@ -153,7 +153,7 @@ function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey:
       nf = fit(Normal, solverData(var, fromkey).val)
       solverData(var, parkey).val[1,1] = nf.μ
       solverData(var, parkey).bw[1,1] = nf.σ
-      @show nf
+      # @show nf
       # m = var.estimateDict[:default].mean
   end
 end
