@@ -597,6 +597,9 @@ function __init__()
           @show getData(cliq).directFrtlMsgIDs
           @show getData(cliq).directPriorMsgIDs
         end
+        if size(mat,1) == 1
+          mat = [mat; -ones(size(mat,2))']
+        end
         sp = Gadfly.spy(mat)
         push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
         push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
