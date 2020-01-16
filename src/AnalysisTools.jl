@@ -1,3 +1,5 @@
+export shrinkFactorGraph, getAllTrees, nnzFrontals, nnzClique, nnzTree, nnzSqrtInfoMatrix, getTreeCost_01, getTreeCost_02
+
 """
     $SIGNATURES
 
