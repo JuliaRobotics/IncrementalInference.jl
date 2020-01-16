@@ -26,9 +26,15 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   Optim, # might be deprecated in favor for only NLsolve dependency
-  JSON2
+  JSON2,
+  Combinatorics
 
 using Logging
+
+# bringing in BSD 3-clause ccolamd
+include("ccolamd.jl")
+using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
@@ -510,9 +516,6 @@ export
 
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
-
-# non-free, but not currently use!
-include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
