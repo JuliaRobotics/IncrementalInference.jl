@@ -2,7 +2,7 @@ using IncrementalInference
 using Test
 
 
-@testset "Test ccolamd for constrained variable ordering"
+@testset "Test ccolamd for constrained variable ordering" begin
 
 fg = loadCanonicalFG_Kaess(graphinit=false)
 
