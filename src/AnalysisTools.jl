@@ -36,7 +36,7 @@ of `dfg` factor graph. Returns a dictionary with (tree, ordering, nnz) tuples.
 Warning: factorial number of possibilities, so use carefully!
 """
 function getAllTrees(fg::AbstractDFG)
-    # dfg = loadCanonicalFG_Kaess(graphinit=false)
+    # dfg = generateCanonicalFG_Kaess(graphinit=false)
     variables = ls(fg)
     orderings = permutations(variables) |> collect
 

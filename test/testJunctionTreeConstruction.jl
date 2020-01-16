@@ -6,7 +6,7 @@ using Test
 
 @testset "Variable ordering Bayes tree member check." begin
 
-  fg = loadCanonicalFG_Kaess()
+  fg = generateCanonicalFG_Kaess()
   # Choose specific variable ordering and perform check.
   vo = [:l1, :l2, :x1, :x2, :x3]
   tree = buildTreeFromOrdering!(fg, vo)
@@ -18,7 +18,7 @@ end
 
 @testset "Test Caesar Ring 1D symbolic tree construction" begin
 
-fg = loadCanonicalFG_CaesarRing1D()
+fg = generateCanonicalFG_CaesarRing1D()
 # drawGraph(fg, show=true)
 
 eo = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
@@ -68,7 +68,7 @@ end
 
 @testset "Test tree formation and consistent APIs" begin
 
-  fg = loadCanonicalFG_TestSymbolic()
+  fg = generateCanonicalFG_TestSymbolic()
 
   #writeGraphPdf(fg, show=true)
 

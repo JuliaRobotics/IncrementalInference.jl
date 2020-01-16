@@ -16,7 +16,7 @@ latex_fonts = Theme(major_label_font="CMU Serif", major_label_font_size=16pt,
 Gadfly.push_theme(latex_fonts)
 
 # Get tree for each variable ordering in a factor graph.
-fg = loadCanonicalFG_Kaess(graphinit=false)
+fg = generateCanonicalFG_Kaess(graphinit=false)
 all_trees = getAllTrees(deepcopy(fg))
 
 # scores stores: (tree key ID, nnz, cost fxn 1, cost fxn 2).

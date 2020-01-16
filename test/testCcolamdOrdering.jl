@@ -4,7 +4,7 @@ using Test
 
 @testset "Test ccolamd for constrained variable ordering" begin
 
-fg = loadCanonicalFG_Kaess(graphinit=false)
+fg = generateCanonicalFG_Kaess(graphinit=false)
 
 vo = getEliminationOrder(fg, constraints=[:x3], ordering=:ccolamd)
 
