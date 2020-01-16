@@ -1,7 +1,6 @@
 # Test for tree-based analysis tools found in `AnalysisTools.jl`.
 using Test
 using IncrementalInference
-using RoME # Used for loading canonical graphs (is this ok?).
 
 @testset "Number of non-zero calculation for frontals." begin
     # Alternative way of calculating number of upper triangular matrix elements.

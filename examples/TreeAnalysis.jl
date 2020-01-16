@@ -1,7 +1,6 @@
 # Showcasing the available analysis tools for the Bayes (Junction) tree.
 using IncrementalInference
 using DistributedFactorGraphs # For `isSolvable` function.
-using RoME # For loading canonical graphs (e.g., Kaess' example).
 using Combinatorics # For creating the variable ordering `permutations`.
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using Gadfly # For histogram and scatter plots.
@@ -33,32 +32,6 @@ scores = sort(unsorted_scores)
 all_nnzs = (x->(x[2])).(scores)
 costs_01 = (x->(x[3])).(scores)
 costs_02 = (x->(x[4])).(scores)
-
-# HACKING
-# plotting tricks with gadfly
-# trick 1
-# using Colors
-# PL = []
-# push!(PL, Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"red")))
-# push!(PL, Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"magenta")))
-# # push!(PL, ThemeLege...)
-# pl = Gadfly.plot(PL...)
-#
-# pl |> typeof |> fieldnames
-# # fieldnames(typeof(pl))
-#
-# pl.coord = Coord.Cartesian(xmin=0,xmax=10,ymin=-5,ymax=2)
-#
-# pl
-# pll = Gadfly.layer(x=1:10, y=randn(10),Geom.line, Theme(default_color=colorant"green"))
-# union!(pl.layers, pll)
-# pl
-# pl |> SVG("/tmp/test.svg")
-# using Cairo
-# pl |> PDF("/tmp/test.pdf")
-# pl |> PNG("/tmp/test.png")
-
-
 
 min_ids_02 = findall(x->x == minimum(costs_02), costs_02)
 max_ids_02 = findall(x->x == maximum(costs_02), costs_02)
@@ -116,3 +89,6 @@ pl = Gadfly.plot(layers...,
             Guide.manual_color_key("",
              ["AMD", "COLAMD", "iSAM2"],
              ["green", "blue", "red"]))
+
+img = SVG("vo_cost_canon_kaess.svg", 6inch, 6inch)
+Gadfly.draw(img, pl)
