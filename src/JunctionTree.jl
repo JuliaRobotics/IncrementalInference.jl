@@ -1297,7 +1297,6 @@ function mcmcIterationIDs(cliq::TreeClique)
   # assocMat = getData(cliq).cliqAssocMat
   # msgMat = getData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
-  @show mat
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
   cols = getCliqAllVarIds(cliq)
@@ -1436,13 +1435,10 @@ end
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
     cliqKey = treel.bt[:index][cliq.index]
-    @warn cliqKey
-    @show treel.bt.graph.fadjlist
     childcliqs = TreeClique[]
     for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
         push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
     end
-    @show childcliqs
     return childcliqs
 end
 

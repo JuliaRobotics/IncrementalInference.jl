@@ -39,6 +39,15 @@ end
 
 abstract type AbstractBayesTree end
 
+#Development NOTE JT - Plan is that Integer clIds always refer to the index in the graph
+# and cliq.index is a unique index for a tree.
+# so you can always iterate through clIds, ie 1:getNumCliqs(tree)
+# if a tree is incrementally updated, one should be able to deleted cliques and replaced with a new tree section.
+# it also paves the way for cloud trees.
+# the corresponding concept in DFG is the label that is unique within a graph.
+# they will be the same until nodes are deleted.
+# However, cliq.index is very deeply imbedded in CSM.
+# The alternative would be to keep the index field updated, but then another field is needed to uniquely identify a clique
 
 # BayesTree declarations
 const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
