@@ -1,9 +1,13 @@
 # Showcasing the available analysis tools for the Bayes (Junction) tree.
+# using Revise
+
 using IncrementalInference
 using DistributedFactorGraphs # For `isSolvable` function.
 using Combinatorics # For creating the variable ordering `permutations`.
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using Gadfly # For histogram and scatter plots.
+Gadfly.set_default_plot_size(35cm,25cm)
+
 
 latex_fonts = Theme(major_label_font="CMU Serif", major_label_font_size=16pt,
                     minor_label_font="CMU Serif", minor_label_font_size=14pt,
@@ -12,7 +16,7 @@ latex_fonts = Theme(major_label_font="CMU Serif", major_label_font_size=16pt,
 Gadfly.push_theme(latex_fonts)
 
 # Get tree for each variable ordering in a factor graph.
-fg = loadCanonicalFG_Kaess()
+fg = loadCanonicalFG_Kaess(graphinit=false)
 all_trees = getAllTrees(deepcopy(fg))
 
 # scores stores: (tree key ID, nnz, cost fxn 1, cost fxn 2).

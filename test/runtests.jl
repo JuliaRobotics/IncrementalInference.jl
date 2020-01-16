@@ -52,6 +52,8 @@ include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
 
+include("testCcolamdOrdering.jl")
+
 include("testBasicGraphs.jl")
 
 @testset "with simple local constraint examples Odo, Obsv2..." begin
