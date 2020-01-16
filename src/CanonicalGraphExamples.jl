@@ -1,5 +1,5 @@
 
-export loadCanonicalFG_Kaess, loadCanonicalFG_TestSymbolic, loadCanonicalFG_CaesarRing1D, generateCanonicalFG_lineStep
+export generateCanonicalFG_Kaess, generateCanonicalFG_TestSymbolic, generateCanonicalFG_CaesarRing1D, generateCanonicalFG_lineStep
 
 """
     $SIGNATURES
@@ -9,7 +9,7 @@ Canonical example from literature, Kaess, et al.: ISAM2, IJRR, 2011.
 Notes
 - Paper variable ordering: p = [:l1;:l2;:x1;:x2;:x3]
 """
-function loadCanonicalFG_Kaess(;graphinit::Bool=false)
+function generateCanonicalFG_Kaess(;graphinit::Bool=false)
   fg = initfg()
 
   addVariable!(fg,:x1, ContinuousScalar)
@@ -41,7 +41,7 @@ Canonical example introduced by Borglab.
 Notes
 - Known variable ordering: p = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
 """
-function loadCanonicalFG_TestSymbolic(;graphinit::Bool=false)
+function generateCanonicalFG_TestSymbolic(;graphinit::Bool=false)
   fg = initfg()
 
   addVariable!(fg, :x1, ContinuousScalar)
@@ -77,7 +77,7 @@ Canonical example introduced originally as Caesar Hex Example.
 Notes
 - Paper variable ordering: p = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
 """
-function loadCanonicalFG_CaesarRing1D(;graphinit::Bool=false)
+function generateCanonicalFG_CaesarRing1D(;graphinit::Bool=false)
 
   fg = initfg()
 
