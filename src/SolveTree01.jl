@@ -747,7 +747,7 @@ function dwnPrepOutMsg(fg::G,
                        logger=ConsoleLogger()) where {G <: AbstractDFG, T}
   # pack all downcoming conditionals in a dictionary too.
   with_logger(logger) do
-    if cliq.index != 1
+    if cliq.index != 1 #TODO there may be more than one root
       @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
       @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
