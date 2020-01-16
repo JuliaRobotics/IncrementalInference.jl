@@ -1040,7 +1040,7 @@ function approxCliqMarginalUp!(fgl::G,
 
   # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
   if onduplicate
-    for (id, cliq) in tree_.cliques
+    for (id, cliq) in treel.cliques
       setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
       setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
     end
