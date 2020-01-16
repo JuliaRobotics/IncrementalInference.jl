@@ -1,4 +1,4 @@
-# test forest of graphs can solve with CSM,
+# test forest of graphs can solve with CSM, specifically #518
 
 using IncrementalInference
 using Statistics
