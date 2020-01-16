@@ -461,12 +461,13 @@ function buildTreeFromOrdering!(dfg::G,
   return tree
 end
 
-isRoot(treel::AbstractBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
 
+isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
 function isRoot(treel::MetaBayesTree, cliqKey::Int)
   length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
 end
 
+isRoot(treel::BayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
 function isRoot(treel::BayesTree, cliqKey::Int)
   length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
 end

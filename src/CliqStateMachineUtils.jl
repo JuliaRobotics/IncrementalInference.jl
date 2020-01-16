@@ -677,7 +677,8 @@ Related
 
 calcVariablePPE
 """
-function setVariablePosteriorEstimates!(var::DFG.DFGVariable, solveKey::Symbol=:default)::DFG.DFGVariable
+function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
+                                        solveKey::Symbol=:default)::DFG.DFGVariable
 
   vnd = solverData(var, solveKey)
 
