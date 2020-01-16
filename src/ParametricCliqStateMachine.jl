@@ -116,7 +116,7 @@ function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, cliq.index)
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
 
 """
     $SIGNATURES
@@ -128,7 +128,7 @@ function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, cliq.index)
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
 
 """
     $SIGNATURES
