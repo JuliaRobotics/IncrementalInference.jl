@@ -157,10 +157,10 @@ end
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
 function initfg(dfg::T=InMemDFGType(params=SolverParams());
-                                               sessionname="NA",
-                                               robotname="",
-                                               username="",
-                                               cloudgraph=nothing)::T where T <: AbstractDFG
+                                    sessionname="NA",
+                                    robotname="",
+                                    username="",
+                                    cloudgraph=nothing)::T where T <: AbstractDFG
   #
   return dfg
 end
