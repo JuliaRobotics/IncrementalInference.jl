@@ -377,7 +377,7 @@ function updateFullVertData!(fgl::AbstractDFG,
     if updateMAPest
       # set PPE in dest from values in srcv
       # TODO must work for all keys involved
-      getEstimates(dest)[:default] = getEstimates(srcv)[:default]
+      getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
     end
   else
     # assuming nothing to be done

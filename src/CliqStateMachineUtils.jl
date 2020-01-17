@@ -687,8 +687,8 @@ function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
 
   vnd = solverData(var, solveKey)
 
-  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof estimateDict entries
-  var.estimateDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
+  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
+  var.ppeDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
 
   return var
 end
