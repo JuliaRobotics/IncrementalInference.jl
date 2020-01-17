@@ -92,7 +92,7 @@ include("testAnalysisTools.jl")
 
 @testset "saving to and loading from FileDFG" begin
     saveFolder = "/tmp/dfg_test"
-    saveDFG(fg, saveFolder, compress= VERSION == v"1.0" ? :none : :gzip)
+    saveDFG(fg, saveFolder, compress= VERSION < v"1.1" ? :none : :gzip)
     retDFG = GraphsDFG{SolverParams}(params=SolverParams())
     retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
     @test symdiff(ls(fg), ls(retDFG)) == []
