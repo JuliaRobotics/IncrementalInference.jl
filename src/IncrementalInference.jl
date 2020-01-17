@@ -544,6 +544,7 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
 include("ParametricSolveTree.jl")
 include("ParametricCliqStateMachine.jl")
 include("ParametricUtils.jl")

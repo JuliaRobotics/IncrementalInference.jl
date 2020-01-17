@@ -18,10 +18,6 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
     initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
     varSymbols[v] = i
   end
-  # initValues = [getVal(getVariable(fg,v), 1; solveKey=solvekey)[1] for v in varIds]
-  # TODO
-  # do findfirst(v->v==:x0, varIds) lookup for or create dictionary
-  # gebruik om trek te hou van indekse
 
   #get all the cost functions of the factors.
   costfuns = []
@@ -30,7 +26,7 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
 
     varOrder = getVariableOrder(fct)
     # varsdata = [solverData(getVariable(fg, v), solvekey) for v in varOrder]
-    #TODO findfirst or dictionary lookup
+    #findfirst or dictionary lookup
     # idx = [findfirst(v->v==varId, varIds) for varId in varOrder]
     idx = [varSymbols[varId] for varId in varOrder]
 
@@ -68,7 +64,7 @@ end
 
 
 
-
+#TODO maybe consolidate with solveFactorGraphParametric
 function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
 
   varIds = getVariableIds(fg)
@@ -145,7 +141,11 @@ function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solv
 
 end
 
+"""
+    $SIGNATURES
 
+Initialize the parametric solver data from a different solution in `fromkey`.
+"""
 function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
   for var in getVariables(fg)
       #TODO only supports Normal now

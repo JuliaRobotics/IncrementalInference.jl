@@ -53,7 +53,6 @@ getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
 # TODO maybe replace X with a type.
-#TODO ParametricTypes or dispatch on each? I like it together for now. Maybe compiler will split it?
 function (s::Prior{<:ParametricTypes})(X1::Vector{Float64};
                     userdata::Union{Nothing,FactorMetadata}=nothing)
 

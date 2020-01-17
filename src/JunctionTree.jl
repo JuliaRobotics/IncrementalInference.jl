@@ -1453,6 +1453,30 @@ getChildren(treel::AbstractBayesTree, cliq::TreeClique) = childCliqs(treel, cliq
 
 """
     $SIGNATURES
+Get edges to children cliques
+"""
+getEdgesChildren(tree::BayesTree, cliq::TreeClique) = Graphs.out_edges(cliq, tree.bt)
+
+function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
+
+"""
+    $SIGNATURES
+Get edges to parent clique
+"""
+getEdgesParent(tree::BayesTree, cliq::TreeClique) = Graphs.in_edges(cliq, tree.bt)
+
+function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
+
+"""
+    $SIGNATURES
 
 Return a vector of all siblings to a clique, which defaults to not `inclusive` the calling `cliq`.
 """
