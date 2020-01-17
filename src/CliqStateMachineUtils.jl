@@ -1,3 +1,6 @@
+
+export setVariablePosteriorEstimates!
+
 """
     $SIGNATURES
 
@@ -16,7 +19,9 @@ function dbgSaveDFG(dfg::AbstractDFG,
   #
   folder::String=joinpath(opts.logpath,"logs")
   if opts.dbg
-    ispath(folder) && mkpath(folder)
+    if !ispath(folder)
+      mkpath(folder)
+    end
     DFG.saveDFG(dfg, joinpath(folder, "$filename"))
     drawGraph(dfg, show=false, filepath=joinpath(folder, "$filename.pdf"))
   end
@@ -675,15 +680,15 @@ DevNotes
 
 Related
 
-calcVariablePPE
+calcVariablePPE, getVariablePPE, (setVariablePPE!/setPPE!/updatePPE! ?)
 """
 function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
                                         solveKey::Symbol=:default)::DFG.DFGVariable
 
   vnd = solverData(var, solveKey)
 
-  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof estimateDict entries
-  var.estimateDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
+  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
+  var.ppeDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
 
   return var
 end

@@ -356,23 +356,29 @@ end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::AbstractDFG,
-                             nv::DFGNode;
-                             updateMAPest::Bool=false )
+                             srcv::DFGNode;
+                             updatePPE::Bool=false )
   #
   @warn "Deprecated updateFullVertData!, need alternative"
 
-  sym = Symbol(nv.label)
+  sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
 
-  lvert = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = solverData(lvert)
-  nvd = solverData(nv)
+  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
+  lvd = solverData(dest)
+  srcvd = solverData(srcv)
 
   if isvar
-    lvd.val[:,:] = nvd.val[:,:]
-    lvd.bw[:] = nvd.bw[:]
-    lvd.initialized = nvd.initialized
-    lvd.inferdim = nvd.inferdim
+    lvd.val[:,:] = srcvd.val[:,:]
+    lvd.bw[:] = srcvd.bw[:]
+    lvd.initialized = srcvd.initialized
+    lvd.inferdim = srcvd.inferdim
+
+    if updatePPE
+      # set PPE in dest from values in srcv
+      # TODO must work for all keys involved
+      getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
+    end
   else
     # assuming nothing to be done
   end

@@ -126,7 +126,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
@@ -201,7 +201,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 	# Calculate estimates
 	map(sym -> setVariablePosteriorEstimates!(csmc.cliqSubFg, sym), frsyms)
 	# Transfer to parent graph
-	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 
@@ -227,7 +227,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
       frsyms = getCliqFrontalVarIds(csmc.cliq)
     infocsm(csmc, "9, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
     # TODO what about down solve??
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=false)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point

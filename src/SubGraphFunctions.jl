@@ -10,7 +10,8 @@ Notes
 function transferUpdateSubGraph!(dest::AbstractDFG,
                                  src::AbstractDFG,
                                  syms::Vector{Symbol}=union(ls(src)...),
-                                 logger=ConsoleLogger()  )
+                                 logger=ConsoleLogger();
+                                 updatePPE::Bool=true  )
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
@@ -24,7 +25,7 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
       pp = getKDE(vari)
       rc2 = size(getPoints(pp))
       @info "sym=$sym, mem size of val=$rc and $(rc2)"
-      updateFullVertData!(dest, vari, updateMAPest=true)
+      updateFullVertData!(dest, vari, updatePPE=updatePPE)
     end
   end
   nothing

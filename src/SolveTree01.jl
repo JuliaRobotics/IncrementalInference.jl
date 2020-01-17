@@ -886,7 +886,7 @@ function updateFGBT!(fg::G,
       for (sym, emsg) in drt.IDvals
         #TODO -- should become an update call
         updvert = DFG.getVariable(fg, sym)
-        # TODO -- not sure if deepcopy is required , updateMAPest=true)
+        # TODO -- not sure if deepcopy is required , updatePPE=true)
         @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
         setValKDE!(updvert, deepcopy(emsg) )
         updvert = DFG.getVariable(fg, sym)
