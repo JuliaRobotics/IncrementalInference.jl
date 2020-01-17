@@ -4,13 +4,6 @@
     $SIGNATURES
 
 EXPERIMENTAL: Init and start state machine for parametric solve.
-
-Notes:
-- will call on values from children or parent cliques
-- can be called multiple times
-- Assumes all cliques in tree are being solved simultaneously and in similar manner.
-- State machine rev.1 -- copied from first TreeBasedInitialization.jl.
-- Doesn't do partial initialized state properly yet.
 """
 function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
