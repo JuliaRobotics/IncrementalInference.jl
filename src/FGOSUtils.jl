@@ -82,6 +82,10 @@ Get the ParametricPointEstimates---based on full marginal belief estimates---of 
 
 DevNotes
 - TODO update for manifold subgroups.
+
+Related
+
+getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 """
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;

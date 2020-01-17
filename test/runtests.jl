@@ -63,6 +63,8 @@ end
 
 include("testSolveOrphanedFG.jl")
 
+include("testSolveSetPPE.jl")
+
 # include("priorusetest.jl")
 
 include("testExplicitMultihypo.jl")

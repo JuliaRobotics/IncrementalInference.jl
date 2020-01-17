@@ -70,6 +70,7 @@ export
   AbstractDFG,
   hasVariable,
   getSolverParams,
+  LightDFG,
 
   *,
   notifyCSMCondition,
