@@ -4,7 +4,6 @@ using Test
 using IncrementalInference
 using DistributedFactorGraphs
 
-import DistributedFactorGraphs: getEstimates
 
 @testset "test PPE update during solve" begin
 
