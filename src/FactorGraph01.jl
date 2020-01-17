@@ -13,7 +13,10 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # still used for Bayes Tree
 import DistributedFactorGraphs: getData
 
-getData(v::Graphs.ExVertex) = v.attributes["data"]
+function getData(v::TreeClique)
+  # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
+  getCliqueData(v)
+end
 
 
 """
@@ -46,9 +49,10 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
   return nothing
 end
 # For Bayes tree
-function setData!(v::Graphs.ExVertex, data)
+function setData!(v::TreeClique, data)
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  v.attributes["data"] = data
+  # v.attributes["data"] = data
+  v.data = data
   nothing
 end
 
@@ -659,7 +663,7 @@ Notes:
 - used by Bayes tree clique logic.
 - similar method in DFG
 """
-function isInitialized(vert::Graphs.ExVertex)::Bool
+function isInitialized(vert::TreeClique)::Bool
   return solverData(vert).initialized
 end
 
@@ -1077,26 +1081,41 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
+function getEliminationOrder(dfg::G;
+                             ordering::Symbol=:qr,
+                             solvable::Int=1,
+                             constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+  #
+  @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
   adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
-  A = Array(adjMat)
 
   p = Int[]
   if ordering==:chol
-      p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+    # hack for dense matrix....
+    A = Array(adjMat)
+    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+    @warn "check cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
   elseif ordering==:qr
+    # hack for dense matrix....
+    A = Array(adjMat)
     # this is the default
     q,r,p = qr(A, Val(true))
+    p .= p |> reverse
+  elseif ordering==:ccolamd
+    cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+    cons[findall(x->x in constraints, permuteds)] .= 1
+    p = Ccolamd.ccolamd(adjMat, cons)
+    @warn "Ccolamd is experimental in IIF at this point in time."
   else
     prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
   end
 
   # Return the variable ordering that we should use for the Bayes map
   # reverse order checked in #475 and #499
-  return permuteds[p] |> reverse
+  return permuteds[p]
 end
 
 
@@ -1115,7 +1134,7 @@ end
 
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
   bnv = DFG.getVariable(dfg, vertId)
-  bnvd = solverData(bnv) # bnv.attributes["data"]
+  bnvd = solverData(bnv)
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -1198,7 +1217,7 @@ function buildBayesNet!(dfg::G,
             push!(Si,sepNode)
           end
         end
-        solverData(fct).eliminated = true #fct.attributes["data"].eliminated = true
+        solverData(fct).eliminated = true
       end
 
       if typeof(solverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
@@ -1273,8 +1292,8 @@ function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 
 function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int,Graphs.ExVertex},
-                              edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}})
+                              vertdict::Dict{Int,TreeClique},
+                              edgedict::Dict{Int,Graphs.Edge{TreeClique}})
   #asfd
   for vert in vertdict
     for newedge in out_edges(vert[2],fgl.g)
@@ -1289,8 +1308,8 @@ end
 
 # dictionary of unique vertices from edgelist
 function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int,Graphs.Edge{Graphs.ExVertex}},
-  vertdict::Dict{Int,Graphs.ExVertex})
+  edgedict::Dict{Int,Graphs.Edge{TreeClique}},
+  vertdict::Dict{Int,TreeClique})
 
   # go through all source and target nodes
   for edge in edgedict
@@ -1304,8 +1323,8 @@ function expandVertexList!(fgl::FactorGraph,
   nothing
 end
 
-function edgelist2edgedict(edgelist::Array{Graphs.Edge{Graphs.ExVertex},1})
-  edgedict = Dict{Int,Graphs.Edge{Graphs.ExVertex}}()
+function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
+  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
   for edge in edgelist
     edgedict[edge.index] = edge
   end

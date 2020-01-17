@@ -98,7 +98,7 @@ cliq = whichCliq(tree, :x1)
 # 0
 
 
-children = Graphs.ExVertex[]
+children = TreeClique[]
 for ch in Graphs.out_neighbors(cliq, tree.bt)
   push!(children, ch)
 end

@@ -128,8 +128,8 @@ tree, smt, hist = solveTree!(fg)
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
 @test (getKDE(fg, :x1) |> getKDEMean .|> abs)[1] < 0.6
 
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.2
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.3
 
 end
 
@@ -150,8 +150,8 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getKDE(fg, :x0) |> getKDEMean)[1]+1) < 0.5
 @test abs((getKDE(fg, :x1) |> getKDEMean)[1]-1) < 0.5
 
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 1.8
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.0
+@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.0
 
 end
 
@@ -225,9 +225,9 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.3
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.3
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.4
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.4
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.5
 
 end
 

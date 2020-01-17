@@ -11,7 +11,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
-  lbl = csmc.cliq.attributes["label"]
+  lbl = getLabel(csmc.cliq)
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -126,7 +126,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
@@ -201,7 +201,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 	# Calculate estimates
 	map(sym -> setVariablePosteriorEstimates!(csmc.cliqSubFg, sym), frsyms)
 	# Transfer to parent graph
-	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 
@@ -227,7 +227,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
       frsyms = getCliqFrontalVarIds(csmc.cliq)
     infocsm(csmc, "9, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
     # TODO what about down solve??
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=false)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
@@ -845,10 +845,10 @@ Notes:
 - Doesn't do partial initialized state properly yet.
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
-                                        tree::BayesTree,
-                                        cliq::Graphs.ExVertex;
+                                        tree::AbstractBayesTree,
+                                        cliq::TreeClique;
                                         N::Int=100,
-										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                        oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
@@ -859,16 +859,14 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = Graphs.ExVertex[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 

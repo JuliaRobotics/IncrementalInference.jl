@@ -53,7 +53,7 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:estimateDict])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:ppeDict])
 # fg2 has been solved, so it should fail on the estimate dictionary
 @test !compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
 
@@ -63,7 +63,7 @@ tree = wipeBuildNewTree!(fg2)
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
-@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:estimateDict])
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:ppeDict])
 
 end
 
