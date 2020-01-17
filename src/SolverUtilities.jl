@@ -237,8 +237,8 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 """
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         treel::AbstractBayesTree,
+                         cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
   cda = getData(cliq)
@@ -260,7 +260,7 @@ function resetCliqSolve!(dfg::G,
 end
 
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
+                         treel::AbstractBayesTree,
                          frt::Symbol;
                          solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
   #
@@ -282,7 +282,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   varsyms = fcto._variableOrderSymbols
   vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
   fcttype = getFactorType(fcto)
-  zDim = getData(fcto).fnc.zDim
+  zDim = solverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)

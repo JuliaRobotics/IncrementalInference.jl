@@ -21,7 +21,7 @@ Related
 solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::G,
-                    oldtree::BayesTree=emptyBayesTree();
+                    oldtree::AbstractBayesTree=emptyBayesTree();
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
@@ -53,8 +53,10 @@ function solveTree!(dfgl::G,
   # transfer new tree to outside parameter
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
-  oldtree.cliques = tree.cliques
+  oldtree.cliques = tree.cliques #TODO JT kyk meer detail, this is a bit strange as its a copy of data in graph
   oldtree.frontals = tree.frontals
+  oldtree.variableOrder = tree.variableOrder
+  oldtree.buildTime = tree.buildTime
 
   return oldtree, smtasks, hist
 end
@@ -76,7 +78,7 @@ Related
 solveTree!, wipeBuildNewTree!
 """
 function solveCliq!(dfgl::G,
-                    tree::BayesTree,
+                    tree::AbstractBayesTree,
                     cliqid::Symbol;
                     recordcliq::Bool=false,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
@@ -114,8 +116,8 @@ Notes
 - For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
 """
 function inferOverTree!(dfg::G,
-                        bt::BayesTree;
-                        oldtree::BayesTree=emptyBayesTree(),
+                        bt::AbstractBayesTree;
+                        oldtree::AbstractBayesTree=emptyBayesTree(),
                         N::Int=100,
                         upsolve::Bool=true,
                         downsolve::Bool=true,
@@ -155,7 +157,7 @@ Notes
 - Even older code is available as `inferOverTreeR!`
 """
 function inferOverTreeIterative!(dfg::G,
-                                 bt::BayesTree;
+                                 bt::AbstractBayesTree;
                                  N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  ) where G <: AbstractDFG
@@ -165,9 +167,9 @@ function inferOverTreeIterative!(dfg::G,
   @info "Ensure all nodes are initialized"
   ensureAllInitialized!(dfg)
   @info "Do multi-process upward pass of inference on tree"
-  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  upMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
@@ -177,7 +179,7 @@ end
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
 function inferOverTreeR!(fgl::G,
-                         bt::BayesTree;
+                         bt::AbstractBayesTree;
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
@@ -193,10 +195,10 @@ function inferOverTreeR!(fgl::G,
   else
     @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   end
   @info "Do recursive down inference over tree"
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
@@ -210,7 +212,7 @@ end
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
 function batchSolve!(dfg::G,
-                     oldtree::BayesTree=emptyBayesTree();
+                     oldtree::AbstractBayesTree=emptyBayesTree();
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,

@@ -4,6 +4,11 @@
 
 import DistributedFactorGraphs: AbstractPointParametricEst
 
+
+export getPPESuggestedAll, findVariablesNear
+
+
+
 # export setSolvable!
 
 
@@ -77,6 +82,10 @@ Get the ParametricPointEstimates---based on full marginal belief estimates---of 
 
 DevNotes
 - TODO update for manifold subgroups.
+
+Related
+
+getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 """
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;
@@ -345,7 +354,56 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
 end
 
 
+"""
+    $SIGNATURES
 
+Return `::Tuple` with matching variable ID symbols and `Suggested` PPE values.
+
+Related
+
+getVariablePPE
+"""
+function getPPESuggestedAll(dfg::AbstractDFG,
+                            regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
+  #
+  # get values
+  vsyms = getVariableIds(dfg, regexFilter) |> sortDFG
+  slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
+  # sizes to convert to matrix
+  rumax = zeros(Int, 2)
+  for varr in slamPPE
+    rumax[2] = length(varr)
+    rumax[1] = maximum(rumax)
+  end
+
+  # populate with values
+  XYT = zeros(length(slamPPE),rumax[1])
+  for i in 1:length(slamPPE)
+    XYT[i,1:length(slamPPE[i])] = slamPPE[i]
+  end
+  return (vsyms, XYT)
+end
+
+"""
+    $SIGNATURES
+
+Find and return a `::Tuple` of variables and distances to `loc::Vector{<:Real}`.
+
+Related
+
+findVariablesNearTimestamp
+"""
+function findVariablesNear(dfg::AbstractDFG,
+                           loc::Vector{<:Real},
+                           regexFilter::Union{Nothing, Regex}=nothing;
+                           number::Int=3  )
+  #
+
+  xy = getPPESuggestedAll(dfg, regexFilter)
+  dist = sum( (xy[2][:,1:length(loc)] .- loc').^2, dims=2) |> vec
+  prm = (dist |> sortperm)[1:number]
+  return (xy[1][prm], sqrt.(dist[prm]))
+end
 
 
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
@@ -358,6 +416,7 @@ function convert(::Type{EasyMessage},
                  manifolds::T) where {T <: Tuple}
   EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
 end
+
 
 
 
