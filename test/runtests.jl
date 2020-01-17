@@ -92,15 +92,16 @@ include("testAnalysisTools.jl")
 
 @testset "saving to and loading from FileDFG" begin
     saveFolder = "/tmp/dfg_test"
+    # VERSION above 1.0.x hack required since Julia 1.0 does not seem to have function `splitpath`
     saveDFG(fg, saveFolder, compress= VERSION < v"1.1" ? :none : :gzip)
-    retDFG = GraphsDFG{SolverParams}(params=SolverParams())
-    retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
-    @test symdiff(ls(fg), ls(retDFG)) == []
-    @test symdiff(lsf(fg), lsf(retDFG)) == []
+    retDFG = LightDFG{SolverParams}(params=SolverParams())
+    if v"1.1" <= VERSION
+      retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
+      @test symdiff(ls(fg), ls(retDFG)) == []
+      @test symdiff(lsf(fg), lsf(retDFG)) == []
+    end
 end
 
-@warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
-# include("testExpandedJLD.jl")
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]
