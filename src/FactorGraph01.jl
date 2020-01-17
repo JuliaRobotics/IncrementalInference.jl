@@ -1127,26 +1127,41 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder(dfg::G; ordering::Symbol=:qr, solvable::Int=1) where G <: AbstractDFG
+function getEliminationOrder(dfg::G;
+                             ordering::Symbol=:qr,
+                             solvable::Int=1,
+                             constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+  #
+  @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
   adjMat, permuteds, permutedsf = DFG.getAdjacencyMatrixSparse(dfg, solvable=solvable)
 
   # Create dense adjacency matrix
-  A = Array(adjMat)
 
   p = Int[]
   if ordering==:chol
-      p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+    # hack for dense matrix....
+    A = Array(adjMat)
+    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+    @warn "check cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
   elseif ordering==:qr
+    # hack for dense matrix....
+    A = Array(adjMat)
     # this is the default
     q,r,p = qr(A, Val(true))
+    p .= p |> reverse
+  elseif ordering==:ccolamd
+    cons = zeros(SuiteSparse_long, length(adjMat.colptr) - 1)
+    cons[findall(x->x in constraints, permuteds)] .= 1
+    p = Ccolamd.ccolamd(adjMat, cons)
+    @warn "Ccolamd is experimental in IIF at this point in time."
   else
     prtslperr("getEliminationOrder -- cannot do the requested ordering $(ordering)")
   end
 
   # Return the variable ordering that we should use for the Bayes map
   # reverse order checked in #475 and #499
-  return permuteds[p] |> reverse
+  return permuteds[p]
 end
 
 

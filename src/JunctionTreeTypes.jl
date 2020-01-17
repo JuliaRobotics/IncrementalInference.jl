@@ -229,6 +229,8 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   msgsDown::Vector{BeliefMessage}
 end
 
+const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
+
 function CliqStateMachineContainer(x1::G,
                                    x2::InMemoryDFGTypes,
                                    x3::AbstractBayesTree,
@@ -249,7 +251,6 @@ function CliqStateMachineContainer(x1::G,
   CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, BeliefMessage[], BeliefMessage[])
 end
 
-const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 
 
 """
