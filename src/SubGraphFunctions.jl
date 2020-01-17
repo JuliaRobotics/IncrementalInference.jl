@@ -24,7 +24,7 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
       pp = getKDE(vari)
       rc2 = size(getPoints(pp))
       @info "sym=$sym, mem size of val=$rc and $(rc2)"
-      updateFullVertData!(dest, vari, updateMAPest=true)
+      updateFullVertData!(dest, vari, updatePPE=true)
     end
   end
   nothing

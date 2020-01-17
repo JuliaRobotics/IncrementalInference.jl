@@ -357,7 +357,7 @@ end
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::AbstractDFG,
                              srcv::DFGNode;
-                             updateMAPest::Bool=false )
+                             updatePPE::Bool=false )
   #
   @warn "Deprecated updateFullVertData!, need alternative"
 
@@ -374,7 +374,7 @@ function updateFullVertData!(fgl::AbstractDFG,
     lvd.initialized = srcvd.initialized
     lvd.inferdim = srcvd.inferdim
 
-    if updateMAPest
+    if updatePPE
       # set PPE in dest from values in srcv
       # TODO must work for all keys involved
       getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
