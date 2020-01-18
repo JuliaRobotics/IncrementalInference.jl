@@ -55,6 +55,8 @@ include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
 
+include("testCcolamdOrdering.jl")
+
 include("testBasicGraphs.jl")
 
 @testset "with simple local constraint examples Odo, Obsv2..." begin
@@ -87,6 +89,8 @@ end
     include("fourdoortest.jl")
 end
 
+include("testAnalysisTools.jl")
+
 @testset "saving to and loading from FileDFG" begin
     saveFolder = "/tmp/dfg_test"
     saveDFG(fg, saveFolder)
@@ -99,9 +103,10 @@ end
 @warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
 # include("testExpandedJLD.jl")
 
-
-include("testTexTreeIllustration.jl")
-
+# dont run test on ARM, as per issue #527
+if Base.Sys.ARCH in [:x86_64;]
+  include("testTexTreeIllustration.jl")
+end
 
 
 

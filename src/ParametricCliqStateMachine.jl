@@ -4,13 +4,6 @@
     $SIGNATURES
 
 EXPERIMENTAL: Init and start state machine for parametric solve.
-
-Notes:
-- will call on values from children or parent cliques
-- can be called multiple times
-- Assumes all cliques in tree are being solved simultaneously and in similar manner.
-- State machine rev.1 -- copied from first TreeBasedInitialization.jl.
-- Doesn't do partial initialized state properly yet.
 """
 function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
@@ -84,122 +77,6 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   return waitForUp_ParametricStateMachine
 end
 
-#TODO move to TreeBasedInitialization.jl
-function addMsgFactors!(subfg::G,
-                        msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.getVariableIds(subfg)
-  for (msym, belief) = (msgs.belief)
-    if msym in svars
-      #TODO covaraince
-      #TODO Maybe always use MvNormal
-      if size(belief.val)[1] == 1
-        msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
-      else
-        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
-      end
-      fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
-      push!(msgfcts, fc)
-    end
-  end
-  return msgfcts
-end
-
-"""
-    $SIGNATURES
-Get edges to children cliques
-"""
-getEdgesChildren(tree::BayesTree, cliq::TreeClique) = Graphs.out_edges(cliq, tree.bt)
-
-function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
-  [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
-end
-
-getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
-
-"""
-    $SIGNATURES
-Get edges to parent clique
-"""
-getEdgesParent(tree::BayesTree, cliq::TreeClique) = Graphs.in_edges(cliq, tree.bt)
-
-function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
-  [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
-end
-
-getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
-
-"""
-    $SIGNATURES
-
-Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageDown!(tree::BayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge.index].downMsg)
-  return beliefMsg
-end
-
-function takeBeliefMessageDown!(tree::MetaBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :downMsg))
-  return beliefMsg
-end
-
-
-"""
-    $SIGNATURES
-
-Remove and return belief message from the up tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageUp!(tree::BayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge.index].upMsg)
-  return beliefMsg
-end
-
-function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :upMsg))
-  return beliefMsg
-end
-
-
-"""
-    $SIGNATURES
-
-Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
-"""
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::BeliefMessage)
-  # Blocks until data is available.
-  put!(tree.messages[edge.index].downMsg, beliefMsg)
-  return beliefMsg
-end
-
-function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
-  # Blocks until data is available.
-  put!(MetaGraphs.get_prop(tree.bt, edge, :downMsg), beliefMsg)
-  return beliefMsg
-end
-
-
-"""
-    $SIGNATURES
-
-Put a belief message on the up tree message channel `edge`. Blocks until a take! is performed by a different task.
-"""
-function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::BeliefMessage)
-  # Blocks until data is available.
-  put!(tree.messages[edge.index].upMsg, beliefMsg)
-  return beliefMsg
-end
-
-function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
-  # Blocks until data is available.
-  put!(MetaGraphs.get_prop(tree.bt, edge, :upMsg), beliefMsg)
-  return beliefMsg
-end
 """
     $SIGNATURES
 
@@ -214,12 +91,19 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   childrenOk = true
-  for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-    # Blocks until data is available.
-    beliefMsg = takeBeliefMessageUp!(csmc.tree, e)#take!(csmc.tree.messages[e.index].upMsg)
-    @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
+  beliefMessages = BeliefMessage[]
 
+  @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+    @async begin
+      @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+      # Blocks until data is available.
+      beliefMsg = takeBeliefMessageUp!(csmc.tree, e)#take!(csmc.tree.messages[e.index].upMsg)
+      push!(beliefMessages, beliefMsg)
+      @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
+    end
+  end
+
+  for beliefMsg in beliefMessages
     #save up message (and add priors to cliqSubFg)
     #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
     if beliefMsg.status == upsolved
@@ -230,16 +114,17 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       for e in getEdgesParent(csmc.tree, csmc.cliq)
-        @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+        @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
         putBeliefMessageUp!(csmc.tree, e, BeliefMessage(error_status))#put!(csmc.tree.messages[e.index].upMsg,  BeliefMessage(error_status))
       end
       #if its the root, propagate error down
       #FIXME rather check if no parents to allow multiple tree segments
       if length(getParent(csmc.tree, csmc.cliq)) == 0
         @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-          @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+          @info "Par-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
           @async putBeliefMessageDown!(csmc.tree, e, BeliefMessage(error_status))#put!(csmc.tree.messages[e.index].downMsg,  BeliefMessage(error_status))
         end
+        @error "Par-2 $(csmc.cliq.index): Exit with error state"
         return IncrementalInference.exitStateMachine
       end
       childrenOk = false
@@ -252,6 +137,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   return solveUp_ParametricStateMachine
 end
 
+# Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
 function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
   inclist = gr.inclist
   targid = vert.index
@@ -292,8 +178,6 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
   end
 
-  #TODO UpSolve cliqSubFg here
-  # TODO MsgPrior not working
   vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
   # Pack all results in variables
   if result.g_converged
@@ -314,9 +198,19 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # propagate error to cleanly exit all cliques?
     beliefMsg = BeliefMessage(error_status)
     for e in getEdgesParent(csmc.tree, csmc.cliq)
-      @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+      @info "Par-3, $(csmc.cliq.index): generate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
       putBeliefMessageUp!(csmc.tree, e, beliefMsg)# put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
     end
+
+    if length(getParent(csmc.tree, csmc.cliq)) == 0
+      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+        @info "Par-3 Root $(csmc.cliq.index): generate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+        @async putBeliefMessageDown!(csmc.tree, e, BeliefMessage(error_status))#put!(csmc.tree.messages[e.index].downMsg,  BeliefMessage(error_status))
+      end
+      @error "Par-3 $(csmc.cliq.index): Exit with error state"
+      return IncrementalInference.exitStateMachine
+    end
+
     return waitForDown_ParametricStateMachine
   end
 
@@ -329,8 +223,8 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
   end
 
-  #TODO fill in belief
-  # createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
+  #fill in belief
+  #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
   beliefMsg = BeliefMessage(upsolved)
   for si in cliqSeparatorVarIds
@@ -338,7 +232,6 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
   end
 
-  #NOTE Graphs.jl in_edges does not work. So extended above
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)# put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
@@ -377,10 +270,10 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-        @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+        @info "Par-4, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
         @async putBeliefMessageDown!(csmc.tree, e, BeliefMessage(error_status))#put!(csmc.tree.messages[e.index].downMsg,  BeliefMessage(error_status))
       end
-
+      @error "Par-4, $(csmc.cliq.index): Exit with error state"
       return IncrementalInference.exitStateMachine
     end
   end
@@ -454,10 +347,10 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       #propagate error to cleanly exit all cliques?
       beliefMsg = BeliefMessage(error_status)
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-        @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+        @info "Par-5, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
         @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
       end
-
+      @error "Par-5, $(csmc.cliq.index): Exit with error state"
       return IncrementalInference.exitStateMachine
 
     end

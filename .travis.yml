@@ -34,7 +34,7 @@ addons:
     - dot2tex
 
 before_script:
-  - pip install dot2tex
+  - if [ `arch` == x86_64 ]; then pip install dot2tex; fi
 
 # script:
 #   - julia --color=yes -e 'using Pkg; Pkg.build()'

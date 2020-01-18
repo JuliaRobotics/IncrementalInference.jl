@@ -269,6 +269,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Int=50)
   #
+  @error "Under development, do not use, see #539"
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()

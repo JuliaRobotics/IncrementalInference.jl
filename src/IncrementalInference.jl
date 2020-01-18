@@ -26,9 +26,15 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   Optim, # might be deprecated in favor for only NLsolve dependency
-  JSON2
+  JSON2,
+  Combinatorics
 
 using Logging
+
+# bringing in BSD 3-clause ccolamd
+include("ccolamd.jl")
+using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
@@ -511,9 +517,6 @@ export
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
-# non-free, but not currently use!
-include("ccolamd.jl")
-
 # regular
 include("FactorGraphTypes.jl")
 
@@ -544,6 +547,7 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
 include("ParametricSolveTree.jl")
 include("ParametricCliqStateMachine.jl")
 include("ParametricUtils.jl")
@@ -558,6 +562,8 @@ include("SolverAPI.jl")
 include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
 
+# Symbolic tree analysis files.
+include("AnalysisTools.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
@@ -596,6 +602,9 @@ function __init__()
           @show getData(cliq).msgskipIDs
           @show getData(cliq).directFrtlMsgIDs
           @show getData(cliq).directPriorMsgIDs
+        end
+        if size(mat,1) == 1
+          mat = [mat; -ones(size(mat,2))']
         end
         sp = Gadfly.spy(mat)
         push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))

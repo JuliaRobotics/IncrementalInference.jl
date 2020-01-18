@@ -1,4 +1,4 @@
-#TODO JT
+#TODO JT can be removed, used as sanity check
 function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
   priorIds = Symbol[]
