@@ -190,7 +190,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       #TODO calculate and fill in covariance
       # vnd.bw .= bw
       # TEMP remove, filled in ones for the covariance
-      vnd.bw = diagm(ones(size(vnd.val)[1]))
+      vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
     end
   else
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
@@ -339,7 +339,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         #TODO calculate and fill in covariance
         # vnd.bw .= bw
         # TEMP remove, filled in ones for the covariance
-        vnd.bw = diagm(ones(size(vnd.val)[1]))
+        vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
       end
     else
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
