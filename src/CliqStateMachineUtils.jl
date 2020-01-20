@@ -835,11 +835,14 @@ end
     $SIGNATURES
 
 Basic wrapper to take local product and then set the value of `sym` in `dfg`.
+
+DevNotes:
+- Unknown issue first occurred here near IIF v0.8.4 tag, recorded case at 2020-01-17T15:26:17.673
 """
-function localProductAndUpdate!(dfg::G,
+function localProductAndUpdate!(dfg::AbstractDFG,
                                 sym::Symbol,
                                 setkde::Bool=true,
-                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}} where {G <: AbstractDFG}
+                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}}
   #
   pp, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
   setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
@@ -952,7 +955,7 @@ function solveCliqDownFrontalProducts!(subfg::G,
   iterFrtls = setdiff(iterFrtls, skip)
   directs = setdiff(directs, skip)
   with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, skipping marginalized keys=$(skip)"
+    @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, skipping marginalized keys=$(skip)"
   end
 
 
@@ -965,19 +968,30 @@ function solveCliqDownFrontalProducts!(subfg::G,
       end
     end
     with_logger(logger) do
-      @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))"
+      @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, multiproc keys=$(keys(downresult))"
     end
     for fr in directs
         with_logger(logger) do
-            @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
+            @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
         end
       setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
     end
     for mc in 1:MCIters, fr in iterFrtls
-      result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
-      setValKDE!(subfg, fr, result[1], false, result[2])
-      with_logger(logger) do
-          @info "cliq $(cliq.index), doCliqDownSolve_StateMachine, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
+      try
+        result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+        setValKDE!(subfg, fr, result[1], false, result[2])
+        with_logger(logger) do
+          @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
+        end
+      catch ex
+        # what if results contains an error?
+        with_logger(logger) do
+          @error ex
+          flush(logger.stream)
+          msg = sprint(showerror, ex)
+          @error msg
+        end
+        error(ex)
       end
     end
   else

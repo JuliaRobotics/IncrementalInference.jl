@@ -1,18 +1,7 @@
 import Base: convert
 import Base: ==
 
-# abstract type InferenceType end
-# abstract type PackedInferenceType end
-#
-# abstract type FunctorInferenceType <: Function end
-#
-# abstract type InferenceVariable end
-# abstract type ConvolutionObject <: Function end
 
-
-# abstract type FunctorSingleton <: FunctorInferenceType end
-# abstract type FunctorPairwise <: FunctorInferenceType end
-# abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
@@ -27,7 +16,7 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
-
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
 $(TYPEDEF)

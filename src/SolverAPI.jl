@@ -26,7 +26,8 @@ function solveTree!(dfgl::G,
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Int=50,
-                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing  ) where G <: DFG.AbstractDFG
+                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                    variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()

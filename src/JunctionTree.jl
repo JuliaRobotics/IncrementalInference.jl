@@ -500,8 +500,9 @@ Notes
 - Default to free qr factorization for variable elimination order.
 """
 function prepBatchTree!(dfg::AbstractDFG;
-                        ordering::Symbol=:qr,
                         variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                        variableConstraints::Vector{Symbol}=Symbol[],
+                        ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
@@ -510,7 +511,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         drawbayesnet::Bool=false,
                         maxparallel::Int=50 )
   #
-  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
   # for debuggin , its useful to have the variable ordering
   if drawpdf
@@ -596,10 +597,11 @@ function wipeBuildNewTree!(dfg::G;
                            viewerapp::String="evince",
                            imgs::Bool=false,
                            maxparallel::Int=50,
-                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::AbstractBayesTree where G <: AbstractDFG
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                           variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
 end
 
 """

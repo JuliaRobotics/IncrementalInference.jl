@@ -1069,7 +1069,17 @@ function approxCliqMarginalUp!(fgl::G,
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
-    urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    try
+      urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    catch ex
+      with_logger(logger) do
+        @error ex
+        flush(logger.stream)
+        msg = sprint(showerror, ex)
+        @error msg
+      end
+      error(ex)
+    end
   else
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
