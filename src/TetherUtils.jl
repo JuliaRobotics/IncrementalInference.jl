@@ -112,11 +112,12 @@ function getFactorMean(fct::FunctorInferenceType)
   error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
 end
 
+getFactorMean(fct::Normal) = fct.μ
 getFactorMean(fct::MvNormal) = fct.μ
 getFactorMean(fct::BallTreeDensity) = getKDEMean(fct)
 getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
 
-getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct))
+getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct).Z)
 
 getFactorMean(dfg::AbstractDFG, fctsym::Symbol) = getFactorMean(getFactor(dfg, fctsym))
 

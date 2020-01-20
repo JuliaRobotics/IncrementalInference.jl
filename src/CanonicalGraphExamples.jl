@@ -120,10 +120,10 @@ function generateCanonicalFG_lineStep(lineLength::Int;
                     vardims = 1,
                     noisy = false,
                     graphinit = false,
-                    σ_pose_prior = 1.0,
-                    σ_lm_prior = 1.0,
-                    σ_pose_pose = 1.0,
-                    σ_pose_lm = 1.0,
+                    σ_pose_prior = 0.1,
+                    σ_lm_prior = 0.1,
+                    σ_pose_pose = 0.1,
+                    σ_pose_lm = 0.1,
                     params=SolverParams())
                     # params=SolverParams(algorithms=[:default, :parametric]))
 
