@@ -97,7 +97,10 @@ f3  = addFactor!(fg,[:x1;:x2],dpp)
 
 
 dp2 = DevelopPartial( Normal(-20.0, 1.0), (1,) )
-f4  = addFactor!(fg,[:x2;], dp2)
+f4  = addFactor!(fg,[:x2;], dp2, autoinit=false)
+doautoinit!(fg, :x2)
+
+# drawGraph(fg, show=true)
 
 
 @testset "test evaluation of multiple simultaneous partial constraints" begin
