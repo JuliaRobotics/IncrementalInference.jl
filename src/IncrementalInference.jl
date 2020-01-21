@@ -117,6 +117,7 @@ export
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
+  BeliefArray,
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
