@@ -117,7 +117,7 @@ getFactorMean(fct::MvNormal) = fct.μ
 getFactorMean(fct::BallTreeDensity) = getKDEMean(fct)
 getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
 
-getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct).Z)
+getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct))
 
 getFactorMean(dfg::AbstractDFG, fctsym::Symbol) = getFactorMean(getFactor(dfg, fctsym))
 
