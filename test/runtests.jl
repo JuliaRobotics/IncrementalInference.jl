@@ -70,7 +70,7 @@ include("testSolveSetPPE.jl")
 
 # include("priorusetest.jl")
 
-# include("testVariousNSolveSize.jl")
+include("testVariousNSolveSize.jl")
 
 include("testExplicitMultihypo.jl")
 

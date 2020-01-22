@@ -361,7 +361,11 @@ function updateFullVertData!(fgl::AbstractDFG,
   srcvd = solverData(srcv)
 
   if isvar
-    lvd.val[:,:] = srcvd.val[:,:]
+    if size(lvd.val) == size(srcvd.val)
+      lvd.val .= srcvd.val
+    else
+      lvd.val = srcvd.val
+    end
     lvd.bw[:] = srcvd.bw[:]
     lvd.initialized = srcvd.initialized
     lvd.inferdim = srcvd.inferdim
