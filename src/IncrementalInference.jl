@@ -26,9 +26,15 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   Optim, # might be deprecated in favor for only NLsolve dependency
-  JSON2
+  JSON2,
+  Combinatorics
 
 using Logging
+
+# bringing in BSD 3-clause ccolamd
+include("ccolamd.jl")
+using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
@@ -42,6 +48,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+# import DistributedFactorGraphs: getEstimates
 
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
@@ -64,6 +71,7 @@ export
   AbstractDFG,
   hasVariable,
   getSolverParams,
+  LightDFG,
 
   *,
   notifyCSMCondition,
@@ -109,6 +117,7 @@ export
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
+  BeliefArray,
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
@@ -294,6 +303,7 @@ export
   parentCliq,
   getParent,
   getCliqSiblings,
+  getNumCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -507,12 +517,8 @@ export
   DataLayerAPI
 
 
-
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
-
-# non-free, but not currently use!
-include("ccolamd.jl")
 
 # regular
 include("FactorGraphTypes.jl")
@@ -523,13 +529,13 @@ const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere mor
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("JunctionTreeTypes.jl")
 include("FactorGraph01.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
-include("JunctionTreeTypes.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
@@ -543,6 +549,12 @@ include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
+#EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
+include("ParametricUtils.jl")
+
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")
@@ -552,6 +564,9 @@ include("SolverAPI.jl")
 
 include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
+
+# Symbolic tree analysis files.
+include("AnalysisTools.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
@@ -574,7 +589,7 @@ function __init__()
       * Frontal, separator, and upmessages are all drawn at different intensity of red.
       * Downward messages not shown, as they would just be singletons of the full separator set.
       """
-      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
         mat = map(Float64, mat)*2.0.-1.0
@@ -591,13 +606,16 @@ function __init__()
           @show getData(cliq).directFrtlMsgIDs
           @show getData(cliq).directPriorMsgIDs
         end
+        if size(mat,1) == 1
+          mat = [mat; -ones(size(mat,2))']
+        end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
-      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
         spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end

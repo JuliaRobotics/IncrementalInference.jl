@@ -1,18 +1,7 @@
 import Base: convert
 import Base: ==
 
-# abstract type InferenceType end
-# abstract type PackedInferenceType end
-#
-# abstract type FunctorInferenceType <: Function end
-#
-# abstract type InferenceVariable end
-# abstract type ConvolutionObject <: Function end
 
-
-# abstract type FunctorSingleton <: FunctorInferenceType end
-# abstract type FunctorPairwise <: FunctorInferenceType end
-# abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
@@ -27,7 +16,7 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
-
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
 $(TYPEDEF)
@@ -58,6 +47,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -77,6 +67,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
                                                                             reference,
@@ -95,6 +86,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            algorithms,
                                                                             devParams)
   #
 end
@@ -157,10 +149,10 @@ end
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
 function initfg(dfg::T=InMemDFGType(params=SolverParams());
-                                               sessionname="NA",
-                                               robotname="",
-                                               username="",
-                                               cloudgraph=nothing)::T where T <: AbstractDFG
+                                    sessionname="NA",
+                                    robotname="",
+                                    username="",
+                                    cloudgraph=nothing)::T where T <: AbstractDFG
   #
   return dfg
 end
@@ -356,23 +348,29 @@ end
 
 # excessive function, needs refactoring
 function updateFullVertData!(fgl::AbstractDFG,
-                             nv::DFGNode;
-                             updateMAPest::Bool=false )
+                             srcv::DFGNode;
+                             updatePPE::Bool=false )
   #
   @warn "Deprecated updateFullVertData!, need alternative"
 
-  sym = Symbol(nv.label)
+  sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
 
-  lvert = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = solverData(lvert)
-  nvd = solverData(nv)
+  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
+  lvd = solverData(dest)
+  srcvd = solverData(srcv)
 
   if isvar
-    lvd.val[:,:] = nvd.val[:,:]
-    lvd.bw[:] = nvd.bw[:]
-    lvd.initialized = nvd.initialized
-    lvd.inferdim = nvd.inferdim
+    lvd.val[:,:] = srcvd.val[:,:]
+    lvd.bw[:] = srcvd.bw[:]
+    lvd.initialized = srcvd.initialized
+    lvd.inferdim = srcvd.inferdim
+
+    if updatePPE
+      # set PPE in dest from values in srcv
+      # TODO must work for all keys involved
+      getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
+    end
   else
     # assuming nothing to be done
   end

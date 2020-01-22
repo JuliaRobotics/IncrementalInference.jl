@@ -21,12 +21,13 @@ Related
 solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::G,
-                    oldtree::BayesTree=emptyBayesTree();
+                    oldtree::AbstractBayesTree=emptyBayesTree();
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Int=50,
-                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing  ) where G <: DFG.AbstractDFG
+                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                    variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
@@ -38,8 +39,10 @@ function solveTree!(dfgl::G,
       fifoFreeze!(dfgl)
   end
 
+  orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
+
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"))
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
   @info "Do tree based init-inference on tree"
@@ -53,8 +56,10 @@ function solveTree!(dfgl::G,
   # transfer new tree to outside parameter
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
-  oldtree.cliques = tree.cliques
+  oldtree.cliques = tree.cliques #TODO JT kyk meer detail, this is a bit strange as its a copy of data in graph
   oldtree.frontals = tree.frontals
+  oldtree.variableOrder = tree.variableOrder
+  oldtree.buildTime = tree.buildTime
 
   return oldtree, smtasks, hist
 end
@@ -76,11 +81,12 @@ Related
 solveTree!, wipeBuildNewTree!
 """
 function solveCliq!(dfgl::G,
-                    tree::BayesTree,
+                    tree::AbstractBayesTree,
                     cliqid::Symbol;
                     recordcliq::Bool=false,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
-                    maxparallel::Int=50  ) where G <: DFG.AbstractDFG
+                    maxparallel::Int=50,
+                    async::Bool=false  ) where G <: DFG.AbstractDFG
   #
   # hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   opt = DFG.getSolverParams(dfgl)
@@ -92,9 +98,12 @@ function solveCliq!(dfgl::G,
 
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = whichCliq(tree, cliqid)
-  cliqtask = @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  cliqtask = if async
+    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+  else
+    tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  end
   # end # if
-
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   # assignTreeHistory!(tree, cliqHistories)
@@ -114,8 +123,8 @@ Notes
 - For legacy versions of tree traversal, see `inferOverTreeIterative!` instead.
 """
 function inferOverTree!(dfg::G,
-                        bt::BayesTree;
-                        oldtree::BayesTree=emptyBayesTree(),
+                        bt::AbstractBayesTree;
+                        oldtree::AbstractBayesTree=emptyBayesTree(),
                         N::Int=100,
                         upsolve::Bool=true,
                         downsolve::Bool=true,
@@ -155,7 +164,7 @@ Notes
 - Even older code is available as `inferOverTreeR!`
 """
 function inferOverTreeIterative!(dfg::G,
-                                 bt::BayesTree;
+                                 bt::AbstractBayesTree;
                                  N::Int=100,
                                  dbg::Bool=false,
                                  drawpdf::Bool=false  ) where G <: AbstractDFG
@@ -165,9 +174,9 @@ function inferOverTreeIterative!(dfg::G,
   @info "Ensure all nodes are initialized"
   ensureAllInitialized!(dfg)
   @info "Do multi-process upward pass of inference on tree"
-  upMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  upMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   @info "Do multi-process downward pass of inference on tree"
-  downMsgPassingIterative!(ExploreTreeType(dfg, bt, bt.cliques[1], nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingIterative!(ExploreTreeType(dfg, bt, getClique(bt, 1), nothing, NBPMessage[]),N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
@@ -177,7 +186,7 @@ end
 Perform up and down message passing (single process, recursive) algorithm for full sum-product solution of all continuous marginal beliefs.
 """
 function inferOverTreeR!(fgl::G,
-                         bt::BayesTree;
+                         bt::AbstractBayesTree;
                          N::Int=100,
                          dbg::Bool=false,
                          drawpdf::Bool=false,
@@ -193,10 +202,10 @@ function inferOverTreeR!(fgl::G,
   else
     @info "Do conventional recursive up inference over tree"
     ensureAllInitialized!(fgl)
-    upMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+    upMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   end
   @info "Do recursive down inference over tree"
-  downMsgPassingRecursive(ExploreTreeType(fgl, bt, bt.cliques[1], nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
+  downMsgPassingRecursive(ExploreTreeType(fgl, bt, getClique(bt, 1), nothing, NBPMessage[]), N=N, dbg=dbg, drawpdf=drawpdf);
   return smtasks, ch
 end
 
@@ -210,7 +219,7 @@ end
 Perform multimodal incremental smoothing and mapping (mm-iSAM) computations over given factor graph `fgl::FactorGraph` on the local computer.  A pdf of the Bayes (Junction) tree will be generated in the working folder with `drawpdf=true`
 """
 function batchSolve!(dfg::G,
-                     oldtree::BayesTree=emptyBayesTree();
+                     oldtree::AbstractBayesTree=emptyBayesTree();
                      upsolve::Bool=true,
                      downsolve::Bool=true,
                      drawpdf::Bool=false,
@@ -247,4 +256,38 @@ function batchSolve!(dfg::G,
 
   # later development allows tasks for each cliq state machine to be returned also
   return tree, smtasks
+end
+
+## Experimental Parametric
+"""
+    $SIGNATURES
+
+Perform parametric inference over the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree, smt, hist = solveTree!(fg ,tree)
+```
+"""
+function solveTreeParametric!(dfgl::DFG.AbstractDFG,
+                    tree::AbstractBayesTree;
+                    delaycliqs::Vector{Symbol}=Symbol[],
+                    recordcliqs::Vector{Symbol}=Symbol[],
+                    skipcliqids::Vector{Symbol}=Symbol[],
+                    maxparallel::Int=50)
+  #
+  @error "Under development, do not use, see #539"
+  @info "Solving over the Bayes (Junction) tree."
+  smtasks=Vector{Task}()
+  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  opt = DFG.getSolverParams(dfgl)
+
+  @info "Do tree based init-inference"
+  # if opt.async
+  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+
+  @info "Finished tree based Parametric inference"
+
+
+  return tree, smtasks, hist
 end

@@ -3,6 +3,9 @@ using Test
 # using Compat
 # using IncrementalInference
 
+@testset "Parametric Tests" begin
+    include("testBasicParametric.jl")
+end
 
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
@@ -24,6 +27,7 @@ include("testPartialFactors.jl")
     include("testBayesTreeiSAM2Example.jl")
 end
 
+#FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
 @testset "Ensure converter types can be run from extending namespaces..." begin
@@ -51,12 +55,18 @@ include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
 
+include("testCcolamdOrdering.jl")
+
 include("testBasicGraphs.jl")
 
 @testset "with simple local constraint examples Odo, Obsv2..." begin
     # old names should be removed, like Odo, Obsv2
     include("testlocalconstraintexamples.jl")
 end
+
+include("testSolveOrphanedFG.jl")
+
+include("testSolveSetPPE.jl")
 
 # include("priorusetest.jl")
 
@@ -83,21 +93,25 @@ end
     include("fourdoortest.jl")
 end
 
+include("testAnalysisTools.jl")
+
 @testset "saving to and loading from FileDFG" begin
     saveFolder = "/tmp/dfg_test"
-    saveDFG(fg, saveFolder)
-    retDFG = GraphsDFG{SolverParams}(params=SolverParams())
-    retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
-    @test symdiff(ls(fg), ls(retDFG)) == []
-    @test symdiff(lsf(fg), lsf(retDFG)) == []
+    # VERSION above 1.0.x hack required since Julia 1.0 does not seem to have function `splitpath`
+    saveDFG(fg, saveFolder, compress= VERSION < v"1.1" ? :none : :gzip)
+    retDFG = LightDFG{SolverParams}(params=SolverParams())
+    if v"1.1" <= VERSION
+      retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
+      @test symdiff(ls(fg), ls(retDFG)) == []
+      @test symdiff(lsf(fg), lsf(retDFG)) == []
+    end
 end
 
-@warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
-# include("testExpandedJLD.jl")
 
-
-include("testTexTreeIllustration.jl")
-
+# dont run test on ARM, as per issue #527
+if Base.Sys.ARCH in [:x86_64;]
+  include("testTexTreeIllustration.jl")
+end
 
 
 

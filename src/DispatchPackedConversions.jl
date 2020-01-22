@@ -171,7 +171,7 @@ are used for database persistence with CloudGraphs.jl.
 function encodefg(fgl::G ) where G <: AbstractDFG
   #
   fgs = deepcopy(fgl)
-  # fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
 
   # @showprogress 1 "Encoding variables..."
   for vsym in getVariableIds(fgl)
@@ -184,7 +184,7 @@ function encodefg(fgl::G ) where G <: AbstractDFG
   for (fsym,fid) in fgs.fIDs
     data,ftyp = convert2packedfunctionnode(fgl, fsym)
     data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    # newvert = ExVertex(fid,string(fsym))
+    # newvert = TreeClique(fid,string(fsym))
     # for (key,val) in getVert(fgl,fid,api=api).attributes
     #   newvert.attributes[key] = val
     # end

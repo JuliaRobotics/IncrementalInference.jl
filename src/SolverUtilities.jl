@@ -51,14 +51,29 @@ end
 function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
   shuffleXAltD!(ccw, x)
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
-  ret = ccw.usrfnc!(res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
+  # evaulate the user provided residual function with constructed set of parameters
+  ret = ccw.usrfnc!(res,
+                    ccw.cpt[Threads.threadid()].factormetadata,
+                    ccw.cpt[Threads.threadid()].particleidx,
+                    ccw.measurement,
+                    ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
   return ret
 end
 
 
 function (ccw::CommonConvWrapper)(x::Vector{Float64})
-  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x #ccw.Y
-  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
+  # set internal memory to that of external caller value `x`, special care if partial
+  if !ccw.partial
+    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
+  else
+    ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
+  end
+  # evaulate the user provided residual function with constructed set of parameters
+  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
+              ccw.cpt[Threads.threadid()].factormetadata,
+              ccw.cpt[Threads.threadid()].particleidx,
+              ccw.measurement,
+              ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
 
@@ -69,10 +84,23 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
-  r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
+
+  # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
-  ccwl.cpt[Threads.threadid()].Y[:] = r.minimizer
-  ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
+  if !ccwl.partial
+    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
+    ccwl.cpt[Threads.threadid()].Y .= r.minimizer
+    ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  else
+    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
+    # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
+    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,
+                                                       ccwl.cpt[Threads.threadid()].particleidx] )
+    #
+    ccwl.cpt[Threads.threadid()].Y = r.minimizer
+    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  end
+
   nothing
 end
 
@@ -143,9 +171,11 @@ function numericRootGenericRandomizedFnc!(
     end
   elseif ccwl.partial
     # improve memory management in this function
-    ccwl.cpt[Threads.threadid()].p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    # TODO -- move this line up and out of inner loop
+    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...] # [1:length(ccwl.usrfnc!.partial)]
     r = nlsolve(  ccwl,
-                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,
+                                                 ccwl.cpt[Threads.threadid()].particleidx],  # p[1:ccwl.zDim]# this is x0
                   inplace=true
                )
     shuffleXAltD!( ccwl, r.zero )
@@ -237,8 +267,8 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 """
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         treel::AbstractBayesTree,
+                         cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
   cda = getData(cliq)
@@ -260,7 +290,7 @@ function resetCliqSolve!(dfg::G,
 end
 
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
+                         treel::AbstractBayesTree,
                          frt::Symbol;
                          solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
   #
