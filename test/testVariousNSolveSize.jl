@@ -24,6 +24,12 @@ tree, smt, hist = solveTree!(fg)
 
 @test getKDE(fg, :x1) |> getPoints |> size == (1,200)
 
+
+getSolverParams(fg).N = 99
+tree, smt, hist = solveTree!(fg)
+
+@test getKDE(fg, :x1) |> getPoints |> size == (1,99)
+
 end
 
 #
