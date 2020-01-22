@@ -1,6 +1,6 @@
 # test for variations in DOF solving,  #227 #316 #430
 
-using Revise
+# using Revise
 
 using IncrementalInference
 using Test
