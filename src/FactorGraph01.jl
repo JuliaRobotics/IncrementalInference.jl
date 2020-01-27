@@ -457,7 +457,7 @@ function addVariable!(dfg::AbstractDFG,
                       checkduplicates::Bool=true  )::DFGVariable
   #
   tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=tags, smallData=smalldata, solvable=solvable)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable)
   setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
   DFG.addVariable!(dfg, v)
 
@@ -956,7 +956,7 @@ function addFactor!(dfg::G,
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
   newFactor = DFGFactor(
     Symbol(namestring);
-    tags=union(labels, [:FACTOR]),
+    tags=Set(union(labels, [:FACTOR])),
     solvable=solvable,
     data=solverData)
 
