@@ -369,6 +369,7 @@ function updateFullVertData!(fgl::AbstractDFG,
     lvd.bw[:] = srcvd.bw[:]
     lvd.initialized = srcvd.initialized
     lvd.inferdim = srcvd.inferdim
+    setSolvedCount!(lvd, getSolvedCount(srcvd))
 
     if updatePPE
       # set PPE in dest from values in srcv

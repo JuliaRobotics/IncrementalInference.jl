@@ -60,18 +60,15 @@ import DistributedFactorGraphs: isSolvable
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
+# Package aliases
+export KDE, AMP, DFG, FSM
 
-export
-  KDE,
-  AMP,
-  DFG,
-  FSM,
-
-  # DFG SpecialDefinitions
-  AbstractDFG,
+# DFG SpecialDefinitions
+export AbstractDFG,
   hasVariable,
   getSolverParams,
   LightDFG,
+  getSolvedCount, isSolved, setSolvedCount!,
 
   *,
   notifyCSMCondition,
