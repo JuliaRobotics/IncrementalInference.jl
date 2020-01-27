@@ -64,47 +64,6 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
   # setDwnMsg!(cliq, drt.keepdwnmsgs)
 
-      # frsyms = getCliqFrontalVarIds(csmc.cliq)
-      # # use new localproduct approach
-      # # TODO refactor with @spawn jl 1.3
-      # if csmc.opts.multiproc
-      #   downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
-      #   @sync for i in 1:length(frsyms)
-      #     @async begin
-      #       downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), csmc.cliqSubFg, frsyms[i])
-      #     end
-      #   end
-      #   infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))")
-      #   for fr in frsyms
-      #     infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc, setValKDE! $fr, inferdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])")
-      #     setValKDE!(csmc.cliqSubFg, fr, downresult[fr][1], false, downresult[fr][2])
-      #   end
-      # else
-      #   for fr in frsyms
-      #     localProductAndUpdate!(csmc.cliqSubFg, fr, csmc.logger)
-      #   end
-      # end
-
-    ## old approach
-      # # multiproc = false
-      # # call down inference, TODO multiproc
-      # if csmc.opts.multiproc
-      #   cliqc = deepcopy(csmc.cliq)
-      #   cliqcd = getData(cliqc)
-      #   # redirect to new unused so that CAN be serialized
-      #   cliqcd.initUpChannel = Channel{Symbol}(1)
-      #   cliqcd.initDownChannel = Channel{Symbol}(1)
-      #   cliqcd.solveCondition = Condition()
-      #   cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
-      #   # NOTE Cannot send logger to separate process memory
-      #   drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false, true)
-      # else
-      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
-      #   # usemsgpriors = true so that old plumbing is used properly
-      #   drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, true, csmc.logger)
-      # end
-
       # # update clique subgraph with new status
       # updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
       setCliqDrawColor(csmc.cliq, "lightblue")
@@ -112,9 +71,13 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
-  # set MAP est
+  # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
+    # set PPE in cliqSubFg
     setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+    # set solved flag
+    vari = getVariable(csmc.cliqSubFg, sym)
+    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
   end
 
   # store the cliqSubFg for later debugging
@@ -198,8 +161,16 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
 	# Update estimates and transfer back to the graph
 	frsyms = getCliqFrontalVarIds(csmc.cliq)
-	# Calculate estimates
-	map(sym -> setVariablePosteriorEstimates!(csmc.cliqSubFg, sym), frsyms)
+
+	# set PPE and solved for all frontals
+	for sym in frsyms
+	  # set PPE in cliqSubFg
+	  setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+	  # set solved flag
+	  vari = getVariable(csmc.cliqSubFg, sym)
+	  setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+	end
+
 	# Transfer to parent graph
 	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 

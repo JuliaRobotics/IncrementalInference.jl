@@ -60,18 +60,15 @@ import DistributedFactorGraphs: isSolvable
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
+# Package aliases
+export KDE, AMP, DFG, FSM
 
-export
-  KDE,
-  AMP,
-  DFG,
-  FSM,
-
-  # DFG SpecialDefinitions
-  AbstractDFG,
+# DFG SpecialDefinitions
+export AbstractDFG,
   hasVariable,
   getSolverParams,
   LightDFG,
+  getSolvedCount, isSolved, setSolvedCount!,
 
   *,
   notifyCSMCondition,
@@ -493,28 +490,22 @@ export
   addDownVariableFactors!,
   getDimension,
   setVariableRefence!,
+  shuffleXAltD,
+  reshapeVec2Mat,
+
 
   # For 1D example,
-
   # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
   # development
   # dev exports
+# TODO deprecate
   addGraphsVert!,
-  makeAddEdge!,
-  shuffleXAltD,
-  reshapeVec2Mat, # TODO deprecate
+  makeAddEdge!
 
-  # OBSOLETE TODO REMOVE #TODO TODO
-  subGraphFromVerts,
-  getMaxVertId,
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI
+
 
 
 # TODO should be deprecated
