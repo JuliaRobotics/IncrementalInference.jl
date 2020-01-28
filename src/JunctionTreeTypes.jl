@@ -177,9 +177,15 @@ function savedot_attributes(io::IO, g::MetaDiGraph)
 
     for e in MetaGraphs.edges(g)
         write(io, "$(MetaGraphs.src(e)) -> $(MetaGraphs.dst(e)) [ ")
-        # for p in props(g,e)
-        #     write(io, "$(p[1])=$(p[2]), ")
-        # end
+        if MetaGraphs.has_prop(g, e, :downMsg) && MetaGraphs.has_prop(g, e, :upMsg)
+          if isready(MetaGraphs.get_prop(g, e, :downMsg))
+            write(io, "color=red")
+          elseif isready(MetaGraphs.get_prop(g, e, :upMsg))
+            write(io, "color=orange")
+          else
+            write(io, "color=black")
+          end
+        end
         write(io, "]\n")
     end
     write(io, "}\n")
