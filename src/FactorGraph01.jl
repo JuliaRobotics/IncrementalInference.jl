@@ -388,7 +388,7 @@ end
 
 function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
   vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
-  setSolverData(v, vnd, :parametric)
+  setSolverData!(v, vnd, :parametric)
   return nothing
 end
 
@@ -413,12 +413,12 @@ function setDefaultNodeData!(v::DFGVariable,
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     #initval, stdev
-    setSolverData(v, VariableNodeData(pNpts,
+    setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
                             dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    setSolverData(v, VariableNodeData(zeros(dims, N),
+    setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
                             dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin))
   end
@@ -469,7 +469,7 @@ function setVariableRefence!(dfg::AbstractDFG,
                          true  )
   #
   # set the value in the DFGVariable
-  setSolverData(var, vnd, refKey)
+  setSolverData!(var, vnd, refKey)
 end
 
 
