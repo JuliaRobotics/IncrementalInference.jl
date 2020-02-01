@@ -992,7 +992,7 @@ function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50
       namestring = tempnm
       break
     end
-    i != maxparallel ? nothing : error("Artificial restriction to not connet more than $(maxparallel) factors to a variable (bad for sparsity), try calling the same function again with the keyword argument maxparallel=1000 to override this restriction.")
+    i != maxparallel ? nothing : error("Artificial restriction to not connect more than $(maxparallel) factors to a variable (bad for sparsity), try calling the same function again with the keyword argument maxparallel=1000 to override this restriction.")
   end
   return Symbol(namestring)
 end
