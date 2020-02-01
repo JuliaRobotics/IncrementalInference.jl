@@ -992,7 +992,7 @@ function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50
       namestring = tempnm
       break
     end
-    i != maxparallel ? nothing : error("Cannot currently add more than $(maxparallel) factors in parallel, please open an issue if this is too restrictive.")
+    i != maxparallel ? nothing : error("Cannot currently add more than $(maxparallel) factors in parallel, try calling again with the keyword argument maxparallel=1000.")
   end
   return Symbol(namestring)
 end
