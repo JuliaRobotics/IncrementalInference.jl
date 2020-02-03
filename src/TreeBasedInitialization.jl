@@ -300,6 +300,9 @@ function setTreeCliquesMarginalized!(dfg::G,
 
       setCliqStatus!(cliq, :marginalized)
       setCliqDrawColor(cliq, "blue")
+
+      # set flag, looks to be previously unused???
+      getData(cliq).allmarginalized = true
     end
   end
   nothing

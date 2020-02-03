@@ -62,7 +62,7 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                          Dict{AbstractString, Int}(),
                          Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}(),
                          Symbol[],
-                         0.0 )
+                         0.0  )
 
 #NOTE select type for development
 # emptyBayesTree() = BayesTree()
@@ -303,11 +303,13 @@ mutable struct BayesTreeNodeData
   lockDwnStatus::Channel{Int}
   solvableDims::Channel{Dict{Symbol, Float64}}
   statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
+  #  iSAM2 style
+  isCliqReused::Bool
   BayesTreeNodeData() = new()
   BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
                                 x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
                                 x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29], x[30], x[31],
-                                Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
+                                Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(), false  )
 end
 
 # TODO -- this should be a constructor
