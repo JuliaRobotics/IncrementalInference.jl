@@ -898,7 +898,8 @@ directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
   frtl = getCliqFrontalVarIds(cliq)
 
-  adj = DFG.getAdjacencyMatrix(subfg, solvable=solvable)
+  #TODO don't use this getAdjacencyMatrixSymbols
+  adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
   mask = map(x->(x in frtl), adj[1,:])
   subAdj = adj[2:end,mask] .!= nothing
   newFrtlOrder = Symbol.(adj[1,mask])

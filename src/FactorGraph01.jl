@@ -1015,20 +1015,21 @@ function addFactor!(dfg::G,
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
+  varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
-  newFactor = DFGFactor(
-    Symbol(namestring);
-    tags=Set(union(labels, [:FACTOR])),
-    solvable=solvable,
-    data=solverData)
+  newFactor = DFGFactor(Symbol(namestring),
+                        varOrderLabels,
+                        solverData;
+                        tags=Set(union(labels, [:FACTOR])),
+                        solvable=solvable)
 
   # TODO: Need to remove this...
   for vert in Xi
     push!(solverData.fncargvID, vert.label)
   end
 
-  success = DFG.addFactor!(dfg, Xi, newFactor)
+  success = DFG.addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   autoinit && doautoinit!(dfg, Xi, singles=false)

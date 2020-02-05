@@ -135,13 +135,13 @@ completely rebuild the factor's CCW and user data.
 function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->solverData(v).softtype, neighbors)
+  neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  setDefaultFactorNode!(dfg, factor, neighbors, factor.data.fnc.usrfnc!)
+  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!)
+  solverData(factor) = ccw_new
 
   #... Copying neighbor data into the factor?
-  ccw_new = solverData(factor)
   for i in 1:Threads.nthreads()
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
