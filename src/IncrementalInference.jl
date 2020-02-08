@@ -69,6 +69,7 @@ export AbstractDFG,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
+  solverData,
 
   *,
   notifyCSMCondition,
