@@ -1073,11 +1073,13 @@ function approxCliqMarginalUp!(fgl::G,
       urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
     catch ex
       with_logger(logger) do
+        @info ex
         @error ex
         flush(logger.stream)
         msg = sprint(showerror, ex)
         @error msg
       end
+      flush(logger.stream)
       error(ex)
     end
   else
