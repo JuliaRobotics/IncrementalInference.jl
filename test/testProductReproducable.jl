@@ -27,6 +27,17 @@ ensureAllInitialized!(fg)
 tree, smt, hist = solveTree!(fg)
 
 
+@test (Statistics.mean(getPoints(getKDE(fg, :a)))- 0 |> abs) < 3
+@test (Statistics.mean(getPoints(getKDE(fg, :b)))-10 |> abs) < 4
+@test (Statistics.mean(getPoints(getKDE(fg, :c)))-20 |> abs) < 4
+@test (Statistics.mean(getPoints(getKDE(fg, :d)))-30 |> abs) < 5
+@test (Statistics.mean(getPoints(getKDE(fg, :e)))-40 |> abs) < 5
+
+@test 0.3 < Statistics.std(getPoints(getKDE(fg, :a))) < 2
+@test 0.5 < Statistics.std(getPoints(getKDE(fg, :b))) < 4
+@test 0.9 < Statistics.std(getPoints(getKDE(fg, :c))) < 6
+@test 1.2 < Statistics.std(getPoints(getKDE(fg, :d))) < 7
+@test 1.5 < Statistics.std(getPoints(getKDE(fg, :e))) < 8
 
 
 # drawTree(tree, show=true)
