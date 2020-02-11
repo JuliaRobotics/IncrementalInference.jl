@@ -48,6 +48,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+import DistributedFactorGraphs: getVariableOrder
 # import DistributedFactorGraphs: getEstimates
 
 # missing exports

@@ -10,7 +10,7 @@ fg = generateCanonicalFG_Kaess(graphinit=true)
 ensureAllInitialized!(fg)
 
 # list of variables to check
-vars = getVariableIds(fg)
+vars = listVariables(fg)
 
 # fetch values before solve
 before = Dict()

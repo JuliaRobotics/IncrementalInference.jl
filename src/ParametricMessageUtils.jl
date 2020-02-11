@@ -3,7 +3,7 @@ function addMsgFactors!(subfg::G,
                         msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  svars = DFG.getVariableIds(subfg)
+  svars = DFG.listVariables(subfg)
   for (msym, belief) = (msgs.belief)
     if msym in svars
       #TODO covaraince

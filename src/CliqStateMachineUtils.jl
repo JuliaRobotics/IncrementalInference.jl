@@ -685,7 +685,7 @@ calcVariablePPE, getVariablePPE, (setVariablePPE!/setPPE!/updatePPE! ?)
 function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
                                         solveKey::Symbol=:default)::DFG.DFGVariable
 
-  vnd = solverData(var, solveKey)
+  vnd = getSolverData(var, solveKey)
 
   #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
   var.ppeDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)

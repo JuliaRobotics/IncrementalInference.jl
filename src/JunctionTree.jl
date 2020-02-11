@@ -195,7 +195,7 @@ Find parent clique Cp that containts the first eliminated variable of Sj as fron
 function identifyFirstEliminatedSeparator(dfg::AbstractDFG,
                                           elimorder::Vector{Symbol},
                                           firvert::DFGVariable,
-                                          Sj=solverData(firvert).separator)::DFGVariable
+                                          Sj=getSolverData(firvert).separator)::DFGVariable
   #
   firstelim = 99999999999
   for s in Sj
@@ -226,7 +226,7 @@ Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFG.getVariable(dfg,var)
     # no parent
-    if (length(solverData(firvert).separator) == 0)
+    if (length(getSolverData(firvert).separator) == 0)
       # if (length(getCliques(tree)) == 0)
         # create new root
         addClique!(tree, dfg, var)
@@ -237,7 +237,7 @@ function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::A
       # end
     else
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      Sj = solverData(firvert).separator
+      Sj = getSolverData(firvert).separator
       felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
       # get clique id of first eliminated frontal
       CpID = tree.frontals[felbl]
@@ -486,7 +486,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
 
   @info "Copying to a local DFG"
   fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
-  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
+  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(listVariables(dfg), listFactors(dfg)), true)
 
   println("Building Bayes net from cloud...")
   buildBayesNet!(fge, p, maxparallel=maxparallel)
@@ -581,10 +581,10 @@ can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::AbstractDFG)::Nothing
   for v in DFG.getVariables(dfg)
-    resetData!(solverData(v))
+    resetData!(getSolverData(v))
   end
   for f in DFG.getFactors(dfg)
-    resetData!(solverData(f))
+    resetData!(getSolverData(f))
   end
   nothing
 end
@@ -805,7 +805,7 @@ function getFactorsAmongVariablesOnly(dfg::G,
     # now check if those factors have already been added
     for fct in prefcts
       vert = DFG.getFactor(dfg, fct)
-      if !solverData(vert).potentialused
+      if !getSolverData(vert).potentialused
         push!(almostfcts, fct)
       end
     end
@@ -849,13 +849,13 @@ function getCliqFactorsFromFrontals(fgl::G,
     # usefcts = Int[]
     for fctid in ls(fgl, frsym)
         fct = getFactor(fgl, fctid)
-        if !unused || !solverData(fct).potentialused
+        if !unused || !getSolverData(fct).potentialused
             loutn = ls(fgl, fctid, solvable=solvable)
             # deal with unary factors
             if length(loutn)==1
                 union!(usefcts, Symbol[Symbol(fct.label);])
                 # appendUseFcts!(usefcts, loutn, fct) # , frsym)
-                solverData(fct).potentialused = true
+                getSolverData(fct).potentialused = true
             end
             # deal with n-ary factors
             for sep in loutn
@@ -865,7 +865,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                 insep = sep in allids
                 if !inseparator || insep
                     union!(usefcts, Symbol[Symbol(fct.label);])
-                    solverData(fct).potentialused = true
+                    getSolverData(fct).potentialused = true
                     if !insep
                         @info "cliq=$(cliq.index) adding factor that is not in separator, $sep"
                     end
@@ -885,7 +885,7 @@ Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
 function isPartial(fct::DFGFactor)  #fct::TreeClique
-  fcf = solverData(fct).fnc.usrfnc!
+  fcf = getSolverData(fct).fnc.usrfnc!
   isPartial(fcf)
 end
 
@@ -912,7 +912,7 @@ function setCliqPotentials!(dfg::G,
   fcts = map(x->getFactor(dfg, x), fctsyms)
   getData(cliq).partialpotential = map(x->isPartial(x), fcts)
   for fct in fcts
-    solverData(fct).potentialused = true
+    getSolverData(fct).potentialused = true
   end
 
   @info "finding all frontals for down WIP"
@@ -1213,7 +1213,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
       idfct = getData(cliq).potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in solverData(DFG.getFactor(dfg, idfct)).fncargvID
+        for vertidx in getSolverData(DFG.getFactor(dfg, idfct)).fncargvID
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
