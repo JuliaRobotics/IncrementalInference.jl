@@ -25,8 +25,9 @@ Related
 
 ls, lsf, lsfPriors
 """
-getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
-getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
+#moved to DFG
+# getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
+# getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
 
 
 """
