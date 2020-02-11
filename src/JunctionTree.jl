@@ -1633,7 +1633,7 @@ end
 
 Return the variable order stored in a tree object.
 """
-DistributedFactorGraphs.getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
+getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
 
 getEliminationOrder(treel::AbstractBayesTree) = treel.variableOrder
 

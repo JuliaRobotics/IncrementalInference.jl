@@ -8,27 +8,13 @@ import DistributedFactorGraphs: AbstractPointParametricEst
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 
 
-
 # export setSolvable!
-
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
-"""
-    $SIGNATURES
-
-Return the order sensitive list of variables related to factor `fct`.
-
-Related
-
-ls, lsf, lsfPriors
-"""
-#moved to DFG
-# getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
-# getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
-
+#getVariableOrder moved to DFG
 
 """
     $SIGNATURES
