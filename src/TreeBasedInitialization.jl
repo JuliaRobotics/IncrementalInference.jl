@@ -300,6 +300,9 @@ function setTreeCliquesMarginalized!(dfg::G,
 
       setCliqStatus!(cliq, :marginalized)
       setCliqDrawColor(cliq, "blue")
+
+      # set flag, looks to be previously unused???
+      getData(cliq).allmarginalized = true
     end
   end
   nothing
@@ -803,7 +806,7 @@ function prepCliqInitMsgsDown!(fgl::G,
   products = getData(prnt).downInitMsg
 
   ## TODO use parent factors too
-  # intersect with the asking clique's seperator variables
+  # intersect with the asking clique's separator variables
 
     # products only method
     if dbgnew

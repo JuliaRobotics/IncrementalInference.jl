@@ -25,7 +25,7 @@ end
 Retrieve data structure stored in a variable.
 """
 function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return solverData(getVariable(dfg, lbl, solveKey=solveKey))
+  return solverData(getVariable(dfg, lbl), solveKey)
 end
 
 """
@@ -355,6 +355,43 @@ function getOutNeighbors(dfg::T, vertSym::Symbol; needdata::Bool=false, ready::I
   return nodes
 end
 
+
+
+function DefaultNodeDataParametric(dodims::Int,
+                                   dims::Int,
+                                   softtype::InferenceVariable;
+                                   initialized::Bool=true,
+                                   dontmargin::Bool=false)::VariableNodeData
+
+  # this should be the only function allocating memory for the node points
+  if false && initialized
+    error("not implemented yet")
+    # pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+    #
+    # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    # gbw = getBW(pN)[:,1]
+    # gbw2 = Array{Float64}(undef, length(gbw),1)
+    # gbw2[:,1] = gbw[:]
+    # pNpts = getPoints(pN)
+    # #initval, stdev
+    # return VariableNodeData(pNpts,
+    #                         gbw2, Symbol[], sp,
+    #                         dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin)
+  else
+    sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
+    return VariableNodeData(zeros(dims, 1),
+                            zeros(dims,1), Symbol[], sp,
+                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin)
+  end
+
+end
+
+function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
+  vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
+  setSolverData!(v, vnd, :parametric)
+  return nothing
+end
+
 function setDefaultNodeData!(v::DFGVariable,
                              dodims::Int,
                              N::Int,
@@ -376,12 +413,12 @@ function setDefaultNodeData!(v::DFGVariable,
     gbw2[:,1] = gbw[:]
     pNpts = getPoints(pN)
     #initval, stdev
-    setSolverData(v, VariableNodeData(pNpts,
+    setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
                             dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    setSolverData(v, VariableNodeData(zeros(dims, N),
+    setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
                             dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin))
   end
@@ -432,7 +469,7 @@ function setVariableRefence!(dfg::AbstractDFG,
                          true  )
   #
   # set the value in the DFGVariable
-  setSolverData(var, vnd, refKey)
+  setSolverData!(var, vnd, refKey)
 end
 
 
@@ -458,14 +495,23 @@ function addVariable!(dfg::AbstractDFG,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
-                      checkduplicates::Bool=true  )::DFGVariable
+                      checkduplicates::Bool=true,
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
+
   #
   v = DFGVariable(lbl, softtype)
   v.solvable = solvable
   # v.backendset = backendset
   v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
   v.smallData = smalldata
-  setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  #JT, Ek weet nie of ek van die manier hou nie. Daar gaan nie so baie algoritmes wees nie so dit sal seker nie so groot raak nie
+  (:default in initsolvekeys) &&
+    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+
+  (:parametric in initsolvekeys) &&
+    setDefaultNodeDataParametric!(v, softtype, initialized=!autoinit, dontmargin=dontmargin)
+
   DFG.addVariable!(dfg, v)
 
   return v
@@ -946,7 +992,7 @@ function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50
       namestring = tempnm
       break
     end
-    i != maxparallel ? nothing : error("Cannot currently add more than $(maxparallel) factors in parallel, please open an issue if this is too restrictive.")
+    i != maxparallel ? nothing : error("Artificial restriction to not connect more than $(maxparallel) factors to a variable (bad for sparsity), try calling the same function again with the keyword argument maxparallel=1000 to override this restriction.")
   end
   return Symbol(namestring)
 end

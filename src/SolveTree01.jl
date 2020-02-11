@@ -1069,7 +1069,19 @@ function approxCliqMarginalUp!(fgl::G,
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
-    urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    try
+      urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    catch ex
+      with_logger(logger) do
+        @info ex
+        @error ex
+        flush(logger.stream)
+        msg = sprint(showerror, ex)
+        @error msg
+      end
+      flush(logger.stream)
+      error(ex)
+    end
   else
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
@@ -1469,7 +1481,9 @@ function asyncTreeInferUp!(dfg::G,
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
-    pdfpath = joinpath(getSolverParams(dfg).logpath,"bt.pdf")
+    pdfpath = joinLogPath(dfg,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
   end
 
@@ -1526,7 +1540,12 @@ function initInferTreeUp!(dfg::G,
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
-  drawtree ? drawTree(treel, show=false, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
+  if drawtree
+    pdfpath = joinLogPath(dfg,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+  end
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(getCliques(treel)))

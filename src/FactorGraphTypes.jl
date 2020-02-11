@@ -1,18 +1,7 @@
 import Base: convert
 import Base: ==
 
-# abstract type InferenceType end
-# abstract type PackedInferenceType end
-#
-# abstract type FunctorInferenceType <: Function end
-#
-# abstract type InferenceVariable end
-# abstract type ConvolutionObject <: Function end
 
-
-# abstract type FunctorSingleton <: FunctorInferenceType end
-# abstract type FunctorPairwise <: FunctorInferenceType end
-# abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
@@ -27,7 +16,7 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
-
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
 $(TYPEDEF)
@@ -58,6 +47,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -77,6 +67,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
                                                                             reference,
@@ -95,6 +86,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            algorithms,
                                                                             devParams)
   #
 end
@@ -369,10 +361,15 @@ function updateFullVertData!(fgl::AbstractDFG,
   srcvd = solverData(srcv)
 
   if isvar
-    lvd.val[:,:] = srcvd.val[:,:]
+    if size(lvd.val) == size(srcvd.val)
+      lvd.val .= srcvd.val
+    else
+      lvd.val = srcvd.val
+    end
     lvd.bw[:] = srcvd.bw[:]
     lvd.initialized = srcvd.initialized
     lvd.inferdim = srcvd.inferdim
+    setSolvedCount!(lvd, getSolvedCount(srcvd))
 
     if updatePPE
       # set PPE in dest from values in srcv

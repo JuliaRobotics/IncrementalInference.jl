@@ -80,7 +80,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
-  ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
+  freshSamples!(ccwl, maxlen)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
@@ -93,8 +94,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1))
-    ccwl.cpt[i].Y = zeros(ccwl.xDim)
+    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
+    ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
     ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for FunctorPairwiseMinimize
   end
 

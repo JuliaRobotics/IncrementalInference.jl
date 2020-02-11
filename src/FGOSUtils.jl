@@ -5,7 +5,7 @@
 import DistributedFactorGraphs: AbstractPointParametricEst
 
 
-export getPPESuggestedAll, findVariablesNear
+export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 
 
 
@@ -353,6 +353,24 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Enable defaults for fixed-lag-like operation by using smart message passing on the tree.
+
+Notes:
+- These are only default settings, and can be modified in each use case scenario.
+- Default does not update downsolve through to leaves of the tree.
+"""
+function defaultFixedLagOnTree!(dfg::AbstractDFG,
+                                len::Int=30;
+                                limitfixeddown::Bool=true )
+  #
+  getSolverParams(dfg).isfixedlag = true
+  getSolverParams(dfg).qfl = len
+  getSolverParams(dfg).limitfixeddown = limitfixeddown
+  getSolverParams(dfg)
+end
 
 """
     $SIGNATURES

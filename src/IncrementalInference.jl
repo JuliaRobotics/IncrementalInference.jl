@@ -60,18 +60,16 @@ import DistributedFactorGraphs: isSolvable
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
+# Package aliases
+export KDE, AMP, DFG, FSM
 
-export
-  KDE,
-  AMP,
-  DFG,
-  FSM,
-
-  # DFG SpecialDefinitions
-  AbstractDFG,
+# DFG SpecialDefinitions
+export AbstractDFG,
   hasVariable,
   getSolverParams,
   LightDFG,
+  getSolvedCount, isSolved, setSolvedCount!,
+  solverData,
 
   *,
   notifyCSMCondition,
@@ -117,6 +115,7 @@ export
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
+  BeliefArray,
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
@@ -492,28 +491,22 @@ export
   addDownVariableFactors!,
   getDimension,
   setVariableRefence!,
+  shuffleXAltD,
+  reshapeVec2Mat,
+
 
   # For 1D example,
-
   # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
   # development
   # dev exports
+# TODO deprecate
   addGraphsVert!,
-  makeAddEdge!,
-  shuffleXAltD,
-  reshapeVec2Mat, # TODO deprecate
+  makeAddEdge!
 
-  # OBSOLETE TODO REMOVE #TODO TODO
-  subGraphFromVerts,
-  getMaxVertId,
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI
+
 
 
 # TODO should be deprecated
@@ -547,6 +540,12 @@ include("SolveTree01.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+
+#EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
+include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")

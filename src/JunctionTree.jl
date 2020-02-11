@@ -1,4 +1,4 @@
-export getVariableOrder
+export getVariableOrder, calcCliquesRecycled
 
 """
     $SIGNATURES
@@ -31,8 +31,11 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   if isa(bt.bt,GenericIncidenceList)
     Graphs.add_vertex!(bt.bt, clq)
     bt.cliques[bt.btid] = clq
+    clId = bt.btid
   elseif isa(bt.bt, MetaDiGraph)
-    MetaGraphs.add_vertex!(bt.bt, :clique, clq)
+    @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "add_vertex! failed"
+    clId = MetaGraphs.nv(bt.bt)
+    MetaGraphs.set_indexing_prop!(bt.bt, clId, :index, bt.btid)
   else
     error("Oops, something went wrong")
   end
@@ -41,7 +44,8 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   # already emptyBTNodeData() in constructor
   # setData!(clq, emptyBTNodeData())
 
-  appendClique!(bt, bt.btid, dfg, varID, condIDs)
+  appendClique!(bt, clId, dfg, varID, condIDs)
+  # appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
 
@@ -52,13 +56,28 @@ export getClique, getCliques, getCliqueIds, getCliqueData
 
 getClique(tree::AbstractBayesTree, cId::Int)::TreeClique = tree.cliques[cId]
 
+getClique(tree::MetaBayesTree, cId::Int)::TreeClique = MetaGraphs.get_prop(tree.bt, cId, :clique)
+
 #TODO
 addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique)::Bool = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
 updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
 deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
 
 getCliques(tree::AbstractBayesTree) = tree.cliques
+
+function getCliques(tree::MetaBayesTree)
+  d = Dict{Int,Any}()
+  for (k,v) in tree.bt.vprops
+    d[k] = v[:clique]
+  end
+  return d
+end
+
 getCliqueIds(tree::AbstractBayesTree) = keys(getCliques(tree))
+
+function getCliqueIds(tree::MetaBayesTree)
+  MetaGraphs.vertices(tree.bt)
+end
 
 getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
 getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
@@ -141,7 +160,7 @@ function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, var
     Graphs.add_edge!(bt.bt, edge)
   elseif isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
-    MetaGraphs.add_edge!(bt.bt, parent.index, chclq.index)
+    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.index]) "Add edge failed"
   else
     error("Oops, something went wrong")
   end
@@ -442,12 +461,13 @@ function buildTreeFromOrdering!(dfg::G,
   return tree
 end
 
-isRoot(treel::AbstractBayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
 
+isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
 function isRoot(treel::MetaBayesTree, cliqKey::Int)
   length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
 end
 
+isRoot(treel::BayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
 function isRoot(treel::BayesTree, cliqKey::Int)
   length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
 end
@@ -500,8 +520,9 @@ Notes
 - Default to free qr factorization for variable elimination order.
 """
 function prepBatchTree!(dfg::AbstractDFG;
-                        ordering::Symbol=:qr,
                         variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                        variableConstraints::Vector{Symbol}=Symbol[],
+                        ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
@@ -510,7 +531,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         drawbayesnet::Bool=false,
                         maxparallel::Int=50 )
   #
-  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
   # for debuggin , its useful to have the variable ordering
   if drawpdf
@@ -596,10 +617,30 @@ function wipeBuildNewTree!(dfg::G;
                            viewerapp::String="evince",
                            imgs::Bool=false,
                            maxparallel::Int=50,
-                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::AbstractBayesTree where G <: AbstractDFG
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                           variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
+end
+
+"""
+    $(SIGNATURES)
+Experimental create and initialize tree message channels
+"""
+function initTreeMessageChannels!(tree::BayesTree)
+  for e = 1:tree.bt.nedges
+    push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
+end
+
+function initTreeMessageChannels!(tree::MetaBayesTree)
+  for e = MetaGraphs.edges(tree.bt)
+    set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{BeliefMessage}(0),:downMsg=>Channel{BeliefMessage}(0)))
+    # push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
 end
 
 """
@@ -1259,7 +1300,6 @@ function mcmcIterationIDs(cliq::TreeClique)
   # assocMat = getData(cliq).cliqAssocMat
   # msgMat = getData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
-
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
   cols = getCliqAllVarIds(cliq)
@@ -1397,8 +1437,9 @@ end
 
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
+    cliqKey = treel.bt[:index][cliq.index]
     childcliqs = TreeClique[]
-    for cIdx in MetaGraphs.outneighbors(treel.bt, cliq.index)
+    for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
         push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
     end
     return childcliqs
@@ -1411,6 +1452,30 @@ Return a vector of child cliques to `cliq`.
 """
 getChildren(treel::AbstractBayesTree, frtsym::Symbol) = childCliqs(treel, frtsym)
 getChildren(treel::AbstractBayesTree, cliq::TreeClique) = childCliqs(treel, cliq)
+
+"""
+    $SIGNATURES
+Get edges to children cliques
+"""
+getEdgesChildren(tree::BayesTree, cliq::TreeClique) = Graphs.out_edges(cliq, tree.bt)
+
+function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
+
+"""
+    $SIGNATURES
+Get edges to parent clique
+"""
+getEdgesParent(tree::BayesTree, cliq::TreeClique) = Graphs.in_edges(cliq, tree.bt)
+
+function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
 
 """
     $SIGNATURES
@@ -1447,8 +1512,9 @@ function parentCliq(treel::BayesTree, frtsym::Symbol)
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)
+  cliqKey = treel.bt[:index][cliq.index]
   parentcliqs = TreeClique[]
-  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliq.index)
+  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliqKey)
     push!(parentcliqs, get_prop(treel.bt, pIdx, :clique))
   end
   return parentcliqs
@@ -1646,4 +1712,23 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
 
   # return loaded and converted tree
   return savetree
+end
+
+"""
+    $SIGNATURES
+
+Return Tuple of number cliques (Marginalized, Reused).
+"""
+function calcCliquesRecycled(tree::BayesTree)
+  numMarg = 0
+  numReused = 0
+  numBoth = 0
+
+  for (key, cliq) in tree.cliques
+    numReused += getData(cliq).isCliqReused ? 1 : 0
+    numMarg += getData(cliq).allmarginalized ? 1 : 0
+    numBoth += getData(cliq).allmarginalized && getData(cliq).isCliqReused ? 1 : 0
+  end
+
+  return length(tree.cliques), numMarg, numReused, numBoth
 end

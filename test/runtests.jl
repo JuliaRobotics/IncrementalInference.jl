@@ -3,6 +3,9 @@ using Test
 # using Compat
 # using IncrementalInference
 
+@testset "Parametric Tests" begin
+    include("testBasicParametric.jl")
+end
 
 @testset "out of module evalPotential..." begin
     include("TestModuleFunctions.jl")
@@ -66,6 +69,8 @@ include("testSolveOrphanedFG.jl")
 include("testSolveSetPPE.jl")
 
 # include("priorusetest.jl")
+
+include("testVariousNSolveSize.jl")
 
 include("testExplicitMultihypo.jl")
 
