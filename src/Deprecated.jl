@@ -752,7 +752,7 @@ function decodefg(fgs::FactorGraph)
   end
 
   @showprogress 1 "Decoding factors..." for (fsym,fid) in fgu.fIDs
-    fdata = solverData(fgs, fid)
+    fdata = getSolverData(fgs, fid)
     data = decodePackedType(fdata, "")
 
     # data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
@@ -780,20 +780,20 @@ function decodefg(fgs::FactorGraph)
   @showprogress 1 "Rebuilding factor metadata..." for (fsym,fid) in fgu.fIDs
     varuserdata = []
     fcnode = getVert(fgu, fsym, nt=:fnc)
-    # ccw = solverData(fcnode)
-    ccw_jld = deepcopy(solverData(fcnode))
+    # ccw = getSolverData(fcnode)
+    ccw_jld = deepcopy(getSolverData(fcnode))
     allnei = TreeClique[]
     for nei in out_neighbors(fcnode, fgu.g)
         push!(allnei, nei)
-        data = IncrementalInference.solverData(nei)
+        data = IncrementalInference.getSolverData(nei)
         push!(varuserdata, data.softtype)
     end
     setDefaultFactorNode!(fgu, fcnode, allnei, ccw_jld.fnc.usrfnc!, threadmodel=ccw_jld.fnc.threadmodel, multihypo=veeCategorical(ccw_jld.fnc.hypotheses))
-    ccw_new = IncrementalInference.solverData(fcnode)
+    ccw_new = IncrementalInference.getSolverData(fcnode)
     for i in 1:Threads.nthreads()
       ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(varuserdata)
     end
-    ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+    ## Rebuild getSolverData(fcnode).fncargvID, however, the list is order sensitive
     # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
     for field in fieldnames(typeof(ccw_jld))
       if field != :fnc

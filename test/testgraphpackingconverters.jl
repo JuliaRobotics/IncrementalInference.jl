@@ -47,13 +47,13 @@ f2 = addFactor!(fg, [:x1; :x2], lc)
 
 @testset "Testing conversion to packed function node data structure and back" begin
 
-topack = solverData(f1)
+topack = getSolverData(f1)
 dd = convert(PackedFunctionNodeData{PackedPrior},topack)
 upd = convert(FunctionNodeData{CommonConvWrapper{Prior}}, dd)
 
 @test compare(topack, upd)
 
-topack = solverData(f2)
+topack = getSolverData(f2)
 dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedLinearConditional},topack)
 upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearConditional}}, dd)
 
@@ -63,7 +63,7 @@ end
 
 @testset "Testing conversion to packed variable node data structure and back" begin
 
-dat = solverData(getVariable(fg,:x1))
+dat = getSolverData(getVariable(fg,:x1))
 
 # dat.BayesNetVertID
 

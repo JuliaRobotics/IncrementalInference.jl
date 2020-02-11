@@ -386,7 +386,7 @@ function getPPESuggestedAll(dfg::AbstractDFG,
                             regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
   #
   # get values
-  vsyms = getVariableIds(dfg, regexFilter) |> sortDFG
+  vsyms = listVariables(dfg, regexFilter) |> sortDFG
   slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)

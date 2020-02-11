@@ -107,7 +107,7 @@ function convert2packedfunctionnode(fgl::G,
   # fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, solverData(getFactor(fgl, fsym)) )
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getSolverData(getFactor(fgl, fsym)) )
   return cfnd, usrtyp
 end
 
@@ -139,7 +139,7 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
 
   # Rebuilding the CCW
   ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!)
-  solverData(factor) = ccw_new
+  getSolverData(factor) = ccw_new
 
   #... Copying neighbor data into the factor?
   for i in 1:Threads.nthreads()
@@ -148,7 +148,7 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
 
   # Copying all other fields in the factor
   # TODO: Confirm whether we still need to do this?
-  ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+  ## Rebuild getSolverData(fcnode).fncargvID, however, the list is order sensitive
   # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
   # for field in fieldnames(typeof(ccw_jld))
   #   if field != :fnc
@@ -174,7 +174,7 @@ function encodefg(fgl::G ) where G <: AbstractDFG
   # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
 
   # @showprogress 1 "Encoding variables..."
-  for vsym in getVariableIds(fgl)
+  for vsym in listVariables(fgl)
     # cpvert = deepcopy(  )
     var = getVariable(fgl, vsym)
     # addVariable!(fgs, cpvert)

@@ -72,7 +72,7 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
     # DFG.updateGraphSolverData!(src, dest, syms)
     for sym in syms
       vari = DFG.getVariable(src, sym)
-      rc = size(solverData(vari).val)
+      rc = size(getSolverData(vari).val)
       # TODO -- reduce to DFG functions only
       pp = getKDE(vari)
       rc2 = size(getPoints(pp))

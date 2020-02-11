@@ -6,7 +6,7 @@ Solve a Gaussian factor graph.
 """
 function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametric)
 
-  varIds = getVariableIds(fg)
+  varIds = listVariables(fg)
   #TODO dimention di, its set to maximim and assumes all is the same
   vardims = map(v->getDimension(v), getVariables(fg))
   di = maximum(vardims)
@@ -25,7 +25,7 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
     fac_cost_fx =  getFactorType(fct)
 
     varOrder = getVariableOrder(fct)
-    # varsdata = [solverData(getVariable(fg, v), solvekey) for v in varOrder]
+    # varsdata = [getSolverData(getVariable(fg, v), solvekey) for v in varOrder]
     #findfirst or dictionary lookup
     # idx = [findfirst(v->v==varId, varIds) for varId in varOrder]
     idx = [varSymbols[varId] for varId in varOrder]
@@ -67,7 +67,7 @@ end
 #TODO maybe consolidate with solveFactorGraphParametric
 function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
 
-  varIds = getVariableIds(fg)
+  varIds = listVariables(fg)
   separators = setdiff(varIds, frontals)
 
   #TODO dimention di, its set to maximim and assumes all is the same
@@ -97,7 +97,7 @@ function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solv
     fac_cost_fx =  getFactorType(fct)
 
     varOrder = getVariableOrder(fct)
-    # varsdata = [solverData(getVariable(fg, v), solvekey) for v in varOrder]
+    # varsdata = [getSolverData(getVariable(fg, v), solvekey) for v in varOrder]
     #TODO findfirst or dictionary lookup
     # idx = [findfirst(v->v==varId, varIds) for varId in varOrder]
     idx = [varSymbols[varId] for varId in varOrder]
@@ -150,9 +150,9 @@ function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey:
   for var in getVariables(fg)
       #TODO only supports Normal now
       # expand to MvNormal
-      nf = fit(Normal, solverData(var, fromkey).val)
-      solverData(var, parkey).val[1,1] = nf.μ
-      solverData(var, parkey).bw[1,1] = nf.σ
+      nf = fit(Normal, getSolverData(var, fromkey).val)
+      getSolverData(var, parkey).val[1,1] = nf.μ
+      getSolverData(var, parkey).bw[1,1] = nf.σ
       # @show nf
       # m = var.estimateDict[:default].mean
   end
