@@ -139,7 +139,7 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
 
   # Rebuilding the CCW
   ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!)
-  getSolverData(factor) = ccw_new
+  setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
   for i in 1:Threads.nthreads()

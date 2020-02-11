@@ -67,8 +67,8 @@ dat = getSolverData(getVariable(fg,:x1))
 
 # dat.BayesNetVertID
 
-pd = pack(dfg, dat)
-unpckd = unpack(dfg, pd)
+pd = packVariableNodeData(dfg, dat)
+unpckd = unpackVariableNodeData(dfg, pd)
 
 @test compareFields(dat, unpckd, skip=[:softtype])
 @test compareFields(dat.softtype, unpckd.softtype)
