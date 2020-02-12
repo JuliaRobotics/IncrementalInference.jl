@@ -763,6 +763,7 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
     csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt_incremental.pdf")) : nothing
     # go to 1
     return isCliqUpSolved_StateMachine
   end
@@ -788,6 +789,7 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
 
   # check if should be trying and can recycle clique computations
   if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+    csmc.cliq.data.isCliqReused = true
     # check if a subgraph will be needed later
     if csmc.dodownsolve
       # yes need subgraph and need more checks, so go to 2

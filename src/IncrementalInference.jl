@@ -70,6 +70,7 @@ export AbstractDFG,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
+  solverData,
 
   *,
   notifyCSMCondition,
@@ -158,6 +159,8 @@ export AbstractDFG,
   lsTypes,
   lsfTypes,
   findClosestTimestamp,
+  printVariable,
+  printFactor,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -515,8 +518,9 @@ const NothingUnion{T} = Union{Nothing, T}
 # regular
 include("FactorGraphTypes.jl")
 
-# const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
-const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+# JT TODO move to somewhere more fitting?
+const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
+# const InMemDFGType = DFG.GraphsDFG{SolverParams}
 
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")

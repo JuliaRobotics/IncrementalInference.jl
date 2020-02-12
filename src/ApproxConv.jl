@@ -80,7 +80,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
-  ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
+  freshSamples!(ccwl, maxlen)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else

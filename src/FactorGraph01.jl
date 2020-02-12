@@ -499,7 +499,7 @@ function addVariable!(dfg::AbstractDFG,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
 
   #
-  tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
+  tags = union(labels, [:VARIABLE])
   v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable)
 
   (:default in initsolvekeys) &&

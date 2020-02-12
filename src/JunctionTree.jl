@@ -1,4 +1,4 @@
-export getVariableOrder
+export getVariableOrder, calcCliquesRecycled
 
 """
     $SIGNATURES
@@ -1712,4 +1712,23 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
 
   # return loaded and converted tree
   return savetree
+end
+
+"""
+    $SIGNATURES
+
+Return Tuple of number cliques (Marginalized, Reused).
+"""
+function calcCliquesRecycled(tree::BayesTree)
+  numMarg = 0
+  numReused = 0
+  numBoth = 0
+
+  for (key, cliq) in tree.cliques
+    numReused += getData(cliq).isCliqReused ? 1 : 0
+    numMarg += getData(cliq).allmarginalized ? 1 : 0
+    numBoth += getData(cliq).allmarginalized && getData(cliq).isCliqReused ? 1 : 0
+  end
+
+  return length(tree.cliques), numMarg, numReused, numBoth
 end

@@ -14,9 +14,21 @@ function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Flo
   return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
 end
 
+"""
+    $SIGNATURES
 
+Sample the factor stochastic model `N::Int` times and store the samples in the preallocated `ccw.measurement` container.
+
+DevNotes
+- Use in place operations where possible and remember `measurement` is a `::Tuple`.
+"""
 function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  # if size(ccwl.measurement, 2) == N
+  # DOESNT WORK DUE TO TUPLE, not so quick and easy
+  #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
+  # else
+    ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  # end
   nothing
 end
 
