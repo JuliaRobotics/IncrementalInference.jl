@@ -211,7 +211,7 @@ function setfreeze!(dfg::AbstractDFG, sym::Symbol)
     return nothing
   end
   vert = DFG.getVariable(dfg, sym)
-  data = solverData(vert)
+  data = getSolverData(vert)
   data.ismargin = true
   nothing
 end
@@ -324,7 +324,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   varsyms = fcto._variableOrderSymbols
   vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
   fcttype = getFactorType(fcto)
-  zDim = solverData(fcto).fnc.zDim
+  zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)

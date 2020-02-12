@@ -357,8 +357,8 @@ function updateFullVertData!(fgl::AbstractDFG,
   isvar = isVariable(fgl, sym)
 
   dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = solverData(dest)
-  srcvd = solverData(srcv)
+  lvd = getSolverData(dest)
+  srcvd = getSolverData(srcv)
 
   if isvar
     if size(lvd.val) == size(srcvd.val)

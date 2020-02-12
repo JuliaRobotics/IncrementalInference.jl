@@ -300,7 +300,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # TODO
     # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
     svars = getCliqSeparatorVarIds(csmc.cliq)
-    # svars = DFG.getVariableIds(csmc.cliqSubFg)
+    # svars = DFG.listVariables(csmc.cliqSubFg)
     for (msym, belief) = (downmsgs.belief)
       if msym in svars
         #TODO maybe combine variable and factor in new prior?
@@ -428,12 +428,12 @@ function transferUpdateSubGraphParametric!(dest::T,
     @info "transferUpdateSubGraph! -- syms=$syms"
   end
   for v in getVariables(src)
-    println("\n ", v.label,": ",  solverData(v, :parametric).val[1])
+    println("\n ", v.label,": ",  getSolverData(v, :parametric).val[1])
   end
 
   #TEMP force the solver data
   for v in syms
-    solverData(getVariable(dest,v),:parametric).val .= solverData(getVariable(src, v),:parametric).val
+    getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
   end
 
   #TODO this does not work

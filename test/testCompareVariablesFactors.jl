@@ -90,8 +90,8 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 
-
-@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
+#FIXME JT - this doesn't make sense to pass?
+# @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
 
 # drawGraph(sfg)
 

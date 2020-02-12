@@ -25,7 +25,7 @@ end
 Retrieve data structure stored in a variable.
 """
 function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return solverData(getVariable(dfg, lbl), solveKey)
+  return getSolverData(getVariable(dfg, lbl), solveKey)
 end
 
 """
@@ -34,7 +34,7 @@ end
 Retrieve data structure stored in a factor.
 """
 function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
-  return solverData(getFactor(dfg, lbl))
+  return getSolverData(getFactor(dfg, lbl))
 end
 # TODO -- upgrade to dedicated memory location in Graphs.jl
 # see JuliaArchive/Graphs.jl#233
@@ -76,7 +76,7 @@ end
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
 getManifolds(vd::VariableNodeData) = getSofttype(vd).manifolds
-getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(solverData(v, solveKey))
+getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
@@ -102,7 +102,7 @@ end
 Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
 """
 function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
-  return size(solverData(v, solveKey).val,2)
+  return size(getSolverData(v, solveKey).val,2)
 end
 
 # import DistributedFactorGraphs: getfnctype
@@ -129,14 +129,14 @@ end
 
 # setVal! assumes you will update values to database separate, this used for local graph mods only
 function getBWVal(v::DFGVariable; solveKey::Symbol=:default)
-  return solverData(v, solveKey).bw
+  return getSolverData(v, solveKey).bw
 end
 function setBW!(vd::VariableNodeData, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
   vd.bw = bw
   nothing
 end
 function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
-  setBW!(solverData(v, solveKey), bw)
+  setBW!(getSolverData(v, solveKey), bw)
   nothing
 end
 
@@ -145,7 +145,7 @@ function setVal!(vd::VariableNodeData, val::Array{Float64,2})::Nothing
     nothing
 end
 function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
-    setVal!(solverData(v, solveKey), val)
+    setVal!(getSolverData(v, solveKey), val)
     nothing
 end
 function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Array{Float64,2})::Nothing
@@ -163,7 +163,7 @@ function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Vector{Float64
   nothing
 end
 function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
-  setVal!(solverData(v, solveKey=solveKey), val, bw)
+  setVal!(getSolverData(v, solveKey=solveKey), val, bw)
   nothing
 end
 function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
@@ -220,7 +220,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Float64=0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
-  setValKDE!(solverData(v, solveKey),val, bws, setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey),val, bws, setinit, inferdim )
 
   nothing
 end
@@ -231,7 +231,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Float64=0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
-  setValKDE!(solverData(v, solveKey),val, setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
   nothing
 end
 function setValKDE!(v::DFGVariable,
@@ -249,7 +249,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
   #
-  setValKDE!(solverData(v,solveKey),p,setinit,Float64(inferdim))
+  setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
   nothing
 end
 function setValKDE!(dfg::G,
@@ -299,7 +299,7 @@ function setVariableInitialized!(varid::VariableNodeData,
   varid.initialized = status
 end
 
-setVariableInitialized!(vari::DFGVariable, status::Bool) = setVariableInitialized!(solverData(vari), status)
+setVariableInitialized!(vari::DFGVariable, status::Bool) = setVariableInitialized!(getSolverData(vari), status)
 
 
 """
@@ -308,7 +308,7 @@ setVariableInitialized!(vari::DFGVariable, status::Bool) = setVariableInitialize
 Set method for the inferred dimension value in a variable.
 """
 setVariableInferDim!(varid::VariableNodeData, val::Real) = varid.inferdim = convert(Float64,val)
-setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(solverData(vari), val)
+setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSolverData(vari), val)
 
 
 """
@@ -330,7 +330,7 @@ function resetVariable!(varid::VariableNodeData;
   nothing
 end
 
-resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  )::Nothing = resetVariable!(solverData(vari), solveKey=solveKey)
+resetVariable!(vari::DFGVariable; solveKey::Symbol=:default  )::Nothing = resetVariable!(getSolverData(vari), solveKey=solveKey)
 
 function resetVariable!(dfg::G,
                         sym::Symbol;
@@ -499,13 +499,9 @@ function addVariable!(dfg::AbstractDFG,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
 
   #
-  v = DFGVariable(lbl, softtype)
-  v.solvable = solvable
-  # v.backendset = backendset
-  v.tags = union(labels, [:VARIABLE])
-  v.smallData = smalldata
+  tags = union(labels, [:VARIABLE])
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable)
 
-  #JT, Ek weet nie of ek van die manier hou nie. Daar gaan nie so baie algoritmes wees nie so dit sal seker nie so groot raak nie
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
 
@@ -552,7 +548,7 @@ end
 
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
-function getVal(vA::Vector{DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
+function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
   @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
@@ -591,7 +587,7 @@ Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-            Xi::Vector{DFGVariable},
+            Xi::Vector{<:DFGVariable},
             N::Int,
             solvefor::Union{Nothing, Symbol}  ) # TODO: Confirm we can use symbols here
   #
@@ -648,7 +644,7 @@ end
 # import IncrementalInference: prepgenericconvolution, convert
 
 function prepgenericconvolution(
-            Xi::Vector{DFGVariable},
+            Xi::Vector{<:DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
@@ -674,16 +670,20 @@ function prepgenericconvolution(
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
-      push!(ccw.cpt[i].factormetadata.variableuserdata, solverData(xi).softtype)
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getSolverData(xi).softtype)
     end
   end
   return ccw
 end
 
-function setDefaultFactorNode!(
+"""
+$SIGNATURES
+
+Generate the default factor data for a new DFGFactor.
+"""
+function getDefaultFactorData(
       dfg::G,
-      factor::DFGFactor,
-      Xi::Vector{DFGVariable},
+      Xi::Vector{<:DFGVariable},
       usrfnc::T;
       multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
       threadmodel=SingleThreaded  )::GenericFunctionNodeData where
@@ -695,9 +695,7 @@ function setDefaultFactorNode!(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
   data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(ftyp.name.module), ccw)
-  factor.data = data_ccw
-
-  return factor.data
+  return data_ccw
 end
 
 """
@@ -710,7 +708,7 @@ Notes:
 - similar method in DFG
 """
 function isInitialized(vert::TreeClique)::Bool
-  return solverData(vert).initialized
+  return getSolverData(vert).initialized
 end
 
 
@@ -885,7 +883,7 @@ function doautoinit!(dfg::T,
 end
 
 function doautoinit!(dfg::T,
-                     Xi::Vector{DFGVariable};
+                     Xi::Vector{<:DFGVariable};
                      singles::Bool=true,
                      N::Int=100,
                      logger=ConsoleLogger() )::Bool where T <: AbstractDFG
@@ -979,8 +977,8 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
-  existingFactorLabels = getFactorIds(dfg)
+function assembleFactorName(dfg::T, Xi::Vector{<:DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
+  existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
   for vert in Xi #f.Xi
@@ -1006,7 +1004,7 @@ performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
 """
 function addFactor!(dfg::G,
-                    Xi::Vector{DFGVariable},
+                    Xi::Vector{<:DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
@@ -1017,19 +1015,21 @@ function addFactor!(dfg::G,
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
+  varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
-  newFactor = DFGFactor{CommonConvWrapper{R}, Symbol}(Symbol(namestring))
-  newFactor.tags = union(labels, [:FACTOR]) # TODO: And session info
-  newFactor.solvable = solvable
-  # addNewFncVertInGraph!(fgl, newvert, currid, namestring, solvable)
-  newData = setDefaultFactorNode!(dfg, newFactor, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
+  solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
+  newFactor = DFGFactor(Symbol(namestring),
+                        varOrderLabels,
+                        solverData;
+                        tags=Set(union(labels, [:FACTOR])),
+                        solvable=solvable)
 
   # TODO: Need to remove this...
   for vert in Xi
-    push!(newData.fncargvID, vert.label) # vert._internalId # YUCK :/ -- Yup, this is a problem
+    push!(solverData.fncargvID, vert.label)
   end
 
-  success = DFG.addFactor!(dfg, Xi, newFactor)
+  success = DFG.addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
   autoinit && doautoinit!(dfg, Xi, singles=false)
@@ -1169,18 +1169,18 @@ end
 function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol,1})
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
-    if solverData(vert).BayesNetVertID == nothing || solverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
+    if getSolverData(vert).BayesNetVertID == nothing || getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
       @debug "[AddBayesNetVerts] Assigning $pId.data.BayesNetVertID = $pId"
-      solverData(vert).BayesNetVertID = pId
+      getSolverData(vert).BayesNetVertID = pId
     else
-      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(solverData(vert).BayesNetVertID)'"
+      @warn "addBayesNetVerts -- Something is wrong, variable '$pId' should not have an existing Bayes net reference to '$(getSolverData(vert).BayesNetVertID)'"
     end
   end
 end
 
 function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
   bnv = DFG.getVariable(dfg, vertId)
-  bnvd = solverData(bnv)
+  bnvd = getSolverData(bnv)
   bnvd.separator = Si
   for s in Si
     push!(bnvd.BayesNetOutVertIDs, s)
@@ -1219,7 +1219,7 @@ function rmVarFromMarg(dfg::G,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, solverData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1255,7 +1255,7 @@ function buildBayesNet!(dfg::G,
     vert = DFG.getVariable(dfg, v)
     for fctId in DFG.getNeighbors(dfg, vert, solvable=solvable)
       fct = DFG.getFactor(dfg, fctId)
-      if (solverData(fct).eliminated != true)
+      if (getSolverData(fct).eliminated != true)
         push!(fi, fctId)
         for sepNode in DFG.getNeighbors(dfg, fct, solvable=solvable)
           # TODO -- validate !(sepNode.index in Si) vs. older !(sepNode in Si)
@@ -1263,10 +1263,10 @@ function buildBayesNet!(dfg::G,
             push!(Si,sepNode)
           end
         end
-        solverData(fct).eliminated = true
+        getSolverData(fct).eliminated = true
       end
 
-      if typeof(solverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
+      if typeof(getSolverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
         push!(gm, fct)
       end
     end
@@ -1277,7 +1277,7 @@ function buildBayesNet!(dfg::G,
     end
 
     # mark variable
-    solverData(vert).eliminated = true
+    getSolverData(vert).eliminated = true
 
     # TODO -- remove links from current vertex to any marginals
     rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
@@ -1303,7 +1303,7 @@ end
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
 function getKDE(v::DFGVariable)
-  return getKDE(solverData(v))
+  return getKDE(getSolverData(v))
 end
 
 function getVert(dfg::G, sym::Symbol, nt::Symbol=:var) where G <: AbstractDFG

@@ -507,7 +507,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), solverData(var).inferdim)
+      msg[Symbol(var.label)] = (getKDE(var), getSolverData(var).inferdim)
     end
   end
   return msg
@@ -589,8 +589,8 @@ function doCliqAutoInitUpPart2!(subfg::G,
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
-    initstatus[i] = solverData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = solverData(getVariable(subfg, varids[i])).inferdim
+    initstatus[i] = getSolverData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = getSolverData(getVariable(subfg, varids[i])).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
@@ -860,7 +860,7 @@ function getCliqInitVarOrderDown(dfg::G,
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.getVariableIds(dfg)) #dfg.IDs
+  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.listVariables(dfg)) #dfg.IDs
   # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
@@ -919,7 +919,7 @@ function addMsgFactors!(subfg::G,
                         msgs::TempBeliefMsg)::Vector{DFGFactor} where G <: AbstractDFG
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  svars = DFG.getVariableIds(subfg)
+  svars = DFG.listVariables(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # TODO prior missing manifold information

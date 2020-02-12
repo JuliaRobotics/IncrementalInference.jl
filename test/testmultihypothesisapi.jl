@@ -73,8 +73,8 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 
 
 # @test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
 manualinit!(fg, :x2, 1*ones(1,100))
@@ -133,7 +133,7 @@ end
 
 @testset "test packing and unpacking the data structure" begin
 
-  global topack = solverData(f1)
+  global topack = getSolverData(f1)
   global dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
   global unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
@@ -142,7 +142,7 @@ end
 
 
 
-  global topack = solverData(f3)
+  global topack = getSolverData(f3)
   global dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
   global unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
@@ -202,10 +202,10 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=(1.0,0.333,0.333,0
 
 
 # @test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[2] .- 0.333)) < 0.001
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[3] .- 0.333)) < 0.001
-@test sum(abs.(solverData(f3).fnc.hypotheses.p[4] .- 0.334)) < 0.001
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[2] .- 0.333)) < 0.001
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[3] .- 0.333)) < 0.001
+@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[4] .- 0.334)) < 0.001
 
 
 manualinit!(fg, :x2 ,1*ones(1,100))

@@ -107,7 +107,7 @@ function convert2packedfunctionnode(fgl::G,
   # fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, solverData(getFactor(fgl, fsym)) )
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getSolverData(getFactor(fgl, fsym)) )
   return cfnd, usrtyp
 end
 
@@ -135,20 +135,20 @@ completely rebuild the factor's CCW and user data.
 function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->solverData(v).softtype, neighbors)
+  neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  setDefaultFactorNode!(dfg, factor, neighbors, factor.data.fnc.usrfnc!)
+  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!)
+  setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
-  ccw_new = solverData(factor)
   for i in 1:Threads.nthreads()
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
 
   # Copying all other fields in the factor
   # TODO: Confirm whether we still need to do this?
-  ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+  ## Rebuild getSolverData(fcnode).fncargvID, however, the list is order sensitive
   # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
   # for field in fieldnames(typeof(ccw_jld))
   #   if field != :fnc
@@ -174,7 +174,7 @@ function encodefg(fgl::G ) where G <: AbstractDFG
   # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
 
   # @showprogress 1 "Encoding variables..."
-  for vsym in getVariableIds(fgl)
+  for vsym in listVariables(fgl)
     # cpvert = deepcopy(  )
     var = getVariable(fgl, vsym)
     # addVariable!(fgs, cpvert)
