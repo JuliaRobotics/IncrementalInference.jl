@@ -502,7 +502,7 @@ function addVariable!(dfg::AbstractDFG,
   v = DFGVariable(lbl, softtype)
   v.solvable = solvable
   # v.backendset = backendset
-  v.tags = union(labels, Symbol.(softtype.labels), [:VARIABLE])
+  v.tags = union(labels, [:VARIABLE])
   v.smallData = smalldata
 
   #JT, Ek weet nie of ek van die manier hou nie. Daar gaan nie so baie algoritmes wees nie so dit sal seker nie so groot raak nie

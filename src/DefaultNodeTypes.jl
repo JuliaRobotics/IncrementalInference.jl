@@ -13,9 +13,8 @@ Most basic continuous scalar variable a `::FactorGraph` object.
 """
 struct ContinuousScalar <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::Tuple{Symbol}
-  ContinuousScalar(;labels::Vector{<:AbstractString}=String[], manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, labels, manifolds)
+  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
 end
 
 """
@@ -25,18 +24,16 @@ Continuous variable of dimension `.dims` on manifold `.manifolds`.
 """
 struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::T1
   ContinuousMultivariate{T}() where {T} = new()
-  ContinuousMultivariate{T}(x::Int;labels::Vector{<:AbstractString}=String[], manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, labels, manifolds)
+  ContinuousMultivariate{T}(x::Int; manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, manifolds)
 end
 
 function ContinuousMultivariate(x::Int;
-                                labels::Vector{<:AbstractString}=String[],
                                 manifolds::T1=(:Euclid,)  )  where {T1 <: Tuple}
   #
   maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
-  ContinuousMultivariate{typeof(maniT)}(x, labels=labels, manifolds=maniT)
+  ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
 end
 
 
