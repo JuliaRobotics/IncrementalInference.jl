@@ -2,53 +2,30 @@
 ### DONT DELETE YET -- see more likely list below
 
 
-function getShortestPathNeighbors(fgl::FactorGraph;
-    from::TreeClique=nothing,
-    to::TreeClique=nothing,
-    neighbors::Int=0 )
+# function getShortestPathNeighbors(fgl::FactorGraph;
+#     from::TreeClique=nothing,
+#     to::TreeClique=nothing,
+#     neighbors::Int=0 )
+#
+#   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
+#   vertdict = Dict{Int,TreeClique}()
+#   edgedict = edgelist2edgedict(edgelist)
+#   expandVertexList!(fgl, edgedict, vertdict) # grow verts
+#   for i in 1:neighbors
+#     expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
+#     expandVertexList!(fgl, edgedict, vertdict) # grow verts
+#   end
+#   return vertdict
+# end
 
-  edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
-  vertdict = Dict{Int,TreeClique}()
-  edgedict = edgelist2edgedict(edgelist)
-  expandVertexList!(fgl, edgedict, vertdict) # grow verts
-  for i in 1:neighbors
-    expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
-    expandVertexList!(fgl, edgedict, vertdict) # grow verts
-  end
-  return vertdict
-end
-
-function subgraphShortestPath(fgl::FactorGraph;
-                              from::TreeClique=nothing,
-                              to::TreeClique=nothing,
-                              neighbors::Int=0  )
-  #
-  vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
-  return genSubgraph(fgl, vertdict)
-end
-
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-function subGraphFromVerts(fgl::FactorGraph,
-                           verts::Dict{Int,TreeClique};
-                           neighbors::Int=0  )
-  #
-  allverts = Dict{Int,TreeClique}()
-  allkeys = collect(keys(verts))
-  len = length(allkeys)
-  # union all shortest path combinations in a vertdict
-  for i in 1:len, j in (i+1):len
-    from = verts[allkeys[i]]
-    to = verts[allkeys[j]]
-    vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
-    for vert in vertdict
-      if !haskey(allverts, vert[1])
-        allverts[vert[1]] = vert[2]
-      end
-    end
-  end
-
-  return genSubgraph(fgl, allverts)
-end
+# function subgraphShortestPath(fgl::FactorGraph;
+#                               from::TreeClique=nothing,
+#                               to::TreeClique=nothing,
+#                               neighbors::Int=0  )
+#   #
+#   vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
+#   return genSubgraph(fgl, vertdict)
+# end
 
 
 
@@ -99,251 +76,6 @@ end
 
 
 
-
-
-# explore all shortest paths combinations in verts, add neighbors and reference subgraph
-# Using unique index into graph data structure
-function subgraphFromVerts(fgl::FactorGraph,
-    verts::Array{Int,1};
-    neighbors::Int=0  )
-
-  vertdict = Dict{Int,TreeClique}()
-  for vert in verts
-    vertdict[vert] = fgl.g.vertices[vert]
-  end
-
-  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
-end
-
-"""
-    $(SIGNATURES)
-
-Explore all shortest paths combinations in verts, add neighbors and reference
-subgraph using unique index into graph data structure.
-"""
-function subGraphFromVerts(fgl::FactorGraph,
-                           verts::T;
-                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}}}
-  #
-  vertdict = Dict{Int,TreeClique}()
-  for vert in verts
-    id = -1
-    vsym = Symbol(vert)
-    if haskey(fgl.IDs, vsym)
-      id = fgl.IDs[vsym]
-    else
-      error("FactorGraph01 only supports variable node subgraph search at this point")
-    end
-    vertdict[id] = getVert(fgl, vsym) # fgl.g.vertices[id]
-  end
-
-  return subgraphFromVerts(fgl,vertdict,neighbors=neighbors)
-end
-
-
-function subgraphFromVerts(fgl::FactorGraph,
-                           verts::T;
-                           neighbors::Int=0  ) where {T <: Union{Vector{String},Vector{Symbol}, Dict{Int,TreeClique}}}
-  #
-  @warn "`subgraphFromVerts` deprecated, use `subGraphFromVerts` instead."
-  subGraphFromVerts(fgl, verts, neighbors=neighbors)
-end
-
-
-
-
-### MORE LIKELY TO BE DELETED BELOW
-
-
-
-# TODO -- convert to use add_vertex! instead, since edges type must be made also
-function addVerticesSubgraph(fgl::FactorGraph,
-    fgseg::FactorGraph,
-    vertdict::Dict{Int,TreeClique})
-
-    for vert in vertdict
-      fgseg.g.vertices[vert[1]] = vert[2]
-      if haskey(fgl.v,vert[1])
-        fgseg.g.vertices[vert[1]] = vert[2]
-        fgseg.IDs[Symbol(vert[2].label)] = vert[1]
-
-        # add edges going in opposite direction
-        elr = Graphs.out_edges(vert[2], fgl.g)
-        len = length(elr)
-        keeprm = trues(len)
-        j = 0
-        for i in 1:len
-          if !haskey(vertdict, elr[i].target.index) # a function node in set, so keep ref
-            keeprm[i] = false
-            j+=1
-          end
-        end
-        if j < len
-          elridx = elr[1].source.index
-          fgseg.g.inclist[elridx] = elr[keeprm]
-        end
-      elseif haskey(fgl.f, vert[1])
-        fgseg.f[vert[1]] = vert[2] # adding element to subgraph
-        fgseg.fIDs[Symbol(vert[2].label)] = vert[1]
-        # get edges associated with function nodes and push edges onto incidence list
-        el = Graphs.out_edges(vert[2], fgl.g)
-        elidx = el[1].source.index
-        fgseg.g.inclist[elidx] = el # okay because treating function nodes only
-        fgseg.g.nedges += length(el)
-      else
-        error("Unknown type factor graph vertex type, something is wrong")
-      end
-    end
-    nothing
-end
-
-"""
-    $SIGNATURES
-
-Return array of all variable vertices in a clique.
-"""
-function getCliqVars(subfg::FactorGraph, cliq::TreeClique)
-  verts = TreeClique[]
-  for vid in getCliqVars(subfg, cliq)
-    push!(verts, getVert(subfg, vid, api=localapi))
-  end
-  return verts
-end
-
-
-
-
-### TODO: TO BE REFACTORED FOR DFG
-
-# some plotting functions on the factor graph
-function stackVertXY(fg::FactorGraph, lbl::String)
-    v = dlapi.getvertex(fg,lbl)
-    vals = getVal(v)
-    X=vec(vals[1,:])
-    Y=vec(vals[2,:])
-    return X,Y
-end
-
-### TODO: TO BE REFACTORED FOR DFG
-
-"""
-    $(SIGNATURES)
-
-Save mostly complete Factor Graph type by converting complicated FunctionNodeData
-types to 'Packed' types using user supplied converters. Ground truth can also be
-saved and recovered by the associated loadjld(file="tempfg.jld2") method.
-
-Notes:
-- Must use `.jld2` since Julia 1.0 (previous version was deprecated).
-"""
-function savejld(fgl::G;
-                 file::AbstractString="tempfg.jld2"  ) where G <: AbstractDFG
-  #
-  @error "savejld has been deprecated, use saveDFG instead"
-  # fgs = encodefg(fgl)
-  @save file fgl
-  return file
-end
-
-"""
-    $(SIGNATURES)
-
-Opposite of savejld(fg, gt=gt, file="tempfg.jl") to load data from file. This function
-uses the unpacking converters for converting all PackedInferenceType to FunctorInferenceType.
-"""
-function loadjld(;file::AbstractString="tempfg.jld2")
-  @error "loadjld has been deprecated, use loadDFG instead"
-  fgd = @load file fgl
-  return fgd
-end
-
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-function upMsg(cliq::TreeClique)
-  @warn "deprecated upMsg, use getUpMsg instead"
-  getData(cliq).upMsg
-end
-function upMsg(btl::AbstractBayesTree, sym::Symbol)
-  @warn "deprecated upMsg, use getUpMsg instead"
-  upMsg(whichCliq(btl, sym))
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-function dwnMsg(cliq::TreeClique)
-  @warn "deprecated dwnMsg, use getDwnMsgs instead"
-  getData(cliq).dwnMsg
-end
-function dwnMsg(btl::AbstractBayesTree, sym::Symbol)
-  @warn "deprecated dwnMsg, use getDwnMsgs instead"
-  dwnMsg(whichCliq(btl, sym))
-end
-
-
-function getCliquePotentials!(fg::FactorGraph, bt::AbstractBayesTree, chkcliq::Int)
-    @error "getCliquePotentials! deprecated, use setCliqPotentials! with DFG objects instead of FactorGraph"
-    setCliqPotentials!(fg, bt.cliques[chkcliq])
-end
-
-"""
-    $(SIGNATURES)
-
-Pass NBPMessages back down the tree -- pre order tree traversal.
-"""
-function downMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
-  @info "====================== Clique $(getLabel(inp.cliq)) ============================="
-
-  mcmciter = inp.prnt != nothing ? 3 : 0; # skip mcmc in root on dwn pass
-  rDDT = downGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, mcmciter, dbg) #dwnMsg
-  updateFGBT!(inp.fg, inp.bt, inp.cliq.index, rDDT, dbg=dbg, fillcolor="lightblue")
-  setCliqStatus!(inp.cliq, :downsolved)
-  drawpdf ? drawTree(inp.bt) : nothing
-
-  # rr = Array{Future,1}()
-  # pcs = procs()
-
-  ddt=nothing
-  for child in out_neighbors(inp.cliq, inp.bt.bt)
-    ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, [rDDT.dwnMsg])#inp.fg
-    ddt = downMsgPassingRecursive( ett , N=N, dbg=dbg )
-    drawpdf ? drawTree(inp.bt) : nothing
-  end
-
-  # return modifications to factorgraph to calling process
-  return ddt
-end
-
-# post order tree traversal and build potential functions
-function upMsgPassingRecursive(inp::ExploreTreeType{T}; N::Int=100, dbg::Bool=false, drawpdf::Bool=false) where {T}
-    @info "Start Clique $(getLabel(inp.cliq)) ============================="
-    childMsgs = Array{NBPMessage,1}()
-
-    outnei = out_neighbors(inp.cliq, inp.bt.bt)
-    len = length(outnei)
-    for child in outnei
-        ett = ExploreTreeType(inp.fg, inp.bt, child, inp.cliq, NBPMessage[])
-        @info "upMsgRec -- calling new recursive on $(getLabel(ett.cliq))"
-        newmsgs = upMsgPassingRecursive(  ett, N=N, dbg=dbg ) # newmsgs
-        @info "upMsgRec -- finished with $(getLabel(ett.cliq)), w $(keys(newmsgs.p)))"
-        push!(  childMsgs, newmsgs )
-    end
-
-    @info "====================== Clique $(getLabel(inp.cliq)) ============================="
-    ett = ExploreTreeType(inp.fg, inp.bt, inp.cliq, nothing, childMsgs)
-
-    urt = upGibbsCliqueDensity(ett, N, dbg) # upmsgdict
-    updateFGBT!(inp.fg, inp.bt, inp.cliq.index, urt, dbg=dbg, fillcolor="lightblue")
-    drawpdf ? drawTree(inp.bt) : nothing
-    @info "End Clique $(getLabel(inp.cliq)) ============================="
-    urt.upMsgs
-end
 
 
 function downGibbsCliqueDensity(inp::ExploreTreeType{T},
