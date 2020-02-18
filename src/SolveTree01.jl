@@ -73,7 +73,7 @@ function packFromLocalPotentials!(dfg::AbstractDFG,
   for idfct in getData(cliq).potentials
     !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     fct = DFG.getFactor(dfg, idfct)
-    data = solverData(fct)
+    data = getSolverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
     if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
@@ -99,7 +99,7 @@ function packFromLocalPartials!(fgl::G,
   for idfct in getData(cliq).potentials
     !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
-    data = solverData(vert)
+    data = getSolverData(vert)
     if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
@@ -277,7 +277,7 @@ function proposalbeliefs!(dfg::G,
   count = 0
   for fct in factors
     count += 1
-    data = solverData(fct)
+    data = getSolverData(fct)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
@@ -475,9 +475,9 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
     pden = getKDE(vert)
     bws = vec(getBW(pden)[:,1])
     manis = getSofttype(vert).manifolds
-    d[vsym] = EasyMessage(getVal(vert), bws, manis, solverData(vert).inferdim)
+    d[vsym] = EasyMessage(getVal(vert), bws, manis, getSolverData(vert).inferdim)
     with_logger(logger) do
-      @info "fmcmc! -- solverData(vert=$(vert.label)).inferdim=$(solverData(vert).inferdim)"
+      @info "fmcmc! -- getSolverData(vert=$(vert.label)).inferdim=$(getSolverData(vert).inferdim)"
     end
   end
   return d
@@ -492,7 +492,7 @@ function doFMCIteration(fgl::AbstractDFG,
                         logger=ConsoleLogger()  )
   #
   vert = DFG.getVariable(fgl, vsym)
-  if !solverData(vert).ismargin
+  if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
 
@@ -836,7 +836,7 @@ function downGibbsCliqueDensity(fg::G,
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to NBPMessages."
   end
   ind = Dict{Symbol, EasyMessage}()
-  sflbls = getVariableIds(fg)
+  sflbls = listVariables(fg)
   for (lbl, bel) in dwnMsgs
 	  if lbl in sflbls
 	    ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
@@ -1069,7 +1069,19 @@ function approxCliqMarginalUp!(fgl::G,
     cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
-    urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    try
+      urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+    catch ex
+      with_logger(logger) do
+        @info ex
+        @error ex
+        flush(logger.stream)
+        msg = sprint(showerror, ex)
+        @error msg
+      end
+      flush(logger.stream)
+      error(ex)
+    end
   else
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
@@ -1469,7 +1481,9 @@ function asyncTreeInferUp!(dfg::G,
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
-    pdfpath = joinpath(getSolverParams(dfg).logpath,"bt.pdf")
+    pdfpath = joinLogPath(dfg,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
   end
 
@@ -1526,7 +1540,12 @@ function initInferTreeUp!(dfg::G,
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
   setTreeCliquesMarginalized!(dfg, treel)
-  drawtree ? drawTree(treel, show=false, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
+  if drawtree
+    pdfpath = joinLogPath(dfg,"bt.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
+    drawTree(treel, show=false, filepath=pdfpath)
+  end
 
   # queue all the tasks
   alltasks = Vector{Task}(undef, length(getCliques(treel)))

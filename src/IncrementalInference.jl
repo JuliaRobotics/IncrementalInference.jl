@@ -48,6 +48,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+import DistributedFactorGraphs: getVariableOrder
 # import DistributedFactorGraphs: getEstimates
 
 # missing exports
@@ -60,18 +61,16 @@ import DistributedFactorGraphs: isSolvable
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
+# Package aliases
+export KDE, AMP, DFG, FSM
 
-export
-  KDE,
-  AMP,
-  DFG,
-  FSM,
-
-  # DFG SpecialDefinitions
-  AbstractDFG,
+# DFG SpecialDefinitions
+export AbstractDFG,
   hasVariable,
   getSolverParams,
   LightDFG,
+  getSolvedCount, isSolved, setSolvedCount!,
+  solverData,
 
   *,
   notifyCSMCondition,
@@ -117,6 +116,7 @@ export
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
+  BeliefArray,
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
@@ -159,6 +159,8 @@ export
   lsTypes,
   lsfTypes,
   findClosestTimestamp,
+  printVariable,
+  printFactor,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -492,28 +494,22 @@ export
   addDownVariableFactors!,
   getDimension,
   setVariableRefence!,
+  shuffleXAltD,
+  reshapeVec2Mat,
+
 
   # For 1D example,
-
   # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
   # development
   # dev exports
+# TODO deprecate
   addGraphsVert!,
-  makeAddEdge!,
-  shuffleXAltD,
-  reshapeVec2Mat, # TODO deprecate
+  makeAddEdge!
 
-  # OBSOLETE TODO REMOVE #TODO TODO
-  subGraphFromVerts,
-  getMaxVertId,
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI
+
 
 
 # TODO should be deprecated
@@ -522,8 +518,9 @@ const NothingUnion{T} = Union{Nothing, T}
 # regular
 include("FactorGraphTypes.jl")
 
-# const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
-const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+# JT TODO move to somewhere more fitting?
+const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
+# const InMemDFGType = DFG.GraphsDFG{SolverParams}
 
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
@@ -547,6 +544,12 @@ include("SolveTree01.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+
+#EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
+include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")

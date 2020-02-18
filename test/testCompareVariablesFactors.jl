@@ -53,7 +53,7 @@ x1b = getVariable(fg2, :x0)
 
 ensureAllInitialized!(fg2)
 
-@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:ppeDict])
+@test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:ppeDict;:solvedCount])
 # fg2 has been solved, so it should fail on the estimate dictionary
 @test !compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim])
 
@@ -63,7 +63,7 @@ tree = wipeBuildNewTree!(fg2)
 
 @test !compareSimilarFactors(fg, fg2, skipsamples=true, skipcompute=false)
 
-@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:ppeDict])
+@test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:ppeDict; :solvedCount])
 
 end
 
@@ -90,8 +90,8 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 
-
-@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
+#FIXME JT - this doesn't make sense to pass?
+# @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
 
 # drawGraph(sfg)
 

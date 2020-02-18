@@ -1,4 +1,4 @@
-export getVariableOrder
+export getVariableOrder, calcCliquesRecycled
 
 """
     $SIGNATURES
@@ -31,8 +31,11 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   if isa(bt.bt,GenericIncidenceList)
     Graphs.add_vertex!(bt.bt, clq)
     bt.cliques[bt.btid] = clq
+    clId = bt.btid
   elseif isa(bt.bt, MetaDiGraph)
-    MetaGraphs.add_vertex!(bt.bt, :clique, clq)
+    @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "add_vertex! failed"
+    clId = MetaGraphs.nv(bt.bt)
+    MetaGraphs.set_indexing_prop!(bt.bt, clId, :index, bt.btid)
   else
     error("Oops, something went wrong")
   end
@@ -41,7 +44,8 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
   # already emptyBTNodeData() in constructor
   # setData!(clq, emptyBTNodeData())
 
-  appendClique!(bt, bt.btid, dfg, varID, condIDs)
+  appendClique!(bt, clId, dfg, varID, condIDs)
+  # appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq
 end
 
@@ -52,13 +56,28 @@ export getClique, getCliques, getCliqueIds, getCliqueData
 
 getClique(tree::AbstractBayesTree, cId::Int)::TreeClique = tree.cliques[cId]
 
+getClique(tree::MetaBayesTree, cId::Int)::TreeClique = MetaGraphs.get_prop(tree.bt, cId, :clique)
+
 #TODO
 addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique)::Bool = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
 updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
 deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
 
 getCliques(tree::AbstractBayesTree) = tree.cliques
+
+function getCliques(tree::MetaBayesTree)
+  d = Dict{Int,Any}()
+  for (k,v) in tree.bt.vprops
+    d[k] = v[:clique]
+  end
+  return d
+end
+
 getCliqueIds(tree::AbstractBayesTree) = keys(getCliques(tree))
+
+function getCliqueIds(tree::MetaBayesTree)
+  MetaGraphs.vertices(tree.bt)
+end
 
 getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
 getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
@@ -141,7 +160,7 @@ function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, var
     Graphs.add_edge!(bt.bt, edge)
   elseif isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
-    MetaGraphs.add_edge!(bt.bt, parent.index, chclq.index)
+    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.index]) "Add edge failed"
   else
     error("Oops, something went wrong")
   end
@@ -176,7 +195,7 @@ Find parent clique Cp that containts the first eliminated variable of Sj as fron
 function identifyFirstEliminatedSeparator(dfg::AbstractDFG,
                                           elimorder::Vector{Symbol},
                                           firvert::DFGVariable,
-                                          Sj=solverData(firvert).separator)::DFGVariable
+                                          Sj=getSolverData(firvert).separator)::DFGVariable
   #
   firstelim = 99999999999
   for s in Sj
@@ -207,7 +226,7 @@ Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
     firvert = DFG.getVariable(dfg,var)
     # no parent
-    if (length(solverData(firvert).separator) == 0)
+    if (length(getSolverData(firvert).separator) == 0)
       # if (length(getCliques(tree)) == 0)
         # create new root
         addClique!(tree, dfg, var)
@@ -218,7 +237,7 @@ function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::A
       # end
     else
       # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      Sj = solverData(firvert).separator
+      Sj = getSolverData(firvert).separator
       felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
       # get clique id of first eliminated frontal
       CpID = tree.frontals[felbl]
@@ -442,12 +461,13 @@ function buildTreeFromOrdering!(dfg::G,
   return tree
 end
 
-isRoot(treel::AbstractBayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
 
+isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
 function isRoot(treel::MetaBayesTree, cliqKey::Int)
   length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
 end
 
+isRoot(treel::BayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
 function isRoot(treel::BayesTree, cliqKey::Int)
   length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
 end
@@ -466,7 +486,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
 
   @info "Copying to a local DFG"
   fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
-  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(getVariableIds(dfg), getFactorIds(dfg)), true)
+  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(listVariables(dfg), listFactors(dfg)), true)
 
   println("Building Bayes net from cloud...")
   buildBayesNet!(fge, p, maxparallel=maxparallel)
@@ -500,8 +520,9 @@ Notes
 - Default to free qr factorization for variable elimination order.
 """
 function prepBatchTree!(dfg::AbstractDFG;
-                        ordering::Symbol=:qr,
                         variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                        variableConstraints::Vector{Symbol}=Symbol[],
+                        ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                         drawpdf::Bool=false,
                         show::Bool=false,
                         filepath::String="/tmp/caesar/bt.pdf",
@@ -510,7 +531,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         drawbayesnet::Bool=false,
                         maxparallel::Int=50 )
   #
-  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering)
+  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
   # for debuggin , its useful to have the variable ordering
   if drawpdf
@@ -560,10 +581,10 @@ can be constructed.
 """
 function resetFactorGraphNewTree!(dfg::AbstractDFG)::Nothing
   for v in DFG.getVariables(dfg)
-    resetData!(solverData(v))
+    resetData!(getSolverData(v))
   end
   for f in DFG.getFactors(dfg)
-    resetData!(solverData(f))
+    resetData!(getSolverData(f))
   end
   nothing
 end
@@ -596,10 +617,30 @@ function wipeBuildNewTree!(dfg::G;
                            viewerapp::String="evince",
                            imgs::Bool=false,
                            maxparallel::Int=50,
-                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing  )::AbstractBayesTree where G <: AbstractDFG
+                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                           variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
   #
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
+end
+
+"""
+    $(SIGNATURES)
+Experimental create and initialize tree message channels
+"""
+function initTreeMessageChannels!(tree::BayesTree)
+  for e = 1:tree.bt.nedges
+    push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
+end
+
+function initTreeMessageChannels!(tree::MetaBayesTree)
+  for e = MetaGraphs.edges(tree.bt)
+    set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{BeliefMessage}(0),:downMsg=>Channel{BeliefMessage}(0)))
+    # push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+  end
+  return nothing
 end
 
 """
@@ -764,7 +805,7 @@ function getFactorsAmongVariablesOnly(dfg::G,
     # now check if those factors have already been added
     for fct in prefcts
       vert = DFG.getFactor(dfg, fct)
-      if !solverData(vert).potentialused
+      if !getSolverData(vert).potentialused
         push!(almostfcts, fct)
       end
     end
@@ -808,13 +849,13 @@ function getCliqFactorsFromFrontals(fgl::G,
     # usefcts = Int[]
     for fctid in ls(fgl, frsym)
         fct = getFactor(fgl, fctid)
-        if !unused || !solverData(fct).potentialused
+        if !unused || !getSolverData(fct).potentialused
             loutn = ls(fgl, fctid, solvable=solvable)
             # deal with unary factors
             if length(loutn)==1
                 union!(usefcts, Symbol[Symbol(fct.label);])
                 # appendUseFcts!(usefcts, loutn, fct) # , frsym)
-                solverData(fct).potentialused = true
+                getSolverData(fct).potentialused = true
             end
             # deal with n-ary factors
             for sep in loutn
@@ -824,7 +865,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                 insep = sep in allids
                 if !inseparator || insep
                     union!(usefcts, Symbol[Symbol(fct.label);])
-                    solverData(fct).potentialused = true
+                    getSolverData(fct).potentialused = true
                     if !insep
                         @info "cliq=$(cliq.index) adding factor that is not in separator, $sep"
                     end
@@ -844,7 +885,7 @@ Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
 function isPartial(fct::DFGFactor)  #fct::TreeClique
-  fcf = solverData(fct).fnc.usrfnc!
+  fcf = getSolverData(fct).fnc.usrfnc!
   isPartial(fcf)
 end
 
@@ -871,7 +912,7 @@ function setCliqPotentials!(dfg::G,
   fcts = map(x->getFactor(dfg, x), fctsyms)
   getData(cliq).partialpotential = map(x->isPartial(x), fcts)
   for fct in fcts
-    solverData(fct).potentialused = true
+    getSolverData(fct).potentialused = true
   end
 
   @info "finding all frontals for down WIP"
@@ -1172,7 +1213,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
       idfct = getData(cliq).potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in solverData(DFG.getFactor(dfg, idfct)).fncargvID
+        for vertidx in getSolverData(DFG.getFactor(dfg, idfct)).fncargvID
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -1259,7 +1300,6 @@ function mcmcIterationIDs(cliq::TreeClique)
   # assocMat = getData(cliq).cliqAssocMat
   # msgMat = getData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
-
   sum(sum(map(Int,mat),dims=1)) == 0 ? error("mcmcIterationIDs -- unaccounted variables") : nothing
   mab = 1 .< sum(map(Int,mat),dims=1)
   cols = getCliqAllVarIds(cliq)
@@ -1397,8 +1437,9 @@ end
 
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
+    cliqKey = treel.bt[:index][cliq.index]
     childcliqs = TreeClique[]
-    for cIdx in MetaGraphs.outneighbors(treel.bt, cliq.index)
+    for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
         push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
     end
     return childcliqs
@@ -1411,6 +1452,30 @@ Return a vector of child cliques to `cliq`.
 """
 getChildren(treel::AbstractBayesTree, frtsym::Symbol) = childCliqs(treel, frtsym)
 getChildren(treel::AbstractBayesTree, cliq::TreeClique) = childCliqs(treel, cliq)
+
+"""
+    $SIGNATURES
+Get edges to children cliques
+"""
+getEdgesChildren(tree::BayesTree, cliq::TreeClique) = Graphs.out_edges(cliq, tree.bt)
+
+function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
+
+"""
+    $SIGNATURES
+Get edges to parent clique
+"""
+getEdgesParent(tree::BayesTree, cliq::TreeClique) = Graphs.in_edges(cliq, tree.bt)
+
+function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
+  [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
+end
+
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
 
 """
     $SIGNATURES
@@ -1447,8 +1512,9 @@ function parentCliq(treel::BayesTree, frtsym::Symbol)
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)
+  cliqKey = treel.bt[:index][cliq.index]
   parentcliqs = TreeClique[]
-  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliq.index)
+  for pIdx in  MetaGraphs.inneighbors(treel.bt, cliqKey)
     push!(parentcliqs, get_prop(treel.bt, pIdx, :clique))
   end
   return parentcliqs
@@ -1646,4 +1712,23 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
 
   # return loaded and converted tree
   return savetree
+end
+
+"""
+    $SIGNATURES
+
+Return Tuple of number cliques (Marginalized, Reused).
+"""
+function calcCliquesRecycled(tree::BayesTree)
+  numMarg = 0
+  numReused = 0
+  numBoth = 0
+
+  for (key, cliq) in tree.cliques
+    numReused += getData(cliq).isCliqReused ? 1 : 0
+    numMarg += getData(cliq).allmarginalized ? 1 : 0
+    numBoth += getData(cliq).allmarginalized && getData(cliq).isCliqReused ? 1 : 0
+  end
+
+  return length(tree.cliques), numMarg, numReused, numBoth
 end

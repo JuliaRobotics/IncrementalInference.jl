@@ -2,6 +2,9 @@
 
 SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
 
+#Supported types for parametric
+ParametricTypes = Union{Normal, MvNormal}
+
 
 """
 $(TYPEDEF)
@@ -10,9 +13,8 @@ Most basic continuous scalar variable a `::FactorGraph` object.
 """
 struct ContinuousScalar <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::Tuple{Symbol}
-  ContinuousScalar(;labels::Vector{<:AbstractString}=String[], manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, labels, manifolds)
+  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
 end
 
 """
@@ -22,18 +24,16 @@ Continuous variable of dimension `.dims` on manifold `.manifolds`.
 """
 struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::T1
   ContinuousMultivariate{T}() where {T} = new()
-  ContinuousMultivariate{T}(x::Int;labels::Vector{<:AbstractString}=String[], manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, labels, manifolds)
+  ContinuousMultivariate{T}(x::Int; manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, manifolds)
 end
 
 function ContinuousMultivariate(x::Int;
-                                labels::Vector{<:AbstractString}=String[],
                                 manifolds::T1=(:Euclid,)  )  where {T1 <: Tuple}
   #
-  @show maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
-  ContinuousMultivariate{typeof(maniT)}(x, labels=labels, manifolds=maniT)
+  maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
+  ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
 end
 
 
@@ -47,6 +47,31 @@ struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBel
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+
+# TODO maybe replace X with a type.
+function (s::Prior{<:ParametricTypes})(X1::Vector{Float64};
+                    userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = [meas - X1[1]]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res #((res) .^ 2)
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
+end
 
 """
 $(TYPEDEF)
@@ -66,6 +91,29 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
     MsgPrior{T}(z, infd)
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+function (s::MsgPrior{<:ParametricTypes})(X1::Vector{Float64};
+                       userdata::Union{Nothing,FactorMetadata}=nothing)
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = [meas - X1[1]]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end                    #
+end
 
 struct PackedMsgPrior <: PackedInferenceType where T
   Z::String
@@ -132,6 +180,32 @@ function (s::LinearConditional)(res::Array{Float64},
   #
   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
   nothing
+end
+
+# parametric specific functor
+function (s::LinearConditional{<:ParametricTypes})(X1::Vector{Float64},
+                                X2::Vector{Float64};
+                                userdata::Union{Nothing,FactorMetadata}=nothing)
+                                #can I change userdata to a keyword arg
+
+  if isa(s.Z, Normal)
+    meas = mean(s.Z)
+    σ = std(s.Z)
+    # res = similar(X2)
+    res = [meas - (X2[1] - X1[1])]
+    return (res/σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- (X2 .- X1)
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
 end
 
 

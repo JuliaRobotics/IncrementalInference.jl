@@ -5,29 +5,16 @@
 import DistributedFactorGraphs: AbstractPointParametricEst
 
 
-export getPPESuggestedAll, findVariablesNear
-
+export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 
 
 # export setSolvable!
-
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
-"""
-    $SIGNATURES
-
-Return the order sensitive list of variables related to factor `fct`.
-
-Related
-
-ls, lsf, lsfPriors
-"""
-getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
-getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
-
+#getVariableOrder moved to DFG
 
 """
     $SIGNATURES
@@ -45,7 +32,7 @@ end
 Get graph node (variable or factor) dimension.
 """
 getDimension(var::DFGVariable) = getSofttype(var).dims
-getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
+getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 """
     $SIGNATURES
@@ -215,7 +202,7 @@ end
 
 function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
   for (key, id) in fgl.fIDs
-    solverData(getFactor(fgl, key)).fnc.threadmodel = model
+    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
   end
   nothing
 end
@@ -284,7 +271,7 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
+isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
 """
@@ -296,7 +283,7 @@ Related
 
 getMultihypoDistribution
 """
-isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(getSolverData(fct).fnc.hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -307,7 +294,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
+getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES
@@ -319,7 +306,7 @@ function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
-    solverData(getVariable(fgl, sym)).ismargin = false
+    getSolverData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
@@ -353,6 +340,24 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
   nothing
 end
 
+"""
+    $SIGNATURES
+
+Enable defaults for fixed-lag-like operation by using smart message passing on the tree.
+
+Notes:
+- These are only default settings, and can be modified in each use case scenario.
+- Default does not update downsolve through to leaves of the tree.
+"""
+function defaultFixedLagOnTree!(dfg::AbstractDFG,
+                                len::Int=30;
+                                limitfixeddown::Bool=true )
+  #
+  getSolverParams(dfg).isfixedlag = true
+  getSolverParams(dfg).qfl = len
+  getSolverParams(dfg).limitfixeddown = limitfixeddown
+  getSolverParams(dfg)
+end
 
 """
     $SIGNATURES
@@ -367,7 +372,7 @@ function getPPESuggestedAll(dfg::AbstractDFG,
                             regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
   #
   # get values
-  vsyms = getVariableIds(dfg, regexFilter) |> sortDFG
+  vsyms = listVariables(dfg, regexFilter) |> sortDFG
   slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)
