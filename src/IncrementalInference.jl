@@ -412,7 +412,6 @@ export AbstractDFG,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
-  solveFactorMeasurements,
 
   # user functions
   proposalbeliefs,
@@ -537,6 +536,7 @@ include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
+include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
