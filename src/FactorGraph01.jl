@@ -11,7 +11,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # # For Bayes tree
 
 # still used for Bayes Tree
-import DistributedFactorGraphs: getData
+# import DistributedFactorGraphs: getData
 
 function getData(v::TreeClique)
   # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"

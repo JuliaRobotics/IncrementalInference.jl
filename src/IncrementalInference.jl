@@ -29,6 +29,10 @@ using
   JSON2,
   Combinatorics
 
+#added for parametric
+using ValueShapes
+using NLSolversBase
+
 using Logging
 
 # bringing in BSD 3-clause ccolamd
@@ -36,9 +40,11 @@ include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
+const IIF = IncrementalInference
+export IIF
+
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 
 import Base: convert

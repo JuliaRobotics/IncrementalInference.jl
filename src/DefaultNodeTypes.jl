@@ -50,14 +50,14 @@ getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
 # TODO maybe replace X with a type.
-function (s::Prior{<:ParametricTypes})(X1::Vector{Float64};
-                    userdata::Union{Nothing,FactorMetadata}=nothing)
+function (s::Prior{<:ParametricTypes})(X1::Vector{T};
+                    userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
 
   if isa(s.Z, Normal)
     meas = s.Z.μ
     σ = s.Z.σ
     #TODO confirm signs
-    res = [meas - X1[1]]
+    res = meas - X1[1]
     return (res./σ) .^ 2
 
   elseif isa(s.Z, MvNormal)
@@ -65,8 +65,7 @@ function (s::Prior{<:ParametricTypes})(X1::Vector{Float64};
     iΣ = invcov(s.Z)
     #TODO confirm math : Σ^(1/2)*X
     res = meas .- X1
-    return res' * iΣ * res #((res) .^ 2)
-
+    return res' * iΣ * res # + 2*log(1/(  sqrt(det(Σ)*(2pi)^k) )) ## cancel ×1/2 in calling function ## k = dim(μ)
   else
     #this should not happen
     @error("$s not suported, please use non-parametric")
@@ -92,14 +91,14 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-function (s::MsgPrior{<:ParametricTypes})(X1::Vector{Float64};
-                       userdata::Union{Nothing,FactorMetadata}=nothing)
+function (s::MsgPrior{<:ParametricTypes})(X1::Vector{T};
+                       userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
 
   if isa(s.Z, Normal)
     meas = s.Z.μ
     σ = s.Z.σ
     #TODO confirm signs
-    res = [meas - X1[1]]
+    res = meas - X1[1]
     return (res./σ) .^ 2
 
   elseif isa(s.Z, MvNormal)
@@ -183,16 +182,16 @@ function (s::LinearConditional)(res::Array{Float64},
 end
 
 # parametric specific functor
-function (s::LinearConditional{<:ParametricTypes})(X1::Vector{Float64},
-                                X2::Vector{Float64};
-                                userdata::Union{Nothing,FactorMetadata}=nothing)
+function (s::LinearConditional{<:ParametricTypes})(X1::Vector{T},
+                                X2::Vector{T};
+                                userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
                                 #can I change userdata to a keyword arg
 
   if isa(s.Z, Normal)
     meas = mean(s.Z)
     σ = std(s.Z)
     # res = similar(X2)
-    res = [meas - (X2[1] - X1[1])]
+    res = meas - (X2[1] - X1[1])
     return (res/σ) .^ 2
 
   elseif isa(s.Z, MvNormal)
