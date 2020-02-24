@@ -4,7 +4,7 @@
 
 Solve a Gaussian factor graph.
 """
-function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametric)
+function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametric, autodiff = :finite)
 
   varIds = listVariables(fg)
   #TODO dimention di, its set to maximim and assumes all is the same
@@ -18,13 +18,13 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
   function totalCost(X)
 
     shapedX = varshapes(X)
-    res::Float64 = 0
+    res = 0
     for fct in getFactors(fg)
 
       cf = getFactorType(fct)
       varOrder = getVariableOrder(fct)
 
-      Xparams = [collect(getproperty(shapedX, varId)) for varId in varOrder]
+      Xparams = [getproperty(shapedX, varId) for varId in varOrder]
 
       retval = cf(Xparams...)
       # @assert retVal |> typeof == Float64
@@ -34,7 +34,7 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
 
   end
 
-  tdtotalCost = TwiceDifferentiable(totalCost, initValues)
+  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
   result = optimize(tdtotalCost, initValues, BFGS())
   rv = Optim.minimizer(result)
 

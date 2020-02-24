@@ -50,7 +50,7 @@ getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
 # TODO maybe replace X with a type.
-function (s::Prior{<:ParametricTypes})(X1::Vector{T};
+function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
                     userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
 
   if isa(s.Z, Normal)
@@ -91,7 +91,7 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-function (s::MsgPrior{<:ParametricTypes})(X1::Vector{T};
+function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
 
   if isa(s.Z, Normal)
@@ -182,8 +182,8 @@ function (s::LinearConditional)(res::Array{Float64},
 end
 
 # parametric specific functor
-function (s::LinearConditional{<:ParametricTypes})(X1::Vector{T},
-                                X2::Vector{T};
+function (s::LinearConditional{<:ParametricTypes})(X1::AbstractVector{T},
+                                X2::AbstractVector{T};
                                 userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
                                 #can I change userdata to a keyword arg
 
