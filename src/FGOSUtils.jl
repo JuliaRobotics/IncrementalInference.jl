@@ -271,7 +271,7 @@ Reset initialization flag on all variables in `::AbstractDFG`.
 Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
-function resetVariableAllInitializations!(fgl::AbstactDFG)
+function resetVariableAllInitializations!(fgl::AbstractDFG)
   vsyms = ls(fgl)
   for sym in vsyms
     setVariableInitialized!(getVariable(fgl, sym), :false)
