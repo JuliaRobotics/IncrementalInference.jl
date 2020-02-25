@@ -143,69 +143,10 @@ function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractP
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
 
-"""
-    $(SIGNATURES)
-
-Return array of all variable nodes connected to the last `n` many poses (`:x*`).
-
-Example:
-
-```julia
-# Shallow copy the tail end of poses from a factor graph `fg1`
-vars = lsRear(fg1, 5)
-fg1_r5 = subgraphFromVerts(fg1, vars)
-```
-"""
-function lsRear(fgl::FactorGraph, n::Int=1)
-  @warn "lsRear in current form is not gauranteed to work right, use sort(ls(fg, r\"x\")[end]) instead.  Also see sortVarNested"
-  lasts = ls(fgl)[1][(end-n):end]
-  syms = ls(fgl, lasts)
-  union(lsf.(fgl, syms)[:]...)
-end
-
-
-"""
-    $SIGNATURES
-
-Return `Vector{Symbol}` of landmarks attached to vertex vsym in `fgl::FactorGraph`.
-"""
-function landmarks(fgl::FactorGraph, vsym::Symbol)
-  fsyms = ls(fgl, vsym)
-  lms = Symbol[]
-  for fs in fsyms
-    for varv = lsf(fgl, fs)
-      if string(varv)[1] == 'l'
-        push!(lms, varv)
-      end
-    end
-  end
-  lms
-end
 
 
 
-function evalLikelihood(fg::FactorGraph, sym::Symbol, point::Vector{Float64})
-  p = getVertKDE(fg, sym)
-  Ndim(p) == length(point) ? nothing : error("point (dim=$(length(point))) must have same dimension as belief (dim=$(Ndim(p)))")
-  evaluateDualTree(p, reshape(point,:,1))[1]
-end
 
-# Evaluate the likelihood of an Array{2} of points on the marginal belief of some variable
-# note the dimensions must match
-function evalLikelihood(fg::FactorGraph, sym::Symbol, points::Array{Float64,2})
-  p = getVertKDE(fg, sym)
-  Ndim(p) == size(points,1) ? nothing : error("points (dim=$(size(points,1))) must have same dimension as belief (dim=$(Ndim(p)))")
-  evaluateDualTree(p, (points))
-end
-
-
-
-function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
-  for (key, id) in fgl.fIDs
-    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
-  end
-  nothing
-end
 
 # not sure if and where this is still being used
 function _evalType(pt::String)::Type
@@ -217,17 +158,6 @@ function _evalType(pt::String)::Type
         err = String(take!(io))
         error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
     end
-end
-
-"""
-    $(SIGNATURES)
-
-Print the maximum point values form all variables approximate marginals in the factor graph.
-The full marginal can be recovered for example `X0 = getVertKDE(fg, :x0)`.
-"""
-function printgraphmax(fgl::FactorGraph)
-    verts = union(ls(fgl)...)
-    map(v -> println("$v : $(getKDEMax(getVertKDE(fgl, v)))"), verts);
 end
 
 
@@ -273,6 +203,15 @@ Return `::Bool` on whether this variable has been marginalized.
 """
 isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
+
+function setThreadModel!(fgl::AbstractDFG;
+                         model=IncrementalInference.SingleThreaded)
+  #
+  for (key, id) in fgl.fIDs
+    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
+  end
+  nothing
+end
 
 """
     $SIGNATURES
@@ -320,19 +259,19 @@ Related
 
 dontMarginalizeVariablesAll!
 """
-function unfreezeVariablesAll!(fgl::G) where G <: AbstractDFG
+function unfreezeVariablesAll!(fgl::AbstractDFG)
   dontMarginalizeVariablesAll!(fgl)
 end
 
 """
     $SIGNATURES
 
-Reset initialization flag on all variables in `::FactorGraphs`.
+Reset initialization flag on all variables in `::AbstractDFG`.
 
 Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
-function resetVariableAllInitializations!(fgl::FactorGraph)
+function resetVariableAllInitializations!(fgl::AbstactDFG)
   vsyms = ls(fgl)
   for sym in vsyms
     setVariableInitialized!(getVariable(fgl, sym), :false)
