@@ -16,13 +16,14 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   varsyms = fcto._variableOrderSymbols
   vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
   fcttype = getFactorType(fcto)
-  zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
-  res = zeros(zDim)
   ud = FactorMetadata()
   meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
+  # get measurement dimension
+  zDim = getSolverData(fcto).fnc.zDim
+  res = zeros(zDim)
 
   function makemeas!(i, meas, dm)
     meas[1][:,i] = dm
@@ -62,3 +63,21 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
   return meas[1], meas0
 end
+
+
+
+
+function approxDeconv(dfg::AbstractDFG, sym1::Symbol, sym2::Symbol)
+
+  var1 = getVariable(dfg, sym1)
+  var2 = getVariable(dfg, sym2)
+
+
+
+
+end
+
+
+
+
+#

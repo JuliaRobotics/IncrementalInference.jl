@@ -171,12 +171,12 @@ struct LinearConditional{T} <: IncrementalInference.FunctorPairwise where T <: S
   Z::T
 end
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
-function (s::LinearConditional)(res::Array{Float64},
+function (s::LinearConditional)(res::Array{<:Real},
                                 userdata::FactorMetadata,
                                 idx::Int,
-                                meas::Tuple{Array{Float64, 2}},
-                                X1::Array{Float64,2},
-                                X2::Array{Float64,2}  )
+                                meas::Tuple{Array{<:Real, 2}},
+                                X1::Array{<:Real,2},
+                                X2::Array{<:Real,2}  )
   #
   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
   nothing
