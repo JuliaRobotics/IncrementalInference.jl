@@ -38,7 +38,7 @@ using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-const DFG = DistributedFactorGraphs
+# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 
 import Base: convert

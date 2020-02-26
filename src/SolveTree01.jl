@@ -75,7 +75,8 @@ function packFromLocalPotentials!(dfg::AbstractDFG,
     fct = DFG.getFactor(dfg, idfct)
     data = getSolverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+    if length( findall(getVariableOrder(fct) .== vsym) ) >= 1 && !data.fnc.partial
+    # if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, fct.label)
@@ -100,7 +101,7 @@ function packFromLocalPartials!(fgl::G,
     !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
     data = getSolverData(vert)
-    if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
+    if length( findall(getVariableOrder(vert) .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims

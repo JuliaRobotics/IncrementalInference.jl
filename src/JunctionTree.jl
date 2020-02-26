@@ -1213,7 +1213,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
       idfct = getData(cliq).potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in getSolverData(DFG.getFactor(dfg, idfct)).fncargvID
+        for vertidx in getVariableOrder(DFG.getFactor(dfg, idfct)) #.fncargvID
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end
@@ -1628,13 +1628,15 @@ function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
   return stack
 end
 
+# import DistributedFactorGraphs: getVariableOrder
+#
+# getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
+
 """
     $SIGNATURES
 
-Return the variable order stored in a tree object.
+Return the variable elimination order stored in a tree object.
 """
-getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
-
 getEliminationOrder(treel::AbstractBayesTree) = treel.variableOrder
 
 

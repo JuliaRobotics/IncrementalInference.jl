@@ -1024,10 +1024,10 @@ function addFactor!(dfg::G,
                         tags=Set(union(labels, [:FACTOR])),
                         solvable=solvable)
 
-  # TODO: Need to remove this...
-  for vert in Xi
-    push!(solverData.fncargvID, vert.label)
-  end
+  # # TODO: Need to remove this...
+  # for vert in Xi
+  #   push!(solverData.fncargvID, vert.label)
+  # end
 
   success = DFG.addFactor!(dfg, newFactor)
 
