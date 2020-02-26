@@ -900,6 +900,7 @@ function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique;
 
   #TODO don't use this getAdjacencyMatrixSymbols
   adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
+  # adjTEST = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
   mask = map(x->(x in frtl), adj[1,:])
   subAdj = adj[2:end,mask] .!= nothing
   newFrtlOrder = Symbol.(adj[1,mask])
