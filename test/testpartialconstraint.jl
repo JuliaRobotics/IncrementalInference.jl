@@ -58,9 +58,8 @@ memcheck = getVal(v1)
 end
 
 @testset "test solving of factor graph" begin
-  tree = wipeBuildNewTree!(fg)
-
-  inferOverTree!(fg,tree, N=N)
+  getSolverParams(fg).N = N
+  tree, smt, hist = solveTree!(fg)
   pts = getVal(fg, :x1)
   @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.25
   @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.25
@@ -189,10 +188,10 @@ val, = predictbelief(fg, v2, [f3;f4], N=N)
 @test (Statistics.std(val,dims=2)[2] .- 1.0) < 3.0
 
 
-tree = wipeBuildNewTree!(fg )#, drawpdf=true)
-# run(`evince bt.pdf`)
 
-inferOverTree!(fg,tree, N=N)
+getSolverParams(fg).N = N
+tree, smt, hist = solveTree!(fg)
+
 
 pts = getVal(fg, :x1)
 @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.5

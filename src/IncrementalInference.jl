@@ -38,7 +38,7 @@ using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-const DFG = DistributedFactorGraphs
+# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 
 import Base: convert
@@ -48,7 +48,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
-import DistributedFactorGraphs: getVariableOrder
+# import DistributedFactorGraphs: getVariableOrder
 # import DistributedFactorGraphs: getEstimates
 
 # missing exports

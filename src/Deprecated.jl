@@ -73,24 +73,3 @@ function writeGraphPdf(fgl::G;
   end
   nothing
 end
-
-
-
-
-
-"""
-    $SIGNATURES
-
-List vertices two neighbors deep.
-"""
-function ls2(fgl::FactorGraph, vsym::Symbol)
-  @warn "Deprecated, please use DFG.ls2"
-  xxf = ls(fgl, vsym)
-  xlxl = Symbol[]
-  for xf in xxf
-    xx = lsf(fgl,xf)
-    xlxl = union(xlxl, xx)
-  end
-  xlxl = setdiff(xlxl, [vsym])
-  return xlxl
-end

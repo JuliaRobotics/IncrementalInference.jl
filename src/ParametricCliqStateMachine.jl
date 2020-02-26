@@ -413,16 +413,16 @@ end
 """
     $SIGNATURES
 
-Transfer contents of `src::FactorGraph` variables `syms::Vector{Symbol}` to `dest::FactorGraph`.
+Transfer contents of `src::AbstractDFG` variables `syms::Vector{Symbol}` to `dest::AbstractDFG`.
 
 Notes
 - Reads, `dest` := `src`, for all `syms`
 """
-function transferUpdateSubGraphParametric!(dest::T,
-                                           src::T,
+function transferUpdateSubGraphParametric!(dest::InMemoryDFGTypes,
+                                           src::InMemoryDFGTypes,
                                            syms::Vector{Symbol},
                                            solveKey::Symbol=:parametric,
-                                           logger=ConsoleLogger()  ) where {T <: DFG.InMemoryDFGTypes}
+                                           logger=ConsoleLogger()  )
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
