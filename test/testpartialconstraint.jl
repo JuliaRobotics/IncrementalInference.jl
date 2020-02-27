@@ -58,9 +58,8 @@ memcheck = getVal(v1)
 end
 
 @testset "test solving of factor graph" begin
-  tree = wipeBuildNewTree!(fg)
-
-  inferOverTree!(fg,tree, N=N)
+  getSolverParams(fg).N = N
+  tree, smt, hist = solveTree!(fg)
   pts = getVal(fg, :x1)
   @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.25
   @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.25
@@ -76,12 +75,12 @@ mutable struct DevelopPartialPairwise <: IncrementalInference.FunctorPairwise
 end
 getSample(dpl::DevelopPartialPairwise, N::Int=1) = (rand(dpl.x, N)', )
 
-function (dp::DevelopPartialPairwise)(res::Vector{Float64},
-                              userdata::FactorMetadata,
-                              idx::Int,
-                              meas::Tuple, #{RowVector{Float64,Array{Float64,1}}}, #Tuple{Array{Float64,2}},
-                              x1::Array{Float64},
-                              x2::Array{Float64}  )
+function (dp::DevelopPartialPairwise)(res::AbstractVector{<:Real},
+                                      userdata::FactorMetadata,
+                                      idx::Int,
+                                      meas::Tuple, #{RowVector{<:Real,Array{<:Real,1}}}, #Tuple{Array{<:Real,2}},
+                                      x1::AbstractArray{<:Real},
+                                      x2::AbstractArray{<:Real}  )
   #
   res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
   nothing
@@ -189,10 +188,10 @@ val, = predictbelief(fg, v2, [f3;f4], N=N)
 @test (Statistics.std(val,dims=2)[2] .- 1.0) < 3.0
 
 
-tree = wipeBuildNewTree!(fg )#, drawpdf=true)
-# run(`evince bt.pdf`)
 
-inferOverTree!(fg,tree, N=N)
+getSolverParams(fg).N = N
+tree, smt, hist = solveTree!(fg)
+
 
 pts = getVal(fg, :x1)
 @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.5

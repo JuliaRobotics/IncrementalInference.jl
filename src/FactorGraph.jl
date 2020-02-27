@@ -476,7 +476,7 @@ end
 """
 $(SIGNATURES)
 
-Add a variable node `lbl::Symbol` to `fg::FactorGraph`, as `softtype<:InferenceVariable`.
+Add a variable node `lbl::Symbol` to `fg::AbstractDFG`, as `softtype<:InferenceVariable`.
 
 Example
 -------
@@ -1024,10 +1024,10 @@ function addFactor!(dfg::G,
                         tags=Set(union(labels, [:FACTOR])),
                         solvable=solvable)
 
-  # TODO: Need to remove this...
-  for vert in Xi
-    push!(solverData.fncargvID, vert.label)
-  end
+  # # TODO: Need to remove this...
+  # for vert in Xi
+  #   push!(solverData.fncargvID, vert.label)
+  # end
 
   success = DFG.addFactor!(dfg, newFactor)
 
@@ -1052,56 +1052,6 @@ function addFactor!(dfg::AbstractDFG,
 end
 
 
-
-# """
-#     $SIGNATURES
-#
-# Delete factor and its edges.
-# """
-# function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
-#   fid = fgl.fIDs[fsym]
-#   eds = fgl.g.inclist[fid]
-#   alledsids = Int[]
-#   nedges = length(eds)
-#   for eds in fgl.g.inclist[fid]
-#     union!(alledsids, [eds.source.index; eds.target.index])
-#   end
-#   for edids in setdiff!(alledsids, fid)
-#     count = 0
-#     for eds in fgl.g.inclist[edids]
-#       count += 1
-#       if fid == eds.source.index || fid == eds.target.index
-#         deleteat!(fgl.g.inclist[edids], count)
-#         break
-#       end
-#     end
-#   end
-#   delete!(fgl.g.inclist, fid)
-#   fgl.g.nedges -= nedges
-#   delete!(fgl.g.vertices, fid)
-#   delete!(fgl.fIDs, fsym)
-#   deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
-#   nothing
-# end
-
-# """
-#     $SIGNATURES
-#
-# Delete variables, and also the factors+edges if `andfactors=true` (default).
-# """
-# function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
-#   vid = fgl.IDs[vsym]
-#   vert = fgl.g.vertices[vid]
-#   if andfactors
-#     for ne in Graphs.out_neighbors(vert, fgl.g)
-#       deleteFactor!(fgl, Symbol(ne.label))
-#     end
-#   end
-#   delete!(fgl.g.vertices, vid)
-#   delete!(fgl.IDs, vsym)
-#   deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
-#   nothing
-# end
 
 
 function prtslperr(s)
@@ -1335,38 +1285,6 @@ function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
   return getVertKDE(dfg, lbl)
-end
-
-function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int,TreeClique},
-                              edgedict::Dict{Int,Graphs.Edge{TreeClique}})
-  #asfd
-  for vert in vertdict
-    for newedge in out_edges(vert[2],fgl.g)
-      if !haskey(edgedict, newedge.index)
-        edgedict[newedge.index] = newedge
-      end
-    end
-  end
-
-  nothing
-end
-
-# dictionary of unique vertices from edgelist
-function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int,Graphs.Edge{TreeClique}},
-  vertdict::Dict{Int,TreeClique})
-
-  # go through all source and target nodes
-  for edge in edgedict
-    if !haskey(vertdict, edge[2].source.index)
-      vertdict[edge[2].source.index] = edge[2].source
-    end
-    if !haskey(vertdict, edge[2].target.index)
-      vertdict[edge[2].target.index] = edge[2].target
-    end
-  end
-  nothing
 end
 
 function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})

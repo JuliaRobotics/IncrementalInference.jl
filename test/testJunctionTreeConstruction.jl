@@ -11,7 +11,6 @@ using Test
   vo = [:l1, :l2, :x1, :x2, :x3]
   tree = buildTreeFromOrdering!(fg, vo)
   @test vo == tree.variableOrder
-  @test vo == getVariableOrder(tree)
   @test vo == getEliminationOrder(tree)
 
 end
@@ -89,7 +88,7 @@ end
   tree2 = wipeBuildNewTree!(fg)
   # drawTree(tree2, show=true)
 
-  @test getVariableOrder(tree1) == getVariableOrder(tree1)
+  @test getEliminationOrder(tree1) == getEliminationOrder(tree1)
 
 end
 
