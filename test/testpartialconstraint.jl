@@ -75,12 +75,12 @@ mutable struct DevelopPartialPairwise <: IncrementalInference.FunctorPairwise
 end
 getSample(dpl::DevelopPartialPairwise, N::Int=1) = (rand(dpl.x, N)', )
 
-function (dp::DevelopPartialPairwise)(res::Vector{<:Real},
-                              userdata::FactorMetadata,
-                              idx::Int,
-                              meas::Tuple, #{RowVector{<:Real,Array{<:Real,1}}}, #Tuple{Array{<:Real,2}},
-                              x1::Array{<:Real},
-                              x2::Array{<:Real}  )
+function (dp::DevelopPartialPairwise)(res::AbstractVector{<:Real},
+                                      userdata::FactorMetadata,
+                                      idx::Int,
+                                      meas::Tuple, #{RowVector{<:Real,Array{<:Real,1}}}, #Tuple{Array{<:Real,2}},
+                                      x1::AbstractArray{<:Real},
+                                      x2::AbstractArray{<:Real}  )
   #
   res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
   nothing

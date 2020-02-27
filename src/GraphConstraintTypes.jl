@@ -121,12 +121,12 @@ end
 function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
-function (ra::Ranged)(res::Vector{<:Real},
+function (ra::Ranged)(res::AbstractVector{<:Real},
     userdata::FactorMetadata,
     idx::Int,
-    meas::Tuple{Array{<:Real,2}},
-    p1::Array{<:Real},
-    l1::Array{<:Real})
+    meas::Tuple{<:AbstractArray{<:Real,2}},
+    p1::AbstractArray{<:Real},
+    l1::AbstractArray{<:Real})
 
   res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
   nothing

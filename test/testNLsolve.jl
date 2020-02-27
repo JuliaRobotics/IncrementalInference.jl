@@ -30,12 +30,12 @@ end
 OneDimensionTest(a::T) where T = OneDimensionTest{T}(a)
 
 # standardized parameter list used by IIF
-function (Dp::OneDimensionTest)(res::Array{<:Real},
+function (Dp::OneDimensionTest)(res::AbstractArray{<:Real},
                                 userdata::FactorMetadata,
                                 idx::Int,
-                                meas::Tuple{Array{<:Real,2}},
-                                p1::Array{<:Real,2},
-                                p2::Array{<:Real,2} )
+                                meas::Tuple{<:AbstractArray{<:Real,2}},
+                                p1::AbstractArray{<:Real,2},
+                                p2::AbstractArray{<:Real,2} )
   #
   res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing

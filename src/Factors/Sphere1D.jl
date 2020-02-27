@@ -14,12 +14,12 @@ Sphere1Sphere1(z::T) where {T <: SamplableBelief} = Sphere1Sphere1{T}(z)
 
 getSample(s::Sphere1Sphere1{<: SamplableBelief}, N::Int=1) = (rand(s.Z, N), )
 
-function (s::Sphere1Sphere1{<: SamplableBelief})(res::Vector{<:Real},
+function (s::Sphere1Sphere1{<: SamplableBelief})(res::AbstractVector{<:Real},
                                                  userdata::FactorMetadata,
                                                  idx::Int,
                                                  meas::Tuple,
-                                                 wxi::Array{<:Real,2},
-                                                 wxj::Array{<:Real,2}  )
+                                                 wxi::AbstractArray{<:Real,2},
+                                                 wxj::AbstractArray{<:Real,2}  )
   #
   wXjhat = addtheta(wxi[1,idx], meas[1][1,idx])
   res[1] = difftheta(wxj[1,idx], wXjhat)  # jXjhat =

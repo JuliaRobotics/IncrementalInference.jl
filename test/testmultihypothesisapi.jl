@@ -19,12 +19,12 @@ mutable struct DevelopLikelihood <: FunctorPairwise
   x::Distribution
 end
 getSample(dpl::DevelopLikelihood, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
-function (vv::DevelopLikelihood)(res::Array{<:Real},
-            userdata,
-            idx::Int,
-            meas::Tuple,
-            wXi::Array{<:Real,2},
-            wXj::Array{<:Real,2}  )::Nothing
+function (vv::DevelopLikelihood)(res::AbstractArray{<:Real},
+                                 userdata::FactorMetadata,
+                                 idx::Int,
+                                 meas::Tuple,
+                                 wXi::AbstractArray{<:Real,2},
+                                 wXj::AbstractArray{<:Real,2}  )::Nothing
   #
   res[1] = meas[1][idx] - (wXj[1,idx] - wXi[1,idx])
   nothing

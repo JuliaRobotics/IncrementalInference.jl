@@ -12,12 +12,12 @@ end
 # y = mx + c
 # res = y      -      m*x  -  c
 #       meas          variables and fixed values
-function (lr::LineResidual)(res::Vector{<:Real},
+function (lr::LineResidual)(res::AbstractVector{<:Real},
                             userdata,
                             idx::Int,
                             z::Tuple,
-                            x::Array{<:Real,2},
-                            y::Array{<:Real,2}  )
+                            x::AbstractArray{<:Real,2},
+                            y::AbstractArray{<:Real,2}  )
   #
   res[1] = z[1][idx] - (y[1,idx] - (lr.m*x[1,idx] + lr.c))
   nothing
