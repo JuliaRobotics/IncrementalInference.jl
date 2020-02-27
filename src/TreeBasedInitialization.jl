@@ -691,7 +691,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
   lvarids = union(prntvars, reqMsgIds)
   # determine allowable factors, if any (only from parent cliq)
-  awfcts = getCliqAllFactIds(prnt)
+  awfcts = getCliqFactorIdsAll(prnt)
   with_logger(logger) do
       @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
       @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
@@ -699,7 +699,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  lsfg = buildSubgraphFromLabels(fgl, lvarids)
+  lsfg = buildSubgraphFromLabels!(fgl, lvarids)
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist

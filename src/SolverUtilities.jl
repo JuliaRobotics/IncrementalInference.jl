@@ -60,7 +60,7 @@ function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
 end
 
 
-function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
+function (ccw::CommonConvWrapper)(res::Vector{<:Real}, x::Vector{<:Real})
   shuffleXAltD!(ccw, x)
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
   # evaulate the user provided residual function with constructed set of parameters

@@ -1051,7 +1051,7 @@ function buildCliqSubgraph(dfg::AbstractDFG,
 end
 # @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
 # # build a subgraph copy of clique
-# subfg = buildSubgraphFromLabels(fgl,syms)
+# subfg = buildSubgraphFromLabels!(fgl,syms)
 #
 # # add upward messages to subgraph
 # msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)

@@ -25,11 +25,11 @@ function getSample(dpl::MultiModalConditional, N::Int=1)
   return (ret, p)
 end
 
-function (dp::MultiModalConditional)(res::Vector{Float64},
+function (dp::MultiModalConditional)(res::Vector{<:Real},
                                     idx::Int,
-                                    meas::Tuple{Array{Float64,2},Vector{Int64}},
-                                    x1::Array{Float64},
-                                    x2::Array{Float64}  )
+                                    meas::Tuple{Array{<:Real,2},Vector{Int64}},
+                                    x1::Array{<:Real},
+                                    x2::Array{<:Real}  )
   #
   res[1] = meas[1][1,idx] - (x2[1,idx]-x1[1,idx])
   nothing
