@@ -70,7 +70,13 @@ end
 @testset "CommonConvWrapper test" begin
 
 
-function (tt::Test2)(res::Vector{Float64}, userdata::FactorMetadata, idx::Int, meas::Tuple{Array{Float64,2}}, tp1::Array{Float64,2}, tp2::Array{Float64,2})
+function (tt::Test2)(res::AbstractVector{<:Real},
+                     userdata::FactorMetadata,
+                     idx::Int,
+                     meas::Tuple{<:AbstractArray{<:Real,2}},
+                     tp1::AbstractArray{<:Real,2},
+                     tp2::AbstractArray{<:Real,2}  )
+  #
   tp1[1,1]=-2.0;
   res[:] .= 1.0
   nothing;
@@ -128,12 +134,12 @@ getSample(pp1t::Pose1Pose1Test{T}, N::Int=1) where T = (reshape(rand(pp1t.Dx,N),
 
 
 #proposed standardized parameter list, does not have to be functor
-function (Dp::Pose1Pose1Test)(res::Array{Float64},
+function (Dp::Pose1Pose1Test)(res::AbstractArray{<:Real},
                               userdata::FactorMetadata,
                               idx::Int,
-                              meas::Tuple{Array{Float64,2}},
-                              p1::Array{Float64,2},
-                              p2::Array{Float64,2} )
+                              meas::Tuple{<:AbstractArray{<:Real,2}},
+                              p1::AbstractArray{<:Real,2},
+                              p2::AbstractArray{<:Real,2} )
   #
   res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
   nothing
