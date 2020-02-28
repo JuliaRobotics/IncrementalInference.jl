@@ -47,6 +47,8 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  graphinit::Bool
+  treeinit::Bool # still experimental with known errors
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
@@ -67,6 +69,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                graphinit::Bool=true,
+                treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
@@ -86,6 +90,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            graphinit,
+                                                                            treeinit,
                                                                             algorithms,
                                                                             devParams)
   #

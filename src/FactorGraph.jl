@@ -977,7 +977,7 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{<:DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
+function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:DFGVariable}; maxparallel::Int=200)::Symbol
   existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
@@ -1009,12 +1009,17 @@ function addFactor!(dfg::G,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=true,
+                    autoinit=:null,
+                    graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=50  ) where
+                    maxparallel::Int=200  ) where
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
+  if isa(autoinit, Bool)
+    @warn "autoinit deprecated, use graphinit instead"
+    graphinit = autoinit # force to user spec
+  end
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
@@ -1032,7 +1037,7 @@ function addFactor!(dfg::G,
   success = DFG.addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
-  autoinit && doautoinit!(dfg, Xi, singles=false)
+  graphinit && doautoinit!(dfg, Xi, singles=false)
 
   return newFactor
 end
@@ -1043,12 +1048,17 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=true,
+                    autoinit=:null,
+                    graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=50  )
+                    maxparallel::Int=200  )
   #
+  if isa(autoinit, Bool)
+    @warn "autoinit keyword argument deprecated, use graphinit instead."
+    graphinit = autoinit # force user spec
+  end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
@@ -1138,7 +1148,7 @@ function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=50)
+function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=200)
   #
     @show Si
   lbls = String[]
@@ -1148,14 +1158,14 @@ function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, autoinit=false, maxparallel=maxparallel)
+  addFactor!(dfg, Xi, genmarg, graphinit=false, maxparallel=maxparallel)
   nothing
 end
 
 function rmVarFromMarg(dfg::G,
                        fromvert::DFGVariable,
                        gm::Vector{DFGFactor};
-                       maxparallel::Int=50 )::Nothing where G <: AbstractDFG
+                       maxparallel::Int=200 )::Nothing where G <: AbstractDFG
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -1186,7 +1196,7 @@ end
 
 function buildBayesNet!(dfg::G,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=50,
+                        maxparallel::Int=200,
                         solvable::Int=1)::Nothing where G <: AbstractDFG
   #
   # addBayesNetVerts!(dfg, elimorder)

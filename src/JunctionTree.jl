@@ -425,11 +425,11 @@ end
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 """
-function buildTreeFromOrdering!(dfg::G,
+function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
                                 maxparallel::Int=50,
-                                solvable::Int=1 ) where G <: InMemoryDFGTypes
+                                solvable::Int=1 )
   #
   t0 =time_ns()
   println()
