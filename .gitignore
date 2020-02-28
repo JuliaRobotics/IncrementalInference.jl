@@ -5,4 +5,4 @@ src/tmpimgs/*.gif
 test/tmp/*.dot
 test/tmp/*.tex
 Manifest.toml
-
+/dev
