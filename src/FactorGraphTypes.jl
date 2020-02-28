@@ -90,6 +90,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            graphinit,
+                                                                            treeinit,
                                                                             algorithms,
                                                                             devParams)
   #
