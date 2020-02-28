@@ -1009,16 +1009,16 @@ function addFactor!(dfg::G,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=false,
+                    autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=200  ) where
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
-  if autoinit
+  if isa(autoinit, Bool)
     @warn "autoinit deprecated, use graphinit instead"
-    graphinit = autoinit # force true
+    graphinit = autoinit # force to user spec
   end
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
@@ -1048,14 +1048,14 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=false,
+                    autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=200  )
   #
-  if autoinit
+  if isa(autoinit, Bool)
     @warn "autoinit keyword argument deprecated, use graphinit instead."
-    graphinit = autoinit # force true
+    graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel )
