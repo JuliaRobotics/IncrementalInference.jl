@@ -4,7 +4,10 @@
 
 Solve a Gaussian factor graph.
 """
-function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametric, autodiff = :finite)
+function solveFactorGraphParametric(fg::AbstractDFG;
+                                    solvekey::Symbol=:parametric,
+                                    autodiff = :finite,
+                                    algorithm=BFGS())
 
   varIds = listVariables(fg)
   #TODO dimention di, its set to maximim and assumes all is the same
@@ -35,7 +38,7 @@ function solveFactorGraphParametric(fg::AbstractDFG; solvekey::Symbol=:parametri
   end
 
   tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
-  result = optimize(tdtotalCost, initValues, BFGS())
+  result = optimize(tdtotalCost, initValues, algorithm)
   rv = Optim.minimizer(result)
 
   H = hessian!(tdtotalCost, rv)
