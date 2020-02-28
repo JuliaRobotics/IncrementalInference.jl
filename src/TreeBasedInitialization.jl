@@ -918,7 +918,7 @@ function addMsgFactors!(subfg::AbstractDFG,
   for (msym, dm) in msgs
     if msym in svars
       # TODO prior missing manifold information
-      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -945,7 +945,7 @@ function addMsgFactors!(subfg::G,
     for dm in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
         push!(msgfcts, fc)
       end
     end

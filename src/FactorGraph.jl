@@ -531,14 +531,14 @@ function addVariable!(dfg::G,
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
   return addVariable!(dfg,
-               lbl,
-               sto,
-               N=N,
-               autoinit=autoinit,
-               solvable=solvable,
-               dontmargin=dontmargin,
-               labels=labels,
-               smalldata=smalldata  )
+                      lbl,
+                      sto,
+                      N=N,
+                      autoinit=autoinit,
+                      solvable=solvable,
+                      dontmargin=dontmargin,
+                      labels=labels,
+                      smalldata=smalldata  )
 end
 
 
@@ -1179,7 +1179,7 @@ function rmVarFromMarg(dfg::G,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, maxparallel=maxparallel)
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
