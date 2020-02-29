@@ -74,14 +74,14 @@ tree, smt, hist = solveTree!(fg)
 @test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 3.0
 
 
-using RoMEPlotting
-
-plotKDE(fg, [:l0;:l1])
-plotKDE(fg, [:x0;:x1;:x2])
-
 0
 end
 
+#
+# using RoMEPlotting
+#
+# plotKDE(fg, [:l0;:l1])
+# plotKDE(fg, [:x0;:x1;:x2])
 
 
 #
