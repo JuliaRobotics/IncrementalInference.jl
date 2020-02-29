@@ -21,6 +21,8 @@ end
 
 include("basicGraphsOperations.jl")
 
+include("testMixturePrior.jl")
+
 include("testPartialFactors.jl")
 
 @testset "basic Bayes tree construction" begin
