@@ -80,16 +80,16 @@ tree, smt, hist = solveTree!(fg, variableOrder = varor)
 
 
 # X should be at one of two modes
-@test 0.8*getSolverParams(fg).N < sum(-15 .< getPoints(getKDE(fg, :x1))[:] .< -5) + sum(5 .< getPoints(getKDE(fg, :x1))[:] .< 15)
+@test 0.7*getSolverParams(fg).N < sum(-18 .< getPoints(getKDE(fg, :x1))[:] .< -8) + sum(8 .< getPoints(getKDE(fg, :x1))[:] .< 18)
 
-@test 0.8*getSolverParams(fg).N < sum(-35 .< getPoints(getKDE(fg, :lp1))[:] .< -25)
+@test 0.7*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lp1))[:] .< -28)
 
-@test 0.8*getSolverParams(fg).N < sum(25 .< getPoints(getKDE(fg, :lp2))[:] .< 35)
+@test 0.7*getSolverParams(fg).N < sum(28 .< getPoints(getKDE(fg, :lp2))[:] .< 38)
 
-@test 0.2*getSolverParams(fg).N < sum(-35 .< getPoints(getKDE(fg, :lm1))[:] .< -25)
-@test 0.2*getSolverParams(fg).N < sum(25 .< getPoints(getKDE(fg, :lm2))[:] .< 35)
+@test 0.2*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lm1))[:] .< -28)
+@test 0.2*getSolverParams(fg).N < sum(28 .< getPoints(getKDE(fg, :lm2))[:] .< 38)
 
-# @test 0.2*getSolverParams(fg).N < sum(-15 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
+# @test 0.2*getSolverParams(fg).N < sum(-18 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
       # 0.2*getSolverParams(fg).N < sum(5 .< getPoints(getKDE(fg, :lm2))[:] .< 15)
 
 
