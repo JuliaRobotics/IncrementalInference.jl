@@ -13,21 +13,21 @@ function generateCanonicalFG_Kaess(;graphinit::Bool=false)
   fg = initfg()
 
   addVariable!(fg,:x1, ContinuousScalar)
-  addFactor!(fg, [:x1;], Prior(Normal()), autoinit=graphinit)
+  addFactor!(fg, [:x1;], Prior(Normal()), graphinit=graphinit)
 
 
   addVariable!(fg,:x2, ContinuousScalar)
-  addFactor!(fg,[:x1, :x2], LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg,[:x1, :x2], LinearConditional(Normal()), graphinit=graphinit)
 
   addVariable!(fg, :x3, ContinuousScalar)
-  addFactor!(fg,[:x2,:x3],LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg,[:x2,:x3],LinearConditional(Normal()), graphinit=graphinit)
 
   addVariable!(fg, :l1, ContinuousScalar)
-  addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) , autoinit=graphinit)
-  addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) , autoinit=graphinit)
+  addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) , graphinit=graphinit)
+  addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) , graphinit=graphinit)
 
   addVariable!(fg, :l2, ContinuousScalar)
-  addFactor!(fg, [:x3,:l2], LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg, [:x3,:l2], LinearConditional(Normal()), graphinit=graphinit)
 
   return fg
 end
@@ -53,16 +53,16 @@ function generateCanonicalFG_TestSymbolic(;graphinit::Bool=false)
   addVariable!(fg, :l2, ContinuousScalar)
   addVariable!(fg, :l3, ContinuousScalar)
 
-  addFactor!(fg, [:x1;:l1], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x2;:l1], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x4;:l2], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:l2;:x5], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x4;:l3], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x5;:l3], LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg, [:x1;:l1], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x2;:l1], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x4;:l2], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:l2;:x5], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x4;:l3], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x5;:l3], LinearConditional(Normal()), graphinit=graphinit)
 
   return fg
 end
@@ -89,17 +89,17 @@ function generateCanonicalFG_CaesarRing1D(;graphinit::Bool=false)
   addVariable!(fg, :x5, ContinuousScalar)
   addVariable!(fg, :x6, ContinuousScalar)
 
-  addFactor!(fg, [:x0], Prior(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x0;:x1], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x5;:x6], LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg, [:x0], Prior(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x0;:x1], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x5;:x6], LinearConditional(Normal()), graphinit=graphinit)
 
   addVariable!(fg, :l1, ContinuousScalar)
-  addFactor!(fg, [:x0;:l1], LinearConditional(Normal()), autoinit=graphinit)
-  addFactor!(fg, [:x6;:l1], LinearConditional(Normal()), autoinit=graphinit)
+  addFactor!(fg, [:x0;:l1], LinearConditional(Normal()), graphinit=graphinit)
+  addFactor!(fg, [:x6;:l1], LinearConditional(Normal()), graphinit=graphinit)
 
   return fg
 end

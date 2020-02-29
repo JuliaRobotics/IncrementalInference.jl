@@ -213,16 +213,33 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
+mutable struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
   Z::Vector{T}
   C::Distributions.Categorical
+  #derived values
+  labels::Vector{Int}
+  dims::Ref{Int}
+  smpls::Array{Float64,2}
   MixturePrior{T}() where T  = new{T}()
-  MixturePrior{T}(z::Vector{T}, c::Distributions.Categorical) where {T <: SamplableBelief} = new{T}(z, c)
-  MixturePrior{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = MixturePrior{T}(z, Distributions.Categorical(p))
+  MixturePrior{T}(z::Vector{T}, c::DiscreteNonParametric) where {T <: SamplableBelief} = new{T}(z, c, zeros(Int,0),0,zeros(1,0))
+  MixturePrior{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = new{T}(z, Distributions.Categorical(p), zeros(Int,0),0,zeros(1,0))
 end
-MixturePrior(z::Vector{T}, c::Union{Distributions.Categorical, Vector{Float64}}) where {T <: SamplableBelief} = MixturePrior{T}(z, c)
 
-getSample(s::MixturePrior, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+function MixturePrior(z::Vector{T}, c::Union{<:Distributions.DiscreteNonParametric, Vector{Float64}})::MixturePrior{T} where {T <: SamplableBelief}
+  MixturePrior{T}(z, c)
+end
+
+function getSample(s::MixturePrior, N::Int=1)
+  #out memory should be right size first
+  (length(s.labels) != N) && resize!(s.labels, N)
+  (s.dims[] != size(s.smpls,1)) && ( s.dims[] = size( rand(s.Z[1],1), 1) )
+  (size(s.smpls,2) != N) && ( s.smpls = Array{Float64,2}(undef,s.dims[],N) )
+  s.labels .= rand(s.C, N)
+  for i in 1:N
+    s.smpls[:,i] .= rand(s.Z[s.labels[i]],1)
+  end
+  (s.smpls, s.labels)
+end
 
 
 """

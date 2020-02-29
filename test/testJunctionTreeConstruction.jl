@@ -67,28 +67,28 @@ end
 
 @testset "Test tree formation and consistent APIs" begin
 
-  fg = generateCanonicalFG_TestSymbolic()
+fg = generateCanonicalFG_TestSymbolic()
 
-  #writeGraphPdf(fg, show=true)
+#writeGraphPdf(fg, show=true)
 
-  eo = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
+eo = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
 
-  tree = buildTreeFromOrdering!(fg,eo)
-  # drawTree(tree, show=true)
+tree = buildTreeFromOrdering!(fg,eo)
+# drawTree(tree, show=true)
 
-  @warn "TODO, complete further testing on tree formation"
+@warn "TODO, complete further testing on tree formation"
 
 
-  ## test variable order APIs consistent, see issue 499
+## test variable order APIs consistent, see issue 499
 
-  vo = getEliminationOrder(fg)
-  tree1 = resetBuildTreeFromOrder!(fg, vo)
-  # drawTree(tree1, show=true)
+vo = getEliminationOrder(fg)
+tree1 = resetBuildTreeFromOrder!(fg, vo)
+# drawTree(tree1, show=true)
 
-  tree2 = wipeBuildNewTree!(fg)
-  # drawTree(tree2, show=true)
+tree2 = wipeBuildNewTree!(fg)
+# drawTree(tree2, show=true)
 
-  @test getEliminationOrder(tree1) == getEliminationOrder(tree1)
+@test getEliminationOrder(tree1) == getEliminationOrder(tree1)
 
 end
 
