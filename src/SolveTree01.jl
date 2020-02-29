@@ -590,28 +590,23 @@ function treeProductUp(fg::AbstractDFG,
   #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
-  # IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs]
-
-  # get the local variable id::Int identifier
-  vertid = fg.IDs[sym]
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = NBPMessage[]
   for cl in childCliqs(tree, cliq)
     msgdict = upMsg(cl)
-    dict = Dict{Int, EasyMessage}()
+    dict = Dict{Symbol, EasyMessage}()
     for (dsy, btd) in msgdict
       manis = getSofttype(getVariable(fg, dsy)).manifolds
-
-      dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
+      dict[dsy] = convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, vertid)).manifolds
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
+  manis = getSofttype(getVariable(fg, sym)).manifolds
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end
