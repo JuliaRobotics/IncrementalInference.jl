@@ -56,8 +56,9 @@ addFactor!(fg, [:x1; :lm2; :lp2], LinearConditional(Normal(20., meas_noise)), mu
 addVariable!(fg, :lm1, ContinuousScalar, autoinit=graphinit, N=n_samples)
 addFactor!(fg, [:x1; :lm1; :lp1], LinearConditional(Normal(-20., meas_noise)), multihypo=[1.0; p_meas; p_map])
 
-#weak lp1 lm1 relation
+#weak lp1 lm1 relation to nudge one of two symmetric options
 # addFactor!(fg, [:lp1; :lm1], LinearConditional(Normal(0., 100.)))
+
 
 ensureAllInitialized!(fg)
 
