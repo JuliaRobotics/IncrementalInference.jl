@@ -89,8 +89,8 @@ tree, smt, hist = solveTree!(fg, variableOrder = varor)
 @test 0.2*getSolverParams(fg).N < sum(-35 .< getPoints(getKDE(fg, :lm1))[:] .< -25)
 @test 0.2*getSolverParams(fg).N < sum(25 .< getPoints(getKDE(fg, :lm2))[:] .< 35)
 
-@test 0.2*getSolverParams(fg).N < sum(-15 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
-      0.2*getSolverParams(fg).N < sum(5 .< getPoints(getKDE(fg, :lm2))[:] .< 15)
+# @test 0.2*getSolverParams(fg).N < sum(-15 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
+      # 0.2*getSolverParams(fg).N < sum(5 .< getPoints(getKDE(fg, :lm2))[:] .< 15)
 
 
 0
