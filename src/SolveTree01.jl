@@ -484,6 +484,8 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
   return d
 end
 
+# global countsolve = 0
+
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
                         cliq::TreeClique,
@@ -492,10 +494,14 @@ function doFMCIteration(fgl::AbstractDFG,
                         dbg::Bool,
                         logger=ConsoleLogger()  )
   #
+# global countsolve
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+
+      # countsolve += 1
+      # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
 
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
