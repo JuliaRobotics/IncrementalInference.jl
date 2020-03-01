@@ -87,6 +87,7 @@ export AbstractDFG,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
+  AbstractBayesTree,
   BayesTreeNodeData,
   PackedBayesTreeNodeData,
 

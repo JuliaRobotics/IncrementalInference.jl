@@ -152,6 +152,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   else
     # special case for down solve on root clique.  When using solveCliq! following an up pass.
 
+    ## SPECIAL CASE FOR ROOT MARKER
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -186,6 +187,8 @@ end
 
 """
     $SIGNATURES
+
+Is this called after up, not sure if called after down yet?
 
 Notes
 - State machine function nr.9
@@ -719,7 +722,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     if length(prnt) > 0
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree, 
+      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end

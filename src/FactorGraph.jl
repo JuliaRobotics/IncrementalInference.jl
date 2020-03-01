@@ -10,7 +10,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
 # # For Bayes tree
 
-# still used for Bayes Tree
+# still used for Bayes Tree pre DFG v0.6.0
 # import DistributedFactorGraphs: getData
 
 function getData(v::TreeClique)
