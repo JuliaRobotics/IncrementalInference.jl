@@ -29,6 +29,12 @@ function solveTree!(dfgl::G,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
+  if getSolverParams(dfgl).graphinit
+    @info "ensure all initialized (using graphinit)"
+    ensureAllInitialized!(dfgl)
+  end
+
+  # construct tree
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()

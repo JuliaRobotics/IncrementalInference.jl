@@ -484,6 +484,8 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
   return d
 end
 
+# global countsolve = 0
+
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
                         cliq::TreeClique,
@@ -492,10 +494,14 @@ function doFMCIteration(fgl::AbstractDFG,
                         dbg::Bool,
                         logger=ConsoleLogger()  )
   #
+# global countsolve
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+
+      # countsolve += 1
+      # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
 
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
@@ -584,28 +590,23 @@ function treeProductUp(fg::AbstractDFG,
   #
   cliq = whichCliq(tree, cliq)
   cliqdata = getData(cliq)
-  # IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs]
-
-  # get the local variable id::Int identifier
-  vertid = fg.IDs[sym]
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = NBPMessage[]
   for cl in childCliqs(tree, cliq)
     msgdict = upMsg(cl)
-    dict = Dict{Int, EasyMessage}()
+    dict = Dict{Symbol, EasyMessage}()
     for (dsy, btd) in msgdict
       manis = getSofttype(getVariable(fg, dsy)).manifolds
-
-      dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
+      dict[dsy] = convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, vertid)).manifolds
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
+  manis = getSofttype(getVariable(fg, sym)).manifolds
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end

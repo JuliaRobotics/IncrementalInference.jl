@@ -80,6 +80,8 @@ include("TestCSMMultihypo.jl")
 
 include("testMultiHypo2Door.jl")
 
+include("testMultimodal1D.jl")
+
 include("testMultithreaded.jl")
 
 @testset "partial constraints..." begin

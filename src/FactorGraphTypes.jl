@@ -353,11 +353,12 @@ end
 
 
 # excessive function, needs refactoring
+# fgl := srcv
 function updateFullVertData!(fgl::AbstractDFG,
                              srcv::DFGNode;
                              updatePPE::Bool=false )
   #
-  @warn "Deprecated updateFullVertData!, need alternative"
+  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
 
   sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
@@ -380,7 +381,9 @@ function updateFullVertData!(fgl::AbstractDFG,
     if updatePPE
       # set PPE in dest from values in srcv
       # TODO must work for all keys involved
-      getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
+      # dest := srcv
+      updatePPE!(fgl, srcv)
+      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
     end
   else
     # assuming nothing to be done
@@ -388,3 +391,5 @@ function updateFullVertData!(fgl::AbstractDFG,
 
   nothing
 end
+
+#

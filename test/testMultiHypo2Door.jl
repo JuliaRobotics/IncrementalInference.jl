@@ -53,20 +53,16 @@ addFactor!(fg, [:x0; :x1], LinearConditional(Normal(x1-x0, odom_noise)))
 # addFactor!(fg, [:x1; :l1], LinearConditional(Normal(0, meas_noise)) )
 addFactor!(fg, [:x1; :l0; :l1], LinearConditional(Normal(0, meas_noise)), multihypo=[1.0; 1.0/2.0; 1.0/2.0])
 
-
-
-
 ## Add one more pose/odometry to invoke issue #236
 
 # Add third pose
 addVariable!(fg, :x2, ContinuousScalar, N=n_samples)
 addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)))
 
-
-
 ## Solve graph
+
 tree, smt, hist = solveTree!(fg)
-# tree = batchSolve!(fg, drawpdf=false, show=false, recursive=false)
+# drawGraph(fg)
 # drawTree(tree, show=true)
 
 
@@ -78,11 +74,14 @@ tree, smt, hist = solveTree!(fg)
 @test abs(getKDEMean(getKDE(fg, :l1))[1]-10) < 3.0
 
 
-# using RoMEPlotting
-# plotKDE(fg, [:l0;:l1])
-
+0
 end
 
+#
+# using RoMEPlotting
+#
+# plotKDE(fg, [:l0;:l1])
+# plotKDE(fg, [:x0;:x1;:x2])
 
 
 #
