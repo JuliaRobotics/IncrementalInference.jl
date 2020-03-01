@@ -14,7 +14,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # import DistributedFactorGraphs: getData
 
 function getData(v::TreeClique)
-  # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
+  @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
   getCliqueData(v)
 end
 
