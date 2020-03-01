@@ -8,7 +8,7 @@ function normalfromstring(str::AS) where {AS <: AbstractString}
   Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
 end
 
-function mvnormalfromstring(str::AS) where {AS <: AbstractString}
+function mvnormalfromstring(str::AS, diagsqrt::Bool=false) where {AS <: AbstractString}
   means = split(split(split(str, 'μ')[2],']')[1],'[')[end]
   mean = Float64[]
   for ms in split(means, ',')
@@ -22,6 +22,7 @@ function mvnormalfromstring(str::AS) where {AS <: AbstractString}
     end
   end
   len = length(mean)
+  sig = diagsqrt ? sqrt.(sig) : sig
   sigm = reshape(sig, len,len)
   MvNormal(mean, sigm)
 end
@@ -38,8 +39,12 @@ end
 
 function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
+  # TODO use startswith
   if str == ""
     return nothing
+  elseif startswith(str, "DiagNormal")
+    # Diags are internally squared, so only option here is to sqrt on input.
+    return mvnormalfromstring(str, true)
   elseif (occursin(r"Normal", str) && !occursin(r"FullNormal", str))
     return normalfromstring(str)
   elseif occursin(r"FullNormal", str)
