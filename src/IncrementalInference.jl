@@ -38,7 +38,7 @@ using .Ccolamd
 
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-const DFG = DistributedFactorGraphs
+# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 
 import Base: convert
@@ -48,7 +48,7 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
-import DistributedFactorGraphs: getVariableOrder
+# import DistributedFactorGraphs: getVariableOrder
 # import DistributedFactorGraphs: getEstimates
 
 # missing exports
@@ -80,6 +80,7 @@ export AbstractDFG,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
+  AbstractBayesTree,
   BayesTreeNodeData,
   PackedBayesTreeNodeData,
 
@@ -526,7 +527,7 @@ include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("JunctionTreeTypes.jl")
-include("FactorGraph01.jl")
+include("FactorGraph.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")

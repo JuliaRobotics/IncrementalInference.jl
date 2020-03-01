@@ -203,20 +203,20 @@ function areCliqVariablesAllInitialized(dfg::G, cliq::TreeClique) where {G <: Ab
   isallinit
 end
 
-"""
-   $SIGNATURES
-
-Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
-"""
-function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
-  isallinit = areCliqVariablesAllInitialized(fgl, cliq)
-
-  # check that all child cliques have also completed full up inference.
-  for chl in getChildren(tree, cliq)
-    isallinit &= isUpInferenceComplete(chl)
-  end
-  return isallinit
-end
+# """
+#    $SIGNATURES
+#
+# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
+# """
+# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
+#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
+#
+#   # check that all child cliques have also completed full up inference.
+#   for chl in getChildren(tree, cliq)
+#     isallinit &= isUpInferenceComplete(chl)
+#   end
+#   return isallinit
+# end
 
 """
     $SIGNATURES
@@ -429,7 +429,7 @@ end
 """
     $SIGNATURES
 
-Cycle through var order and initialize variables as possible in `subfg::FactorGraph`.
+Cycle through var order and initialize variables as possible in `subfg::AbstractDFG`.
 Return true if something was updated.
 
 Notes:
@@ -440,9 +440,9 @@ Notes:
 Dev Notes
 - Should monitor updates based on the number of inferred & solvable dimensions
 """
-function cycleInitByVarOrder!(subfg::G,
+function cycleInitByVarOrder!(subfg::AbstractDFG,
                               varorder::Vector{Symbol};
-                              logger=ConsoleLogger()  )::Bool where G <: AbstractDFG
+                              logger=ConsoleLogger()  )::Bool
   #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
@@ -476,11 +476,11 @@ end
 
 Update `subfg<:AbstractDFG` according to internal computations for a full upsolve.
 """
-function doCliqUpSolve!(subfg::G,
+function doCliqUpSolve!(subfg::AbstractDFG,
                         tree::AbstractBayesTree,
                         cliq::TreeClique;
                         multiproc::Bool=true,
-                        logger=ConsoleLogger()  )::Symbol where G <: AbstractDFG
+                        logger=ConsoleLogger()  )::Symbol
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
@@ -513,11 +513,6 @@ function prepCliqInitMsgsUp(subfg::G,
   return msg
 end
 
-function prepCliqInitMsgsUp(subfg::G, tree::AbstractBayesTree, cliq::TreeClique)::TempBeliefMsg  where G <: AbstractDFG
-  @warn "deprecated, use prepCliqInitMsgsUp(subfg::FactorGraph, cliq::TreeClique) instead"
-  prepCliqInitMsgsUp(subfg, cliq)
-end
-
 
 """
     $SIGNATURES
@@ -530,12 +525,12 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUpPart1!(subfg::G,
+function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
                                 tree::AbstractBayesTree,
                                 cliq::TreeClique;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=ConsoleLogger() ) where {G <: AbstractDFG}
+                                logger=ConsoleLogger() )
   #
 
   # init up msg has special procedure for incomplete messages
@@ -573,13 +568,13 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUpPart2!(subfg::G,
+function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
                                 tree::AbstractBayesTree,
                                 cliq::TreeClique;
                                 # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=ConsoleLogger()  )::Symbol where {G <: AbstractDFG}
+                                logger=ConsoleLogger()  )::Symbol
   #
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
@@ -696,7 +691,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
   lvarids = union(prntvars, reqMsgIds)
   # determine allowable factors, if any (only from parent cliq)
-  awfcts = getCliqAllFactIds(prnt)
+  awfcts = getCliqFactorIdsAll(prnt)
   with_logger(logger) do
       @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
       @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
@@ -704,7 +699,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  lsfg = buildSubgraphFromLabels(fgl, lvarids)
+  lsfg = buildSubgraphFromLabels!(fgl, lvarids)
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
@@ -903,7 +898,7 @@ end
 """
     $SIGNATURES
 
-Modify the `subfg::FactorGraph` to include `msgs` as priors that are used
+Modify the `subfg::AbstractDFG` to include `msgs` as priors that are used
 during clique inference.
 
 Notes
@@ -915,15 +910,15 @@ Related
 
 `deleteMsgFactors!`
 """
-function addMsgFactors!(subfg::G,
-                        msgs::TempBeliefMsg)::Vector{DFGFactor} where G <: AbstractDFG
+function addMsgFactors!(subfg::AbstractDFG,
+                        msgs::TempBeliefMsg)::Vector{DFGFactor}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # TODO prior missing manifold information
-      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -950,7 +945,7 @@ function addMsgFactors!(subfg::G,
     for dm in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
         push!(msgfcts, fc)
       end
     end
@@ -972,15 +967,15 @@ end
 """
     $SIGNATURES
 
-Delete from the subgraph`::FactorGraph` prior belief `msgs` that could/would be used
+Delete from the subgraph`::AbstractDFG` prior belief `msgs` that could/would be used
 during clique inference.
 
 Related
 
 `addMsgFactors!`
 """
-function deleteMsgFactors!(subfg::G,
-                           fcts::Vector{DFGFactor}) where G <: AbstractDFG
+function deleteMsgFactors!(subfg::AbstractDFG,
+                           fcts::Vector{DFGFactor})
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)

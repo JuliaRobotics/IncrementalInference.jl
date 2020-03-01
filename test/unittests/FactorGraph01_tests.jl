@@ -21,12 +21,12 @@ pp = Pose2Pose2(MvNormal([10.0;0;pi/3], Matrix(Diagonal([0.1;0.1;0.1].^2))))
 p2br = Pose2Point2BearingRange(Normal(0,0.1),Normal(20.0,1.0))
 
 # FYI deep copies not required, since no per factor specific data in pp
-addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
-addFactor!(dfg, [:x2, :x3], pp, autoinit=false)
-addFactor!(dfg, [:x1, :l1], deepcopy(p2br), autoinit=false)
+addFactor!(dfg, [:x1, :x2], pp, graphinit=false)
+addFactor!(dfg, [:x2, :x3], pp, graphinit=false)
+addFactor!(dfg, [:x1, :l1], deepcopy(p2br), graphinit=false)
 # TODO: Ask why it can't resolve here.
-addFactor!(dfg, [:x2, :l1], deepcopy(p2br), autoinit=false)
-addFactor!(dfg, [:x3, :l2], deepcopy(p2br), autoinit=false)
+addFactor!(dfg, [:x2, :l1], deepcopy(p2br), graphinit=false)
+addFactor!(dfg, [:x3, :l2], deepcopy(p2br), graphinit=false)
 
 # Show it
 DFG.toDotFile(dfg, "/tmp/testRmMarg.dot")
@@ -139,7 +139,7 @@ writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
 
-addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
+addFactor!(dfg, [:x1, :x2], pp, graphinit=false)
 DFG.lsf(dfg, :x1x2f1)
 
 

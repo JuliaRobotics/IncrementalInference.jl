@@ -102,7 +102,7 @@ function buildCliqSubgraphDown(fgl::AbstractDFG, treel::AbstractBayesTree, cliqs
   # build a subgraph copy of clique
   cliq = whichCliq(treel, cliqsym)
   syms = getCliqAllVarIds(cliq)
-  subfg = buildSubgraphFromLabels(fgl,syms)
+  subfg = buildSubgraphFromLabels!(fgl,syms)
 
   # add upward messages to subgraph
   msgs = getCliqParentMsgDown(treel, cliq)

@@ -82,7 +82,7 @@ function rebaseFactorVariable!(dfg::AbstractDFG,
   deleteFactor!(dfg, fctsym)
 
   # add the factor back into graph against new variables
-  addFactor!(dfg, newvars, fcttype, autoinit=autoinit, multihypo=mh)
+  addFactor!(dfg, newvars, fcttype, graphinit=autoinit, multihypo=mh)
 
   # clean up disconnected variables if requested
   if rmDisconnected

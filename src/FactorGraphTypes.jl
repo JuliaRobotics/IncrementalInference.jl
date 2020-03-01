@@ -47,6 +47,8 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  graphinit::Bool
+  treeinit::Bool # still experimental with known errors
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
@@ -67,6 +69,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                graphinit::Bool=true,
+                treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
@@ -86,6 +90,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            graphinit,
+                                                                            treeinit,
                                                                             algorithms,
                                                                             devParams)
   #
@@ -347,11 +353,12 @@ end
 
 
 # excessive function, needs refactoring
+# fgl := srcv
 function updateFullVertData!(fgl::AbstractDFG,
                              srcv::DFGNode;
                              updatePPE::Bool=false )
   #
-  @warn "Deprecated updateFullVertData!, need alternative"
+  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
 
   sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
@@ -374,7 +381,9 @@ function updateFullVertData!(fgl::AbstractDFG,
     if updatePPE
       # set PPE in dest from values in srcv
       # TODO must work for all keys involved
-      getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
+      # dest := srcv
+      updatePPE!(fgl, srcv)
+      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
     end
   else
     # assuming nothing to be done
@@ -382,3 +391,5 @@ function updateFullVertData!(fgl::AbstractDFG,
 
   nothing
 end
+
+#

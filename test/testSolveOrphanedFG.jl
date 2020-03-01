@@ -31,7 +31,7 @@ vo = Symbol[:x12, :x2, :x0, :x11, :x1, :x10]
 tree, smt, hist = solveTree!(fg, variableOrder=vo)
 
 # test tree will have two different root nodes
-@test getVariableOrder(tree) == vo
+@test getEliminationOrder(tree) == vo
 
 @test getParent(tree, getCliq(tree, :x1)) |> length == 0
 @test getParent(tree, getCliq(tree, :x10)) |> length == 0

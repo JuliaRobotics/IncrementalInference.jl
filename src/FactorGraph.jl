@@ -10,8 +10,8 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 # getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
 # # For Bayes tree
 
-# still used for Bayes Tree
-import DistributedFactorGraphs: getData
+# still used for Bayes Tree pre DFG v0.6.0
+# import DistributedFactorGraphs: getData
 
 function getData(v::TreeClique)
   # @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
@@ -476,7 +476,7 @@ end
 """
 $(SIGNATURES)
 
-Add a variable node `lbl::Symbol` to `fg::FactorGraph`, as `softtype<:InferenceVariable`.
+Add a variable node `lbl::Symbol` to `fg::AbstractDFG`, as `softtype<:InferenceVariable`.
 
 Example
 -------
@@ -531,14 +531,14 @@ function addVariable!(dfg::G,
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
   return addVariable!(dfg,
-               lbl,
-               sto,
-               N=N,
-               autoinit=autoinit,
-               solvable=solvable,
-               dontmargin=dontmargin,
-               labels=labels,
-               smalldata=smalldata  )
+                      lbl,
+                      sto,
+                      N=N,
+                      autoinit=autoinit,
+                      solvable=solvable,
+                      dontmargin=dontmargin,
+                      labels=labels,
+                      smalldata=smalldata  )
 end
 
 
@@ -977,7 +977,7 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::T, Xi::Vector{<:DFGVariable}; maxparallel::Int=50)::Symbol where T <: AbstractDFG
+function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:DFGVariable}; maxparallel::Int=200)::Symbol
   existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
@@ -1009,12 +1009,17 @@ function addFactor!(dfg::G,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=true,
+                    autoinit=:null,
+                    graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=50  ) where
+                    maxparallel::Int=200  ) where
                       {G <: AbstractDFG,
                        R <: Union{FunctorInferenceType, InferenceType}}
   #
+  if isa(autoinit, Bool)
+    @warn "autoinit deprecated, use graphinit instead"
+    graphinit = autoinit # force to user spec
+  end
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
@@ -1024,15 +1029,15 @@ function addFactor!(dfg::G,
                         tags=Set(union(labels, [:FACTOR])),
                         solvable=solvable)
 
-  # TODO: Need to remove this...
-  for vert in Xi
-    push!(solverData.fncargvID, vert.label)
-  end
+  # # TODO: Need to remove this...
+  # for vert in Xi
+  #   push!(solverData.fncargvID, vert.label)
+  # end
 
   success = DFG.addFactor!(dfg, newFactor)
 
   # TODO: change this operation to update a conditioning variable
-  autoinit && doautoinit!(dfg, Xi, singles=false)
+  graphinit && doautoinit!(dfg, Xi, singles=false)
 
   return newFactor
 end
@@ -1043,65 +1048,20 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
-                    autoinit::Bool=true,
+                    autoinit=:null,
+                    graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=50  )
+                    maxparallel::Int=200  )
   #
+  if isa(autoinit, Bool)
+    @warn "autoinit keyword argument deprecated, use graphinit instead."
+    graphinit = autoinit # force user spec
+  end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, autoinit=autoinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel )
 end
 
 
-
-# """
-#     $SIGNATURES
-#
-# Delete factor and its edges.
-# """
-# function deleteFactor!(fgl::FactorGraph, fsym::Symbol)
-#   fid = fgl.fIDs[fsym]
-#   eds = fgl.g.inclist[fid]
-#   alledsids = Int[]
-#   nedges = length(eds)
-#   for eds in fgl.g.inclist[fid]
-#     union!(alledsids, [eds.source.index; eds.target.index])
-#   end
-#   for edids in setdiff!(alledsids, fid)
-#     count = 0
-#     for eds in fgl.g.inclist[edids]
-#       count += 1
-#       if fid == eds.source.index || fid == eds.target.index
-#         deleteat!(fgl.g.inclist[edids], count)
-#         break
-#       end
-#     end
-#   end
-#   delete!(fgl.g.inclist, fid)
-#   fgl.g.nedges -= nedges
-#   delete!(fgl.g.vertices, fid)
-#   delete!(fgl.fIDs, fsym)
-#   deleteat!(fgl.factorIDs, findfirst(a -> a==fid, fgl.factorIDs))
-#   nothing
-# end
-
-# """
-#     $SIGNATURES
-#
-# Delete variables, and also the factors+edges if `andfactors=true` (default).
-# """
-# function deleteVariable!(fgl::FactorGraph, vsym::Symbol; andfactors::Bool=true)
-#   vid = fgl.IDs[vsym]
-#   vert = fgl.g.vertices[vid]
-#   if andfactors
-#     for ne in Graphs.out_neighbors(vert, fgl.g)
-#       deleteFactor!(fgl, Symbol(ne.label))
-#     end
-#   end
-#   delete!(fgl.g.vertices, vid)
-#   delete!(fgl.IDs, vsym)
-#   deleteat!(fgl.nodeIDs, findfirst(a -> a==vid, fgl.nodeIDs))
-#   nothing
-# end
 
 
 function prtslperr(s)
@@ -1188,7 +1148,7 @@ function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=50)
+function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=200)
   #
     @show Si
   lbls = String[]
@@ -1198,14 +1158,14 @@ function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, autoinit=false, maxparallel=maxparallel)
+  addFactor!(dfg, Xi, genmarg, graphinit=false, maxparallel=maxparallel)
   nothing
 end
 
 function rmVarFromMarg(dfg::G,
                        fromvert::DFGVariable,
                        gm::Vector{DFGFactor};
-                       maxparallel::Int=50 )::Nothing where G <: AbstractDFG
+                       maxparallel::Int=200 )::Nothing where G <: AbstractDFG
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -1219,7 +1179,7 @@ function rmVarFromMarg(dfg::G,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, autoinit=false, maxparallel=maxparallel)
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, maxparallel=maxparallel)
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1236,7 +1196,7 @@ end
 
 function buildBayesNet!(dfg::G,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=50,
+                        maxparallel::Int=200,
                         solvable::Int=1)::Nothing where G <: AbstractDFG
   #
   # addBayesNetVerts!(dfg, elimorder)
@@ -1335,38 +1295,6 @@ function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
 end
 function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
   return getVertKDE(dfg, lbl)
-end
-
-function expandEdgeListNeigh!(fgl::FactorGraph,
-                              vertdict::Dict{Int,TreeClique},
-                              edgedict::Dict{Int,Graphs.Edge{TreeClique}})
-  #asfd
-  for vert in vertdict
-    for newedge in out_edges(vert[2],fgl.g)
-      if !haskey(edgedict, newedge.index)
-        edgedict[newedge.index] = newedge
-      end
-    end
-  end
-
-  nothing
-end
-
-# dictionary of unique vertices from edgelist
-function expandVertexList!(fgl::FactorGraph,
-  edgedict::Dict{Int,Graphs.Edge{TreeClique}},
-  vertdict::Dict{Int,TreeClique})
-
-  # go through all source and target nodes
-  for edge in edgedict
-    if !haskey(vertdict, edge[2].source.index)
-      vertdict[edge[2].source.index] = edge[2].source
-    end
-    if !haskey(vertdict, edge[2].target.index)
-      vertdict[edge[2].target.index] = edge[2].target
-    end
-  end
-  nothing
 end
 
 function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})

@@ -14,7 +14,7 @@ using IncrementalInference
 
     # perform a few spot checks to see that the trees are similar
     @test length(tree.cliques) == length(tree2.cliques)
-    @test getVariableOrder(tree) == getVariableOrder(tree2)
+    @test getEliminationOrder(tree) == getEliminationOrder(tree2)
 
     for (clid,cl) in tree.cliques
       fsyms = getFrontals(cl)
@@ -39,7 +39,7 @@ end
 
     # perform a few spot checks to see that the trees are similar
     @test length(tree.cliques) == length(trees[1].cliques)
-    @test getVariableOrder(tree) == getVariableOrder(trees[1])
+    @test getEliminationOrder(tree) == getEliminationOrder(trees[1])
 
     for (clid,cl) in tree.cliques
       fsyms = getFrontals(cl)
