@@ -38,8 +38,11 @@ end
 
 function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
+  # TODO use startswith
   if str == ""
     return nothing
+  elseif startswith(str, "DiagNormal")
+    return mvnormalfromstring(str)
   elseif (occursin(r"Normal", str) && !occursin(r"FullNormal", str))
     return normalfromstring(str)
   elseif occursin(r"FullNormal", str)
