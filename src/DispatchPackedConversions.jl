@@ -1,9 +1,11 @@
 
 
 function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
+  @warn "packmultihypo is deprecated in favor of Vector only operations"
   fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
+  @warn "parsemultihypostr is deprecated in favor of Vector only operations"
   mhcat=nothing
   if length(str) > 0
     mhcat = extractdistribution(str)
@@ -15,20 +17,20 @@ end
 ## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
-  mhstr = packmultihypo(d.fnc)
-  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
-end
+# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
+#   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+#   @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
+#   # mhstr = packmultihypo(d.fnc)
+#   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           string(d.frommodule), convert(P, d.fnc.usrfnc!), d.multihypo)
+# end
 
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
-  mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
+  # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!),
-          mhstr, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
+          d.multihypo, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -42,7 +44,7 @@ function convert(
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, d.fnc)
-  mhcat = parsemultihypostr(d.multihypo)
+  mhcat = parseusermultihypo(d.multihypo)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
@@ -50,7 +52,7 @@ function convert(
   ccw.certainhypo = d.certainhypo
 
   ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), ccw)
+          Symbol(d.frommodule), ccw, d.multihypo)
   # error("what what $(ret.fnc.certainhypo)")
   return ret
 end

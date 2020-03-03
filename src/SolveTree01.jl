@@ -1344,6 +1344,14 @@ function tryCliqStateMachineSolve!(dfg::G,
     # clst = getCliqStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
+    ## TODO -- use this format instead
+    # io = IOBuffer()
+    # showerror(io, ex, catch_backtrace())
+    # err = String(take!(io))
+    # msg = "Error while packing '$(f.label)' as '$fnctype', please check the unpacking/packing converters for this factor - \r\n$err"
+    # error(msg)
+
+    ## OLD format
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
