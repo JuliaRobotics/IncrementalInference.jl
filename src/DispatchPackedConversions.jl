@@ -51,8 +51,7 @@ function convert(
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat)
   ccw.certainhypo = d.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), ccw, d.multihypo)
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs, Symbol(d.frommodule), ccw, d.multihypo, d.certainhypo)
   # error("what what $(ret.fnc.certainhypo)")
   return ret
 end
@@ -140,7 +139,7 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
   neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!)
+  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!, multihypo=getSolverData(factor).multihypo)
   setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
