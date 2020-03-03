@@ -1015,7 +1015,7 @@ variables are related to data association uncertainty.
 function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
                     usrfnc::R;
-                    multihypo::Vector{Float64}=Float64[],
+                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
@@ -1024,8 +1024,12 @@ function addFactor!(dfg::AbstractDFG,
                     maxparallel::Int=200  ) where
                       {R <: Union{FunctorInferenceType, InferenceType}}
   #
+  if isa(multihypo, Tuple)
+    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
+    multihypo = [multihypo...]
+  end
   if isa(autoinit, Bool)
-    @warn "autoinit deprecated, use graphinit instead"
+    @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
   varOrderLabels = [v.label for v=Xi]
@@ -1053,7 +1057,7 @@ end
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
-                    multihypo::Vector{Float64}=Float64[],
+                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
@@ -1061,8 +1065,12 @@ function addFactor!(dfg::AbstractDFG,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=200  )
   #
+  if isa(multihypo, Tuple)
+    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
+    multihypo = [multihypo...]
+  end
   if isa(autoinit, Bool)
-    @warn "autoinit keyword argument deprecated, use graphinit instead."
+    @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)

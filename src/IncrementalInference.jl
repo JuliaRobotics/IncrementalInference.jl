@@ -36,10 +36,15 @@ include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
+# must be moved to their own repos
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
 # const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
+
+const IIF = IncrementalInference
+export IIF
+
 
 import Base: convert
 # import HDF5: root
