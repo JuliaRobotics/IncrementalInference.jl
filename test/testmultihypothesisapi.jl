@@ -197,7 +197,7 @@ global v5 = addVariable!(fg, :x5, ContinuousScalar, N=N)
 
 
 global ppMH = DevelopLikelihood(Normal(90.0,1.0))
-global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=(1.0,0.333,0.333,0.334))
+global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0.334])
 
 
 

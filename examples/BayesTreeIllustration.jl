@@ -28,8 +28,6 @@ tree = batchSolve!(fg, drawpdf=true, show=true)
 
 ## building a new tree -- as per IIF.prepBatchTree(...)
 
-const IIF = IncrementalInference
-
 IIF.resetFactorGraphNewTree!(fg)
 
 # Look at variable ordering used to build the Bayes net/tree
