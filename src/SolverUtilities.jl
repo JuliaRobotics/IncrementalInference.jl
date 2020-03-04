@@ -283,7 +283,7 @@ function resetCliqSolve!(dfg::G,
                          cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
-  cda = getData(cliq)
+  cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)

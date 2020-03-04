@@ -225,6 +225,7 @@ export AbstractDFG,
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
+  getCliqueData,
   getManifolds,
   getVarNode,
   getVal,
@@ -603,22 +604,22 @@ function __init__()
         numlcl = size(getCliqAssocMat(cliq),1)
         mat[(numlcl+1):end,:] *= 0.9
         mat[(numlcl+1):end,:] .-= 0.1
-        numfrtl1 = floor(Int,length(getData(cliq).frontalIDs) + 1)
+        numfrtl1 = floor(Int,length(getCliqueData(cliq).frontalIDs) + 1)
         mat[:,numfrtl1:end] *= 0.9
         mat[:,numfrtl1:end] .-= 0.1
         if !suppressprint
-          @show getData(cliq).itervarIDs
-          @show getData(cliq).directvarIDs
-          @show getData(cliq).msgskipIDs
-          @show getData(cliq).directFrtlMsgIDs
-          @show getData(cliq).directPriorMsgIDs
+          @show getCliqueData(cliq).itervarIDs
+          @show getCliqueData(cliq).directvarIDs
+          @show getCliqueData(cliq).msgskipIDs
+          @show getCliqueData(cliq).directFrtlMsgIDs
+          @show getCliqueData(cliq).directPriorMsgIDs
         end
         if size(mat,1) == 1
           mat = [mat; -ones(size(mat,2))']
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getCliqueData(cliq).frontalIDs) :$(getCliqueData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getCliqueData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
