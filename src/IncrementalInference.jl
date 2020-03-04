@@ -36,10 +36,8 @@ include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
-const KDE = KernelDensityEstimate
-const AMP = ApproxManifoldProducts
-# const DFG = DistributedFactorGraphs
-const FSM = FunctionalStateMachine
+
+
 
 import Base: convert
 # import HDF5: root
@@ -58,11 +56,19 @@ import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 import DistributedFactorGraphs: isSolvable
 
 
-# TODO temporary for initial version of on-manifold products
-KDE.setForceEvalDirect!(true)
+# must be moved to their own repos
+const KDE = KernelDensityEstimate
+const AMP = ApproxManifoldProducts
+# const DFG = DistributedFactorGraphs
+const FSM = FunctionalStateMachine
+const IIF = IncrementalInference
 
 # Package aliases
-export KDE, AMP, DFG, FSM
+export KDE, AMP, DFG, FSM, IIF
+
+
+# TODO temporary for initial version of on-manifold products
+KDE.setForceEvalDirect!(true)
 
 # DFG SpecialDefinitions
 export AbstractDFG,
@@ -70,7 +76,7 @@ export AbstractDFG,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
-  solverData,
+  # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
   *,
   notifyCSMCondition,
@@ -94,6 +100,7 @@ export AbstractDFG,
   printCliqHistorySummary,
   printGraphSummary,
   printSummary,
+  print,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
@@ -143,13 +150,16 @@ export AbstractDFG,
   getVariableIds,
   getVariableOrder,
   calcVariablePPE,
+  getPPE,
+  getPPEs,
+  getVariablePPE,
+  getVariablePPEs,
   sortVarNested,
   hasOrphans,
   drawCopyFG,
   isVariable,
   isFactor,
   # from dfg
-  getfnctype,
   getFactorType,
   getSofttype,
   getVariableType,

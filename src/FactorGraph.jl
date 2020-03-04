@@ -626,16 +626,22 @@ function parseusermultihypo(multihypo::Nothing)
   mh = nothing
   return mh
 end
-function parseusermultihypo(multihypo::Union{Tuple,Vector{Float64}})
+function parseusermultihypo(multihypo::Vector{Float64})
   mh = nothing
-  if multihypo != nothing
-    multihypo2 = Float64[multihypo...]
+  if 0 < length(multihypo)
+    multihypo2 = multihypo
+    multihypo2[1-1e-10 .< multihypo] .= 0.0
+    # check that terms sum to full probability
+    @assert sum(multihypo2) % 1 ≈ 0
+    # check that only one variable broken into fractions
+    @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
+    # multihypo2 = Float64[multihypo...]
     # verts = Symbol.(multihypo[1,:])
-    for i in 1:length(multihypo)
-      if multihypo[i] > 0.999999
-        multihypo2[i] = 0.0
-      end
-    end
+    # for i in 1:length(multihypo)
+    #   if multihypo[i] > 0.999999
+    #     multihypo2[i] = 0.0
+    #   end
+    # end
     mh = Categorical(Float64[multihypo2...] )
   end
   return mh
@@ -682,19 +688,22 @@ $SIGNATURES
 Generate the default factor data for a new DFGFactor.
 """
 function getDefaultFactorData(
-      dfg::G,
+      dfg::AbstractDFG,
       Xi::Vector{<:DFGVariable},
       usrfnc::T;
-      multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+      multihypo::Vector{<:Real}=Float64[],
       threadmodel=SingleThreaded  )::GenericFunctionNodeData where
-      {G <: AbstractDFG, T <: Union{FunctorInferenceType, InferenceType}}
+        {T <: Union{FunctorInferenceType, InferenceType}}
   #
-  ftyp = T
-  mhcat = parseusermultihypo(multihypo)
+  # prepare multihypo particulars
+  # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
+  mhcat = parseusermultihypo(multihypo) # multihypo
 
+  # allocate temporary state for convolutional operations (not stored)
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
 
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(ftyp.name.module), ccw)
+  # and the factor data itself
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(T.name.module), ccw, multihypo, ccw.certainhypo)
   return data_ccw
 end
 
@@ -1003,21 +1012,24 @@ object. Define whether the automatic initialization of variables should be
 performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
 """
-function addFactor!(dfg::G,
+function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
                     usrfnc::R;
-                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=200  ) where
-                      {G <: AbstractDFG,
-                       R <: Union{FunctorInferenceType, InferenceType}}
+                      {R <: Union{FunctorInferenceType, InferenceType}}
   #
+  if isa(multihypo, Tuple)
+    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
+    multihypo = [multihypo...]
+  end
   if isa(autoinit, Bool)
-    @warn "autoinit deprecated, use graphinit instead"
+    @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
   varOrderLabels = [v.label for v=Xi]
@@ -1045,7 +1057,7 @@ end
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
-                    multihypo::Union{Nothing,Tuple,Vector{Float64}}=nothing,
+                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
@@ -1053,8 +1065,12 @@ function addFactor!(dfg::AbstractDFG,
                     threadmodel=SingleThreaded,
                     maxparallel::Int=200  )
   #
+  if isa(multihypo, Tuple)
+    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
+    multihypo = [multihypo...]
+  end
   if isa(autoinit, Bool)
-    @warn "autoinit keyword argument deprecated, use graphinit instead."
+    @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
