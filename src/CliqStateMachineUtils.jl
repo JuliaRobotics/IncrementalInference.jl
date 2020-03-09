@@ -898,12 +898,16 @@ directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
   frtl = getCliqFrontalVarIds(cliq)
 
-  #TODO don't use this getAdjacencyMatrixSymbols
-  adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
-  # adjTEST = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
-  mask = map(x->(x in frtl), adj[1,:])
-  subAdj = adj[2:end,mask] .!= nothing
-  newFrtlOrder = Symbol.(adj[1,mask])
+  adj, varLabels, FactorLabels = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
+  mask = (x-> x in frtl).(varLabels)
+  newFrtlOrder = varLabels[mask]
+  subAdj = adj[:,mask]
+    #TODO don't use this getAdjacencyMatrixSymbols, #604
+    # adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
+    # mask = map(x->(x in frtl), adj[1,:])
+    # subAdj = adj[2:end,mask] .!= nothing
+    # newFrtlOrder = Symbol.(adj[1,mask])
+
   crossCheck = sum(Int.(subAdj), dims=2) .> 1
   iterVars = Symbol[]
   for i in 1:length(crossCheck)
