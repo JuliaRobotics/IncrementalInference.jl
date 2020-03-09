@@ -863,18 +863,18 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
+function initManual!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
   # getData(vert).initialized = true
   return nothing
 end
-function manualinit!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
+function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
   vert = getVariable(dfg, sym)
-  manualinit!(dfg, vert, pX)
+  initManual!(dfg, vert, pX)
   return nothing
 end
-function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
-  @info "manualinit! $sym"
+function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
+  @info "initManual! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
@@ -884,11 +884,13 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
 end
 
 
-function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
+function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  manualinit!(dfg,sym,pp)
+  initManual!(dfg,sym,pp)
 end
+
+const initVariableManual! = initManual!
 
 
 function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
