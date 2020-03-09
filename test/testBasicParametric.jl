@@ -2,7 +2,8 @@ using Test
 
 using DistributedFactorGraphs
 using IncrementalInference
-IIF = IncrementalInference
+
+# IIF = IncrementalInference
 
 ##
 fg = generateCanonicalFG_lineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, params=SolverParams(algorithms=[:default, :parametric]))
