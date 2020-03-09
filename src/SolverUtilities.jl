@@ -60,7 +60,7 @@ function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
 end
 
 
-function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
+function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Real})
   shuffleXAltD!(ccw, x)
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
   # evaulate the user provided residual function with constructed set of parameters
@@ -283,7 +283,7 @@ function resetCliqSolve!(dfg::G,
                          cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
-  cda = getData(cliq)
+  cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)

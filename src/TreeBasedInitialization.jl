@@ -4,10 +4,10 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, TempBeliefMsg} = getData(cliq).upInitMsgs
+getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, TempBeliefMsg} = getCliqueData(cliq).upInitMsgs
 
 function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::TempBeliefMsg)
-  cd = getData(cliq)
+  cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   lockUpStatus!(cd)
   cd.upInitMsgs[childid] = msg
@@ -21,11 +21,11 @@ function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::TempBeliefMsg)
 end
 
 function isCliqInitialized(cliq::TreeClique)::Bool
-  return getData(cliq).initialized in [:initialized; :upsolved]
+  return getCliqueData(cliq).initialized in [:initialized; :upsolved]
 end
 
 function isCliqUpSolved(cliq::TreeClique)::Bool
-  return getData(cliq).initialized == :upsolved
+  return getCliqueData(cliq).initialized == :upsolved
 end
 
 
@@ -82,9 +82,9 @@ function getCliqVarInitOrderUp(cliq::TreeClique)
 end
 
 lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
-lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getData(cliq), idx)
+lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
-unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getData(cliq))
+unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
 function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
   with_logger(logger) do
@@ -119,7 +119,7 @@ Dev Notes
 - Should be made an atomic transaction
 """
 function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
-  cd = getData(cliq)
+  cd = getCliqueData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
     @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
@@ -153,7 +153,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=Consol
 end
 
 function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
-  cdat = getData(cliq)
+  cdat = getCliqueData(cliq)
   with_logger(logger) do
     @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
   end
@@ -191,7 +191,7 @@ end
 
 Return true if clique has completed the local upward direction inference procedure.
 """
-isUpInferenceComplete(cliq::TreeClique) = getData(cliq).upsolved
+isUpInferenceComplete(cliq::TreeClique) = getCliqueData(cliq).upsolved
 
 function areCliqVariablesAllInitialized(dfg::G, cliq::TreeClique) where {G <: AbstractDFG}
   allids = getCliqAllVarIds(cliq)
@@ -224,7 +224,7 @@ end
 Blocking call until `cliq` upInit processes has arrived at a result.
 """
 function getCliqInitUpResultFromChannel(cliq::TreeClique)
-  status = take!(getData(cliq).initUpChannel)
+  status = take!(getCliqueData(cliq).initUpChannel)
   @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
   return status
 end
@@ -245,7 +245,7 @@ Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
 getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
-getCliqStatus(cliq::TreeClique)::Symbol = getCliqStatus(getData(cliq))
+getCliqStatus(cliq::TreeClique)::Symbol = getCliqStatus(getCliqueData(cliq))
 
 getCliqStatusUp(cliq::TreeClique)::Symbol = getCliqStatus(cliq)
 
@@ -255,7 +255,7 @@ getCliqStatusUp(cliq::TreeClique)::Symbol = getCliqStatus(cliq)
 Set up initialization or solve status of this `cliq`.
 """
 function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getData(cliq).initialized = status
+  getCliqueData(cliq).initialized = status
 end
 
 
@@ -302,7 +302,7 @@ function setTreeCliquesMarginalized!(dfg::G,
       setCliqDrawColor(cliq, "blue")
 
       # set flag, looks to be previously unused???
-      getData(cliq).allmarginalized = true
+      getCliqueData(cliq).allmarginalized = true
     end
   end
   nothing
@@ -317,7 +317,7 @@ function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger()
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
   flush(logger.stream)
-  while fetch(getData(prnt).initDownChannel) != :downsolved
+  while fetch(getCliqueData(prnt).initDownChannel) != :downsolved
     # @sync begin
     #   @async begin
     #     sleep(1)
@@ -357,10 +357,10 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getCliqueData(ch).initUpChannel))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetch(getData(ch).initUpChannel)
+    ret[ch.index] = fetch(getCliqueData(ch).initUpChannel)
   end
   with_logger(logger) do
       @info "cliq $(prnt.index), fetched all."
@@ -406,7 +406,7 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
         end
         flush(logger.stream)
         # do actual fetch
-        prtmsg = fetch(getData(prnt[1]).initDownChannel)
+        prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
         with_logger(logger) do
             tt = split(string(now()), 'T')[end]
           @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
@@ -418,7 +418,7 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
                 tt = split(string(now()), 'T')[end]
                 @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
             end
-          # take!(getData(prnt[1]).initDownChannel)
+          # take!(getCliqueData(prnt[1]).initDownChannel)
         end
       end
     end
@@ -485,7 +485,7 @@ function doCliqUpSolve!(subfg::AbstractDFG,
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
   approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
-  getData(cliq).upsolved = true
+  getCliqueData(cliq).upsolved = true
   return :upsolved
 end
 
@@ -691,7 +691,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
   lvarids = union(prntvars, reqMsgIds)
   # determine allowable factors, if any (only from parent cliq)
-  awfcts = getCliqAllFactIds(prnt)
+  awfcts = getCliqFactorIdsAll(prnt)
   with_logger(logger) do
       @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
       @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
@@ -699,7 +699,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  lsfg = buildSubgraphFromLabels(fgl, lvarids)
+  lsfg = buildSubgraphFromLabels!(fgl, lvarids)
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
@@ -798,7 +798,7 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # reference to default allocated dict location
-  products = getData(prnt).downInitMsg
+  products = getCliqueData(prnt).downInitMsg
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -918,7 +918,7 @@ function addMsgFactors!(subfg::AbstractDFG,
   for (msym, dm) in msgs
     if msym in svars
       # TODO prior missing manifold information
-      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -945,7 +945,7 @@ function addMsgFactors!(subfg::G,
     for dm in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
         push!(msgfcts, fc)
       end
     end

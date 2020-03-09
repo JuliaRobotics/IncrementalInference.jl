@@ -55,7 +55,7 @@ fg = initfg()
 addVariable!(fg, :a, ContinuousScalar)
 addVariable!(fg, :b, ContinuousScalar)
 
-addFactor!(fg, [:a;:b], LinearConditional(Normal(10, 1)), autoinit=false)
+addFactor!(fg, [:a;:b], LinearConditional(Normal(10, 1)), graphinit=false)
 
 manualinit!(fg, :a, randn(1,100))
 manualinit!(fg, :b, 10 .+randn(1,100))

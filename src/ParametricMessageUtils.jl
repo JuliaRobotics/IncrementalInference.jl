@@ -13,7 +13,7 @@ function addMsgFactors!(subfg::G,
       else
         msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
       end
-      fc = addFactor!(subfg, [msym], msgPrior, autoinit=false)
+      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
       push!(msgfcts, fc)
     end
   end

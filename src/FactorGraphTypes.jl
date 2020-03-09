@@ -47,6 +47,8 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  graphinit::Bool
+  treeinit::Bool # still experimental with known errors
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
@@ -67,6 +69,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                graphinit::Bool=true,
+                treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
@@ -86,6 +90,8 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            graphinit,
+                                                                            treeinit,
                                                                             algorithms,
                                                                             devParams)
   #
@@ -331,27 +337,14 @@ function CommonConvWrapper(fnc::T,
 end
 
 
-## moved to DFG
-
-# # where {T <: Union{InferenceType, FunctorInferenceType}}
-# const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
-# FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
-
-# # where {T <: PackedInferenceType}
-# const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
-# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
-
-
-
-
-
 
 # excessive function, needs refactoring
+# fgl := srcv
 function updateFullVertData!(fgl::AbstractDFG,
                              srcv::DFGNode;
                              updatePPE::Bool=false )
   #
-  @warn "Deprecated updateFullVertData!, need alternative"
+  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
 
   sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
@@ -374,7 +367,9 @@ function updateFullVertData!(fgl::AbstractDFG,
     if updatePPE
       # set PPE in dest from values in srcv
       # TODO must work for all keys involved
-      getPPEDict(dest)[:default] = getPPEDict(srcv)[:default]
+      # dest := srcv
+      updatePPE!(fgl, srcv)
+      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
     end
   else
     # assuming nothing to be done
@@ -382,3 +377,5 @@ function updateFullVertData!(fgl::AbstractDFG,
 
   nothing
 end
+
+#

@@ -40,10 +40,10 @@ ensureAllInitialized!(dfg)
 
 
 # cliq= getCliq(tree, VAR3)
-# getData(cliq)
+# getCliqueData(cliq)
 #
 # cliq= getCliq(tree, VAR1)
-# getData(cliq)
+# getCliqueData(cliq)
 
 
 
