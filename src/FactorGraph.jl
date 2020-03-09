@@ -1,76 +1,6 @@
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 
-# """
-#     $SIGNATURES
-#
-# Retrieve data structure stored in a node.
-# """
-# getData(v::DFGFactor)::GenericFunctionNodeData = v.data
-# getData(v::DFGVariable; solveKey::Symbol=:default)::VariableNodeData = v.solverDataDict[solveKey]
-# # For Bayes tree
-
-# still used for Bayes Tree pre DFG v0.6.0
-# import DistributedFactorGraphs: getData
-
-function getData(v::TreeClique)
-  @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
-  getCliqueData(v)
-end
-
-
-"""
-    $SIGNATURES
-
-Retrieve data structure stored in a variable.
-"""
-function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return getSolverData(getVariable(dfg, lbl), solveKey)
-end
-
-"""
-    $SIGNATURES
-
-Retrieve data structure stored in a factor.
-"""
-function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
-  return getSolverData(getFactor(dfg, lbl))
-end
-# TODO -- upgrade to dedicated memory location in Graphs.jl
-# see JuliaArchive/Graphs.jl#233
-
-# TODO: Intermediate for refactor. I'm sure we'll see this in 2024 though, it being 'temporary' and all :P
-function setData!(v::DFGVariable, data::VariableNodeData; solveKey::Symbol=:default)::Nothing
-  v.solverDataDict[solveKey] = data
-  return nothing
-end
-function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
-  f.data = data
-  return nothing
-end
-# For Bayes tree
-function setData!(v::TreeClique, data)
-  # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  # v.attributes["data"] = data
-  v.data = data
-  nothing
-end
-
-## has been moved to DFG
-# import DistributedFactorGraphs: getSofttype
-# """
-#    $(SIGNATURES)
-#
-# Variable nodes softtype information holding a variety of meta data associated with the type of variable stored in that node of the factor graph.
-# """
-# function getSofttype(vnd::VariableNodeData)
-#   return vnd.softtype
-# end
-# function getSofttype(v::DFGVariable; solveKey::Symbol=:default)
-#   return getSofttype(getData(v, solveKey=solveKey))
-# end
-
-
 """
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
@@ -490,8 +420,9 @@ function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
                       softtype::InferenceVariable;
                       N::Int=100,
-                      autoinit::Bool=true,  # does init need to be separate from ready? TODO
+                      autoinit::Union{Nothing,Bool}=true,
                       solvable::Int=1,
+                      timestamp::DateTime=now(),
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
@@ -499,8 +430,10 @@ function addVariable!(dfg::AbstractDFG,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
 
   #
+  # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
+
   tags = union(labels, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
@@ -518,7 +451,8 @@ function addVariable!(dfg::G,
                       lbl::Symbol,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
-                      autoinit::Bool=true,
+                      autoinit::Union{Bool, Nothing}=true,
+                      timestamp::DateTime=now(),
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
@@ -536,6 +470,7 @@ function addVariable!(dfg::G,
                       N=N,
                       autoinit=autoinit,
                       solvable=solvable,
+                      timestamp=timestamp,
                       dontmargin=dontmargin,
                       labels=labels,
                       smalldata=smalldata  )
@@ -933,18 +868,18 @@ end
 
 Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
 """
-function manualinit!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
+function initManual!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
   # getData(vert).initialized = true
   return nothing
 end
-function manualinit!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
+function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
   vert = getVariable(dfg, sym)
-  manualinit!(dfg, vert, pX)
+  initManual!(dfg, vert, pX)
   return nothing
 end
-function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
-  @info "manualinit! $sym"
+function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
+  @info "initManual! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
@@ -954,11 +889,13 @@ function manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
 end
 
 
-function manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
+function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  manualinit!(dfg,sym,pp)
+  initManual!(dfg,sym,pp)
 end
+
+const initVariableManual! = initManual!
 
 
 function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
@@ -1018,6 +955,7 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(),
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
@@ -1039,7 +977,8 @@ function addFactor!(dfg::AbstractDFG,
                         varOrderLabels,
                         solverData;
                         tags=Set(union(labels, [:FACTOR])),
-                        solvable=solvable)
+                        solvable=solvable,
+                        timestamp=timestamp)
 
   # # TODO: Need to remove this...
   # for vert in Xi
@@ -1059,6 +998,7 @@ function addFactor!(dfg::AbstractDFG,
                     usrfnc::Union{FunctorInferenceType, InferenceType};
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
+                    timestamp::DateTime=now(),
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
@@ -1074,7 +1014,7 @@ function addFactor!(dfg::AbstractDFG,
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
 end
 
 
