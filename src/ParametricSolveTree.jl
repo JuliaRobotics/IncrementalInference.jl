@@ -49,7 +49,7 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   #     for i in 1:length(hist)
   #       hist[i][4].logger = ConsoleLogger()
   #     end
-  #     getData(treel.cliques[i]).statehistory=hist
+  #     getCliqueData(treel.cliques[i]).statehistory=hist
   #   end
   # end
 
@@ -73,8 +73,8 @@ function tryCliqStateMachineSolveParametric!(dfg::G,
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
   syms = getCliqFrontalVarIds(cliq) # ids =
   # TODO JT Removed old tree reuse
-  # oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
-  # oldcliqdata = getData(oldcliq)
+  # oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
+  # oldcliqdata = getCliqueData(oldcliq)
   opts = getSolverParams(dfg)
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.index)/"))
