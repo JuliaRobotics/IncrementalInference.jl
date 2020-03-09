@@ -420,7 +420,7 @@ function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
                       softtype::InferenceVariable;
                       N::Int=100,
-                      autoinit::Bool=true,  # does init need to be separate from ready? TODO
+                      autoinit::Union{Nothing,Bool}=true,
                       solvable::Int=1,
                       timestamp::DateTime=now(),
                       dontmargin::Bool=false,
@@ -430,6 +430,8 @@ function addVariable!(dfg::AbstractDFG,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
 
   #
+  # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
+
   tags = union(labels, [:VARIABLE])
   v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
@@ -449,7 +451,7 @@ function addVariable!(dfg::G,
                       lbl::Symbol,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
-                      autoinit::Bool=true,
+                      autoinit::Union{Bool, Nothing}=true,
                       timestamp::DateTime=now(),
                       solvable::Int=1,
                       dontmargin::Bool=false,
