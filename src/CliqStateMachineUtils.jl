@@ -58,7 +58,7 @@ Notes
 - Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
 """
 function getCliqSolveHistory(cliq::TreeClique)
-  getData(cliq).statehistory
+  getCliqueData(cliq).statehistory
 end
 function getCliqSolveHistory(tree::AbstractBayesTree, frntal::Symbol)
   cliq = whichCliq(tree, frntal)
@@ -147,7 +147,7 @@ function sandboxCliqResolveStep(tree::AbstractBayesTree,
   #
   hist = getCliqSolveHistory(tree, frontal)
   # clear Condition states to allow step solve
-  getData(hist[step][4].cliq).solveCondition = Condition()
+  getCliqueData(hist[step][4].cliq).solveCondition = Condition()
 
   # cond = getSolveCondition(hist[step][4].cliq)
   # cond = Any[]
@@ -612,7 +612,7 @@ function updateCliqSolvableDims!(cliq::TreeClique,
                                  sdims::Dict{Symbol, Float64},
                                  logger=ConsoleLogger() )::Nothing
   #
-  cliqd = getData(cliq)
+  cliqd = getCliqueData(cliq)
   if isready(cliqd.solvableDims)
     take!(cliqd.solvableDims)
     with_logger(logger) do
@@ -632,7 +632,7 @@ end
 Retrieve a clique's cached solvable dimensions (since last update).
 """
 function fetchCliqSolvableDims(cliq::TreeClique)::Dict{Symbol,Float64}
-  cliqd = getData(cliq)
+  cliqd = getCliqueData(cliq)
   if isready(cliqd.solvableDims)
     return cliqd.solvableDims.data[1]
   end
@@ -898,11 +898,16 @@ directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
   frtl = getCliqFrontalVarIds(cliq)
 
-  #TODO don't use this getAdjacencyMatrixSymbols
-  adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
-  mask = map(x->(x in frtl), adj[1,:])
-  subAdj = adj[2:end,mask] .!= nothing
-  newFrtlOrder = Symbol.(adj[1,mask])
+  adj, varLabels, FactorLabels = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
+  mask = (x-> x in frtl).(varLabels)
+  newFrtlOrder = varLabels[mask]
+  subAdj = adj[:,mask]
+    #TODO don't use this getAdjacencyMatrixSymbols, #604
+    # adj = DFG.getAdjacencyMatrixSymbols(subfg, solvable=solvable)
+    # mask = map(x->(x in frtl), adj[1,:])
+    # subAdj = adj[2:end,mask] .!= nothing
+    # newFrtlOrder = Symbol.(adj[1,mask])
+
   crossCheck = sum(Int.(subAdj), dims=2) .> 1
   iterVars = Symbol[]
   for i in 1:length(crossCheck)
@@ -1034,7 +1039,7 @@ function buildCliqSubgraph(dfg::AbstractDFG,
   #
   # get cliq and variable labels
   syms = getCliqAllVarIds(cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getData(cliq).dwnPotentials instead
+  # NOTE add all frontal factor neighbors DEV CASE -- use getCliqueData(cliq).dwnPotentials instead
   # fnsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
 
   # frontals treated special

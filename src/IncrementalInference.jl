@@ -40,13 +40,8 @@ include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
-const IIF = IncrementalInference
-export IIF
 
-const KDE = KernelDensityEstimate
-const AMP = ApproxManifoldProducts
-# const DFG = DistributedFactorGraphs
-const FSM = FunctionalStateMachine
+
 
 import Base: convert
 # import HDF5: root
@@ -65,11 +60,19 @@ import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 import DistributedFactorGraphs: isSolvable
 
 
-# TODO temporary for initial version of on-manifold products
-KDE.setForceEvalDirect!(true)
+# must be moved to their own repos
+const KDE = KernelDensityEstimate
+const AMP = ApproxManifoldProducts
+# const DFG = DistributedFactorGraphs
+const FSM = FunctionalStateMachine
+const IIF = IncrementalInference
 
 # Package aliases
-export KDE, AMP, DFG, FSM
+export KDE, AMP, DFG, FSM, IIF
+
+
+# TODO temporary for initial version of on-manifold products
+KDE.setForceEvalDirect!(true)
 
 # DFG SpecialDefinitions
 export AbstractDFG,
@@ -77,7 +80,7 @@ export AbstractDFG,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
-  solverData,
+  # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
   *,
   notifyCSMCondition,
@@ -101,6 +104,7 @@ export AbstractDFG,
   printCliqHistorySummary,
   printGraphSummary,
   printSummary,
+  print,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
@@ -147,16 +151,20 @@ export AbstractDFG,
   # from DFG
   ls,
   lsf,
+  sortDFG,
   getVariableIds,
   getVariableOrder,
   calcVariablePPE,
+  getPPE,
+  getPPEs,
+  getVariablePPE,
+  getVariablePPEs,
   sortVarNested,
   hasOrphans,
   drawCopyFG,
   isVariable,
   isFactor,
   # from dfg
-  getfnctype,
   getFactorType,
   getSofttype,
   getVariableType,
@@ -195,7 +203,8 @@ export AbstractDFG,
   deleteMsgFactors!,
   factorCanInitFromOtherVars,
   doautoinit!,
-  manualinit!,
+  initManual!,
+  initVariableManual!,
   initVariable!,
   asyncTreeInferUp!,
   initInferTreeUp!,
@@ -222,6 +231,7 @@ export AbstractDFG,
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
+  getCliqueData,
   getManifolds,
   getVarNode,
   getVal,
@@ -600,22 +610,22 @@ function __init__()
         numlcl = size(getCliqAssocMat(cliq),1)
         mat[(numlcl+1):end,:] *= 0.9
         mat[(numlcl+1):end,:] .-= 0.1
-        numfrtl1 = floor(Int,length(getData(cliq).frontalIDs) + 1)
+        numfrtl1 = floor(Int,length(getCliqueData(cliq).frontalIDs) + 1)
         mat[:,numfrtl1:end] *= 0.9
         mat[:,numfrtl1:end] .-= 0.1
         if !suppressprint
-          @show getData(cliq).itervarIDs
-          @show getData(cliq).directvarIDs
-          @show getData(cliq).msgskipIDs
-          @show getData(cliq).directFrtlMsgIDs
-          @show getData(cliq).directPriorMsgIDs
+          @show getCliqueData(cliq).itervarIDs
+          @show getCliqueData(cliq).directvarIDs
+          @show getCliqueData(cliq).msgskipIDs
+          @show getCliqueData(cliq).directFrtlMsgIDs
+          @show getCliqueData(cliq).directPriorMsgIDs
         end
         if size(mat,1) == 1
           mat = [mat; -ones(size(mat,2))']
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getData(cliq).frontalIDs) :$(getData(cliq).separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getData(cliq).itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getCliqueData(cliq).frontalIDs) :$(getCliqueData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getCliqueData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end

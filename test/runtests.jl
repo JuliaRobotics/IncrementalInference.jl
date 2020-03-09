@@ -21,6 +21,7 @@ end
 
 include("basicGraphsOperations.jl")
 
+
 include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
@@ -28,6 +29,8 @@ include("testPartialFactors.jl")
 @testset "basic Bayes tree construction" begin
     include("testBayesTreeiSAM2Example.jl")
 end
+
+include("testSaveLoadDFG.jl")
 
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
@@ -98,19 +101,6 @@ end
 end
 
 include("testAnalysisTools.jl")
-
-@testset "saving to and loading from FileDFG" begin
-    saveFolder = "/tmp/dfg_test"
-    # VERSION above 1.0.x hack required since Julia 1.0 does not seem to have function `splitpath`
-    saveDFG(fg, saveFolder, compress= VERSION < v"1.1" ? :none : :gzip)
-    retDFG = LightDFG{SolverParams}(params=SolverParams())
-    if v"1.1" <= VERSION
-      retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
-      @test symdiff(ls(fg), ls(retDFG)) == []
-      @test symdiff(lsf(fg), lsf(retDFG)) == []
-    end
-end
-
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]
