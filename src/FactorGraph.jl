@@ -422,6 +422,7 @@ function addVariable!(dfg::AbstractDFG,
                       N::Int=100,
                       autoinit::Bool=true,  # does init need to be separate from ready? TODO
                       solvable::Int=1,
+                      timestamp::DateTime=now(),
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
@@ -430,7 +431,7 @@ function addVariable!(dfg::AbstractDFG,
 
   #
   tags = union(labels, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
@@ -449,6 +450,7 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Bool=true,
+                      timestamp::DateTime=now(),
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
@@ -466,6 +468,7 @@ function addVariable!(dfg::G,
                       N=N,
                       autoinit=autoinit,
                       solvable=solvable,
+                      timestamp=timestamp,
                       dontmargin=dontmargin,
                       labels=labels,
                       smalldata=smalldata  )
@@ -950,6 +953,7 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(),
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
@@ -971,7 +975,8 @@ function addFactor!(dfg::AbstractDFG,
                         varOrderLabels,
                         solverData;
                         tags=Set(union(labels, [:FACTOR])),
-                        solvable=solvable)
+                        solvable=solvable,
+                        timestamp=timestamp)
 
   # # TODO: Need to remove this...
   # for vert in Xi
@@ -991,6 +996,7 @@ function addFactor!(dfg::AbstractDFG,
                     usrfnc::Union{FunctorInferenceType, InferenceType};
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     solvable::Int=1,
+                    timestamp::DateTime=now(),
                     labels::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
@@ -1006,7 +1012,7 @@ function addFactor!(dfg::AbstractDFG,
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
 end
 
 
