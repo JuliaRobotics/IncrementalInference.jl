@@ -76,6 +76,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    Xi::Vector{DFGVariable},
                                    solvefor::Symbol,
                                    N::Int  ) where {T <: FunctorInferenceType}
+  #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
@@ -315,8 +316,8 @@ function evalFactor2(dfg::AbstractDFG,
   Xi = DFGVariable[]
   count = 0
   # TODO replace fncargvID with neighbors
-  variablelist = Vector{Symbol}(undef, length(getSolverData(fct).fncargvID))
-  for id in getSolverData(fct).fncargvID
+  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))  # getSolverData(fct).fncargvID
+  for id in getVariableOrder(fct) # getSolverData(fct).fncargvID
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )

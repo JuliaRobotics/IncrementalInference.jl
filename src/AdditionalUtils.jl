@@ -165,7 +165,7 @@ function approxConvCircular(pX::BallTreeDensity, pDX::BallTreeDensity; N::Int=10
   tfg = initfg()
   addVariable!(tfg, :s1, Sphere1)
   addVariable!(tfg, :s2, Sphere1)
-  addFactor!(tfg, [:s1;:s2], Sphere1Sphere1(pDX), autoinit=false)
+  addFactor!(tfg, [:s1;:s2], Sphere1Sphere1(pDX), graphinit=false)
   manualinit!(tfg,:s1, pX)
 
   # solve for outgoing proposal value

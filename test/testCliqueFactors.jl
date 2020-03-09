@@ -21,19 +21,19 @@ addVariable!(fg, :l1, ContinuousScalar)
 
 lc = LinearConditional(Normal())
 lp = Prior(Normal())
-addFactor!(fg, [:x0;:x1], lc, autoinit=false)
-addFactor!(fg, [:x1;:x2], lc, autoinit=false)
-addFactor!(fg, [:x2;:x3], lc, autoinit=false)
-addFactor!(fg, [:x3;:x4], lc, autoinit=false)
+addFactor!(fg, [:x0;:x1], lc, graphinit=false)
+addFactor!(fg, [:x1;:x2], lc, graphinit=false)
+addFactor!(fg, [:x2;:x3], lc, graphinit=false)
+addFactor!(fg, [:x3;:x4], lc, graphinit=false)
 
-addFactor!(fg, [:x0;:l0], lc, autoinit=false)
-addFactor!(fg, [:x2;:l0], lc, autoinit=false)
+addFactor!(fg, [:x0;:l0], lc, graphinit=false)
+addFactor!(fg, [:x2;:l0], lc, graphinit=false)
 
-addFactor!(fg, [:x0;:l1], lc, autoinit=false)
-addFactor!(fg, [:x2;:l1], lc, autoinit=false)
+addFactor!(fg, [:x0;:l1], lc, graphinit=false)
+addFactor!(fg, [:x2;:l1], lc, graphinit=false)
 
-addFactor!(fg, [:x0;], lp, autoinit=false)
-addFactor!(fg, [:l0;], lp, autoinit=false)
+addFactor!(fg, [:x0;], lp, graphinit=false)
+addFactor!(fg, [:l0;], lp, graphinit=false)
 
 # build tree
 vo = Symbol[:x2, :x0, :l0, :x3, :x1, :l1, :x4]
@@ -115,14 +115,14 @@ addVariable!(fg, :lm3, ContinuousScalar)
 
 lc = LinearConditional(Normal())
 lp = Prior(Normal())
-addFactor!(fg, [:x0;:x1], lc, autoinit=false)
-addFactor!(fg, [:x1;:x2], lc, autoinit=false)
-addFactor!(fg, [:x2;:x3], lc, autoinit=false)
+addFactor!(fg, [:x0;:x1], lc, graphinit=false)
+addFactor!(fg, [:x1;:x2], lc, graphinit=false)
+addFactor!(fg, [:x2;:x3], lc, graphinit=false)
 
-addFactor!(fg, [:x0;:lm0], lc, autoinit=false)
-addFactor!(fg, [:x1;:lm0], lc, autoinit=false)
-addFactor!(fg, [:x2;:lm3], lc, autoinit=false)
-addFactor!(fg, [:x3;:lm3], lc, autoinit=false)
+addFactor!(fg, [:x0;:lm0], lc, graphinit=false)
+addFactor!(fg, [:x1;:lm0], lc, graphinit=false)
+addFactor!(fg, [:x2;:lm3], lc, graphinit=false)
+addFactor!(fg, [:x3;:lm3], lc, graphinit=false)
 
 
 # particular order from 458

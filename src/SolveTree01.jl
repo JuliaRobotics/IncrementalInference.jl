@@ -70,12 +70,13 @@ function packFromLocalPotentials!(dfg::AbstractDFG,
                                   dbg::Bool=false )::Float64
   #
   inferdim = 0.0
-  for idfct in getData(cliq).potentials
+  for idfct in getCliqueData(cliq).potentials
     !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     fct = DFG.getFactor(dfg, idfct)
     data = getSolverData(fct)
     # skip partials here, will be caught in packFromLocalPartials!
-    if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+    if length( findall(getVariableOrder(fct) .== vsym) ) >= 1 && !data.fnc.partial
+    # if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
       p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
       push!(dens, p)
       push!(wfac, fct.label)
@@ -96,11 +97,11 @@ function packFromLocalPartials!(fgl::G,
                                 dbg::Bool=false  ) where G <: AbstractDFG
   #
 
-  for idfct in getData(cliq).potentials
+  for idfct in getCliqueData(cliq).potentials
     !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
     vert = DFG.getFactor(fgl, idfct)
     data = getSolverData(vert)
-    if length( findall(data.fncargvID .== vsym) ) >= 1 && data.fnc.partial
+    if length( findall(getVariableOrder(vert) .== vsym) ) >= 1 && data.fnc.partial
       p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -483,6 +484,8 @@ function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()
   return d
 end
 
+# global countsolve = 0
+
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
                         cliq::TreeClique,
@@ -491,10 +494,14 @@ function doFMCIteration(fgl::AbstractDFG,
                         dbg::Bool,
                         logger=ConsoleLogger()  )
   #
+# global countsolve
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
     densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+
+      # countsolve += 1
+      # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
 
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
@@ -582,29 +589,24 @@ function treeProductUp(fg::AbstractDFG,
                        dbg::Bool=false  )
   #
   cliq = whichCliq(tree, cliq)
-  cliqdata = getData(cliq)
-  # IDS = [cliqdata.frontalIDs; cliqdata.separatorIDs]
-
-  # get the local variable id::Int identifier
-  vertid = fg.IDs[sym]
+  cliqdata = getCliqueData(cliq)
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = NBPMessage[]
   for cl in childCliqs(tree, cliq)
     msgdict = upMsg(cl)
-    dict = Dict{Int, EasyMessage}()
+    dict = Dict{Symbol, EasyMessage}()
     for (dsy, btd) in msgdict
       manis = getSofttype(getVariable(fg, dsy)).manifolds
-
-      dict[fg.IDs[dsy]] = convert(EasyMessage, btd, manis)
+      dict[dsy] = convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, vertid)).manifolds
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, upmsgssym, N, dbg, manis )
+  manis = getSofttype(getVariable(fg, sym)).manifolds
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end
@@ -624,7 +626,7 @@ function treeProductDwn(fg::G,
                         dbg::Bool=false  ) where G <: AbstractDFG
   #
   cliq = whichCliq(tree, cliq)
-  cliqdata = getData(cliq)
+  cliqdata = getCliqueData(cliq)
 
   # get the local variable id::Int identifier
   vertid = fg.IDs[sym]
@@ -682,7 +684,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   priorprods = Vector{CliqGibbsMC}()
 
-  cliqdata = getData(inp.cliq)
+  cliqdata = getCliqueData(inp.cliq)
 
   with_logger(logger) do
     for el in inp.sendmsgs, (id,msg) in el.p
@@ -754,10 +756,10 @@ function dwnPrepOutMsg(fg::G,
   end
   m = NBPMessage(Dict{Symbol,T}())
   i = 0
-  for vid in getData(cliq).frontalIDs
+  for vid in getCliqueData(cliq).frontalIDs
     m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
   end
-  for cvid in getData(cliq).separatorIDs
+  for cvid in getCliqueData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
     m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
@@ -815,7 +817,7 @@ function downGibbsCliqueDensity(fg::G,
   setDwnMsg!(cliq, dwnkeepmsgs)
 
   # down solving complete, set flag
-  getData(cliq).downsolved = true
+  getCliqueData(cliq).downsolved = true
 
   mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
   with_logger(logger) do
@@ -1019,7 +1021,7 @@ Notes
 Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
-function approxCliqMarginalUp!(fgl::G,
+function approxCliqMarginalUp!(fgl::AbstractDFG,
                                treel::AbstractBayesTree,
                                csym::Symbol,
                                onduplicate=true;
@@ -1028,7 +1030,7 @@ function approxCliqMarginalUp!(fgl::G,
                                iters::Int=3,
                                drawpdf::Bool=false,
                                multiproc::Bool=true,
-                               logger=ConsoleLogger()  ) where G <: AbstractDFG
+                               logger=ConsoleLogger()  )
   #
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   # onduplicate
@@ -1061,7 +1063,7 @@ function approxCliqMarginalUp!(fgl::G,
   urt = UpReturnBPType()
   if multiproc
     cliqc = deepcopy(cliq)
-    cliqcd = getData(cliqc)
+    cliqcd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
     cliqcd.initUpChannel = Channel{Symbol}(1)
     cliqcd.initDownChannel = Channel{Symbol}(1)
@@ -1109,72 +1111,28 @@ function approxCliqMarginalUp!(fgl::G,
   return urt
 end
 
-"""
-    $SIGNATURES
-
-Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
-
-Notes
-=====
-- `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
-"""
-function doCliqInferenceUp!(fgl::FactorGraph,
-                            treel::AbstractBayesTree,
-                            csym::Symbol,
-                            onduplicate=true;
-                            N::Int=100,
-                            dbg::Bool=false,
-                            iters::Int=3,
-                            drawpdf::Bool=false,
-                            multiproc::Bool=true,
-                            logger=ConsoleLogger()   )
-  #
-  approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
-end
-
 # """
-#     $(TYPEDSIGNATURES)
+#     $SIGNATURES
 #
-# Perform Chapman-Kolmogorov transit integral procedure for a given clique, specifically for the upward direction.
+# Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
 #
-# Notes:
-# -----
-# * Assumes the same procedure has completed for the child cliques, since upward messages are required from them.
-# * Can adjust the number of `iters::Int=3` must be performed on the `itervars` of this clique.
+# Notes
+# =====
+# - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
 # """
 # function doCliqInferenceUp!(fgl::FactorGraph,
 #                             treel::AbstractBayesTree,
-#                             cliql::TreeClique;
+#                             csym::Symbol,
+#                             onduplicate=true;
 #                             N::Int=100,
 #                             dbg::Bool=false,
-#                             iters::Int=3  )
+#                             iters::Int=3,
+#                             drawpdf::Bool=false,
+#                             multiproc::Bool=true,
+#                             logger=ConsoleLogger()   )
 #   #
-#   # get children
-#   childr = childCliqs(treel, cliql)
-#
-#   # get upward messages from children
-#   upmsgs = NBPMessage[]
-#   for child in childr
-#     frsym = getSym(fgl, getFrontals(child)[1])
-#     ret = getUpMsgs(treel, frsym)
-#     @show typeof(ret)
-#     newmsg = NBPMessage()
-#     for (id, val) in ret
-#       newmsg[id] = convert(EasyMessage, val, manis)
-#     end
-#     push!(upmsgs, newmsg)
-#   end
-#
-#   ett = ExploreTreeType(fgl, treel, cliql, nothing, upmsgs)
-#
-#   urt = upGibbsCliqueDensity(ett, N, dbg, iters)
-#   return urt.keepupmsgs
+#   approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
 # end
-
-
-
-
-## NOTE REMOVED MANY RECURSIVE OR ITERATIVE STACK FUNCTIONS HERE
 
 
 
@@ -1185,7 +1143,7 @@ Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 """
 function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in getCliques(treel)
-    cliqdata = getData(cliq)
+    cliqdata = getCliqueData(cliq)
     cliqdata.initialized = :null
     cliqdata.upsolved = to
     cliqdata.downsolved = to
@@ -1224,7 +1182,7 @@ end
 
 Return `::Bool` on whether all variables in this `cliq` are marginalzed.
 """
-function isCliqMarginalizedFromVars(subfg::FactorGraph, cliq::TreeClique)
+function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
   for vert in getCliqVars(subfg, cliq)
     if !isMarginalized(vert)
       return false
@@ -1240,11 +1198,11 @@ Set the marginalized status of a clique.
 """
 function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
   if status
-    getData(cliq).initialized = :marginalized
+    getCliqueData(cliq).initialized = :marginalized
   else
-    if getData(cliq).initialized == :marginalized
+    if getCliqueData(cliq).initialized == :marginalized
       @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      getData(cliq).initialized = :downsolved
+      getCliqueData(cliq).initialized = :downsolved
     else
       error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
     end
@@ -1259,7 +1217,7 @@ Run through entire tree and set cliques as marginalized if all clique variables 
 Notes:
 - TODO can be made fully parallel, consider converting for use with `@threads` `for`.
 """
-function updateTreeCliquesAsMarginalizedFromVars!(fgl::FactorGraph, tree::AbstractBayesTree)::Nothing
+function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::AbstractBayesTree)::Nothing
   for (clid, cliq) in getCliques(tree)
     if isCliqMarginalizedFromVars(fgl, cliq)
       setCliqAsMarginalized!(cliq, true)
@@ -1358,8 +1316,8 @@ function tryCliqStateMachineSolve!(dfg::G,
   clst = :na
   cliq = getClique(treel, i)
   syms = getCliqFrontalVarIds(cliq) # ids =
-  oldcliq = attemptTreeSimilarClique(oldtree, getData(cliq))
-  oldcliqdata = getData(oldcliq)
+  oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
+  oldcliqdata = getCliqueData(oldcliq)
   opts = getSolverParams(dfg)
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath,"logs/cliq$i/"))
@@ -1386,6 +1344,14 @@ function tryCliqStateMachineSolve!(dfg::G,
     # clst = getCliqStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
+    ## TODO -- use this format instead
+    # io = IOBuffer()
+    # showerror(io, ex, catch_backtrace())
+    # err = String(take!(io))
+    # msg = "Error while packing '$(f.label)' as '$fnctype', please check the unpacking/packing converters for this factor - \r\n$err"
+    # error(msg)
+
+    ## OLD format
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)

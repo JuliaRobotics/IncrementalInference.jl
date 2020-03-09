@@ -43,7 +43,7 @@ const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeCliqu
 """
 $(TYPEDEF)
 
-Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::AbstractDFG`.
 """
 mutable struct BayesTree <: AbstractBayesTree
   bt::BTGdict
@@ -84,7 +84,7 @@ end
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
 $(TYPEDEF)
-Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::FactorGraph`.
+Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::AbstractDFG`.
 """
 mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
