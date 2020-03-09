@@ -11,13 +11,24 @@ function solveFactorGraphParametric(fg::AbstractDFG;
                                     options = Optim.Options())
 
   varIds = listVariables(fg)
-  #TODO dimention di, its set to maximim and assumes all is the same
-  vardims = map(v->getDimension(v), getVariables(fg))
+
+  #TODO remove sorting, just for convenience
+  sort!(varIds, lt=natural_lt)
+
+
+  vardims = map(v->getDimension(getVariable(fg, v)), varIds)
 
   shapes = [ArrayShape{Real}(d) for d in vardims]
   varshapes = NamedTupleShape(NamedTuple{Tuple(varIds)}(shapes))
 
   initValues = zeros(totalndof(varshapes))
+  # initValues = Vector{Float64}(undef, totalndof(varshapes))
+
+  shapedinitValues = varshapes(initValues)
+  #populate initial values from current fg values
+  for vId in varIds
+    getproperty(shapedinitValues,vId) .= getVariableSolverData(fg, vId, solvekey).val[:,1]
+  end
 
   function totalCost(X)
 
@@ -39,7 +50,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   end
 
   tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
-  result = optimize(totalCost, initValues, algorithm, options)
+  result = optimize(tdtotalCost, initValues, algorithm, options)
   rv = Optim.minimizer(result)
 
   H = hessian!(tdtotalCost, rv)
@@ -61,80 +72,150 @@ end
 
 
 #TODO maybe consolidate with solveFactorGraphParametric
-function solveFrontalsParametric(fg::AbstractDFG, frontals::Vector{Symbol}; solvekey::Symbol=:parametric)
+#TODO WIP
+```
+    $SIGNATURES
+Solve for frontal values only with values in seprarators fixed
+```
+function solveConditionalsParametric(fg::AbstractDFG,
+                                    frontals::Vector{Symbol};
+                                    solvekey::Symbol=:parametric,
+                                    autodiff = :finite,
+                                    algorithm=BFGS(),
+                                    options = Optim.Options())
 
   varIds = listVariables(fg)
   separators = setdiff(varIds, frontals)
 
-  #TODO dimention di, its set to maximim and assumes all is the same
-  vardims = map(v->getDimension(v), getVariables(fg))
-  di = maximum(vardims)
 
-  initValues = Array{Float64}(undef, di, length(varIds))
-  varSymbols = Dict{Symbol, Int}()
-  i = 1
+  varIdsFS = [frontals; separators]
 
-  # pack frontals first and then seperators in the same array
-  for v in frontals
-    initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
-    varSymbols[v] = i
-    i +=1
+  vardims = map(v->getDimension(getVariable(fg, v)), varIdsFS)
+
+  #TODO look at ConstValueShape
+  shapes = [ArrayShape{Real}(d) for d in vardims]
+
+  frontalsLength = sum(map(v->getDimension(getVariable(fg, v)), frontals))
+
+
+  varshapes = NamedTupleShape(NamedTuple{Tuple(varIdsFS)}(shapes))
+
+  initValues = zeros(totalndof(varshapes))
+  # initValues = Array{Float64}(undef, di, length(varIds))
+  # initValues = Vector{Float64}(undef, totalndof(varshapes))
+
+  shapedinitValues = varshapes(initValues)
+  #populate initial values from current fg values
+  for vId in varIdsFS
+    getproperty(shapedinitValues,vId) .= getVariableSolverData(fg, vId, solvekey).val[:,1]
   end
 
-  for v in separators
-    initValues[:,i] = getVal(getVariable(fg,v), 1; solveKey=solvekey)
-    varSymbols[v] = i
-    i +=1
-  end
-
-  #get all the cost functions of the factors.
-  costfuns = []
-  for fct in getFactors(fg)
-    fac_cost_fx =  getFactorType(fct)
-
-    varOrder = getVariableOrder(fct)
-    # varsdata = [getSolverData(getVariable(fg, v), solvekey) for v in varOrder]
-    #TODO findfirst or dictionary lookup
-    # idx = [findfirst(v->v==varId, varIds) for varId in varOrder]
-    idx = [varSymbols[varId] for varId in varOrder]
-
-    push!(costfuns, (fac_cost_fx, idx))
-
-  end
 
 
   #build the cost function
-  function totalCost(F, S)
-    X = [F S]
-    # dim = maximum(length.(X))
-    dim = size(X)[1]
+  function totalCost(X)
 
-    res = zeros(dim)
-    for (cf, idx) in costfuns
-      Xparams = [X[:,i] for i in idx]
-      res .+=  cf(Xparams...) #TODO splat performance?
-      # res .+=  cf(X[:,idx]...) #TODO splat performance?
+    shapedX = varshapes(X)
+    res = 0
+    for fct in getFactors(fg)
+
+      cf = getFactorType(fct)
+      varOrder = getVariableOrder(fct)
+
+      Xparams = [getproperty(shapedX, varId) for varId in varOrder]
+
+      retval = cf(Xparams...)
+      # @assert retVal |> typeof == Float64
+      res += 1/2*retval # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
     end
-    # res[1]
-    #TODO to get optim to work
-    return norm(res)
+    return res
+
   end
 
   # build variables for frontals and seperators
-  fX = initValues[:,1:length(frontals)]
-  sX = initValues[:,length(frontals)+1:end]
+  fX = initValues[1:frontalsLength]
+  sX = initValues[frontalsLength+1:end]
 
-  result = optimize(x->totalCost(x,sX), fX, BFGS())
+  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
+  # result = optimize(x->totalCost(x,sX), fX, BFGS())
+
+  totalCost([fX;sX])
+
+  result = optimize(x->totalCost([x;sX]), fX, algorithm, options)
+
   rv = Optim.minimizer(result)
 
+  H = hessian!(tdtotalCost, [rv; sX])
 
-  d = Dict{Symbol,Vector{Float64}}()
-  for (i,key) in enumerate(frontals)
-    push!(d,key=>rv[:,i])
+  Σ = pinv(H)
+
+  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
+  rvshaped = varshapes([rv; sX])
+
+  for key in varIds
+    s = getproperty(varshapes, key)
+    r = range(s.offset+1, length=s.len)
+    push!(d,key=>(val=getproperty(rvshaped,key),cov=Σ[r,r]))
   end
 
-  return d, result
+  return d, result, varshapes, Σ
+end
 
+
+"""
+    $SIGNATURES
+Get the indexes for labels in shape varShape
+"""
+function collectIdx(varShape, labels)
+  idx = Int[]
+  for lbl in labels
+    append!(idx, collect(getproperty(varShape,lbl).offset.+(1:getproperty(varShape,lbl).len)))
+  end
+  return idx
+end
+
+"""
+    $SIGNATURES
+Get the indexes for labels in shape varShape
+"""
+function calculateCoBeliefMessage(soldict, Σ, varIdsShape, separators, frontals)
+  Aidx = IIF.collectIdx(varIdsShape,separators)
+  Cidx = IIF.collectIdx(varIdsShape,frontals)
+
+  #marginalize separators
+  A = Σ[Aidx, Aidx]
+  #marginalize frontals
+  C = Σ[Cidx, Cidx]
+  # cross
+  B = Σ[Aidx, Cidx]
+
+
+  Σₘ = deepcopy(A)
+  if length(separators) == 0
+
+    return (varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0))
+
+  elseif length(separators) == 1
+
+    # create messages
+    return (varlbl = deepcopy(separators), μ = soldict[separators[1]].val, Σ = A)
+
+  elseif length(separators) == 2
+    A = Σₘ[1, 1]
+    C = Σₘ[2, 2]
+    B = Σₘ[1, 2]
+
+    #calculate covariance between separators
+    ΣA_B = A - B*inv(C)*B'
+    # create messages
+    m2lbl = deepcopy(separators)
+    m2cov = isa(ΣA_B, Matrix) ? ΣA_B : fill(ΣA_B,1,1) 
+    m2val = soldict[m2lbl[2]].val - soldict[m2lbl[1]].val
+    return (varlbl = m2lbl, μ = m2val, Σ = m2cov)
+
+  else
+    error("Messages with more than 2 seperators are not supported yet")
+  end
 end
 
 """

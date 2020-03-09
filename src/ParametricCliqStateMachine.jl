@@ -118,7 +118,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
         putBeliefMessageUp!(csmc.tree, e, BeliefMessage(error_status))#put!(csmc.tree.messages[e.index].upMsg,  BeliefMessage(error_status))
       end
       #if its the root, propagate error down
-      #FIXME rather check if no parents to allow multiple tree segments
+      #FIXME rather check if no parents with function (hasParents or isRoot)
       if length(getParent(csmc.tree, csmc.cliq)) == 0
         @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
           @info "Par-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -178,7 +178,9 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
   end
 
-  vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
+  vardict, result, varIds, Σ = solveFactorGraphParametric(csmc.cliqSubFg)
+  @info "$(csmc.cliq.index) vars $(keys(varIds))"
+  @info "$(csmc.cliq.index) Σ $(Σ)"
   # Pack all results in variables
   if result.g_converged
     @info "$(csmc.cliq.index): subfg optim converged updating variables"
@@ -186,11 +188,12 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
       # fill in the variable node data value
       @info "$(csmc.cliq.index) up: updating $v : $val"
-      vnd.val .= val
-      #TODO calculate and fill in covariance
-      # vnd.bw .= bw
+      vnd.val .= val.val
+      #calculate and fill in covariance
+      #TODO rather broadcast than make new memory
+      vnd.bw = val.cov
       # TEMP remove, filled in ones for the covariance
-      vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
+      # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
     end
   else
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
@@ -325,7 +328,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #only down solve if its not a root
   if length(getParent(csmc.tree, csmc.cliq)) != 0#csmc.cliqKey != 1
     frontals = getCliqFrontalVarIds(csmc.cliq)
-    vardict, result = solveFrontalsParametric(csmc.cliqSubFg, frontals)
+    vardict, result, varshapes, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
     # vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
@@ -335,11 +338,11 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         @info "$(csmc.cliq.index) down: updating $v : $val"
         vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
         #TODO
-        vnd.val .= val
+        vnd.val .= val.val
         #TODO calculate and fill in covariance
-        # vnd.bw .= bw
+        vnd.bw .= val.cov
         # TEMP remove, filled in ones for the covariance
-        vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
+        # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
       end
     else
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"

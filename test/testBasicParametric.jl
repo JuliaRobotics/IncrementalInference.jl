@@ -73,8 +73,8 @@ end
 
 # Print answers
 if false
-vsds = DFG.solverData.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
+vsds = DFG.getSolverData.(getVariables(fg), :parametric)
+foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -119,21 +119,21 @@ IIF.initTreeMessageChannels!(tree)
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = true
 
-task = @async begin
-  global tree2
-  global smt
-  global hist
-  tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
-end
+# task = @async begin
+#   global tree2
+#   global smt
+#   global hist
+tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+# end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
 #TODO tests needs covariance to pass
-r = isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
-@test_skip r
-r = isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
-@test_skip r
-r = isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
-@test_skip r
+@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
+
+@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
+
+@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
+
 
 ################################################################################
 ## multiple sections
@@ -171,7 +171,7 @@ tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
 
 # print results
 if false
-vsds = DFG.solverData.(getVariables(fg), :parametric)
+vsds = DFG.getSolverData.(getVariables(fg), :parametric)
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 end
 
