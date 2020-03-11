@@ -333,7 +333,8 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   N = size(vars[1])[2]
   res = zeros(zDim)
   ud = FactorMetadata()
-  meas = getSample(fcttype, N)
+  meas = freshSamples(fcttype, N)
+  # meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
 
   function makemeas!(i, meas, dm)
@@ -351,7 +352,8 @@ function solveFactorMeasurements(dfg::AbstractDFG,
         r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
         retry -= 1
         if !r.g_converged
-          nsm = getSample(fcttype, 1)
+          # nsm = getSample(fcttype, 1)
+          nsm = freshSamples(fcttype, 1)
           for count in 1:length(meas)
             meas[count][:,idx] = nsm[count][:,idx]
           end
