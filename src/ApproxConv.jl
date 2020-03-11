@@ -366,7 +366,7 @@ function approxConv(dfg::AbstractDFG,
   return approxConv(dfg, fc, towards, measurement, N=N)
 end
 
-
+# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
                           outdims::Int,

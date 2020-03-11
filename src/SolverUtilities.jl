@@ -22,11 +22,19 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
+function freshSamples(usrfnc::FunctorInferenceType, N::Int=1, fmd, vnd...)
+  if !hasfield(usrfnc, :specialSampler)
+    getSample(usrfnc, N)
+  else
+    error("WIP on specialSampler")
+  end
+end
 function freshSamples(usrfnc::FunctorInferenceType, N::Int=1)
-  getSample(usrfnc, N)
+  freshSamples(usrfnc, N, nothing,)
 end
 
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+# TODO, add Xi::Vector{DFGVariable} if possible
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1, fmd, vnd...)
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
@@ -34,6 +42,9 @@ function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
     ccwl.measurement = freshSamples(ccwl.usrfnc!, N)
   # end
   nothing
+end
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+  freshSamples!(ccwl, N, nothing,)
 end
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
@@ -325,8 +336,10 @@ function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
   #
   fcto = getFactor(dfg, fctsym)
-  varsyms = fcto._variableOrderSymbols
-  vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
+  varsyms = getVariableOrder(fcto)
+  # varsyms = fcto._variableOrderSymbols
+  VV = (v->getVariable(dfg, v)).(varsyms)
+  vars = map(x->getPoints(getKDE(x)), VV) # varsyms
   fcttype = getFactorType(fcto)
   zDim = getSolverData(fcto).fnc.zDim
 
