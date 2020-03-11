@@ -250,7 +250,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   fnc = ccwl.usrfnc!
 
   nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
+  # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
+  ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
   if !ccwl.partial
     return ccwl.measurement[1]
   else
@@ -280,7 +281,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   var = Statistics.var(val, dims=2) .+ 1e-3
 
   # determine amount share of null hypothesis particles
-  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  freshSamples!(ccwl, N)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
   # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
   nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
@@ -378,7 +380,9 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
-  measurement = size(measurement[1],2) == 0 ? getSample(meas, N) : measurement
+  # measurement = size(measurement[1],2) == 0 ? getSample(meas, N) : measurement
+  measurement = freshSamples(meas, N)
+
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

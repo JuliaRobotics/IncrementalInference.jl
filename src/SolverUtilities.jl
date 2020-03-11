@@ -22,12 +22,16 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
+function freshSamples(usrfnc::FunctorInferenceType, N::Int=1)
+  getSample(usrfnc, N)
+end
+
 function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = getSample(ccwl.usrfnc!, N)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N)
   # end
   nothing
 end
