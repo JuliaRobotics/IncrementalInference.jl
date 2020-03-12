@@ -148,7 +148,7 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
 
   # upgrade part of #639
   varSyms = getVariableOrder(fct)
-  Xi = (v->getVariable(fg, v)).(varSyms)
+  Xi = (v->getVariable(dfg, v)).(varSyms)
 
   # calculate the projection
   varmask = (1:2)[varSyms .== trgsym][1]
