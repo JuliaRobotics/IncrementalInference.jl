@@ -26,9 +26,12 @@ include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
 
+
 @testset "basic Bayes tree construction" begin
     include("testBayesTreeiSAM2Example.jl")
 end
+
+include("testSpecialSampler.jl")
 
 include("testSaveLoadDFG.jl")
 
