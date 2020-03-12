@@ -2,6 +2,7 @@
 
 using Test
 using IncrementalInference
+using DistributedFactorGraphs
 
 # import IncrementalInference: getSample
 
@@ -51,12 +52,41 @@ tree, smt, hist = solveTree!(fg)
 @test getPPE(fg, :x1).suggested[1] - 10 |> abs < 3.0
 
 
+
+
+## special test for IIF #568
+
+
+## Singleton (Prior)
+
+fcm, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement |> deepcopy
+pts = approxConv(fg, :x0f1, :x1)
+fcm2, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement
+fcm3, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement |> deepcopy
+
+@test 0.1 < norm(fcm - fcm2)
+@test norm(fcm2 - fcm3) < 1e-5
+
+## Pairwise
+
+# forward direction
+fcm, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement |> deepcopy
+pts = approxConv(fg, :x0x1f1, :x1)
+fcm2, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement
+
+@test 0.1 < norm(fcm - fcm2)
+
+
+# reverse direction
+fcm, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement |> deepcopy
+pts = approxConv(fg, :x0x1f1, :x0)
+fcm2, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement
+
+@test 0.1 < norm(fcm - fcm2)
+
+
+0
 end
-
-
-
-## specific test for #568
-
 
 
 #
