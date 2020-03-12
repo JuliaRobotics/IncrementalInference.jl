@@ -345,13 +345,13 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   # varsyms = fcto._variableOrderSymbols
   VV = (v->getVariable(dfg, v)).(varsyms)
   vars = map(x->getPoints(getKDE(x)), VV) # varsyms
-  vnds = (v->getSolverData(v)).(VV)
   fcttype = getFactorType(fcto)
   zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)
   ud = FactorMetadata()
+  vnds = VV # (v->getSolverData(v)).(VV)
   meas = freshSamples(fcttype, N, ud, vnds)
   # meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])

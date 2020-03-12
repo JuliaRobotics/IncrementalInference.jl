@@ -84,7 +84,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   # get factor metadata -- TODO, populate
   fmd = FactorMetadata()
   #  get variable node data
-  vnds = (x->getSolverData(x)).(Xi)
+  vnds = Xi # (x->getSolverData(x)).(Xi)
   freshSamples!(ccwl, maxlen, fmd, vnds...)
   # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
@@ -256,7 +256,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
   # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
   # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
-  vnds = (x->getSolverData(x)).(Xi)
+  vnds = Xi # (x->getSolverData(x)).(Xi)
   freshSamples!(ccwl, nn, FactorMetadata(), vnds...) # in-place version
   if !ccwl.partial
     return ccwl.measurement[1]
@@ -287,7 +287,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   var = Statistics.var(val, dims=2) .+ 1e-3
 
   # prep in case special samplers used
-  vnds = (x->getSolverData(x)).(Xi)
+  vnds = Xi # (x->getSolverData(x)).(Xi)
   # determine amount share of null hypothesis particles
   freshSamples!(ccwl, N, FactorMetadata(), vnds...)
   # ccwl.measurement = getSample(ccwl.usrfnc!, N)
@@ -382,7 +382,7 @@ function approxConvBinary(arr::Array{Float64,2},
                           varidx::Int=2,
                           N::Int=size(arr,2),
                           fmd::FactorMetadata=FactorMetadata(),
-                          vnds=VariableNodeData[] )
+                          vnds=DFGVariable[] )
   #
   # N = N == 0 ? size(arr,2) : N
   pts = zeros(outdims,N);
