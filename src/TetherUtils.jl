@@ -146,8 +146,12 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   mea = getFactorMean(fct)
   measT = (reshape(mea,:,1),)
 
+  # upgrade part of #639
+  varSyms = getVariableOrder(fct)
+  Xi = (v->getVariable(fg, v)).(varSyms)
+
   # calculate the projection
-  varmask = (1:2)[getVariableOrder(fct) .== trgsym][1]
+  varmask = (1:2)[varSyms .== trgsym][1]
   pts = approxConvBinary( reshape(currval,:,1), meas, outdims, measT, varidx=varmask )
 
   # return the result

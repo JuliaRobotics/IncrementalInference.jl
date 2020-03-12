@@ -585,9 +585,15 @@ end
 # import IncrementalInference: prepgenericconvolution, convert
 
 function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: FunctorInferenceType}
-  ## TODO GETSAMPLE
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  zdim = T != GenericMarginal ? size(freshSamples(usrfnc, 2)[1],1) : 0
+  zdim = if T != GenericMarginal
+    vnds = (x->getSolverData(x)).(Xi)
+    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds...)[1]
+    size(smpls,1)
+  else
+    0
+  end
+  return zdim
 end
 
 function prepgenericconvolution(

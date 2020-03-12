@@ -22,29 +22,34 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
-function freshSamples(usrfnc::FunctorInferenceType, N::Int=1, fmd, vnd...)
+function freshSamples(usrfnc::FunctorInferenceType, N::Int=1, fmd::FactorMetadata, vnd...)
   if !hasfield(usrfnc, :specialSampler)
     getSample(usrfnc, N)
   else
-    error("WIP on specialSampler")
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
   end
 end
+
 function freshSamples(usrfnc::FunctorInferenceType, N::Int=1)
-  freshSamples(usrfnc, N, nothing,)
+  if hasfield(usrfnc, :specialSampler)
+    error("specialSampler requires FactorMetadata and VariableNodeDatas")
+  end
+  freshSamples(usrfnc, N, FactorMetadata(),)
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1, fmd, vnd...)
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1, fmd::FactorMetadata, vnd...)
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = freshSamples(ccwl.usrfnc!, N)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
   # end
   nothing
 end
 function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  freshSamples!(ccwl, N, nothing,)
+  # could maybe use default to reduce member functions
+  freshSamples!(ccwl, N, FactorMetadata(),)
 end
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
@@ -340,13 +345,14 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   # varsyms = fcto._variableOrderSymbols
   VV = (v->getVariable(dfg, v)).(varsyms)
   vars = map(x->getPoints(getKDE(x)), VV) # varsyms
+  vnds = (v->getSolverData(v)).(VV)
   fcttype = getFactorType(fcto)
   zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)
   ud = FactorMetadata()
-  meas = freshSamples(fcttype, N)
+  meas = freshSamples(fcttype, N, ud, vnds)
   # meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
 
@@ -366,7 +372,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
         retry -= 1
         if !r.g_converged
           # nsm = getSample(fcttype, 1)
-          nsm = freshSamples(fcttype, 1)
+          nsm = freshSamples(fcttype, 1, ud, vnds)
           for count in 1:length(meas)
             meas[count][:,idx] = nsm[count][:,idx]
           end
