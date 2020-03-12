@@ -23,7 +23,9 @@ Return N=100 measurement samples for a factor in `<:AbstractDFG`.
 """
 function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   fnc = getFactorFunction(dfg, fsym)
-  getSample(fnc, N)
+  # getSample(fnc, N)
+  Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
+  freshSamples(fnc, N)
 end
 
 """

@@ -584,6 +584,18 @@ end
 
 # import IncrementalInference: prepgenericconvolution, convert
 
+function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: FunctorInferenceType}
+  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  zdim = if T != GenericMarginal
+    vnds = (x->getSolverData(x)).(Xi)
+    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds...)[1]
+    size(smpls,1)
+  else
+    0
+  end
+  return zdim
+end
+
 function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
             usrfnc::T;
@@ -593,7 +605,8 @@ function prepgenericconvolution(
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
-  zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  zdim = calcZDim(usrfnc, Xi)
+  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,

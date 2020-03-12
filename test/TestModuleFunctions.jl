@@ -72,6 +72,10 @@ end
 # Okay lets see
 using Main.Second
 
+
+@testset "out of module evalPotential..." begin
+
+
 Col = First.Container()
 
 
@@ -98,6 +102,8 @@ t2 = @elapsed solve(Col, sa)
 println("Check the speed is reasonable")
 @test t2 < 15.0*t1 # should actually be about equal, slack for threading uncertainty
 
+
+end
 
 # expand tests to include multiprocessor
 # println("Tesing call of function on separate process...")

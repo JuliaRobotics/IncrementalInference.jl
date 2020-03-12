@@ -5,7 +5,9 @@ using DistributedFactorGraphs
 
 using Test
 
-dfg = GraphsDFG{SolverParams}(params=SolverParams())
+
+dfg = initfg() # GraphsDFG{SolverParams}(params=SolverParams())
+# TODO, this still necessary?
 setSerializationModule!(dfg, Main)
 
 @testset "hard-coded test of PackedPrior to Prior" begin
