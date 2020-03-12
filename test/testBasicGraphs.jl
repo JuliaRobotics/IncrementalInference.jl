@@ -147,11 +147,11 @@ addFactor!(fg, [:x0;:x1;], LinearConditional(Normal(0.0,10.0)))
 tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance -- should be near each prior
-@test abs((getKDE(fg, :x0) |> getKDEMean)[1]+1) < 0.5
-@test abs((getKDE(fg, :x1) |> getKDEMean)[1]-1) < 0.5
+@test abs((getKDE(fg, :x0) |> getKDEMean)[1]+1) < 0.75
+@test abs((getKDE(fg, :x1) |> getKDEMean)[1]-1) < 0.75
 
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.5
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.5
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.5
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.5
 
 end
 
