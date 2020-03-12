@@ -390,9 +390,7 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
-  # measurement = size(measurement[1],2) == 0 ? getSample(meas, N) : measurement
-  measurement = freshSamples(meas, N, fmd, vnds...)
-
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds...) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

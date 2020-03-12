@@ -21,7 +21,6 @@ end
 
 include("basicGraphsOperations.jl")
 
-
 include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
