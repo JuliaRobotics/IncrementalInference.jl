@@ -101,6 +101,7 @@ function (ccw::CommonConvWrapper)(x::Vector{Float64})
     ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
   end
   # evaulate the user provided residual function with constructed set of parameters
+  @show typeof(ccw.usrfnc!)
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
               ccw.cpt[Threads.threadid()].factormetadata,
               ccw.cpt[Threads.threadid()].particleidx,
@@ -345,13 +346,13 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   # varsyms = fcto._variableOrderSymbols
   VV = (v->getVariable(dfg, v)).(varsyms)
   vars = map(x->getPoints(getKDE(x)), VV) # varsyms
-  vnds = (v->getSolverData(v)).(VV)
   fcttype = getFactorType(fcto)
   zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)
   ud = FactorMetadata()
+  vnds = VV # (v->getSolverData(v)).(VV)
   meas = freshSamples(fcttype, N, ud, vnds)
   # meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
