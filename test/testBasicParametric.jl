@@ -3,6 +3,10 @@ using Test
 using DistributedFactorGraphs
 using IncrementalInference
 
+
+@testset "Parametric Tests" begin
+
+
 ##
 fg = generateCanonicalFG_lineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, params=SolverParams(algorithms=[:default, :parametric]))
 
@@ -199,3 +203,6 @@ IIF.initTreeMessageChannels!(tree)
 tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
 
 # the answers will not be correct but the tree should exit cleanly and not block
+
+
+end
