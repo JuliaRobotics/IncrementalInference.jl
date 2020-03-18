@@ -72,7 +72,7 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
   # pass workload up to DFG -- TODO, should this be updateGraphData! or updateGraphSolverData!
   for var in (x->getVariable(src, x)).(syms)
     updateVariableSolverData!(dest, var)
-    updatePPE && DFG.updatePPE(dest, var)
+    updatePPE && DFG.updatePPE!(dest, var)
   end
   #   DFG.updateGraphSolverData!(src, dest, syms)
   
