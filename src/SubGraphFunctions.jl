@@ -63,7 +63,8 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
                                  src::AbstractDFG,
                                  syms::Vector{Symbol}=union(ls(src)...),
                                  logger=ConsoleLogger();
-                                 updatePPE::Bool=true  )
+                                 updatePPE::Bool=true,
+                                 solveKey::Symbol=:default)
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
@@ -71,8 +72,8 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
   
   # pass workload up to DFG -- TODO, should this be updateGraphData! or updateGraphSolverData!
   for var in (x->getVariable(src, x)).(syms)
-    updateVariableSolverData!(dest, var)
-    updatePPE && DFG.updatePPE!(dest, var)
+    updateVariableSolverData!(dest, var, solveKey)
+    updatePPE && DFG.updatePPE!(dest, var, solveKey)
   end
   #   DFG.updateGraphSolverData!(src, dest, syms)
   
