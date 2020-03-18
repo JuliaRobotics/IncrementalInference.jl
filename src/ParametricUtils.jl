@@ -35,95 +35,6 @@ end
 
 Solve a Gaussian factor graph.
 """
-function solveFactorGraphParametric2(fg::AbstractDFG;
-                                    solvekey::Symbol=:parametric,
-                                    autodiff = :forward,
-                                    algorithm=BFGS,
-                                    algorithmkwargs=(), # add manifold to overwrite computed one
-                                    options = Optim.Options(allow_f_increases=true,
-                                                            time_limit = 100,
-                                                            # show_trace = true,
-                                                            # show_every = 1,
-                                                            ))
-
-  #Other options
-  # options = Optim.Options(time_limit = 100,
-  #                     iterations = 1000,
-  #                     show_trace = true,
-  #                     show_every = 1,
-  #                     allow_f_increases=true,
-  #                     g_tol = 1e-6,
-  #                     )
-
-  varIds = listVariables(fg)
-
-  #TODO remove sorting, just for convenience
-  sort!(varIds, lt=natural_lt)
-
-
-  vardims = map(v->getDimension(getVariable(fg, v)), varIds)
-
-  shapes = [ArrayShape{Real}(d) for d in vardims]
-  varshapes = NamedTupleShape(NamedTuple{Tuple(varIds)}(shapes))
-
-  initValues = zeros(totalndof(varshapes))
-  # initValues = Vector{Float64}(undef, totalndof(varshapes))
-
-  shapedinitValues = varshapes(initValues)
-  #populate initial values from current fg values
-  for vId in varIds
-    getproperty(shapedinitValues,vId) .= getVariableSolverData(fg, vId, solvekey).val[:,1]
-  end
-
-  function totalCost(X)
-
-    shapedX = varshapes(X)
-    res = 0
-    for fct in getFactors(fg)
-
-      cf = getFactorType(fct)
-      varOrder = getVariableOrder(fct)
-
-      Xparams = [getproperty(shapedX, varId) for varId in varOrder]
-
-      retval = cf(Xparams...)
-      # @assert retVal |> typeof == Float64
-      res += 1/2*retval # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    end
-    return res
-
-  end
-
-  mc_mani = MixedCircular(fg, varshapes)
-  alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-
-  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
-  result = optimize(tdtotalCost, initValues, alg, options)
-  rv = Optim.minimizer(result)
-
-  H = hessian!(tdtotalCost, rv)
-
-  Σ = pinv(H)
-
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-  rvshaped = varshapes(rv)
-
-  for key in varIds
-    s = getproperty(varshapes, key)
-    r = range(s.offset+1, length=s.len)
-    push!(d,key=>(val=getproperty(rvshaped,key),cov=Σ[r,r]))
-  end
-
-  return d, result, varshapes, Σ
-end
-
-
-
-"""
-    $SIGNATURES
-
-Solve a Gaussian factor graph.
-"""
 function solveFactorGraphParametric(fg::AbstractDFG;
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
@@ -158,7 +69,6 @@ function solveFactorGraphParametric(fg::AbstractDFG;
 
   function totalCost(X)
 
-    # shapedX = varshapes(X)
     res = 0
     for fct in getFactors(fg)
 
@@ -199,6 +109,10 @@ end
 
 #TODO maybe consolidate with solveFactorGraphParametric
 #TODO WIP
+```
+    $SIGNATURES
+Solve for frontal values only with values in seprarators fixed
+```
 function solveConditionalsParametric(fg::AbstractDFG,
                                     frontals::Vector{Symbol};
                                     solvekey::Symbol=:parametric,
@@ -232,14 +146,12 @@ function solveConditionalsParametric(fg::AbstractDFG,
   #build the cost function
   function totalCost(X)
 
-    # shapedX = varshapes(X)
     res = 0
     for fct in getFactors(fg)
 
       cf = getFactorType(fct)
       varOrder = getVariableOrder(fct)
 
-      # Xparams = [getproperty(shapedX, varId) for varId in varOrder]
       Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
 
       retval = cf(Xparams...)
@@ -279,119 +191,25 @@ function solveConditionalsParametric(fg::AbstractDFG,
   return d, result, flatvar, Σ
 end
 
-```
-    $SIGNATURES
-Solve for frontal values only with values in seprarators fixed
-```
-function solveConditionalsParametric2(fg::AbstractDFG,
-                                    frontals::Vector{Symbol};
-                                    solvekey::Symbol=:parametric,
-                                    autodiff = :forward,
-                                    algorithm=BFGS,
-                                    algorithmkwargs=(), # add manifold to overwrite computed one
-                                    options = Optim.Options(allow_f_increases=true,
-                                                            time_limit = 100,
-                                                            # show_trace = true,
-                                                            # show_every = 1,
-                                                            ))
-
-  varIds = listVariables(fg)
-  separators = setdiff(varIds, frontals)
-
-
-  varIdsFS = [frontals; separators]
-
-  vardims = map(v->getDimension(getVariable(fg, v)), varIdsFS)
-
-  #TODO look at ConstValueShape
-  shapes = [ArrayShape{Real}(d) for d in vardims]
-
-  frontalsLength = sum(map(v->getDimension(getVariable(fg, v)), frontals))
-
-
-  varshapes = NamedTupleShape(NamedTuple{Tuple(varIdsFS)}(shapes))
-
-  initValues = zeros(totalndof(varshapes))
-  # initValues = Array{Float64}(undef, di, length(varIds))
-  # initValues = Vector{Float64}(undef, totalndof(varshapes))
-
-  shapedinitValues = varshapes(initValues)
-  #populate initial values from current fg values
-  for vId in varIdsFS
-    getproperty(shapedinitValues,vId) .= getVariableSolverData(fg, vId, solvekey).val[:,1]
-  end
-
-
-
-  #build the cost function
-  function totalCost(X)
-
-    shapedX = varshapes(X)
-    res = 0
-    for fct in getFactors(fg)
-
-      cf = getFactorType(fct)
-      varOrder = getVariableOrder(fct)
-
-      Xparams = [getproperty(shapedX, varId) for varId in varOrder]
-
-      retval = cf(Xparams...)
-      # @assert retVal |> typeof == Float64
-      res += 1/2*retval # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    end
-    return res
-
-  end
-
-  # build variables for frontals and seperators
-  fX = initValues[1:frontalsLength]
-  sX = initValues[frontalsLength+1:end]
-
-  mc_mani = MixedCircular(fg, varshapes)
-  alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
-
-  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
-
-  result = optimize(x->totalCost([x;sX]), fX, alg, options)
-
-  rv = Optim.minimizer(result)
-
-  H = hessian!(tdtotalCost, [rv; sX])
-
-  Σ = pinv(H)
-
-  d = Dict{Symbol,NamedTuple{(:val, :cov),Tuple{Vector{Float64},Matrix{Float64}}}}()
-  rvshaped = varshapes([rv; sX])
-
-  for key in varIds
-    s = getproperty(varshapes, key)
-    r = range(s.offset+1, length=s.len)
-    push!(d,key=>(val=getproperty(rvshaped,key),cov=Σ[r,r]))
-  end
-
-  return d, result, varshapes, Σ
-end
-
-
 """
     $SIGNATURES
-Get the indexes for labels in shape varShape
+Get the indexes for labels in FlatVariables
 """
-function collectIdx(varShape, labels)
+function collectIdx(flatvars, labels)
   idx = Int[]
   for lbl in labels
-    append!(idx, collect(getproperty(varShape,lbl).offset.+(1:getproperty(varShape,lbl).len)))
+    append!(idx, flatvars.idx[lbl])
   end
   return idx
 end
 
 """
     $SIGNATURES
-Get the indexes for labels in shape varShape
+
 """
-function calculateCoBeliefMessage(soldict, Σ, varIdsShape, separators, frontals)
-  Aidx = IIF.collectIdx(varIdsShape,separators)
-  Cidx = IIF.collectIdx(varIdsShape,frontals)
+function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
+  Aidx = IIF.collectIdx(flatvars,separators)
+  Cidx = IIF.collectIdx(flatvars,frontals)
 
   #marginalize separators
   A = Σ[Aidx, Aidx]
@@ -469,14 +287,6 @@ Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for us
 """
 struct MixedCircular <: Optim.Manifold
   isCircular::BitArray
-end
-
-function MixedCircular(fg::AbstractDFG, varShapes)
-  circMask = Bool[]
-  for k = keys(varShapes)
-    append!(circMask, getSofttype(fg, k).manifolds .== :Circular)
-  end
-  MixedCircular(circMask)
 end
 
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
