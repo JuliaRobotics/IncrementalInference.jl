@@ -29,6 +29,10 @@ using
   JSON2,
   Combinatorics
 
+#added for parametric
+using ValueShapes
+using NLSolversBase
+
 using Logging
 
 # bringing in BSD 3-clause ccolamd
