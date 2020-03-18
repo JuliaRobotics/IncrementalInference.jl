@@ -179,10 +179,12 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   vardict, result, varIds, Σ = solveFactorGraphParametric(csmc.cliqSubFg)
-  @info "$(csmc.cliq.index) vars $(keys(varIds))"
-  @info "$(csmc.cliq.index) Σ $(Σ)"
+
+  @info "$(csmc.cliq.index) vars $(keys(varIds.idx))"
+  # @info "$(csmc.cliq.index) Σ $(Σ)"
   # Pack all results in variables
-  if result.g_converged
+  # FIXME test f_converged, ls_success, confirm convergence check
+  if result.f_converged || result.g_converged
     @info "$(csmc.cliq.index): subfg optim converged updating variables"
     for (v,val) in vardict
       vnd = getVariableData(csmc.cliqSubFg, v, solveKey=:parametric)
@@ -195,8 +197,10 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       # TEMP remove, filled in ones for the covariance
       # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
     end
+  elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
+    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve, but ignoring since no priors" result
   else
-    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve"
+    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve" result
 
     # propagate error to cleanly exit all cliques?
     beliefMsg = BeliefMessage(error_status)
@@ -230,9 +234,13 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
   beliefMsg = BeliefMessage(upsolved)
-  for si in cliqSeparatorVarIds
-    vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
-    beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
+
+  #FIXME this is a bit of a hack to only send messages if there are priors or for now more than one seperator
+  if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
+    for si in cliqSeparatorVarIds
+      vnd = getVariableData(csmc.cliqSubFg, si, solveKey=:parametric)
+      beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
+    end
   end
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
@@ -328,11 +336,11 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #only down solve if its not a root
   if length(getParent(csmc.tree, csmc.cliq)) != 0#csmc.cliqKey != 1
     frontals = getCliqFrontalVarIds(csmc.cliq)
-    vardict, result, varshapes, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
+    vardict, result, flatvars, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
     # vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
-    if result.g_converged
+    if result.g_converged || result.f_converged
       @info "$(csmc.cliq.index): subfg optim converged updating variables"
       for (v,val) in vardict
         @info "$(csmc.cliq.index) down: updating $v : $val"
@@ -345,7 +353,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
       end
     else
-      @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve"
+      @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve" result
 
       #propagate error to cleanly exit all cliques?
       beliefMsg = BeliefMessage(error_status)
@@ -434,11 +442,11 @@ function transferUpdateSubGraphParametric!(dest::InMemoryDFGTypes,
     println("\n ", v.label,": ",  getSolverData(v, :parametric).val[1])
   end
 
-  #TEMP force the solver data
-  for v in syms
-    getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
-  end
-
+  # #TEMP force the solver data
+  # for v in syms
+  #   getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
+  # end
+  DFG.updateVariableSolverData!(dest, [getVariable(src, vIdx) for vIdx in syms], :parametric)
   #TODO this does not work
   # DFG.mergeUpdateGraphSolverData!(dest, src, syms)
   nothing
