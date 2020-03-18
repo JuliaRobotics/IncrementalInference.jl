@@ -14,10 +14,42 @@ function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Flo
   return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
 end
 
+"""
+    $SIGNATURES
 
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+Sample the factor stochastic model `N::Int` times and store the samples in the preallocated `ccw.measurement` container.
+
+DevNotes
+- Use in place operations where possible and remember `measurement` is a `::Tuple`.
+"""
+function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:FunctorInferenceType}
+  if !hasfield(T, :specialSampler)
+    getSample(usrfnc, N)
+  else
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
+  end
+end
+
+function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
+  if hasfield(T, :specialSampler)
+    error("specialSampler requires FactorMetadata and VariableNodeDatas")
+  end
+  freshSamples(usrfnc, N, FactorMetadata(),)
+end
+
+# TODO, add Xi::Vector{DFGVariable} if possible
+function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
+  # if size(ccwl.measurement, 2) == N
+  # DOESNT WORK DUE TO TUPLE, not so quick and easy
+  #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
+  # else
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
+  # end
   nothing
+end
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+  # could maybe use default to reduce member functions
+  freshSamples!(ccwl, N, FactorMetadata(),)
 end
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
@@ -48,17 +80,33 @@ function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
 end
 
 
-function (ccw::CommonConvWrapper)(res::Vector{Float64}, x::Vector{Float64})
+function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Real})
   shuffleXAltD!(ccw, x)
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
-  ret = ccw.usrfnc!(res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
+  # evaulate the user provided residual function with constructed set of parameters
+  ret = ccw.usrfnc!(res,
+                    ccw.cpt[Threads.threadid()].factormetadata,
+                    ccw.cpt[Threads.threadid()].particleidx,
+                    ccw.measurement,
+                    ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
   return ret
 end
 
 
 function (ccw::CommonConvWrapper)(x::Vector{Float64})
-  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x #ccw.Y
-  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res, ccw.cpt[Threads.threadid()].factormetadata, ccw.cpt[Threads.threadid()].particleidx, ccw.measurement, ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
+  # set internal memory to that of external caller value `x`, special care if partial
+  if !ccw.partial
+    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
+  else
+    ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
+  end
+  # evaulate the user provided residual function with constructed set of parameters
+  @show typeof(ccw.usrfnc!)
+  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
+              ccw.cpt[Threads.threadid()].factormetadata,
+              ccw.cpt[Threads.threadid()].particleidx,
+              ccw.measurement,
+              ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
 
@@ -69,10 +117,23 @@ function numericRootGenericRandomizedFnc!(
             testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
   #
   fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
-  r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
+
+  # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
-  ccwl.cpt[Threads.threadid()].Y[:] = r.minimizer
-  ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
+  if !ccwl.partial
+    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
+    ccwl.cpt[Threads.threadid()].Y .= r.minimizer
+    ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  else
+    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
+    # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
+    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,
+                                                       ccwl.cpt[Threads.threadid()].particleidx] )
+    #
+    ccwl.cpt[Threads.threadid()].Y = r.minimizer
+    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  end
+
   nothing
 end
 
@@ -143,9 +204,11 @@ function numericRootGenericRandomizedFnc!(
     end
   elseif ccwl.partial
     # improve memory management in this function
-    ccwl.cpt[Threads.threadid()].p[1:length(ccwl.usrfnc!.partial)] = Int[ccwl.usrfnc!.partial...] # TODO -- move this line up and out of inner loop
+    # TODO -- move this line up and out of inner loop
+    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...] # [1:length(ccwl.usrfnc!.partial)]
     r = nlsolve(  ccwl,
-                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
+                  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,
+                                                 ccwl.cpt[Threads.threadid()].particleidx],  # p[1:ccwl.zDim]# this is x0
                   inplace=true
                )
     shuffleXAltD!( ccwl, r.zero )
@@ -169,7 +232,7 @@ function setfreeze!(dfg::AbstractDFG, sym::Symbol)
     return nothing
   end
   vert = DFG.getVariable(dfg, sym)
-  data = solverData(vert)
+  data = getSolverData(vert)
   data.ismargin = true
   nothing
 end
@@ -237,11 +300,11 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 """
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         treel::AbstractBayesTree,
+                         cliq::TreeClique;
                          solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
   #
-  cda = getData(cliq)
+  cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)
@@ -260,7 +323,7 @@ function resetCliqSolve!(dfg::G,
 end
 
 function resetCliqSolve!(dfg::G,
-                         treel::BayesTree,
+                         treel::AbstractBayesTree,
                          frt::Symbol;
                          solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
   #
@@ -279,15 +342,19 @@ function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
   #
   fcto = getFactor(dfg, fctsym)
-  varsyms = fcto._variableOrderSymbols
-  vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
+  varsyms = getVariableOrder(fcto)
+  # varsyms = fcto._variableOrderSymbols
+  VV = (v->getVariable(dfg, v)).(varsyms)
+  vars = map(x->getPoints(getKDE(x)), VV) # varsyms
   fcttype = getFactorType(fcto)
-  zDim = getData(fcto).fnc.zDim
+  zDim = getSolverData(fcto).fnc.zDim
 
   N = size(vars[1])[2]
   res = zeros(zDim)
   ud = FactorMetadata()
-  meas = getSample(fcttype, N)
+  vnds = VV # (v->getSolverData(v)).(VV)
+  meas = freshSamples(fcttype, N, ud, vnds)
+  # meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
 
   function makemeas!(i, meas, dm)
@@ -305,7 +372,8 @@ function solveFactorMeasurements(dfg::AbstractDFG,
         r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
         retry -= 1
         if !r.g_converged
-          nsm = getSample(fcttype, 1)
+          # nsm = getSample(fcttype, 1)
+          nsm = freshSamples(fcttype, 1, ud, vnds)
           for count in 1:length(meas)
             meas[count][:,idx] = nsm[count][:,idx]
           end

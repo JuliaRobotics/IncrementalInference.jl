@@ -105,7 +105,7 @@ spyCliqMat(tree, :x2)
 
 ## swap iteration order
 
-getData(tree.cliques[2]).itervarIDs = [9;7;1;3;5]
+getCliqueData(tree.cliques[2]).itervarIDs = [9;7;1;3;5]
 
 inferOverTree!(fg, tree)
 
@@ -226,18 +226,18 @@ plotKDE(manikde!(pts, (:Euclid,)))
 
 fg = initfg()
 addVariable!(fg, :l0, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l0], Prior(Normal(l0, lm_prior_noise)), autoinit=false)
+addFactor!(fg, [:l0], Prior(Normal(l0, lm_prior_noise)), graphinit=false)
 addVariable!(fg, :l1, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l1], Prior(Normal(l1, lm_prior_noise)), autoinit=false)
+addFactor!(fg, [:l1], Prior(Normal(l1, lm_prior_noise)), graphinit=false)
 addVariable!(fg, :l2, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l2], Prior(Normal(l2, lm_prior_noise)), autoinit=false)
+addFactor!(fg, [:l2], Prior(Normal(l2, lm_prior_noise)), graphinit=false)
 addVariable!(fg, :x0, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:x0; :l0; :l1; :l2], LinearConditional(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0], autoinit=false)
+addFactor!(fg, [:x0; :l0; :l1; :l2], LinearConditional(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0], graphinit=false)
 addVariable!(fg, :x1, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:x0; :x1], LinearConditional(Normal(x1-x0, odom_noise)),autoinit=false)
-addFactor!(fg, [:x1; :l0; :l1; :l2], LinearConditional(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0],autoinit=false)
+addFactor!(fg, [:x0; :x1], LinearConditional(Normal(x1-x0, odom_noise)),graphinit=false)
+addFactor!(fg, [:x1; :l0; :l1; :l2], LinearConditional(Normal(0, meas_noise)), multihypo=[1.0; 1.0/3.0; 1.0/3.0; 1.0/3.0],graphinit=false)
 addVariable!(fg, :x2, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)),autoinit=false)
+addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)),graphinit=false)
 
 
 

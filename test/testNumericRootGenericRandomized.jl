@@ -12,20 +12,19 @@ end
 # y = mx + c
 # res = y      -      m*x  -  c
 #       meas          variables and fixed values
-function (lr::LineResidual)(res::Vector{Float64},
+function (lr::LineResidual)(res::AbstractVector{<:Real},
                             userdata,
                             idx::Int,
                             z::Tuple,
-                            x::Array{Float64,2},
-                            y::Array{Float64,2}  )
+                            x::AbstractArray{<:Real,2},
+                            y::AbstractArray{<:Real,2}  )
   #
   res[1] = z[1][idx] - (y[1,idx] - (lr.m*x[1,idx] + lr.c))
   nothing
 end
 
 
-
-@testset "test CommonConvWrapper{T}" begin
+@testset "test CommonConvWrapper{T}, solve of residual functions..." begin
 
 
 function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: FunctorPairwise}

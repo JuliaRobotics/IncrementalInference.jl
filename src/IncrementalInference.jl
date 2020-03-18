@@ -26,14 +26,22 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   Optim, # might be deprecated in favor for only NLsolve dependency
-  JSON2
+  JSON2,
+  Combinatorics
+
+#added for parametric
+using ValueShapes
+using NLSolversBase
 
 using Logging
 
-const KDE = KernelDensityEstimate
-const AMP = ApproxManifoldProducts
-const DFG = DistributedFactorGraphs
-const FSM = FunctionalStateMachine
+# bringing in BSD 3-clause ccolamd
+include("ccolamd.jl")
+using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
+using .Ccolamd
+
+
+
 
 import Base: convert
 # import HDF5: root
@@ -42,6 +50,8 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+# import DistributedFactorGraphs: getVariableOrder
+# import DistributedFactorGraphs: getEstimates
 
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
@@ -50,20 +60,27 @@ import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 import DistributedFactorGraphs: isSolvable
 
 
+# must be moved to their own repos
+const KDE = KernelDensityEstimate
+const AMP = ApproxManifoldProducts
+# const DFG = DistributedFactorGraphs
+const FSM = FunctionalStateMachine
+const IIF = IncrementalInference
+
+# Package aliases
+export KDE, AMP, DFG, FSM, IIF
+
+
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
-
-export
-  KDE,
-  AMP,
-  DFG,
-  FSM,
-
-  # DFG SpecialDefinitions
-  AbstractDFG,
+# DFG SpecialDefinitions
+export AbstractDFG,
   hasVariable,
   getSolverParams,
+  LightDFG,
+  getSolvedCount, isSolved, setSolvedCount!,
+  # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
   *,
   notifyCSMCondition,
@@ -73,6 +90,7 @@ export
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
+  AbstractBayesTree,
   BayesTreeNodeData,
   PackedBayesTreeNodeData,
 
@@ -86,6 +104,7 @@ export
   printCliqHistorySummary,
   printGraphSummary,
   printSummary,
+  print,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
@@ -109,6 +128,7 @@ export
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
+  BeliefArray,
   InferenceVariable,
   ContinuousScalar,
   ContinuousMultivariate,
@@ -131,16 +151,20 @@ export
   # from DFG
   ls,
   lsf,
+  sortDFG,
   getVariableIds,
   getVariableOrder,
   calcVariablePPE,
+  getPPE,
+  getPPEs,
+  getVariablePPE,
+  getVariablePPEs,
   sortVarNested,
   hasOrphans,
   drawCopyFG,
   isVariable,
   isFactor,
   # from dfg
-  getfnctype,
   getFactorType,
   getSofttype,
   getVariableType,
@@ -151,6 +175,8 @@ export
   lsTypes,
   lsfTypes,
   findClosestTimestamp,
+  printVariable,
+  printFactor,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
@@ -177,7 +203,8 @@ export
   deleteMsgFactors!,
   factorCanInitFromOtherVars,
   doautoinit!,
-  manualinit!,
+  initManual!,
+  initVariableManual!,
   initVariable!,
   asyncTreeInferUp!,
   initInferTreeUp!,
@@ -204,6 +231,7 @@ export
   # getVert, # deprecated use DFG.getVariable getFactor instead
   getData,
   setData!,
+  getCliqueData,
   getManifolds,
   getVarNode,
   getVal,
@@ -294,6 +322,7 @@ export
   parentCliq,
   getParent,
   getCliqSiblings,
+  getNumCliqs,
   getKDE,
   getVertKDE,
   initializeNode!,
@@ -434,11 +463,13 @@ export
   extractdistribution,
 
   # factor graph operating system utils (fgos)
-  convert2packedfunctionnode,
-  encodefg,
-  decodefg,
-  savejld,
-  loadjld,
+  saveTree,
+  loadTree,
+  # convert2packedfunctionnode,
+  # encodefg,
+  # decodefg,
+  # savejld,
+  # loadjld,
   landmarks,
   setCliqDrawColor,
 
@@ -481,53 +512,44 @@ export
   addDownVariableFactors!,
   getDimension,
   setVariableRefence!,
+  shuffleXAltD,
+  reshapeVec2Mat,
+
 
   # For 1D example,
-
   # TODO rename to L2 distance
   Ranged,
   PackedRanged,
 
   # development
   # dev exports
+# TODO deprecate
   addGraphsVert!,
-  makeAddEdge!,
-  shuffleXAltD,
-  reshapeVec2Mat, # TODO deprecate
+  makeAddEdge!
 
-  # OBSOLETE TODO REMOVE #TODO TODO
-  subGraphFromVerts,
-  getMaxVertId,
-  dlapi,
-  localapi,
-  showcurrentdlapi,
-  setdatalayerAPI!,
-  DataLayerAPI
 
 
 
 # TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
-# non-free, but not currently use!
-include("ccolamd.jl")
-
 # regular
 include("FactorGraphTypes.jl")
 
-# const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
-const InMemDFGType = DFG.GraphsDFG{SolverParams} # JT TODO move to somewhere more fitting?
+# JT TODO move to somewhere more fitting?
+const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
+# const InMemDFGType = DFG.GraphsDFG{SolverParams}
 
 include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
-include("FactorGraph01.jl")
+include("JunctionTreeTypes.jl")
+include("FactorGraph.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
-include("JunctionTreeTypes.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeBasedInitialization.jl")
@@ -541,6 +563,12 @@ include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
+#EXPERIMENTAL parametric
+include("ParametricMessageUtils.jl")
+include("ParametricSolveTree.jl")
+include("ParametricCliqStateMachine.jl")
+include("ParametricUtils.jl")
+
 # special variables and factors, see RoME.jl for more examples
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")
@@ -548,7 +576,11 @@ include("Factors/Sphere1D.jl")
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
 
+include("CanonicalGraphExamples.jl")
 include("Deprecated.jl")
+
+# Symbolic tree analysis files.
+include("AnalysisTools.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
@@ -571,30 +603,33 @@ function __init__()
       * Frontal, separator, and upmessages are all drawn at different intensity of red.
       * Downward messages not shown, as they would just be singletons of the full separator set.
       """
-      function spyCliqMat(cliq::Graphs.ExVertex; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(cliq::TreeClique; showmsg=true, suppressprint::Bool=false)
         mat = deepcopy(getCliqMat(cliq, showmsg=showmsg))
         # TODO -- add improved visualization here, iter vs skip
         mat = map(Float64, mat)*2.0.-1.0
         numlcl = size(getCliqAssocMat(cliq),1)
         mat[(numlcl+1):end,:] *= 0.9
         mat[(numlcl+1):end,:] .-= 0.1
-        numfrtl1 = floor(Int,length(getData(cliq).frontalIDs) + 1)
+        numfrtl1 = floor(Int,length(getCliqueData(cliq).frontalIDs) + 1)
         mat[:,numfrtl1:end] *= 0.9
         mat[:,numfrtl1:end] .-= 0.1
         if !suppressprint
-          @show getData(cliq).itervarIDs
-          @show getData(cliq).directvarIDs
-          @show getData(cliq).msgskipIDs
-          @show getData(cliq).directFrtlMsgIDs
-          @show getData(cliq).directPriorMsgIDs
+          @show getCliqueData(cliq).itervarIDs
+          @show getCliqueData(cliq).directvarIDs
+          @show getCliqueData(cliq).msgskipIDs
+          @show getCliqueData(cliq).directFrtlMsgIDs
+          @show getCliqueData(cliq).directPriorMsgIDs
+        end
+        if size(mat,1) == 1
+          mat = [mat; -ones(size(mat,2))']
         end
         sp = Gadfly.spy(mat)
-        push!(sp.guides, Gadfly.Guide.title("$(cliq.attributes["label"]) || $(cliq.attributes["data"].frontalIDs) :$(cliq.attributes["data"].separatorIDs)"))
-        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(cliq.attributes["data"].itervarIDs)"))
+        push!(sp.guides, Gadfly.Guide.title("$(getLabel(cliq)) || $(getCliqueData(cliq).frontalIDs) :$(getCliqueData(cliq).separatorIDs)"))
+        push!(sp.guides, Gadfly.Guide.xlabel("fmcmcs $(getCliqueData(cliq).itervarIDs)"))
         push!(sp.guides, Gadfly.Guide.ylabel("lcl=$(numlcl) || msg=$(size(getCliqMsgMat(cliq),1))" ))
         return sp
       end
-      function spyCliqMat(bt::BayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
+      function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
         spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end

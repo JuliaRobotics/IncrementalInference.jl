@@ -4,10 +4,10 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-getCliqInitUpMsgs(cliq::Graphs.ExVertex)::Dict{Int, TempBeliefMsg} = getData(cliq).upInitMsgs
+getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, TempBeliefMsg} = getCliqueData(cliq).upInitMsgs
 
-function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::TempBeliefMsg)
-  cd = getData(cliq)
+function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::TempBeliefMsg)
+  cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   lockUpStatus!(cd)
   cd.upInitMsgs[childid] = msg
@@ -20,12 +20,12 @@ function setCliqUpInitMsgs!(cliq::Graphs.ExVertex, childid::Int, msg::TempBelief
   nothing
 end
 
-function isCliqInitialized(cliq::Graphs.ExVertex)::Bool
-  return getData(cliq).initialized in [:initialized; :upsolved]
+function isCliqInitialized(cliq::TreeClique)::Bool
+  return getCliqueData(cliq).initialized in [:initialized; :upsolved]
 end
 
-function isCliqUpSolved(cliq::Graphs.ExVertex)::Bool
-  return getData(cliq).initialized == :upsolved
+function isCliqUpSolved(cliq::TreeClique)::Bool
+  return getCliqueData(cliq).initialized == :upsolved
 end
 
 
@@ -39,7 +39,7 @@ sequence).
 Notes:
 - sorts id for increasing number of connected factors.
 """
-function getCliqVarInitOrderUp(cliq::Graphs.ExVertex)
+function getCliqVarInitOrderUp(cliq::TreeClique)
   # rules to explore dimension from one to the other?
 
   # get all variable ids and number of associated factors
@@ -82,9 +82,9 @@ function getCliqVarInitOrderUp(cliq::Graphs.ExVertex)
 end
 
 lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
-lockUpStatus!(cliq::Graphs.ExVertex, idx::Int=1) = lockUpStatus!(getData(cliq), idx)
+lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
-unlockUpStatus!(cliq::Graphs.ExVertex) = unlockUpStatus!(getData(cliq))
+unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
 function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
   with_logger(logger) do
@@ -118,8 +118,8 @@ Notes
 Dev Notes
 - Should be made an atomic transaction
 """
-function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=ConsoleLogger())
-  cd = getData(cliq)
+function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+  cd = getCliqueData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
     @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
@@ -152,8 +152,8 @@ function notifyCliqUpInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=C
   nothing
 end
 
-function notifyCliqDownInitStatus!(cliq::Graphs.ExVertex, status::Symbol; logger=ConsoleLogger())
-  cdat = getData(cliq)
+function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+  cdat = getCliqueData(cliq)
   with_logger(logger) do
     @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
   end
@@ -191,9 +191,9 @@ end
 
 Return true if clique has completed the local upward direction inference procedure.
 """
-isUpInferenceComplete(cliq::Graphs.ExVertex) = getData(cliq).upsolved
+isUpInferenceComplete(cliq::TreeClique) = getCliqueData(cliq).upsolved
 
-function areCliqVariablesAllInitialized(dfg::G, cliq::Graphs.ExVertex) where {G <: AbstractDFG}
+function areCliqVariablesAllInitialized(dfg::G, cliq::TreeClique) where {G <: AbstractDFG}
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
@@ -203,28 +203,28 @@ function areCliqVariablesAllInitialized(dfg::G, cliq::Graphs.ExVertex) where {G 
   isallinit
 end
 
-"""
-   $SIGNATURES
-
-Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
-"""
-function isCliqReadyInferenceUp(fgl::FactorGraph, tree::BayesTree, cliq::Graphs.ExVertex)
-  isallinit = areCliqVariablesAllInitialized(fgl, cliq)
-
-  # check that all child cliques have also completed full up inference.
-  for chl in getChildren(tree, cliq)
-    isallinit &= isUpInferenceComplete(chl)
-  end
-  return isallinit
-end
+# """
+#    $SIGNATURES
+#
+# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
+# """
+# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
+#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
+#
+#   # check that all child cliques have also completed full up inference.
+#   for chl in getChildren(tree, cliq)
+#     isallinit &= isUpInferenceComplete(chl)
+#   end
+#   return isallinit
+# end
 
 """
     $SIGNATURES
 
 Blocking call until `cliq` upInit processes has arrived at a result.
 """
-function getCliqInitUpResultFromChannel(cliq::Graphs.ExVertex)
-  status = take!(getData(cliq).initUpChannel)
+function getCliqInitUpResultFromChannel(cliq::TreeClique)
+  status = take!(getCliqueData(cliq).initUpChannel)
   @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
   return status
 end
@@ -245,17 +245,17 @@ Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
 getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
-getCliqStatus(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(getData(cliq))
+getCliqStatus(cliq::TreeClique)::Symbol = getCliqStatus(getCliqueData(cliq))
 
-getCliqStatusUp(cliq::Graphs.ExVertex)::Symbol = getCliqStatus(cliq)
+getCliqStatusUp(cliq::TreeClique)::Symbol = getCliqStatus(cliq)
 
 """
     $SIGNATURES
 
 Set up initialization or solve status of this `cliq`.
 """
-function setCliqStatus!(cliq::Graphs.ExVertex, status::Symbol)
-  getData(cliq).initialized = status
+function setCliqStatus!(cliq::TreeClique, status::Symbol)
+  getCliqueData(cliq).initialized = status
 end
 
 
@@ -267,7 +267,7 @@ end
 Return true if all variables in clique are considered marginalized (and initialized).
 """
 function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
-                                         cliq::Graphs.ExVertex)
+                                         cliq::TreeClique)
   for vsym in getCliqAllVarIds(cliq)
     vert = getVariable(subfg, vsym)
     if !isMarginalized(vert) || !isInitialized(vert)
@@ -284,9 +284,9 @@ end
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
 function setTreeCliquesMarginalized!(dfg::G,
-                                     tree::BayesTree) where G <: AbstractDFG
+                                     tree::AbstractBayesTree) where G <: AbstractDFG
   #
-  for (cliid, cliq) in tree.cliques
+  for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
       # need to set the upward messages
       msgs = prepCliqInitMsgsUp(dfg, cliq)
@@ -300,21 +300,24 @@ function setTreeCliquesMarginalized!(dfg::G,
 
       setCliqStatus!(cliq, :marginalized)
       setCliqDrawColor(cliq, "blue")
+
+      # set flag, looks to be previously unused???
+      getCliqueData(cliq).allmarginalized = true
     end
   end
   nothing
 end
 
 
-function blockCliqUntilParentDownSolved(prnt::Graphs.ExVertex; logger=ConsoleLogger())::Nothing
+function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #
-  lbl = prnt.attributes["label"]
+  lbl = getLabel(prnt)
 
   with_logger(logger) do
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
   flush(logger.stream)
-  while fetch(getData(prnt).initDownChannel) != :downsolved
+  while fetch(getCliqueData(prnt).initDownChannel) != :downsolved
     # @sync begin
     #   @async begin
     #     sleep(1)
@@ -335,7 +338,7 @@ end
 """
     $SIGNATURES
 
-Block the thread until child cliques of `prnt::Graphs.ExVertex` have finished
+Block the thread until child cliques of `prnt::TreeClique` have finished
 attempting upward initialization -- i.e. have status result.
 Return `::Dict{Symbol}` indicating whether next action that should be taken
 for each child clique.
@@ -344,8 +347,8 @@ Notes:
 - See status options at `getCliqStatusUp(..)`.
 - Can be called multiple times
 """
-function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
-                                            prnt::Graphs.ExVertex,
+function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
+                                            prnt::TreeClique,
                                             logger=ConsoleLogger() )::Dict{Int, Symbol}
   #
   ret = Dict{Int, Symbol}()
@@ -354,10 +357,10 @@ function blockCliqUntilChildrenHaveUpStatus(tree::BayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getData(ch).initUpChannel))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getCliqueData(ch).initUpChannel))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetch(getData(ch).initUpChannel)
+    ret[ch.index] = fetch(getCliqueData(ch).initUpChannel)
   end
   with_logger(logger) do
       @info "cliq $(prnt.index), fetched all."
@@ -375,8 +378,8 @@ Notes
 - used for regulating long need down message chains.
 - exit strategy is parent becomes status `:initialized`.
 """
-function blockCliqSiblingsParentNeedDown(tree::BayesTree,
-                                         cliq::Graphs.ExVertex; logger=ConsoleLogger())
+function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
+                                         cliq::TreeClique; logger=ConsoleLogger())
   #
   with_logger(logger) do
     @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
@@ -403,7 +406,7 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
         end
         flush(logger.stream)
         # do actual fetch
-        prtmsg = fetch(getData(prnt[1]).initDownChannel)
+        prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
         with_logger(logger) do
             tt = split(string(now()), 'T')[end]
           @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
@@ -415,7 +418,7 @@ function blockCliqSiblingsParentNeedDown(tree::BayesTree,
                 tt = split(string(now()), 'T')[end]
                 @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
             end
-          # take!(getData(prnt[1]).initDownChannel)
+          # take!(getCliqueData(prnt[1]).initDownChannel)
         end
       end
     end
@@ -426,7 +429,7 @@ end
 """
     $SIGNATURES
 
-Cycle through var order and initialize variables as possible in `subfg::FactorGraph`.
+Cycle through var order and initialize variables as possible in `subfg::AbstractDFG`.
 Return true if something was updated.
 
 Notes:
@@ -437,9 +440,9 @@ Notes:
 Dev Notes
 - Should monitor updates based on the number of inferred & solvable dimensions
 """
-function cycleInitByVarOrder!(subfg::G,
+function cycleInitByVarOrder!(subfg::AbstractDFG,
                               varorder::Vector{Symbol};
-                              logger=ConsoleLogger()  )::Bool where G <: AbstractDFG
+                              logger=ConsoleLogger()  )::Bool
   #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
@@ -473,16 +476,16 @@ end
 
 Update `subfg<:AbstractDFG` according to internal computations for a full upsolve.
 """
-function doCliqUpSolve!(subfg::G,
-                        tree::BayesTree,
-                        cliq::Graphs.ExVertex;
+function doCliqUpSolve!(subfg::AbstractDFG,
+                        tree::AbstractBayesTree,
+                        cliq::TreeClique;
                         multiproc::Bool=true,
-                        logger=ConsoleLogger()  )::Symbol where G <: AbstractDFG
+                        logger=ConsoleLogger()  )::Symbol
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
   approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
-  getData(cliq).upsolved = true
+  getCliqueData(cliq).upsolved = true
   return :upsolved
 end
 
@@ -492,7 +495,7 @@ end
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
 function prepCliqInitMsgsUp(subfg::G,
-                            cliq::Graphs.ExVertex,
+                            cliq::TreeClique,
                             logger=ConsoleLogger() )::TempBeliefMsg  where G <: AbstractDFG
   #
   # construct init's up msg to place in parent from initialized separator variables
@@ -504,15 +507,10 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), solverData(var).inferdim)
+      msg[Symbol(var.label)] = (getKDE(var), getSolverData(var).inferdim)
     end
   end
   return msg
-end
-
-function prepCliqInitMsgsUp(subfg::G, tree::BayesTree, cliq::Graphs.ExVertex)::TempBeliefMsg  where G <: AbstractDFG
-  @warn "deprecated, use prepCliqInitMsgsUp(subfg::FactorGraph, cliq::Graphs.ExVertex) instead"
-  prepCliqInitMsgsUp(subfg, cliq)
 end
 
 
@@ -527,12 +525,12 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUpPart1!(subfg::G,
-                                tree::BayesTree,
-                                cliq::Graphs.ExVertex;
+function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
+                                tree::AbstractBayesTree,
+                                cliq::TreeClique;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=ConsoleLogger() ) where {G <: AbstractDFG}
+                                logger=ConsoleLogger() )
   #
 
   # init up msg has special procedure for incomplete messages
@@ -570,13 +568,13 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUpPart2!(subfg::G,
-                                tree::BayesTree,
-                                cliq::Graphs.ExVertex;
+function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
+                                tree::AbstractBayesTree,
+                                cliq::TreeClique;
                                 # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=ConsoleLogger()  )::Symbol where {G <: AbstractDFG}
+                                logger=ConsoleLogger()  )::Symbol
   #
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
@@ -586,8 +584,8 @@ function doCliqAutoInitUpPart2!(subfg::G,
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
-    initstatus[i] = solverData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = solverData(getVariable(subfg, varids[i])).inferdim
+    initstatus[i] = getSolverData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = getSolverData(getVariable(subfg, varids[i])).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
@@ -682,8 +680,8 @@ end
 function condenseDownMsgsProductPrntFactors!(fgl::G,
                                              products,
                                              msgspervar,
-                                             prnt::Graphs.ExVertex,
-                                             cliq::Graphs.ExVertex,
+                                             prnt::TreeClique,
+                                             cliq::TreeClique,
                                              logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
 
@@ -693,7 +691,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
   lvarids = union(prntvars, reqMsgIds)
   # determine allowable factors, if any (only from parent cliq)
-  awfcts = getCliqAllFactIds(prnt)
+  awfcts = getCliqFactorIdsAll(prnt)
   with_logger(logger) do
       @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
       @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
@@ -701,7 +699,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  lsfg = buildSubgraphFromLabels(fgl, lvarids)
+  lsfg = buildSubgraphFromLabels!(fgl, lvarids)
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
@@ -765,9 +763,9 @@ Dev Notes
 - This should be the initialization cycle of parent, build up bit by bit...
 """
 function prepCliqInitMsgsDown!(fgl::G,
-                               tree::BayesTree,
-                               prnt::Graphs.ExVertex,
-                               cliq::Graphs.ExVertex;
+                               tree::AbstractBayesTree,
+                               prnt::TreeClique,
+                               cliq::TreeClique;
                                logger=ConsoleLogger(),
                                dbgnew::Bool=true  ) where G <: AbstractDFG
   #
@@ -800,10 +798,10 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # reference to default allocated dict location
-  products = getData(prnt).downInitMsg
+  products = getCliqueData(prnt).downInitMsg
 
   ## TODO use parent factors too
-  # intersect with the asking clique's seperator variables
+  # intersect with the asking clique's separator variables
 
     # products only method
     if dbgnew
@@ -851,13 +849,13 @@ Dev Notes
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
 function getCliqInitVarOrderDown(dfg::G,
-                                 cliq::Graphs.ExVertex,
+                                 cliq::TreeClique,
                                  downmsgs::TempBeliefMsg )::Vector{Symbol} where G <: AbstractDFG
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.getVariableIds(dfg)) #dfg.IDs
+  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.listVariables(dfg)) #dfg.IDs
   # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
@@ -900,7 +898,7 @@ end
 """
     $SIGNATURES
 
-Modify the `subfg::FactorGraph` to include `msgs` as priors that are used
+Modify the `subfg::AbstractDFG` to include `msgs` as priors that are used
 during clique inference.
 
 Notes
@@ -912,15 +910,15 @@ Related
 
 `deleteMsgFactors!`
 """
-function addMsgFactors!(subfg::G,
-                        msgs::TempBeliefMsg)::Vector{DFGFactor} where G <: AbstractDFG
+function addMsgFactors!(subfg::AbstractDFG,
+                        msgs::TempBeliefMsg)::Vector{DFGFactor}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  svars = DFG.getVariableIds(subfg)
+  svars = DFG.listVariables(subfg)
   for (msym, dm) in msgs
     if msym in svars
       # TODO prior missing manifold information
-      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+      fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
       push!(msgfcts, fc)
     end
   end
@@ -947,7 +945,7 @@ function addMsgFactors!(subfg::G,
     for dm in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), autoinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
         push!(msgfcts, fc)
       end
     end
@@ -969,15 +967,15 @@ end
 """
     $SIGNATURES
 
-Delete from the subgraph`::FactorGraph` prior belief `msgs` that could/would be used
+Delete from the subgraph`::AbstractDFG` prior belief `msgs` that could/would be used
 during clique inference.
 
 Related
 
 `addMsgFactors!`
 """
-function deleteMsgFactors!(subfg::G,
-                           fcts::Vector{DFGFactor}) where G <: AbstractDFG
+function deleteMsgFactors!(subfg::AbstractDFG,
+                           fcts::Vector{DFGFactor})
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
@@ -990,8 +988,8 @@ end
 
 Return true or false depending on whether child cliques are all up solved.
 """
-function areCliqChildrenAllUpSolved(treel::BayesTree,
-                                    prnt::Graphs.ExVertex)::Bool
+function areCliqChildrenAllUpSolved(treel::AbstractBayesTree,
+                                    prnt::TreeClique)::Bool
   #
   for ch in getChildren(treel, prnt)
     if !isCliqUpSolved(ch)
@@ -1032,7 +1030,7 @@ Algorithm:
 - can only ever return :initialized or :needdownmsg status
 """
 function doCliqInitDown!(subfg::G,
-                         cliq::Graphs.ExVertex,
+                         cliq::TreeClique,
                          dwinmsgs::TempBeliefMsg;
                          dbg::Bool=false,
                          logpath::String="/tmp/caesar/",
@@ -1080,8 +1078,8 @@ function doCliqInitDown!(subfg::G,
 end
 
 function doCliqInitDown!(subfg::G,
-                         tree::BayesTree,
-                         cliq::Graphs.ExVertex;
+                         tree::AbstractBayesTree,
+                         cliq::TreeClique;
                          dbg::Bool=false ) where G <: AbstractDFG
   #
   @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
@@ -1098,7 +1096,7 @@ end
 
 Return `true` if any of the children cliques have status `:needdownmsg`.
 """
-function areCliqChildrenNeedDownMsg(children::Vector{Graphs.ExVertex})::Bool
+function areCliqChildrenNeedDownMsg(children::Vector{TreeClique})::Bool
   for ch in children
     if getCliqStatus(ch) == :needdownmsg
       return true
@@ -1107,7 +1105,7 @@ function areCliqChildrenNeedDownMsg(children::Vector{Graphs.ExVertex})::Bool
   return false
 end
 
-function areCliqChildrenNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex)::Bool
+function areCliqChildrenNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
   areCliqChildrenNeedDownMsg( getChildren(tree, cliq) )
 end
 
@@ -1117,7 +1115,7 @@ end
 
 Return true if has parent with status `:needdownmsg`.
 """
-function isCliqParentNeedDownMsg(tree::BayesTree, cliq::Graphs.ExVertex, logger=ConsoleLogger())
+function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logger=ConsoleLogger())
   prnt = getParent(tree, cliq)
   if length(prnt) == 0
     return false

@@ -1,8 +1,8 @@
 using IncrementalInference
 using Test
 
-# import IncrementalInference: buildCliquePotentials
 
+@testset "basic Bayes tree construction" begin
 
 global N=100
 global fg = initfg()
@@ -28,6 +28,8 @@ addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
 addVariable!(fg, :l2, ContinuousScalar, N=N)
 addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
 
+end
+
 
 @testset "test building tree native" begin
 
@@ -47,7 +49,7 @@ global tree = emptyBayesTree()
 buildTree!(tree, fge, p)
 
 
-@test num_vertices(tree.bt) == 3
+@test getNumCliqs(tree) == 3
 
 
 # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4

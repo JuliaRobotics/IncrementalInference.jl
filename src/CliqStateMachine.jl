@@ -11,7 +11,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   tm = string(Dates.now())
   tmt = split(tm, 'T')[end]
 
-  lbl = csmc.cliq.attributes["label"]
+  lbl = getLabel(csmc.cliq)
   lbl1 = split(lbl,',')[1]
   cliqst = getCliqStatus(csmc.cliq)
 
@@ -64,47 +64,6 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
   # setDwnMsg!(cliq, drt.keepdwnmsgs)
 
-      # frsyms = getCliqFrontalVarIds(csmc.cliq)
-      # # use new localproduct approach
-      # # TODO refactor with @spawn jl 1.3
-      # if csmc.opts.multiproc
-      #   downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
-      #   @sync for i in 1:length(frsyms)
-      #     @async begin
-      #       downresult[frsyms[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), csmc.cliqSubFg, frsyms[i])
-      #     end
-      #   end
-      #   infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc keys=$(keys(downresult))")
-      #   for fr in frsyms
-      #     infocsm(csmc, "doCliqDownSolve_StateMachine, multiproc, setValKDE! $fr, inferdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])")
-      #     setValKDE!(csmc.cliqSubFg, fr, downresult[fr][1], false, downresult[fr][2])
-      #   end
-      # else
-      #   for fr in frsyms
-      #     localProductAndUpdate!(csmc.cliqSubFg, fr, csmc.logger)
-      #   end
-      # end
-
-    ## old approach
-      # # multiproc = false
-      # # call down inference, TODO multiproc
-      # if csmc.opts.multiproc
-      #   cliqc = deepcopy(csmc.cliq)
-      #   cliqcd = getData(cliqc)
-      #   # redirect to new unused so that CAN be serialized
-      #   cliqcd.initUpChannel = Channel{Symbol}(1)
-      #   cliqcd.initDownChannel = Channel{Symbol}(1)
-      #   cliqcd.solveCondition = Condition()
-      #   cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
-      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- MULTIPROC downGibbsCliqueDensity")
-      #   # NOTE Cannot send logger to separate process memory
-      #   drt = remotecall_fetch(downGibbsCliqueDensity, upp2(), csmc.cliqSubFg, cliqc, dwnmsgs, 100, 3, false, true)
-      # else
-      #   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- SINGLEPROC downGibbsCliqueDensity")
-      #   # usemsgpriors = true so that old plumbing is used properly
-      #   drt = downGibbsCliqueDensity(csmc.cliqSubFg, csmc.cliq, dwnmsgs, 100, 3, false, true, csmc.logger)
-      # end
-
       # # update clique subgraph with new status
       # updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
       setCliqDrawColor(csmc.cliq, "lightblue")
@@ -112,9 +71,13 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
-  # set MAP est
+  # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
+    # set PPE in cliqSubFg
     setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+    # set solved flag
+    vari = getVariable(csmc.cliqSubFg, sym)
+    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
   end
 
   # store the cliqSubFg for later debugging
@@ -126,7 +89,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
   # setCliqStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
@@ -189,6 +152,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   else
     # special case for down solve on root clique.  When using solveCliq! following an up pass.
 
+    ## SPECIAL CASE FOR ROOT MARKER
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -198,10 +162,18 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
 	# Update estimates and transfer back to the graph
 	frsyms = getCliqFrontalVarIds(csmc.cliq)
-	# Calculate estimates
-	map(sym -> setVariablePosteriorEstimates!(csmc.cliqSubFg, sym), frsyms)
+
+	# set PPE and solved for all frontals
+	for sym in frsyms
+	  # set PPE in cliqSubFg
+	  setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+	  # set solved flag
+	  vari = getVariable(csmc.cliqSubFg, sym)
+	  setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+	end
+
 	# Transfer to parent graph
-	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms)
+	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 
@@ -216,6 +188,8 @@ end
 """
     $SIGNATURES
 
+Is this called after up, not sure if called after down yet?
+
 Notes
 - State machine function nr.9
 """
@@ -227,7 +201,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
       frsyms = getCliqFrontalVarIds(csmc.cliq)
     infocsm(csmc, "9, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
     # TODO what about down solve??
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=false)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
@@ -372,7 +346,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)[1]
 
   # take atomic lock when waiting for down ward information
-  lockUpStatus!(getData(prnt))
+  lockUpStatus!(getCliqueData(prnt))
 
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=!haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)) # csmc.cliqSubFg
   dwnkeys = collect(keys(dwinmsgs))
@@ -411,7 +385,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
   # unlock
-  unlockUpStatus!(getData(prnt))
+  unlockUpStatus!(getCliqueData(prnt))
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
@@ -715,7 +689,7 @@ function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   syms = getCliqAllVarIds(csmc.cliq)
   infocsm(csmc, "2r, build subgraph syms=$(syms)")
-  csmc.cliqSubFg = buildSubgraphFromLabels(csmc.dfg, syms)
+  csmc.cliqSubFg = buildSubgraphFromLabels!(csmc.dfg, syms)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
@@ -748,7 +722,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     if length(prnt) > 0
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.tree, csmc.cliq)
+      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
       setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end
@@ -792,6 +766,7 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
     csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt_incremental.pdf")) : nothing
     # go to 1
     return isCliqUpSolved_StateMachine
   end
@@ -817,6 +792,7 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
 
   # check if should be trying and can recycle clique computations
   if csmc.incremental && getCliqStatus(csmc.oldcliqdata) == :downsolved
+    csmc.cliq.data.isCliqReused = true
     # check if a subgraph will be needed later
     if csmc.dodownsolve
       # yes need subgraph and need more checks, so go to 2
@@ -845,10 +821,10 @@ Notes:
 - Doesn't do partial initialized state properly yet.
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
-                                        tree::BayesTree,
-                                        cliq::Graphs.ExVertex;
+                                        tree::AbstractBayesTree,
+                                        cliq::TreeClique;
                                         N::Int=100,
-										oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                        oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
@@ -859,16 +835,14 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         delay::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
-  children = Graphs.ExVertex[]
-  for ch in Graphs.out_neighbors(cliq, tree.bt)
-    push!(children, ch)
-  end
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
   prnt = getParent(tree, cliq)
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 

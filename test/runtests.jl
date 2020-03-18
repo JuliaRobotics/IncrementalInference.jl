@@ -4,57 +4,65 @@ using Test
 # using IncrementalInference
 
 
-@testset "out of module evalPotential..." begin
-    include("TestModuleFunctions.jl")
-end
+include("testBasicParametric.jl")
+
+include("TestModuleFunctions.jl")
 
 include("testStateMachine.jl")
 
 include("testCompareVariablesFactors.jl")
 
-@testset "Ensure memory return is working properly..." begin
-    include("typeReturnMemRef.jl")
-end
+include("typeReturnMemRef.jl")
 
 include("basicGraphsOperations.jl")
 
+include("testMixturePrior.jl")
+
 include("testPartialFactors.jl")
 
-@testset "basic Bayes tree construction" begin
-    include("testBayesTreeiSAM2Example.jl")
-end
-@testset "Ensure converter types can be run from extending namespaces..." begin
-    include("saveconvertertypes.jl")
-end
-@testset "packing converters work..." begin
-    include("testgraphpackingconverters.jl")
-end
+include("testBayesTreeiSAM2Example.jl")
+
+include("testSpecialSampler.jl")
+
+include("testSaveLoadDFG.jl")
+
+#FIXME fails on MetaBayesTree
+include("testTreeSaveLoad.jl")
+
+include("saveconvertertypes.jl")
+
+include("testgraphpackingconverters.jl")
+
 include("testNLsolve.jl")
 
-@testset "generic root finding by numeric solve of residual functions..." begin
-    include("testNumericRootGenericRandomized.jl")
-end
-@testset "GenericWrapParam functors..." begin
-    include("testCommonConvWrapper.jl")
-end
+include("testNumericRootGenericRandomized.jl")
+
+include("testCommonConvWrapper.jl")
 
 include("testBasicForwardConvolve.jl")
 
-
 include("testFactorMetadata.jl")
+
+include("testJunctionTreeConstruction.jl")
 
 include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
 
+include("testCcolamdOrdering.jl")
+
 include("testBasicGraphs.jl")
 
-@testset "with simple local constraint examples Odo, Obsv2..." begin
-    # old names should be removed, like Odo, Obsv2
-    include("testlocalconstraintexamples.jl")
-end
+# TODO old names should be removed, like Odo, Obsv2
+include("testlocalconstraintexamples.jl")
+
+include("testSolveOrphanedFG.jl")
+
+include("testSolveSetPPE.jl")
 
 # include("priorusetest.jl")
+
+include("testVariousNSolveSize.jl")
 
 include("testExplicitMultihypo.jl")
 
@@ -62,36 +70,24 @@ include("TestCSMMultihypo.jl")
 
 include("testMultiHypo2Door.jl")
 
+include("testMultimodal1D.jl")
+
 include("testMultithreaded.jl")
 
-@testset "partial constraints..." begin
-    include("testpartialconstraint.jl")
-end
-@testset "null hypothesis..." begin
-    include("testnullhypothesis.jl")
-end
-@testset "standardized multihypothesis..." begin
-    include("testmultihypothesisapi.jl")
-end
-@testset "with local Graphs.jl dictionary and arrays only (multicore)..." begin
-    include("fourdoortest.jl")
-end
+include("testpartialconstraint.jl")
 
-@testset "saving to and loading from FileDFG" begin
-    saveFolder = "/tmp/dfg_test"
-    saveDFG(fg, saveFolder)
-    retDFG = GraphsDFG{SolverParams}(params=SolverParams())
-    retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
-    @test symdiff(ls(fg), ls(retDFG)) == []
-    @test symdiff(lsf(fg), lsf(retDFG)) == []
+include("testnullhypothesis.jl")
+
+include("testmultihypothesisapi.jl")
+
+include("fourdoortest.jl")
+
+include("testAnalysisTools.jl")
+
+# dont run test on ARM, as per issue #527
+if Base.Sys.ARCH in [:x86_64;]
+  include("testTexTreeIllustration.jl")
 end
-
-@warn "must return testExpandedJLD.jl to testing -- currently skipped since jld2 files cannot be loaded."
-# include("testExpandedJLD.jl")
-
-
-include("testTexTreeIllustration.jl")
-
 
 
 

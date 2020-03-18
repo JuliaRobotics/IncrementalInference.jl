@@ -32,7 +32,7 @@ Related
 getVariableInferredDim, getVariableInferredDimFraction
 """
 getVariableDim(vard::VariableNodeData)::Int = getSofttype(vard).dims
-getVariableDim(var::DFGVariable)::Int = getVariableDim(solverData(var))
+getVariableDim(var::DFGVariable)::Int = getVariableDim(getSolverData(var))
 
 """
     $SIGNATURES
@@ -47,7 +47,7 @@ Related
 getVariableDim, getVariableInferredDimFraction, getVariableInferredDim, getVariableDim
 """
 getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
-getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(solverData(var), saturate)
+getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(getSolverData(var), saturate)
 function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) where G <: AbstractDFG
   getVariableInferredDim(getVariable(fg, varid), saturate)
 end
@@ -65,7 +65,7 @@ Related
 getVariableDim, getVariableInferredDim, getVariableDim
 """
 getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
-getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(solverData(var), saturate)
+getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(getSolverData(var), saturate)
 function getVariableInferredDimFraction(dfg::G, varid::Symbol, saturate::Bool=false)::Float64 where G <: AbstractDFG
   getVariableInferredDimFraction(getVariable(dfg, varid), saturate)
 end
@@ -78,9 +78,9 @@ end
 
 Return the number of dimensions this factor vertex `fc` influences.
 """
-getFactorDim(fcd::GenericFunctionNodeData)::Float64 = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Float64(fcd.fnc.zDim)
-getFactorDim(fc::DFGFactor)::Int = getFactorDim(solverData(fc))
-function getFactorDim(fg::G, fctid::Symbol)::Int where G <: AbstractDFG
+getFactorDim(fcd::GenericFunctionNodeData)::Int = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Int(fcd.fnc.zDim)
+getFactorDim(fc::DFGFactor)::Int = getFactorDim(getSolverData(fc))
+function getFactorDim(fg::AbstractDFG, fctid::Symbol)::Int
   getFactorDim(getFactor(fg, fctid))
 end
 
@@ -228,7 +228,7 @@ end
 Return the current dimensionality of solve for each variable in a clique.
 """
 function getCliqVariableInferDims(dfg::G,
-                                  cliq::Graphs.ExVertex,
+                                  cliq::TreeClique,
                                   saturate::Bool=true,
                                   fraction::Bool=true  )::Dict{Symbol,Float64} where G <: AbstractDFG
   #
@@ -254,7 +254,7 @@ end
 # getFactorSolvableDim
 # """
 # function getCliqVarPossibleDim(dfg::G,
-#                                     cliq::Graphs.ExVertex,
+#                                     cliq::TreeClique,
 #                                     saturate::Bool=true,
 #                                     fraction::Bool=true  )::Dict{Symbol, Float64}
 #   #
@@ -286,7 +286,7 @@ Related
 
 getCliqVariableMoreInitDims
 """
-function getCliqVariableInferredPercent(dfg::G, cliq::Graphs.ExVertex) where G <: AbstractDFG
+function getCliqVariableInferredPercent(dfg::G, cliq::TreeClique) where G <: AbstractDFG
 
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -321,7 +321,7 @@ Related
 getCliqVariableInferredPercent
 """
 function getCliqVariableMoreInitDims(dfg::G,
-                                     cliq::Graphs.ExVertex  ) where G <: AbstractDFG
+                                     cliq::TreeClique  ) where G <: AbstractDFG
   #
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -351,7 +351,7 @@ Related
 getVariableInferredDimFraction, getVariableDim, getVariableInferredDim, getVariablePossibleDim
 """
 function isCliqFullDim(fg::G,
-                       cliq::Graphs.ExVertex )::Bool where G <: AbstractDFG
+                       cliq::TreeClique )::Bool where G <: AbstractDFG
   #
   # get various variable percentages
   red = getCliqVariableInferredPercent(fg, cliq)
@@ -375,8 +375,8 @@ Related
 
 fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
-function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
-                                          prnt::Graphs.ExVertex,
+function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
+                                          prnt::TreeClique,
                                           logger=ConsoleLogger() )::Vector{Int}
   #
   sibs = getChildren(tree, prnt)
@@ -384,7 +384,7 @@ function getCliqSiblingsPriorityInitOrder(tree::BayesTree,
   tdims = Vector{Int}(undef, len)
   sidx = Vector{Int}(undef, len)
   for idx in 1:len
-    cliqd = getData(sibs[idx])
+    cliqd = getCliqueData(sibs[idx])
     with_logger(logger) do
       @info "getCliqSiblingsPriorityInitOrder, idx=$idx of $len, $(cliqd.frontalIDs[1]) length solvableDims=$(length(cliqd.solvableDims.data))"
     end

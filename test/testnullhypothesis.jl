@@ -23,7 +23,7 @@ global fg = initfg()
 global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
 
 global pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))
-global f1 = addFactor!(fg,[:x1],pr, autoinit=true)
+global f1 = addFactor!(fg,[:x1],pr, graphinit=true)
 
 # ensureAllInitialized!(fg)
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)

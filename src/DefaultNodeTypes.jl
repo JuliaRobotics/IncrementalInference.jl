@@ -2,6 +2,9 @@
 
 SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
 
+#Supported types for parametric
+ParametricTypes = Union{Normal, MvNormal}
+
 
 """
 $(TYPEDEF)
@@ -10,9 +13,8 @@ Most basic continuous scalar variable a `::FactorGraph` object.
 """
 struct ContinuousScalar <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::Tuple{Symbol}
-  ContinuousScalar(;labels::Vector{<:AbstractString}=String[], manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, labels, manifolds)
+  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
 end
 
 """
@@ -22,18 +24,16 @@ Continuous variable of dimension `.dims` on manifold `.manifolds`.
 """
 struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
   dims::Int
-  labels::Vector{String}
   manifolds::T1
   ContinuousMultivariate{T}() where {T} = new()
-  ContinuousMultivariate{T}(x::Int;labels::Vector{<:AbstractString}=String[], manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, labels, manifolds)
+  ContinuousMultivariate{T}(x::Int; manifolds::T=(:Euclid,)) where {T <: Tuple} = new(x, manifolds)
 end
 
 function ContinuousMultivariate(x::Int;
-                                labels::Vector{<:AbstractString}=String[],
                                 manifolds::T1=(:Euclid,)  )  where {T1 <: Tuple}
   #
-  @show maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
-  ContinuousMultivariate{typeof(maniT)}(x, labels=labels, manifolds=maniT)
+  maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
+  ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
 end
 
 
@@ -47,6 +47,30 @@ struct Prior{T} <: IncrementalInference.FunctorSingleton where T <: SamplableBel
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+
+# TODO maybe replace X with a type.
+function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
+                    userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = meas - X1[1]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res # + 2*log(1/(  sqrt(det(Σ)*(2pi)^k) )) ## cancel ×1/2 in calling function ## k = dim(μ)
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
+end
 
 """
 $(TYPEDEF)
@@ -66,6 +90,29 @@ function MsgPrior(z::T, infd::R) where {T <: SamplableBelief, R <: Real}
     MsgPrior{T}(z, infd)
 end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+
+function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
+                       userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = meas - X1[1]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end                    #
+end
 
 struct PackedMsgPrior <: PackedInferenceType where T
   Z::String
@@ -123,15 +170,41 @@ struct LinearConditional{T} <: IncrementalInference.FunctorPairwise where T <: S
   Z::T
 end
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
-function (s::LinearConditional)(res::Array{Float64},
+function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 userdata::FactorMetadata,
                                 idx::Int,
-                                meas::Tuple{Array{Float64, 2}},
-                                X1::Array{Float64,2},
-                                X2::Array{Float64,2}  )
+                                meas::Tuple{<:AbstractArray{<:Real, 2}},
+                                X1::AbstractArray{<:Real,2},
+                                X2::AbstractArray{<:Real,2}  )
   #
   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
   nothing
+end
+
+# parametric specific functor
+function (s::LinearConditional{<:ParametricTypes})(X1::AbstractVector{T},
+                                X2::AbstractVector{T};
+                                userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+                                #can I change userdata to a keyword arg
+
+  if isa(s.Z, Normal)
+    meas = mean(s.Z)
+    σ = std(s.Z)
+    # res = similar(X2)
+    res = meas - (X2[1] - X1[1])
+    return (res/σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- (X2 .- X1)
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
 end
 
 
@@ -140,16 +213,33 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
+mutable struct MixturePrior{T} <: IncrementalInference.FunctorSingleton where {T <: SamplableBelief}
   Z::Vector{T}
   C::Distributions.Categorical
+  #derived values
+  labels::Vector{Int}
+  dims::Ref{Int}
+  smpls::Array{Float64,2}
   MixturePrior{T}() where T  = new{T}()
-  MixturePrior{T}(z::Vector{T}, c::Distributions.Categorical) where {T <: SamplableBelief} = new{T}(z, c)
-  MixturePrior{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = MixturePrior{T}(z, Distributions.Categorical(p))
+  MixturePrior{T}(z::Vector{T}, c::DiscreteNonParametric) where {T <: SamplableBelief} = new{T}(z, c, zeros(Int,0),0,zeros(1,0))
+  MixturePrior{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = new{T}(z, Distributions.Categorical(p), zeros(Int,0),0,zeros(1,0))
 end
-MixturePrior(z::Vector{T}, c::Union{Distributions.Categorical, Vector{Float64}}) where {T <: SamplableBelief} = MixturePrior{T}(z, c)
 
-getSample(s::MixturePrior, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+function MixturePrior(z::Vector{T}, c::Union{<:Distributions.DiscreteNonParametric, Vector{Float64}})::MixturePrior{T} where {T <: SamplableBelief}
+  MixturePrior{T}(z, c)
+end
+
+function getSample(s::MixturePrior, N::Int=1)
+  #out memory should be right size first
+  (length(s.labels) != N) && resize!(s.labels, N)
+  (s.dims[] != size(s.smpls,1)) && ( s.dims[] = size( rand(s.Z[1],1), 1) )
+  (size(s.smpls,2) != N) && ( s.smpls = Array{Float64,2}(undef,s.dims[],N) )
+  s.labels .= rand(s.C, N)
+  for i in 1:N
+    s.smpls[:,i] .= rand(s.Z[s.labels[i]],1)
+  end
+  (s.smpls, s.labels)
+end
 
 
 """
@@ -167,12 +257,12 @@ end
 MixtureLinearConditional(z::Vector{T}, c::Union{Distributions.Categorical, Vector{Float64}}) where {T <: SamplableBelief} = MixtureLinearConditional{T}(z, c)
 
 getSample(s::MixtureLinearConditional, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
-function (s::MixtureLinearConditional)(res::Array{Float64},
+function (s::MixtureLinearConditional)(res::AbstractArray{<:Real},
                                userdata::FactorMetadata,
                                idx::Int,
                                meas::Tuple,
-                               X1::Array{Float64,2},
-                               X2::Array{Float64,2}  )
+                               X1::AbstractArray{<:Real,2},
+                               X2::AbstractArray{<:Real,2}  )
   #
   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
   nothing

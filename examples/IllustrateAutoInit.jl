@@ -16,12 +16,12 @@ import IncrementalInference: getSample
 #   c::Categorical
 # end
 # getSample(s::MixtureConditional, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
-# function (s::MixtureConditional)(res::Array{Float64},
+# function (s::MixtureConditional)(res::Array{<:Real},
 #       userdata::FactorMetadata,
 #       idx::Int,
 #       meas::Tuple,
-#       X1::Array{Float64,2},
-#       X2::Array{Float64,2}
+#       X1::Array{<:Real,2},
+#       X2::Array{<:Real,2}
 #   )
 #   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
 #   nothing

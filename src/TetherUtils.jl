@@ -82,7 +82,7 @@ function rebaseFactorVariable!(dfg::AbstractDFG,
   deleteFactor!(dfg, fctsym)
 
   # add the factor back into graph against new variables
-  addFactor!(dfg, newvars, fcttype, autoinit=autoinit, multihypo=mh)
+  addFactor!(dfg, newvars, fcttype, graphinit=autoinit, multihypo=mh)
 
   # clean up disconnected variables if requested
   if rmDisconnected
@@ -112,6 +112,7 @@ function getFactorMean(fct::FunctorInferenceType)
   error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
 end
 
+getFactorMean(fct::Normal) = fct.μ
 getFactorMean(fct::MvNormal) = fct.μ
 getFactorMean(fct::BallTreeDensity) = getKDEMean(fct)
 getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
@@ -145,8 +146,12 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   mea = getFactorMean(fct)
   measT = (reshape(mea,:,1),)
 
+  # upgrade part of #639
+  varSyms = getVariableOrder(fct)
+  Xi = (v->getVariable(dfg, v)).(varSyms)
+
   # calculate the projection
-  varmask = (1:2)[getVariableOrder(fct) .== trgsym][1]
+  varmask = (1:2)[varSyms .== trgsym][1]
   pts = approxConvBinary( reshape(currval,:,1), meas, outdims, measT, varidx=varmask )
 
   # return the result

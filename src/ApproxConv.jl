@@ -76,11 +76,17 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    Xi::Vector{DFGVariable},
                                    solvefor::Symbol,
                                    N::Int  ) where {T <: FunctorInferenceType}
+  #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
-  ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
+  # get factor metadata -- TODO, populate
+  fmd = FactorMetadata()
+  #  get variable node data
+  vnds = Xi # (x->getSolverData(x)).(Xi)
+  freshSamples!(ccwl, maxlen, fmd, vnds...)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
@@ -93,8 +99,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1))
-    ccwl.cpt[i].Y = zeros(ccwl.xDim)
+    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
+    ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
     ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for FunctorPairwiseMinimize
   end
 
@@ -248,7 +254,10 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   fnc = ccwl.usrfnc!
 
   nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
+  # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
+  # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
+  vnds = Xi # (x->getSolverData(x)).(Xi)
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds...) # in-place version
   if !ccwl.partial
     return ccwl.measurement[1]
   else
@@ -277,8 +286,11 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   d = size(val,1)
   var = Statistics.var(val, dims=2) .+ 1e-3
 
+  # prep in case special samplers used
+  vnds = Xi # (x->getSolverData(x)).(Xi)
   # determine amount share of null hypothesis particles
-  ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  freshSamples!(ccwl, N, FactorMetadata(), vnds...)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
   # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
   nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
@@ -309,13 +321,13 @@ function evalFactor2(dfg::AbstractDFG,
                      dbg::Bool=false  )
   #
 
-  ccw = solverData(fct).fnc
+  ccw = getSolverData(fct).fnc
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
   # TODO replace fncargvID with neighbors
-  variablelist = Vector{Symbol}(undef, length(solverData(fct).fncargvID))
-  for id in solverData(fct).fncargvID
+  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))  # getSolverData(fct).fncargvID
+  for id in getVariableOrder(fct) # getSolverData(fct).fncargvID
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
@@ -362,13 +374,15 @@ function approxConv(dfg::AbstractDFG,
   return approxConv(dfg, fc, towards, measurement, N=N)
 end
 
-
+# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
                           outdims::Int,
                           measurement::Tuple=(zeros(0,size(arr,2)),);
                           varidx::Int=2,
-                          N::Int=size(arr,2)  )
+                          N::Int=size(arr,2),
+                          fmd::FactorMetadata=FactorMetadata(),
+                          vnds=DFGVariable[] )
   #
   # N = N == 0 ? size(arr,2) : N
   pts = zeros(outdims,N);
@@ -376,7 +390,7 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
-  measurement = size(measurement[1],2) == 0 ? getSample(meas, N) : measurement
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds...) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

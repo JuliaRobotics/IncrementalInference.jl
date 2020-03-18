@@ -21,12 +21,12 @@ pp = Pose2Pose2(MvNormal([10.0;0;pi/3], Matrix(Diagonal([0.1;0.1;0.1].^2))))
 p2br = Pose2Point2BearingRange(Normal(0,0.1),Normal(20.0,1.0))
 
 # FYI deep copies not required, since no per factor specific data in pp
-addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
-addFactor!(dfg, [:x2, :x3], pp, autoinit=false)
-addFactor!(dfg, [:x1, :l1], deepcopy(p2br), autoinit=false)
+addFactor!(dfg, [:x1, :x2], pp, graphinit=false)
+addFactor!(dfg, [:x2, :x3], pp, graphinit=false)
+addFactor!(dfg, [:x1, :l1], deepcopy(p2br), graphinit=false)
 # TODO: Ask why it can't resolve here.
-addFactor!(dfg, [:x2, :l1], deepcopy(p2br), autoinit=false)
-addFactor!(dfg, [:x3, :l2], deepcopy(p2br), autoinit=false)
+addFactor!(dfg, [:x2, :l1], deepcopy(p2br), graphinit=false)
+addFactor!(dfg, [:x3, :l2], deepcopy(p2br), graphinit=false)
 
 # Show it
 DFG.toDotFile(dfg, "/tmp/testRmMarg.dot")
@@ -49,13 +49,13 @@ buildBayesNet!(dfgPrime, elimOrder)
 # IncrementalInference.rmVarFromMarg(dfgPrime, lm[1], )
 DFG.toDotFile(dfgPrime, "/tmp/testRmMarg.dot")
 # Assert that everything was eliminated and every variable has a BayesNetVertID
-@test all(map(v -> solverData(v.dfgNode).eliminated, values(dfgPrime.g.vertices)))
+@test all(map(v -> getSolverData(v.dfgNode).eliminated, values(dfgPrime.g.vertices)))
 # @test all(map(v -> getData(v).BayesNetVertID != nothing, DFG.getVariables(dfgPrime)))
 # Assert that we have the expected Bayes tree
 expectedBayesOutVertDict = Dict{Symbol, Vector{Symbol}}(:x2 => [:x3], :l1 => [:x1, :x2], :x3 => [], :l2 => [:x3], :x1 => [:x2])
 for (vId,linkIds) in expectedBayesOutVertDict
     v = DFG.getVariable(dfgPrime, vId)
-    @test setdiff(solverData(v).BayesNetOutVertIDs, linkIds) == []
+    @test setdiff(getSolverData(v).BayesNetOutVertIDs, linkIds) == []
 end
 
 # Now build the tree
@@ -98,7 +98,7 @@ cliq = whichCliq(tree, :x1)
 # 0
 
 
-children = Graphs.ExVertex[]
+children = TreeClique[]
 for ch in Graphs.out_neighbors(cliq, tree.bt)
   push!(children, ch)
 end
@@ -139,7 +139,7 @@ writeGraphPdf(csmc.cliqSubFg, show=true, engine="neato")
 
 
 
-addFactor!(dfg, [:x1, :x2], pp, autoinit=false)
+addFactor!(dfg, [:x1, :x2], pp, graphinit=false)
 DFG.lsf(dfg, :x1x2f1)
 
 
@@ -177,7 +177,7 @@ statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhisto
 
 
 
-DFG.getFactorIds(dfg)
+DFG.listFactors(dfg)
 
 
 

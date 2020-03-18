@@ -9,33 +9,33 @@
 # Active constraint structs listed below
 # -------------
 
-
-# define the simple 1D odo
-# TODO -- rework to use Distributions rather than Z and Cov
-"""
-$(TYPEDEF)
-"""
-mutable struct Odo <: FunctorPairwise
-    Zij::Array{Float64,2} # 0rotations, 1translation in each column
-    Cov::Array{Float64,2}
-    W::Array{Float64,1}
-    Odo() = new()
-    Odo(x...) = new(x[1], x[2], x[3])
-end
-# TODO -- only computing first node
-function (odo::Odo)(res::Vector{Float64},
-    userdata::FactorMetadata,
-    idx::Int,
-    meas::Tuple{Array{Float64,2}},
-    p1::Array{Float64},
-    p2::Array{Float64}  )
-
-  res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
-  nothing
-end
-function getSample(odo::Odo, N::Int=1)
-  (reshape(rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N ),1,N),)
-end
+#
+# # define the simple 1D odo
+# # TODO -- rework to use Distributions rather than Z and Cov
+# """
+# $(TYPEDEF)
+# """
+# mutable struct Odo <: FunctorPairwise
+#     Zij::Array{Float64,2} # 0rotations, 1translation in each column
+#     Cov::Array{Float64,2}
+#     W::Array{Float64,1}
+#     Odo() = new()
+#     Odo(x...) = new(x[1], x[2], x[3])
+# end
+# # TODO -- only computing first node
+# function (odo::Odo)(res::Vector{Float64},
+#     userdata::FactorMetadata,
+#     idx::Int,
+#     meas::Tuple{Array{Float64,2}},
+#     p1::Array{Float64},
+#     p2::Array{Float64}  )
+#
+#   res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
+#   nothing
+# end
+# function getSample(odo::Odo, N::Int=1)
+#   (reshape(rand(Distributions.Normal(odo.Zij[1,1], odo.Cov[1,1]), N ),1,N),)
+# end
 # function getSample(odo::Odo, N::Int=1)
 #   ret = zeros(1,N)
 #   if size(odo.Zij,2) > 1
@@ -47,52 +47,52 @@ end
 #   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
 #   return ret
 # end
-"""
-$(TYPEDEF)
-"""
-mutable struct PackedOdo <: PackedInferenceType
-    vecZij::Array{Float64,1} # 0rotations, 1translation in each column
-    dimz::Int
-    vecCov::Array{Float64,1}
-    dimc::Int
-    W::Array{Float64,1}
-    PackedOdo() = new()
-    PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
-end
-# function convert(::Type{Odo}, d::PackedOdo)
-#   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
-#   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
-#   return Odo(Zij, Cov, d.W)
+# """
+# $(TYPEDEF)
+# """
+# mutable struct PackedOdo <: PackedInferenceType
+#     vecZij::Array{Float64,1} # 0rotations, 1translation in each column
+#     dimz::Int
+#     vecCov::Array{Float64,1}
+#     dimc::Int
+#     W::Array{Float64,1}
+#     PackedOdo() = new()
+#     PackedOdo(x...) = new(x[1], x[2], x[3], x[4], x[5])
 # end
-# function convert(::Type{PackedOdo}, d::Odo)
-#   v1 = d.Zij[:];
-#   v2 = d.Cov[:];
-#   return PackedOdo(v1,length(v1),
-#                     v2,length(v2),
-#                     d.W)
+# # function convert(::Type{Odo}, d::PackedOdo)
+# #   Zij = reshapeVec2Mat(d.vecZij,d.dimz)
+# #   Cov = reshapeVec2Mat(d.vecCov, d.dimc)
+# #   return Odo(Zij, Cov, d.W)
+# # end
+# # function convert(::Type{PackedOdo}, d::Odo)
+# #   v1 = d.Zij[:];
+# #   v2 = d.Cov[:];
+# #   return PackedOdo(v1,length(v1),
+# #                     v2,length(v2),
+# #                     d.W)
+# # end
+#
+#
+#
+# """
+# $(TYPEDEF)
+# """
+# mutable struct OdoMM <: Pairwise
+#     Zij::Array{Float64,2} # 0rotations, 1translation in each column
+#     Cov::Array{Float64,2}
+#     W::Array{Float64,1}
 # end
-
-
-
-"""
-$(TYPEDEF)
-"""
-mutable struct OdoMM <: Pairwise
-    Zij::Array{Float64,2} # 0rotations, 1translation in each column
-    Cov::Array{Float64,2}
-    W::Array{Float64,1}
-end
-function getSample(odo::OdoMM, N::Int=1)
-  ret = zeros(1,N)
-  if size(odo.Zij,2) > 1
-    error("getSample(::OdoMM,::Int) can't handle multi-column at present")
-  end
-  for i in 1:N
-    ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
-  end
-  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-  return (ret,)
-end
+# function getSample(odo::OdoMM, N::Int=1)
+#   ret = zeros(1,N)
+#   if size(odo.Zij,2) > 1
+#     error("getSample(::OdoMM,::Int) can't handle multi-column at present")
+#   end
+#   for i in 1:N
+#     ret[1,i] = odo.Cov[1]*randn()+odo.Zij[1]
+#   end
+#   # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+#   return (ret,)
+# end
 
 
 """
@@ -121,12 +121,12 @@ end
 function convert(::Type{PackedRanged}, r::Ranged)
   return PackedRanged(r.Zij, r.Cov, r.W)
 end
-function (ra::Ranged)(res::Vector{Float64},
+function (ra::Ranged)(res::AbstractVector{<:Real},
     userdata::FactorMetadata,
     idx::Int,
-    meas::Tuple{Array{Float64,2}},
-    p1::Array{Float64},
-    l1::Array{Float64})
+    meas::Tuple{<:AbstractArray{<:Real,2}},
+    p1::AbstractArray{<:Real},
+    l1::AbstractArray{<:Real})
 
   res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
   nothing

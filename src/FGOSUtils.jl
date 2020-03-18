@@ -4,24 +4,17 @@
 
 import DistributedFactorGraphs: AbstractPointParametricEst
 
-# export setSolvable!
 
+export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
+
+
+# export setSolvable!
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
-"""
-    $SIGNATURES
-
-Return the order sensitive list of variables related to factor `fct`.
-
-Related
-
-ls, lsf, lsfPriors
-"""
-getVariableOrder(fct::DFGFactor)::Vector{Symbol} = fct._variableOrderSymbols
-getVariableOrder(dfg::AbstractDFG, fct::Symbol)::Vector{Symbol} = getVariableOrder(getFactor(dfg, fct))
-
+#getVariableOrder moved to DFG
 
 """
     $SIGNATURES
@@ -30,7 +23,9 @@ Return N=100 measurement samples for a factor in `<:AbstractDFG`.
 """
 function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   fnc = getFactorFunction(dfg, fsym)
-  getSample(fnc, N)
+  # getSample(fnc, N)
+  Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
+  freshSamples(fnc, N)
 end
 
 """
@@ -39,7 +34,7 @@ end
 Get graph node (variable or factor) dimension.
 """
 getDimension(var::DFGVariable) = getSofttype(var).dims
-getDimension(fct::DFGFactor) = solverData(fct).fnc.zDim
+getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 """
     $SIGNATURES
@@ -76,6 +71,10 @@ Get the ParametricPointEstimates---based on full marginal belief estimates---of 
 
 DevNotes
 - TODO update for manifold subgroups.
+
+Related
+
+getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 """
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;
@@ -146,69 +145,10 @@ function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractP
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
 
-"""
-    $(SIGNATURES)
-
-Return array of all variable nodes connected to the last `n` many poses (`:x*`).
-
-Example:
-
-```julia
-# Shallow copy the tail end of poses from a factor graph `fg1`
-vars = lsRear(fg1, 5)
-fg1_r5 = subgraphFromVerts(fg1, vars)
-```
-"""
-function lsRear(fgl::FactorGraph, n::Int=1)
-  @warn "lsRear in current form is not gauranteed to work right, use sort(ls(fg, r\"x\")[end]) instead.  Also see sortVarNested"
-  lasts = ls(fgl)[1][(end-n):end]
-  syms = ls(fgl, lasts)
-  union(lsf.(fgl, syms)[:]...)
-end
-
-
-"""
-    $SIGNATURES
-
-Return `Vector{Symbol}` of landmarks attached to vertex vsym in `fgl::FactorGraph`.
-"""
-function landmarks(fgl::FactorGraph, vsym::Symbol)
-  fsyms = ls(fgl, vsym)
-  lms = Symbol[]
-  for fs in fsyms
-    for varv = lsf(fgl, fs)
-      if string(varv)[1] == 'l'
-        push!(lms, varv)
-      end
-    end
-  end
-  lms
-end
 
 
 
-function evalLikelihood(fg::FactorGraph, sym::Symbol, point::Vector{Float64})
-  p = getVertKDE(fg, sym)
-  Ndim(p) == length(point) ? nothing : error("point (dim=$(length(point))) must have same dimension as belief (dim=$(Ndim(p)))")
-  evaluateDualTree(p, reshape(point,:,1))[1]
-end
 
-# Evaluate the likelihood of an Array{2} of points on the marginal belief of some variable
-# note the dimensions must match
-function evalLikelihood(fg::FactorGraph, sym::Symbol, points::Array{Float64,2})
-  p = getVertKDE(fg, sym)
-  Ndim(p) == size(points,1) ? nothing : error("points (dim=$(size(points,1))) must have same dimension as belief (dim=$(Ndim(p)))")
-  evaluateDualTree(p, (points))
-end
-
-
-
-function setThreadModel!(fgl::FactorGraph;model=IncrementalInference.SingleThreaded)
-  for (key, id) in fgl.fIDs
-    solverData(getFactor(fgl, key)).fnc.threadmodel = model
-  end
-  nothing
-end
 
 # not sure if and where this is still being used
 function _evalType(pt::String)::Type
@@ -220,17 +160,6 @@ function _evalType(pt::String)::Type
         err = String(take!(io))
         error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
     end
-end
-
-"""
-    $(SIGNATURES)
-
-Print the maximum point values form all variables approximate marginals in the factor graph.
-The full marginal can be recovered for example `X0 = getVertKDE(fg, :x0)`.
-"""
-function printgraphmax(fgl::FactorGraph)
-    verts = union(ls(fgl)...)
-    map(v -> println("$v : $(getKDEMax(getVertKDE(fgl, v)))"), verts);
 end
 
 
@@ -274,8 +203,17 @@ end
 
 Return `::Bool` on whether this variable has been marginalized.
 """
-isMarginalized(vert::DFGVariable) = solverData(vert).ismargin
+isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
+
+function setThreadModel!(fgl::AbstractDFG;
+                         model=IncrementalInference.SingleThreaded)
+  #
+  for (key, id) in fgl.fIDs
+    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
+  end
+  nothing
+end
 
 """
     $SIGNATURES
@@ -286,7 +224,7 @@ Related
 
 getMultihypoDistribution
 """
-isMultihypo(fct::DFGFactor) = isa(solverData(fct).fnc.hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(getSolverData(fct).fnc.hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -297,7 +235,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = solverData(fct).fnc.hypotheses
+getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 
 """
     $SIGNATURES
@@ -309,7 +247,7 @@ function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
-    solverData(getVariable(fgl, sym)).ismargin = false
+    getSolverData(getVariable(fgl, sym)).ismargin = false
   end
   nothing
 end
@@ -323,19 +261,19 @@ Related
 
 dontMarginalizeVariablesAll!
 """
-function unfreezeVariablesAll!(fgl::G) where G <: AbstractDFG
+function unfreezeVariablesAll!(fgl::AbstractDFG)
   dontMarginalizeVariablesAll!(fgl)
 end
 
 """
     $SIGNATURES
 
-Reset initialization flag on all variables in `::FactorGraphs`.
+Reset initialization flag on all variables in `::AbstractDFG`.
 
 Notes
 - Numerical values remain, but inference will overwrite since init flags are now `false`.
 """
-function resetVariableAllInitializations!(fgl::FactorGraph)
+function resetVariableAllInitializations!(fgl::AbstractDFG)
   vsyms = ls(fgl)
   for sym in vsyms
     setVariableInitialized!(getVariable(fgl, sym), :false)
@@ -343,8 +281,75 @@ function resetVariableAllInitializations!(fgl::FactorGraph)
   nothing
 end
 
+"""
+    $SIGNATURES
 
+Enable defaults for fixed-lag-like operation by using smart message passing on the tree.
 
+Notes:
+- These are only default settings, and can be modified in each use case scenario.
+- Default does not update downsolve through to leaves of the tree.
+"""
+function defaultFixedLagOnTree!(dfg::AbstractDFG,
+                                len::Int=30;
+                                limitfixeddown::Bool=true )
+  #
+  getSolverParams(dfg).isfixedlag = true
+  getSolverParams(dfg).qfl = len
+  getSolverParams(dfg).limitfixeddown = limitfixeddown
+  getSolverParams(dfg)
+end
+
+"""
+    $SIGNATURES
+
+Return `::Tuple` with matching variable ID symbols and `Suggested` PPE values.
+
+Related
+
+getVariablePPE
+"""
+function getPPESuggestedAll(dfg::AbstractDFG,
+                            regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
+  #
+  # get values
+  vsyms = listVariables(dfg, regexFilter) |> sortDFG
+  slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
+  # sizes to convert to matrix
+  rumax = zeros(Int, 2)
+  for varr in slamPPE
+    rumax[2] = length(varr)
+    rumax[1] = maximum(rumax)
+  end
+
+  # populate with values
+  XYT = zeros(length(slamPPE),rumax[1])
+  for i in 1:length(slamPPE)
+    XYT[i,1:length(slamPPE[i])] = slamPPE[i]
+  end
+  return (vsyms, XYT)
+end
+
+"""
+    $SIGNATURES
+
+Find and return a `::Tuple` of variables and distances to `loc::Vector{<:Real}`.
+
+Related
+
+findVariablesNearTimestamp
+"""
+function findVariablesNear(dfg::AbstractDFG,
+                           loc::Vector{<:Real},
+                           regexFilter::Union{Nothing, Regex}=nothing;
+                           number::Int=3  )
+  #
+
+  xy = getPPESuggestedAll(dfg, regexFilter)
+  dist = sum( (xy[2][:,1:length(loc)] .- loc').^2, dims=2) |> vec
+  prm = (dist |> sortperm)[1:number]
+  return (xy[1][prm], sqrt.(dist[prm]))
+end
 
 
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
@@ -357,6 +362,7 @@ function convert(::Type{EasyMessage},
                  manifolds::T) where {T <: Tuple}
   EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
 end
+
 
 
 

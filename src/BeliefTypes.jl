@@ -41,3 +41,48 @@ mutable struct NBPMessage <: Singleton
 end
 
 ### SOME CONVERGENCE REQUIRED ^^^
+
+#DEV NOTE it looks like it can be consolidated into one type
+# if we can pass messages similar to EasyMessage:
+# pts::Array{Float64,2}
+# bws::Array{Float64,1}
+# option a tuple
+# bellief::Dict{Symbol, NamedTuple{(:vec, :bw, :inferdim),Tuple{Array{Int64,1},Array{Int64,1},Float64}}}
+# or an extra type
+# or the MsgPrior/PackedMessagePrior, depending on the serialization requirement of the channel
+# but I would think only one message type
+
+# mutable struct NBPMessage <: Singleton
+#   status::Symbol # Ek kort die in die boodskap
+#   p::Dict{Symbol, EasyMessage}
+# end
+
+struct TreeBelief
+  val::Array{Float64,2}
+  bw::Array{Float64,2}
+  inferdim::Float64
+  manifolds::Tuple{Vararg{Symbol}}# TODO #459
+end
+TreeBelief(p::BallTreeDensity, inferdim::Real=0.0) = TreeBelief(getPoints(p), getBW(p), inferdim, ())
+TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = TreeBelief(val, bw, inferdim, ())
+
+"""
+    CliqStatus
+Clique status message enumerated type with status:
+initialized, upsolved, marginalized, downsolved, uprecycled
+"""
+@enum CliqStatus initialized upsolved marginalized downsolved uprecycled error_status
+
+
+"""
+  $(TYPEDEF)
+Belief message for message passing on the tree.
+  $(TYPEDFIELDS)
+"""
+struct BeliefMessage
+  status::CliqStatus
+  belief::Dict{Symbol, TreeBelief}
+end
+
+BeliefMessage(status::CliqStatus) =
+        BeliefMessage(status, Dict{Symbol, TreeBelief}())

@@ -1,18 +1,7 @@
 import Base: convert
 import Base: ==
 
-# abstract type InferenceType end
-# abstract type PackedInferenceType end
-#
-# abstract type FunctorInferenceType <: Function end
-#
-# abstract type InferenceVariable end
-# abstract type ConvolutionObject <: Function end
 
-
-# abstract type FunctorSingleton <: FunctorInferenceType end
-# abstract type FunctorPairwise <: FunctorInferenceType end
-# abstract type FunctorPairwiseMinimize <: FunctorInferenceType end
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
 abstract type Pairwise <: InferenceType end
@@ -27,7 +16,7 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
 const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
 
-
+const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
 $(TYPEDEF)
@@ -58,6 +47,9 @@ mutable struct SolverParams <: DFG.AbstractParams
   N::Int
   multiproc::Bool
   logpath::String
+  graphinit::Bool
+  treeinit::Bool # still experimental with known errors
+  algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -77,6 +69,9 @@ mutable struct SolverParams <: DFG.AbstractParams
                 N::Int=100,
                 multiproc::Bool=true,
                 logpath::String="/tmp/caesar/$(now())",
+                graphinit::Bool=true,
+                treeinit::Bool=false,
+                algorithms::Vector{Symbol}=[:default],
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
                                                                             registeredModuleFunctions,
                                                                             reference,
@@ -95,6 +90,9 @@ mutable struct SolverParams <: DFG.AbstractParams
                                                                             N,
                                                                             multiproc,
                                                                             logpath,
+                                                                            graphinit,
+                                                                            treeinit,
+                                                                            algorithms,
                                                                             devParams)
   #
 end
@@ -157,10 +155,10 @@ end
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
 function initfg(dfg::T=InMemDFGType(params=SolverParams());
-                                               sessionname="NA",
-                                               robotname="",
-                                               username="",
-                                               cloudgraph=nothing)::T where T <: AbstractDFG
+                                    sessionname="NA",
+                                    robotname="",
+                                    username="",
+                                    cloudgraph=nothing)::T where T <: AbstractDFG
   #
   return dfg
 end
@@ -339,43 +337,45 @@ function CommonConvWrapper(fnc::T,
 end
 
 
-## moved to DFG
-
-# # where {T <: Union{InferenceType, FunctorInferenceType}}
-# const FunctionNodeData{T} = GenericFunctionNodeData{T, Symbol}
-# FunctionNodeData(x1, x2, x3, x4, x5::Symbol, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: Union{FunctorInferenceType, ConvolutionObject}}= GenericFunctionNodeData{T, Symbol}(x1, x2, x3, x4, x5, x6, x7, x8)
-
-# # where {T <: PackedInferenceType}
-# const PackedFunctionNodeData{T} = GenericFunctionNodeData{T, <: AbstractString}
-# PackedFunctionNodeData(x1, x2, x3, x4, x5::S, x6::T, x7::String="", x8::Vector{Int}=Int[]) where {T <: PackedInferenceType, S <: AbstractString} = GenericFunctionNodeData(x1, x2, x3, x4, x5, x6, x7, x8)
-
-
-
-
-
 
 # excessive function, needs refactoring
+# fgl := srcv
 function updateFullVertData!(fgl::AbstractDFG,
-                             nv::DFGNode;
-                             updateMAPest::Bool=false )
+                             srcv::DFGNode;
+                             updatePPE::Bool=false )
   #
-  @warn "Deprecated updateFullVertData!, need alternative"
+  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
 
-  sym = Symbol(nv.label)
+  sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
 
-  lvert = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = solverData(lvert)
-  nvd = solverData(nv)
+  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
+  lvd = getSolverData(dest)
+  srcvd = getSolverData(srcv)
 
   if isvar
-    lvd.val[:,:] = nvd.val[:,:]
-    lvd.bw[:] = nvd.bw[:]
-    lvd.initialized = nvd.initialized
-    lvd.inferdim = nvd.inferdim
+    if size(lvd.val) == size(srcvd.val)
+      lvd.val .= srcvd.val
+    else
+      lvd.val = srcvd.val
+    end
+    lvd.bw[:] = srcvd.bw[:]
+    lvd.initialized = srcvd.initialized
+    lvd.inferdim = srcvd.inferdim
+    setSolvedCount!(lvd, getSolvedCount(srcvd))
+
+    if updatePPE
+      # set PPE in dest from values in srcv
+      # TODO must work for all keys involved
+      # dest := srcv
+      updatePPE!(fgl, srcv)
+      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
+    end
   else
     # assuming nothing to be done
   end
 
   nothing
 end
+
+#

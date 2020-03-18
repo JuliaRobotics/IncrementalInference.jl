@@ -1,9 +1,11 @@
 
 
 function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
+  @warn "packmultihypo is deprecated in favor of Vector only operations"
   fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
+  @warn "parsemultihypostr is deprecated in favor of Vector only operations"
   mhcat=nothing
   if length(str) > 0
     mhcat = extractdistribution(str)
@@ -15,20 +17,20 @@ end
 ## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
-  # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-  @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
-  mhstr = packmultihypo(d.fnc)
-  return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          string(d.frommodule), convert(P, d.fnc.usrfnc!), mhstr)
-end
+# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
+#   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
+#   @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
+#   # mhstr = packmultihypo(d.fnc)
+#   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
+#           string(d.frommodule), convert(P, d.fnc.usrfnc!), d.multihypo)
+# end
 
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
-  mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
+  # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
           string(d.frommodule), convert(P, d.fnc.usrfnc!),
-          mhstr, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
+          d.multihypo, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -42,15 +44,14 @@ function convert(
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, d.fnc)
-  mhcat = parsemultihypostr(d.multihypo)
+  mhcat = parseusermultihypo(d.multihypo)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat)
   ccw.certainhypo = d.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-          Symbol(d.frommodule), ccw)
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs, Symbol(d.frommodule), ccw, d.multihypo, d.certainhypo)
   # error("what what $(ret.fnc.certainhypo)")
   return ret
 end
@@ -107,7 +108,7 @@ function convert2packedfunctionnode(fgl::G,
   # fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, solverData(getFactor(fgl, fsym)) )
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getSolverData(getFactor(fgl, fsym)) )
   return cfnd, usrtyp
 end
 
@@ -135,20 +136,20 @@ completely rebuild the factor's CCW and user data.
 function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->solverData(v).softtype, neighbors)
+  neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  setDefaultFactorNode!(dfg, factor, neighbors, factor.data.fnc.usrfnc!)
+  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!, multihypo=getSolverData(factor).multihypo)
+  setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
-  ccw_new = solverData(factor)
   for i in 1:Threads.nthreads()
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
 
   # Copying all other fields in the factor
   # TODO: Confirm whether we still need to do this?
-  ## Rebuild solverData(fcnode).fncargvID, however, the list is order sensitive
+  ## Rebuild getSolverData(fcnode).fncargvID, however, the list is order sensitive
   # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
   # for field in fieldnames(typeof(ccw_jld))
   #   if field != :fnc
@@ -171,10 +172,10 @@ are used for database persistence with CloudGraphs.jl.
 function encodefg(fgl::G ) where G <: AbstractDFG
   #
   fgs = deepcopy(fgl)
-  # fgs.g = Graphs.incdict(Graphs.ExVertex,is_directed=false)
+  # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
 
   # @showprogress 1 "Encoding variables..."
-  for vsym in getVariableIds(fgl)
+  for vsym in listVariables(fgl)
     # cpvert = deepcopy(  )
     var = getVariable(fgl, vsym)
     # addVariable!(fgs, cpvert)
@@ -184,7 +185,7 @@ function encodefg(fgl::G ) where G <: AbstractDFG
   for (fsym,fid) in fgs.fIDs
     data,ftyp = convert2packedfunctionnode(fgl, fsym)
     data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    # newvert = ExVertex(fid,string(fsym))
+    # newvert = TreeClique(fid,string(fsym))
     # for (key,val) in getVert(fgl,fid,api=api).attributes
     #   newvert.attributes[key] = val
     # end

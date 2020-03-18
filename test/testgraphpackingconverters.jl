@@ -5,7 +5,9 @@ using DistributedFactorGraphs
 
 using Test
 
-dfg = GraphsDFG{SolverParams}(params=SolverParams())
+
+dfg = initfg() # GraphsDFG{SolverParams}(params=SolverParams())
+# TODO, this still necessary?
 setSerializationModule!(dfg, Main)
 
 @testset "hard-coded test of PackedPrior to Prior" begin
@@ -47,13 +49,13 @@ f2 = addFactor!(fg, [:x1; :x2], lc)
 
 @testset "Testing conversion to packed function node data structure and back" begin
 
-topack = solverData(f1)
+topack = getSolverData(f1)
 dd = convert(PackedFunctionNodeData{PackedPrior},topack)
 upd = convert(FunctionNodeData{CommonConvWrapper{Prior}}, dd)
 
 @test compare(topack, upd)
 
-topack = solverData(f2)
+topack = getSolverData(f2)
 dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedLinearConditional},topack)
 upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearConditional}}, dd)
 
@@ -63,12 +65,12 @@ end
 
 @testset "Testing conversion to packed variable node data structure and back" begin
 
-dat = solverData(getVariable(fg,:x1))
+dat = getSolverData(getVariable(fg,:x1))
 
 # dat.BayesNetVertID
 
-pd = pack(dfg, dat)
-unpckd = unpack(dfg, pd)
+pd = packVariableNodeData(dfg, dat)
+unpckd = unpackVariableNodeData(dfg, pd)
 
 @test compareFields(dat, unpckd, skip=[:softtype])
 @test compareFields(dat.softtype, unpckd.softtype)
