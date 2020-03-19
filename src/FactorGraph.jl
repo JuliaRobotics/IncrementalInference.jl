@@ -145,12 +145,12 @@ end
 
 function setValKDE!(v::DFGVariable,
                     val::Array{Float64,2},
-                    bws::Vector{Float64},
+                    bws::Array{Float64,2},
                     setinit::Bool=true,
                     inferdim::Float64=0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
-  setValKDE!(getSolverData(v, solveKey),val, bws, setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
   nothing
 end
@@ -165,8 +165,8 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    em::EasyMessage,
-                    setinit::Bool=true,
+                    em::Union{EasyMessage, TreeBelief},
+                    setinit::Bool=true;
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
@@ -194,7 +194,7 @@ function setValKDE!(dfg::G,
 end
 
 # TODO: Confirm this is supposed to be a variable?
-function setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default)
+function setVal!(v::DFGVariable, em::Union{EasyMessage, TreeBelief}; solveKey::Symbol=:default)
     @warn "setVal! deprecated, use setValKDE! instead"
     setValKDE!(v, em, solveKey=solveKey)
 end
@@ -210,9 +210,9 @@ Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
 
 Related
 
-manikde!, getKDE, getKDEMax, getKDEMean, EasyMessage
+manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
 """
-function kde!(em::EasyMessage)
+function kde!(em::Union{EasyMessage,TreeBelief})
   return AMP.manikde!(em.val, em.bw, em.manifolds)
 end
 

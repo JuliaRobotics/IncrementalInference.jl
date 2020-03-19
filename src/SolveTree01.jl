@@ -44,7 +44,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
     for psym in keys(m.p)
       if psym == vsym
         pdi = m.p[vsym] # ::EasyMessage
-        push!(dens, manikde!(pdi.val, pdi.bw, pdi.manifolds) )
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], pdi.manifolds) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
       end
@@ -469,16 +469,19 @@ Dev Notes
 - part of refactoring fmcmc.
 - function seems excessive
 """
-function compileFMCMessages(fgl::G, lbls::Vector{Symbol}, logger=ConsoleLogger()) where G <: AbstractDFG
-  d = Dict{Symbol,EasyMessage}()
+function compileFMCMessages(fgl::AbstractDFG,
+                            lbls::Vector{Symbol},
+                            logger=ConsoleLogger())
+  #
+  d = Dict{Symbol,TreeBelief}()
   for vsym in lbls
-    vert = DFG.getVariable(fgl,vsym)
-    pden = getKDE(vert)
+    vari = DFG.getVariable(fgl,vsym)
+    pden = getKDE(vari)
     bws = vec(getBW(pden)[:,1])
-    manis = getSofttype(vert).manifolds
-    d[vsym] = EasyMessage(getVal(vert), bws, manis, getSolverData(vert).inferdim)
+    manis = getSofttype(vari).manifolds
+    d[vsym] = TreeBelief(vari) # getVal(vari), bws, manis, getSolverData(vari).inferdim
     with_logger(logger) do
-      @info "fmcmc! -- getSolverData(vert=$(vert.label)).inferdim=$(getSolverData(vert).inferdim)"
+      @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
     end
   end
   return d
@@ -565,10 +568,10 @@ end
 
 MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
 """
-function upPrepOutMsg!(d::Dict{Symbol,EasyMessage}, IDs::Vector{Symbol}) #Array{Float64,2}
+function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
-  m = NBPMessage(Dict{Symbol,EasyMessage}())
+  m = NBPMessage(Dict{Symbol,TreeBelief}())
   for id in IDs
     m.p[id] = d[id]
   end
@@ -596,10 +599,11 @@ function treeProductUp(fg::AbstractDFG,
   upmsgssym = NBPMessage[]
   for cl in childCliqs(tree, cliq)
     msgdict = upMsg(cl)
-    dict = Dict{Symbol, EasyMessage}()
+    dict = Dict{Symbol, TreeBelief}()
     for (dsy, btd) in msgdict
-      manis = getSofttype(getVariable(fg, dsy)).manifolds
-      dict[dsy] = convert(EasyMessage, btd, manis)
+      vari = getVariable(fg, dsy)
+      # manis = getSofttype(vari).manifolds
+      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari)) # convert(EasyMessage, btd, manis)
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
@@ -625,26 +629,27 @@ function treeProductDwn(fg::G,
                         N::Int=100,
                         dbg::Bool=false  ) where G <: AbstractDFG
   #
+  @warn "treeProductDwn might not be working properly at this time. (post DFG v0.6 upgrade maintenance required)"
   cliq = whichCliq(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get the local variable id::Int identifier
-  vertid = fg.IDs[sym]
+  # vertid = fg.labelDict[sym]
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   cl = parentCliq(tree, cliq)
   msgdict = getDwnMsgs(cl[1])
-  dict = Dict{Int, EasyMessage}()
+  dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = convert(EasyMessage, btd)
+      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(getVariable(fg,sym)) ) # convert(EasyMessage, btd)
   end
   dwnmsgssym = NBPMessage[NBPMessage(dict);]
 
   # perform the actual computation
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, vertid, dwnmsgssym, N, dbg )
+  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, dwnmsgssym, N, dbg ) #vertid
 
-  return pGM, potprod, vertid, dwnmsgssym
+  return pGM, potprod, sym, dwnmsgssym
 end
 
 
@@ -680,7 +685,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # TODO -- some weirdness with: d,. = d = ., nothing
   mcmcdbg = Array{CliqGibbsMC,1}()
-  d = Dict{Symbol,EasyMessage}()
+  d = Dict{Symbol,TreeBelief}()
 
   priorprods = Vector{CliqGibbsMC}()
 
@@ -827,7 +832,7 @@ function downGibbsCliqueDensity(fg::G,
 end
 function downGibbsCliqueDensity(fg::G,
                                 cliq::TreeClique,
-                                dwnMsgs::TempBeliefMsg, # Dict{Symbol,BallTreeDensity},
+                                dwnMsgs::TempBeliefMsg, # Dict{Symbol,(BallTreeDensity, Float64)},
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
@@ -837,11 +842,11 @@ function downGibbsCliqueDensity(fg::G,
   with_logger(logger) do
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to NBPMessages."
   end
-  ind = Dict{Symbol, EasyMessage}()
+  ind = Dict{Symbol, TreeBelief}()
   sflbls = listVariables(fg)
   for (lbl, bel) in dwnMsgs
 	  if lbl in sflbls
-	    ind[lbl] = convert(EasyMessage, bel, getManifolds(fg, lbl))
+	    ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl))) #convert(EasyMessage, bel, getManifolds(fg, lbl))
     end
   end
   ndms = NBPMessage[NBPMessage(ind);]
@@ -952,18 +957,18 @@ Get and return upward belief messages as stored in child cliques from `treel::Ab
 Notes
 - Use last parameter to select the return format.
 """
-function getCliqChildMsgsUp(fg_::G,
+function getCliqChildMsgsUp(fg_::AbstractDFG,
                             treel::AbstractBayesTree,
                             cliq::TreeClique,
-                            ::Type{EasyMessage} ) where G <: AbstractDFG
+                            ::Type{TreeBelief} )
   #
   childmsgs = NBPMessage[]
   for child in getChildren(treel, cliq)
-    nbpchild = NBPMessage(Dict{Symbol,EasyMessage}())
+    nbpchild = NBPMessage(Dict{Symbol,TreeBelief}())
     for (key, bel) in getUpMsgs(child)
-      manis = getManifolds(fg_, key)
+      # manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = convert(EasyMessage, bel, manis)
+      nbpchild.p[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key))) # convert(EasyMessage, bel, manis)
     end
     push!(childmsgs, nbpchild)
   end
@@ -1052,7 +1057,7 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
   # setCliqDrawColor(cliq, "red")
 
   # get incoming cliq messaged upward from child cliques
-  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, EasyMessage)
+  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief) #EasyMessage
 
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 

@@ -1,4 +1,5 @@
 
+export TreeBelief, LikelihoodMessage
 
 # const TreeBelief{T} = EasyMessage{T}
 # const EasyMessage{T} = TreeBelief{T}
@@ -22,8 +23,16 @@ struct TreeBelief{T <: InferenceVariable}
   # TODO -- DEPRECATE
   manifolds::Tuple{Vararg{Symbol}}# TODO #459
 end
-TreeBelief(p::BallTreeDensity, inferdim::Real=0.0, softtype::T=ContinuousScalar()) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, getManifolds(softtype))
-TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0, softtype::T=ContinuousScalar()) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, getManifolds(softtype))
+TreeBelief(p::BallTreeDensity,
+           inferdim::Real=0.0,
+           softtype::T=ContinuousScalar(),
+           manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, manifolds)
+
+TreeBelief(val::Array{Float64,2},
+           bw::Array{Float64,2},
+           inferdim::Real=0.0,
+           softtype::T=ContinuousScalar(),
+           manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, manifolds)
 
 function TreeBelief(vnd::VariableNodeData)
   TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd) )
@@ -121,7 +130,7 @@ $(TYPEDEF)
 DESPARATELY NEEDS TO BE UPDATED TO USE TempBeliefMsg DEFINITION (start of refactor).
 """
 mutable struct NBPMessage <: Singleton
-  p::Dict{Symbol, EasyMessage}
+  p::Union{Dict{Symbol, TreeBelief}, Dict{Symbol, EasyMessage}}
 end
 
 
