@@ -69,14 +69,14 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
   end
-  
-  # pass workload up to DFG -- TODO, should this be updateGraphData! or updateGraphSolverData!
+
+  # transfer specific fields into dest from src
   for var in (x->getVariable(src, x)).(syms)
-    updateVariableSolverData!(dest, var, solveKey)
+    # copy not required since a broadcast is used internally
+    updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim])
     updatePPE && DFG.updatePPE!(dest, var, solveKey)
   end
-  #   DFG.updateGraphSolverData!(src, dest, syms)
-  
+
   nothing
 end
 #     # TODO add with DFG v0.4
