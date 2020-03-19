@@ -79,10 +79,21 @@ function getCliqueIds(tree::MetaBayesTree)
   MetaGraphs.vertices(tree.bt)
 end
 
+"""
+    $SIGNATURES
+
+Return reference to the clique data container.
+"""
 getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
 getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
 
+"""
+    $SIGNATURES
 
+Set the clique data container to a new object `data`.
+"""
+setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = getCliqueData(cliq::TreeClique) = data
+setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = setCliqueData!(getClique(tree, cId), data)
 
 """
     $SIGNATURES

@@ -14,7 +14,7 @@ d, result = IIF.solveFactorGraphParametric(fg)
 
 for i in 0:7
   sym = Symbol("x",i)
-  @test isapprox(d[sym][1], i, atol=1e-6)
+  @test isapprox(d[sym].val[1], i, atol=1e-6)
 end
 
 
@@ -42,8 +42,8 @@ d,st = IIF.solveFactorGraphParametric(fg)
 
 for i in 0:10
   sym = Symbol("x",i)
-  @test isapprox(d[sym][1], i, atol=1e-6)
-  @test isapprox(d[sym][2], i, atol=1e-6)
+  @test isapprox(d[sym].val[1], i, atol=1e-6)
+  @test isapprox(d[sym].val[2], i, atol=1e-6)
 end
 
 # print results out
@@ -52,7 +52,7 @@ foreach(println, d)
 end
 
 #initialize the fg for tree to solve.
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
 tree = wipeBuildNewTree!(fg)#
 
@@ -77,8 +77,8 @@ end
 
 # Print answers
 if false
-vsds = DFG.solverData.(getVariables(fg), :parametric)
-foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
+vsds = DFG.getSolverData.(getVariables(fg), :parametric)
+foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), sort!(getVariables(fg), by=getLabel, lt=natural_lt))
 end
 
 
@@ -105,14 +105,14 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 1e-1)))
 
 foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
 
-d,st = IIF.solveFactorGraphParametric(fg)
+d,st,vs,Σ = IIF.solveFactorGraphParametric(fg)
 
 foreach(println, d)
-@test isapprox(d[:x0][1], -0.01, atol=1e-4)
-@test isapprox(d[:x1][1], 0.0, atol=1e-4)
-@test isapprox(d[:x2][1], 0.01, atol=1e-4)
+@test isapprox(d[:x0].val[1], -0.01, atol=1e-4)
+@test isapprox(d[:x1].val[1], 0.0, atol=1e-4)
+@test isapprox(d[:x2].val[1], 0.01, atol=1e-4)
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
 #force message passing with maunaul variable order
 tree = wipeBuildNewTree!(fg, variableOrder=[:x0, :x2, :x1])#
@@ -123,21 +123,21 @@ IIF.initTreeMessageChannels!(tree)
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = true
 
-task = @async begin
-  global tree2
-  global smt
-  global hist
-  tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
-end
+# task = @async begin
+#   global tree2
+#   global smt
+#   global hist
+tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+# end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
 #TODO tests needs covariance to pass
-r = isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
-@test_skip r
-r = isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
-@test_skip r
-r = isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
-@test_skip r
+@test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
+
+@test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
+
+@test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
+
 
 ################################################################################
 ## multiple sections
@@ -158,10 +158,10 @@ foreach(println, d)
 end
 for i in 0:10
   sym = Symbol("x",i)
-  @test isapprox(d[sym][1], i, atol=1e-6)
+  @test isapprox(d[sym].val[1], i, atol=1e-6)
 end
 
-foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second, pairs(d))
+foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
 tree = wipeBuildNewTree!(fg)#
 
@@ -175,7 +175,7 @@ tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
 
 # print results
 if false
-vsds = DFG.solverData.(getVariables(fg), :parametric)
+vsds = DFG.getSolverData.(getVariables(fg), :parametric)
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 end
 

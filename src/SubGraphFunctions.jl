@@ -63,25 +63,32 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
                                  src::AbstractDFG,
                                  syms::Vector{Symbol}=union(ls(src)...),
                                  logger=ConsoleLogger();
-                                 updatePPE::Bool=true  )
+                                 updatePPE::Bool=true,
+                                 solveKey::Symbol=:default)
   #
   with_logger(logger) do
     @info "transferUpdateSubGraph! -- syms=$syms"
-
-    # TODO add with DFG v0.4
-    # DFG.updateGraphSolverData!(src, dest, syms)
-    for sym in syms
-      vari = DFG.getVariable(src, sym)
-      rc = size(getSolverData(vari).val)
-      # TODO -- reduce to DFG functions only
-      pp = getKDE(vari)
-      rc2 = size(getPoints(pp))
-      @info "sym=$sym, mem size of val=$rc and $(rc2)"
-      updateFullVertData!(dest, vari, updatePPE=updatePPE)
-    end
   end
+
+  # transfer specific fields into dest from src
+  for var in (x->getVariable(src, x)).(syms)
+    # copy not required since a broadcast is used internally
+    updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim])
+    updatePPE && DFG.updatePPE!(dest, var, solveKey)
+  end
+
   nothing
 end
+#     # TODO add with DFG v0.4
+#     for sym in syms
+#       vari = DFG.getVariable(src, sym)
+#       rc = size(getSolverData(vari).val)
+#       # TODO -- reduce to DFG functions only
+#       pp = getKDE(vari)
+#       rc2 = size(getPoints(pp))
+#       @info "sym=$sym, mem size of val=$rc and $(rc2)"
+#       updateFullVertData!(dest, vari, updatePPE=updatePPE)
+#     end
 
 
 
