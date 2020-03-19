@@ -87,6 +87,7 @@ LikelihoodMessage(;status::CliqStatus=NULL,
 
 #
 
+# TODO this is casing problems between nonparametric and parametric
 const BeliefMessage = LikelihoodMessage
 
 

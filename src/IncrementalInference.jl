@@ -552,6 +552,7 @@ include("CompareUtils.jl")
 
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeInitUtils.jl")
 include("TreeBasedInitialization.jl")
 include("GraphConstraintTypes.jl")
 include("SolverUtilities.jl")
