@@ -213,7 +213,7 @@ Related
 manikde!, getKDE, getKDEMax, getKDEMean, EasyMessage
 """
 function kde!(em::EasyMessage)
-  return AMP.manikde!(em.pts, em.bw, em.manifolds)
+  return AMP.manikde!(em.val, em.bw, em.manifolds)
 end
 
 
