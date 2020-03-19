@@ -360,7 +360,7 @@ $(TYPEDEF)
 """
 mutable struct DebugCliqMCMC
   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-  outmsg::NBPMessage
+  outmsg::LikelihoodMessage
   outmsglbls::Dict{Symbol, Symbol} # Int
   priorprods::Vector{CliqGibbsMC}
   DebugCliqMCMC() = new()
@@ -371,7 +371,7 @@ end
 $(TYPEDEF)
 """
 mutable struct UpReturnBPType
-  upMsgs::NBPMessage
+  upMsgs::LikelihoodMessage
   dbgUp::DebugCliqMCMC
   IDvals::Dict{Symbol, TreeBelief}
   keepupmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
@@ -386,7 +386,7 @@ $(TYPEDEF)
 TODO refactor msgs into only a single variable
 """
 mutable struct DownReturnBPType
-  dwnMsg::NBPMessage
+  dwnMsg::LikelihoodMessage
   dbgDwn::DebugCliqMCMC
   IDvals::Dict{Symbol,TreeBelief}
   keepdwnmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
@@ -400,7 +400,7 @@ mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
   bt::T2
   cliq::TreeClique
   prnt::T
-  sendmsgs::Vector{NBPMessage}
+  sendmsgs::Vector{LikelihoodMessage}
 end
 
 const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
@@ -411,7 +411,7 @@ function ExploreTreeType(fgl::G,
                          btl::AbstractBayesTree,
                          vertl::TreeClique,
                          prt::T,
-                         msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}
+                         msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
@@ -423,7 +423,7 @@ mutable struct MsgPassType
   fg::GraphsDFG
   cliq::TreeClique
   vid::Symbol # Int
-  msgs::Array{NBPMessage,1}
+  msgs::Array{LikelihoodMessage,1}
   N::Int
 end
 

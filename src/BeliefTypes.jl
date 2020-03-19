@@ -1,6 +1,4 @@
 
-export LikelihoodMessage
-
 
 """
     $TYPEDEF
@@ -46,7 +44,7 @@ getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 Clique status message enumerated type with status:
 initialized, upsolved, marginalized, downsolved, uprecycled
 """
-@enum CliqStatus initialized upsolved marginalized downsolved uprecycled error_status
+@enum CliqStatus NULL initialized upsolved marginalized downsolved uprecycled error_status
 
 
 """
@@ -58,11 +56,12 @@ Notes:
 - cobelief -> differential mode
 
 DevNotes:
-- Objective: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
+- Objective for parametric: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
+- TODO confirm why <: Singleton
 
   $(TYPEDFIELDS)
 """
-struct LikelihoodMessage #<: Singleton
+mutable struct LikelihoodMessage <: Singleton
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief}
   cobelief::NamedTuple{(:varlbl, :μ, :Σ),Tuple{Vector{Symbol}, Vector{Float64}, Matrix{Float64}}} #TODO name something mathier
@@ -79,6 +78,11 @@ LikelihoodMessage(status::CliqStatus) =
 
 LikelihoodMessage(status::CliqStatus, cobelief) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), cobelief)
+
+LikelihoodMessage(;status::CliqStatus=NULL,
+                   beliefDict::Dict=Dict{Symbol, TreeBelief}(),
+                   cobelief=(varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)) ) =
+        LikelihoodMessage(status, beliefDict, cobelief)
 
 
 #
