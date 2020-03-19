@@ -1260,7 +1260,8 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   function EMPTYCLIQ()
     clq = TreeClique(-1,"null")
     setLabel!(clq, "")
-    setData!(clq, emptyBTNodeData())
+    setCliqueData!(clq, emptyBTNodeData())
+    # setData!(clq, emptyBTNodeData())
     return clq
   end
 
