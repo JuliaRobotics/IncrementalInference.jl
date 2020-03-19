@@ -96,10 +96,8 @@ const BeliefMessage = LikelihoodMessage
 
 
 
-
 # Deprecated, replaced by LikelihoodMessage
 # TODO - remove
-const TempBeliefMsg = Dict{Symbol, Tuple{BallTreeDensity, Float64}}
 
 # Dict{Symbol,   -- is for variable label
 #  Vector{       -- multiple msgs for the same variable
