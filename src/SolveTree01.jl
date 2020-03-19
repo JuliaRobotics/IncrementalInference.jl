@@ -1260,7 +1260,8 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   function EMPTYCLIQ()
     clq = TreeClique(-1,"null")
     setLabel!(clq, "")
-    setData!(clq, emptyBTNodeData())
+    setCliqueData!(clq, emptyBTNodeData())
+    # setData!(clq, emptyBTNodeData())
     return clq
   end
 
@@ -1386,6 +1387,7 @@ After solving, clique histories can be inserted back into the tree for later ref
 This function helps do the required assigment task.
 """
 function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
+  @warn "assignTreeHistory! likely to be deprecated without replacement."
   for i in 1:length(getCliques(treel))
     if haskey(cliqHistories, i)
       hist = cliqHistories[i]
@@ -1531,7 +1533,7 @@ function initInferTreeUp!(dfg::G,
   fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
 
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  assignTreeHistory!(treel, cliqHistories)
+  # assignTreeHistory!(treel, cliqHistories)
   # for i in 1:length(getCliques(treel))
   #   if haskey(cliqHistories, i)
   #     hist = cliqHistories[i]
