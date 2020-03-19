@@ -65,9 +65,9 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 
-## MUST CONSOLIDATE
-function addMsgFactors_Parametric!(subfg::G,
-                                   msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
+# MUST CONSOLIDATE with addMsgFactors!
+function addMsgFactors_Parametric!(subfg::AbstractDFG,
+                                   msgs::BeliefMessage)::Vector{DFGFactor}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
@@ -116,24 +116,3 @@ function deleteMsgFactors!(subfg::AbstractDFG,
     deleteFactor!(subfg, fc.label)
   end
 end
-
-
-
-
-### DEPRECATED BELOW
-
-
-
-
-# function addMsgFactors!(subfg::G, msgs::LikelihoodMessage) where G <: AbstractDFG
-#   @warn "addMsgFactors! use LikelihoodMessage format instead"
-#
-#   # assemble new temporary list
-#   tmpmsgs = LikelihoodMessage()
-#   for (id, val) in msgs
-#     tmpmsgs.belief[id] = (val, 0.0)
-#   end
-#
-#   # call intended function with temporary message work around
-#   return addMsgFactors!(subfg, tmpmsgs)
-# end
