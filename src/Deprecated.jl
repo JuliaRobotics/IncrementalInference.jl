@@ -82,46 +82,6 @@ end
 
 
 
-# function getData(v::TreeClique)
-#   error("getData(v::TreeClique) deprecated, use getCliqueData instead")
-#   getCliqueData(v)
-# end
-
-
-# """
-#     $SIGNATURES
-#
-# Retrieve data structure stored in a variable.
-# """
-# function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-#   @warn "IIF.getVariableData should not be used, use native DFG.getSolverData instead"
-#   error("stop")
-#   return getSolverData(getVariable(dfg, lbl), solveKey)
-# end
-
-# """
-#     $SIGNATURES
-#
-# Retrieve data structure stored in a factor.
-# """
-# function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
-#   @warn "IIF.getFactorData should not be used, use native DFG.getSolverData instead"
-#   return getSolverData(getFactor(dfg, lbl))
-# end
-# TODO -- upgrade to dedicated memory location in Graphs.jl
-# see JuliaArchive/Graphs.jl#233
-
-# TODO: Intermediate for refactor. I'm sure we'll see this in 2024 though, it being 'temporary' and all :P
-function setData!(v::DFGVariable, data::VariableNodeData; solveKey::Symbol=:default)::Nothing
-  @warn "IIF.setData! should not be used, use native DFG function instead"
-  v.solverDataDict[solveKey] = data
-  return nothing
-end
-function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
-  @warn "IIF.setData! should not be used, use native DFG function instead"
-  f.data = data
-  return nothing
-end
 # For Bayes tree
 function setData!(v::TreeClique, data)
   @warn "IIF.setData! should not be used, use IIF.setCliqueData!"
