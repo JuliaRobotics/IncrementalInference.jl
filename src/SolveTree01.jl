@@ -44,7 +44,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
     for psym in keys(m.p)
       if psym == vsym
         pdi = m.p[vsym] # ::EasyMessage
-        push!(dens, manikde!(pdi.pts, pdi.bws, pdi.manifolds) ) # kde!(pdi.pts, pdi.bws)
+        push!(dens, manikde!(pdi.val, pdi.bw, pdi.manifolds) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
       end

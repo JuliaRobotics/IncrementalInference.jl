@@ -354,7 +354,7 @@ end
 
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
                  p::EasyMessage )
-  (AMP.manikde!(p.pts, p.bws, p.manifolds), p.inferdim)
+  (AMP.manikde!(p.val, p.bw, p.manifolds), p.inferdim)
 end
 
 function convert(::Type{EasyMessage},

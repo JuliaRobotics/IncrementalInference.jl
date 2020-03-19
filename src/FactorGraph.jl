@@ -170,7 +170,7 @@ function setValKDE!(v::DFGVariable,
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
-  setValKDE!(v, em.pts, em.bws, setinit, em.inferdim, solveKey=solveKey)
+  setValKDE!(v, em.val, em.bw, setinit, em.inferdim, solveKey=solveKey)
   nothing
 end
 function setValKDE!(v::DFGVariable,
@@ -213,7 +213,7 @@ Related
 manikde!, getKDE, getKDEMax, getKDEMean, EasyMessage
 """
 function kde!(em::EasyMessage)
-  return AMP.manikde!(em.pts, em.bws, em.manifolds)
+  return AMP.manikde!(em.pts, em.bw, em.manifolds)
 end
 
 
