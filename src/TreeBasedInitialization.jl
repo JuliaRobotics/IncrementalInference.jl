@@ -4,9 +4,9 @@
 
 Based on a push model from child cliques that should have already completed their computation.
 """
-getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, TempBeliefMsg} = getCliqueData(cliq).upInitMsgs
+getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, LikelihoodMessage} = getCliqueData(cliq).upInitMsgs
 
-function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::TempBeliefMsg)
+function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
   cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   lockUpStatus!(cd)
@@ -494,12 +494,12 @@ end
 
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
 """
-function prepCliqInitMsgsUp(subfg::G,
+function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
-                            logger=ConsoleLogger() )::TempBeliefMsg  where G <: AbstractDFG
+                            logger=ConsoleLogger() )::LikelihoodMessage
   #
   # construct init's up msg to place in parent from initialized separator variables
-  msg = TempBeliefMsg()
+  msg = LikelihoodMessage()
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
     @info "prepCliqInitMsgsUp, seps=$seps"
@@ -507,7 +507,7 @@ function prepCliqInitMsgsUp(subfg::G,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg[Symbol(var.label)] = (getKDE(var), getSolverData(var).inferdim)
+      msg.belief[Symbol(var.label)] = TreeBelief(getKDE(var), getSolverData(var).inferdim)
     end
   end
   return msg
@@ -850,12 +850,12 @@ Dev Notes
 """
 function getCliqInitVarOrderDown(dfg::G,
                                  cliq::TreeClique,
-                                 downmsgs::TempBeliefMsg )::Vector{Symbol} where G <: AbstractDFG
+                                 downmsgs::LikelihoodMessage )::Vector{Symbol} where G <: AbstractDFG
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs)), DFG.listVariables(dfg)) #dfg.IDs
+  dwnmsgsym = intersect(collect(keys(downmsgs.belief)), DFG.listVariables(dfg)) #dfg.IDs
   # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
@@ -911,11 +911,11 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::TempBeliefMsg)::Vector{DFGFactor}
+                        msgs::LikelihoodMessage)::Vector{DFGFactor}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
-  for (msym, dm) in msgs
+  for (msym, dm) in msgs.belief
     if msym in svars
       # TODO prior missing manifold information
       fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
@@ -924,20 +924,21 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return msgfcts
 end
-function addMsgFactors!(subfg::G, msgs::Dict{Symbol, BallTreeDensity}) where G <: AbstractDFG
-  @warn "addMsgFactors! use TempBeliefMsg format instead"
+function addMsgFactors!(subfg::G, msgs::LikelihoodMessage) where G <: AbstractDFG
+  @warn "addMsgFactors! use LikelihoodMessage format instead"
 
   # assemble new temporary list
-  tmpmsgs = TempBeliefMsg()
+  tmpmsgs = LikelihoodMessage()
   for (id, val) in msgs
-    tmpmsgs[id] = (val, 0.0)
+    tmpmsgs.belief[id] = (val, 0.0)
   end
 
   # call intended function with temporary message work around
   return addMsgFactors!(subfg, tmpmsgs)
 end
-function addMsgFactors!(subfg::G,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}})::Vector{DFGFactor} where G <: AbstractDFG
+function addMsgFactors!(subfg::AbstractDFG,
+                        msgs::LikelihoodMessage )::Vector{DFGFactor}
+      # msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = ls(subfg)
@@ -953,10 +954,10 @@ function addMsgFactors!(subfg::G,
   return msgfcts
 end
 function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,TempBeliefMsg} )::Vector{DFGFactor} where G <: AbstractDFG
+                        allmsgs::Dict{Int,LikelihoodMessage} )::Vector{DFGFactor} where G <: AbstractDFG
   #
   allfcts = DFGFactor[]
-  for (cliqid, msgs) in allmsgs
+  for (cliqid, msgs) in allmsgs.belief
     # do each dict in array separately
     newfcts = addMsgFactors!(subfg, msgs)
     union!( allfcts, newfcts )
@@ -1031,13 +1032,13 @@ Algorithm:
 """
 function doCliqInitDown!(subfg::G,
                          cliq::TreeClique,
-                         dwinmsgs::TempBeliefMsg;
+                         dwinmsgs::LikelihoodMessage;
                          dbg::Bool=false,
                          logpath::String="/tmp/caesar/",
                          logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs)))"
+    @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
   end
   status = :needdownmsg #:badinit
 

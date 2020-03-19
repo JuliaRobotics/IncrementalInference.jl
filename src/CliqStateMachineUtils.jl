@@ -857,23 +857,23 @@ Calculate new and then set the down messages for a clique in Bayes (Junction) tr
 """
 function getSetDownMessagesComplete!(subfg::G,
                                      cliq::TreeClique,
-                                     prntDwnMsgs::TempBeliefMsg,
+                                     prntDwnMsgs::LikelihoodMessage,
                                      logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
   #
   allvars = getCliqVarIdsAll(cliq)
-  allprntkeys = collect(keys(prntDwnMsgs))
+  allprntkeys = collect(keys(prntDwnMsgs.belief))
   passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
   remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = TempBeliefMsg()
+  newDwnMsgs = LikelihoodMessage()
 
   # some msgs are just pass through from parent
   for pk in passkeys
-    newDwnMsgs[pk] = prntDwnMsgs[pk]
+    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
   end
 
   # other messages must be extracted from subfg
   for mk in remainkeys
-    newDwnMsgs[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+    newDwnMsgs.belief[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
   end
 
   # set the downward keys

@@ -310,12 +310,12 @@ function resetCliqSolve!(dfg::G,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    setCliqUpInitMsgs!(prnt[1], cliq.index, TempBeliefMsg())
+    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
   end
-  cda.upMsg = Dict{Symbol, BallTreeDensity}()
-  cda.dwnMsg = Dict{Symbol, BallTreeDensity}()
-  cda.upInitMsgs = Dict{Int, TempBeliefMsg}()
-  cda.downInitMsg = TempBeliefMsg()
+  cda.upMsg  = LikelihoodMessage()
+  cda.dwnMsg = LikelihoodMessage()
+  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
+  cda.downInitMsg = LikelihoodMessage()
   setCliqStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing

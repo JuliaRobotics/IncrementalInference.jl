@@ -288,10 +288,10 @@ mutable struct BayesTreeNodeData
 
   # future might concentrate these four fields down to two
   # these should become specialized BeliefMessage type
-  upMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
-  dwnMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
-  upInitMsgs::Dict{Int, TempBeliefMsg}
-  downInitMsg::TempBeliefMsg
+  upMsg::LikelihoodMessage
+  dwnMsg::LikelihoodMessage
+  upInitMsgs::Dict{Int, LikelihoodMessage}
+  downInitMsg::LikelihoodMessage
 
   allmarginalized::Bool
   initialized::Symbol
@@ -323,10 +323,10 @@ function emptyBTNodeData()
                     Int[],Int[],             # 10+2
                     Int[],Int[],Int[],       # 13+2
                     nothing, nothing,        # 15+2
-                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Int, TempBeliefMsg}(),
-                    TempBeliefMsg(),         # 19+2
+                    LikelihoodMessage(),
+                    LikelihoodMessage(),
+                    Dict{Int, LikelihoodMessage}(),
+                    LikelihoodMessage(),         # 19+2
                     false, :null,
                     false, false,            # 23+2
                     Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26+2
@@ -374,7 +374,7 @@ mutable struct UpReturnBPType
   upMsgs::LikelihoodMessage
   dbgUp::DebugCliqMCMC
   IDvals::Dict{Symbol, TreeBelief}
-  keepupmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
   UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
@@ -389,7 +389,7 @@ mutable struct DownReturnBPType
   dwnMsg::LikelihoodMessage
   dbgDwn::DebugCliqMCMC
   IDvals::Dict{Symbol,TreeBelief}
-  keepdwnmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
+  keepdwnmsgs::LikelihoodMessage
 end
 
 """
