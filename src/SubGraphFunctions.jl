@@ -24,6 +24,7 @@ function buildCliqSubgraph!(dfg::AbstractDFG,
     DFG.addVariable!(cliqSubFg, deepcopy(DFG.getVariable(dfg, sym)))
   end
 
+  ## CONSOLIDATE USE copyDFG(dest, souce, labels)
   addfac = Symbol[]
   for sym in frontals
     DFG.addVariable!(cliqSubFg, deepcopy(DFG.getVariable(dfg, sym)))

@@ -239,7 +239,8 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
       vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
-      beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
+      beliefMsg.belief[si] = TreeBelief(vnd)
+      # beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     end
   end
 
@@ -374,7 +375,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMsg = BeliefMessage(downsolved)
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
-    beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
+    beliefMsg.belief[fi] = TreeBelief(vnd)
+    # beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     @info "$(csmc.cliq.index): down message $fi : $beliefMsg"
   end
 
