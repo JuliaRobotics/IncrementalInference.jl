@@ -373,7 +373,7 @@ $(TYPEDEF)
 mutable struct UpReturnBPType
   upMsgs::NBPMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, TreeBelief} #EasyMessage
+  IDvals::Dict{Symbol, TreeBelief}
   keepupmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
@@ -388,7 +388,7 @@ TODO refactor msgs into only a single variable
 mutable struct DownReturnBPType
   dwnMsg::NBPMessage
   dbgDwn::DebugCliqMCMC
-  IDvals::Dict{Symbol,TreeBelief} # EasyMessage
+  IDvals::Dict{Symbol,TreeBelief}
   keepdwnmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
 end
 

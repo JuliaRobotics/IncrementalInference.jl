@@ -358,17 +358,6 @@ function convert(::Type{Tuple{BallTreeDensity,Float64}},
   (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
 end
 
-function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::EasyMessage )
-  @warn "EasyMessage is being deprecated, use TreeBelief instead"
-  (AMP.manikde!(p.val, p.bw, p.manifolds), p.inferdim)
-end
-
-function convert(::Type{EasyMessage},
-                 bel::Tuple{BallTreeDensity,Float64},
-                 manifolds::T) where {T <: Tuple}
-  EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
-end
 
 function convert(::Type{TreeBelief},
                  bel::Tuple{BallTreeDensity,Float64},

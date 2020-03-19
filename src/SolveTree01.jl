@@ -43,7 +43,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
   for m in inmsgs
     for psym in keys(m.p)
       if psym == vsym
-        pdi = m.p[vsym] # ::EasyMessage
+        pdi = m.p[vsym]
         push!(dens, manikde!(pdi.val, pdi.bw[:,1], pdi.manifolds) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
@@ -603,7 +603,7 @@ function treeProductUp(fg::AbstractDFG,
     for (dsy, btd) in msgdict
       vari = getVariable(fg, dsy)
       # manis = getSofttype(vari).manifolds
-      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari)) # convert(EasyMessage, btd, manis)
+      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
     end
     push!( upmsgssym, NBPMessage(dict) )
   end
@@ -642,7 +642,7 @@ function treeProductDwn(fg::G,
   msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(getVariable(fg,sym)) ) # convert(EasyMessage, btd)
+      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(getVariable(fg,sym)) )
   end
   dwnmsgssym = NBPMessage[NBPMessage(dict);]
 
@@ -846,7 +846,7 @@ function downGibbsCliqueDensity(fg::G,
   sflbls = listVariables(fg)
   for (lbl, bel) in dwnMsgs
 	  if lbl in sflbls
-	    ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl))) #convert(EasyMessage, bel, getManifolds(fg, lbl))
+	    ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
     end
   end
   ndms = NBPMessage[NBPMessage(ind);]
@@ -968,7 +968,7 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
     for (key, bel) in getUpMsgs(child)
       # manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key))) # convert(EasyMessage, bel, manis)
+      nbpchild.p[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key)))
     end
     push!(childmsgs, nbpchild)
   end
@@ -1057,7 +1057,7 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
   # setCliqDrawColor(cliq, "red")
 
   # get incoming cliq messaged upward from child cliques
-  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief) #EasyMessage
+  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief)
 
   # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
