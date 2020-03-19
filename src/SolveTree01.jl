@@ -731,10 +731,12 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   # prepare and convert upward belief messages
-  upmsgs = TempBeliefMsg() #Dict{Symbol, BallTreeDensity}()
-  # @show collect(keys(inp.fg.g.vertices))
+  upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
   for (msgsym, val) in m.belief
-    upmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val) # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
+    # TODO confirm deepcopy
+    upmsgs.belief[msgsym] = deepcopy(val)
+    # upmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
+    # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
 
@@ -747,11 +749,11 @@ end
 
 
 
-function dwnPrepOutMsg(fg::G,
+function dwnPrepOutMsg(fg::AbstractDFG,
                        cliq::TreeClique,
                        dwnMsgs::Array{LikelihoodMessage,1},
                        d::Dict{Symbol, T},
-                       logger=ConsoleLogger()) where {G <: AbstractDFG, T}
+                       logger=ConsoleLogger()) where T
   # pack all downcoming conditionals in a dictionary too.
   with_logger(logger) do
     if cliq.index != 1 #TODO there may be more than one root
@@ -759,7 +761,7 @@ function dwnPrepOutMsg(fg::G,
       @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
   end
-  m = LikelihoodMessage(Dict{Symbol,T}())
+  m = LikelihoodMessage()
   i = 0
   for vid in getCliqueData(cliq).frontalIDs
     m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
@@ -792,7 +794,7 @@ function downGibbsCliqueDensity(fg::G,
   # TODO standardize function call to have similar stride to upGibbsCliqueDensity
   # @info "down"
   with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc, keys=$(keys(dwnMsgs))"
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc"
   end
   fmmsgs = usemsgpriors ? Array{LikelihoodMessage,1}() : dwnMsgs
   frtls = getFrontals(cliq)
@@ -815,9 +817,9 @@ function downGibbsCliqueDensity(fg::G,
   end
 
   # Always keep dwn messages in cliq data
-  dwnkeepmsgs = TempBeliefMsg() # Dict{Symbol, BallTreeDensity}()
-  for (msgsym, val) in m.p
-    dwnkeepmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
+  dwnkeepmsgs = LikelihoodMessage()
+  for (msgsym, val) in m.belief
+    dwnkeepmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
   end
   setDwnMsg!(cliq, dwnkeepmsgs)
 
@@ -832,7 +834,7 @@ function downGibbsCliqueDensity(fg::G,
 end
 function downGibbsCliqueDensity(fg::G,
                                 cliq::TreeClique,
-                                dwnMsgs::TempBeliefMsg, # Dict{Symbol,(BallTreeDensity, Float64)},
+                                dwnMsgs::LikelihoodMessage,
                                 N::Int=100,
                                 MCMCIter::Int=3,
                                 dbg::Bool=false,
@@ -844,7 +846,7 @@ function downGibbsCliqueDensity(fg::G,
   end
   ind = Dict{Symbol, TreeBelief}()
   sflbls = listVariables(fg)
-  for (lbl, bel) in dwnMsgs
+  for (lbl, bel) in dwnMsgs.belief
 	  if lbl in sflbls
 	    ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
     end
@@ -965,10 +967,11 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
   childmsgs = LikelihoodMessage[]
   for child in getChildren(treel, cliq)
     nbpchild = LikelihoodMessage()
-    for (key, bel) in getUpMsgs(child)
+    for (key, bel) in getUpMsgs(child).belief
       # manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.belief[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key)))
+      dcBel = deepcopy(bel)
+      nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
     end
     push!(childmsgs, nbpchild)
   end

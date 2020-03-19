@@ -726,7 +726,7 @@ function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
   getCliqueData(cliql).upMsg = msgs
 end
 
-function setUpMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
   # ms = Dict{Symbol, BallTreeDensity}()
   # for (id, val) in msgs
   #   ms[id] = val[1]
@@ -756,7 +756,7 @@ getCliqMsgsUp(treel::AbstractBayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(tre
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
+function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, BallTreeDensity}
   getCliqueData(cliql).dwnMsg = msgs
 end
 
@@ -1127,14 +1127,14 @@ Return dictionary of down messages consisting of all frontal and separator belie
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::TreeClique)::TempBeliefMsg where G <: AbstractDFG
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = TempBeliefMsg() # Dict{Symbol,BallTreeDensity}()
+  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container[sym] = (getKDE(subdfg, sym), getVariableInferredDim(subdfg, sym))
+    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
   end
 
   # return the result
@@ -1586,14 +1586,14 @@ Related
 
 getUpMsgs
 """
-function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,TempBeliefMsg}
-  allUpMsgs = Dict{Int,TempBeliefMsg}()
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
+  allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
-    allUpMsgs[cliq.index] = TempBeliefMsg()
+    allUpMsgs[cliq.index] = LikelihoodMessage()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index][lbl] = msg
+      allUpMsgs[cliq.index].belief[lbl] = msg
     end
   end
   return allUpMsgs
@@ -1615,7 +1615,7 @@ Notes
      }
 """
 function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, TempBeliefMsg}  )::TempUpMsgPlotting
+                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
   #
   # start of the return data structure
   stack = TempUpMsgPlotting()
@@ -1623,7 +1623,7 @@ function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
   # look at all the clique level data
   for (cidx,tmpmsg) in tmpmsgs
     # look at all variables up msg from each clique
-    for (sym,msgdim) in tmpmsg
+    for (sym,msgdim) in tmpmsg.belief
       # create a new object for a particular variable if hasnt been seen before
       if !haskey(stack,sym)
         stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
