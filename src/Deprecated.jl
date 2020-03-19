@@ -125,6 +125,7 @@ function setData!(v::TreeClique, data)
   @warn "IIF.setData! should not be used, use native DFG function instead"
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
   # v.attributes["data"] = data
+  # error("dont IIF.setData! for TreeClique")
   v.data = data
   nothing
 end
