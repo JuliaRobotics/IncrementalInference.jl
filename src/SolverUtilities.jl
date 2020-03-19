@@ -100,8 +100,7 @@ function (ccw::CommonConvWrapper)(x::Vector{Float64})
   else
     ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
   end
-  # evaulate the user provided residual function with constructed set of parameters
-  @show typeof(ccw.usrfnc!)
+  # evaluate the user provided residual function with constructed set of parameters
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
               ccw.cpt[Threads.threadid()].factormetadata,
               ccw.cpt[Threads.threadid()].particleidx,
