@@ -92,7 +92,7 @@ getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(
 
 Set the clique data container to a new object `data`.
 """
-setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = getCliqueData(cliq::TreeClique) = data
+setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = cliq.data = data
 setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = setCliqueData!(getClique(tree, cId), data)
 
 """
@@ -1670,7 +1670,7 @@ function saveTree(treel::AbstractBayesTree,
   savetree = deepcopy(treel)
   for i in 1:length(getCliques(savetree))
     if  getCliqueData(savetree, i) isa BayesTreeNodeData
-      setData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
+      setCliqueData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
     end
   end
 
@@ -1684,7 +1684,7 @@ function saveTree(treeArr::Vector{T},
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(getCliques(savtre))
     if getCliqueData(savtre, i) isa BayesTreeNodeData
-      setData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
+      setCliqueData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
     end
   end
 
@@ -1712,13 +1712,13 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   if savetree isa Vector
       for savtre in savetree, i in 1:length(getCliques(savtre))
         if getCliqueData(savtre, i) isa PackedBayesTreeNodeData
-          setData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
+          setCliqueData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
         end
       end
   else
     for i in 1:length(getCliques(savetree))
       if getCliqueData(savetree, i) isa PackedBayesTreeNodeData
-        setData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
+        setCliqueData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
       end
     end
   end

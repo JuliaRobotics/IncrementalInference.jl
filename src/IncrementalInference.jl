@@ -229,8 +229,6 @@ export AbstractDFG,
   isCliqFullDim,
   getVariable,
   # getVert, # deprecated use DFG.getVariable getFactor instead
-  getData,
-  setData!,
   getCliqueData,
   setCliqueData!,
   getManifolds,

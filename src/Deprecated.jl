@@ -61,19 +61,7 @@
 ## Delete in v0.10.x if possible, but definitely by v0.11
 ##==============================================================================
 
-
-
-# For Bayes tree
-function setData!(v::TreeClique, data)
-  @warn "IIF.setData! should not be used, use IIF.setCliqueData!"
-  # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  # v.attributes["data"] = data
-  # error("dont IIF.setData! for TreeClique")
-  v.data = data
-  nothing
-end
-
-
+@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
 
 
 ##==============================================================================
