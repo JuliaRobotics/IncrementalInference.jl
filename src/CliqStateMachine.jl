@@ -39,7 +39,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # get down msg from parent (assing root clique CSM wont make it here)
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = getDwnMsgs(prnt[1])
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs)))")
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
   msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs)

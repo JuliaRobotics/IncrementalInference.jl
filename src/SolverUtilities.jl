@@ -100,8 +100,7 @@ function (ccw::CommonConvWrapper)(x::Vector{Float64})
   else
     ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
   end
-  # evaulate the user provided residual function with constructed set of parameters
-  @show typeof(ccw.usrfnc!)
+  # evaluate the user provided residual function with constructed set of parameters
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
               ccw.cpt[Threads.threadid()].factormetadata,
               ccw.cpt[Threads.threadid()].particleidx,
@@ -311,12 +310,12 @@ function resetCliqSolve!(dfg::G,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    setCliqUpInitMsgs!(prnt[1], cliq.index, TempBeliefMsg())
+    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
   end
-  cda.upMsg = Dict{Symbol, BallTreeDensity}()
-  cda.dwnMsg = Dict{Symbol, BallTreeDensity}()
-  cda.upInitMsgs = Dict{Int, TempBeliefMsg}()
-  cda.downInitMsg = TempBeliefMsg()
+  cda.upMsg  = LikelihoodMessage()
+  cda.dwnMsg = LikelihoodMessage()
+  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
+  cda.downInitMsg = LikelihoodMessage()
   setCliqStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing
