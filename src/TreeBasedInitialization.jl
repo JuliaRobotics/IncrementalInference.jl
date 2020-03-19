@@ -507,7 +507,8 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   for vid in seps
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
-      msg.belief[Symbol(var.label)] = TreeBelief(getKDE(var), getSolverData(var).inferdim)
+      msg.belief[Symbol(var.label)] = TreeBelief(var)
+      # msg.belief[Symbol(var.label)] = TreeBelief(getKDE(var), getSolverData(var).inferdim)
     end
   end
   return msg
@@ -620,7 +621,7 @@ function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
     # not a root clique
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
-      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg)))"
+      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg.belief)))"
     end
     # does internal notify on parent
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
@@ -780,16 +781,17 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
-  for (prntid, msgs) in currmsgs
+  msgspervar = LikelihoodMessage()
+  # msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
+  for (prntid, msgs) in currmsgs.belief
     for (msgsym, msg) in msgs
-      if !haskey(msgspervar, msgsym)
-        msgspervar[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
+      if !haskey(msgspervar.belief, msgsym)
+        msgspervar.belief[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
       end
       with_logger(logger) do
         @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg[2])"
       end
-      push!(msgspervar[msgsym], msg)
+      push!(msgspervar.belief[msgsym], msg)
     end
   end
 
@@ -953,11 +955,11 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return msgfcts
 end
-function addMsgFactors!(subfg::G,
-                        allmsgs::Dict{Int,LikelihoodMessage} )::Vector{DFGFactor} where G <: AbstractDFG
+function addMsgFactors!(subfg::AbstractDFG,
+                        allmsgs::Dict{Int,LikelihoodMessage} )::Vector{DFGFactor}
   #
   allfcts = DFGFactor[]
-  for (cliqid, msgs) in allmsgs.belief
+  for (cliqid, msgs) in allmsgs
     # do each dict in array separately
     newfcts = addMsgFactors!(subfg, msgs)
     union!( allfcts, newfcts )

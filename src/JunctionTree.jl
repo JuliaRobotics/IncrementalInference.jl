@@ -1134,7 +1134,7 @@ function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::L
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container.belief[sym] = (getKDE(subdfg, sym), getVariableInferredDim(subdfg, sym))
+    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
   end
 
   # return the result

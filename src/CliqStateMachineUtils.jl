@@ -742,16 +742,16 @@ end
 
 
 function updateSubFgFromDownMsgs!(sfg::G,
-                                  dwnmsgs::Dict,
+                                  dwnmsgs::LikelihoodMessage,
                                   seps::Vector{Symbol} ) where G <: AbstractDFG
   #
   # sanity check basic Bayes (Junction) tree property
   # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
 
   # update specific variables in sfg from msgs
-  for (key,beldim) in dwnmsgs
+  for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, beldim[1], false, beldim[2])
+      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.softtype)), false, beldim.inferdim)
     end
   end
 
@@ -873,7 +873,9 @@ function getSetDownMessagesComplete!(subfg::G,
 
   # other messages must be extracted from subfg
   for mk in remainkeys
-    newDwnMsgs.belief[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+    setVari = getVariable(subfg, mk)
+    newDwnMsgs.belief[mk] = TreeBelief(getVariable(subfg, mk))
+    # newDwnMsgs.belief[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
   end
 
   # set the downward keys

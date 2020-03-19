@@ -732,9 +732,11 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 
   # prepare and convert upward belief messages
   upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
-  # @show collect(keys(inp.fg.g.vertices))
   for (msgsym, val) in m.belief
-    upmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val) # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
+    # TODO confirm deepcopy
+    upmsgs.belief[msgsym] = deepcopy(val)
+    # upmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
+    # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
 
@@ -965,10 +967,11 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
   childmsgs = LikelihoodMessage[]
   for child in getChildren(treel, cliq)
     nbpchild = LikelihoodMessage()
-    for (key, bel) in getUpMsgs(child)
+    for (key, bel) in getUpMsgs(child).belief
       # manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.belief[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key)))
+      dcBel = deepcopy(bel)
+      nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
     end
     push!(childmsgs, nbpchild)
   end
