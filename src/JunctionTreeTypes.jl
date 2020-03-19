@@ -40,6 +40,7 @@ abstract type AbstractBayesTree end
 
 # BayesTree declarations
 const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
+
 """
 $(TYPEDEF)
 

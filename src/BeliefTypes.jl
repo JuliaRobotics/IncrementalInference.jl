@@ -1,5 +1,82 @@
 
-### SOME CONVERGENCE REQUIRED ---
+
+# const TreeBelief{T} = EasyMessage{T}
+# const EasyMessage{T} = TreeBelief{T}
+
+"""
+    $TYPEDEF
+
+INTERMEDIATE DATA STRUCTURE DURING REFACTORING.
+
+Representation of the belief of a single variable.
+
+Notes:
+- we want to send the joint, this is just to resolve consolidation #459 first.
+- Long term objective is single joint definition, likely called `LikelihoodMessage`.
+"""
+struct TreeBelief{T <: InferenceVariable}
+  val::Array{Float64,2}
+  bw::Array{Float64,2}
+  inferdim::Float64
+  softtype::T
+  # TODO -- DEPRECATE
+  manifolds::Tuple{Vararg{Symbol}}# TODO #459
+end
+TreeBelief(p::BallTreeDensity, inferdim::Real=0.0, softtype::T=ContinuousScalar()) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, getManifolds(softtype))
+TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0, softtype::T=ContinuousScalar()) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, getManifolds(softtype))
+
+function TreeBelief(vnd::VariableNodeData)
+  TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd) )
+end
+
+TreeBelief(vari::DFGVariable, solveKey=:default) = TreeBelief(getSolverData(vari, solveKey))
+
+
+getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
+
+"""
+    CliqStatus
+Clique status message enumerated type with status:
+initialized, upsolved, marginalized, downsolved, uprecycled
+"""
+@enum CliqStatus initialized upsolved marginalized downsolved uprecycled error_status
+
+
+"""
+  $(TYPEDEF)
+Belief message for message passing on the tree.
+
+Notes:
+- belief -> common mode
+- cobelief -> differential mode
+
+DevNotes:
+- Objective: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
+
+  $(TYPEDFIELDS)
+"""
+struct LikelihoodMessage
+  status::CliqStatus
+  belief::Dict{Symbol, TreeBelief}
+  cobelief::NamedTuple{(:varlbl, :μ, :Σ),Tuple{Vector{Symbol}, Vector{Float64}, Matrix{Float64}}} #TODO name something mathier
+end
+
+LikelihoodMessage(status::CliqStatus) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), (varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)))
+
+LikelihoodMessage(status::CliqStatus, cobelief) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), cobelief)
+
+
+#
+
+const BeliefMessage = LikelihoodMessage
+
+
+
+
+### EVERYTHING BELOW IS/SHOULD BE DEPRECATED
+
 
 
 """
@@ -20,6 +97,10 @@ EasyMessage(a::Array{Float64,2}, b::Array{Float64,1}, manis::T, inferdim::Union{
 EasyMessage(p::BallTreeDensity, manis::T, inferdim::Union{Float64, Int32, Int64}=0) where {T <: Tuple} = EasyMessage{T}(p, manis, inferdim)
 
 
+
+
+# Deprecated, replaced by LikelihoodMessage
+# TODO - remove
 const TempBeliefMsg = Dict{Symbol, Tuple{BallTreeDensity, Float64}}
 
 # Dict{Symbol,   -- is for variable label
@@ -31,6 +112,8 @@ const TempBeliefMsg = Dict{Symbol, Tuple{BallTreeDensity, Float64}}
 #  }
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
+
+
 """
 $(TYPEDEF)
 
@@ -40,49 +123,7 @@ mutable struct NBPMessage <: Singleton
   p::Dict{Symbol, EasyMessage}
 end
 
-### SOME CONVERGENCE REQUIRED ^^^
-
-#DEV NOTE it looks like it can be consolidated into one type
-# if we can pass messages similar to EasyMessage:
-# pts::Array{Float64,2}
-# bws::Array{Float64,1}
-# option a tuple
-# bellief::Dict{Symbol, NamedTuple{(:vec, :bw, :inferdim),Tuple{Array{Int64,1},Array{Int64,1},Float64}}}
-# or an extra type
-# or the MsgPrior/PackedMessagePrior, depending on the serialization requirement of the channel
-# but I would think only one message type
-
-# mutable struct NBPMessage <: Singleton
-#   status::Symbol # Ek kort die in die boodskap
-#   p::Dict{Symbol, EasyMessage}
-# end
-
-struct TreeBelief
-  val::Array{Float64,2}
-  bw::Array{Float64,2}
-  inferdim::Float64
-  manifolds::Tuple{Vararg{Symbol}}# TODO #459
-end
-TreeBelief(p::BallTreeDensity, inferdim::Real=0.0) = TreeBelief(getPoints(p), getBW(p), inferdim, ())
-TreeBelief(val::Array{Float64,2}, bw::Array{Float64,2}, inferdim::Real=0.0) = TreeBelief(val, bw, inferdim, ())
-
-"""
-    CliqStatus
-Clique status message enumerated type with status:
-initialized, upsolved, marginalized, downsolved, uprecycled
-"""
-@enum CliqStatus initialized upsolved marginalized downsolved uprecycled error_status
 
 
-"""
-  $(TYPEDEF)
-Belief message for message passing on the tree.
-  $(TYPEDFIELDS)
-"""
-struct BeliefMessage
-  status::CliqStatus
-  belief::Dict{Symbol, TreeBelief}
-end
 
-BeliefMessage(status::CliqStatus) =
-        BeliefMessage(status, Dict{Symbol, TreeBelief}())
+#
