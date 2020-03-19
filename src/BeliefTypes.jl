@@ -1,5 +1,5 @@
 
-export TreeBelief, LikelihoodMessage
+export LikelihoodMessage
 
 
 """
@@ -62,12 +62,18 @@ DevNotes:
 
   $(TYPEDFIELDS)
 """
-struct LikelihoodMessage
+struct LikelihoodMessage #<: Singleton
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief}
   cobelief::NamedTuple{(:varlbl, :μ, :Σ),Tuple{Vector{Symbol}, Vector{Float64}, Matrix{Float64}}} #TODO name something mathier
 end
 
+# EARLIER NAMES INCLUDE: productFactor, Fnew, MsgPrior, LikelihoodMessage
+#struct LikelihoodMessage{T <: SamplableBelief} #<: Singleton
+  # status::CliqStatus
+  # variableOrder::Vector{Symbol}
+  # cliqueLikelihood::{T} # MvNormal for parametric
+#end
 LikelihoodMessage(status::CliqStatus) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), (varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)))
 
@@ -108,7 +114,7 @@ $(TYPEDEF)
 DESPARATELY NEEDS TO BE UPDATED TO USE TempBeliefMsg DEFINITION (start of refactor).
 """
 mutable struct NBPMessage <: Singleton
-  p::Dict{Symbol, TreeBelief}
+  belief::Dict{Symbol, TreeBelief}
 end
 
 

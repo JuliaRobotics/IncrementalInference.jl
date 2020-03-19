@@ -41,9 +41,9 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
   #
   inferdim = 0.0
   for m in inmsgs
-    for psym in keys(m.p)
+    for psym in keys(m.belief)
       if psym == vsym
-        pdi = m.p[vsym]
+        pdi = m.belief[vsym]
         push!(dens, manikde!(pdi.val, pdi.bw[:,1], pdi.manifolds) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
@@ -573,7 +573,7 @@ function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{F
   len = length(IDs)
   m = NBPMessage(Dict{Symbol,TreeBelief}())
   for id in IDs
-    m.p[id] = d[id]
+    m.belief[id] = d[id]
   end
   return m
 end
@@ -692,7 +692,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   cliqdata = getCliqueData(inp.cliq)
 
   with_logger(logger) do
-    for el in inp.sendmsgs, (id,msg) in el.p
+    for el in inp.sendmsgs, (id,msg) in el.belief
       @info "inp.sendmsgs[$id].inferdim=$(msg.inferdim)"
     end
   end
@@ -733,7 +733,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   # prepare and convert upward belief messages
   upmsgs = TempBeliefMsg() #Dict{Symbol, BallTreeDensity}()
   # @show collect(keys(inp.fg.g.vertices))
-  for (msgsym, val) in m.p
+  for (msgsym, val) in m.belief
     upmsgs[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val) # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
   setUpMsg!(inp.cliq, upmsgs)
@@ -767,7 +767,7 @@ function dwnPrepOutMsg(fg::G,
   for cvid in getCliqueData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
-    m.p[cvid] = deepcopy(dwnMsgs[1].p[cvid]) # TODO -- maybe this can just be a union(,)
+    m.p[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
   end
   return m
 end
@@ -968,7 +968,7 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
     for (key, bel) in getUpMsgs(child)
       # manis = getManifolds(fg_, key)
       # inferdim = getVariableInferredDim(fg_, key)
-      nbpchild.p[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key)))
+      nbpchild.belief[key] = TreeBelief(bel..., getSofttype(getVariable(fg_, key)))
     end
     push!(childmsgs, nbpchild)
   end
