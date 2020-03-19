@@ -104,7 +104,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
     push!(d,key=>(val=rv[r],cov=Σ[r,r]))
   end
 
-  return d, result, flatvar, Σ
+  return d, result, flatvar.idx, Σ
 end
 
 #TODO maybe consolidate with solveFactorGraphParametric
@@ -188,17 +188,17 @@ function solveConditionalsParametric(fg::AbstractDFG,
     push!(d,key=>(val=rv[r],cov=Σ[r,r]))
   end
 
-  return d, result, flatvar, Σ
+  return d, result, flatvar.idx, Σ
 end
 
 """
     $SIGNATURES
 Get the indexes for labels in FlatVariables
 """
-function collectIdx(flatvars, labels)
+function collectIdx(varinds, labels)
   idx = Int[]
   for lbl in labels
-    append!(idx, flatvars.idx[lbl])
+    append!(idx, varinds[lbl])
   end
   return idx
 end
