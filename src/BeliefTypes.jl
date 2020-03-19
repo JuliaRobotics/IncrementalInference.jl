@@ -112,16 +112,6 @@ const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity,
 
 
 
-"""
-$(TYPEDEF)
-
-DESPARATELY NEEDS TO BE UPDATED TO USE TempBeliefMsg DEFINITION (start of refactor).
-"""
-mutable struct NBPMessage <: Singleton
-  belief::Dict{Symbol, TreeBelief}
-end
-
-
 
 
 #
