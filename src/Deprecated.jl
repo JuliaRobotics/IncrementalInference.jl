@@ -82,30 +82,32 @@ end
 
 
 
-function getData(v::TreeClique)
-  @warn "getData(v::TreeClique) deprecated, use getCliqueData instead"
-  getCliqueData(v)
-end
+# function getData(v::TreeClique)
+#   error("getData(v::TreeClique) deprecated, use getCliqueData instead")
+#   getCliqueData(v)
+# end
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Retrieve data structure stored in a variable.
+# """
+# function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
+#   @warn "IIF.getVariableData should not be used, use native DFG.getSolverData instead"
+#   error("stop")
+#   return getSolverData(getVariable(dfg, lbl), solveKey)
+# end
 
-Retrieve data structure stored in a variable.
-"""
-function getVariableData(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default)::VariableNodeData
-  return getSolverData(getVariable(dfg, lbl), solveKey)
-end
-
-"""
-    $SIGNATURES
-
-Retrieve data structure stored in a factor.
-"""
-function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
-  @warn "IIF.getFactorData should not be used, use native DFG function instead"
-  return getSolverData(getFactor(dfg, lbl))
-end
+# """
+#     $SIGNATURES
+#
+# Retrieve data structure stored in a factor.
+# """
+# function getFactorData(dfg::T, lbl::Symbol)::GenericFunctionNodeData where {T <: AbstractDFG}
+#   @warn "IIF.getFactorData should not be used, use native DFG.getSolverData instead"
+#   return getSolverData(getFactor(dfg, lbl))
+# end
 # TODO -- upgrade to dedicated memory location in Graphs.jl
 # see JuliaArchive/Graphs.jl#233
 
@@ -122,7 +124,7 @@ function setData!(f::DFGFactor, data::GenericFunctionNodeData)::Nothing
 end
 # For Bayes tree
 function setData!(v::TreeClique, data)
-  @warn "IIF.setData! should not be used, use native DFG function instead"
+  @warn "IIF.setData! should not be used, use IIF.setCliqueData!"
   # this is a memory gulp without replacement, old attr["data"] object is left to gc
   # v.attributes["data"] = data
   # error("dont IIF.setData! for TreeClique")
