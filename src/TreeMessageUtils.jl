@@ -70,7 +70,7 @@ end
 
 # Consolidate with nonparametric addMsgFactors! ?
 function addMsgFactors_Parametric!(subfg::AbstractDFG,
-                                   msgs::BeliefMessage)::Vector{DFGFactor}
+                                   msgs::LikelihoodMessage)::Vector{DFGFactor}
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
