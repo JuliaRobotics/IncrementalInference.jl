@@ -1,4 +1,11 @@
 
+"""
+    CliqStatus
+Clique status message enumerated type with status:
+initialized, upsolved, marginalized, downsolved, uprecycled
+"""
+@enum CliqStatus NULL initialized upsolved marginalized downsolved uprecycled error_status
+
 
 """
     $TYPEDEF
@@ -36,15 +43,7 @@ end
 
 TreeBelief(vari::DFGVariable, solveKey=:default) = TreeBelief(getSolverData(vari, solveKey))
 
-
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
-
-"""
-    CliqStatus
-Clique status message enumerated type with status:
-initialized, upsolved, marginalized, downsolved, uprecycled
-"""
-@enum CliqStatus NULL initialized upsolved marginalized downsolved uprecycled error_status
 
 
 """
@@ -83,17 +82,20 @@ LikelihoodMessage(;status::CliqStatus=NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    cobelief=(varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)) ) =
         LikelihoodMessage(status, beliefDict, cobelief)
-
-
 #
 
-const BeliefMessage = LikelihoodMessage
 
-
+# FIXME, better standardize intermediate types
+# used during nonparametric CK preparation, when information from multiple siblings must be shared together
+const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
+const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 
 ### EVERYTHING BELOW IS/SHOULD BE DEPRECATED
 
+
+# TODO this is casing problems between nonparametric and parametric
+const BeliefMessage = LikelihoodMessage
 
 
 # Deprecated, replaced by LikelihoodMessage

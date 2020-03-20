@@ -400,7 +400,11 @@ Dev Notes
 - Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
 - should precompute `allinters`.
 """
-function getSiblingsDelayOrder(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getSiblingsDelayOrder(tree::AbstractBayesTree,
+                               cliq::TreeClique,
+                               prnt,
+                               dwinmsgs::LikelihoodMessage;
+                               logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -423,7 +427,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree, cliq::TreeClique, prnt, 
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
   dwninters = Vector{Int}(undef, len)
-  dwnkeys = collect(keys(dwinmsgs))
+  dwnkeys = collect(keys(dwinmsgs.belief))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end
@@ -549,12 +553,16 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
+                                     cliq::TreeClique,
+                                     prnt,
+                                     dwinmsgs::LikelihoodMessage;
+                                     logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
-  for (sym, tmsg) in dwinmsgs
+  for (sym, tmsg) in dwinmsgs.belief
     # assuming any down message per label that is not partial voids further partial consideration
-    if sum(tmsg[2]) > 0
+    if sum(tmsg.inferdim) > 0
       if !haskey(hasPartials, sym)
         hasPartials[sym] = 0
       end

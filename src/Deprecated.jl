@@ -1,79 +1,25 @@
 
-### DONT DELETE YET -- see more likely list below
+##==============================================================================
+## Delete in v0.12
+##==============================================================================
 
 
-# function getShortestPathNeighbors(fgl::FactorGraph;
-#     from::TreeClique=nothing,
-#     to::TreeClique=nothing,
-#     neighbors::Int=0 )
-#
-#   edgelist = shortest_path(fgl.g, ones(num_edges(fgl.g)), from, to)
-#   vertdict = Dict{Int,TreeClique}()
-#   edgedict = edgelist2edgedict(edgelist)
-#   expandVertexList!(fgl, edgedict, vertdict) # grow verts
-#   for i in 1:neighbors
-#     expandEdgeListNeigh!(fgl, vertdict, edgedict) # grow edges
-#     expandVertexList!(fgl, edgedict, vertdict) # grow verts
-#   end
-#   return vertdict
-# end
-
-# function subgraphShortestPath(fgl::FactorGraph;
-#                               from::TreeClique=nothing,
-#                               to::TreeClique=nothing,
-#                               neighbors::Int=0  )
-#   #
-#   vertdict = getShortestPathNeighbors(fgl, from=from, to=to, neighbors=neighbors)
-#   return genSubgraph(fgl, vertdict)
-# end
-
-
-# function writeGraphPdf(fgl::G;
-#                        viewerapp::String="evince",
-#                        filepath::AS="/tmp/fg.pdf",
-#                        engine::AS="neato", #sfdp
-#                        show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
-#   #
-#   @warn "writeGraphPdf is function changing to drawGraph, see DFG.toDotFile(dfg) as part of the long term solution."
-#
-#   fgd = fgl
-#   @info "Writing factor graph file"
-#   fext = split(filepath, '.')[end]
-#   fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
-#   dotfile = fpwoext*".dot"
-#
-#   # create the dot file
-#   DFG.toDotFile(fgl, dotfile)
-#
-#   try
-#     run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
-#     show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
-#   catch e
-#     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
-#   end
-#   nothing
-# end
-
-
+# TODO: Confirm this is supposed to be a variable?
+function setVal!(v::DFGVariable, em::TreeBelief; solveKey::Symbol=:default)
+    @warn "setVal! deprecated, use setValKDE! instead"
+    setValKDE!(v, em, solveKey=solveKey)
+end
+function setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default)
+    @warn "setVal! deprecated, use setValKDE! instead"
+    setValKDE!(v, p, solveKey=solveKey)
+end
 
 
 ##==============================================================================
 ## Delete in v0.10.x if possible, but definitely by v0.11
 ##==============================================================================
 
-
-
-# For Bayes tree
-function setData!(v::TreeClique, data)
-  @warn "IIF.setData! should not be used, use IIF.setCliqueData!"
-  # this is a memory gulp without replacement, old attr["data"] object is left to gc
-  # v.attributes["data"] = data
-  # error("dont IIF.setData! for TreeClique")
-  v.data = data
-  nothing
-end
-
-
+@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
 
 
 ##==============================================================================

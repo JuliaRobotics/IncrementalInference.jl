@@ -1,32 +1,4 @@
-#TODO move to TreeBasedInitialization.jl
-function addMsgFactors!(subfg::G,
-                        msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-  for (msym, belief) = (msgs.belief)
-    if msym in svars
-      #TODO covaraince
-      #TODO Maybe always use MvNormal
-      if size(belief.val)[1] == 1
-        msgPrior =  MsgPrior(Normal(belief.val[1], sqrt(belief.bw[1])), belief.inferdim)
-      else
-        #FIXME a hack to make matrix Hermitian
-        covar = Symmetric(belief.bw + 1e-5I)
-        try
-          MvNormal(belief.val[:,1], covar)
-        catch er
-          @error er "MvNormal Failed with:" covar
-          return DFGFactor[]
-        end
-        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], covar), belief.inferdim)
-      end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
-      push!(msgfcts, fc)
-    end
-  end
-  return msgfcts
-end
+
 
 """
     $SIGNATURES

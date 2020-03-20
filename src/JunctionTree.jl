@@ -92,7 +92,7 @@ getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(
 
 Set the clique data container to a new object `data`.
 """
-setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = getCliqueData(cliq::TreeClique) = data
+setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = cliq.data = data
 setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = setCliqueData!(getClique(tree, cId), data)
 
 """
@@ -713,82 +713,12 @@ getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, get
 
 
 
-"""
-    $(SIGNATURES)
-
-Set the upward passing message for Bayes (Junction) tree clique `cliql`.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
-  @error "setUpMsg!, use inferred dimension version instead"
-  getCliqueData(cliql).upMsg = msgs
-end
-
-function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
-  # ms = Dict{Symbol, BallTreeDensity}()
-  # for (id, val) in msgs
-  #   ms[id] = val[1]
-  # end
-  getCliqueData(cliql).upMsg = msgs #ms
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
-getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(whichCliq(btl, sym))
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsUp(cliql::TreeClique) = upMsg(cliql)
-getCliqMsgsUp(treel::AbstractBayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
-
-"""
-    $(SIGNATURES)
-
-Set the downward passing message for Bayes (Junction) tree clique `cliql`.
-"""
-function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, BallTreeDensity}
-  getCliqueData(cliql).dwnMsg = msgs
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
-getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(whichCliq(btl, sym))
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsDown(cliql::TreeClique) = getDwnMsgs(cliql)
-
-
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
                         fct::DFGFactor )
                         # fid::Symbol )
   #
   union!(usefcts, Symbol(fct.label))
-  # for tp in usefcts
-  #   if tp == fct.index
-  #     return nothing
-  #   end
-  # end
-  # tpl = fct.label
-  # push!(usefcts, tpl )
   nothing
 end
 
@@ -1670,7 +1600,7 @@ function saveTree(treel::AbstractBayesTree,
   savetree = deepcopy(treel)
   for i in 1:length(getCliques(savetree))
     if  getCliqueData(savetree, i) isa BayesTreeNodeData
-      setData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
+      setCliqueData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
     end
   end
 
@@ -1684,7 +1614,7 @@ function saveTree(treeArr::Vector{T},
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(getCliques(savtre))
     if getCliqueData(savtre, i) isa BayesTreeNodeData
-      setData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
+      setCliqueData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
     end
   end
 
@@ -1712,13 +1642,13 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   if savetree isa Vector
       for savtre in savetree, i in 1:length(getCliques(savtre))
         if getCliqueData(savtre, i) isa PackedBayesTreeNodeData
-          setData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
+          setCliqueData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
         end
       end
   else
     for i in 1:length(getCliques(savetree))
       if getCliqueData(savetree, i) isa PackedBayesTreeNodeData
-        setData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
+        setCliqueData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
       end
     end
   end
