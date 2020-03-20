@@ -2,9 +2,9 @@
 """
     CliqStatus
 Clique status message enumerated type with status:
-initialized, upsolved, marginalized, downsolved, uprecycled
+NULL, INITIALIZED, UPSOLVED, MARGINALIZED, DOWNSOLVED, UPRECYCLED, ERROR_STATUS
 """
-@enum CliqStatus NULL initialized upsolved marginalized downsolved uprecycled error_status
+@enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
 
 
 """
@@ -95,7 +95,7 @@ const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessage
 
 
 # TODO this is casing problems between nonparametric and parametric
-const BeliefMessage = LikelihoodMessage
+# const BeliefMessage = LikelihoodMessage
 
 
 # Deprecated, replaced by LikelihoodMessage
