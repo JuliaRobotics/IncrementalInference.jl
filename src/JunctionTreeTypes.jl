@@ -1,36 +1,5 @@
 using MetaGraphs
 
-## Cliques
-
-"""
-    $(TYPEDEF)
-Structure to store clique data
-DEV NOTES: To replace TreeClique completely
-    $(FIELDS)
-"""
-mutable struct TreeClique
-  index::Int # see issue #540
-  label::Symbol #NOTE this is currently a label such as clique 1, # The drawing label is saved in attributes, JT I'm not sure of the current use
-  data::Any#BayesTreeNodeData #FIXME There is circular type usage in TreeClique, BayesTreeNodeData, CliqStateMachineContainer https://github.com/JuliaLang/julia/issues/269
-  attributes::Dict{String, Any} #The drawing attributes
-  #solveInProgress #on a clique level a "solve in progress" might be very handy
-end
-
-TreeClique(i::Int, label::Symbol) = TreeClique(i, label, emptyBTNodeData(), Dict{String,Any}())
-TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
-
-Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
-Graphs.vertex_index(v::TreeClique) = v.index
-Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
-
-#TODO the label field and label atribute is a bit confusing with accessors.
-DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
-function setLabel!(cliq::TreeClique, lbl::String)
-  cliq.attributes["label"] = lbl
-  lbl
-end
-
-## end Cliques
 
 ## Bayes Trees
 
@@ -336,61 +305,6 @@ end
 
 
 
-"""
-$(TYPEDEF)
-"""
-mutable struct PotProd
-    Xi::Symbol # Int
-    prev::Array{Float64,2}
-    product::Array{Float64,2}
-    potentials::Array{BallTreeDensity,1}
-    potentialfac::Vector{Symbol}
-end
-"""
-$(TYPEDEF)
-"""
-mutable struct CliqGibbsMC
-    prods::Array{PotProd,1}
-    lbls::Vector{Symbol}
-    CliqGibbsMC() = new()
-    CliqGibbsMC(a,b) = new(a,b)
-end
-"""
-$(TYPEDEF)
-"""
-mutable struct DebugCliqMCMC
-  mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-  outmsg::LikelihoodMessage
-  outmsglbls::Dict{Symbol, Symbol} # Int
-  priorprods::Vector{CliqGibbsMC}
-  DebugCliqMCMC() = new()
-  DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
-end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct UpReturnBPType
-  upMsgs::LikelihoodMessage
-  dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, TreeBelief}
-  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
-  totalsolve::Bool
-  UpReturnBPType() = new()
-  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
-end
-
-"""
-$(TYPEDEF)
-
-TODO refactor msgs into only a single variable
-"""
-mutable struct DownReturnBPType
-  dwnMsg::LikelihoodMessage
-  dbgDwn::DebugCliqMCMC
-  IDvals::Dict{Symbol,TreeBelief}
-  keepdwnmsgs::LikelihoodMessage
-end
 
 """
 $(TYPEDEF)
@@ -415,18 +329,6 @@ function ExploreTreeType(fgl::G,
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
-
-"""
-$(TYPEDEF)
-"""
-mutable struct MsgPassType
-  fg::GraphsDFG
-  cliq::TreeClique
-  vid::Symbol # Int
-  msgs::Array{LikelihoodMessage,1}
-  N::Int
-end
-
 
 
 
