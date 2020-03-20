@@ -205,6 +205,23 @@ end
 
 """
     $SIGNATURES
+Calculate the marginal distribution for a clique over subsetVarIds.
+"""
+function calculateMarginalCliqueLikelihood(vardict, Σ, varindxs, subsetVarIds)
+
+  μₘ = Float64[]
+  for lbl in subsetVarIds
+    append!(μₘ, vardict[lbl].val)
+  end
+
+  Aidx = collectIdx(varindxs, subsetVarIds)
+  Σₘ = Σ[Aidx, Aidx]
+
+  return createMvNormal(μₘ, Σₘ)
+end
+
+"""
+    $SIGNATURES
 
 """
 function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)

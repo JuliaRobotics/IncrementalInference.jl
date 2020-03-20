@@ -73,8 +73,8 @@ end
 LikelihoodMessage(status::CliqStatus) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
 
-LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
+LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), varOrder, cliqueLikelihood)
 
 LikelihoodMessage(;status::CliqStatus=NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
