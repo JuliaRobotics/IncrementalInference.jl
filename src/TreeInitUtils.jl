@@ -265,6 +265,126 @@ end
 
 
 
+"""
+    $SIGNATURES
+
+Blocking call until `cliq` upInit processes has arrived at a result.
+"""
+function getCliqInitUpResultFromChannel(cliq::TreeClique)
+  status = take!(getCliqueData(cliq).initUpChannel)
+  @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
+  return status
+end
+
+
+
+
+lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
+lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
+unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
+unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
+
+function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
+  with_logger(logger) do
+    @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
+  end
+    flush(logger.stream)
+  # if isready(cdat.lockDwnStatus)
+  #   with_logger(logger) do
+  #     @info "lockDwnStatus! is locked with $(cdat.lockDwnStatus.data)"
+  #   end
+  #   flush(logger.stream)
+  # end
+  stf =  put!(cdat.lockDwnStatus, idx)
+  with_logger(logger) do
+    @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
+  end
+  flush(logger.stream)
+  stf
+end
+unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
+
+"""
+    $SIGNATURES
+
+Update clique status and notify of the change
+
+Notes
+- Assumes users will lock the status state before getting status until after decision whether to update status.
+- If so, only unlock after status and condition has been updated.
+
+Dev Notes
+- Should be made an atomic transaction
+"""
+function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+  cd = getCliqueData(cliq)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
+  end
+  flush(logger.stream)
+
+  ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
+  # Wait until lock can be aquired
+  lockUpStatus!(cd)
+
+  cd.initialized = status
+  if isready(cd.initUpChannel)
+    tkst = take!(cd.initUpChannel)
+    # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
+  end
+  put!(cd.initUpChannel, status)
+  cond = getSolveCondition(cliq)
+  notify(cond)
+    # hack to avoid a race condition  -- remove with atomic lock logic upgrade
+    sleep(0.1)
+    notify(cond) # getSolveCondition(cliq)
+
+  # TODO unlock
+  unlockUpStatus!(cd)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
+  end
+
+  nothing
+end
+
+function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+  cdat = getCliqueData(cliq)
+  with_logger(logger) do
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
+  end
+
+  # take lock for atomic transaction
+  lockDwnStatus!(cdat, cliq.index, logger=logger)
+
+  cdat.initialized = status
+
+  if isready(cdat.initDownChannel)
+    content = take!(cdat.initDownChannel)
+    with_logger(logger) do
+      @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
+    end
+  end
+  put!(cdat.initDownChannel, status)
+  notify(getSolveCondition(cliq))
+    # hack to avoid a race condition
+    sleep(0.1)
+    notify(getSolveCondition(cliq))
+
+  # unlock for others to proceed
+  unlockDwnStatus!(cdat)
+  with_logger(logger) do
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqStatus(cliq))"
+  end
+
+  # flush(logger.stream)
+
+  nothing
+end
+
+
 
 
 
