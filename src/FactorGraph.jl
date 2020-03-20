@@ -193,15 +193,6 @@ function setValKDE!(dfg::G,
     nothing
 end
 
-# TODO: Confirm this is supposed to be a variable?
-function setVal!(v::DFGVariable, em::TreeBelief; solveKey::Symbol=:default)
-    @warn "setVal! deprecated, use setValKDE! instead"
-    setValKDE!(v, em, solveKey=solveKey)
-end
-function setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default)
-    @warn "setVal! deprecated, use setValKDE! instead"
-    setValKDE!(v, p, solveKey=solveKey)
-end
 
 """
     $(SIGNATURES)

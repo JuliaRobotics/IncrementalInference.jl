@@ -56,6 +56,8 @@ include("testBasicGraphs.jl")
 # TODO old names should be removed, like Odo, Obsv2
 include("testlocalconstraintexamples.jl")
 
+include("testBasicTreeInit.jl")
+
 include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
