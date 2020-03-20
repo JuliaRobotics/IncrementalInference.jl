@@ -553,7 +553,7 @@ include("CompareUtils.jl")
 # tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
-include("TreeInitUtils.jl")
+include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 
 # solving graphs
