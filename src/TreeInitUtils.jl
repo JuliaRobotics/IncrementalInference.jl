@@ -1,6 +1,9 @@
 # init utils for tree based inference
 
 
+## =============================================================================
+# helper functions to add tree messages to subgraphs
+## =============================================================================
 
 
 """
@@ -97,8 +100,6 @@ end
 
 
 
-
-
 """
     $SIGNATURES
 
@@ -116,3 +117,101 @@ function deleteMsgFactors!(subfg::AbstractDFG,
     deleteFactor!(subfg, fc.label)
   end
 end
+
+
+
+
+## =============================================================================
+# tree belief message accessors for nonparameteric in this section
+## =============================================================================
+
+
+"""
+    $SIGNATURES
+
+Based on a push model from child cliques that should have already completed their computation.
+"""
+getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, LikelihoodMessage} = getCliqueData(cliq).upInitMsgs
+
+
+"""
+    $SIGNATURES
+
+Set cliques up init msgs.
+"""
+function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
+  cd = getCliqueData(cliq)
+  soco = getSolveCondition(cliq)
+  lockUpStatus!(cd)
+  cd.upInitMsgs[childid] = msg
+  # notify cliq condition that there was a change
+  notify(soco)
+  unlockUpStatus!(cd)
+  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
+  sleep(0.1)
+  notify(soco)
+  nothing
+end
+
+
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for Bayes (Junction) tree clique `cliql`.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
+"""
+function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
+  @error "setUpMsg!, use inferred dimension version instead"
+  getCliqueData(cliql).upMsg = msgs
+end
+
+function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
+  # ms = Dict{Symbol, BallTreeDensity}()
+  # for (id, val) in msgs
+  #   ms[id] = val[1]
+  # end
+  getCliqueData(cliql).upMsg = msgs #ms
+  nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
+getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(whichCliq(btl, sym))
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsUp(cliql::TreeClique) = upMsg(cliql)
+getCliqMsgsUp(treel::AbstractBayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
+
+"""
+    $(SIGNATURES)
+
+Set the downward passing message for Bayes (Junction) tree clique `cliql`.
+"""
+function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, BallTreeDensity}
+  getCliqueData(cliql).dwnMsg = msgs
+end
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
+getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(whichCliq(btl, sym))
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+getCliqMsgsDown(cliql::TreeClique) = getDwnMsgs(cliql)

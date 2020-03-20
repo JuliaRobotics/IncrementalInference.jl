@@ -1,24 +1,5 @@
 
-"""
-    $SIGNATURES
 
-Based on a push model from child cliques that should have already completed their computation.
-"""
-getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, LikelihoodMessage} = getCliqueData(cliq).upInitMsgs
-
-function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
-  cd = getCliqueData(cliq)
-  soco = getSolveCondition(cliq)
-  lockUpStatus!(cd)
-  cd.upInitMsgs[childid] = msg
-  # notify cliq condition that there was a change
-  notify(soco)
-  unlockUpStatus!(cd)
-  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
-  sleep(0.1)
-  notify(soco)
-  nothing
-end
 
 function isCliqInitialized(cliq::TreeClique)::Bool
   return getCliqueData(cliq).initialized in [:initialized; :upsolved]
@@ -203,20 +184,6 @@ function areCliqVariablesAllInitialized(dfg::G, cliq::TreeClique) where {G <: Ab
   isallinit
 end
 
-# """
-#    $SIGNATURES
-#
-# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
-# """
-# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
-#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
-#
-#   # check that all child cliques have also completed full up inference.
-#   for chl in getChildren(tree, cliq)
-#     isallinit &= isUpInferenceComplete(chl)
-#   end
-#   return isallinit
-# end
 
 """
     $SIGNATURES
@@ -1041,3 +1008,19 @@ function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logg
   end
   return prstat == :needdownmsg
 end
+
+
+# """
+#    $SIGNATURES
+#
+# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
+# """
+# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
+#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
+#
+#   # check that all child cliques have also completed full up inference.
+#   for chl in getChildren(tree, cliq)
+#     isallinit &= isUpInferenceComplete(chl)
+#   end
+#   return isallinit
+# end
