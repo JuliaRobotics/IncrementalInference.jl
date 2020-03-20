@@ -2,9 +2,9 @@
 """
     CliqStatus
 Clique status message enumerated type with status:
-initialized, upsolved, marginalized, downsolved, uprecycled
+NULL, INITIALIZED, UPSOLVED, MARGINALIZED, DOWNSOLVED, UPRECYCLED, ERROR_STATUS
 """
-@enum CliqStatus NULL initialized upsolved marginalized downsolved uprecycled error_status
+@enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
 
 
 """
@@ -51,37 +51,36 @@ getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 Belief message for message passing on the tree.
 
 Notes:
-- belief -> common mode
-- cobelief -> differential mode
+- belief -> Dictionary of [`TreeBelief`](@ref)
+- variableOrder -> Ordered variable id list of the seperators in cliqueLikelihood
+- cliqueLikelihood -> marginal distribution (<: `SamplableBelief`) over clique seperators.
 
 DevNotes:
 - Objective for parametric: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
 - TODO confirm why <: Singleton
-
+- #459
   $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage <: Singleton
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief}
-  cobelief::NamedTuple{(:varlbl, :μ, :Σ),Tuple{Vector{Symbol}, Vector{Float64}, Matrix{Float64}}} #TODO name something mathier
+  variableOrder::Vector{Symbol}
+  cliqueLikelihood::Union{Nothing,SamplableBelief}
 end
 
 # EARLIER NAMES INCLUDE: productFactor, Fnew, MsgPrior, LikelihoodMessage
-#struct LikelihoodMessage{T <: SamplableBelief} #<: Singleton
-  # status::CliqStatus
-  # variableOrder::Vector{Symbol}
-  # cliqueLikelihood::{T} # MvNormal for parametric
-#end
-LikelihoodMessage(status::CliqStatus) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), (varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)))
 
-LikelihoodMessage(status::CliqStatus, cobelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), cobelief)
+LikelihoodMessage(status::CliqStatus) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
+
+LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
 
 LikelihoodMessage(;status::CliqStatus=NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
-                   cobelief=(varlbl=Symbol[], μ=Float64[], Σ=Matrix{Float64}(undef,0,0)) ) =
-        LikelihoodMessage(status, beliefDict, cobelief)
+                   variableOrder=Symbol[],
+                   cliqueLikelihood=nothing ) =
+        LikelihoodMessage(status, beliefDict, variableOrder, cliqueLikelihood)
 #
 
 
@@ -95,7 +94,7 @@ const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessage
 
 
 # TODO this is casing problems between nonparametric and parametric
-const BeliefMessage = LikelihoodMessage
+# const BeliefMessage = LikelihoodMessage
 
 
 # Deprecated, replaced by LikelihoodMessage

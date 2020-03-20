@@ -52,7 +52,7 @@ mutable struct BayesTree <: AbstractBayesTree
   cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
   #TEMP JT for evaluation, store message channels associated with edges between nodes Int -> edge id.  TODO rather store in graph
-  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}
+  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
@@ -61,7 +61,7 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                          0,
                          Dict{Int,TreeClique}(),
                          Dict{AbstractString, Int}(),
-                         Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}(),
+                         Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}(),
                          Symbol[],
                          0.0  )
 
@@ -232,8 +232,8 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  msgsUp::Vector{BeliefMessage} #TODO towards consolidated messages
-  msgsDown::Vector{BeliefMessage}
+  msgsUp::Vector{LikelihoodMessage} #TODO towards consolidated messages
+  msgsDown::Vector{LikelihoodMessage}
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -255,7 +255,7 @@ function CliqStateMachineContainer(x1::G,
                                    x13::SimpleLogger=SimpleLogger(Base.stdout);
                                    x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, BeliefMessage[], BeliefMessage[])
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, LikelihoodMessage[], LikelihoodMessage[])
 end
 
 
@@ -287,7 +287,7 @@ mutable struct BayesTreeNodeData
   debugDwn
 
   # future might concentrate these four fields down to two
-  # these should become specialized BeliefMessage type
+  # these should become specialized LikelihoodMessage type
   upMsg::LikelihoodMessage
   dwnMsg::LikelihoodMessage
   upInitMsgs::Dict{Int, LikelihoodMessage}

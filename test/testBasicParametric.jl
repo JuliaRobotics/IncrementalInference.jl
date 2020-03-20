@@ -189,6 +189,8 @@ end
 
 ###############################################################################
 #Test error prop if not converged.
+#TODO Update test, it now converges
+
 fg = generateCanonicalFG_lineStep(20, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, params=SolverParams(algorithms=[:default, :parametric]))
 
 #do not initialize to force failure
