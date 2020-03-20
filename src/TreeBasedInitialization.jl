@@ -394,7 +394,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
         msgspervar[msgsym] = IntermediateSiblingMessages()
       end
       with_logger(logger) do
-        @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg[2])"
+        @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
       end
       push!(msgspervar[msgsym], msg)
     end
@@ -420,8 +420,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
 
   # remove msgs that have no data
   rmlist = Symbol[]
-  for (prsym,belmsg) in products
-    if belmsg[2] < 1e-10
+  for (prsym,belmsg) in products.belief
+    if belmsg.inferdim < 1e-10
       # no information so remove
       push!(rmlist, prsym)
     end
@@ -430,11 +430,11 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)"
   end
   for pr in rmlist
-    delete!(products, pr)
+    delete!(products.belief, pr)
   end
 
   with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products)))"
+    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products.belief)))"
   end
   return products
 end

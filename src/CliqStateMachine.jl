@@ -350,7 +350,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   dbgnew = !haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew) # csmc.cliqSubFg
-  dwnkeys = collect(keys(dwinmsgs))
+  dwnkeys = collect(keys(dwinmsgs.belief))
 
 
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
@@ -404,7 +404,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8a, attemptCliqInitD.,do cliq init down dwinmsgs=$(keys(dwinmsgs))")
+  infocsm(csmc, "8a, attemptCliqInitD.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=getSolverParams(csmc.dfg).dbg, logger=csmc.logger, logpath=getSolverParams(csmc.dfg).logpath )
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
@@ -420,7 +420,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     # construct init's up msg to place in parent from initialized separator variables
     msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
 
-    infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg)))")
+    infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
     setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
