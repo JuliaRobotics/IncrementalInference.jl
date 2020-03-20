@@ -31,7 +31,7 @@ sudo apt-get install graphviz  # optional
 
 Install the package from inside Julia
 ```julia
-(v1.0) pkg> add IncrementalInference
+(v1.3) pkg> add IncrementalInference
 ```
 
 Examples
