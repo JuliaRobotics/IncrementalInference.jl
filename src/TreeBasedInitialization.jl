@@ -707,7 +707,8 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   # extract complete downward marginal msg priors
   for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
     vari = getVariable(lsfg, id)
-    products[id] = (getKDE(vari), getVariableInferredDim(vari))
+    products.belief[id] = TreeBelief(vari)
+    # products.belief[id] = (getKDE(vari), getVariableInferredDim(vari))
   end
 
   # if recycling lsfg
@@ -748,11 +749,13 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = LikelihoodMessage()
+  msgspervar = LikelihoodMessage()  # TODO -- this is not right
   # msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
-  for (prntid, msgs) in currmsgs.belief
-    for (msgsym, msg) in msgs
+
+  for (prntid, msgs) in currmsgs
+    for (msgsym, msg) in msgs.belief
       if !haskey(msgspervar.belief, msgsym)
+        # there will be an entire list...
         msgspervar.belief[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
       end
       with_logger(logger) do
@@ -767,17 +770,18 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # reference to default allocated dict location
-  products = getCliqueData(prnt).downInitMsg
+  products = getInitDownMsg(prnt) # getCliqueData(prnt).downInitMsg
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
 
     # products only method
-    if dbgnew
+    @assert dbgnew "must use dbgnew=true for tree down init msg"
+    # if dbgnew
         condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    else
-        condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
-    end
+    # else
+        # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    # end
 
   # remove msgs that have no data
   rmlist = Symbol[]

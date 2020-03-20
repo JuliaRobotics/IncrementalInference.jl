@@ -133,6 +133,7 @@ Based on a push model from child cliques that should have already completed thei
 """
 getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, LikelihoodMessage} = getCliqueData(cliq).upInitMsgs
 
+getInitDownMsg(cliq::TreeClique)::LikelihoodMessage = getCliqueData(cliq).downInitMsg
 
 """
     $SIGNATURES
@@ -194,6 +195,73 @@ getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
 
 
+
+
+
+"""
+    $SIGNATURES
+
+Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
+
+Notes
+- Use last parameter to select the return format.
+"""
+function getCliqChildMsgsUp(fg_::AbstractDFG,
+                            treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{TreeBelief} )
+  #
+  childmsgs = LikelihoodMessage[]
+  for child in getChildren(treel, cliq)
+    nbpchild = LikelihoodMessage()
+    for (key, bel) in getUpMsgs(child).belief
+      # manis = getManifolds(fg_, key)
+      # inferdim = getVariableInferredDim(fg_, key)
+      dcBel = deepcopy(bel)
+      nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
+    end
+    push!(childmsgs, nbpchild)
+  end
+  return childmsgs
+end
+
+function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
+  childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Float64}}}()  # Vector{Bool}
+  for child in getChildren(treel, cliq)
+    for (key, bel) in getUpMsgs(child)
+      # id = fg_.IDs[key]
+      # manis = getManifolds(fg_, id)
+      if !haskey(childmsgs, key)
+        childmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()  # Vector{Bool}
+      end
+      push!(childmsgs[key], bel )
+    end
+  end
+  return childmsgs
+end
+
+"""
+    $SIGNATURES
+
+Get the latest down message from the parent node (without calculating anything).
+
+Notes
+- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+"""
+function getCliqParentMsgDown(treel::AbstractBayesTree, cliq::TreeClique)
+  downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
+  for prnt in getParent(treel, cliq)
+    for (key, bel) in getDwnMsgs(prnt)
+      if !haskey(downmsgs, key)
+        downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
+      end
+      # TODO insert true inferred dim
+      push!(downmsgs[key], bel)
+    end
+  end
+  return downmsgs
+end
 
 
 
