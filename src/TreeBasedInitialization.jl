@@ -599,9 +599,9 @@ end
 
 # Helper function for prepCliqInitMsgsDown!
 # populate products with products of upward messages
-function condenseDownMsgsProductOnly!(fgl::G,
-                                      products,
-                                      msgspervar  ) where G <: AbstractDFG
+function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
+                                      products::LikelihoodMessage,
+                                      msgspervar::IntermediateMultiSiblingMessages  )
   #
   # multiply multiple messages together
   for (msgsym, msgsBo) in msgspervar
@@ -646,8 +646,8 @@ end
 # Helper function for prepCliqInitMsgsDown!
 # future, be used in a cached system with parent in one location only for all siblings
 function condenseDownMsgsProductPrntFactors!(fgl::G,
-                                             products,
-                                             msgspervar,
+                                             products::LikelihoodMessage,
+                                             msgspervar::IntermediateMultiSiblingMessages,
                                              prnt::TreeClique,
                                              cliq::TreeClique,
                                              logger=ConsoleLogger()  ) where G <: AbstractDFG
@@ -749,19 +749,19 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # check if any msgs should be multiplied together for the same variable
-  msgspervar = LikelihoodMessage()  # TODO -- this is not right
-  # msgspervar = Dict{Symbol, Vector{Tuple{BallTreeDensity,Float64}}}()
+  # msgspervar = LikelihoodMessage()  # TODO -- this is not right
+  msgspervar = IntermediateMultiSiblingMessages()
 
   for (prntid, msgs) in currmsgs
     for (msgsym, msg) in msgs.belief
-      if !haskey(msgspervar.belief, msgsym)
+      if !haskey(msgspervar, msgsym)
         # there will be an entire list...
-        msgspervar.belief[msgsym] = Vector{Tuple{BallTreeDensity,Float64}}()
+        msgspervar[msgsym] = IntermediateSiblingMessages()
       end
       with_logger(logger) do
         @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg[2])"
       end
-      push!(msgspervar.belief[msgsym], msg)
+      push!(msgspervar[msgsym], msg)
     end
   end
 
@@ -770,18 +770,18 @@ function prepCliqInitMsgsDown!(fgl::G,
   end
 
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt) # getCliqueData(prnt).downInitMsg
+  products = getInitDownMsg(prnt)
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
 
     # products only method
-    @assert dbgnew "must use dbgnew=true for tree down init msg"
-    # if dbgnew
+    # @assert dbgnew "must use dbgnew=true for tree down init msg"
+    if dbgnew
         condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    # else
-        # condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
-    # end
+    else
+        condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    end
 
   # remove msgs that have no data
   rmlist = Symbol[]

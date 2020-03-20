@@ -226,13 +226,13 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
 end
 
 function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
-  childmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity,Float64}}}()  # Vector{Bool}
+  childmsgs = IntermediateMultiSiblingMessages()
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child)
       # id = fg_.IDs[key]
       # manis = getManifolds(fg_, id)
       if !haskey(childmsgs, key)
-        childmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()  # Vector{Bool}
+        childmsgs[key] = IntermediateSiblingMessages()
       end
       push!(childmsgs[key], bel )
     end
@@ -250,11 +250,11 @@ Notes
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
 function getCliqParentMsgDown(treel::AbstractBayesTree, cliq::TreeClique)
-  downmsgs = Dict{Symbol,Vector{Tuple{BallTreeDensity, Float64}}}()
+  downmsgs = IntermediateMultiSiblingMessages()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
       if !haskey(downmsgs, key)
-        downmsgs[key] = Vector{Tuple{BallTreeDensity, Float64}}()
+        downmsgs[key] = IntermediateSiblingMessages()
       end
       # TODO insert true inferred dim
       push!(downmsgs[key], bel)
@@ -266,29 +266,11 @@ end
 
 
 
+
+
+
 ## =============================================================================
 ## DEPRECATED BELOW
 ## =============================================================================
 
-
-# """
-#     $(SIGNATURES)
-#
-# Return the last down message stored in `cliq` of Bayes (Junction) tree.
-# """
-# getCliqMsgsDown(cliql::TreeClique) = getDwnMsgs(cliql)
-
-# """
-#     $(SIGNATURES)
-#
-# Return the last up message stored in `cliq` of Bayes (Junction) tree.
-# """
-# getCliqMsgsUp(cliql::TreeClique) = upMsg(cliql)
-# getCliqMsgsUp(treel::AbstractBayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
-
-
-# function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
-#   @error "setUpMsg!, use inferred dimension version instead"
-#   getCliqueData(cliql).upMsg = msgs
-# end
 #

@@ -85,7 +85,10 @@ LikelihoodMessage(;status::CliqStatus=NULL,
 #
 
 
-
+# FIXME, better standardize intermediate types
+# used during nonparametric CK preparation, when information from multiple siblings must be shared together
+const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
+const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 
 ### EVERYTHING BELOW IS/SHOULD BE DEPRECATED
