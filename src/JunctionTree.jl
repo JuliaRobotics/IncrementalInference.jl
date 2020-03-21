@@ -79,10 +79,21 @@ function getCliqueIds(tree::MetaBayesTree)
   MetaGraphs.vertices(tree.bt)
 end
 
+"""
+    $SIGNATURES
+
+Return reference to the clique data container.
+"""
 getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
 getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
 
+"""
+    $SIGNATURES
 
+Set the clique data container to a new object `data`.
+"""
+setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = cliq.data = data
+setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = setCliqueData!(getClique(tree, cId), data)
 
 """
     $SIGNATURES
@@ -630,15 +641,15 @@ Experimental create and initialize tree message channels
 """
 function initTreeMessageChannels!(tree::BayesTree)
   for e = 1:tree.bt.nedges
-    push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+    push!(tree.messages, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
   end
   return nothing
 end
 
 function initTreeMessageChannels!(tree::MetaBayesTree)
   for e = MetaGraphs.edges(tree.bt)
-    set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{BeliefMessage}(0),:downMsg=>Channel{BeliefMessage}(0)))
-    # push!(tree.messages, e=>(upMsg=Channel{BeliefMessage}(0),downMsg=Channel{BeliefMessage}(0)))
+    set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{LikelihoodMessage}(0),:downMsg=>Channel{LikelihoodMessage}(0)))
+    # push!(tree.messages, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
   end
   return nothing
 end
@@ -702,82 +713,12 @@ getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, get
 
 
 
-"""
-    $(SIGNATURES)
-
-Set the upward passing message for Bayes (Junction) tree clique `cliql`.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function setUpMsg!(cliql::TreeClique, msgs::Dict{Symbol, BallTreeDensity})
-  @error "setUpMsg!, use inferred dimension version instead"
-  getCliqueData(cliql).upMsg = msgs
-end
-
-function setUpMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, Tuple{BallTreeDensity, Float64}}
-  # ms = Dict{Symbol, BallTreeDensity}()
-  # for (id, val) in msgs
-  #   ms[id] = val[1]
-  # end
-  getCliqueData(cliql).upMsg = msgs #ms
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
-getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(whichCliq(btl, sym))
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsUp(cliql::TreeClique) = upMsg(cliql)
-getCliqMsgsUp(treel::AbstractBayesTree, frt::Symbol) = getCliqMsgsUp(getCliq(treel, frt))
-
-"""
-    $(SIGNATURES)
-
-Set the downward passing message for Bayes (Junction) tree clique `cliql`.
-"""
-function setDwnMsg!(cliql::TreeClique, msgs::TempBeliefMsg) #Dict{Symbol, BallTreeDensity}
-  getCliqueData(cliql).dwnMsg = msgs
-end
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
-getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(whichCliq(btl, sym))
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getCliqMsgsDown(cliql::TreeClique) = getDwnMsgs(cliql)
-
-
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
                         fct::DFGFactor )
                         # fid::Symbol )
   #
   union!(usefcts, Symbol(fct.label))
-  # for tp in usefcts
-  #   if tp == fct.index
-  #     return nothing
-  #   end
-  # end
-  # tpl = fct.label
-  # push!(usefcts, tpl )
   nothing
 end
 
@@ -1116,14 +1057,14 @@ Return dictionary of down messages consisting of all frontal and separator belie
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::G, cliq::TreeClique)::TempBeliefMsg where G <: AbstractDFG
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = TempBeliefMsg() # Dict{Symbol,BallTreeDensity}()
+  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container[sym] = (getKDE(subdfg, sym), getVariableInferredDim(subdfg, sym))
+    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
   end
 
   # return the result
@@ -1575,14 +1516,14 @@ Related
 
 getUpMsgs
 """
-function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,TempBeliefMsg}
-  allUpMsgs = Dict{Int,TempBeliefMsg}()
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
+  allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
-    allUpMsgs[cliq.index] = TempBeliefMsg()
+    allUpMsgs[cliq.index] = LikelihoodMessage()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index][lbl] = msg
+      allUpMsgs[cliq.index].belief[lbl] = msg
     end
   end
   return allUpMsgs
@@ -1604,7 +1545,7 @@ Notes
      }
 """
 function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, TempBeliefMsg}  )::TempUpMsgPlotting
+                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
   #
   # start of the return data structure
   stack = TempUpMsgPlotting()
@@ -1612,7 +1553,7 @@ function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
   # look at all the clique level data
   for (cidx,tmpmsg) in tmpmsgs
     # look at all variables up msg from each clique
-    for (sym,msgdim) in tmpmsg
+    for (sym,msgdim) in tmpmsg.belief
       # create a new object for a particular variable if hasnt been seen before
       if !haskey(stack,sym)
         stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
@@ -1659,7 +1600,7 @@ function saveTree(treel::AbstractBayesTree,
   savetree = deepcopy(treel)
   for i in 1:length(getCliques(savetree))
     if  getCliqueData(savetree, i) isa BayesTreeNodeData
-      setData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
+      setCliqueData!(getClique(savetree, i), convert(PackedBayesTreeNodeData, getCliqueData(savetree, i)))
     end
   end
 
@@ -1673,7 +1614,7 @@ function saveTree(treeArr::Vector{T},
   savetree = deepcopy(treeArr)
   for savtre in savetree, i in 1:length(getCliques(savtre))
     if getCliqueData(savtre, i) isa BayesTreeNodeData
-      setData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
+      setCliqueData!(getClique(savtre,i), convert(PackedBayesTreeNodeData, getCliqueData(savtre, i)))
     end
   end
 
@@ -1701,13 +1642,13 @@ function loadTree(filepath=joinpath("/tmp","caesar","savetree.jld2"))
   if savetree isa Vector
       for savtre in savetree, i in 1:length(getCliques(savtre))
         if getCliqueData(savtre, i) isa PackedBayesTreeNodeData
-          setData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
+          setCliqueData!(getClique(savtre, i), convert(BayesTreeNodeData, getCliqueData(savtre, i)))
         end
       end
   else
     for i in 1:length(getCliques(savetree))
       if getCliqueData(savetree, i) isa PackedBayesTreeNodeData
-        setData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
+        setCliqueData!(getClique(savetree, i), convert(BayesTreeNodeData, getCliqueData(savetree, i)))
       end
     end
   end

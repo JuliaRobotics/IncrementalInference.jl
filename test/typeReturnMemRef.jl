@@ -1,5 +1,5 @@
 
-
+using Test
 
 mutable struct MyType
    arr::Array{Float64,1}
@@ -9,16 +9,21 @@ mutable struct MyType
    MyType() = new()
 end
 
-m = MyType(rand(3),2,"hello")
-
 function f(M::MyType)
    mm = MyType()
    mm.arr = M.arr
    return mm
 end
 
+
+@testset "Ensure memory return is working properly..." begin
+
+m = MyType(rand(3),2,"hello")
+
 mmm = f(m)
 
 mmm.arr[1] = 1.0
 
 @test m.arr[1] == 1.0
+
+end

@@ -29,6 +29,10 @@ using
   JSON2,
   Combinatorics
 
+#added for parametric
+using ValueShapes
+using NLSolversBase
+
 using Logging
 
 # bringing in BSD 3-clause ccolamd
@@ -225,9 +229,8 @@ export AbstractDFG,
   isCliqFullDim,
   getVariable,
   # getVert, # deprecated use DFG.getVariable getFactor instead
-  getData,
-  setData!,
   getCliqueData,
+  setCliqueData!,
   getManifolds,
   getVarNode,
   getVal,
@@ -284,8 +287,9 @@ export AbstractDFG,
   updateFullVert!,
   getOutNeighbors,
   BayesTree,
-  EasyMessage,
+  TreeBelief,
   NBPMessage,
+  LikelihoodMessage,
   FullExploreTreeType,
   ExploreTreeType,
   FactorGraph,
@@ -394,8 +398,8 @@ export AbstractDFG,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
-  upMsgPassingRecursive,
-  downMsgPassingRecursive,
+  # upMsgPassingRecursive,
+  # downMsgPassingRecursive,
 
   upMsgPassingIterative!,
   downMsgPassingIterative!,
@@ -486,8 +490,8 @@ export AbstractDFG,
   setDwnMsg!,
   dwnMsg,
   getDwnMsgs,
-  getCliqMsgsUp,
-  getCliqMsgsDown,
+  # getCliqMsgsUp,
+  # getCliqMsgsDown,
   getCliqVarSolveOrderUp,
 
   getSym,
@@ -536,9 +540,10 @@ include("FactorGraphTypes.jl")
 const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
 # const InMemDFGType = DFG.GraphsDFG{SolverParams}
 
-include("BeliefTypes.jl")
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("CliqueTypes.jl")
+include("BeliefTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
@@ -546,10 +551,13 @@ include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 
+# tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
-include("GraphConstraintTypes.jl")
+
+# solving graphs
 include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
@@ -566,17 +574,19 @@ include("ParametricCliqStateMachine.jl")
 include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
+include("GraphConstraintTypes.jl")
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")
+include("CanonicalGraphExamples.jl")
 
 include("AdditionalUtils.jl")
 include("SolverAPI.jl")
-
-include("CanonicalGraphExamples.jl")
-include("Deprecated.jl")
-
 # Symbolic tree analysis files.
 include("AnalysisTools.jl")
+
+# deprecation legacy support
+include("Deprecated.jl")
+
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()

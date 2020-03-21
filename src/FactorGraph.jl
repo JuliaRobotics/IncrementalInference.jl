@@ -145,12 +145,12 @@ end
 
 function setValKDE!(v::DFGVariable,
                     val::Array{Float64,2},
-                    bws::Vector{Float64},
+                    bws::Array{Float64,2},
                     setinit::Bool=true,
                     inferdim::Float64=0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
-  setValKDE!(getSolverData(v, solveKey),val, bws, setinit, inferdim )
+  setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
   nothing
 end
@@ -165,12 +165,12 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    em::EasyMessage,
-                    setinit::Bool=true,
+                    em::TreeBelief,
+                    setinit::Bool=true;
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )::Nothing
   #
-  setValKDE!(v, em.pts, em.bws, setinit, em.inferdim, solveKey=solveKey)
+  setValKDE!(v, em.val, em.bw, setinit, em.inferdim, solveKey=solveKey)
   nothing
 end
 function setValKDE!(v::DFGVariable,
@@ -193,27 +193,18 @@ function setValKDE!(dfg::G,
     nothing
 end
 
-# TODO: Confirm this is supposed to be a variable?
-function setVal!(v::DFGVariable, em::EasyMessage; solveKey::Symbol=:default)
-    @warn "setVal! deprecated, use setValKDE! instead"
-    setValKDE!(v, em, solveKey=solveKey)
-end
-function setVal!(v::DFGVariable, p::BallTreeDensity; solveKey::Symbol=:default)
-    @warn "setVal! deprecated, use setValKDE! instead"
-    setValKDE!(v, p, solveKey=solveKey)
-end
 
 """
     $(SIGNATURES)
 
-Construct a BallTreeDensity KDE object from an IIF.EasyMessage object.
+Construct a BallTreeDensity KDE object from an IIF.TreeBelief object.
 
 Related
 
-manikde!, getKDE, getKDEMax, getKDEMean, EasyMessage
+manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
 """
-function kde!(em::EasyMessage)
-  return AMP.manikde!(em.pts, em.bws, em.manifolds)
+function kde!(em::TreeBelief)
+  return AMP.manikde!(em.val, em.bw, em.manifolds)
 end
 
 
@@ -584,6 +575,18 @@ end
 
 # import IncrementalInference: prepgenericconvolution, convert
 
+function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: FunctorInferenceType}
+  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  zdim = if T != GenericMarginal
+    vnds = Xi # (x->getSolverData(x)).(Xi)
+    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds...)[1]
+    size(smpls,1)
+  else
+    0
+  end
+  return zdim
+end
+
 function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
             usrfnc::T;
@@ -593,7 +596,8 @@ function prepgenericconvolution(
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
-  zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  zdim = calcZDim(usrfnc, Xi)
+  # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,

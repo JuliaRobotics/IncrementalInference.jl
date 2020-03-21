@@ -11,7 +11,6 @@ mutable struct FunctorWorks
   a::Array{Float64,2}
 end
 
-
 @testset "FunctorWorks" begin
 
 function (fw::FunctorWorks)(x)
@@ -160,7 +159,7 @@ global odo = Pose1Pose1Test{Normal}(Normal(100.0,1.0))
 global ccw = CommonConvWrapper(odo, t[1], 1, t, measurement=getSample(odo, N))
 
 
-freshSamples!(ccw, N)
+freshSamples!(ccw, N, FactorMetadata(),)
 global x, res = zeros(1), zeros(1)
 
 @time for n in 1:N
@@ -215,7 +214,7 @@ global ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, measurement=measuremen
 @show ccw.varidx = solvefor
 # gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
 
-freshSamples!(ccw, N)
+freshSamples!(ccw, N, FactorMetadata(),)
 # and return complete fr/gwp
 @time for n in 1:N
   # gwp(x, res)
@@ -239,7 +238,7 @@ ccw.cpt[Threads.threadid()].X = ccw.params[solvefor]
 
 # fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
 
-freshSamples!(ccw, N)
+freshSamples!(ccw, N, FactorMetadata(),)
 @time for n in 1:N
   # gwp(x, res)
   ccw.cpt[Threads.threadid()].particleidx = n

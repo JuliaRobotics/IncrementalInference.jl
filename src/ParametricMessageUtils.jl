@@ -1,24 +1,4 @@
-#TODO move to TreeBasedInitialization.jl
-function addMsgFactors!(subfg::G,
-                        msgs::BeliefMessage)::Vector{DFGFactor} where G <: AbstractDFG
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-  for (msym, belief) = (msgs.belief)
-    if msym in svars
-      #TODO covaraince
-      #TODO Maybe always use MvNormal
-      if size(belief.val)[1] == 1
-        msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
-      else
-        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
-      end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
-      push!(msgfcts, fc)
-    end
-  end
-  return msgfcts
-end
+
 
 """
     $SIGNATURES
@@ -61,13 +41,13 @@ end
 
 Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::BeliefMessage)
+function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(tree.messages[edge.index].downMsg, beliefMsg)
   return beliefMsg
 end
 
-function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
+function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(MetaGraphs.get_prop(tree.bt, edge, :downMsg), beliefMsg)
   return beliefMsg
@@ -79,13 +59,13 @@ end
 
 Put a belief message on the up tree message channel `edge`. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::BeliefMessage)
+function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(tree.messages[edge.index].upMsg, beliefMsg)
   return beliefMsg
 end
 
-function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::BeliefMessage)
+function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(MetaGraphs.get_prop(tree.bt, edge, :upMsg), beliefMsg)
   return beliefMsg
