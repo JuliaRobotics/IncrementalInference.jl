@@ -542,6 +542,7 @@ const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9
 
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
+include("CliqueTypes.jl")
 include("BeliefTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
