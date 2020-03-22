@@ -400,7 +400,11 @@ Dev Notes
 - Very closely related to getCliqSiblingsPartialNeeds -- refactor likely (NOTE).
 - should precompute `allinters`.
 """
-function getSiblingsDelayOrder(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getSiblingsDelayOrder(tree::AbstractBayesTree,
+                               cliq::TreeClique,
+                               prnt,
+                               dwinmsgs::LikelihoodMessage;
+                               logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -423,7 +427,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree, cliq::TreeClique, prnt, 
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
   dwninters = Vector{Int}(undef, len)
-  dwnkeys = collect(keys(dwinmsgs))
+  dwnkeys = collect(keys(dwinmsgs.belief))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end
@@ -549,12 +553,16 @@ Determine clique truely isn't able to proceed any further:
 - change status to :mustinitdown if have only partial beliefs so far:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
-function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree, cliq::TreeClique, prnt, dwinmsgs::Dict; logger=ConsoleLogger())
+function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
+                                     cliq::TreeClique,
+                                     prnt,
+                                     dwinmsgs::LikelihoodMessage;
+                                     logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
-  for (sym, tmsg) in dwinmsgs
+  for (sym, tmsg) in dwinmsgs.belief
     # assuming any down message per label that is not partial voids further partial consideration
-    if sum(tmsg[2]) > 0
+    if sum(tmsg.inferdim) > 0
       if !haskey(hasPartials, sym)
         hasPartials[sym] = 0
       end
@@ -742,16 +750,16 @@ end
 
 
 function updateSubFgFromDownMsgs!(sfg::G,
-                                  dwnmsgs::Dict,
+                                  dwnmsgs::LikelihoodMessage,
                                   seps::Vector{Symbol} ) where G <: AbstractDFG
   #
   # sanity check basic Bayes (Junction) tree property
   # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
 
   # update specific variables in sfg from msgs
-  for (key,beldim) in dwnmsgs
+  for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, beldim[1], false, beldim[2])
+      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.softtype)), false, beldim.inferdim)
     end
   end
 
@@ -857,23 +865,25 @@ Calculate new and then set the down messages for a clique in Bayes (Junction) tr
 """
 function getSetDownMessagesComplete!(subfg::G,
                                      cliq::TreeClique,
-                                     prntDwnMsgs::TempBeliefMsg,
+                                     prntDwnMsgs::LikelihoodMessage,
                                      logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
   #
   allvars = getCliqVarIdsAll(cliq)
-  allprntkeys = collect(keys(prntDwnMsgs))
+  allprntkeys = collect(keys(prntDwnMsgs.belief))
   passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
   remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = TempBeliefMsg()
+  newDwnMsgs = LikelihoodMessage()
 
   # some msgs are just pass through from parent
   for pk in passkeys
-    newDwnMsgs[pk] = prntDwnMsgs[pk]
+    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
   end
 
   # other messages must be extracted from subfg
   for mk in remainkeys
-    newDwnMsgs[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+    setVari = getVariable(subfg, mk)
+    newDwnMsgs.belief[mk] = TreeBelief(getVariable(subfg, mk))
+    # newDwnMsgs.belief[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
   end
 
   # set the downward keys

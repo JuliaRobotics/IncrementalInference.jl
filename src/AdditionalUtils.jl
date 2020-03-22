@@ -30,20 +30,49 @@ end
 """
     $SIGNATURES
 
-Draw the factor graph `fgl` as pdf and show.
+Draw and show the factor graph `<:AbstractDFG` via system graphviz and pdf app.
+
+Notes
+- Should not be calling outside programs.
+- Need long term solution
+- DFG's `toDotFile` a better solution -- view with `xdot` application.
+- also try `engine={"sfdp","fdp","dot","twopi","circo","neato"}`
+
+Future:
+- Might be kept with different call strategy since this function so VERY useful!
+- Major issue that this function calls an external program such as "evince", which should be
+   under user control only.
+- Maybe solution is
+- ```toDot(fg,file=...); @async run(`xdot file.dot`)```, or
+  - ```toDot(fg,file=...); exportPdf(...); @async run(`evince ...pdf`)```.
 
 Related
 
-drawGraphCliq, drawTree
+drawGraphCliq, drawTree, printCliqSummary, spyCliqMat
 """
-function drawGraph(fgl::G;
-                   viewerapp::String="evince",
-                   filepath::AS="/tmp/caesar/random/fg.pdf",
-                   engine::AS="neato", #sfdp
-                   show::Bool=true ) where {G <: AbstractDFG, AS <: AbstractString}
+function drawGraph(fgl::AbstractDFG;
+                   viewerapp::AbstractString="evince",
+                   filepath::AbstractString="/tmp/caesar/random/fg.pdf",
+                   engine::AbstractString="neato", #sfdp
+                   show::Bool=true )
   #
   mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )
-  writeGraphPdf(fgl, filepath=filepath, show=show, viewerapp=viewerapp, engine=engine)
+
+  @info "Writing factor graph file"
+  fext = split(filepath, '.')[end]
+  fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
+  dotfile = fpwoext*".dot"
+
+  # create the dot file
+  DFG.toDotFile(fgl, dotfile)
+
+  try
+    run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
+    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+  catch e
+    @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
+  end
+  nothing
 end
 
 """
@@ -63,7 +92,7 @@ function drawGraphCliq(hists::Dict{Int, <: Tuple},
   #
   cid = getCliq(tree, frontal).index
   cfg = hists[cid][step][4].cliqSubFg
-  writeGraphPdf(cfg, show=show)
+  drawGraph(cfg, show=show)
 end
 
 

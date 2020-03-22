@@ -22,14 +22,34 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:FunctorInferenceType}
+  if !hasfield(T, :specialSampler)
+    getSample(usrfnc, N)
+  else
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
+  end
+end
+
+function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
+  if hasfield(T, :specialSampler)
+    error("specialSampler requires FactorMetadata and VariableNodeDatas")
+  end
+  freshSamples(usrfnc, N, FactorMetadata(),)
+end
+
+# TODO, add Xi::Vector{DFGVariable} if possible
+function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = getSample(ccwl.usrfnc!, N)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
   # end
   nothing
+end
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+  # could maybe use default to reduce member functions
+  freshSamples!(ccwl, N, FactorMetadata(),)
 end
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
@@ -80,7 +100,7 @@ function (ccw::CommonConvWrapper)(x::Vector{Float64})
   else
     ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
   end
-  # evaulate the user provided residual function with constructed set of parameters
+  # evaluate the user provided residual function with constructed set of parameters
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
               ccw.cpt[Threads.threadid()].factormetadata,
               ccw.cpt[Threads.threadid()].particleidx,
@@ -290,12 +310,12 @@ function resetCliqSolve!(dfg::G,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    setCliqUpInitMsgs!(prnt[1], cliq.index, TempBeliefMsg())
+    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
   end
-  cda.upMsg = Dict{Symbol, BallTreeDensity}()
-  cda.dwnMsg = Dict{Symbol, BallTreeDensity}()
-  cda.upInitMsgs = Dict{Int, TempBeliefMsg}()
-  cda.downInitMsg = TempBeliefMsg()
+  cda.upMsg  = LikelihoodMessage()
+  cda.dwnMsg = LikelihoodMessage()
+  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
+  cda.downInitMsg = LikelihoodMessage()
   setCliqStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing

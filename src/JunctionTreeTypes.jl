@@ -40,6 +40,7 @@ abstract type AbstractBayesTree end
 
 # BayesTree declarations
 const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
+
 """
 $(TYPEDEF)
 
@@ -51,7 +52,7 @@ mutable struct BayesTree <: AbstractBayesTree
   cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
   #TEMP JT for evaluation, store message channels associated with edges between nodes Int -> edge id.  TODO rather store in graph
-  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}
+  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
@@ -60,7 +61,7 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                          0,
                          Dict{Int,TreeClique}(),
                          Dict{AbstractString, Int}(),
-                         Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{BeliefMessage},Channel{BeliefMessage}}}}(),
+                         Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}(),
                          Symbol[],
                          0.0  )
 
@@ -231,8 +232,8 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  msgsUp::Vector{BeliefMessage} #TODO towards consolidated messages
-  msgsDown::Vector{BeliefMessage}
+  msgsUp::Vector{LikelihoodMessage} #TODO towards consolidated messages
+  msgsDown::Vector{LikelihoodMessage}
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -254,7 +255,7 @@ function CliqStateMachineContainer(x1::G,
                                    x13::SimpleLogger=SimpleLogger(Base.stdout);
                                    x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, BeliefMessage[], BeliefMessage[])
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, LikelihoodMessage[], LikelihoodMessage[])
 end
 
 
@@ -286,11 +287,11 @@ mutable struct BayesTreeNodeData
   debugDwn
 
   # future might concentrate these four fields down to two
-  # these should become specialized BeliefMessage type
-  upMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
-  dwnMsg::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
-  upInitMsgs::Dict{Int, TempBeliefMsg}
-  downInitMsg::TempBeliefMsg
+  # these should become specialized LikelihoodMessage type
+  upMsg::LikelihoodMessage
+  dwnMsg::LikelihoodMessage
+  upInitMsgs::Dict{Int, LikelihoodMessage}
+  downInitMsg::LikelihoodMessage
 
   allmarginalized::Bool
   initialized::Symbol
@@ -322,10 +323,10 @@ function emptyBTNodeData()
                     Int[],Int[],             # 10+2
                     Int[],Int[],Int[],       # 13+2
                     nothing, nothing,        # 15+2
-                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Symbol, BallTreeDensity}(),  # :null => AMP.manikde!(zeros(1,1), [1.0;], (:Euclid,))),
-                    Dict{Int, TempBeliefMsg}(),
-                    TempBeliefMsg(),         # 19+2
+                    LikelihoodMessage(),
+                    LikelihoodMessage(),
+                    Dict{Int, LikelihoodMessage}(),
+                    LikelihoodMessage(),         # 19+2
                     false, :null,
                     false, false,            # 23+2
                     Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26+2
@@ -359,7 +360,7 @@ $(TYPEDEF)
 """
 mutable struct DebugCliqMCMC
   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-  outmsg::NBPMessage
+  outmsg::LikelihoodMessage
   outmsglbls::Dict{Symbol, Symbol} # Int
   priorprods::Vector{CliqGibbsMC}
   DebugCliqMCMC() = new()
@@ -370,10 +371,10 @@ end
 $(TYPEDEF)
 """
 mutable struct UpReturnBPType
-  upMsgs::NBPMessage
+  upMsgs::LikelihoodMessage
   dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, EasyMessage}
-  keepupmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  IDvals::Dict{Symbol, TreeBelief}
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
   totalsolve::Bool
   UpReturnBPType() = new()
   UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
@@ -385,10 +386,10 @@ $(TYPEDEF)
 TODO refactor msgs into only a single variable
 """
 mutable struct DownReturnBPType
-  dwnMsg::NBPMessage
+  dwnMsg::LikelihoodMessage
   dbgDwn::DebugCliqMCMC
-  IDvals::Dict{Symbol,EasyMessage} # Int
-  keepdwnmsgs::TempBeliefMsg # Dict{Symbol, BallTreeDensity}
+  IDvals::Dict{Symbol,TreeBelief}
+  keepdwnmsgs::LikelihoodMessage
 end
 
 """
@@ -399,7 +400,7 @@ mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
   bt::T2
   cliq::TreeClique
   prnt::T
-  sendmsgs::Vector{NBPMessage}
+  sendmsgs::Vector{LikelihoodMessage}
 end
 
 const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
@@ -410,7 +411,7 @@ function ExploreTreeType(fgl::G,
                          btl::AbstractBayesTree,
                          vertl::TreeClique,
                          prt::T,
-                         msgs::Array{NBPMessage,1} ) where {G <: AbstractDFG, T}
+                         msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end
@@ -422,7 +423,7 @@ mutable struct MsgPassType
   fg::GraphsDFG
   cliq::TreeClique
   vid::Symbol # Int
-  msgs::Array{NBPMessage,1}
+  msgs::Array{LikelihoodMessage,1}
   N::Int
 end
 

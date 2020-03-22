@@ -23,7 +23,9 @@ Return N=100 measurement samples for a factor in `<:AbstractDFG`.
 """
 function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   fnc = getFactorFunction(dfg, fsym)
-  getSample(fnc, N)
+  # getSample(fnc, N)
+  Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
+  freshSamples(fnc, N)
 end
 
 """
@@ -351,14 +353,17 @@ end
 
 
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::EasyMessage )
-  (AMP.manikde!(p.pts, p.bws, p.manifolds), p.inferdim)
+                 p::TreeBelief )
+  @show size(p.val), size(p.bw), p.manifolds
+  (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
 end
 
-function convert(::Type{EasyMessage},
+
+function convert(::Type{TreeBelief},
                  bel::Tuple{BallTreeDensity,Float64},
                  manifolds::T) where {T <: Tuple}
-  EasyMessage(getPoints(bel[1]), getBW(bel[1])[:,1], manifolds, bel[2])
+  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds)"
+  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
 end
 
 

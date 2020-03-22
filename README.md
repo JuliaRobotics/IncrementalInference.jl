@@ -2,7 +2,7 @@
 
 > Click on badges to follow links
 
-Documentation | Stable v0.9 | Stable v0.10 | Dev | Coverage
+Docs | Stable v0.9 | Stable v0.10 | Dev | Coverage
 --------------|-------------|-------------|-----|---------
 [![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.9)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.10)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
 
@@ -31,7 +31,7 @@ sudo apt-get install graphviz  # optional
 
 Install the package from inside Julia
 ```julia
-(v1.0) pkg> add IncrementalInference
+(v1.3) pkg> add IncrementalInference
 ```
 
 Examples

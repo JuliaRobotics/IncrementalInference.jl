@@ -24,8 +24,7 @@ function (lr::LineResidual)(res::AbstractVector{<:Real},
 end
 
 
-
-@testset "test CommonConvWrapper{T}" begin
+@testset "test CommonConvWrapper{T}, solve of residual functions..." begin
 
 
 function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: FunctorPairwise}
