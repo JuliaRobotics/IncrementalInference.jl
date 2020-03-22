@@ -76,6 +76,7 @@ KDE.setForceEvalDirect!(true)
 
 # DFG SpecialDefinitions
 export AbstractDFG,
+  InMemDFGType,
   hasVariable,
   getSolverParams,
   LightDFG,
