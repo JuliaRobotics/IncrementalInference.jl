@@ -12,11 +12,25 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 
+# test solved flag
+@test getSolvedCount(fg, :x0) == 0
+@test !isSolved(getVariable(fg, :x0))
+
+# run solver once
 tree, smt, hist = solveTree!(fg)
+
+@test getSolvedCount(fg, :x0) == 1
+@test isSolved(fg, :x0)
+
+tree, smt, hist = solveTree!(fg)
+
+@test getSolvedCount(fg, :x0) == 2
+@test isSolved(fg, :x0)
+
 
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.5
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.9
 
 end
 

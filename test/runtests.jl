@@ -26,6 +26,8 @@ include("testSpecialSampler.jl")
 
 include("testSaveLoadDFG.jl")
 
+include("testJunctionTreeConstruction.jl")
+
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
@@ -42,8 +44,6 @@ include("testCommonConvWrapper.jl")
 include("testBasicForwardConvolve.jl")
 
 include("testFactorMetadata.jl")
-
-include("testJunctionTreeConstruction.jl")
 
 include("testBasicCSM.jl")
 
