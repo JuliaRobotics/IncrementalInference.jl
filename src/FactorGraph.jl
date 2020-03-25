@@ -902,6 +902,36 @@ end
 const initVariableManual! = initManual!
 
 
+"""
+    $SIGNATURES
+
+Ensure that no variables set as `solvable=1` are floating free without any connected `solvable=1` factors.  If any found, then set those 'free' variable's `solvable=solvableFallback` (default `0`).
+
+Related
+
+ensureAllInitialized!
+"""
+function ensureSolvable!(dfg::AbstractDFG; solvableTarget::Int=1, solvableFallback::Int=0)
+  # workaround in case isolated variables occur
+  solvVars = ls(dfg, solvable=solvableTarget)
+  varHasFact = (x->length(ls(dfg,x, solvable=solvableTarget))==0).(solvVars)
+  blankVars = solvVars[findall(varHasFact)]
+  if 0 < length(blankVars)
+    @warn("solveTree! dissallows solvable variables without any connected solvable factors -- forcing solvable=0 on $(blankVars)")
+    (x->setSolvable!(dfg, x, solvableFallback)).(blankVars)
+  end
+  return blankVars
+end
+
+"""
+    $SIGNATURES
+
+Perform `graphinit` over all variables with `solvable=1` (default).
+
+Related
+
+ensureSolvable!, (EXPERIMENTAL 'treeinit')
+"""
 function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
