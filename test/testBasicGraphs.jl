@@ -27,10 +27,16 @@ tree, smt, hist = solveTree!(fg)
 @test getSolvedCount(fg, :x0) == 2
 @test isSolved(fg, :x0)
 
-
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.5
 @test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.9
+
+# test free solvable variables (occurs in fixed-/ clique recycling)
+addVariable!(fg, :x1, ContinuousScalar, solvable=1)
+
+solveTree!(fg)
+
+@test getSolvable(fg, :x1) == 0
 
 end
 
