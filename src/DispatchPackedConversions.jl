@@ -139,7 +139,7 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
   neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  ccw_new = getDefaultFactorData(dfg, neighbors, factor.data.fnc.usrfnc!, multihypo=getSolverData(factor).multihypo)
+  ccw_new = getDefaultFactorData(dfg, neighbors, getFactorType(factor), multihypo=getSolverData(factor).multihypo)
   setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?

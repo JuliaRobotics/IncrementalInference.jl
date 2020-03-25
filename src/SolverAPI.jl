@@ -1,7 +1,6 @@
 ## Various solver API's used in the past.  These functions are due to be standardized, and obsolete code / functions removed.
 
 
-
 """
     $SIGNATURES
 
@@ -29,6 +28,9 @@ function solveTree!(dfgl::G,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
+  # workaround in case isolated variables occur
+  ensureSolvable!(dfgl)
+
   if getSolverParams(dfgl).graphinit
     @info "ensure all initialized (using graphinit)"
     ensureAllInitialized!(dfgl)
@@ -48,7 +50,7 @@ function solveTree!(dfgl::G,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
   @info "Do tree based init-inference on tree"

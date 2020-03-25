@@ -316,7 +316,7 @@ Notes
 """
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
-                  filepath::String="/tmp/caesar/bt.pdf",
+                  filepath::String="/tmp/caesar/random/bt.pdf",
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
@@ -439,7 +439,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50,
+                                maxparallel::Int=200,
                                 solvable::Int=1 )
   #
   t0 =time_ns()
@@ -491,7 +491,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50  )
+                                maxparallel::Int=200  )
   #
   println()
 
@@ -540,7 +540,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50 )
+                        maxparallel::Int=200 )
   #
   p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
@@ -627,10 +627,14 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=50,
+                           maxparallel::Int=200,
+                           ensureSolvable::Bool=true,
                            variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                            variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
   #
+  if ensureSolvable
+    ensureSolvable!(dfg)
+  end
   resetFactorGraphNewTree!(dfg);
   return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
 end
@@ -1214,7 +1218,8 @@ function directAssignmentIDs(cliq::TreeClique)
 end
 
 function mcmcIterationIDs(cliq::TreeClique)
-  mat = getCliqMat(cliq)
+  @show cliq.index, getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq)
+  @show mat = getCliqMat(cliq)
   # assocMat = getCliqueData(cliq).cliqAssocMat
   # msgMat = getCliqueData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
