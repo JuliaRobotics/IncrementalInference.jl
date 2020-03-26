@@ -52,6 +52,10 @@ function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
   freshSamples!(ccwl, N, FactorMetadata(),)
 end
 
+function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
+  freshSamples(getFactorType(dfg, sym))
+end
+
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
   # n = length(X)
   Y = deepcopy(Alt)

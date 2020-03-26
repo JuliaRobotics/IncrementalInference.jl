@@ -314,11 +314,11 @@ function getPPESuggestedAll(dfg::AbstractDFG,
   #
   # get values
   vsyms = listVariables(dfg, regexFilter) |> sortDFG
-  slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
+  slamPPE = map(x->getVariablePPE(dfg, x).suggested, vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)
-  for varr in slamPPE
-    rumax[2] = length(varr)
+  for ppe in slamPPE
+    rumax[2] = length(ppe)
     rumax[1] = maximum(rumax)
   end
 
