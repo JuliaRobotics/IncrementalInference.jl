@@ -193,8 +193,10 @@ export AbstractDFG,
   categoricalfromstring,
   extractdistribution,
 
-  FactorGraph,
+  # FactorGraph,
   SolverParams,
+  getSolvable,
+  setSolvable!,
   addNode!,
   addVariable!,
   deleteVariable!,
@@ -229,7 +231,6 @@ export AbstractDFG,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   getVariable,
-  # getVert, # deprecated use DFG.getVariable getFactor instead
   getCliqueData,
   setCliqueData!,
   getManifolds,
@@ -343,6 +344,7 @@ export AbstractDFG,
   #functors need
   getSample,
   freshSamples!,
+  freshSamples,
 
   #Visualization
   writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
