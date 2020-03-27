@@ -37,6 +37,10 @@ function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
   freshSamples(usrfnc, N, FactorMetadata(),)
 end
 
+function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
+  freshSamples(getFactorType(dfg, sym), N)
+end
+
 # TODO, add Xi::Vector{DFGVariable} if possible
 function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
   # if size(ccwl.measurement, 2) == N
@@ -50,10 +54,6 @@ end
 function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
   # could maybe use default to reduce member functions
   freshSamples!(ccwl, N, FactorMetadata(),)
-end
-
-function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
-  freshSamples(getFactorType(dfg, sym))
 end
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
@@ -224,71 +224,6 @@ function numericRootGenericRandomizedFnc!(
 end
 
 
-"""
-    $(SIGNATURES)
-
-Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
-"""
-function setfreeze!(dfg::AbstractDFG, sym::Symbol)
-  if !isInitialized(dfg, sym)
-    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
-    return nothing
-  end
-  vert = DFG.getVariable(dfg, sym)
-  data = getSolverData(vert)
-  data.ismargin = true
-  nothing
-end
-function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
-  for sym in syms
-    setfreeze!(dfg, sym)
-  end
-end
-
-"""
-    $(SIGNATURES)
-
-Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
-
-Future:
-- Allow different freezing strategies beyond fifo.
-"""
-function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
-  if DFG.getSolverParams(dfg).qfl == 0
-    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
-  end
-
-  # the fifo history
-  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
-  if length(tofreeze) == 0
-      @info "[fifoFreeze] QFL - no nodes to freeze."
-      return nothing
-  end
-  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
-  setfreeze!(dfg, tofreeze)
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Return all factors currently registered in the workspace.
-"""
-function getCurrentWorkspaceFactors()::Vector{Type}
-    return [
-        subtypes(IncrementalInference.FunctorSingleton)...,
-        subtypes(IncrementalInference.FunctorPairwise)...,
-        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
-end
-
-"""
-    $(SIGNATURES)
-
-Return all variables currently registered in the workspace.
-"""
-function getCurrentWorkspaceVariables()::Vector{Type}
-    return subtypes(IncrementalInference.InferenceVariable);
-end
 
 
 """
