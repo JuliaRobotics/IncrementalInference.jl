@@ -159,18 +159,18 @@ function assembleHypothesesElements!(mh::Categorical,
     # permutation vectors for later computation
     iterarr = allidx[mhidx .== pidx]
     iterah = Int[]
-    if !pidxincer && sfincer # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
+    if !pidxincer && sfincer && pidx != 0 # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
       # solve for one of the certain variables containing uncertain hypotheses in others
       iterah = sort(union(certainidx, pidx)) # sort([sfidx;pidx])
       # DONE -- supports n-ary factors in multihypo mode
-    elseif pidxincer && !sfincer || sfidx == pidx # pval < 1e-15 && mh.p[sfidx] >= 1e-10
+    elseif (pidxincer && !sfincer || sfidx == pidx) && pidx != 0 # pval < 1e-15 && mh.p[sfidx] >= 1e-10
       # solve for one of the uncertain variables
       iterah = sort(union(certainidx, sfidx)) # sort([sfidx;pidx])
       # EXPERIMENTAL -- support more than binary factors in multihypo mode
-    elseif pidxincer && sfincer # pval < 1e-15 && mh.p[sfidx] < 1e-10
+    elseif pidxincer && sfincer && pidx != 0 # pval < 1e-15 && mh.p[sfidx] < 1e-10
       iterarr = Int[]
       iterah = Int[] # may be moot anyway, but double check first
-    elseif !pidxincer && !sfincer # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
+    elseif !pidxincer && !sfincer && pidx != 0 # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
       iterah = uncertnidx #allmhp[mh.p .> 1e-15]
     elseif pidx == 0
       # nullhypo for bad init case
