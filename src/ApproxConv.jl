@@ -120,24 +120,26 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
-  for (mhidx, vars) in activehypo
+  for (hypoidx, vars) in activehypo
     count += 1
-    if sfidx in certainidx || mhidx in certainidx || mhidx == sfidx
-      # hypo case mhidx, sfidx = $mhidx, $sfidx
+    if sfidx in certainidx || hypoidx in certainidx || hypoidx == sfidx
+      # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
-    # elseif mhidx == sfidx
-    #   # multihypo, do conv case, mhidx == sfidx
+    # elseif hypoidx == sfidx
+    #   # multihypo, do conv case, hypoidx == sfidx
     #   ah = sort(union([sfidx;], certainidx))
     #   @assert norm(ah - vars) < 1e-10
     #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
     #   approxConvOnElements!(ccwl, allelements[count])
-    elseif mhidx != sfidx   # sfidx in uncertnidx
+    elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
-      # sfidx=2, mhidx=3:  2 should take a value from 3
-      # sfidx=3, mhidx=2:  3 should take a value from 2
-         # DEBUG sfidx=2, mhidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-      ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[mhidx],:,allelements[count])
+      # sfidx=2, hypoidx=3:  2 should take a value from 3
+      # sfidx=3, hypoidx=2:  3 should take a value from 2
+         # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
+      ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
+    elseif hypoidx == 0
+      # basically do nothing since the factor is not active for these allelements[count]
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -154,6 +156,7 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
                                 maxlen::Int,
                                 spreadfactor::Float64 ) where {T}
   #
+  @warn "this assembleNullHypothesis method is obsolete, see e.g. `addFactor!(; nullhypo=0.1)` instead."
   nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
   val = ccwl.params[ccwl.varidx]
   d = size(val,1)
