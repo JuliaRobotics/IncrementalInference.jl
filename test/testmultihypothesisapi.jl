@@ -208,10 +208,10 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0
 @test sum(abs.(getSolverData(f3).fnc.hypotheses.p[4] .- 0.334)) < 0.001
 
 
-manualinit!(fg, :x2 ,1*ones(1,100))
-manualinit!(fg, :x3 ,2*ones(1,100))
-manualinit!(fg, :x4 ,3*ones(1,100))
-manualinit!(fg, :x5 ,4*ones(1,100))
+initManual!(fg, :x2 ,1*ones(1,100))
+initManual!(fg, :x3 ,2*ones(1,100))
+initManual!(fg, :x4 ,3*ones(1,100))
+initManual!(fg, :x5 ,4*ones(1,100))
 
 
 # solve for certain idx
@@ -227,7 +227,8 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x3, N=N)
 @test 0.1*N < sum(pts .== 3.0) < 0.5*N
 @test 0.1*N < sum(pts .== 4.0) < 0.5*N
 
-@test sum(70 .< pts .< 110.0) + sum(pts .== 3.0) + sum(pts .== 4.0) == N
+# 0.7 to accomodate bad-init null hypo
+@test 0.7*N <= sum(70 .< pts .< 110.0) + sum(pts .== 3.0) + sum(pts .== 4.0)
 
 
 # solve for one of uncertain variables
@@ -237,7 +238,7 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x4, N=N)
 @test 0.1*N < sum(pts .== 2.0) < 0.5*N
 @test 0.1*N < sum(pts .== 4.0) < 0.5*N
 
-@test sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 4.0) == N
+@test 0.7*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 4.0)
 
 
 # solve for one of uncertain variables
@@ -247,7 +248,7 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
 @test 0.1*N < sum(pts .== 2.0) < 0.5*N
 @test 0.1*N < sum(pts .== 3.0) < 0.5*N
 
-@test sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0) == N
+@test 0.7*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0)
 
 
 
