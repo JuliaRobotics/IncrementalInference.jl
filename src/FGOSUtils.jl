@@ -154,65 +154,13 @@ function calcVariablePPE(var::DFGVariable,
   end
   MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
 end
-# function calcVariablePPE!(retval::Vector{Float64},
-#                           var::DFGVariable,
-#                           softt::InferenceVariable;
-#                           method::Type{MeanMaxPPE}=MeanMaxPPE )::Nothing
-#   #
-#   P = getKDE(var)
-#   manis = getManifolds(softt) # getManifolds(vnd)
-#   ops = buildHybridManifoldCallbacks(manis)
-#   Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
-#   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-#   for i in 1:length(manis)
-#     mani = manis[i]
-#     if mani == :Euclid
-#       retval[i] = Pme[i]
-#     elseif mani == :Circular
-#       retval[i] = Pma[i]
-#     else
-#       error("Unknown manifold to find PPE, $softt, $mani")
-#     end
-#   end
-#   nothing
-# end
-# """
-#     $SIGNATURES
-#
-# Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
-# """
-# function calcVariablePPE(var::DFGVariable,
-#                          softt::InferenceVariable;
-#                          method::Type{<:AbstractPointParametricEst}=MeanMaxPPE  )::Vector{Float64}
-#   #
-#   # vect = zeros(softt.dims)
-#   mmppe = calcVariablePPE(MeanMaxPPE, var, softt, method=method)
-#   return mmppe.suggested
-# end
 
 
-# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
 calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+
 function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
   var = getVariable(dfg, sym)
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
-end
-
-
-
-
-
-
-# not sure if and where this is still being used
-function _evalType(pt::String)::Type
-    try
-        getfield(Main, Symbol(pt))
-    catch ex
-        io = IOBuffer()
-        showerror(io, ex, catch_backtrace())
-        err = String(take!(io))
-        error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-    end
 end
 
 
@@ -404,20 +352,6 @@ function findVariablesNear(dfg::AbstractDFG,
   return (xy[1][prm], sqrt.(dist[prm]))
 end
 
-
-function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::TreeBelief )
-  @show size(p.val), size(p.bw), p.manifolds
-  (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
-end
-
-
-function convert(::Type{TreeBelief},
-                 bel::Tuple{BallTreeDensity,Float64},
-                 manifolds::T) where {T <: Tuple}
-  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds)"
-  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
-end
 
 
 

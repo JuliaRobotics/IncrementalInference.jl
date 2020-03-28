@@ -72,28 +72,29 @@ mutable struct SolverParams <: DFG.AbstractParams
                 graphinit::Bool=true,
                 treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
-                devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
-                                                                            registeredModuleFunctions,
-                                                                            reference,
-                                                                            stateless,
-                                                                            qfl,
-                                                                            isfixedlag,
-                                                                            limitfixeddown,
-                                                                            incremental,
-                                                                            upsolve,
-                                                                            downsolve,
-                                                                            drawtree,
-                                                                            showtree,
-                                                                            dbg,
-                                                                            async,
-                                                                            limititers,
-                                                                            N,
-                                                                            multiproc,
-                                                                            logpath,
-                                                                            graphinit,
-                                                                            treeinit,
-                                                                            algorithms,
-                                                                            devParams)
+                devParams::Dict{Symbol,String}=Dict{Symbol,String}()
+              ) = new(dimID,
+                      registeredModuleFunctions,
+                      reference,
+                      stateless,
+                      qfl,
+                      isfixedlag,
+                      limitfixeddown,
+                      incremental,
+                      upsolve,
+                      downsolve,
+                      drawtree,
+                      showtree,
+                      dbg,
+                      async,
+                      limititers,
+                      N,
+                      multiproc,
+                      logpath,
+                      graphinit,
+                      treeinit,
+                      algorithms,
+                      devParams )
   #
 end
 
@@ -215,11 +216,16 @@ $(TYPEDEF)
 """
 mutable struct ConvPerThread
   thrid_::Int
-  particleidx::Int # the actual particle being solved at this moment
-  factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
-  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
-  p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
-  perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
+  # the actual particle being solved at this moment
+  particleidx::Int
+  # additional data passed to user function -- optionally used by user function
+  factormetadata::FactorMetadata
+  # subsection indices to select which params should be used for this hypothesis evaluation
+  activehypo::Union{UnitRange{Int},Vector{Int}}
+  # a permutation vector for low-dimension solves (FunctorPairwise only)
+  p::Vector{Int}
+  # slight numerical perturbation for degenerate solver cases such as division by zero
+  perturb::Vector{Float64}
   X::Array{Float64,2}
   Y::Vector{Float64}
   res::Vector{Float64}
@@ -269,18 +275,8 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   varidx::Int # which index is being solved for in params?
   measurement::Tuple # user defined measurement values for each approxConv operation
   threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
-
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{ConvPerThread}
-  # varidx::Int # which index is being solved for in params?
-  # factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
-  # activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
-  # particleidx::Int # the actual particle being solved at this moment
-  # p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
-  # perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
-  # X::Array{Float64,2}
-  # Y::Vector{Float64}
-  # res::Vector{Float64}
 
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
 end
@@ -337,45 +333,5 @@ function CommonConvWrapper(fnc::T,
 end
 
 
-
-# excessive function, needs refactoring
-# fgl := srcv
-function updateFullVertData!(fgl::AbstractDFG,
-                             srcv::DFGNode;
-                             updatePPE::Bool=false )
-  #
-  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
-
-  sym = Symbol(srcv.label)
-  isvar = isVariable(fgl, sym)
-
-  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = getSolverData(dest)
-  srcvd = getSolverData(srcv)
-
-  if isvar
-    if size(lvd.val) == size(srcvd.val)
-      lvd.val .= srcvd.val
-    else
-      lvd.val = srcvd.val
-    end
-    lvd.bw[:] = srcvd.bw[:]
-    lvd.initialized = srcvd.initialized
-    lvd.inferdim = srcvd.inferdim
-    setSolvedCount!(lvd, getSolvedCount(srcvd))
-
-    if updatePPE
-      # set PPE in dest from values in srcv
-      # TODO must work for all keys involved
-      # dest := srcv
-      updatePPE!(fgl, srcv)
-      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
-    end
-  else
-    # assuming nothing to be done
-  end
-
-  nothing
-end
 
 #
