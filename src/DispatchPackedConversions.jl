@@ -44,11 +44,13 @@ function convert(
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, d.fnc)
-  mhcat = parseusermultihypo(d.multihypo)
+  # FIXME add proper nullhypo value
+  mhcat, nh = parseusermultihypo(d.multihypo, 0.0)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
-  ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat)
+  # FIXME, add threadmodel=threadmodel
+  ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
   ccw.certainhypo = d.certainhypo
 
   ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs, Symbol(d.frommodule), ccw, d.multihypo, d.certainhypo)

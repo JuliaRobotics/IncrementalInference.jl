@@ -50,19 +50,72 @@ Append `str` onto factor graph log path as convenience function.
 """
 joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
 
-# """
-#     $SIGNATURES
-#
-# Set the `solvable` parameter for either a variable or factor.
-# """
-# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
-#   if isVariable(dfg, sym)
-#     getVariable(dfg, sym).solvable = solvable
-#   elseif isFactor(dfg, sym)
-#     getFactor(dfg, sym).solvable = solvable
-#   end
-#   return solvable
-# end
+
+"""
+    $(SIGNATURES)
+
+Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
+"""
+function setfreeze!(dfg::AbstractDFG, sym::Symbol)
+  if !isInitialized(dfg, sym)
+    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
+    return nothing
+  end
+  vert = DFG.getVariable(dfg, sym)
+  data = getSolverData(vert)
+  data.ismargin = true
+  nothing
+end
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
+  for sym in syms
+    setfreeze!(dfg, sym)
+  end
+end
+
+"""
+    $(SIGNATURES)
+
+Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
+
+Future:
+- Allow different freezing strategies beyond fifo.
+"""
+function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
+  if DFG.getSolverParams(dfg).qfl == 0
+    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
+  end
+
+  # the fifo history
+  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
+  if length(tofreeze) == 0
+      @info "[fifoFreeze] QFL - no nodes to freeze."
+      return nothing
+  end
+  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
+  setfreeze!(dfg, tofreeze)
+  nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return all factors currently registered in the workspace.
+"""
+function getCurrentWorkspaceFactors()::Vector{Type}
+    return [
+        subtypes(IncrementalInference.FunctorSingleton)...,
+        subtypes(IncrementalInference.FunctorPairwise)...,
+        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
+end
+
+"""
+    $(SIGNATURES)
+
+Return all variables currently registered in the workspace.
+"""
+function getCurrentWorkspaceVariables()::Vector{Type}
+    return subtypes(IncrementalInference.InferenceVariable);
+end
 
 """
     $SIGNATURES

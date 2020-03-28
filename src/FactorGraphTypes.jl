@@ -262,7 +262,7 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
-  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolution operation
   certainhypo::Union{Nothing, Vector{Int}}
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
