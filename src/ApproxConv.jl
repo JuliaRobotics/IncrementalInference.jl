@@ -107,6 +107,67 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   return sfidx, maxlen
 end
 
+function generateNullhypoEntropy(val::AbstractMatrix{<:Real},
+                                 maxlen::Int,
+                                 spreadfactor::Real=10  )
+  #
+  # covD = sqrt.(vec(Statistics.var(val,dims=2))) .+ 1e-3
+  # cVar = diagm((spreadfactor*covD).^2)
+  len = size(val, 1)
+  cVar = diagm((spreadfactor*ones(len)).^2)
+  mu = zeros( len )
+  MvNormal( mu, cVar )
+end
+
+"""
+    $SIGNATURES
+
+Control the amount of entropy to add to null-hypothesis in multihypo case.
+
+Notes:
+- Currently only supports Euclidean domains. (TODO expand)
+"""
+function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
+                                                sfidx::Int,
+                                                certainidx::Vector{Int};
+                                                kappa::Float64=3.0  )
+  #
+  @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
+  # get mean of all fractional variables
+  uncertainidx = setdiff(1:length(ccwl.params), certainidx)
+  uncMeans = zeros(size(ccwl.params[sfidx],1), length(uncertainidx))
+  dists = zeros(length(uncertainidx)+length(certainidx))
+  dims = size(ccwl.params[sfidx],1)
+  # uncDev = zeros(Int, length(uncertainidx))
+  count = 0
+  for i in uncertainidx
+    count += 1
+    # @show "MARK", i, size(uncMeans), size(Statistics.mean(ccwl.params[i], dims=2) ), length(ccwl.params)
+    uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
+    # uncDev[i] = Statistics.std(ccwl.params[i], dims=2)
+  end
+  count = 0
+  refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
+  for i in uncertainidx
+    # if i == sfidx
+    #   continue
+    # end
+    count += 1
+    # @show i, sfidx, count, size(uncMeans), size(uncMeans)
+    dists[count] = norm(refMean - uncMeans[:,count])
+  end
+  # also check distance to certainidx for general scale reference (workaround heuristic)
+  for cidx in certainidx
+    count += 1
+    cerMean = Statistics.mean(ccwl.params[cidx], dims=2)[:]
+    dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
+  end
+
+  push!(dists, 1e-2)
+  # @show round.(dists, digits=4)
+  return kappa*maximum(dists)
+end
+
 """
     $(SIGNATURES)
 
@@ -115,8 +176,9 @@ Common function to compute across a single user defined multi-hypothesis ambigui
 function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   allelements,
                                   activehypo,
-                                  certainidx,
-                                  sfidx) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                                  certainidx::Vector{Int},
+                                  sfidx::Int,
+                                  maxlen::Int  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -140,12 +202,27 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
+      # inject lots of entropy in nullhypo case
+      addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      # make spread (1σ) equal to mean distance of other fractionals
+      @show spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx)
+      ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
+      # on-manifold add????
+      # add 1σ "noise" level to max distance as control
+      meanVal = Statistics.mean(addEntr, dims=2)
+      addEntr .= rand(ENT, size(addEntr,2))
+      # addEntr .= rand(MvNormal([0;0],[1 0; 0 1.0]), size(addEntr,2))
+      for i in 1:size(addEntr, 1)
+        addEntr[i,:] .+= meanVal[i,1]
+      end
+      @assert addEntr[1,1] == ccwl.params[sfidx][1, allelements[count][1]] "bad view memory"
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
   end
   nothing
 end
+
 
 """
     $(SIGNATURES)
@@ -154,14 +231,12 @@ Prepare data required for null hypothesis cases during convolution.
 """
 function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
                                 maxlen::Int,
-                                spreadfactor::Float64 ) where {T}
+                                spreadfactor::Real=10 ) where {T}
   #
-  @warn "this assembleNullHypothesis method is obsolete, see e.g. `addFactor!(; nullhypo=0.1)` instead."
+  @warn "this assembleNullHypothesis method has been updated for e.g. `addFactor!(; nullhypo=0.1)` instead."
   nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
-  val = ccwl.params[ccwl.varidx]
-  d = size(val,1)
-  var = Statistics.var(val,dims=2) .+ 1e-3
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])))
+  arr = ccwl.params[ccwl.varidx]
+  ENT = generateNullhypoEntropy(arr, maxlen, spreadfactor)
   allelements = 1:maxlen
   return allelements, nhc, ENT
 end
@@ -203,7 +278,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                solvefor::Symbol,
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
-                               spreadfactor::Float64=10.0,
+                               spreadfactor::Real=10,
                                dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
   @warn "FunctorPairwiseNH will be deprecated in favor of common `nullhypo=` interface."
@@ -242,7 +317,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen)
 
   return ccwl.params[ccwl.varidx]
 end

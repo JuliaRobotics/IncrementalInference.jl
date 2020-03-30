@@ -24,7 +24,7 @@ function solveTree!(dfgl::G,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Int=50,
+                    maxparallel::Int=1000,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
@@ -61,10 +61,10 @@ function solveTree!(dfgl::G,
   end
   @info "Finished tree based init-inference"
 
-  # transfer new tree to outside parameter
+  # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
-  oldtree.cliques = tree.cliques #TODO JT kyk meer detail, this is a bit strange as its a copy of data in graph
+  oldtree.cliques = tree.cliques
   oldtree.frontals = tree.frontals
   oldtree.variableOrder = tree.variableOrder
   oldtree.buildTime = tree.buildTime

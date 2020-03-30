@@ -135,9 +135,9 @@ function assembleHypothesesElements!(mh::Categorical,
 
   # prepend for the mhidx=0, bad-init-null-hypothesis case (if solving a fractional variable)
   mhh = if sfidx in uncertnidx
-    nhw = 1.0/(length(uncertnidx)+1)
-    nmhw = [nhw; mhh.p]
-    nmhw ./= sum(nmhw) # renormalize
+    nhw = (length(uncertnidx)+1)
+    nmhw = [1/nhw; length(uncertnidx)/nhw*mhh.p]
+    nmhw ./= sum(nmhw) # renormalize (should not be necessary)
     Categorical(nmhw)
   else
     mhh
