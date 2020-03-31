@@ -101,15 +101,15 @@ end
 ## Debug plotting below
 
 #
-using RoMEPlotting
-Gadfly.set_default_plot_size(35cm, 20cm)
-
-
-# tree, smt, hist = solveTree!(fg)
-varIds = [ :x1, :lp1, :lp2, :lm1, :lm2]
-pkde = plotKDE(fg, varIds)
-
-0
+# using RoMEPlotting
+# Gadfly.set_default_plot_size(35cm, 20cm)
+#
+#
+# # tree, smt, hist = solveTree!(fg)
+# varIds = [ :x1, :lp1, :lp2, :lm1, :lm2]
+# pkde = plotKDE(fg, varIds)
+#
+# 0
 #
 # # # using Plots
 # #
