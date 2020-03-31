@@ -40,6 +40,7 @@ graphinit = false
 
 fg = initfg()
 fg.solverParams.N = n_samples
+fg.solverParams.spreadNH = 1.0
 
 # lp landmark prior information
 # lm landmark measurement
@@ -80,7 +81,7 @@ tree, smt, hist = solveTree!(fg, variableOrder = varor)
 
 
 # X should be at one of two modes
-@test 0.7*getSolverParams(fg).N < sum(-18 .< getPoints(getKDE(fg, :x1))[:] .< -8) + sum(8 .< getPoints(getKDE(fg, :x1))[:] .< 18)
+@test 0.7*getSolverParams(fg).N < sum(-20 .< getPoints(getKDE(fg, :x1))[:] .< 0) + sum(0 .< getPoints(getKDE(fg, :x1))[:] .< 20)
 
 @test 0.7*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lp1))[:] .< -28)
 
@@ -99,14 +100,14 @@ end
 
 ## Debug plotting below
 
-# #
-# using RoMEPlotting
-# Gadfly.set_default_plot_size(35cm, 20cm)
 #
-#
-# # tree, smt, hist = solveTree!(fg)
-# varIds = [ :x1, :lp1, :lp2, :lm1, :lm2]
-# pkde = plotKDE(fg, varIds)
+using RoMEPlotting
+Gadfly.set_default_plot_size(35cm, 20cm)
+
+
+# tree, smt, hist = solveTree!(fg)
+varIds = [ :x1, :lp1, :lp2, :lm1, :lm2]
+pkde = plotKDE(fg, varIds)
 
 0
 #
