@@ -178,7 +178,8 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   activehypo,
                                   certainidx::Vector{Int},
                                   sfidx::Int,
-                                  maxlen::Int  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                                  maxlen::Int;
+                                  spreadfactor::Float64=10.0  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -205,7 +206,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # inject lots of entropy in nullhypo case
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # make spread (1σ) equal to mean distance of other fractionals
-      @show spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx)
+      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadfactor)
       ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
       # on-manifold add????
       # add 1σ "noise" level to max distance as control
