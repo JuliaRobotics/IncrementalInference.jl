@@ -48,7 +48,7 @@ getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
 Append `str` onto factor graph log path as convenience function.
 """
-joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+joinLogPath(dfg::AbstractDFG, str...) = joinpath(getLogPath(dfg), str...)
 
 
 """
