@@ -179,7 +179,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   certainidx::Vector{Int},
                                   sfidx::Int,
                                   maxlen::Int;
-                                  spreadfactor::Float64=10.0  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                                  spreadNH::Float64=3.0  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -206,7 +206,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # inject lots of entropy in nullhypo case
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # make spread (1σ) equal to mean distance of other fractionals
-      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadfactor)
+      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
       # on-manifold add????
       # add 1σ "noise" level to max distance as control
@@ -299,7 +299,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                solvefor::Symbol,
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
-                               dbg::Bool=false  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               dbg::Bool=false,
+                               spreadNH::Float64=3.0 ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
@@ -318,7 +319,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, spreadNH=spreadNH)
 
   return ccwl.params[ccwl.varidx]
 end
@@ -328,7 +329,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                solvefor::Symbol,
                                measurement::Tuple=(zeros(0,0),);
                                N::Int=size(measurement[1],2),
-                               dbg::Bool=false ) where {T <: FunctorSingleton}
+                               dbg::Bool=false,
+                               spreadNH::Float64=3.0 ) where {T <: FunctorSingleton}
   #
   fnc = ccwl.usrfnc!
 
@@ -356,7 +358,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
                                spreadfactor::Float64=10.0,
-                               dbg::Bool=false ) where {T <: FunctorSingletonNH}
+                               dbg::Bool=false,
+                               spreadNH::Float64=3.0 ) where {T <: FunctorSingletonNH}
   #
   @warn "FunctorSingletonNH will be deprecated in favor of common `nullhypo=` interface."
   fnc = ccwl.usrfnc!
@@ -424,7 +427,7 @@ function evalFactor2(dfg::AbstractDFG,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
-  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, N=N, dbg=dbg)
+  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
 end
 
 # import IncrementalInference: evalFactor2, approxConv
