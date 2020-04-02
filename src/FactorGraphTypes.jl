@@ -65,7 +65,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 downsolve::Bool=true,
                 drawtree::Bool=false,
                 showtree::Bool=false,
-                drawtreerate::Float64=0.0,
+                drawtreerate::Float64=0.5,
                 dbg::Bool=false,
                 async::Bool=false,
                 limititers::Int=500,

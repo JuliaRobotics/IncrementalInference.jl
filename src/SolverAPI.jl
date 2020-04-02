@@ -56,13 +56,14 @@ function solveTree!(dfgl::G,
   dotreedraw = Int[1;]
   # single drawtreerate
   treetask = @async begin
-    while getSolverParams(dfgl).drawtreerate != 0 && dotreedraw[1] == 1
-      drawTree(tree,show=false)
+    while getSolverParams(dfgl).drawtree && dotreedraw[1] == 1
+      drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
       sleep(1/getSolverParams(dfgl).drawtreerate)
     end
+    drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
   end
   if getSolverParams(dfgl).showtree
-    drawTree(tree, show=true)
+    drawTree(tree, show=true, filepath=joinLogPath(dfgl, "bt.pdf"))
   end
 
   @info "Do tree based init-inference on tree"
@@ -170,13 +171,14 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   dotreedraw = Int[1;]
   # single drawtreerate
   treetask = @async begin
-    while opt.drawtreerate != 0 && dotreedraw[1] == 1
-      drawTree(tree,show=false)
+    while opt.drawtree && dotreedraw[1] == 1
+      drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
       sleep(1/opt.drawtreerate)
     end
+    drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
   end
   if opt.showtree
-    drawTree(tree, show=true)
+    drawTree(tree, show=true,filepath=joinLogPath(dfgl, "bt.pdf"))
   end
 
   @info "Do tree based init-inference"
