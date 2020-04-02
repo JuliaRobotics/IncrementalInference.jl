@@ -61,7 +61,7 @@ function solveTree!(dfgl::G,
       sleep(1/getSolverParams(dfgl).drawtreerate)
     end
   end
-  if getSolverParams(dfgl).show
+  if getSolverParams(dfgl).showtree
     drawTree(tree, show=true)
   end
 
@@ -170,12 +170,12 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   dotreedraw = Int[1;]
   # single drawtreerate
   treetask = @async begin
-    while opts.drawtreerate != 0 && dotreedraw[1] == 1
+    while opt.drawtreerate != 0 && dotreedraw[1] == 1
       drawTree(tree,show=false)
-      sleep(1/opts.drawtreerate)
+      sleep(1/opt.drawtreerate)
     end
   end
-  if opts.show
+  if opt.showtree
     drawTree(tree, show=true)
   end
 
@@ -183,7 +183,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   # if opt.async
   smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
-  if opts.async
+  if opt.async
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
     push!(smtasks, treetask)
   else
