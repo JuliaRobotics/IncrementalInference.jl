@@ -53,6 +53,18 @@ function solveTree!(dfgl::G,
   tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
+  dotreedraw = Int[1;]
+  # single drawtreerate
+  treetask = @async begin
+    while getSolverParams(dfgl).drawtreerate != 0 && dotreedraw[1] == 1
+      drawTree(tree,show=false)
+      sleep(1/getSolverParams(dfgl).drawtreerate)
+    end
+  end
+  if getSolverParams(dfgl).show
+    drawTree(tree, show=true)
+  end
+
   @info "Do tree based init-inference on tree"
   if opt.async
     smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
@@ -68,6 +80,13 @@ function solveTree!(dfgl::G,
   oldtree.frontals = tree.frontals
   oldtree.variableOrder = tree.variableOrder
   oldtree.buildTime = tree.buildTime
+
+  if getSolverParams(dfgl).async
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    dotreedraw[1] = 0
+  end
 
   return oldtree, smtasks, hist
 end
@@ -148,12 +167,30 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
+  dotreedraw = Int[1;]
+  # single drawtreerate
+  treetask = @async begin
+    while opts.drawtreerate != 0 && dotreedraw[1] == 1
+      drawTree(tree,show=false)
+      sleep(1/opts.drawtreerate)
+    end
+  end
+  if opts.show
+    drawTree(tree, show=true)
+  end
+
   @info "Do tree based init-inference"
   # if opt.async
   smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
-  @info "Finished tree based Parametric inference"
+  if opts.async
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    dotreedraw[1] = 0
+  end
 
+  @info "Finished tree based Parametric inference"
 
   return tree, smtasks, hist
 end

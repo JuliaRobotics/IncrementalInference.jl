@@ -107,4 +107,58 @@ end
 
 
 
+
+"""
+$(TYPEDEF)
+
+NOTE: Deprecated by DistributedFactorGraphs.
+"""
+mutable struct FactorGraph
+  g::FGGdict
+  bn
+  IDs::Dict{Symbol,Int}
+  fIDs::Dict{Symbol,Int}
+  id::Int
+  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
+  factorIDs::Array{Int,1}
+  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
+  bnid::Int # TODO -- not sure if this is still used
+  dimID::Int
+  cg
+  cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
+  sessionname::String
+  robotname::String
+  username::String
+  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
+  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
+  stateless::Bool
+  fifo::Vector{Symbol}
+  qfl::Int # Quasi fixed length
+  isfixedlag::Bool # true when adhering to qfl window size for solves
+  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
+                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
+                      #  Dict{Int,Graphs.ExVertex}(),
+                      #  Dict{Int,Graphs.ExVertex}(),
+                      Dict{Symbol,Int}(),
+                      Dict{Symbol,Int}(),
+                      0,
+                      [],
+                      [],
+                      Dict{Int,Graphs.ExVertex}(),
+                      0,
+                      0,
+                      nothing,
+                      Dict{Int,Int}(),
+                      "",
+                      "",
+                      "",
+                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
+                      reference,
+                      false,
+                      Symbol[],
+                      0,
+                      false  )
+end
+
+
 #
