@@ -93,11 +93,11 @@ global pts = approxConv(fg, :x2x3x4f1, :x2, N=N)
 
 global pts = approxConv(fg, :x2x3x4f1, :x3, N=N)
 
-@test 25 < sum(pts .== 3.0) < 75
+@test 15 < sum(pts .== 3.0) < 75
 
 global pts = approxConv(fg, :x2x3x4f1, :x4, N=N)
 
-@test 25 < sum(pts .== 2.0) < 75
+@test 15 < sum(pts .== 2.0) < 75
 
 end
 
@@ -248,7 +248,7 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
 @test 0.1*N < sum(pts .== 2.0) < 0.5*N
 @test 0.1*N < sum(pts .== 3.0) < 0.5*N
 
-@test 0.7*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0)
+@test 0.5*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0)
 
 
 
