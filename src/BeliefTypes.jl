@@ -90,6 +90,9 @@ const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
 const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 
+function convert(::Type{BallTreeDensity}, src::TreeBelief)
+  manikde!(src.val, src.bw[:,1], src.softtype)
+end
 
 
 """

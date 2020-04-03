@@ -905,7 +905,7 @@ Related Functions from Upward Inference
 
 directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 """
-function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
+function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1, logger=ConsoleLogger())
   frtl = getCliqFrontalVarIds(cliq)
 
   adj, varLabels, FactorLabels = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
@@ -918,13 +918,19 @@ function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique;
     # subAdj = adj[2:end,mask] .!= nothing
     # newFrtlOrder = Symbol.(adj[1,mask])
 
-  crossCheck = sum(Int.(subAdj), dims=2) .> 1
+  crossCheck = 1 .< sum(Int.(subAdj), dims=2)
   iterVars = Symbol[]
   for i in 1:length(crossCheck)
     # must add associated variables to iterVars
     if crossCheck[i]
+           # # DEBUG loggin
+           # with_logger(logger) do
+           #   @info "newFrtlOrder=$newFrtlOrder"
+           #   @info "(subAdj[i,:]).nzind=$((subAdj[i,:]).nzind)"
+           # end
+           # flush(logger.stream)
       # find which variables are associated
-      varSym = newFrtlOrder[subAdj[i,:]]
+      varSym = newFrtlOrder[(subAdj[i,:]).nzind]
       union!(iterVars, varSym)
     end
   end
@@ -960,7 +966,7 @@ function solveCliqDownFrontalProducts!(subfg::G,
 
   # determine if cliq has cross frontal factors
   # iterdwn, directdwns, passmsgs?
-  iterFrtls = determineCliqVariableDownSequence(subfg,cliq)
+  iterFrtls = determineCliqVariableDownSequence(subfg,cliq, logger=logger)
 
   # direct frontals
   directs = setdiff(frsyms, iterFrtls)
@@ -980,7 +986,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
-        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false)
+        # downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
     with_logger(logger) do
@@ -994,7 +1001,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
-        result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
+        # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
           @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"

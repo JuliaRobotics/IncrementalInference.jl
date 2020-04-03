@@ -25,10 +25,43 @@ end
 """
     $(SIGNATURES)
 
-This function explicitly codes that marginalization of a discrete categorical selection variable for ambiguous data association situations.  Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.  This function populates `allelements` with particle indices associated with particular multihypothesis selection while `activehypo` simultaneously contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
+This function explicitly encodes the marginalization of a discrete categorical selection variable for ambiguous data association situations.  This function populates `allelements` with particle indices associated with particular multihypothesis selection while `activehypo` simultaneously contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
+
+Output:
+- certainidx:   non fractional variables
+- allelements:  list of which particles go with which hypothesis selection
+- activehypo:   list of which hypotheses go with which certain + fractional variables
+- mhidx:        multihypothesis selection per particle idx
+
+Example:
+```julia
+      idx=(1,2,3)
+multihypo=[1.0;0.5;0.5]
+sfidx=2 # example specific
+certainidx=
+1-element Array{Int64,1}:
+ 1
+allelements=
+3-element Array{Any,1}:
+ Int64[]
+ [1, 2, 11, ...]
+ [3, 4, 5, ...]
+activehypo=
+3-element Array{Any,1}:
+ (1, [1, 2])
+ (2, [1, 2])
+ (3, [2, 3])
+mhidx=
+100-element Array{Int64,1}:
+2, 2, 3, 3, 3,...
+```
 
 Notes:
 - Issue 427, race condition during initialization since n-ary variables not resolvable without other init.
+
+DevNotes
+- Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.
+- TODO add nullhypo cases to returning result
 
 ```
 # `allelements` example BearingRange [:x1, 0.5:l1a, 0.5:l1b]
@@ -86,6 +119,7 @@ function assembleHypothesesElements!(mh::Categorical,
   # select only hypotheses that can be used (ie variables have been initialized)
   @assert !(sum(isinit) == 0 && sfidx == certainidx) # cannot init from nothing for any hypothesis
 
+
   mhh = if sum(isinit) < lenXi - 1
     @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
     @info "not all hypotheses initialized, but at least one available -- see #427"
@@ -99,30 +133,48 @@ function assembleHypothesesElements!(mh::Categorical,
     mh
   end
 
-  # prep mmultihypothesis selection values
-  mhidx = rand(mhh, maxlen) # selection of which hypothesis is correct
+  # prepend for the mhidx=0, bad-init-null-hypothesis case (if solving a fractional variable)
+  mhh = if sfidx in uncertnidx
+    nhw = (length(uncertnidx)+1)
+    nmhw = [1/nhw; length(uncertnidx)/nhw*mhh.p]
+    nmhw ./= sum(nmhw) # renormalize (should not be necessary)
+    Categorical(nmhw)
+  else
+    mhh
+  end
 
+  # prep mmultihypothesis selection values
+  mhidx = rand(mhh, maxlen)  # selection of which hypothesis is correct
   pidx = 0
+  if sfidx in uncertnidx
+    # shift down to get mhidx=0 case
+    mhidx .-= 1
+    pidx = -1
+  end
+
   sfincer = sfidx in certainidx
-  for pval in mh.p
+  for pval in mhh.p # mh.p
     pidx += 1
     pidxincer = pidx in certainidx # ??
     # permutation vectors for later computation
     iterarr = allidx[mhidx .== pidx]
     iterah = Int[]
-    if !pidxincer && sfincer # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
+    if !pidxincer && sfincer && pidx != 0 # 1e-15 <= pval && mh.p[sfidx] < 1e-10  # proxy for sfidx in certainidx
       # solve for one of the certain variables containing uncertain hypotheses in others
       iterah = sort(union(certainidx, pidx)) # sort([sfidx;pidx])
       # DONE -- supports n-ary factors in multihypo mode
-    elseif pidxincer && !sfincer || sfidx == pidx # pval < 1e-15 && mh.p[sfidx] >= 1e-10
+    elseif (pidxincer && !sfincer || sfidx == pidx) && pidx != 0 # pval < 1e-15 && mh.p[sfidx] >= 1e-10
       # solve for one of the uncertain variables
       iterah = sort(union(certainidx, sfidx)) # sort([sfidx;pidx])
       # EXPERIMENTAL -- support more than binary factors in multihypo mode
-    elseif pidxincer && sfincer # pval < 1e-15 && mh.p[sfidx] < 1e-10
+    elseif pidxincer && sfincer && pidx != 0 # pval < 1e-15 && mh.p[sfidx] < 1e-10
       iterarr = Int[]
       iterah = Int[] # may be moot anyway, but double check first
-    elseif !pidxincer && !sfincer # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
+    elseif !pidxincer && !sfincer && pidx != 0 # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
       iterah = uncertnidx #allmhp[mh.p .> 1e-15]
+    elseif pidx == 0
+      # nullhypo for bad init case
+      iterah = [sfidx;]
     else
       error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
     end
@@ -130,8 +182,10 @@ function assembleHypothesesElements!(mh::Categorical,
     push!(activehypo, (pidx,iterah))
   end
 
-  # if mhidx == sfidx
-  # ah = sort(union([sfidx;], certainidx))
+  # # retroactively add nullhypo compensation for bad-init case (the 0 case)
+  # if sfidx in uncertnidx
+  #   #
+  # end
 
   return certainidx, allelements, activehypo, mhidx
 end

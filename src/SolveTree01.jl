@@ -4,6 +4,8 @@ global pidl = 1
 global pidA = 1
 global thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
 
+global WORKERPOOL = WorkerPool()
+
 # upploc to control processes done local to this machine and separated from other
 # highly loaded processes. upploc() should be used for dispatching short and burst
 # of high bottle neck computations. Use upp2() for general multiple dispatch.
@@ -32,6 +34,15 @@ function uppA()
   return pidA
 end
 
+function setWorkerPool!(pool::Vector{Int}=setdiff(procs(), [1;]))
+  global WORKERPOOL
+  WORKERPOOL = WorkerPool(pool)
+end
+
+function getWorkerPool()
+  global WORKERPOOL
+  return WORKERPOOL
+end
 
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
@@ -591,21 +602,21 @@ function treeProductUp(fg::AbstractDFG,
                        N::Int=100,
                        dbg::Bool=false  )
   #
-  cliq = whichCliq(tree, cliq)
+  cliq = getCliq(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = LikelihoodMessage[]
   for cl in childCliqs(tree, cliq)
-    msgdict = upMsg(cl)
+    msgdict = getUpMsgs(cl) # upMsg()
     dict = Dict{Symbol, TreeBelief}()
-    for (dsy, btd) in msgdict
+    for (dsy, btd) in msgdict.belief
       vari = getVariable(fg, dsy)
       # manis = getSofttype(vari).manifolds
       dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
     end
-    push!( upmsgssym, LikelihoodMessage(dict) )
+    push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
   end
 
   # perform the actual computation
@@ -1014,7 +1025,8 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
-      urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+      urt = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
+      # urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex

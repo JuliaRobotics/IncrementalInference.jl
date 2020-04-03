@@ -88,7 +88,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-2, wait for up messages of needed")
 
   setCliqDrawColor(csmc.cliq, "purple") #TODO don't know if this is correct color
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   childrenOk = true
   beliefMessages = LikelihoodMessage[]
@@ -111,7 +111,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     else
       setCliqDrawColor(csmc.cliq, "red")
-      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+      # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       for e in getEdgesParent(csmc.tree, csmc.cliq)
         @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -163,7 +163,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-3, Solving Up")
 
   setCliqDrawColor(csmc.cliq, "red")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
@@ -264,7 +264,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-4, wait for down messages of needed")
 
   setCliqDrawColor(csmc.cliq, "turquoise")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -279,7 +279,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     else
       setCliqDrawColor(csmc.cliq, "red")
-      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+      # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
         @info "Par-4, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -305,7 +305,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "Par-5, Solving down")
 
   setCliqDrawColor(csmc.cliq, "red")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   #TODO maybe change to symbols
   for downmsgs in csmc.msgsDown
@@ -395,7 +395,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     transferUpdateSubGraphParametric!(csmc.dfg, csmc.cliqSubFg, frontsyms)
     #solve finished change color
     setCliqDrawColor(csmc.cliq, "lightblue")
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+    # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
     @info "$(csmc.cliq.index): Finish en klaar"
     return IncrementalInference.exitStateMachine

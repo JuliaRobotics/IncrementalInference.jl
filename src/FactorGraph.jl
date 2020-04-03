@@ -547,12 +547,12 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   return maxlen, sfidx
 end
 
-function parseusermultihypo(multihypo::Nothing)
+function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
   verts = Symbol[]
   mh = nothing
-  return mh
+  return mh, nullhypo
 end
-function parseusermultihypo(multihypo::Vector{Float64})
+function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
   mh = nothing
   if 0 < length(multihypo)
     multihypo2 = multihypo
@@ -570,7 +570,7 @@ function parseusermultihypo(multihypo::Vector{Float64})
     # end
     mh = Categorical(Float64[multihypo2...] )
   end
-  return mh
+  return mh, nullhypo
 end
 
 # import IncrementalInference: prepgenericconvolution, convert
@@ -591,6 +591,7 @@ function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+            nullhypo=0.0,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
@@ -631,15 +632,17 @@ function getDefaultFactorData(
       Xi::Vector{<:DFGVariable},
       usrfnc::T;
       multihypo::Vector{<:Real}=Float64[],
+      nullhypo::Float64=0.0,
       threadmodel=SingleThreaded  )::GenericFunctionNodeData where
         {T <: Union{FunctorInferenceType, InferenceType}}
   #
+  nullhypo != 0.0 ? error("nullhypo being renovated and not available in this new format yet.") : nothing
   # prepare multihypo particulars
   # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
-  mhcat = parseusermultihypo(multihypo) # multihypo
+  mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, threadmodel=threadmodel)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
   data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(T.name.module), ccw, multihypo, ccw.certainhypo)
@@ -902,6 +905,36 @@ end
 const initVariableManual! = initManual!
 
 
+"""
+    $SIGNATURES
+
+Ensure that no variables set as `solvable=1` are floating free without any connected `solvable=1` factors.  If any found, then set those 'free' variable's `solvable=solvableFallback` (default `0`).
+
+Related
+
+ensureAllInitialized!
+"""
+function ensureSolvable!(dfg::AbstractDFG; solvableTarget::Int=1, solvableFallback::Int=0)
+  # workaround in case isolated variables occur
+  solvVars = ls(dfg, solvable=solvableTarget)
+  varHasFact = (x->length(ls(dfg,x, solvable=solvableTarget))==0).(solvVars)
+  blankVars = solvVars[findall(varHasFact)]
+  if 0 < length(blankVars)
+    @warn("solveTree! dissallows solvable variables without any connected solvable factors -- forcing solvable=0 on $(blankVars)")
+    (x->setSolvable!(dfg, x, solvableFallback)).(blankVars)
+  end
+  return blankVars
+end
+
+"""
+    $SIGNATURES
+
+Perform `graphinit` over all variables with `solvable=1` (default).
+
+Related
+
+ensureSolvable!, (EXPERIMENTAL 'treeinit')
+"""
 function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
@@ -957,6 +990,7 @@ function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
                     usrfnc::R;
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    nullhypo::Float64=0.0,
                     solvable::Int=1,
                     labels::Vector{Symbol}=Symbol[],
                     timestamp::DateTime=now(),
@@ -976,7 +1010,7 @@ function addFactor!(dfg::AbstractDFG,
   end
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
-  solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, threadmodel=threadmodel)
+  solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, nullhypo=nullhypo, threadmodel=threadmodel)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
@@ -1001,6 +1035,7 @@ function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    nullhypo::Float64=0.0,
                     solvable::Int=1,
                     timestamp::DateTime=now(),
                     labels::Vector{Symbol}=Symbol[],
@@ -1018,7 +1053,7 @@ function addFactor!(dfg::AbstractDFG,
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
 end
 
 
@@ -1241,30 +1276,11 @@ end
 """
     $(SIGNATURES)
 
-Get KernelDensityEstimate kde estimate stored in variable node.
+Get KernelDensityEstimate marginal stored in variable data.
 """
-function getVertKDE(v::DFGVariable)
-  return getKDE(v)
-end
-function getVertKDE(dfg::G, id::Int) where G <: AbstractDFG
-  v = DFG.getVariable(dfg, id)
-  return getKDE(v)
-end
-function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
-  v = DFG.getVariable(dfg, lbl)
-  return getKDE(v)
-end
-function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
-  return getVertKDE(dfg, lbl)
-end
+getKDE(dfg::AbstractDFG, lbl::Symbol) = getKDE(getVariable(dfg, lbl))
 
-function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
-  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
-  for edge in edgelist
-    edgedict[edge.index] = edge
-  end
-  return edgedict
-end
+
 
 
 #

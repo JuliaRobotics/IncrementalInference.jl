@@ -2,9 +2,9 @@
 
 > Click on badges to follow links
 
-Docs | Stable v0.9 | Stable v0.10 | Dev | Coverage
+Docs | Stable v0.10 | Stable v0.11 | Dev | Coverage
 --------------|-------------|-------------|-----|---------
-[![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.9)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.10)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
+[![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.10)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.11)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 

@@ -44,14 +44,11 @@ using .Ccolamd
 
 
 import Base: convert
-# import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
-# import DistributedFactorGraphs: getVariableOrder
-# import DistributedFactorGraphs: getEstimates
 
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
@@ -63,7 +60,6 @@ import DistributedFactorGraphs: isSolvable
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 
@@ -76,6 +72,7 @@ KDE.setForceEvalDirect!(true)
 
 # DFG SpecialDefinitions
 export AbstractDFG,
+  InMemDFGType,
   hasVariable,
   getSolverParams,
   LightDFG,
@@ -192,8 +189,10 @@ export AbstractDFG,
   categoricalfromstring,
   extractdistribution,
 
-  FactorGraph,
+  # FactorGraph,
   SolverParams,
+  getSolvable,
+  setSolvable!,
   addNode!,
   addVariable!,
   deleteVariable!,
@@ -228,7 +227,6 @@ export AbstractDFG,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   getVariable,
-  # getVert, # deprecated use DFG.getVariable getFactor instead
   getCliqueData,
   setCliqueData!,
   getManifolds,
@@ -272,6 +270,7 @@ export AbstractDFG,
   areCliqVariablesAllInitialized,
   areCliqChildrenNeedDownMsg,
   areCliqChildrenAllUpSolved,
+  ensureSolvable!,
   ensureAllInitialized!,
   doCliqAutoInitUpPart1!,
   doCliqAutoInitUpPart2!,
@@ -341,6 +340,7 @@ export AbstractDFG,
   #functors need
   getSample,
   freshSamples!,
+  freshSamples,
 
   #Visualization
   writeGraphPdf, # deprecated, but first move code to drawGraph before deleting

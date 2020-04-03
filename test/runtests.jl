@@ -26,6 +26,8 @@ include("testSpecialSampler.jl")
 
 include("testSaveLoadDFG.jl")
 
+include("testJunctionTreeConstruction.jl")
+
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
 
@@ -43,8 +45,6 @@ include("testBasicForwardConvolve.jl")
 
 include("testFactorMetadata.jl")
 
-include("testJunctionTreeConstruction.jl")
-
 include("testBasicCSM.jl")
 
 include("testCliqueFactors.jl")
@@ -53,7 +53,6 @@ include("testCcolamdOrdering.jl")
 
 include("testBasicGraphs.jl")
 
-# TODO old names should be removed, like Odo, Obsv2
 include("testlocalconstraintexamples.jl")
 
 include("testBasicTreeInit.jl")
@@ -74,6 +73,8 @@ include("testMultiHypo2Door.jl")
 
 include("testMultimodal1D.jl")
 
+include("testMultihypoAndChain.jl")
+
 include("testMultithreaded.jl")
 
 include("testpartialconstraint.jl")
@@ -91,7 +92,7 @@ if Base.Sys.ARCH in [:x86_64;]
   include("testTexTreeIllustration.jl")
 end
 
-
+include("testMultiprocess.jl")
 
 
 
