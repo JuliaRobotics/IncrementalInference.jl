@@ -92,13 +92,13 @@ fg = initfg()
 
 # Place strong prior on locations of three "doors"
 addVariable!(fg, :l0, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l0], RoME.Prior(Normal(l0, lm_prior_noise)))
+addFactor!(fg, [:l0], IIF.Prior(Normal(l0, lm_prior_noise)))
 
 addVariable!(fg, :l1, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l1], RoME.Prior(Normal(l1, lm_prior_noise)))
+addFactor!(fg, [:l1], IIF.Prior(Normal(l1, lm_prior_noise)))
 
 addVariable!(fg, :l2, ContinuousScalar, N=n_samples)
-addFactor!(fg, [:l2], RoME.Prior(Normal(l2, lm_prior_noise)))
+addFactor!(fg, [:l2], IIF.Prior(Normal(l2, lm_prior_noise)))
 
 # Add first pose
 addVariable!(fg, :x0, ContinuousScalar, N=n_samples)
@@ -131,7 +131,7 @@ addFactor!(fg, [:x3; :l0; :l1; :l2], LinearConditional(Normal(0, meas_noise)), m
 
 ensureAllInitialized!(fg)
 
-drawGraph(fg)
+# drawGraph(fg)
 solveTree!(fg)
 
 
