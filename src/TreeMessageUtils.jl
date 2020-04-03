@@ -228,7 +228,7 @@ end
 function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
   childmsgs = IntermediateMultiSiblingMessages()
   for child in getChildren(treel, cliq)
-    for (key, bel) in getUpMsgs(child)
+    for (key, bel) in getUpMsgs(child).belief
       # id = fg_.IDs[key]
       # manis = getManifolds(fg_, id)
       if !haskey(childmsgs, key)

@@ -48,21 +48,74 @@ getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
 
 Append `str` onto factor graph log path as convenience function.
 """
-joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+joinLogPath(dfg::AbstractDFG, str...) = joinpath(getLogPath(dfg), str...)
 
-# """
-#     $SIGNATURES
-#
-# Set the `solvable` parameter for either a variable or factor.
-# """
-# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
-#   if isVariable(dfg, sym)
-#     getVariable(dfg, sym).solvable = solvable
-#   elseif isFactor(dfg, sym)
-#     getFactor(dfg, sym).solvable = solvable
-#   end
-#   return solvable
-# end
+
+"""
+    $(SIGNATURES)
+
+Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
+"""
+function setfreeze!(dfg::AbstractDFG, sym::Symbol)
+  if !isInitialized(dfg, sym)
+    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
+    return nothing
+  end
+  vert = DFG.getVariable(dfg, sym)
+  data = getSolverData(vert)
+  data.ismargin = true
+  nothing
+end
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
+  for sym in syms
+    setfreeze!(dfg, sym)
+  end
+end
+
+"""
+    $(SIGNATURES)
+
+Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
+
+Future:
+- Allow different freezing strategies beyond fifo.
+"""
+function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
+  if DFG.getSolverParams(dfg).qfl == 0
+    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
+  end
+
+  # the fifo history
+  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
+  if length(tofreeze) == 0
+      @info "[fifoFreeze] QFL - no nodes to freeze."
+      return nothing
+  end
+  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
+  setfreeze!(dfg, tofreeze)
+  nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return all factors currently registered in the workspace.
+"""
+function getCurrentWorkspaceFactors()::Vector{Type}
+    return [
+        subtypes(IncrementalInference.FunctorSingleton)...,
+        subtypes(IncrementalInference.FunctorPairwise)...,
+        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
+end
+
+"""
+    $(SIGNATURES)
+
+Return all variables currently registered in the workspace.
+"""
+function getCurrentWorkspaceVariables()::Vector{Type}
+    return subtypes(IncrementalInference.InferenceVariable);
+end
 
 """
     $SIGNATURES
@@ -101,65 +154,13 @@ function calcVariablePPE(var::DFGVariable,
   end
   MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
 end
-# function calcVariablePPE!(retval::Vector{Float64},
-#                           var::DFGVariable,
-#                           softt::InferenceVariable;
-#                           method::Type{MeanMaxPPE}=MeanMaxPPE )::Nothing
-#   #
-#   P = getKDE(var)
-#   manis = getManifolds(softt) # getManifolds(vnd)
-#   ops = buildHybridManifoldCallbacks(manis)
-#   Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
-#   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-#   for i in 1:length(manis)
-#     mani = manis[i]
-#     if mani == :Euclid
-#       retval[i] = Pme[i]
-#     elseif mani == :Circular
-#       retval[i] = Pma[i]
-#     else
-#       error("Unknown manifold to find PPE, $softt, $mani")
-#     end
-#   end
-#   nothing
-# end
-# """
-#     $SIGNATURES
-#
-# Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
-# """
-# function calcVariablePPE(var::DFGVariable,
-#                          softt::InferenceVariable;
-#                          method::Type{<:AbstractPointParametricEst}=MeanMaxPPE  )::Vector{Float64}
-#   #
-#   # vect = zeros(softt.dims)
-#   mmppe = calcVariablePPE(MeanMaxPPE, var, softt, method=method)
-#   return mmppe.suggested
-# end
 
 
-# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
 calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+
 function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
   var = getVariable(dfg, sym)
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
-end
-
-
-
-
-
-
-# not sure if and where this is still being used
-function _evalType(pt::String)::Type
-    try
-        getfield(Main, Symbol(pt))
-    catch ex
-        io = IOBuffer()
-        showerror(io, ex, catch_backtrace())
-        err = String(take!(io))
-        error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-    end
 end
 
 
@@ -314,11 +315,11 @@ function getPPESuggestedAll(dfg::AbstractDFG,
   #
   # get values
   vsyms = listVariables(dfg, regexFilter) |> sortDFG
-  slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
+  slamPPE = map(x->getVariablePPE(dfg, x).suggested, vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)
-  for varr in slamPPE
-    rumax[2] = length(varr)
+  for ppe in slamPPE
+    rumax[2] = length(ppe)
     rumax[1] = maximum(rumax)
   end
 
@@ -351,20 +352,6 @@ function findVariablesNear(dfg::AbstractDFG,
   return (xy[1][prm], sqrt.(dist[prm]))
 end
 
-
-function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::TreeBelief )
-  @show size(p.val), size(p.bw), p.manifolds
-  (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
-end
-
-
-function convert(::Type{TreeBelief},
-                 bel::Tuple{BallTreeDensity,Float64},
-                 manifolds::T) where {T <: Tuple}
-  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds)"
-  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
-end
 
 
 
