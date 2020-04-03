@@ -986,7 +986,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
-        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false)
+        # downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
     with_logger(logger) do
@@ -1000,7 +1001,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
-        result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
+        # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
           @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
