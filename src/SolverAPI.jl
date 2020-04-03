@@ -31,6 +31,13 @@ function solveTree!(dfgl::G,
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
 
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if getSolverParams(dfgl).multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    getSolverParams(dfgl).multiproc = false
+  end
+
   if getSolverParams(dfgl).graphinit
     @info "ensure all initialized (using graphinit)"
     ensureAllInitialized!(dfgl)
@@ -168,6 +175,13 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if getSolverParams(dfgl).multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    getSolverParams(dfgl).multiproc = false
+  end
+  
   dotreedraw = Int[1;]
   # single drawtreerate
   treetask = @async begin
@@ -178,6 +192,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
     drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
   end
   if opt.showtree
+    # can simplify to just showTree if desired
     drawTree(tree, show=true,filepath=joinLogPath(dfgl, "bt.pdf"))
   end
 

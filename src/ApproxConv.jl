@@ -279,14 +279,14 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                solvefor::Symbol,
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
-                               spreadfactor::Real=10,
+                               spreadNH::Real=3.0,
                                dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
   @warn "FunctorPairwiseNH will be deprecated in favor of common `nullhypo=` interface."
   # TODO -- could be constructed and maintained at addFactor! time
   sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
   # prepare nullhypothesis
-  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadfactor)
+  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadNH)
 
   # Compute across the true or null hypothesis
   computeAcrossNullHypothesis!(ccwl, allelements, nhc, ENT )
@@ -299,8 +299,8 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                solvefor::Symbol,
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
-                               dbg::Bool=false,
-                               spreadNH::Float64=3.0 ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               spreadNH::Real=3.0,
+                               dbg::Bool=false  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
