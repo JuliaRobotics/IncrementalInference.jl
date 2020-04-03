@@ -238,7 +238,7 @@ end
 ## solve for fractional variable in trinary case
 
 
-N = 50
+N = 70
 s4_2_gt1 = [1]
 s4_2_gt2 = (0,3,3,3,N)
 s4_2_gt3 = [(0,Int[2]); (1,Int[1;2]); (2,Int[1;2]); (3,Int[2;3;4]); (4,Int[2;3;4])]
@@ -281,7 +281,7 @@ end
 
 @testset "assembleHypothesesElements! with tri-modality (fractional variable 2/3)" begin
 
-N = 50
+N = 70
 s4_3_gt1 = [1]
 s4_3_gt2 = (0,3,3,3,N)
 s4_3_gt3 = [(0,Int[3]); (1,Int[1;3]); (2,Int[2;3;4]); (3,Int[1;3]); (4,Int[2;3;4])]
@@ -323,7 +323,7 @@ end
 
 @testset "assembleHypothesesElements! with tri-modality (fractional variable 3/3)" begin
 
-N = 50
+N = 70
 s4_4_gt1 = [1]
 s4_4_gt2 = (0,3,3,3,N)
 s4_4_gt3 = [(0,Int[4]); (1,Int[1;4]); (2,Int[2;3;4]); (3,Int[2;3;4]); (4,Int[1;4])]
