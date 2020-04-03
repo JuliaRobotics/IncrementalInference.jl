@@ -68,7 +68,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 async::Bool=false,
                 limititers::Int=500,
                 N::Int=100,
-                multiproc::Bool=true,
+                multiproc::Bool=1 < nprocs(),
                 logpath::String="/tmp/caesar/$(now())",
                 graphinit::Bool=true,
                 treeinit::Bool=false,

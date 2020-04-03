@@ -91,7 +91,7 @@ if Base.Sys.ARCH in [:x86_64;]
   include("testTexTreeIllustration.jl")
 end
 
-
+include("testMultiprocess.jl")
 
 
 

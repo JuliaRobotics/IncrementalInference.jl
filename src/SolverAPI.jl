@@ -31,6 +31,13 @@ function solveTree!(dfgl::G,
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
 
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if getSolverParams(dfgl).multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    getSolverParams(dfgl).multiproc = false
+  end
+
   if getSolverParams(dfgl).graphinit
     @info "ensure all initialized (using graphinit)"
     ensureAllInitialized!(dfgl)
@@ -147,6 +154,13 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
+
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if getSolverParams(dfgl).multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    getSolverParams(dfgl).multiproc = false
+  end
 
   @info "Do tree based init-inference"
   # if opt.async
