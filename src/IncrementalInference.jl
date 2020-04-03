@@ -44,14 +44,11 @@ using .Ccolamd
 
 
 import Base: convert
-# import HDF5: root
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
-# import DistributedFactorGraphs: getVariableOrder
-# import DistributedFactorGraphs: getEstimates
 
 # missing exports
 import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
@@ -63,7 +60,6 @@ import DistributedFactorGraphs: isSolvable
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 

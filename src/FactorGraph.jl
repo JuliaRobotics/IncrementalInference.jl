@@ -1276,30 +1276,11 @@ end
 """
     $(SIGNATURES)
 
-Get KernelDensityEstimate kde estimate stored in variable node.
+Get KernelDensityEstimate marginal stored in variable data.
 """
-function getVertKDE(v::DFGVariable)
-  return getKDE(v)
-end
-function getVertKDE(dfg::G, id::Int) where G <: AbstractDFG
-  v = DFG.getVariable(dfg, id)
-  return getKDE(v)
-end
-function getVertKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
-  v = DFG.getVariable(dfg, lbl)
-  return getKDE(v)
-end
-function getKDE(dfg::G, lbl::Symbol) where G <: AbstractDFG
-  return getVertKDE(dfg, lbl)
-end
+getKDE(dfg::AbstractDFG, lbl::Symbol) = getKDE(getVariable(dfg, lbl))
 
-function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
-  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
-  for edge in edgelist
-    edgedict[edge.index] = edge
-  end
-  return edgedict
-end
+
 
 
 #

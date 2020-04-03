@@ -2,8 +2,29 @@
 
 
 ##==============================================================================
-## Delete in v0.12
+## Delete at end v0.12.x
 ##==============================================================================
+
+function getVertKDE(v::DFGVariable)
+  return getKDE(v)
+end
+function getVertKDE(dfg::AbstractDFG, lbl::Symbol)
+  v = DFG.getVariable(dfg, lbl)
+  return getKDE(v)
+end
+
+@deprecate getVertKDE(v::DFGVariable) getKDE(v)
+@deprecate getVertKDE(dfg::AbstractDFG, lbl::Symbol) getKDE(dfg, lbl)
+
+
+function edgelist2edgedict(edgelist::Array{Graphs.Edge{TreeClique},1})
+  error("edgelist2edgedict is obsolete, use DFG methods instead.")
+  edgedict = Dict{Int,Graphs.Edge{TreeClique}}()
+  for edge in edgelist
+    edgedict[edge.index] = edge
+  end
+  return edgedict
+end
 
 
 # TODO: Confirm this is supposed to be a variable?
@@ -38,7 +59,7 @@ end
 
 
 ##==============================================================================
-## Delete in v0.11
+## Delete at end v0.11.x
 ##==============================================================================
 
 """
@@ -55,15 +76,6 @@ function writeGraphPdf(fgl::AbstractDFG;
   @warn "writeGraphPdf deprecated, use drawGraph instead"
   drawGraph(fgl, viewerapp=viewerapp, filepath=filepath, engine=engine, show=show )
 end
-
-
-
-##==============================================================================
-## Delete in v0.10.x if possible, but definitely by v0.11
-##==============================================================================
-
-@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
-
 
 # excessive function, needs refactoring
 # fgl := srcv
@@ -105,7 +117,7 @@ function updateFullVertData!(fgl::AbstractDFG,
   nothing
 end
 
-
+@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
 
 
 """
