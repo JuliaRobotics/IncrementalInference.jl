@@ -223,6 +223,7 @@ function doCliqUpSolve!(subfg::AbstractDFG,
                         multiproc::Bool=true,
                         logger=ConsoleLogger()  )
   #
+  @error "doCliqUpSolve! is being refactored, use the csmc version instead"
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
   approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
@@ -231,13 +232,16 @@ function doCliqUpSolve!(subfg::AbstractDFG,
 end
 
 function doCliqUpSolve!(csmc::CliqStateMachineContainer;
-                        multiproc::Bool=true,
+                        multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
                         logger=ConsoleLogger()  )
   #
-  csym = getCliqFrontalVarIds(csmc.cliq)[1]
-  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
+  approxCliqMarginalUp!(csmc, multiproc=multiproc, logger=logger)
+  # csym = getCliqFrontalVarIds(csmc.cliq)[1]
+  # approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
+
+  # TODO replace with msg channels only
   getCliqueData(csmc.cliq).upsolved = true
+  return :upsolved
 end
 
 # currently for internal use only
@@ -654,14 +658,16 @@ Notes
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
-function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
-                                tree::AbstractBayesTree,
-                                cliq::TreeClique;
+function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
                                 # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
-                                logger=ConsoleLogger()  )::Symbol
+                                logger=ConsoleLogger()  )
   #
+  subfg = csmc.cliqSubFg
+  tree  = csmc.tree
+  cliq  = csmc.cliq
+
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
 
@@ -684,7 +690,8 @@ function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
       tt = split(string(now()),'T')[end]
       @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
     end
-    status = doCliqUpSolve!(subfg, tree, cliq, multiproc=multiproc, logger=logger)
+    status = doCliqUpSolve!(csmc, logger=logger)
+    # status = doCliqUpSolve!(subfg, tree, cliq, multiproc=multiproc, logger=logger)
   else
     with_logger(logger) do
       @info "cliq $(cliq.index), all variables not initialized, status = $(status)"
@@ -708,7 +715,8 @@ function doCliqAutoInitUpPart2!(subfg::AbstractDFG,
       tt = split(string(now()),'T')[end]
       @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg.belief)))"
     end
-    # does internal notify on parent
+    # does internal notify on parent -- TODO update as part of #459
+    # this is a push model instance #674
     setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
   end
 

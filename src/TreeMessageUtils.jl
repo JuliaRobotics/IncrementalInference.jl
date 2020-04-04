@@ -419,11 +419,14 @@ end
 
 Return dictionary of all up belief messages currently in a Bayes `tree`.
 
+Notes
+- Returns `::Dict{Int,LikelihoodMessage}`
+
 Related
 
 getUpMsgs
 """
-function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
@@ -452,7 +455,7 @@ Notes
      }
 """
 function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
+                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )
   #
   # start of the return data structure
   stack = TempUpMsgPlotting()
@@ -488,8 +491,9 @@ Return dictionary of down messages consisting of all frontal and separator belie
 
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
+- return LikelihoodMessage
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
   container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()

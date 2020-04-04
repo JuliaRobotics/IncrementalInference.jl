@@ -34,7 +34,12 @@ function uppA()
   return pidA
 end
 
-function setWorkerPool!(pool::Vector{Int}=setdiff(procs(), [1;]))
+"""
+    $SIGNATURES
+
+For use with `multiproc`, nominal use is a worker pool of all processes available above and including 2..., but will return single process [1;] if only the first processes is available.
+"""
+function setWorkerPool!(pool::Vector{Int}=1 < nprocs() ? setdiff(procs(), [1;]) : [1;])
   global WORKERPOOL
   WORKERPOOL = WorkerPool(pool)
 end
@@ -609,7 +614,7 @@ function treeProductUp(fg::AbstractDFG,
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = LikelihoodMessage[]
   for cl in childCliqs(tree, cliq)
-    msgdict = getUpMsgs(cl) # upMsg()
+    msgdict = getUpMsgs(cl)
     dict = Dict{Symbol, TreeBelief}()
     for (dsy, btd) in msgdict.belief
       vari = getVariable(fg, dsy)
@@ -1056,6 +1061,7 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
                                multiproc::Bool=true,
                                logger=ConsoleLogger()  )
   #
+  @warn "approxCliqMarginalUp! API is changing, use csmc version instead."
   @assert !onduplicate "approxCliqMarginalUp! onduplicate keyword is being deprecated"
   fg_ = onduplicate ? deepcopy(fgl) : fgl
   # onduplicate
