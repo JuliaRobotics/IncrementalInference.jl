@@ -41,14 +41,16 @@ getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 Get the folder location where debug and solver information is recorded for a particular factor graph.
 """
-getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
+getLogPath(opt::SolverParams) = opt.logpath
+getLogPath(dfg::AbstractDFG) = getSolverParams(dfg) |> getLogPath
 
 """
     $SIGNATURES
 
 Append `str` onto factor graph log path as convenience function.
 """
-joinLogPath(dfg::AbstractDFG, str...) = joinpath(getLogPath(dfg), str...)
+joinLogPath(opt::SolverParams, str...) = joinpath(getLogPath(opt), str...)
+joinLogPath(dfg::AbstractDFG, str...) = joinLogPath(getSolverParams(dfg), str...)
 
 
 """
