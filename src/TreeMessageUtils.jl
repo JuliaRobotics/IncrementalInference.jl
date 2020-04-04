@@ -163,46 +163,47 @@ Set the upward passing message for Bayes (Junction) tree clique `cliql`.
 Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
+function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
+  csmc.msgsUp[cliqid] = msgs
+end
+
 function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).upMsg = msgs
 end
 
-function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
-  csmc.msgsUp[cliqid] = msgs
-end
 
 """
     $(SIGNATURES)
 
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
+getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
 getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(getCliq(btl, sym))
 
-getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 
 """
     $(SIGNATURES)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
+function setDwnMsg!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
+  csmc.msgsDown = msgs
+end
+
 function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).dwnMsg = msgs
 end
 
-function setDwnMsg!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
-  csmc.msgsDown = msgs
-end
 
 """
     $(SIGNATURES)
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
+getDwnMsgs(csmc::CliqStateMachineContainer) = csmc.msgsDown
 getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
-
-getDwnMsgs(csmc::CliqStateMachineContainer) = csmc.msgsDown
 
 
 
@@ -215,6 +216,9 @@ Get and return upward belief messages as stored in child cliques from `treel::Ab
 Notes
 - Use last parameter to select the return format.
 - Pull model #674
+
+DevNotes
+- Consolidate two versions getCliqChildMsgsUp
 """
 function getCliqChildMsgsUp(fg_::AbstractDFG,
                             treel::AbstractBayesTree,
@@ -235,7 +239,10 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
   return childmsgs
 end
 
-function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
+function getCliqChildMsgsUp(treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{BallTreeDensity})
+  #
   childmsgs = IntermediateMultiSiblingMessages()
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child).belief
@@ -248,6 +255,18 @@ function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{B
     end
   end
   return childmsgs
+end
+
+function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
+                            ::Type{TreeBelief} )
+  #
+  getCliqChildMsgsUp(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+end
+
+function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
+                            ::Type{BallTreeDensity})
+  #
+  getCliqChildMsgsUp(csmc.tree, csmc.cliq, BallTreeDensity)
 end
 
 """

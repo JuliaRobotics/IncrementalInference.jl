@@ -221,7 +221,7 @@ function doCliqUpSolve!(subfg::AbstractDFG,
                         tree::AbstractBayesTree,
                         cliq::TreeClique;
                         multiproc::Bool=true,
-                        logger=ConsoleLogger()  )::Symbol
+                        logger=ConsoleLogger()  )
   #
   csym = getCliqFrontalVarIds(cliq)[1]
   # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
@@ -230,11 +230,21 @@ function doCliqUpSolve!(subfg::AbstractDFG,
   return :upsolved
 end
 
+function doCliqUpSolve!(csmc::CliqStateMachineContainer;
+                        multiproc::Bool=true,
+                        logger=ConsoleLogger()  )
+  #
+  csym = getCliqFrontalVarIds(csmc.cliq)[1]
+  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
+  approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
+  getCliqueData(csmc.cliq).upsolved = true
+end
+
 # currently for internal use only
 # initialize variables based on best current achievable ordering
 # OBVIOUSLY a lot of refactoring and consolidation needed with cliqGibbs / approxCliqMarginalUp
-function initSolveSubFg!(subfg::G,
-                         logger=ConsoleLogger() ) where G <: AbstractDFG
+function initSolveSubFg!(subfg::AbstractDFG,
+                         logger=ConsoleLogger() )
   #
   varorder = getSubFgPriorityInitOrder(subfg, logger)
   with_logger(logger) do
