@@ -355,6 +355,42 @@ end
 """
     $SIGNATURES
 
+If opt.drawtree then start an async task to draw tree in a loop according to opt.drawtreerate.
+
+Notes
+- wont draw if opt.drawtree=false, just skips back to caller.
+- Currently @async
+- use `opt.showtree::Bool`
+- Does not work too well when opt.async during solveTree! call, but user can use this function separately.
+
+DevNotes
+- TODO, use Threads.@spawn instead.
+
+Related
+
+drawTree, drawGraph
+"""
+function drawTreeAsyncLoop(tree::BayesTree,
+                           opt::SolverParams;
+                           filepath=joinLogPath(opt,"bt.pdf"),
+                           dotreedraw = Int[1;]  )
+  #
+  # single drawtreerate
+  treetask = if opt.drawtree
+    @async begin
+      while dotreedraw[1] == 1 && 0 < opt.drawtreerate
+        drawTree(tree,show=false,filepath=filepath)
+        sleep(1/opt.drawtreerate)
+      end
+      drawTree(tree,show=opt.showtree,filepath=filepath)
+    end
+  end
+  return treetask, dotreedraw
+end
+
+"""
+    $SIGNATURES
+
 Draw the Bayes (junction) tree with LaTeX labels by means of `.dot` and `.tex`
 files.
 
