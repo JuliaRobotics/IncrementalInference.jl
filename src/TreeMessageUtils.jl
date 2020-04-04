@@ -165,7 +165,10 @@ Dev Notes
 """
 function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).upMsg = msgs
-  nothing
+end
+
+function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
+  csmc.msgsUp[cliqid] = msgs
 end
 
 """
@@ -176,14 +179,19 @@ Return the last up message stored in `cliq` of Bayes (Junction) tree.
 getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
 getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(getCliq(btl, sym))
 
+getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 
 """
     $(SIGNATURES)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, BallTreeDensity}
+function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).dwnMsg = msgs
+end
+
+function setDwnMsg!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
+  csmc.msgsDown = msgs
 end
 
 """
@@ -194,6 +202,7 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
 
+getDwnMsgs(csmc::CliqStateMachineContainer) = csmc.msgsDown
 
 
 

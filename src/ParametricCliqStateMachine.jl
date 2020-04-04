@@ -109,7 +109,8 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     #save up message (and add priors to cliqSubFg)
     #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
     if beliefMsg.status == UPSOLVED
-      csmc.msgsUp[idx] = beliefMsg
+      setUpMsg!(csmc, idx, beliefMsg)
+      # csmc.msgsUp[idx] = beliefMsg
       # push!(csmc.msgsUp, beliefMsg)
 
     else
@@ -170,7 +171,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
-  for (idx,upmsgs) in csmc.msgsUp
+  for (idx,upmsgs) in getUpMsgs(csmc) # csmc.msgsUp
     append!(msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsgs))
   end
 
@@ -278,7 +279,8 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     #save down messages in msgsDown
     if beliefMsg.status == DOWNSOLVED
-      csmc.msgsDown = beliefMsg
+      setDwnMsg!(csmc, beliefMsg)
+      # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
 
     else
@@ -313,7 +315,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   # for downmsgs in csmc.msgsDown
-  downmsgs = csmc.msgsDown
+  downmsgs = getDwnMsgs(csmc) # csmc.msgsDown
     # TODO
     # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
     svars = getCliqSeparatorVarIds(csmc.cliq)
