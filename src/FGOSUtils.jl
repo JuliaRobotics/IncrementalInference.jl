@@ -82,7 +82,7 @@ Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`,
 Future:
 - Allow different freezing strategies beyond fifo.
 """
-function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
+function fifoFreeze!(dfg::AbstractDFG)
   if DFG.getSolverParams(dfg).qfl == 0
     @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
   end
@@ -103,7 +103,7 @@ end
 
 Return all factors currently registered in the workspace.
 """
-function getCurrentWorkspaceFactors()::Vector{Type}
+function getCurrentWorkspaceFactors()
     return [
         subtypes(IncrementalInference.FunctorSingleton)...,
         subtypes(IncrementalInference.FunctorPairwise)...,
@@ -115,7 +115,7 @@ end
 
 Return all variables currently registered in the workspace.
 """
-function getCurrentWorkspaceVariables()::Vector{Type}
+function getCurrentWorkspaceVariables()
     return subtypes(IncrementalInference.InferenceVariable);
 end
 
@@ -134,7 +134,7 @@ getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;
                          solveKey::Symbol=:default,
-                         method::Type{MeanMaxPPE}=MeanMaxPPE  )::MeanMaxPPE
+                         method::Type{MeanMaxPPE}=MeanMaxPPE  )
   #
   P = getKDE(var)
   manis = getManifolds(softt) # getManifolds(vnd)
@@ -160,7 +160,11 @@ end
 
 calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 
-function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
+function calcVariablePPE(dfg::AbstractDFG,
+                         sym::Symbol;
+                         method::Type{<:AbstractPointParametricEst}=MeanMaxPPE,
+                         solveKey::Symbol=:default )
+  #
   var = getVariable(dfg, sym)
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
@@ -183,8 +187,10 @@ Internal Notes
 - uses number i < 100 for index number, and
 - uses +100 offsets to track the minibatch number of the requested dimension
 """
-function getIdx(pp::T, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {T <: Tuple}
-  # i > 99 ? error("stop") : nothing
+function getIdx(pp::Tuple,
+                sym::Symbol,
+                i::Int=0)
+  #
   i-=100
   for p in pp
     i,j = getIdx(p, sym, i)
@@ -194,8 +200,8 @@ function getIdx(pp::T, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {T <: Tuple
   end
   return i,-1
 end
-getIdx(pp::Symbol, sym::Symbol, i::Int=0)::Tuple{Int, Int} = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
-function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: InferenceVariable}
+getIdx(pp::Symbol, sym::Symbol, i::Int=0) = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
+function getIdx(pp::InferenceVariable, sym::Symbol, i::Int=0)
   return getIdx(pp.dimtype, sym)
 end
 
@@ -210,7 +216,7 @@ isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
 function setThreadModel!(fgl::AbstractDFG;
-                         model=IncrementalInference.SingleThreaded)
+                         model=IncrementalInference.SingleThreaded )
   #
   for (key, id) in fgl.fIDs
     getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
@@ -245,7 +251,7 @@ getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 
 Free all variables from marginalization.
 """
-function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
+function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
@@ -313,7 +319,7 @@ Related
 getVariablePPE
 """
 function getPPESuggestedAll(dfg::AbstractDFG,
-                            regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
+                            regexFilter::Union{Nothing, Regex}=nothing )
   #
   # get values
   vsyms = listVariables(dfg, regexFilter) |> sortDFG
