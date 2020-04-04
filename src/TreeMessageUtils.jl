@@ -38,7 +38,7 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )::Vector{DFGFactor}
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
       # msgs::
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
@@ -56,7 +56,7 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        allmsgs::Dict{Int,LikelihoodMessage} )::Vector{DFGFactor}
+                        allmsgs::Dict{Int,LikelihoodMessage} )
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
@@ -70,7 +70,7 @@ end
 
 # Consolidate with nonparametric addMsgFactors! ?
 function addMsgFactors_Parametric!(subfg::AbstractDFG,
-                                   msgs::LikelihoodMessage)::Vector{DFGFactor}
+                                   msgs::LikelihoodMessage)
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
@@ -111,7 +111,7 @@ Related
 `addMsgFactors!`
 """
 function deleteMsgFactors!(subfg::AbstractDFG,
-                           fcts::Vector{DFGFactor})
+                           fcts::Vector{DFGFactor} )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
@@ -205,6 +205,7 @@ Get and return upward belief messages as stored in child cliques from `treel::Ab
 
 Notes
 - Use last parameter to select the return format.
+- Pull model #674
 """
 function getCliqChildMsgsUp(fg_::AbstractDFG,
                             treel::AbstractBayesTree,
