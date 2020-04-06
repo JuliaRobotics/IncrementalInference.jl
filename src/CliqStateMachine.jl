@@ -34,7 +34,6 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine")
   setCliqDrawColor(csmc.cliq, "red")
   opts = getSolverParams(csmc.dfg)
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(opts.logpath,"bt.pdf")) : nothing
 
   # get down msg from parent (assing root clique CSM wont make it here)
   prnt = getParent(csmc.tree, csmc.cliq)
@@ -64,8 +63,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
   # setDwnMsg!(cliq, drt.keepdwnmsgs)
 
-      # # update clique subgraph with new status
-      # updateFGBT!(csmc.cliqSubFg, csmc.tree, csmc.cliq.index, drt, dbg=false, fillcolor="lightblue", logger=csmc.logger)
+      # update clique subgraph with new status
       setCliqDrawColor(csmc.cliq, "lightblue")
 
   csmc.dodownsolve = false
@@ -100,11 +98,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
-  # show tree if required
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(opts.logpath,"bt.pdf")) : nothing
-
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
-
   # and finished
   return IncrementalInference.exitStateMachine
 end
@@ -128,7 +122,6 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # yes, continue with downsolve
   setCliqDrawColor(csmc.cliq, "turquoise")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   # assume separate down solve via solveCliq! call, but need a csmc.cliqSubFg this late in CSM anyway -- so just go copy one
   if length(ls(csmc.cliqSubFg)) == 0
@@ -194,7 +187,6 @@ Notes
 - State machine function nr.9
 """
 function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
   cliqst = getCliqStatus(csmc.cliq)
   infocsm(csmc, "9, finishingCliq")
   if cliqst == :upsolved
@@ -217,7 +209,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     return determineCliqIfDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
     setCliqDrawColor(csmc.cliq, "sienna")
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
     # go to 7
     return determineCliqNeedDownMsg_StateMachine
   else
@@ -277,7 +269,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
   if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "red")
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(opts.logpath,"bt.pdf")) : nothing
+
 
     # check if init is required and possible
     infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
@@ -338,7 +330,6 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
   # should never happen to
   setCliqDrawColor(csmc.cliq, "green")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   # initialize clique in downward direction
   # not if parent also needs downward init message
@@ -425,7 +416,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
 
     notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
 
@@ -542,7 +533,6 @@ Notes
 function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
   setCliqDrawColor(csmc.cliq, "blueviolet")
-  csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   cliqst = getCliqStatus(csmc.cliq)
   infocsm(csmc, "5, block on siblings")
@@ -631,7 +621,6 @@ function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
       infocsm(csmc, "4b, escalating to :needdownmsg since all children :needdownmsg")
       notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg, logger=csmc.logger)
       setCliqDrawColor(csmc.cliq, "yellowgreen")
-      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       # go to 5
       return blockUntilSiblingsStatus_StateMachine
@@ -766,7 +755,7 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
+
     csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt_incremental.pdf")) : nothing
     # go to 1
     return isCliqUpSolved_StateMachine
@@ -840,7 +829,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   prnt = getParent(tree, cliq)
 
-  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
+  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType #GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
   csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)

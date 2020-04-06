@@ -1,7 +1,6 @@
 ## Various solver API's used in the past.  These functions are due to be standardized, and obsolete code / functions removed.
 
 
-
 """
     $SIGNATURES
 
@@ -25,11 +24,22 @@ function solveTree!(dfgl::G,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Int=50,
+                    maxparallel::Int=1000,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
-  if getSolverParams(dfgl).graphinit
+  # workaround in case isolated variables occur
+  ensureSolvable!(dfgl)
+  opt = getSolverParams(dfgl)
+
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if opt.multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    opt.multiproc = false
+  end
+
+  if opt.graphinit
     @info "ensure all initialized (using graphinit)"
     ensureAllInitialized!(dfgl)
   end
@@ -38,7 +48,6 @@ function solveTree!(dfgl::G,
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
-  opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -48,8 +57,11 @@ function solveTree!(dfgl::G,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel, filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
+
+  # if desired, drawtree in a loop
+  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
 
   @info "Do tree based init-inference on tree"
   if opt.async
@@ -59,13 +71,20 @@ function solveTree!(dfgl::G,
   end
   @info "Finished tree based init-inference"
 
-  # transfer new tree to outside parameter
+  # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
-  oldtree.cliques = tree.cliques #TODO JT kyk meer detail, this is a bit strange as its a copy of data in graph
+  oldtree.cliques = tree.cliques
   oldtree.frontals = tree.frontals
   oldtree.variableOrder = tree.variableOrder
   oldtree.buildTime = tree.buildTime
+
+  if opt.drawtree && opt.async
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    dotreedraw[1] = 0
+  end
 
   return oldtree, smtasks, hist
 end
@@ -120,8 +139,6 @@ end
 
 
 
-
-
 ## Experimental Parametric
 """
     $SIGNATURES
@@ -146,12 +163,28 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
+  # update worker pool incase there are more or less
+  setWorkerPool!()
+  if getSolverParams(dfgl).multiproc && nprocs() == 1
+    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    getSolverParams(dfgl).multiproc = false
+  end
+
+  # if desired, drawtree in a loop
+  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
+
   @info "Do tree based init-inference"
   # if opt.async
   smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
-  @info "Finished tree based Parametric inference"
+  if opt.async && opt.drawtree
+    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
+    push!(smtasks, treetask)
+  else
+    dotreedraw[1] = 0
+  end
 
+  @info "Finished tree based Parametric inference"
 
   return tree, smtasks, hist
 end

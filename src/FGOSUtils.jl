@@ -41,28 +41,83 @@ getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 Get the folder location where debug and solver information is recorded for a particular factor graph.
 """
-getLogPath(dfg::AbstractDFG) = getSolverParams(dfg).logpath
+getLogPath(opt::SolverParams) = opt.logpath
+getLogPath(dfg::AbstractDFG) = getSolverParams(dfg) |> getLogPath
 
 """
     $SIGNATURES
 
 Append `str` onto factor graph log path as convenience function.
 """
-joinLogPath(dfg::AbstractDFG, str::AbstractString) = joinpath(getLogPath(dfg), str)
+joinLogPath(opt::SolverParams, str...) = joinpath(getLogPath(opt), str...)
+joinLogPath(dfg::AbstractDFG, str...) = joinLogPath(getSolverParams(dfg), str...)
 
-# """
-#     $SIGNATURES
-#
-# Set the `solvable` parameter for either a variable or factor.
-# """
-# function setSolvable!(dfg::AbstractDFG, sym::Symbol, solvable::Int)
-#   if isVariable(dfg, sym)
-#     getVariable(dfg, sym).solvable = solvable
-#   elseif isFactor(dfg, sym)
-#     getFactor(dfg, sym).solvable = solvable
-#   end
-#   return solvable
-# end
+
+"""
+    $(SIGNATURES)
+
+Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
+"""
+function setfreeze!(dfg::AbstractDFG, sym::Symbol)
+  if !isInitialized(dfg, sym)
+    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
+    return nothing
+  end
+  vert = DFG.getVariable(dfg, sym)
+  data = getSolverData(vert)
+  data.ismargin = true
+  nothing
+end
+function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
+  for sym in syms
+    setfreeze!(dfg, sym)
+  end
+end
+
+"""
+    $(SIGNATURES)
+
+Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
+
+Future:
+- Allow different freezing strategies beyond fifo.
+"""
+function fifoFreeze!(dfg::AbstractDFG)
+  if DFG.getSolverParams(dfg).qfl == 0
+    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
+  end
+
+  # the fifo history
+  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
+  if length(tofreeze) == 0
+      @info "[fifoFreeze] QFL - no nodes to freeze."
+      return nothing
+  end
+  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
+  setfreeze!(dfg, tofreeze)
+  nothing
+end
+
+"""
+    $(SIGNATURES)
+
+Return all factors currently registered in the workspace.
+"""
+function getCurrentWorkspaceFactors()
+    return [
+        subtypes(IncrementalInference.FunctorSingleton)...,
+        subtypes(IncrementalInference.FunctorPairwise)...,
+        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
+end
+
+"""
+    $(SIGNATURES)
+
+Return all variables currently registered in the workspace.
+"""
+function getCurrentWorkspaceVariables()
+    return subtypes(IncrementalInference.InferenceVariable);
+end
 
 """
     $SIGNATURES
@@ -79,7 +134,7 @@ getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 function calcVariablePPE(var::DFGVariable,
                          softt::InferenceVariable;
                          solveKey::Symbol=:default,
-                         method::Type{MeanMaxPPE}=MeanMaxPPE  )::MeanMaxPPE
+                         method::Type{MeanMaxPPE}=MeanMaxPPE  )
   #
   P = getKDE(var)
   manis = getManifolds(softt) # getManifolds(vnd)
@@ -101,65 +156,17 @@ function calcVariablePPE(var::DFGVariable,
   end
   MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
 end
-# function calcVariablePPE!(retval::Vector{Float64},
-#                           var::DFGVariable,
-#                           softt::InferenceVariable;
-#                           method::Type{MeanMaxPPE}=MeanMaxPPE )::Nothing
-#   #
-#   P = getKDE(var)
-#   manis = getManifolds(softt) # getManifolds(vnd)
-#   ops = buildHybridManifoldCallbacks(manis)
-#   Pme = getKDEMean(P, addop=ops[1], diffop=ops[2])
-#   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-#   for i in 1:length(manis)
-#     mani = manis[i]
-#     if mani == :Euclid
-#       retval[i] = Pme[i]
-#     elseif mani == :Circular
-#       retval[i] = Pma[i]
-#     else
-#       error("Unknown manifold to find PPE, $softt, $mani")
-#     end
-#   end
-#   nothing
-# end
-# """
-#     $SIGNATURES
-#
-# Get the ParametricPointEstimates---based on full marginal belief estimates---of a variable in the distributed factor graph.
-# """
-# function calcVariablePPE(var::DFGVariable,
-#                          softt::InferenceVariable;
-#                          method::Type{<:AbstractPointParametricEst}=MeanMaxPPE  )::Vector{Float64}
-#   #
-#   # vect = zeros(softt.dims)
-#   mmppe = calcVariablePPE(MeanMaxPPE, var, softt, method=method)
-#   return mmppe.suggested
-# end
 
 
-# calcVariablePPE!(retvec::Vector{Float64}, var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE) = calcVariablePPE!(retvec, var, getSofttype(var), method=method)
 calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
-function calcVariablePPE(dfg::AbstractDFG, sym::Symbol; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default )
+
+function calcVariablePPE(dfg::AbstractDFG,
+                         sym::Symbol;
+                         method::Type{<:AbstractPointParametricEst}=MeanMaxPPE,
+                         solveKey::Symbol=:default )
+  #
   var = getVariable(dfg, sym)
   calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
-end
-
-
-
-
-
-
-# not sure if and where this is still being used
-function _evalType(pt::String)::Type
-    try
-        getfield(Main, Symbol(pt))
-    catch ex
-        io = IOBuffer()
-        showerror(io, ex, catch_backtrace())
-        err = String(take!(io))
-        error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-    end
 end
 
 
@@ -180,8 +187,10 @@ Internal Notes
 - uses number i < 100 for index number, and
 - uses +100 offsets to track the minibatch number of the requested dimension
 """
-function getIdx(pp::T, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {T <: Tuple}
-  # i > 99 ? error("stop") : nothing
+function getIdx(pp::Tuple,
+                sym::Symbol,
+                i::Int=0)
+  #
   i-=100
   for p in pp
     i,j = getIdx(p, sym, i)
@@ -191,8 +200,8 @@ function getIdx(pp::T, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {T <: Tuple
   end
   return i,-1
 end
-getIdx(pp::Symbol, sym::Symbol, i::Int=0)::Tuple{Int, Int} = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
-function getIdx(pp::V, sym::Symbol, i::Int=0)::Tuple{Int, Int} where {V <: InferenceVariable}
+getIdx(pp::Symbol, sym::Symbol, i::Int=0) = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
+function getIdx(pp::InferenceVariable, sym::Symbol, i::Int=0)
   return getIdx(pp.dimtype, sym)
 end
 
@@ -207,7 +216,7 @@ isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
 function setThreadModel!(fgl::AbstractDFG;
-                         model=IncrementalInference.SingleThreaded)
+                         model=IncrementalInference.SingleThreaded )
   #
   for (key, id) in fgl.fIDs
     getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
@@ -242,7 +251,7 @@ getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 
 Free all variables from marginalization.
 """
-function dontMarginalizeVariablesAll!(fgl::G) where G <: AbstractDFG
+function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
   fgl.solverParams.isfixedlag = false
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
@@ -310,15 +319,15 @@ Related
 getVariablePPE
 """
 function getPPESuggestedAll(dfg::AbstractDFG,
-                            regexFilter::Union{Nothing, Regex}=nothing )::Tuple{Vector{Symbol}, Matrix{Float64}}
+                            regexFilter::Union{Nothing, Regex}=nothing )
   #
   # get values
   vsyms = listVariables(dfg, regexFilter) |> sortDFG
-  slamPPE = map(x->getVariablePPE(dfg, x), vsyms)
+  slamPPE = map(x->getVariablePPE(dfg, x).suggested, vsyms)
   # sizes to convert to matrix
   rumax = zeros(Int, 2)
-  for varr in slamPPE
-    rumax[2] = length(varr)
+  for ppe in slamPPE
+    rumax[2] = length(ppe)
     rumax[1] = maximum(rumax)
   end
 
@@ -351,20 +360,6 @@ function findVariablesNear(dfg::AbstractDFG,
   return (xy[1][prm], sqrt.(dist[prm]))
 end
 
-
-function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::TreeBelief )
-  @show size(p.val), size(p.bw), p.manifolds
-  (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
-end
-
-
-function convert(::Type{TreeBelief},
-                 bel::Tuple{BallTreeDensity,Float64},
-                 manifolds::T) where {T <: Tuple}
-  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds)"
-  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
-end
 
 
 

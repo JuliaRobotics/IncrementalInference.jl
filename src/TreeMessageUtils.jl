@@ -201,7 +201,7 @@ end
 function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
   childmsgs = IntermediateMultiSiblingMessages()
   for child in getChildren(treel, cliq)
-    for (key, bel) in getUpMsgs(child)
+    for (key, bel) in getUpMsgs(child).belief
       # id = fg_.IDs[key]
       # manis = getManifolds(fg_, id)
       if !haskey(childmsgs, key)
@@ -358,7 +358,94 @@ function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=Cons
 end
 
 
+"""
+    $SIGNATURES
 
+Return dictionary of all up belief messages currently in a Bayes `tree`.
+
+Related
+
+getUpMsgs
+"""
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
+  allUpMsgs = Dict{Int,LikelihoodMessage}()
+  for (idx,cliq) in getCliques(tree)
+    msgs = getUpMsgs(cliq)
+    allUpMsgs[cliq.index] = LikelihoodMessage()
+    for (lbl,msg) in msgs
+      # TODO capture the inferred dimension as part of the upward propagation
+      allUpMsgs[cliq.index].belief[lbl] = msg
+    end
+  end
+  return allUpMsgs
+end
+
+"""
+    $SIGNATURES
+
+Convert tree up messages dictionary to a new dictionary relative to variables specific messages and their depth in the tree
+
+Notes
+- Return data in `TempUpMsgPlotting` format:
+    Dict{Symbol,   -- is for variable label
+     Vector{       -- multiple msgs for the same variable
+      Symbol,      -- Clique index
+      Int,         -- Depth in tree
+      BTD          -- Belief estimate
+      inferredDim  -- Information count
+     }
+"""
+function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
+                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
+  #
+  # start of the return data structure
+  stack = TempUpMsgPlotting()
+
+  # look at all the clique level data
+  for (cidx,tmpmsg) in tmpmsgs
+    # look at all variables up msg from each clique
+    for (sym,msgdim) in tmpmsg.belief
+      # create a new object for a particular variable if hasnt been seen before
+      if !haskey(stack,sym)
+        # FIXME this is an old message type
+        stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
+      end
+      # assemble metadata
+      cliq = getCliques(tree,cidx)
+      frt = getCliqFrontalVarIds(cliq)[1]
+      # add this belief msg and meta data to vector of variable entry
+      push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))
+    end
+  end
+
+  return stack
+end
+
+
+
+## From other random places
+
+"""
+    $SIGNATURES
+
+Return dictionary of down messages consisting of all frontal and separator beliefs of this clique.
+
+Notes:
+- Fetches numerical results from `subdfg` as dictated in `cliq`.
+"""
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
+  # Dict{Symbol, BallTreeDensity}
+  # where the return msgs are contained
+  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
+
+  # go through all msgs one by one
+  for sym in getCliqAllVarIds(cliq)
+    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
+  end
+
+  # return the result
+  return container
+end
 
 
 

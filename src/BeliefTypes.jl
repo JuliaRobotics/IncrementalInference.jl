@@ -76,6 +76,10 @@ LikelihoodMessage(status::CliqStatus) =
 LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), varOrder, cliqueLikelihood)
 
+#TODO Merge conflict... is this function used?
+LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
+
 LikelihoodMessage(;status::CliqStatus=NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    variableOrder=Symbol[],
@@ -88,6 +92,81 @@ LikelihoodMessage(;status::CliqStatus=NULL,
 # used during nonparametric CK preparation, when information from multiple siblings must be shared together
 const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
 const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
+
+
+function convert(::Type{BallTreeDensity}, src::TreeBelief)
+  manikde!(src.val, src.bw[:,1], src.softtype)
+end
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct PotProd
+    Xi::Symbol # Int
+    prev::Array{Float64,2}
+    product::Array{Float64,2}
+    potentials::Array{BallTreeDensity,1}
+    potentialfac::Vector{Symbol}
+end
+"""
+$(TYPEDEF)
+"""
+mutable struct CliqGibbsMC
+    prods::Array{PotProd,1}
+    lbls::Vector{Symbol}
+    CliqGibbsMC() = new()
+    CliqGibbsMC(a,b) = new(a,b)
+end
+"""
+$(TYPEDEF)
+"""
+mutable struct DebugCliqMCMC
+  mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
+  outmsg::LikelihoodMessage
+  outmsglbls::Dict{Symbol, Symbol} # Int
+  priorprods::Vector{CliqGibbsMC}
+  DebugCliqMCMC() = new()
+  DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
+end
+
+"""
+$(TYPEDEF)
+"""
+mutable struct UpReturnBPType
+  upMsgs::LikelihoodMessage
+  dbgUp::DebugCliqMCMC
+  IDvals::Dict{Symbol, TreeBelief}
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  totalsolve::Bool
+  UpReturnBPType() = new()
+  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
+end
+
+"""
+$(TYPEDEF)
+
+TODO refactor msgs into only a single variable
+"""
+mutable struct DownReturnBPType
+  dwnMsg::LikelihoodMessage
+  dbgDwn::DebugCliqMCMC
+  IDvals::Dict{Symbol,TreeBelief}
+  keepdwnmsgs::LikelihoodMessage
+end
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct MsgPassType
+  fg::GraphsDFG
+  cliq::TreeClique
+  vid::Symbol # Int
+  msgs::Array{LikelihoodMessage,1}
+  N::Int
+end
+
 
 
 ### EVERYTHING BELOW IS/SHOULD BE DEPRECATED

@@ -316,7 +316,7 @@ Notes
 """
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
-                  filepath::String="/tmp/caesar/bt.pdf",
+                  filepath::String="/tmp/caesar/random/bt.pdf",
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
@@ -350,6 +350,42 @@ function drawTree(treel::AbstractBayesTree;
   end
 
   show ? showTree(viewerapp=viewerapp, filepath=filepath) : nothing
+end
+
+"""
+    $SIGNATURES
+
+If opt.drawtree then start an async task to draw tree in a loop according to opt.drawtreerate.
+
+Notes
+- wont draw if opt.drawtree=false, just skips back to caller.
+- Currently @async
+- use `opt.showtree::Bool`
+- Does not work too well when opt.async during solveTree! call, but user can use this function separately.
+
+DevNotes
+- TODO, use Threads.@spawn instead.
+
+Related
+
+drawTree, drawGraph
+"""
+function drawTreeAsyncLoop(tree::BayesTree,
+                           opt::SolverParams;
+                           filepath=joinLogPath(opt,"bt.pdf"),
+                           dotreedraw = Int[1;]  )
+  #
+  # single drawtreerate
+  treetask = if opt.drawtree
+    @async begin
+      while dotreedraw[1] == 1 && 0 < opt.drawtreerate
+        drawTree(tree,show=false,filepath=filepath)
+        sleep(1/opt.drawtreerate)
+      end
+      drawTree(tree,show=opt.showtree,filepath=filepath)
+    end
+  end
+  return treetask, dotreedraw
 end
 
 """
@@ -439,7 +475,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50,
+                                maxparallel::Int=200,
                                 solvable::Int=1 )
   #
   t0 =time_ns()
@@ -491,7 +527,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=50  )
+                                maxparallel::Int=200  )
   #
   println()
 
@@ -540,7 +576,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=50 )
+                        maxparallel::Int=200 )
   #
   p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
@@ -627,10 +663,14 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=50,
+                           maxparallel::Int=200,
+                           ensureSolvable::Bool=true,
                            variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                            variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
   #
+  if ensureSolvable
+    ensureSolvable!(dfg)
+  end
   resetFactorGraphNewTree!(dfg);
   return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
 end
@@ -1049,28 +1089,13 @@ function getCliqAllVarSyms(dfg::G, cliq::TreeClique)::Vector{Symbol} where G <: 
   getCliqAllVarIds(cliq) # not doing all frontals
 end
 
+
 """
     $SIGNATURES
 
-Return dictionary of down messages consisting of all frontal and separator beliefs of this clique.
-
-Notes:
-- Fetches numerical results from `subdfg` as dictated in `cliq`.
+Return the number of factors associated with each variable in `cliq`.
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
-  # Dict{Symbol, BallTreeDensity}
-  # where the return msgs are contained
-  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
-
-  # go through all msgs one by one
-  for sym in getCliqAllVarIds(cliq)
-    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
-  end
-
-  # return the result
-  return container
-end
-
+getCliqNumAssocFactorsPerVar(cliq::TreeClique)::Vector{Int} = sum(getCliqAssocMat(cliq), dims=1)[:]
 
 
 """
@@ -1095,14 +1120,6 @@ function getCliqVarIdsPriors(cliq::TreeClique,
   mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
   return allids[mask]
 end
-
-"""
-    $SIGNATURES
-
-Return the number of factors associated with each variable in `cliq`.
-"""
-getCliqNumAssocFactorsPerVar(cliq::TreeClique)::Vector{Int} = sum(getCliqAssocMat(cliq), dims=1)[:]
-
 
 
 """
@@ -1237,7 +1254,8 @@ function directAssignmentIDs(cliq::TreeClique)
 end
 
 function mcmcIterationIDs(cliq::TreeClique)
-  mat = getCliqMat(cliq)
+  @show cliq.index, getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq)
+  @show mat = getCliqMat(cliq)
   # assocMat = getCliqueData(cliq).cliqAssocMat
   # msgMat = getCliqueData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
@@ -1335,7 +1353,7 @@ function setCliqMCIDs!(cliq::TreeClique)
   # NOTE -- directvarIDs are combined into itervarIDs
   getCliqueData(cliq).directvarIDs = directAssignmentIDs(cliq)
   # TODO find itervarIDs that have upward child singleton messages and update them last in iter list
-  getCliqueData(cliq).itervarIDs = mcmcIterationIdsOrdered(cliq)  #mcmcIterationIDs(cliq)
+  getCliqueData(cliq).itervarIDs = mcmcIterationIdsOrdered(cliq)
 
   getCliqueData(cliq).msgskipIDs = skipThroughMsgsIDs(cliq)
   getCliqueData(cliq).directFrtlMsgIDs = directFrtlMsgIDs(cliq)
@@ -1506,68 +1524,6 @@ state machine solver.
 """
 getSolveCondition(cliq::TreeClique) = getCliqueData(cliq).solveCondition
 
-
-"""
-    $SIGNATURES
-
-Return dictionary of all up belief messages currently in a Bayes `tree`.
-
-Related
-
-getUpMsgs
-"""
-function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
-  allUpMsgs = Dict{Int,LikelihoodMessage}()
-  for (idx,cliq) in getCliques(tree)
-    msgs = getUpMsgs(cliq)
-    allUpMsgs[cliq.index] = LikelihoodMessage()
-    for (lbl,msg) in msgs
-      # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index].belief[lbl] = msg
-    end
-  end
-  return allUpMsgs
-end
-
-"""
-    $SIGNATURES
-
-Convert tree up messages dictionary to a new dictionary relative to variables specific messages and their depth in the tree
-
-Notes
-- Return data in `TempUpMsgPlotting` format:
-    Dict{Symbol,   -- is for variable label
-     Vector{       -- multiple msgs for the same variable
-      Symbol,      -- Clique index
-      Int,         -- Depth in tree
-      BTD          -- Belief estimate
-      inferredDim  -- Information count
-     }
-"""
-function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
-  #
-  # start of the return data structure
-  stack = TempUpMsgPlotting()
-
-  # look at all the clique level data
-  for (cidx,tmpmsg) in tmpmsgs
-    # look at all variables up msg from each clique
-    for (sym,msgdim) in tmpmsg.belief
-      # create a new object for a particular variable if hasnt been seen before
-      if !haskey(stack,sym)
-        stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
-      end
-      # assemble metadata
-      cliq = getCliques(tree,cidx)
-      frt = getCliqFrontalVarIds(cliq)[1]
-      # add this belief msg and meta data to vector of variable entry
-      push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))
-    end
-  end
-
-  return stack
-end
 
 # import DistributedFactorGraphs: getVariableOrder
 #
