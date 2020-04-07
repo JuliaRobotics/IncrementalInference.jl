@@ -5,14 +5,6 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
-function getVertKDE(v::DFGVariable)
-  return getKDE(v)
-end
-function getVertKDE(dfg::AbstractDFG, lbl::Symbol)
-  v = DFG.getVariable(dfg, lbl)
-  return getKDE(v)
-end
-
 @deprecate getVertKDE(v::DFGVariable) getKDE(v)
 @deprecate getVertKDE(dfg::AbstractDFG, lbl::Symbol) getKDE(dfg, lbl)
 
