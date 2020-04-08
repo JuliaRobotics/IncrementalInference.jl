@@ -62,7 +62,6 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   #TODO remove, just as a sanity check if any priors remains on seperators
   removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
   length(removedIds) > 0 && @error "removeSeparatorPriorsFromSubgraph, removed priors should not happen"
-  infocsm(csmc, "Par-1 Removed ids $removedIds")
 
 
   # store the cliqSubFg for later debugging
@@ -237,7 +236,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
   beliefMsg = LikelihoodMessage(UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
 
-  #FIXME bit of a hack, only fill in varible beliefs if there are priors or for now more than one seperator
+  #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
       vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)

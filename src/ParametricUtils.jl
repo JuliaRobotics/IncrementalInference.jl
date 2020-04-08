@@ -323,7 +323,6 @@ end
 Optim.project_tangent!(S::MixedCircular,g,x) = g
 
 
-
 function createMvNormal(val,cov)
     #TODO do something better for properly formed covariance, but for now just a hack...FIXME
     if all(diag(cov) .> 0) && isapprox(cov, transpose(cov), atol=1e-5)
@@ -331,5 +330,16 @@ function createMvNormal(val,cov)
     else
         @error("Covariance matrix error", cov)
         return MvNormal(val, ones(length(val)))
+    end
+end
+
+function createMvNormal(v::DFGVariable, key=:parametric)
+    if key == :parametric
+        vnd = getSolverData(v, :parametric)
+        dims = vnd.dims
+        createMvNormal(vnd.val[1:dims,1], vnd.bw[1:dims, 1:dims])
+    else
+        @warn "Trying MvNormal Fit, replace with PPE fits in future"
+        return fit(MvNormal,getSolverData(v, key).val)
     end
 end

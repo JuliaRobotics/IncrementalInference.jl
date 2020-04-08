@@ -52,6 +52,35 @@ function buildCliqSubgraph!(dfg::AbstractDFG,
   return cliqSubFg
 end
 
+# TODO vervang vorige ene sodra dfg deepcopyGraph! gereed is
+# function buildCliqSubgraph!(dfg::AbstractDFG,
+#                             cliqSubFg::AbstractDFG,
+#                             frontals::Vector{Symbol},
+#                             separators::Vector{Symbol})
+#
+#
+#   allvars = union(frontals,separators)
+#
+#   #get list of factors to possibly add, ie. frontal neighbors
+#   addfac = Symbol[]
+#   for sym in frontals
+#     union!(addfac, getNeighbors(dfg,sym))
+#   end
+#
+#   allfacs = Symbol[]
+#   for sym in addfac
+#     vos = getVariableOrder(dfg, sym)
+#     if vos ⊆ allvars   #duplicates not added to start with
+#       union!(allfacs, [sym])
+#     end
+#   end
+#
+#   # add all the factors and variables to the new subgraph
+#   DFG.deepcopyGraph!(cliqSubFg, dfg, union(allvars, allfacs))
+#
+#   return cliqSubFg
+# end
+
 
 
 """
