@@ -62,7 +62,6 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
   #TODO remove, just as a sanity check if any priors remains on seperators
   removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
   length(removedIds) > 0 && @error "removeSeparatorPriorsFromSubgraph, removed priors should not happen"
-  infocsm(csmc, "Par-1 Removed ids $removedIds")
 
 
   # store the cliqSubFg for later debugging
@@ -194,11 +193,9 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       #calculate and fill in covariance
       #TODO rather broadcast than make new memory
       vnd.bw = val.cov
-      # TEMP remove, filled in ones for the covariance
-      # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
     end
-  elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
-    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve, but ignoring since no priors" result
+  # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
+  #   @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve, but ignoring since no priors" result
   else
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve" result
 
@@ -222,6 +219,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   # Done with solve delete factors
+  #TODO confirm, maybe don't delete mesage factors on subgraph, maybe delete if its priors, but not conditionals
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # store the cliqSubFg for later debugging
@@ -233,13 +231,16 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #fill in belief
   #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
-  beliefMsg = LikelihoodMessage(UPSOLVED)
+  #Fil in CliqueLikelihood
+  cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
+  # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
+  beliefMsg = LikelihoodMessage(UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
 
-  #FIXME this is a bit of a hack to only send messages if there are priors or for now more than one seperator
+  #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
       vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
-      beliefMsg.belief[si] = TreeBelief(vnd)
+      beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
       # beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     end
   end
@@ -319,7 +320,6 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         vnd = getSolverData(getVariable(csmc.cliqSubFg, msym), :parametric)
         @info "$(csmc.cliq.index): Updating separator $msym from message $(belief.val)"
         vnd.val .= belief.val
-        #TODO covar
         vnd.bw .= belief.bw
       end
     end
@@ -335,7 +335,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO DownSolve cliqSubFg
   #only down solve if its not a root
-  if length(getParent(csmc.tree, csmc.cliq)) != 0#csmc.cliqKey != 1
+  if length(getParent(csmc.tree, csmc.cliq)) != 0
     frontals = getCliqFrontalVarIds(csmc.cliq)
     vardict, result, flatvars, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
@@ -346,12 +346,9 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       for (v,val) in vardict
         @info "$(csmc.cliq.index) down: updating $v : $val"
         vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
-        #TODO
+        #Update subfg variables
         vnd.val .= val.val
-        #TODO calculate and fill in covariance
         vnd.bw .= val.cov
-        # TEMP remove, filled in ones for the covariance
-        # vnd.bw = diagm(0=>ones(size(vnd.val)[1]))
       end
     else
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve" result

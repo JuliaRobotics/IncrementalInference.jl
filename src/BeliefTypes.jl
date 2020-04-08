@@ -73,6 +73,10 @@ end
 LikelihoodMessage(status::CliqStatus) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
 
+LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) =
+        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), varOrder, cliqueLikelihood)
+
+#TODO Merge conflict... is this function used?
 LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
 
