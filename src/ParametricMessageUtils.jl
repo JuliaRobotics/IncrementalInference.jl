@@ -12,15 +12,10 @@ function addMsgFactors_Parametric!(subfg::AbstractDFG,
       if size(belief.val)[1] == 1
         msgPrior =  MsgPrior(Normal(belief.val[1], sqrt(belief.bw[1])), belief.inferdim)
       else
-        #FIXME a hack to make matrix Hermitian
-        covar = Symmetric(belief.bw + 1e-5I)
-        try
-          MvNormal(belief.val[:,1], covar)
-        catch er
-          @error er "MvNormal Failed with:" covar
-          return DFGFactor[]
-        end
-        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], covar), belief.inferdim)
+        mvnorm = createMvNormal(belief.val[:,1], belief.bw)
+        mvnorm == nothing &&
+          (return DFGFactor[])
+        msgPrior =  MsgPrior(mvnorm, belief.inferdim)
       end
       fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
       push!(msgfcts, fc)
@@ -31,7 +26,7 @@ function addMsgFactors_Parametric!(subfg::AbstractDFG,
 #   Σ = msgs.cobelief.Σ
 #   μ = msgs.cobelief.μ
 #   if length(μ) == 1
-#     dist = Normal(μ[1], sqrt(Σ[1]))#floekwoord sqrt alweer
+#     dist = Normal(μ[1], sqrt(Σ[1]))
 #   else
 #     dist = MvNormal(μ, Σ)
 #   end

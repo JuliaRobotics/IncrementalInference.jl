@@ -329,7 +329,8 @@ function createMvNormal(val,cov)
         return MvNormal(val,Symmetric(cov))
     else
         @error("Covariance matrix error", cov)
-        return MvNormal(val, ones(length(val)))
+        return nothing
+        #return MvNormal(val, ones(length(val)))
     end
 end
 
@@ -337,7 +338,7 @@ function createMvNormal(v::DFGVariable, key=:parametric)
     if key == :parametric
         vnd = getSolverData(v, :parametric)
         dims = vnd.dims
-        createMvNormal(vnd.val[1:dims,1], vnd.bw[1:dims, 1:dims])
+        return createMvNormal(vnd.val[1:dims,1], vnd.bw[1:dims, 1:dims])
     else
         @warn "Trying MvNormal Fit, replace with PPE fits in future"
         return fit(MvNormal,getSolverData(v, key).val)
