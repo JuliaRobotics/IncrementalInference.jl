@@ -57,7 +57,7 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
 
   frontsyms = getCliqFrontalVarIds(csmc.cliq)
   sepsyms = getCliqSeparatorVarIds(csmc.cliq)
-  buildCliqSubgraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, sepsyms)
+  buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, frontsyms, sepsyms)
 
   #TODO remove, just as a sanity check if any priors remains on seperators
   removedIds = removeSeparatorPriorsFromSubgraph!(csmc.cliqSubFg, csmc.cliq)
