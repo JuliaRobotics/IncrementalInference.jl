@@ -60,6 +60,20 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   return cliqSubFg
 end
 
+function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
+                            dfg::AbstractDFG,
+                            cliq::TreeClique;
+                            solvable::Int = 0)
+
+  allcliqnodes = union(getCliqVarIdsAll(cliq), getCliqFactorIdsAll(cliq))
+
+  # Potential problem... what are variables/factors doing in the clique if they are not solvable?
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allcliqnodes)
+
+  DFG.deepcopyGraph!(cliqSubFg, dfg, allcliqnodes)
+
+  return cliqSubFg
+end
 
 
 """
@@ -79,33 +93,22 @@ DevNotes
 """
 function buildCliqSubgraph(dfg::AbstractDFG,
                            cliq::TreeClique,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
-  #
-  # get cliq and variable labels
-  syms = getCliqAllVarIds(cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getCliqueData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
+                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg));
+                           solvable::Int=1)
 
-  # frontals treated special
-  frontals = getCliqFrontalVarIds(cliq)
-  separators = getCliqSeparatorVarIds(cliq)
-  #TODO use clique potentials (factors)
-  # cliqpotentials = getCliquePotentials(cliq)
-
-  # build the subgraph with subset of factors from frontals only
-  buildCliqSubgraph!(subfg, dfg, frontals, separators, solvable=1)
-  # recent option but not consolidated
-  # buildSubgraphFromLabels!_SPECIAL(dfg, syms, subfg=subfg, solvable=1, allowedFactors=factorFilter ) # DFG v0.5.2
-
+  #TODO why was solvable hardcoded to 1?
+  buildCliqSubgraph!(subfg, dfg, cliq, solvable=solvable)
   return subfg
 end
 
 function buildCliqSubgraph(fgl::AbstractDFG,
                            treel::AbstractBayesTree,
                            cliqsym::Symbol,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl)) )
+                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl));
+                           solvable::Int=1)
   #
-  buildCliqSubgraph(fgl, getCliq(treel, cliqsym), subfg)
+  buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable)
+  return subfg
 end
 
 #
