@@ -110,7 +110,7 @@ function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::Int)::String wher
   for sepr in getCliqueData(clq).separatorIDs
     clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
-  setLabel!(clq, string(flbl, ": ", clbl))
+  setLabel!(clq, string(clqID,"| ", flbl, ": ", clbl))
 end
 
 """

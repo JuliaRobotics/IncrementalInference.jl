@@ -1,9 +1,7 @@
 """
     $SIGNATURES
 
-Start async tasks to solve (parametric) on the tree.
-Related
-TODO multithrededSolveTreeParametric!
+Start tasks (@async or Threads.@spawn threads if multithread=true) to solve (parametric) the factor graph on the tree.
 """
 function taskSolveTreeParametric!(dfg::AbstractDFG,
                           treel::AbstractBayesTree;
@@ -12,6 +10,7 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
+                          multithread::Bool=false,
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
                           delaycliqs::Vector{Symbol}=Symbol[])
@@ -24,7 +23,7 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
-  # queue all the tasks
+  # queue all the tasks/threads
   alltasks = Vector{Task}(undef, getNumCliqs(treel))
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   if !isTreeSolved(treel, skipinitialized=true)
@@ -33,7 +32,13 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
       for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
+          # TODO WIP for Multithreaded, if compat is 1.3
           alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+          # if multithread
+          #   alltasks[i] = Threads.@spawn tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+          # else
+          #   alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+          # end
         end # if
       end # for
     end # sync

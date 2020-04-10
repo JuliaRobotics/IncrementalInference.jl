@@ -205,6 +205,23 @@ end
 
 """
     $SIGNATURES
+Calculate the marginal distribution for a clique over subsetVarIds.
+"""
+function calculateMarginalCliqueLikelihood(vardict, Σ, varindxs, subsetVarIds)
+
+  μₘ = Float64[]
+  for lbl in subsetVarIds
+    append!(μₘ, vardict[lbl].val)
+  end
+
+  Aidx = collectIdx(varindxs, subsetVarIds)
+  Σₘ = Σ[Aidx, Aidx]
+
+  return createMvNormal(μₘ, Σₘ)
+end
+
+"""
+    $SIGNATURES
 
 """
 function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
@@ -306,13 +323,24 @@ end
 Optim.project_tangent!(S::MixedCircular,g,x) = g
 
 
-
 function createMvNormal(val,cov)
     #TODO do something better for properly formed covariance, but for now just a hack...FIXME
     if all(diag(cov) .> 0) && isapprox(cov, transpose(cov), atol=1e-5)
         return MvNormal(val,Symmetric(cov))
     else
         @error("Covariance matrix error", cov)
-        return MvNormal(val, ones(length(val)))
+        return nothing
+        #return MvNormal(val, ones(length(val)))
+    end
+end
+
+function createMvNormal(v::DFGVariable, key=:parametric)
+    if key == :parametric
+        vnd = getSolverData(v, :parametric)
+        dims = vnd.dims
+        return createMvNormal(vnd.val[1:dims,1], vnd.bw[1:dims, 1:dims])
+    else
+        @warn "Trying MvNormal Fit, replace with PPE fits in future"
+        return fit(MvNormal,getSolverData(v, key).val)
     end
 end

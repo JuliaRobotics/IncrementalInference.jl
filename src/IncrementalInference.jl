@@ -30,9 +30,6 @@ using
   JSON2,
   Combinatorics
 
-#added for parametric
-using ValueShapes
-
 # experimental for replacing BayesTree on Graphs.jl
 using MetaGraphs
 
