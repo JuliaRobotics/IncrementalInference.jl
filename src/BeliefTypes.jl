@@ -93,6 +93,8 @@ LikelihoodMessage(;status::CliqStatus=NULL,
 const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
 const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
+const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
+
 
 function convert(::Type{BallTreeDensity}, src::TreeBelief)
   manikde!(src.val, src.bw[:,1], src.softtype)
@@ -166,27 +168,6 @@ mutable struct MsgPassType
   msgs::Array{LikelihoodMessage,1}
   N::Int
 end
-
-
-
-### EVERYTHING BELOW IS/SHOULD BE DEPRECATED
-
-
-# TODO this is casing problems between nonparametric and parametric
-# const BeliefMessage = LikelihoodMessage
-
-
-# Deprecated, replaced by LikelihoodMessage
-# TODO - remove
-
-# Dict{Symbol,   -- is for variable label
-#  Vector{       -- multiple msgs for the same variable
-#   Symbol,      -- Clique index
-#   Int,         -- Depth in tree
-#   BTD          -- Belief estimate
-#   inferredDim  -- Information count
-#  }
-const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 
 

@@ -23,8 +23,8 @@ addFactor!(fg, [:x0], Prior0)
 smpls, lb = getSample(Prior0, N)
 
 # should be a balance of particles
-@test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
-@test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.3*N
+@test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.25*N
+@test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.25*N
 
 # solve
 solveTree!(fg)
@@ -32,7 +32,7 @@ solveTree!(fg)
 marginalPts = getKDE(fg, :x0) |> getPoints
 
 # check solver solution consistent too
-@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.25*N
 
 
 end

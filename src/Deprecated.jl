@@ -5,6 +5,7 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+
 @deprecate getVertKDE(v::DFGVariable) getKDE(v)
 @deprecate getVertKDE(dfg::AbstractDFG, lbl::Symbol) getKDE(dfg, lbl)
 
