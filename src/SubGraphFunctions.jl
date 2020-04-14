@@ -13,74 +13,106 @@ function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeCl
   return priorIds
 end
 
-# TODO JT solvable
-function buildCliqSubgraph!(dfg::AbstractDFG,
-                            cliqSubFg::AbstractDFG,
+
+"""
+    $(SIGNATURES)
+Specialized subgraph function for cliques to build a deep subgraph copy from the DFG given a list of frontals and separators.
+Dev notes:
+- TODO Since a clique should already have a list of frontals, seperators, and potentials (factors), this function should just be a light wrapper around copyGraph or buildSubgraph
+- TODO Send in clique and then extract frontals, separators and factors
+"""
+function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
+                            dfg::AbstractDFG,
                             frontals::Vector{Symbol},
                             separators::Vector{Symbol};
-                            solvable::Int=0)
+                            solvable::Int = 0)
 
-  for sym in separators
-    DFG.addVariable!(cliqSubFg, deepcopy(DFG.getVariable(dfg, sym)))
-  end
 
-  ## CONSOLIDATE USE copyDFG(dest, souce, labels)
+  allvars = union(frontals, separators)
+  lenbefore = length(allvars)
+  # filter variables by solvable
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allvars)
+
+  # Potential problem... what are variables doing in the clique if they are not solvable?
+  solvable != 0 && lenbefore != length(allvars) && @info("Not all variables are included in subgraph due to solvable $solvable")
+
+  #get list of factors to possibly add, ie. frontal neighbors
+  #todo replace with the factor list (potentials) from the clique
   addfac = Symbol[]
   for sym in frontals
-    DFG.addVariable!(cliqSubFg, deepcopy(DFG.getVariable(dfg, sym)))
-    append!(addfac, getNeighbors(dfg,sym))
+    union!(addfac, getNeighbors(dfg,sym))
   end
 
-  allvars = ls(cliqSubFg)
+  allfacs = Symbol[]
   for sym in addfac
-    fac = DFG.getFactor(dfg, sym)
-    vos = fac._variableOrderSymbols
-    if !exists(cliqSubFg,fac) && vos ⊆ allvars   #duplicates not added to start with
-      DFG.addFactor!(cliqSubFg, fac._variableOrderSymbols, deepcopy(fac))
+    vos = getVariableOrder(dfg, sym)
+    if vos ⊆ allvars #only add if not orphaned
+      union!(allfacs, [sym])
     end
   end
 
-  #TODO remove, just as a sanity check to see if there is any orphans to remove
-  for fct in DFG.getFactors(cliqSubFg)
-    # delete any neighboring factors first
-    if length(getNeighbors(cliqSubFg, fct)) != length(fct._variableOrderSymbols)
-      DFG.deleteFactor!(cliqSubFg, fc)
-      @error "deleteFactor! this should not happen"
-    end
-  end
+  # filter factors by solvable
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allfacs)
+
+  # add all the factors and variables to the new subgraph
+  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs)
 
   return cliqSubFg
 end
 
-# TODO vervang vorige ene sodra dfg deepcopyGraph! gereed is
-# function buildCliqSubgraph!(dfg::AbstractDFG,
-#                             cliqSubFg::AbstractDFG,
-#                             frontals::Vector{Symbol},
-#                             separators::Vector{Symbol})
-#
-#
-#   allvars = union(frontals,separators)
-#
-#   #get list of factors to possibly add, ie. frontal neighbors
-#   addfac = Symbol[]
-#   for sym in frontals
-#     union!(addfac, getNeighbors(dfg,sym))
-#   end
-#
-#   allfacs = Symbol[]
-#   for sym in addfac
-#     vos = getVariableOrder(dfg, sym)
-#     if vos ⊆ allvars   #duplicates not added to start with
-#       union!(allfacs, [sym])
-#     end
-#   end
-#
-#   # add all the factors and variables to the new subgraph
-#   DFG.deepcopyGraph!(cliqSubFg, dfg, union(allvars, allfacs))
-#
-#   return cliqSubFg
-# end
+function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
+                            dfg::AbstractDFG,
+                            cliq::TreeClique;
+                            solvable::Int = 0)
 
+  vars = getCliqVarIdsAll(cliq)
+  facs = getCliqFactorIdsAll(cliq)
+  # Potential problem... what are variables/factors doing in the clique if they are not solvable?
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  vars)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  facs)
+
+  DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs)
+
+  return cliqSubFg
+end
+
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+
+DevNotes
+- TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
+"""
+function buildCliqSubgraph(dfg::AbstractDFG,
+                           cliq::TreeClique,
+                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg));
+                           solvable::Int=1)
+
+  #TODO why was solvable hardcoded to 1?
+  buildCliqSubgraph!(subfg, dfg, cliq, solvable=solvable)
+  return subfg
+end
+
+function buildCliqSubgraph(fgl::AbstractDFG,
+                           treel::AbstractBayesTree,
+                           cliqsym::Symbol,
+                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl));
+                           solvable::Int=1)
+  #
+  buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable)
+  return subfg
+end
+
+#
 
 
 """
