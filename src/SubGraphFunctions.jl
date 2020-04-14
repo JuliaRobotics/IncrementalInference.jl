@@ -55,7 +55,7 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allfacs)
 
   # add all the factors and variables to the new subgraph
-  DFG.deepcopyGraph!(cliqSubFg, dfg, union(allvars, allfacs))
+  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs)
 
   return cliqSubFg
 end
@@ -65,12 +65,13 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             cliq::TreeClique;
                             solvable::Int = 0)
 
-  allcliqnodes = union(getCliqVarIdsAll(cliq), getCliqFactorIdsAll(cliq))
-
+  vars = getCliqVarIdsAll(cliq)
+  facs = getCliqFactorIdsAll(cliq)
   # Potential problem... what are variables/factors doing in the clique if they are not solvable?
-  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allcliqnodes)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  vars)
+  solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  facs)
 
-  DFG.deepcopyGraph!(cliqSubFg, dfg, allcliqnodes)
+  DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs)
 
   return cliqSubFg
 end

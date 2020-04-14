@@ -835,7 +835,7 @@ function addDownVariableFactors!(dfg::G1,
   # add the factors
   # DFG.getSubgraph(dfg, newfcts, false, subfg)
   #TODO solvable?
-  DFG.mergeGraph!(subfg, dfg, union(newsyms, newfcts))
+  DFG.mergeGraph!(subfg, dfg, newsyms, newfcts)
 
   return newsyms, newfcts
 end
