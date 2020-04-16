@@ -71,7 +71,11 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  vars)
   solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  facs)
 
-  DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs)
+  # fix for issue #681
+  # @show ls(cliqSubFg), vars
+  if length(intersect(ls(cliqSubFg), vars)) != length(vars)
+    DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs)
+  end
 
   return cliqSubFg
 end

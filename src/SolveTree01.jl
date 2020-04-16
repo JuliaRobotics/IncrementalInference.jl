@@ -525,10 +525,11 @@ function doFMCIteration(fgl::AbstractDFG,
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
       setValKDE!(updvert, densPts, true, inferdim)
-      if dbg
-        push!(dbgvals.prods, potprod)
-        push!(dbgvals.lbls, Symbol(updvert.label))
-      end
+      # FIXME Restore debugging inside mm solve
+      # if dbg
+      #   push!(dbgvals.prods, potprod)
+      #   push!(dbgvals.lbls, Symbol(updvert.label))
+      # end
     end
   end
   nothing
@@ -738,14 +739,6 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
   m = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
-  # TODO can remove this outmsglbl Symbol => Symbol
-  outmsglbl = Dict{Symbol, Symbol}()
-  if dbg
-    for (ke, va) in m.p
-      outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
-    end
-  end
-
   # prepare and convert upward belief messages
   upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
   for (msgsym, val) in m.belief
@@ -759,7 +752,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   # flag cliq as definitely being initialized
   cliqdata.upsolved = true
 
-  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, Dict{Symbol, Symbol}(), priorprods)
   return UpReturnBPType(m, mdbg, d, upmsgs, true)
 end
 
@@ -773,19 +766,19 @@ function dwnPrepOutMsg(fg::AbstractDFG,
   # pack all downcoming conditionals in a dictionary too.
   with_logger(logger) do
     if cliq.index != 1 #TODO there may be more than one root
-      @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
+      @info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
       @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
   end
   m = LikelihoodMessage()
   i = 0
   for vid in getCliqueData(cliq).frontalIDs
-    m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+    m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
   end
   for cvid in getCliqueData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
-    m.p[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
+    m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
   end
   return m
 end
@@ -823,7 +816,7 @@ function downGibbsCliqueDensity(fg::G,
 
   outmsglbl = Dict{Symbol, Int}()
   if dbg
-    for (ke, va) in m.p
+    for (ke, va) in m.belief
       outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
     end
   end
@@ -1263,7 +1256,7 @@ end
 
 
 
-function tryCliqStateMachineSolve!(dfg::G,
+function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                    treel::AbstractBayesTree,
                                    i::Int;
                                    # cliqHistories;
@@ -1274,7 +1267,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    downsolve::Bool=false,
                                    incremental::Bool=false,
                                    delaycliqs::Vector{Symbol}=Symbol[],
-                                   recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+                                   recordcliqs::Vector{Symbol}=Symbol[])
   #
   clst = :na
   cliq = getClique(treel, i)
@@ -1294,9 +1287,8 @@ function tryCliqStateMachineSolve!(dfg::G,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
-    # cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
-      # @warn "writing logs/cliq$i/csm.txt"
+      @info "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
       fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
