@@ -34,7 +34,12 @@ function uppA()
   return pidA
 end
 
-function setWorkerPool!(pool::Vector{Int}=setdiff(procs(), [1;]))
+"""
+    $SIGNATURES
+
+For use with `multiproc`, nominal use is a worker pool of all processes available above and including 2..., but will return single process [1;] if only the first processes is available.
+"""
+function setWorkerPool!(pool::Vector{Int}=1 < nprocs() ? setdiff(procs(), [1;]) : [1;])
   global WORKERPOOL
   WORKERPOOL = WorkerPool(pool)
 end
@@ -520,10 +525,11 @@ function doFMCIteration(fgl::AbstractDFG,
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
       setValKDE!(updvert, densPts, true, inferdim)
-      if dbg
-        push!(dbgvals.prods, potprod)
-        push!(dbgvals.lbls, Symbol(updvert.label))
-      end
+      # FIXME Restore debugging inside mm solve
+      # if dbg
+      #   push!(dbgvals.prods, potprod)
+      #   push!(dbgvals.lbls, Symbol(updvert.label))
+      # end
     end
   end
   nothing
@@ -609,7 +615,7 @@ function treeProductUp(fg::AbstractDFG,
   # convert incoming messages to Int indexed format (semi-legacy format)
   upmsgssym = LikelihoodMessage[]
   for cl in childCliqs(tree, cliq)
-    msgdict = getUpMsgs(cl) # upMsg()
+    msgdict = getUpMsgs(cl)
     dict = Dict{Symbol, TreeBelief}()
     for (dsy, btd) in msgdict.belief
       vari = getVariable(fg, dsy)
@@ -733,14 +739,6 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
   m = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
-  # TODO can remove this outmsglbl Symbol => Symbol
-  outmsglbl = Dict{Symbol, Symbol}()
-  if dbg
-    for (ke, va) in m.p
-      outmsglbl[Symbol(inp.fg.g.vertices[ke].label)] = ke
-    end
-  end
-
   # prepare and convert upward belief messages
   upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
   for (msgsym, val) in m.belief
@@ -754,7 +752,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   # flag cliq as definitely being initialized
   cliqdata.upsolved = true
 
-  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, priorprods)
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, Dict{Symbol, Symbol}(), priorprods)
   return UpReturnBPType(m, mdbg, d, upmsgs, true)
 end
 
@@ -768,19 +766,19 @@ function dwnPrepOutMsg(fg::AbstractDFG,
   # pack all downcoming conditionals in a dictionary too.
   with_logger(logger) do
     if cliq.index != 1 #TODO there may be more than one root
-      @info "Dwn msg keys $(keys(dwnMsgs[1].p))"
+      @info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
       @info "fg vars $(ls(fg))"
     end # ignore root, now incoming dwn msg
   end
   m = LikelihoodMessage()
   i = 0
   for vid in getCliqueData(cliq).frontalIDs
-    m.p[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+    m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
   end
   for cvid in getCliqueData(cliq).separatorIDs
     i+=1
     # TODO -- convert to points only since kde replace by rkhs in future
-    m.p[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
+    m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
   end
   return m
 end
@@ -818,7 +816,7 @@ function downGibbsCliqueDensity(fg::G,
 
   outmsglbl = Dict{Symbol, Int}()
   if dbg
-    for (ke, va) in m.p
+    for (ke, va) in m.belief
       outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
     end
   end
@@ -974,10 +972,10 @@ Notes
 Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
-function approxCliqMarginalUp!(fgl::AbstractDFG,
-                               treel::AbstractBayesTree,
-                               csym::Symbol,
-                               onduplicate=true;
+function approxCliqMarginalUp!(fg_::AbstractDFG,
+                               tree_::AbstractBayesTree,
+                               cliq::TreeClique,
+                               childmsgs=getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief);
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
@@ -985,29 +983,8 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
                                multiproc::Bool=true,
                                logger=ConsoleLogger()  )
   #
-  fg_ = onduplicate ? deepcopy(fgl) : fgl
-  # onduplicate
-  with_logger(logger) do
-    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
-  end
-  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
 
-
-  # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
-  if onduplicate
-    for (id, cliq) in treel.cliques
-      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
-      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
-    end
-  end
-
-  cliq = whichCliq(tree_, csym)
-  # setCliqDrawColor(cliq, "red")
-
-  # get incoming cliq messaged upward from child cliques
-  childmsgs = getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief)
-
-  # TODO use subgraph copy of factor graph for operations and transfer frontal variables only
+  # ?? TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   with_logger(logger) do
     @info "=== start Clique $(getLabel(cliq)) ======================"
@@ -1047,7 +1024,8 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
 
   # is clique fully upsolved or only partially?
   with_logger(logger) do
-    updateFGBT!(fgl, cliq, urt, dbg=dbg, fillcolor="brown", logger=logger)
+    # TODO verify the need for this update (likely part of larger refactor)
+    updateFGBT!(fg_, cliq, urt, dbg=dbg, fillcolor="brown", logger=logger)
   end
 
   # is clique fulldim/partially solved?
@@ -1065,28 +1043,51 @@ function approxCliqMarginalUp!(fgl::AbstractDFG,
   return urt
 end
 
-# """
-#     $SIGNATURES
-#
-# Approximate Chapman-Kolmogorov transit integral and return separator marginals as messages to pass up the Bayes (Junction) tree, along with additional clique operation values for debugging.
-#
-# Notes
-# =====
-# - `onduplicate=true` by default internally uses deepcopy of factor graph and Bayes tree, and does **not** update the given objects.  Set false to update `fgl` and `treel` during compute.
-# """
-# function doCliqInferenceUp!(fgl::FactorGraph,
-#                             treel::AbstractBayesTree,
-#                             csym::Symbol,
-#                             onduplicate=true;
-#                             N::Int=100,
-#                             dbg::Bool=false,
-#                             iters::Int=3,
-#                             drawpdf::Bool=false,
-#                             multiproc::Bool=true,
-#                             logger=ConsoleLogger()   )
-#   #
-#   approxCliqMarginalUp!(fgl, treel, csym, onduplicate; N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger  )
-# end
+function approxCliqMarginalUp!(fgl::AbstractDFG,
+                               treel::AbstractBayesTree,
+                               csym::Symbol,
+                               onduplicate::Bool;  # this must be deprecated for simplicity!
+                               N::Int=100,
+                               dbg::Bool=false,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true,
+                               logger=ConsoleLogger()  )
+  #
+  @warn "approxCliqMarginalUp! API is changing, use csmc version instead."
+  @assert !onduplicate "approxCliqMarginalUp! onduplicate keyword is being deprecated"
+  fg_ = onduplicate ? deepcopy(fgl) : fgl
+  # onduplicate
+  with_logger(logger) do
+    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
+  end
+  # FIXME, should not be building a new tree here since variable orderings can differ!!!
+  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
+  # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
+  if onduplicate
+    for (id, cliq) in treel.cliques
+      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
+      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
+    end
+  end
+
+  cliq = getCliq(tree_, csym)
+  # setCliqDrawColor(cliq, "red")
+
+  approxCliqMarginalUp!(fg_, tree_, cliq, N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
+
+function approxCliqMarginalUp!(csmc::CliqStateMachineContainer;
+                               N::Int=getSolverParams(csmc.cliqSubFg).N,
+                               dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
+                               logger=ConsoleLogger()  )
+  #
+  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getCliqChildMsgsUp(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
 
 
 
@@ -1255,7 +1256,7 @@ end
 
 
 
-function tryCliqStateMachineSolve!(dfg::G,
+function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                    treel::AbstractBayesTree,
                                    i::Int;
                                    # cliqHistories;
@@ -1266,7 +1267,7 @@ function tryCliqStateMachineSolve!(dfg::G,
                                    downsolve::Bool=false,
                                    incremental::Bool=false,
                                    delaycliqs::Vector{Symbol}=Symbol[],
-                                   recordcliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+                                   recordcliqs::Vector{Symbol}=Symbol[])
   #
   clst = :na
   cliq = getClique(treel, i)
@@ -1286,9 +1287,8 @@ function tryCliqStateMachineSolve!(dfg::G,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
-    # cliqHistories[i] = history
     if length(history) >= limititers && limititers != -1
-      # @warn "writing logs/cliq$i/csm.txt"
+      @info "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
       fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
       printCliqHistorySummary(fid, history)

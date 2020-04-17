@@ -110,7 +110,7 @@ function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::Int)::String wher
   for sepr in getCliqueData(clq).separatorIDs
     clbl = string(clbl, DFG.getVariable(dfg,sepr).label, ",")
   end
-  setLabel!(clq, string(flbl, ": ", clbl))
+  setLabel!(clq, string(clqID,"| ", flbl, ": ", clbl))
 end
 
 """
@@ -350,6 +350,42 @@ function drawTree(treel::AbstractBayesTree;
   end
 
   show ? showTree(viewerapp=viewerapp, filepath=filepath) : nothing
+end
+
+"""
+    $SIGNATURES
+
+If opt.drawtree then start an async task to draw tree in a loop according to opt.drawtreerate.
+
+Notes
+- wont draw if opt.drawtree=false, just skips back to caller.
+- Currently @async
+- use `opt.showtree::Bool`
+- Does not work too well when opt.async during solveTree! call, but user can use this function separately.
+
+DevNotes
+- TODO, use Threads.@spawn instead.
+
+Related
+
+drawTree, drawGraph
+"""
+function drawTreeAsyncLoop(tree::BayesTree,
+                           opt::SolverParams;
+                           filepath=joinLogPath(opt,"bt.pdf"),
+                           dotreedraw = Int[1;]  )
+  #
+  # single drawtreerate
+  treetask = if opt.drawtree
+    @async begin
+      while dotreedraw[1] == 1 && 0 < opt.drawtreerate
+        drawTree(tree,show=false,filepath=filepath)
+        sleep(1/opt.drawtreerate)
+      end
+      drawTree(tree,show=opt.showtree,filepath=filepath)
+    end
+  end
+  return treetask, dotreedraw
 end
 
 """

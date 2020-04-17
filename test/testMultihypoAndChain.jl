@@ -42,8 +42,8 @@ tree, smt, hist = solveTree!(fg)
 @test getPPE(fg, :l2).suggested[1] - l2 |> abs < 1
 
 # l1_0, l2_0 should be nearby around l1 and l2, but cannot confirm 100%
-@test getPPE(fg, :l1_0).suggested[1] - l1 |> abs < 5
-@test getPPE(fg, :l2_0).suggested[1] - l2 |> abs < 5
+@test getPPE(fg, :l1_0).suggested[1] - l1 |> abs < 10
+@test getPPE(fg, :l2_0).suggested[1] - l2 |> abs < 10
 
 
 end

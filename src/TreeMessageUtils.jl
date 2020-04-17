@@ -38,7 +38,7 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )::Vector{DFGFactor}
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
       # msgs::
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
@@ -56,7 +56,7 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        allmsgs::Dict{Int,LikelihoodMessage} )::Vector{DFGFactor}
+                        allmsgs::Dict{Int,LikelihoodMessage} )
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
@@ -68,35 +68,8 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 
-# Consolidate with nonparametric addMsgFactors! ?
-function addMsgFactors_Parametric!(subfg::AbstractDFG,
-                                   msgs::LikelihoodMessage)::Vector{DFGFactor}
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-  for (msym, belief) = (msgs.belief)
-    if msym in svars
-      #TODO covaraince
-      #TODO Maybe always use MvNormal
-      if size(belief.val)[1] == 1
-        msgPrior =  MsgPrior(Normal(belief.val[1], sqrt(belief.bw[1])), belief.inferdim)
-      else
-        #FIXME a hack to make matrix Hermitian
-        covar = Symmetric(belief.bw + 1e-5I)
-        try
-          MvNormal(belief.val[:,1], covar)
-        catch er
-          @error er "MvNormal Failed with:" covar
-          return DFGFactor[]
-        end
-        msgPrior =  MsgPrior(MvNormal(belief.val[:,1], covar), belief.inferdim)
-      end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
-      push!(msgfcts, fc)
-    end
-  end
-  return msgfcts
-end
+
+# TODO move addMsgFactors_Parametric! here
 
 
 
@@ -111,7 +84,7 @@ Related
 `addMsgFactors!`
 """
 function deleteMsgFactors!(subfg::AbstractDFG,
-                           fcts::Vector{DFGFactor})
+                           fcts::Vector{DFGFactor} )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
@@ -163,16 +136,21 @@ Set the upward passing message for Bayes (Junction) tree clique `cliql`.
 Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
+function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
+  csmc.msgsUp[cliqid] = msgs
+end
+
 function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).upMsg = msgs
-  nothing
 end
+
 
 """
     $(SIGNATURES)
 
 Return the last up message stored in `cliq` of Bayes (Junction) tree.
 """
+getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
 getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(getCliq(btl, sym))
 
@@ -182,18 +160,23 @@ getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(getCliq(btl, sym))
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
-function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage) #Dict{Symbol, BallTreeDensity}
+function setDwnMsg!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
+  csmc.msgsDown = msgs
+end
+
+function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
   getCliqueData(cliql).dwnMsg = msgs
 end
+
 
 """
     $(SIGNATURES)
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
+getDwnMsgs(csmc::CliqStateMachineContainer) = csmc.msgsDown
 getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
-
 
 
 
@@ -205,6 +188,10 @@ Get and return upward belief messages as stored in child cliques from `treel::Ab
 
 Notes
 - Use last parameter to select the return format.
+- Pull model #674
+
+DevNotes
+- Consolidate two versions getCliqChildMsgsUp
 """
 function getCliqChildMsgsUp(fg_::AbstractDFG,
                             treel::AbstractBayesTree,
@@ -225,7 +212,10 @@ function getCliqChildMsgsUp(fg_::AbstractDFG,
   return childmsgs
 end
 
-function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{BallTreeDensity})
+function getCliqChildMsgsUp(treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{BallTreeDensity})
+  #
   childmsgs = IntermediateMultiSiblingMessages()
   for child in getChildren(treel, cliq)
     for (key, bel) in getUpMsgs(child).belief
@@ -238,6 +228,18 @@ function getCliqChildMsgsUp(treel::AbstractBayesTree, cliq::TreeClique, ::Type{B
     end
   end
   return childmsgs
+end
+
+function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
+                            ::Type{TreeBelief} )
+  #
+  getCliqChildMsgsUp(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+end
+
+function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
+                            ::Type{BallTreeDensity})
+  #
+  getCliqChildMsgsUp(csmc.tree, csmc.cliq, BallTreeDensity)
 end
 
 """
@@ -390,11 +392,14 @@ end
 
 Return dictionary of all up belief messages currently in a Bayes `tree`.
 
+Notes
+- Returns `::Dict{Int,LikelihoodMessage}`
+
 Related
 
 getUpMsgs
 """
-function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)::Dict{Int,LikelihoodMessage}
+function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
@@ -423,7 +428,7 @@ Notes
      }
 """
 function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )::TempUpMsgPlotting
+                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )
   #
   # start of the return data structure
   stack = TempUpMsgPlotting()
@@ -459,8 +464,9 @@ Return dictionary of down messages consisting of all frontal and separator belie
 
 Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
+- return LikelihoodMessage
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)::LikelihoodMessage
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
   container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
