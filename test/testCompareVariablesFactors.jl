@@ -93,9 +93,9 @@ addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 
 sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
-
-#FIXME JT - this doesn't make sense to pass?
-# @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
+#FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
+# compareDFG(fg1, fg2, by=⊂, skip=...)
+@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
 
 # drawGraph(sfg)
 

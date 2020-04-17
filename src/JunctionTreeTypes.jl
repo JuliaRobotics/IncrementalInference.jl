@@ -1,4 +1,3 @@
-using MetaGraphs
 
 
 ## Bayes Trees
@@ -201,8 +200,11 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  msgsUp::Vector{LikelihoodMessage} #TODO towards consolidated messages
-  msgsDown::Vector{LikelihoodMessage}
+  #TODO towards consolidated messages
+  # TBD DECISION, push or pull #674
+  # NOTE, DF going for Dict over Vector
+  msgsUp::Dict{Int, LikelihoodMessage} # Vector{LikelihoodMessage}
+  msgsDown::LikelihoodMessage # Vector{LikelihoodMessage}
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -224,7 +226,8 @@ function CliqStateMachineContainer(x1::G,
                                    x13::SimpleLogger=SimpleLogger(Base.stdout);
                                    x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13, LikelihoodMessage[], LikelihoodMessage[])
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13,
+              Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 end
 
 

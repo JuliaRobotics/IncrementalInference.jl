@@ -57,7 +57,7 @@ lsvars = ls(fg)
 ## Now check if factors in cliques are okay
 
 C3 = getCliq(tree, :x0)
-C3_fg = buildCliqSubgraph(fg, tree, C3 )
+C3_fg = buildCliqSubgraph(fg, C3)
 # drawGraph(C3_fg, show=true)
 
 C3_fcts = [:x0l0f1;:x0l1f1;:x0x1f1;:x0f1]
@@ -68,7 +68,7 @@ C3_fcts = [:x0l0f1;:x0l1f1;:x0x1f1;:x0f1]
 
 
 C2 = getCliq(tree, :l0)
-C2_fg = buildCliqSubgraph(fg, tree, C2)
+C2_fg = buildCliqSubgraph(fg, C2)
 # drawGraph(C2_fg, show=true)
 
 C2_fcts = [:x1x2f1; :x2x3f1; :x2l0f1; :x2l1f1; :l0f1]
@@ -79,7 +79,7 @@ C2_fcts = [:x1x2f1; :x2x3f1; :x2l0f1; :x2l1f1; :l0f1]
 
 
 C1 = getCliq(tree, :x4)
-C1_fg = buildCliqSubgraph(fg, tree, C1)
+C1_fg = buildCliqSubgraph(fg, C1)
 # drawGraph(C1_fg, show=true)
 
 C1_fcts = [:x3x4f1;]
@@ -164,6 +164,44 @@ C3_fcts = [:x0x1f1; :x0lm0f1]
 end
 
 
+@testset "Test cliqueSubgraph frontals, seperators, potentials" begin
+# clique subfg test
+fg = generateCanonicalFG_lineStep(4, landmarkPriorsAt=[0,4])
+# dfgplot(fg)
+tree = wipeBuildNewTree!(fg)
+
+#check clique 1
+cliq = getClique(tree, 1)
+
+cliqfron = [:x0, :lm0, :x2]
+cliqsep = Symbol[]
+cliqfacs = [:lm0f1, :x0x2f1, :x0lm0f1, :x0f1, :x2lm0f1]
+
+@test issetequal(getCliqFrontalVarIds(cliq), cliqfron)
+@test issetequal(getCliqSeparatorVarIds(cliq), cliqsep)
+@test issetequal(getCliqFactorIdsAll(cliq), cliqfacs)
+
+sfg = buildCliqSubgraph(fg, cliq)
+@test issetequal(ls(sfg), union(cliqsep,  cliqfron))
+@test issetequal(lsf(sfg), cliqfacs)
+
+# check clique 2
+cliq = getClique(tree, 2)
+
+cliqfron = [:x4, :lm4]
+cliqsep = [:x2]
+cliqfacs = [:x2lm4f1, :x2x4f1, :x4lm4f1, :lm4f1]
+
+@test issetequal(getCliqFrontalVarIds(cliq), cliqfron)
+@test issetequal(getCliqSeparatorVarIds(cliq), cliqsep)
+@test issetequal(getCliqFactorIdsAll(cliq), cliqfacs)
+
+sfg = buildCliqSubgraph(fg, cliq)
+@test issetequal(ls(sfg), union(cliqsep,  cliqfron))
+@test issetequal(lsf(sfg), cliqfacs)
 
 
+sfg = buildCliqSubgraph(fg, tree, :x2)
+# dfgplot(sfg)
+end
 #

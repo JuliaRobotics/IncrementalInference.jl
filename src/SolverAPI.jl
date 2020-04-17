@@ -30,15 +30,16 @@ function solveTree!(dfgl::G,
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
+  opt = getSolverParams(dfgl)
 
   # update worker pool incase there are more or less
   setWorkerPool!()
-  if getSolverParams(dfgl).multiproc && nprocs() == 1
+  if opt.multiproc && nprocs() == 1
     @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
-    getSolverParams(dfgl).multiproc = false
+    opt.multiproc = false
   end
 
-  if getSolverParams(dfgl).graphinit
+  if opt.graphinit
     @info "ensure all initialized (using graphinit)"
     ensureAllInitialized!(dfgl)
   end
@@ -47,7 +48,6 @@ function solveTree!(dfgl::G,
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
-  opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -57,21 +57,11 @@ function solveTree!(dfgl::G,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(getSolverParams(dfgl).logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
-  dotreedraw = Int[1;]
-  # single drawtreerate
-  treetask = @async begin
-    while getSolverParams(dfgl).drawtree && dotreedraw[1] == 1
-      drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
-      sleep(1/getSolverParams(dfgl).drawtreerate)
-    end
-    drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
-  end
-  if getSolverParams(dfgl).showtree
-    drawTree(tree, show=true, filepath=joinLogPath(dfgl, "bt.pdf"))
-  end
+  # if desired, drawtree in a loop
+  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
 
   @info "Do tree based init-inference on tree"
   if opt.async
@@ -89,7 +79,7 @@ function solveTree!(dfgl::G,
   oldtree.variableOrder = tree.variableOrder
   oldtree.buildTime = tree.buildTime
 
-  if getSolverParams(dfgl).async
+  if opt.drawtree && opt.async
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
     push!(smtasks, treetask)
   else
@@ -149,8 +139,6 @@ end
 
 
 
-
-
 ## Experimental Parametric
 """
     $SIGNATURES
@@ -181,26 +169,15 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
     @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
     getSolverParams(dfgl).multiproc = false
   end
-  
-  dotreedraw = Int[1;]
-  # single drawtreerate
-  treetask = @async begin
-    while opt.drawtree && dotreedraw[1] == 1
-      drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
-      sleep(1/opt.drawtreerate)
-    end
-    drawTree(tree,show=false,filepath=joinLogPath(dfgl, "bt.pdf"))
-  end
-  if opt.showtree
-    # can simplify to just showTree if desired
-    drawTree(tree, show=true,filepath=joinLogPath(dfgl, "bt.pdf"))
-  end
+
+  # if desired, drawtree in a loop
+  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
 
   @info "Do tree based init-inference"
   # if opt.async
   smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
-  if opt.async
+  if opt.async && opt.drawtree
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
     push!(smtasks, treetask)
   else

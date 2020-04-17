@@ -19,19 +19,19 @@ using
   Statistics,
   Random,
   NLsolve,
+  NLSolversBase,
+  Optim,
   StatsBase,
   JLD2,
   FileIO,
   ProgressMeter,
   DocStringExtensions,
   FunctionalStateMachine,
-  Optim, # might be deprecated in favor for only NLsolve dependency
   JSON2,
   Combinatorics
 
-#added for parametric
-using ValueShapes
-using NLSolversBase
+# experimental for replacing BayesTree on Graphs.jl
+using MetaGraphs
 
 using Logging
 
@@ -39,8 +39,6 @@ using Logging
 include("ccolamd.jl")
 using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
-
-
 
 
 import Base: convert
@@ -343,15 +341,13 @@ export AbstractDFG,
   freshSamples,
 
   #Visualization
-  writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
+  writeGraphPdf, # deprecated
   drawGraph,
   drawGraphCliq,
   drawCliqSubgraphUpMocking,
   drawTree,
+  drawTreeAsyncLoop,
   printgraphmax,
-  # allnums,
-  # isnestednum,
-  # sortnestedperm,
 
   # Bayes (Junction) Tree
   evalPotential,
@@ -440,7 +436,7 @@ export AbstractDFG,
   getCliqAssocMat,
   getCliqMsgMat,
   getCliqFrontalVarIds,
-  getFrontals,                     # duplicate
+  getFrontals,
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
   getCliqVarIdsAll,

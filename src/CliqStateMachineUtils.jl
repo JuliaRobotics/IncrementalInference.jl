@@ -831,9 +831,11 @@ function addDownVariableFactors!(dfg::G1,
   end
 
   # add the variables
-  DFG.getSubgraph(dfg, newsyms, false, subfg)
+  # DFG.getSubgraph(dfg, newsyms, false, subfg)
   # add the factors
-  DFG.getSubgraph(dfg, newfcts, false, subfg)
+  # DFG.getSubgraph(dfg, newfcts, false, subfg)
+  #TODO solvable?
+  DFG.mergeGraph!(subfg, dfg, newsyms, newfcts)
 
   return newsyms, newfcts
 end
@@ -1031,61 +1033,3 @@ function solveCliqDownFrontalProducts!(subfg::G,
 
   return nothing
 end
-
-
-
-
-"""
-    $SIGNATURES
-
-Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-
-DevNotes
-- TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
-"""
-function buildCliqSubgraph(dfg::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           cliq::TreeClique,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
-  #
-  # get cliq and variable labels
-  syms = getCliqAllVarIds(cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getCliqueData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
-
-  # frontals treated special
-  frontals = getCliqFrontalVarIds(cliq)
-  # get neighboring factor labels
-  factorFilter = union(map(s->getNeighbors(dfg, s), frontals)...)
-
-  # build the subgraph with subset of factors from frontals only
-  buildSubgraphFromLabels!(dfg, syms, subfg=subfg, solvable=1, allowedFactors=factorFilter )
-  # recent option but not consolidated
-  # buildSubgraphFromLabels!_SPECIAL(dfg, syms, subfg=subfg, solvable=1, allowedFactors=factorFilter ) # DFG v0.5.2
-
-  return subfg
-end
-# @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
-# # build a subgraph copy of clique
-# subfg = buildSubgraphFromLabels!(fgl,syms)
-#
-# # add upward messages to subgraph
-# msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
-# addMsgFactors!(subfg, msgs)
-
-function buildCliqSubgraph(fgl::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           cliqsym::Symbol,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl)) )
-  #
-  buildCliqSubgraph(fgl, treel, getCliq(treel, cliqsym), subfg)
-end
-
-#
