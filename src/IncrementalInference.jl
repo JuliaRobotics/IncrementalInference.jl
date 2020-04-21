@@ -587,7 +587,7 @@ include("Deprecated.jl")
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
     @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
-      @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Juntion) tree"
+      @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Junction) tree"
 
       exportimg(pl) = Gadfly.PNG(pl)
 
