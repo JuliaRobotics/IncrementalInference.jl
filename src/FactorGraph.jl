@@ -824,8 +824,10 @@ function doautoinit!(dfg::T,
         end
         pts,inferdim = predictbelief(dfg, vsym, useinitfct, logger=logger)
         setValKDE!(xi, pts, true, inferdim)
-        #TODO test
-        setVariablePosteriorEstimates!(xi)
+        # Update the estimates (longer DFG function used so cloud is also updated)
+        setVariablePosteriorEstimates!(dfg, xi.label)
+        # Update the data in the event that it's not local
+        mergeVariableSolverData!(dfg, xi)
         didinit = true
       end
     end
