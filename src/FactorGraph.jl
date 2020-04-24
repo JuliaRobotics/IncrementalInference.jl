@@ -925,7 +925,7 @@ resetInitialValues!(fg)
 resetInitialValues!(fg1,fg2)  # into 1 from 2
 resetInitialValues!(fg1,fg1,:myotherinit)  # use different init value into solveKey :default
 resetInitialValues!(fg1,fg1,:graphinit, :mysolver) # not into solveKey=:default but :mysolver
-resetInitialValues!(fg1,fg1,:myotherinit, :default, varList=[:x1;:l3]) # Specific variables only
+resetInitialValues!(fg1, varList=[:x1;:l3])  # Specific variables only
 
 # Into `fgNew` object, leaving `fg` untouched
 fgNew = deepcopy(fg)
