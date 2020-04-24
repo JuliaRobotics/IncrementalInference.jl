@@ -830,7 +830,7 @@ function doautoinit!(dfg::T,
         updateVariableSolverData!(dfg, xi, :default)
         # deepcopy graphinit value
         graphinit_xi = deepcopy(xi)
-        updateVariableSolverData!(dfg, xi, :graphinit)  # see 612
+        updateVariableSolverData!(dfg, graphinit_xi, :graphinit)  # see 612
         didinit = true
       end
     end
