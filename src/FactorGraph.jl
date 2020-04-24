@@ -949,7 +949,7 @@ function resetInitialValues!(dest::AbstractDFG,
   end
   return dest
 end
-const resetInitValues! = resetIinitialValues!
+const resetInitValues! = resetInitialValues!
 
 """
     $SIGNATURES
