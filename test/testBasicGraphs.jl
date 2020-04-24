@@ -253,6 +253,33 @@ end
 
 
 
+@testset "Test graph reset to init..." begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addFactor!(fg, [:x0;], Prior(Normal(1000.0,1.0)))
+
+ensureAllInitialized!(fg)
+
+# init values before solve
+X0 = getPoints( getKDE(fg, :x0)) |> deepcopy
+
+tree, smt, hist = solveTree!(fg)
+
+# values after solve
+X0s = getPoints( getKDE(fg, :x0))
+
+@test 1e-10 < norm(X0 - X0s)
+
+resetInitialValues!(fg)
+
+X0reset = getPoints( getKDE(fg, :x0)) |> deepcopy
+
+@test norm(X0 - X0reset) < 1e-10
+
+
+end
 
 
 
