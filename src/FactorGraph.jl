@@ -827,10 +827,9 @@ function doautoinit!(dfg::T,
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label)
         # Update the data in the event that it's not local
-        updateVariableSolverData!(dfg, xi, :default)
-        # deepcopy graphinit value
-        graphinit_xi = deepcopy(xi)
-        updateVariableSolverData!(dfg, graphinit_xi, :graphinit)  # see 612
+        updateVariableSolverData!(dfg, xi, :default, true)    # TODO perhaps usecopy=false
+        # deepcopy graphinit value, see IIF #612
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]) # TODO add verbose as false DFG v0.7.5
         didinit = true
       end
     end
