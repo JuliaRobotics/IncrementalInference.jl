@@ -943,7 +943,7 @@ function resetInitialValues!(dest::AbstractDFG,
                              varList::AbstractVector{Symbol}=ls(dest))
   #
   for vs in varList
-    vnd = getSolverData(src, initKey)
+    vnd = getSolverData(getVariable(src, vs), initKey)
     # guess we definitely want to use copy to preserve the initKey memory
     updateVariableSolverData!(dest,vs,vnd,solveKey,true)
   end
