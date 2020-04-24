@@ -260,6 +260,8 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(1000.0,1.0)))
 
+ensureAllInitialized!(fg)
+
 # init values before solve
 X0 = getPoints( getKDE(fg, :x0)) |> deepcopy
 
