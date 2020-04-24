@@ -908,6 +908,47 @@ end
 
 const initVariableManual! = initManual!
 
+"""
+    $SIGNATURES
+
+Set solveKey values of `dest::AbstractDFG` according to `initKey::Symbol=:graphinit` values.
+
+Notes
+- Some flexibility for using two DFGs and different key values, see Examples and code for details.
+- Can also be specific with `varList::Vector{Symbol}`.
+- Returns `dest` graph.
+- Uses the supersolve mechanism.
+
+Examples
+```julia
+resetInitialValues!(fg)
+resetInitialValues!(fg1,fg2)  # into 1 from 2
+resetInitialValues!(fg1,fg1,:myotherinit)  # use different init value into solveKey :default
+resetInitialValues!(fg1,fg1,:graphinit, :mysolver) # not into solveKey=:default but :mysolver
+resetInitialValues!(fg1,fg1,:myotherinit, :default, varList=[:x1;:l3]) # Specific variables only
+
+# Into `fgNew` object, leaving `fg` untouched
+fgNew = deepcopy(fg)
+resetInitialValues!(fgNew,fg)
+```
+
+Related
+
+initManual!, graphinit (keyword)
+"""
+function resetInitialValues!(dest::AbstractDFG,
+                             src::AbstractDFG=dest,
+                             initKey::Symbol=:graphinit,
+                             solveKey::Symbol=:default;
+                             varList::AbstractVector{Symbol}=ls(dest))
+  #
+  for vs in varList
+    vnd = getSolverData(src, initKey)
+    # guess we definitely want to use copy to preserve the initKey memory
+    updateVariableSolverData!(dest,vs,vnd,solveKey,true)
+  end
+  return dest
+end
 
 """
     $SIGNATURES
