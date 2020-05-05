@@ -17,14 +17,6 @@ end
 ## packing converters-----------------------------------------------------------
 # heavy use of multiple dispatch for converting between packed and original data types during DB usage
 
-# function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FunctorInferenceType}
-#   # println("convert(::Type{PackedFunctionNodeData{$P}}, d::FunctionNodeData{$T})")
-#   @error("convert GenericWrapParam is deprecated, use CommonConvWrapper instead.")
-#   # mhstr = packmultihypo(d.fnc)
-#   return PackedFunctionNodeData(d.fncargvID, d.eliminated, d.potentialused, d.edgeIDs,
-#           string(d.frommodule), convert(P, d.fnc.usrfnc!), d.multihypo)
-# end
-
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: ConvolutionObject}
   # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
@@ -60,7 +52,7 @@ end
 
 
 
-
+# FIXME, move to DFG
 function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
   getfield(T.name.module, Symbol("Packed$(T.name.name)"))
 end
@@ -69,36 +61,7 @@ function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: Packed
 end
 
 
-"""
-    $(SIGNATURES)
-
-Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
-"""
-function convert2packedfunctionnode(fgl::G,
-                                    fsym::Symbol ) where G <: AbstractDFG
-  #
-  # fid = fgl.fIDs[fsym]
-  fnc = getfnctype(fgl, fsym)
-  usrtyp = convert(PackedInferenceType, fnc)
-  cfnd = convert(PackedFunctionNodeData{usrtyp}, getSolverData(getFactor(fgl, fsym)) )
-  return cfnd, usrtyp
-end
-
-
-
-# Variables
-
-function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
-  @warn "Deprecated?"
-  convert(IncrementalInference.VariableNodeData, packeddata)
-end
-# Factors
-function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
-  usrtyp = convert(FunctorInferenceType, packeddata.fnc)
-  fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
-  factor = convert(fulltype, packeddata)
-  return factor
-end
+## Variables
 
 """
   $(SIGNATURES)
@@ -119,68 +82,9 @@ function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <:
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
 
-  # Copying all other fields in the factor
-  # TODO: Confirm whether we still need to do this?
-  ## Rebuild getSolverData(fcnode).fncargvID, however, the list is order sensitive
-  # out_neighbors does not gaurantee ordering -- i.e. why is it not being saved
-  # for field in fieldnames(typeof(ccw_jld))
-  #   if field != :fnc
-  #     setfield!(ccw_new, field, getfield(ccw_jld, field))
-  #   end
-  # end
-
   return factor
 end
 
-
-
-"""
-    $(SIGNATURES)
-
-Make a full memory copy of the graph and encode all composite function node
-types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
-are used for database persistence with CloudGraphs.jl.
-"""
-function encodefg(fgl::G ) where G <: AbstractDFG
-  #
-  fgs = deepcopy(fgl)
-  # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
-
-  # @showprogress 1 "Encoding variables..."
-  for vsym in listVariables(fgl)
-    # cpvert = deepcopy(  )
-    var = getVariable(fgl, vsym)
-    # addVariable!(fgs, cpvert)
-  end
-
-  # @showprogress 1 "Encoding factors..."
-  for (fsym,fid) in fgs.fIDs
-    data,ftyp = convert2packedfunctionnode(fgl, fsym)
-    data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-    # newvert = TreeClique(fid,string(fsym))
-    # for (key,val) in getVert(fgl,fid,api=api).attributes
-    #   newvert.attributes[key] = val
-    # end
-    ## losing fgl.fncargvID before setdata
-    # setData!(newvert, data)
-    # api.addvertex!(fgs, newvert)
-  end
-  fgs.g.inclist = typeof(fgl.g.inclist)()
-
-  # iterated over all edges
-  # @showprogress 1 "Encoding edges..."
-  for (eid, edges) in fgl.g.inclist
-    fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
-    for ed in edges
-      newed = Graphs.Edge(ed.index,
-          fgs.g.vertices[ed.source.index],
-          fgs.g.vertices[ed.target.index]  )
-      push!(fgs.g.inclist[eid], newed)
-    end
-  end
-
-  return fgs
-end
 
 # import IncrementalInference: decodefg, loadjld
 
@@ -203,17 +107,6 @@ function convert(::Type{Tuple{BallTreeDensity,Float64}},
   # (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
   (convert(BallTreeDensity, p), p.inferdim)
 end
-
-
-function convert(::Type{TreeBelief},
-                 bel::Tuple{BallTreeDensity,Float64},
-                 manifolds::T) where {T <: Tuple}
-  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds) since it must assume ContinuousScalar softtype!!!"
-  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
-end
-
-
-
 
 
 

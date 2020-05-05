@@ -5,6 +5,91 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
+  @warn "decodePackedType is deprecated, use convert instead"
+  convert(IncrementalInference.VariableNodeData, packeddata)
+end
+# Factors
+function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
+  @warn "decodePackedType is deprecated, use convert instead"
+  usrtyp = convert(FunctorInferenceType, packeddata.fnc)
+  fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
+  factor = convert(fulltype, packeddata)
+  return factor
+end
+
+"""
+    $(SIGNATURES)
+
+Make a full memory copy of the graph and encode all composite function node
+types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
+are used for database persistence with CloudGraphs.jl.
+"""
+function encodefg(fgl::G ) where G <: AbstractDFG
+  #
+  @error "this encodefg function has been deprected in favor of serialization methods in DFG."
+  fgs = deepcopy(fgl)
+  # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
+
+  # @showprogress 1 "Encoding variables..."
+  for vsym in listVariables(fgl)
+    # cpvert = deepcopy(  )
+    var = getVariable(fgl, vsym)
+    # addVariable!(fgs, cpvert)
+  end
+
+  # @showprogress 1 "Encoding factors..."
+  for (fsym,fid) in fgs.fIDs
+    data,ftyp = convert2packedfunctionnode(fgl, fsym)
+    data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
+    # newvert = TreeClique(fid,string(fsym))
+    # for (key,val) in getVert(fgl,fid,api=api).attributes
+    #   newvert.attributes[key] = val
+    # end
+    ## losing fgl.fncargvID before setdata
+    # setData!(newvert, data)
+    # api.addvertex!(fgs, newvert)
+  end
+  fgs.g.inclist = typeof(fgl.g.inclist)()
+
+  # iterated over all edges
+  # @showprogress 1 "Encoding edges..."
+  for (eid, edges) in fgl.g.inclist
+    fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
+    for ed in edges
+      newed = Graphs.Edge(ed.index,
+          fgs.g.vertices[ed.source.index],
+          fgs.g.vertices[ed.target.index]  )
+      push!(fgs.g.inclist[eid], newed)
+    end
+  end
+
+  return fgs
+end
+
+function convert(::Type{TreeBelief},
+                 bel::Tuple{BallTreeDensity,Float64},
+                 manifolds::T) where {T <: Tuple}
+  @error "Dont use this convert(::Type{TreeBelief}, bel::Tuple{BallTreeDensity,Float64}, manifolds) since it must assume ContinuousScalar softtype!!!"
+  TreeBelief(getPoints(bel[1]), getBW(bel[1])[:,1:1], bel[2], ContinuousScalar(), manifolds)
+end
+
+"""
+    $(SIGNATURES)
+
+Encode complicated function node type to related 'Packed<type>' format assuming a user supplied convert function .
+"""
+function convert2packedfunctionnode(fgl::G,
+                                    fsym::Symbol ) where G <: AbstractDFG
+  #
+  # fid = fgl.fIDs[fsym]
+  fnc = getfnctype(fgl, fsym)
+  usrtyp = convert(PackedInferenceType, fnc)
+  cfnd = convert(PackedFunctionNodeData{usrtyp}, getSolverData(getFactor(fgl, fsym)) )
+  return cfnd, usrtyp
+end
+
+
 
 @deprecate getVertKDE(v::DFGVariable) getKDE(v)
 @deprecate getVertKDE(dfg::AbstractDFG, lbl::Symbol) getKDE(dfg, lbl)
