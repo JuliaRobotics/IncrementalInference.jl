@@ -52,17 +52,6 @@ end
 
 
 
-# FIXME, move to DFG
-function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
-  getfield(T.name.module, Symbol("Packed$(T.name.name)"))
-end
-#FIXME This does not fit in with the convert funtion's expected behaviour
-# it should rather be convert(::Type{T}, ::Type{PT}) or named something else
-function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: PackedInferenceType}
-  getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-end
-
-
 ## Variables
 
 """
