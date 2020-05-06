@@ -540,7 +540,7 @@ const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9
 
 import DistributedFactorGraphs: getFactorOperationalMemoryType
 
-getFactorOperationalMemoryType(dfg::AbstractDFG) = CommonConvWrapper
+getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 
 include("AliasScalarSampling.jl")
