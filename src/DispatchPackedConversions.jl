@@ -52,15 +52,6 @@ end
 
 
 
-# FIXME, move to DFG
-function convert(::Type{PT}, ::T) where {PT <: PackedInferenceType, T <:FunctorInferenceType}
-  getfield(T.name.module, Symbol("Packed$(T.name.name)"))
-end
-function convert(::Type{T}, ::PT) where {T <: FunctorInferenceType, PT <: PackedInferenceType}
-  getfield(PT.name.module, Symbol(string(PT.name.name)[7:end]))
-end
-
-
 ## Variables
 
 """
