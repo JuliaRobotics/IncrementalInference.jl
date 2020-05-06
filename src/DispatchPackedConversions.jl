@@ -22,7 +22,7 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
   # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
           convert(P, d.fnc.usrfnc!),
-          d.multihypo, d.fnc.certainhypo )  # extract two values from ccw for storage -- ccw thrown away
+          d.multihypo, d.fnc.certainhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
