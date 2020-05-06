@@ -538,6 +538,11 @@ include("FactorGraphTypes.jl")
 const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
 # const InMemDFGType = DFG.GraphsDFG{SolverParams}
 
+import DistributedFactorGraphs: getFactorOperationalMemoryType
+
+getFactorOperationalMemoryType(dfg::AbstractDFG) = CommonConvWrapper
+
+
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
 include("CliqueTypes.jl")

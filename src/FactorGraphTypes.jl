@@ -53,7 +53,6 @@ mutable struct SolverParams <: DFG.AbstractParams
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
   devParams::Dict{Symbol,String}
-  factorOperationalMemoryType::Type{<:FactorOperationalMemory}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
                 reference=nothing,
@@ -77,8 +76,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
                 spreadNH::Float64=3.0,
-                devParams::Dict{Symbol,String}=Dict{Symbol,String}(),
-                factorOperationalMemoryType=CommonConvWrapper
+                devParams::Dict{Symbol,String}=Dict{Symbol,String}()
               ) = new(dimID,
                       registeredModuleFunctions,
                       reference,
@@ -102,8 +100,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       treeinit,
                       algorithms,
                       spreadNH,
-                      devParams,
-                      factorOperationalMemoryType )
+                      devParams )
   #
 end
 
