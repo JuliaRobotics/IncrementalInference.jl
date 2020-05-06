@@ -407,9 +407,8 @@ function evalFactor2(dfg::AbstractDFG,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
-  # TODO replace fncargvID with neighbors
-  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))  # getSolverData(fct).fncargvID
-  for id in getVariableOrder(fct) # getSolverData(fct).fncargvID
+  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))
+  for id in getVariableOrder(fct)
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
