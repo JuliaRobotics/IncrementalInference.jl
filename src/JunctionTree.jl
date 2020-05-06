@@ -533,7 +533,8 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
 
   @info "Copying to a local DFG"
   fge = InMemDFGType(params=getSolverParams(dfg))#GraphsDFG{SolverParams}(params=SolverParams())
-  DistributedFactorGraphs._copyIntoGraph!(dfg, fge, union(listVariables(dfg), listFactors(dfg)), true)
+    #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
+  DFG.deepcopyGraph!(fge, dfg)
 
   println("Building Bayes net from cloud...")
   buildBayesNet!(fge, p, maxparallel=maxparallel)

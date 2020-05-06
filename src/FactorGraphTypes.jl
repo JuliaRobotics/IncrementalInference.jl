@@ -213,7 +213,7 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+mutable struct CommonConvWrapper{T} <: FactorOperationalMemory where {T<:FunctorInferenceType}
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
   # general setup

@@ -1,5 +1,6 @@
-reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
+# Should deprecate in favor of TensorCast.jl
+reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 """
     $SIGNATURES
