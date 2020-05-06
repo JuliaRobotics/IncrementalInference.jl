@@ -91,11 +91,12 @@ addVariable!(fg, :l1, ContinuousScalar)
 addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
 
+sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors
 
-sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 #FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
 # compareDFG(fg1, fg2, by=⊂, skip=...)
-@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath])
+@test fg.sessionId == sfg.sessionId[1:length(fg.sessionId)]
+@test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:sessionId])
 
 # drawGraph(sfg)
 
