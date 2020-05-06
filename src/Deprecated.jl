@@ -5,7 +5,6 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
-
 function convert(::Type{TreeBelief},
                  bel::Tuple{BallTreeDensity,Float64},
                  manifolds::T) where {T <: Tuple}

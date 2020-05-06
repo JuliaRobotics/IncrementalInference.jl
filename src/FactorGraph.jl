@@ -646,7 +646,7 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(T.name.module), ccw, multihypo, ccw.certainhypo)
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, 0)
   return data_ccw
 end
 
