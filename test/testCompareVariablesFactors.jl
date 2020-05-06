@@ -90,8 +90,9 @@ addFactor!(fg, [:x1;:x2], LinearConditional(Normal(4.0, 0.1)))
 addVariable!(fg, :l1, ContinuousScalar)
 addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
 
-
-sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors
+# FIXME switch to new API
+# sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors (should be the default DFG #442)
+sfg = buildSubgraphFromLabels!(fg, [:x0;:x1])
 
 #FIXME JT - this doesn't make sense to pass, it is a subgraph so should it not rather be ⊂ [subset]?
 # compareDFG(fg1, fg2, by=⊂, skip=...)
