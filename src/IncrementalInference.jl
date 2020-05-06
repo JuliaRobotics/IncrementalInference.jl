@@ -48,8 +48,6 @@ import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
 
-# missing exports
-import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable

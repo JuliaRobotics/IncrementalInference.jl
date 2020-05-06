@@ -10,7 +10,7 @@ function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <:
   convert(IncrementalInference.VariableNodeData, packeddata)
 end
 # Factors
-function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
+function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT}) where {PT, G <: AbstractDFG}
   @warn "decodePackedType is deprecated, use convert instead"
   usrtyp = convert(FunctorInferenceType, packeddata.fnc)
   fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
