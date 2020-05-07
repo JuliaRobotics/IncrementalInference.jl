@@ -59,7 +59,7 @@ end
 After deserializing a factor using decodePackedType, use this to
 completely rebuild the factor's CCW and user data.
 """
-function rebuildFactorMetadata!(dfg::G, factor::DFGFactor)::DFGFactor where G <: AbstractDFG
+function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFactor)
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
   neighborUserData = map(v->getSolverData(v).softtype, neighbors)
