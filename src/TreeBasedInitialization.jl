@@ -316,7 +316,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  lsfg = buildSubgraph(fgl, lvarids)
+  lsfg = buildSubgraph(fgl, lvarids, 1)
 
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
