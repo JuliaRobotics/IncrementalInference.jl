@@ -680,7 +680,7 @@ function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   syms = getCliqAllVarIds(csmc.cliq)
   infocsm(csmc, "2r, build subgraph syms=$(syms)")
-  csmc.cliqSubFg = buildSubgraphFromLabels!(csmc.dfg, syms)
+  csmc.cliqSubFg = buildSubgraph(csmc.dfg, syms)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging

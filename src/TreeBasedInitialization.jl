@@ -316,9 +316,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # build required subgraph for parent/sibling down msgs
-  # FIXME switch to new API
-  # lsfg = buildSubgraph(fgl, lvarids)
-  lsfg = buildSubgraphFromLabels!(fgl, lvarids)
+  lsfg = buildSubgraph(fgl, lvarids)
 
   tempfcts = lsf(lsfg)
   dellist = setdiff(awfcts, tempfcts)
