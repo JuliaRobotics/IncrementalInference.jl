@@ -39,13 +39,6 @@ Examples
 
 This library is built as solver back-end which can be easily modified and extended. Specific emphasis is placed on allowing outside user defined constraint definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate.
 
-A few short example is available in the example folder here.
-
-Contributors
-============
-
-D. Fourie, M. Kaess, J. Leonard, as well as long list of Contributors in the community. 
-
 References
 ==========
 
