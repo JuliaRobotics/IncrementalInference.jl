@@ -98,7 +98,7 @@ DevNotes
 """
 function buildCliqSubgraph(dfg::AbstractDFG,
                            cliq::TreeClique,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg));
+                           subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(dfg));
                            solvable::Int=1)
 
   #TODO why was solvable hardcoded to 1?
@@ -109,7 +109,7 @@ end
 function buildCliqSubgraph(fgl::AbstractDFG,
                            treel::AbstractBayesTree,
                            cliqsym::Symbol,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl));
+                           subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(fgl));
                            solvable::Int=1)
   #
   buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable)

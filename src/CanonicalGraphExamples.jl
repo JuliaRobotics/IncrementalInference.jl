@@ -124,13 +124,13 @@ function generateCanonicalFG_lineStep(lineLength::Int;
                     σ_lm_prior = 0.1,
                     σ_pose_pose = 0.1,
                     σ_pose_lm = 0.1,
-                    params=SolverParams())
-                    # params=SolverParams(algorithms=[:default, :parametric]))
+                    solverParams=SolverParams())
+                    # solverParams=SolverParams(algorithms=[:default, :parametric]))
 
     vtype = (vardims == 1) ? ContinuousScalar() : ContinuousMultivariate(vardims)
 
-    fg = LightDFG{SolverParams}( params=params)
-    # fg = GraphsDFG{SolverParams}( params=params)
+    fg = LightDFG{SolverParams}( solverParams=solverParams)
+    # fg = GraphsDFG{SolverParams}( solverParams=solverParams)
 
     function xNoise(i::Int, σ::Float64=1.0)
         if (vardims == 1)
