@@ -170,6 +170,7 @@ export AbstractDFG,
   findClosestTimestamp,
   printVariable,
   printFactor,
+  getTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,

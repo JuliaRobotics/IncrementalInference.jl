@@ -26,7 +26,7 @@ function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
-    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd[1]...)
   end
 end
 
@@ -274,7 +274,10 @@ end
 """
     $SIGNATURES
 
-Inverse solve of predicted noise value and returns the associated "measured" noise value (also used as starting point for the solve).
+Inverse solve of predicted noise value and returns the associated measured noise value (supplied by user; also used as starting point for the solve).
+
+DevNotes
+- Perhaps generalize to return full measurement tuple and not just meas[1] values.
 """
 function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
@@ -293,7 +296,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   vnds = VV # (v->getSolverData(v)).(VV)
   meas = freshSamples(fcttype, N, ud, vnds)
   # meas = getSample(fcttype, N)
-  meas0 = deepcopy(meas[1])
+  givenMeasModel = deepcopy(meas[1])
 
   function makemeas!(i, meas, dm)
     meas[1][:,i] = dm
@@ -332,7 +335,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   end
 
   # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
-  return meas[1], meas0
+  return meas[1], givenMeasModel
 end
 
 
