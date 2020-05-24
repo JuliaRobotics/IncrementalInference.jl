@@ -176,7 +176,6 @@ export AbstractDFG,
   # VariableNodeData,
   # PackedVariableNodeData,
   FactorMetadata,
-  getpackedtype,
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData, # moved to DFG
@@ -464,11 +463,6 @@ export AbstractDFG,
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
-  # convert2packedfunctionnode,
-  # encodefg,
-  # decodefg,
-  # savejld,
-  # loadjld,
   landmarks,
   setCliqDrawColor,
 
@@ -477,7 +471,6 @@ export AbstractDFG,
   fetchAssignTaskHistoryAll!,
 
   # Temp placeholder for evaluating string types to real types
-  _evalType,
   saveDFG,
   loadDFG,
   rebuildFactorMetadata!,
@@ -535,9 +528,8 @@ const NothingUnion{T} = Union{Nothing, T}
 # regular
 include("FactorGraphTypes.jl")
 
-# JT TODO move to somewhere more fitting?
-const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
-# const InMemDFGType = DFG.GraphsDFG{SolverParams}
+# JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
+const InMemDFGType = DFG.LightDFG{SolverParams}
 
 import DistributedFactorGraphs: getFactorOperationalMemoryType
 
