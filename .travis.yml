@@ -17,6 +17,7 @@ notifications:
 jobs:
   include:
     - name: "DEV MASTERS"
+      if: NOT branch =~ ^release.*$
       julia: 1.4
       script:
       - julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs", rev="master")); Pkg.build(); Pkg.test(coverage=true)'
@@ -32,6 +33,7 @@ jobs:
     - julia: nightly
     - arch: arm64
     - name: "MASTER AND TAGS"
+      if: NOT branch =~ ^release.*$
 
 addons:
   apt:
