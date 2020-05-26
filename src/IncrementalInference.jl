@@ -46,7 +46,7 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 
 # will be deprecated in IIF
