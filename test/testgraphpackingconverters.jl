@@ -6,7 +6,7 @@ using DistributedFactorGraphs
 using Test
 
 
-dfg = initfg() # GraphsDFG{SolverParams}(params=SolverParams())
+dfg = initfg()
 
 @testset "hard-coded test of PackedPrior to Prior" begin
 

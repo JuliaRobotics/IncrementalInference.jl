@@ -293,7 +293,11 @@ function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
   for (v,val) in vardict
     vnd = getVariableSolverData(fg, v, :parametric)
     vnd.val .= val.val
-    vnd.bw .= val.cov
+    if size(vnd.bw) != size(val.cov)
+      vnd.bw = val.cov
+    else
+      vnd.bw .= val.cov
+    end
   end
 end
 

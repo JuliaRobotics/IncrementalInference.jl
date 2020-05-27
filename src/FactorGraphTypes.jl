@@ -110,7 +110,7 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=InMemDFGType(params=SolverParams());
+function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                     sessionname="NA",
                                     robotname="",
                                     username="",
@@ -121,20 +121,20 @@ end
 
 
 #init an empty fg with a provided type and SolverParams
-function initfg(::Type{T}; params=SolverParams(),
+function initfg(::Type{T}; solverParams=SolverParams(),
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T(params=params)
+  return T(solverParams=solverParams)
 end
 
-function initfg(::Type{T}, params::SolverParams;
+function initfg(::Type{T}, solverParams::SolverParams;
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T{SolverParams}(params=params)
+  return T{SolverParams}(solverParams=solverParams)
 end
 
 """
