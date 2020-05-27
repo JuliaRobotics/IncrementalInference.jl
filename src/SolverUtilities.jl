@@ -22,11 +22,11 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
-function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:FunctorInferenceType}
+function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
-    usrfnc.specialSampler(usrfnc, N, fmd, vnd[1]...)
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
   end
 end
 
@@ -42,12 +42,12 @@ function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
-function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
+function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[])
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd)
   # end
   nothing
 end
