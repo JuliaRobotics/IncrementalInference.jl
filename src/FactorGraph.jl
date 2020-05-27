@@ -580,7 +580,7 @@ function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: Functor
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
-    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds...)[1]
+    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds)[1]
     size(smpls,1)
   else
     0

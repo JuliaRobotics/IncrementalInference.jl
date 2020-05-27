@@ -85,7 +85,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, maxlen, fmd, vnds...)
+  freshSamples!(ccwl, maxlen, fmd, vnds)
   # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
@@ -338,7 +338,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
   # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds...) # in-place version
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds) # in-place version
   if !ccwl.partial
     return ccwl.measurement[1]
   else
@@ -371,7 +371,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # prep in case special samplers used
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # determine amount share of null hypothesis particles
-  freshSamples!(ccwl, N, FactorMetadata(), vnds...)
+  freshSamples!(ccwl, N, FactorMetadata(), vnds)
   # ccwl.measurement = getSample(ccwl.usrfnc!, N)
   # values of 0 imply null hypothesis
   # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
@@ -471,7 +471,7 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
-  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds...) : measurement
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

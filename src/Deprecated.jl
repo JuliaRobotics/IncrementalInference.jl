@@ -20,6 +20,7 @@ Encode complicated function node type to related 'Packed<type>' format assuming 
 function convert2packedfunctionnode(fgl::G,
                                     fsym::Symbol ) where G <: AbstractDFG
   #
+  @warn "convert2packedfunctionnode is obsolete and will be removed, see DFG serialization."
   # fid = fgl.fIDs[fsym]
   fnc = getfnctype(fgl, fsym)
   usrtyp = convert(PackedInferenceType, fnc)
@@ -58,7 +59,7 @@ end
 @deprecate manualinit!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol}) initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol}) false
 @deprecate manualinit!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2}) initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2}) false
 
-
+export _evalType
 
 # not sure if and where this is still being used
 function _evalType(pt::String)::Type
@@ -91,6 +92,8 @@ end
 ##==============================================================================
 ## Delete at end v0.11.x
 ##==============================================================================
+
+export getpackedtype
 
 # function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
 #   @warn "decodePackedType is deprecated, use convert instead"
@@ -161,7 +164,7 @@ function updateFullVertData!(fgl::AbstractDFG,
                              srcv::DFGNode;
                              updatePPE::Bool=false )
   #
-  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
+  @warn "Deprecated updateFullVertData!, need alternative likely DFG.updateGraphVariableData! or DFG.mergeGraphVariableData!"
 
   sym = Symbol(srcv.label)
   isvar = isVariable(fgl, sym)
