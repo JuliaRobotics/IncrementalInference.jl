@@ -505,6 +505,7 @@ export AbstractDFG,
   setVariableRefence!,
   shuffleXAltD,
   reshapeVec2Mat,
+  accumulateFactorChain,
 
 
   # For 1D example,
