@@ -347,9 +347,9 @@ Notes
 - assume single variable separators only.
 """
 function accumulateFactorChain(dfg::AbstractDFG,
-                               fsyms::Vector{Symbol},
                                from::Symbol,
-                               to::Symbol;
+                               to::Symbol,
+                               fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
                                initval=zeros(size(getVal(dfg, from))))
 
   # get associated variables
