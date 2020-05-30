@@ -3,9 +3,6 @@ using Test
 # using Compat
 # using IncrementalInference
 
-
-include("testBasicParametric.jl")
-
 include("TestModuleFunctions.jl")
 
 include("testStateMachine.jl")
@@ -86,6 +83,8 @@ include("testmultihypothesisapi.jl")
 include("fourdoortest.jl")
 
 include("testAnalysisTools.jl")
+
+include("testBasicParametric.jl")
 
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]

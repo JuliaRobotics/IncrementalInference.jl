@@ -475,14 +475,20 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=200,
+                                maxparallel::Union{Nothing, Int}=nothing,
                                 solvable::Int=1 )
   #
+
   t0 =time_ns()
   println()
   fge = deepcopy(dfg)
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(fge).maxincidence = maxparallel
+  end
   @info "Building Bayes net..."
-  buildBayesNet!(fge, p, maxparallel=maxparallel, solvable=solvable)
+  buildBayesNet!(fge, p, solvable=solvable)
 
   @info "Staring the Bayes tree construction from Bayes net"
   tree = emptyBayesTree()
@@ -527,7 +533,7 @@ Build Bayes/Junction/Elimination tree from a given variable ordering.
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Int=200  )
+                                maxparallel::Union{Nothing, Int}=nothing  )
   #
   println()
 
@@ -535,9 +541,14 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
     #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
   DFG.deepcopyGraph!(fge, dfg)
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(fge).maxincidence = maxparallel
+  end
 
   println("Building Bayes net from cloud...")
-  buildBayesNet!(fge, p, maxparallel=maxparallel)
+  buildBayesNet!(fge, p)
 
   tree = emptyBayesTree()
   tree.variableOrder = p
@@ -577,9 +588,15 @@ function prepBatchTree!(dfg::AbstractDFG;
                         viewerapp::String="evince",
                         imgs::Bool=false,
                         drawbayesnet::Bool=false,
-                        maxparallel::Int=200 )
+                        maxparallel::Union{Nothing, Int}=nothing )
   #
   p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
+
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
 
   # for debuggin , its useful to have the variable ordering
   if drawpdf
@@ -589,7 +606,7 @@ function prepBatchTree!(dfg::AbstractDFG;
     end
   end
 
-  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet, maxparallel=maxparallel)
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
@@ -664,7 +681,7 @@ function wipeBuildNewTree!(dfg::G;
                            filepath::String="/tmp/caesar/bt.pdf",
                            viewerapp::String="evince",
                            imgs::Bool=false,
-                           maxparallel::Int=200,
+                           maxparallel::Union{Nothing, Int}=nothing,
                            ensureSolvable::Bool=true,
                            variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                            variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
@@ -672,8 +689,14 @@ function wipeBuildNewTree!(dfg::G;
   if ensureSolvable
     ensureSolvable!(dfg)
   end
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
+
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, maxparallel=maxparallel, variableConstraints=variableConstraints);
+  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, variableConstraints=variableConstraints);
 end
 
 """
