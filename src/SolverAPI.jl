@@ -24,13 +24,19 @@ function solveTree!(dfgl::G,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Int=1000,
+                    maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
+
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    opt.maxincidence = maxparallel
+  end
 
   # update worker pool incase there are more or less
   setWorkerPool!()
@@ -57,7 +63,7 @@ function solveTree!(dfgl::G,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree, maxparallel=maxparallel,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
   # if desired, drawtree in a loop
@@ -105,13 +111,12 @@ Related
 
 solveTree!, wipeBuildNewTree!
 """
-function solveCliq!(dfgl::G,
+function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,
                     cliqid::Symbol;
                     recordcliq::Bool=false,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
-                    maxparallel::Int=50,
-                    async::Bool=false  ) where G <: DFG.AbstractDFG
+                    async::Bool=false )
   #
   # hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   opt = DFG.getSolverParams(dfgl)
@@ -151,17 +156,23 @@ tree, smt, hist = solveTree!(fg ,tree)
 ```
 """
 function solveTreeParametric!(dfgl::DFG.AbstractDFG,
-                    tree::AbstractBayesTree;
-                    delaycliqs::Vector{Symbol}=Symbol[],
-                    recordcliqs::Vector{Symbol}=Symbol[],
-                    skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Int=50)
+                              tree::AbstractBayesTree;
+                              delaycliqs::Vector{Symbol}=Symbol[],
+                              recordcliqs::Vector{Symbol}=Symbol[],
+                              skipcliqids::Vector{Symbol}=Symbol[],
+                              maxparallel::Union{Nothing, Int}=nothing  )
   #
   @error "Under development, do not use, see #539"
   @info "Solving over the Bayes (Junction) tree."
   smtasks=Vector{Task}()
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
+
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    opt.maxincidence = maxparallel
+  end
 
   # update worker pool incase there are more or less
   setWorkerPool!()

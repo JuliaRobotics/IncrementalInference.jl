@@ -1007,20 +1007,29 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:DFGVariable}; maxparallel::Int=200)::Symbol
+function assembleFactorName(dfg::AbstractDFG,
+                            Xi::Vector{<:DFGVariable};
+                            maxparallel::Union{Nothing,Int}=nothing)
+  #
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
+
   existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.label)
   end
-  for i in 1:maxparallel
+  opt = getSolverParams(dfg)
+  for i in 1:opt.maxincidence
     tempnm = string(namestring, "f$i")
     if !haskey(existingFactorLabelDict, Symbol(tempnm))
       namestring = tempnm
       break
     end
-    i != maxparallel ? nothing : error("Artificial restriction to not connect more than $(maxparallel) factors to a variable (bad for sparsity), try calling the same function again with the keyword argument maxparallel=1000 to override this restriction.")
+    i != opt.maxincidence ? nothing : error("Artificial restriction to not connect more than $(opt.maxincidence) factors to a variable (bad for sparsity), try setting getSolverParams(fg).maxincidence=1000 to adjust this restriction.")
   end
   return Symbol(namestring)
 end
@@ -1044,9 +1053,14 @@ function addFactor!(dfg::AbstractDFG,
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=200  ) where
+                    maxparallel::Union{Int,Nothing}=nothing  ) where
                       {R <: Union{FunctorInferenceType, InferenceType}}
   #
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   if isa(multihypo, Tuple)
     @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
     multihypo = [multihypo...]
@@ -1055,8 +1069,9 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
+
   varOrderLabels = [v.label for v=Xi]
-  namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
+  namestring = assembleFactorName(dfg, Xi)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, nullhypo=nullhypo, threadmodel=threadmodel)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
@@ -1089,8 +1104,13 @@ function addFactor!(dfg::AbstractDFG,
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=200  )
+                    maxparallel::Union{Nothing,Int}=nothing  )
   #
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   if isa(multihypo, Tuple)
     @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
     multihypo = [multihypo...]
@@ -1100,7 +1120,7 @@ function addFactor!(dfg::AbstractDFG,
     graphinit = autoinit # force user spec
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
 
 
@@ -1169,7 +1189,9 @@ end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol,1})
+function addBayesNetVerts!(dfg::AbstractDFG,
+                           elimOrder::Array{Symbol,1} )
+  #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
     if getSolverData(vert).BayesNetVertID == nothing || getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
@@ -1181,7 +1203,10 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol,1})
   end
 end
 
-function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
+function addConditional!(dfg::AbstractDFG,
+                         vertId::Symbol,
+                         Si::Vector{Symbol} )
+  #
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getSolverData(bnv)
   bnvd.separator = Si
@@ -1191,9 +1216,15 @@ function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=200)
+function addChainRuleMarginal!(dfg::AbstractDFG,
+                               Si::Vector{Symbol};
+                               maxparallel::Union{Nothing,Int}=nothing )
   #
-    @show Si
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
+
   lbls = String[]
   genmarg = GenericMarginal()
   Xi = map(v -> DFG.getVariable(dfg, v), Si)
@@ -1201,14 +1232,19 @@ function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, graphinit=false, maxparallel=maxparallel)
+  addFactor!( dfg, Xi, genmarg, graphinit=false )
   nothing
 end
 
-function rmVarFromMarg(dfg::G,
+function rmVarFromMarg(dfg::AbstractDFG,
                        fromvert::DFGVariable,
                        gm::Vector{DFGFactor};
-                       maxparallel::Int=200 )::Nothing where G <: AbstractDFG
+                       maxparallel::Union{Nothing,Int}=nothing  )
+  #
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -1222,7 +1258,7 @@ function rmVarFromMarg(dfg::G,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, maxparallel=maxparallel)
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1237,10 +1273,10 @@ function rmVarFromMarg(dfg::G,
   return nothing
 end
 
-function buildBayesNet!(dfg::G,
+function buildBayesNet!(dfg::AbstractDFG,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=200,
-                        solvable::Int=1)::Nothing where G <: AbstractDFG
+                        maxparallel::Union{Nothing,Int}=nothing,
+                        solvable::Int=1 )
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -1283,11 +1319,11 @@ function buildBayesNet!(dfg::G,
     getSolverData(vert).eliminated = true
 
     # TODO -- remove links from current vertex to any marginals
-    rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
+    rmVarFromMarg(dfg, vert, gm)
 
     #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
     # new function between all Si (round the outside, right the outside)
-    length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
+    length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
 
   end
   return nothing
