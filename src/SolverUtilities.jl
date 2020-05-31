@@ -274,7 +274,7 @@ end
 """
     $SIGNATURES
 
-Inverse solve of predicted noise value and returns the associated measured noise value (supplied by user; also used as starting point for the solve).
+Inverse solve for the predicted noise value and return in order asMeasured, asPredicted.
 
 DevNotes
 - Perhaps generalize to return full measurement tuple and not just meas[1] values.
@@ -335,7 +335,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   end
 
   # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
-  return meas[1], givenMeasModel
+  return givenMeasModel, meas[1]
 end
 
 """
