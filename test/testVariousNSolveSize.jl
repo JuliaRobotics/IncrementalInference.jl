@@ -10,6 +10,12 @@ using Test
 
 fg = generateCanonicalFG_CaesarRing1D(graphinit=true)
 
+
+pts = approxConv(fg, :x0x1f1, :x1, N=101)
+if size(pts,2) != 101
+  @warn "approxConv not adhering to N=101 != $(size(pts,2)), see issue #105"
+end
+
 # 150 is non-standard
 getSolverParams(fg).N = 150
 # getSolverParams(fg).multiproc = false

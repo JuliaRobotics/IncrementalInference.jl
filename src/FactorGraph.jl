@@ -514,12 +514,12 @@ Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-            Xi::Vector{<:DFGVariable},
-            N::Int,
-            solvefor::Union{Nothing, Symbol}  ) # TODO: Confirm we can use symbols here
+                             Xi::Vector{<:DFGVariable},
+                             solvefor::Union{Nothing, Symbol},
+                             N::Int=0  )
   #
   LEN = Int[]
-  maxlen = N
+  maxlen = N # FIXME see #105
   count = 0
   sfidx = 0
 
@@ -545,6 +545,9 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
+
+  # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
+  # maxlen = N == 0 ? maxlen : N
   return maxlen, sfidx
 end
 
@@ -596,7 +599,7 @@ function prepgenericconvolution(
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
   zdim = calcZDim(usrfnc, Xi)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0

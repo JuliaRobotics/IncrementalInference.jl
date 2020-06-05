@@ -38,7 +38,13 @@ function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
 end
 
 function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
-  freshSamples(getFactorType(dfg, sym), N)
+  fct = getFactor(dfg, sym)
+  usrfnc = getFactorType(fct)
+  if hasfield(typeof(usrfnc), :specialSampler)
+    freshSamples(usrfnc, N, FactorMetadata(), getVariable.(dfg,getVariableOrder(fct)) )
+  else
+    freshSamples(usrfnc, N)
+  end
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
