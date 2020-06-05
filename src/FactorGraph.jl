@@ -546,9 +546,12 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
 
+  # get solvefor manifolds
+  manis = length(Xi)==0 || sfidx==0 ? (:null,) : getManifolds(Xi[sfidx])
+
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx
+  return maxlen, sfidx, manis
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -599,7 +602,7 @@ function prepgenericconvolution(
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
+  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
   zdim = calcZDim(usrfnc, Xi)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
