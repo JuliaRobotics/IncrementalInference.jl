@@ -78,7 +78,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    N::Int  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
+  maxlen, sfidx = prepareparamsarray!(ARR, Xi, solvefor, N)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate
@@ -314,7 +315,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   isinit = map(x->isInitialized(x), Xi)
 
   # assemble how hypotheses should be computed
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit)
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
   certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements
