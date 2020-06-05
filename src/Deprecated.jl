@@ -5,6 +5,65 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
+                               ccwl::CommonConvWrapper{T},
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,100),);
+                               N::Int=size(measurement[1],2),
+                               spreadNH::Real=3.0,
+                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
+  #
+  @warn "FunctorPairwiseNH will be deprecated in favor of common `nullhypo=` interface."
+  # TODO -- could be constructed and maintained at addFactor! time
+  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  # prepare nullhypothesis
+  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadNH)
+
+  # Compute across the true or null hypothesis
+  computeAcrossNullHypothesis!(ccwl, allelements, nhc, ENT )
+
+  return ccwl.params[ccwl.varidx]
+end
+
+
+function evalPotentialSpecific(Xi::Vector{DFGVariable},
+                               ccwl::CommonConvWrapper{T},
+                               solvefor::Symbol,
+                               measurement::Tuple=(zeros(0,100),);
+                               N::Int=size(measurement[1],2),
+                               spreadfactor::Real=10.0,
+                               dbg::Bool=false,
+                               spreadNH::Float64=3.0 ) where {T <: FunctorSingletonNH}
+  #
+  @warn "FunctorSingletonNH will be deprecated in favor of common `nullhypo=` interface."
+  fnc = ccwl.usrfnc!
+
+  val = getVal(Xi[1])
+  d = size(val,1)
+  var = Statistics.var(val, dims=2) .+ 1e-3
+
+  # prep in case special samplers used
+  # determine amount share of null hypothesis particles
+  freshSamples!(ccwl, N, FactorMetadata(), Xi)
+  # ccwl.measurement = getSample(ccwl.usrfnc!, N)
+  # values of 0 imply null hypothesis
+  # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
+
+  # TODO -- not valid for manifold
+  # TODO bad memory management
+  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])) )
+
+  for i in 1:N
+    if nhc[i] == 0
+      ccwl.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
+    end
+  end
+  # TODO -- returning to memory location inside
+  return ccwl.measurement[1]
+end
+
+
 function convert(::Type{TreeBelief},
                  bel::Tuple{BallTreeDensity,Float64},
                  manifolds::T) where {T <: Tuple}
