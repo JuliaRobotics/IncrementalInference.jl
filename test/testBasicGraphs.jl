@@ -34,7 +34,7 @@ tree, smt, hist = solveTree!(fg)
 # test free solvable variables (occurs in fixed-/ clique recycling)
 addVariable!(fg, :x1, ContinuousScalar, solvable=1)
 
-solveTree!(fg)
+solveTree!(fg, storeOld=true)
 
 @test getSolvable(fg, :x1) == 0
 
