@@ -8,6 +8,9 @@ Perform inference over the Bayes tree according to `opt::SolverParams`.
 
 Notes
 - Variety of options, including fixed-lag solving -- see `getSolverParams(fg)` for details.
+- Latest result always stored in `solvekey=:default`.
+- Experimental `storeOld::Bool=true` will duplicate the current result as supersolve `:default_k`.
+  - Based on `solvable==1` assumption.
 
 Example
 ```julia
@@ -21,6 +24,7 @@ solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::G,
                     oldtree::AbstractBayesTree=emptyBayesTree();
+                    storeOld::Bool=false,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
@@ -58,6 +62,18 @@ function solveTree!(dfgl::G,
   if opt.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
       fifoFreeze!(dfgl)
+  end
+
+  # perhaps duplicate current value
+  if storeOld || opt.dbg
+    ss = listSupersolves(dfgl) .|> string
+    ss_ = ss[occursin.(r"default_",ss)] .|> x->x[9:end]
+    allk = parse.(Int,ss_)
+    nextk = length(allk) == 0 ? 0 : maximum(allk)+1
+    newKey = Symbol(:default_, nextk)
+    deepcopySupersolve!(dfgl, newKey, :default, solvable=1)
+    # foreach(x->updateVariableSolverData!(dfgl, x, getSolverData(getVariable(dfgl,x), :default), newKey, true, Symbol[]), ls(dfgl, solvable=1))
+    @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
