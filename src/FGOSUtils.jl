@@ -136,7 +136,7 @@ function calcVariablePPE(var::DFGVariable,
                          solveKey::Symbol=:default,
                          method::Type{MeanMaxPPE}=MeanMaxPPE  )
   #
-  P = getKDE(var)
+  P = getKDE(var, solveKey)
   manis = getManifolds(softt) # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
   Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
