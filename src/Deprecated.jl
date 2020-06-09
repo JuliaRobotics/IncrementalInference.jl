@@ -5,6 +5,8 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export getVertKDE,  getVert
+
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol,
@@ -146,6 +148,17 @@ function writeGraphPdf(fgl::AbstractDFG;
   #
   @warn "writeGraphPdf deprecated, use drawGraph instead"
   drawGraph(fgl, viewerapp=viewerapp, filepath=filepath, engine=engine, show=show )
+end
+
+function getVert(dfg::AbstractDFG, sym::Symbol, nt::Symbol=:var)
+  @warn "IIF.getVert is deprecated, use DFG.getVariable or DFG.getFactor instead."
+  if nt == :var
+    return DFG.getVariable(dfg, sym)
+  elseif nt == :fct
+    return DFG.getFactor(dfg, sym)
+  else
+    error("unknown getVert request nt=$nt")
+  end
 end
 
 ##==============================================================================
