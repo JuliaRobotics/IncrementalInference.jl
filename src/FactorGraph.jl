@@ -23,9 +23,7 @@ getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].v
 getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
 getVal(vnd::VariableNodeData) = vnd.val
 getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
-function getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
-  return getVariable(dfg, lbl).solverDataDict[solveKey].val
-end
+getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default) = getVariable(dfg, lbl).solverDataDict[solveKey].val
 
 """
     $(SIGNATURES)
@@ -1337,39 +1335,16 @@ end
 
 
 
-function getKDE(vnd::VariableNodeData)
-  AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
-end
-
-
 """
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-function getKDE(v::DFGVariable)
-  return getKDE(getSolverData(v))
-end
+getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
+getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
 
-function getVert(dfg::G, sym::Symbol, nt::Symbol=:var) where G <: AbstractDFG
-  @warn "IIF.getVert is deprecated, use DFG.getVariable or DFG.getFactor instead."
-  if nt == :var
-    return DFG.getVariable(dfg, sym)
-  elseif nt == :fct
-    return DFG.getFactor(dfg, sym)
-  else
-    error("unknown getVert request nt=$nt")
-  end
-end
-
-"""
-    $(SIGNATURES)
-
-Get KernelDensityEstimate marginal stored in variable data.
-"""
-getKDE(dfg::AbstractDFG, lbl::Symbol) = getKDE(getVariable(dfg, lbl))
-
-
+const getKDE = getBelief
 
 
 #
