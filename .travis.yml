@@ -27,7 +27,6 @@ jobs:
   allow_failures:
     - julia: nightly
     - arch: arm64
-    - name: "MASTER AND TAGS"
       if: NOT branch =~ ^release.*$
 
 addons:
