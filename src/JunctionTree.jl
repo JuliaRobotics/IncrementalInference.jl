@@ -1,4 +1,5 @@
 export getVariableOrder, calcCliquesRecycled
+export getCliquePotentials
 
 """
     $SIGNATURES
@@ -929,13 +930,7 @@ function setCliqPotentials!(dfg::G,
   nothing
 end
 
-function getCliquePotentials!(dfg::G,
-                            bt::AbstractBayesTree,
-                            cliq::TreeClique  ) where G <: AbstractDFG
-  #
-  @warn "getCliquePotentials! deprecated, use getCliqPotentials instead."
-  getCliqPotentials(dfg, bt, cliq)
-end
+getCliquePotentials(cliq::TreeBelief) = getCliqueData(cliq).potentials
 
 function cliqPotentialIDs(cliq::TreeClique)
   potIDs = Symbol[]

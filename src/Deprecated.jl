@@ -7,6 +7,10 @@
 
 export getVertKDE,  getVert
 
+# export getCliqPotentials
+# @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq) 
+
+
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                ccwl::CommonConvWrapper{T},
                                solvefor::Symbol,
