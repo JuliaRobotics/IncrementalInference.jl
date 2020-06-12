@@ -70,6 +70,7 @@ end
 
 # EARLIER NAMES INCLUDE: productFactor, Fnew, MsgPrior, LikelihoodMessage
 
+## TODO drop these first three functions for keyword only version below.
 LikelihoodMessage(status::CliqStatus) =
         LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
 

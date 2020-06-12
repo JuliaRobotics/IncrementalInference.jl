@@ -171,7 +171,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
-  for (idx,upmsgs) in getUpMsgs(csmc) # csmc.msgsUp
+  for (idx,upmsgs) in getUpMsgs(csmc.cliq) # csmc.msgsUp
     append!(msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsgs))
   end
 
