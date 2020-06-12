@@ -5,10 +5,81 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export assignTreeHistory!
 export getVertKDE,  getVert
 
 # export getCliqPotentials
-# @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq) 
+# @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq)
+
+
+"""
+    $SIGNATURES
+
+Return clique state machine history from `tree` if it was solved with `recordcliqs`.
+
+Notes
+- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
+"""
+function getCliqSolveHistory(cliq::TreeClique)
+  @error ".statehistory is obsolete, use fetch.(smt) instead."
+  # getCliqueData(cliq).statehistory
+end
+function getCliqSolveHistory(tree::AbstractBayesTree, frntal::Symbol)
+  cliq = whichCliq(tree, frntal)
+  getCliqSolveHistory(cliq)
+end
+
+"""
+    $SIGNATURES
+
+Return dict of all histories in a Bayes Tree.
+"""
+function getTreeCliqsSolverHistories(fg::G,
+                                     tree::AbstractBayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
+  #
+  @error "obsolete"
+  # fsy = getTreeAllFrontalSyms(fg, tree)
+  # histories = Dict{Symbol, CSMHistory}()
+  # for fs in fsy
+  #   hist = getCliqSolveHistory(tree, fs)
+  #   if length(hist) > 0
+  #     histories[fs] = hist
+  #   end
+  # end
+  # return histories
+end
+
+function printCliqHistorySummary(cliq::TreeClique)
+  hist = getCliqSolveHistory(cliq)
+  printCliqHistorySummary(hist)
+end
+
+function printCliqHistorySummary(tree::AbstractBayesTree, frontal::Symbol)
+  hist = getCliqSolveHistory(tree, frontal)
+  printCliqHistorySummary(hist)
+end
+
+"""
+    $SIGNATURES
+
+After solving, clique histories can be inserted back into the tree for later reference.
+This function helps do the required assigment task.
+"""
+function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
+  @error "assignTreeHistory! is obsolete."
+  # for i in 1:length(getCliques(treel))
+  #   if haskey(cliqHistories, i)
+  #     hist = cliqHistories[i]
+  #     for i in 1:length(hist)
+  #       hist[i][4].logger = SimpleLogger(stdout)
+  #     end
+  #     # getCliqueData(treel, i).statehistory=hist
+  #   end
+  # end
+end
+
+
+@deprecate emptyBTNodeData() BayesTreeNodeData()
 
 
 function evalPotentialSpecific(Xi::Vector{DFGVariable},

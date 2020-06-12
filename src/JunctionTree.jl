@@ -41,10 +41,6 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
     error("Oops, something went wrong")
   end
 
-  # Specific data container
-  # already emptyBTNodeData() in constructor
-  # setData!(clq, emptyBTNodeData())
-
   appendClique!(bt, clId, dfg, varID, condIDs)
   # appendClique!(bt, bt.btid, dfg, varID, condIDs)
   return clq

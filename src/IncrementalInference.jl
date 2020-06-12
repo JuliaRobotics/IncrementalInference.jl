@@ -81,7 +81,6 @@ export AbstractDFG,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
-  assignTreeHistory!,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
