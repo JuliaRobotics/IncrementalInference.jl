@@ -9,7 +9,7 @@ function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
                                               cliq::TreeClique,
                                               cliqKey::Int;
-                                              oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                              oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                               drawtree::Bool=false,
                                               show::Bool=false,
                                               incremental::Bool=true,

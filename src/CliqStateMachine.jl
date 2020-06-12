@@ -815,7 +815,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::AbstractBayesTree,
                                         cliq::TreeClique;
                                         N::Int=100,
-                                        oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                        oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,

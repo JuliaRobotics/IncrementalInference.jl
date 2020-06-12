@@ -998,7 +998,7 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     cliqcd.initUpChannel = Channel{Symbol}(1)
     cliqcd.initDownChannel = Channel{Symbol}(1)
     cliqcd.solveCondition = Condition()
-    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    # cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
@@ -1215,8 +1215,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   function EMPTYCLIQ()
     clq = TreeClique(-1,"null")
     setLabel!(clq, "")
-    setCliqueData!(clq, emptyBTNodeData())
-    # setData!(clq, emptyBTNodeData())
+    setCliqueData!(clq, BayesTreeNodeData())
     return clq
   end
 
@@ -1334,24 +1333,6 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
   return history
 end
 
-"""
-    $SIGNATURES
-
-After solving, clique histories can be inserted back into the tree for later reference.
-This function helps do the required assigment task.
-"""
-function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
-  @warn "assignTreeHistory! likely to be deprecated without replacement."
-  for i in 1:length(getCliques(treel))
-    if haskey(cliqHistories, i)
-      hist = cliqHistories[i]
-      for i in 1:length(hist)
-        hist[i][4].logger = SimpleLogger(stdout)
-      end
-      getCliqueData(treel, i).statehistory=hist
-    end
-  end
-end
 
 """
     $SIGNATURES
