@@ -557,15 +557,15 @@ include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
-include("SolveTree01.jl")
+include("SolveTree.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
-include("ParametricMessageUtils.jl")
-include("ParametricSolveTree.jl")
-include("ParametricCliqStateMachine.jl")
+include("CliqStateMachineUtils_Parametric.jl")
+include("SolveTree_Parametric.jl")
+include("CliqStateMachine_Parametric.jl")
 include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
