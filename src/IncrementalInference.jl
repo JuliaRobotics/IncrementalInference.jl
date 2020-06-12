@@ -563,9 +563,9 @@ include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
-include("ParametricMessageUtils.jl")
-include("ParametricSolveTree.jl")
-include("ParametricCliqStateMachine.jl")
+include("CliqStateMachineUtils_Parametric.jl")
+include("SolveTree_Parametric.jl")
+include("CliqStateMachine_Parametric.jl")
 include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
