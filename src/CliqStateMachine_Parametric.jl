@@ -30,8 +30,8 @@ function initStartCliqStateMachineParametric!(dfg::G,
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq,
                                     cliqKey, prnt, children,
                                     false, incremental, drawtree, downsolve, delay,
-                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
-                                    Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger) #,
+                                    # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine
@@ -106,9 +106,10 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   for (idx,beliefMsg) in beliefMessages
     #save up message (and add priors to cliqSubFg)
-    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
+    #choose csmc for dbg messages, it's a vector, one per clique
     if beliefMsg.status == UPSOLVED
-      setUpMsg!(csmc, idx, beliefMsg)
+      setUpMsg!(csmc.cliq, beliefMsg)
+      # setUpMsg!(csmc, idx, beliefMsg)
       # csmc.msgsUp[idx] = beliefMsg
       # push!(csmc.msgsUp, beliefMsg)
 
