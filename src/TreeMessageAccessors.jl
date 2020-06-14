@@ -136,6 +136,69 @@ getMsgsDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(b
 
 
 ## =============================================================================
+## Family message getters and setters
+## =============================================================================
+
+
+"""
+    $SIGNATURES
+
+Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
+
+Notes
+- Use last parameter to select the return format.
+- Pull model #674
+
+DevNotes
+- Consolidate two versions getMsgsUpChildren
+"""
+function getMsgsUpChildren(fg_::AbstractDFG,
+                           treel::AbstractBayesTree,
+                           cliq::TreeClique,
+                           ::Type{TreeBelief} )
+  #
+  chld = getChildren(treel, cliq)
+  retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
+  for i in 1:length(chld)
+    retmsgs[i] = getMsgsUpThis(chld[i])
+  end
+  return retmsgs
+end
+
+
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
+                            ::Type{TreeBelief}=TreeBelief )
+  #
+  # TODO, replace with single channel stored in csmcs or cliques
+  getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+end
+
+
+"""
+    $SIGNATURES
+
+Get the latest down message from the parent node (without calculating anything).
+
+Notes
+- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+"""
+function getMsgDwnParent(treel::AbstractBayesTree, cliq::TreeClique)
+  downmsgs = IntermediateMultiSiblingMessages()
+  for prnt in getParent(treel, cliq)
+    for (key, bel) in getDwnMsgs(prnt)
+      if !haskey(downmsgs, key)
+        downmsgs[key] = IntermediateSiblingMessages()
+      end
+      # TODO insert true inferred dim
+      push!(downmsgs[key], bel)
+    end
+  end
+  return downmsgs
+end
+
+
+## =============================================================================
 ## Older INIT up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 

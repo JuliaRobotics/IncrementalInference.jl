@@ -16,6 +16,33 @@ export assignTreeHistory!
 export getVertKDE,  getVert
 
 
+# # return ::Vector{DFGFactor}
+# # TODO, perhaps consolidate
+# function addMsgFactors_Parametric!(subfg::AbstractDFG,
+#                                    msgs::LikelihoodMessage)
+#   # add messages as priors to this sub factor graph
+#   msgfcts = DFGFactor[]
+#   svars = DFG.listVariables(subfg)
+#   for (msym, belief_) in msgs.belief
+#     if msym in svars
+#       #TODO covaraince
+#       #TODO Maybe always use MvNormal
+#       if size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
+#         msgPrior =  MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
+#       elseif size(belief_.val, 2) == 1 && 1 < size(belief_.val, 1)
+#         mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+#         mvnorm != nothing ? nothing : (return DFGFactor[])
+#         msgPrior =  MsgPrior(mvnorm, belief_.inferdim)
+#       else
+#         error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
+#       end
+#       fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+#       push!(msgfcts, fc)
+#     end
+#   end
+#   return msgfcts
+# end
+
 # # consolidated with AbstractBayesTree in TreeMessageAccessors.jl
 # function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
 #   # Blocks until data is available.

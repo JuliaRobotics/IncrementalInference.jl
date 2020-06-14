@@ -180,7 +180,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       # NOTE, Old -- csmc.msgsUp
   for upmsg in getCliqChildMsgsUp(csmc) # pull model, fetch messages from children
     @show upmsg
-    append!( msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsg) )
+    append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg) ) # addMsgFactors_Parametric!
   end
   @info "length mgsfcts=$(length(msgfcts))"
   infocsm(csmc, "length mgsfcts=$(length(msgfcts))")

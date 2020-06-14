@@ -19,6 +19,8 @@ Notes
 - May be used initialization or inference, in both upward and downward directions.
 - `msgs` are identified by variable label `::Symbol`, and my consist of multiple beliefs.
 - Message sets from different cliques are identified by clique id `::Int`.
+- assume lower limit on number of particles is 5.
+- messages from children stored in vector or dict.
 
 Related
 
@@ -29,17 +31,28 @@ function addMsgFactors!(subfg::AbstractDFG,
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
-  for (msym, dm) in msgs.belief
+  for (msym, belief_) in msgs.belief
     if msym in svars
-      # manifold information is contained in the factor graph DFGVariable object
-      fc = addFactor!(subfg, [msym],
-              MsgPrior(manikde!(dm.val, dm.bw[:,1], getManifolds(dm.softtype)), dm.inferdim), graphinit=false)
+      if 5 < size(belief_.val,2)
+        # NOTE kde case assumes lower limit of 5 particles
+        # manifold information is contained in the factor graph DFGVariable object
+        kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
+        msgPrior = MsgPrior(kdePr, belief_.inferdim)
+      elseif size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
+        msgPrior =  MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
+      elseif size(belief_.val, 2) == 1 && 1 != size(belief_.val, 1)
+        mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+        mvnorm != nothing ? nothing : (return DFGFactor[])
+        msgPrior =  MsgPrior(mvnorm, belief_.inferdim)
+      else
+        error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
+      end
+      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
       push!(msgfcts, fc)
     end
   end
   return msgfcts
 end
-
 
 function addMsgFactors!(subfg::AbstractDFG,
                         allmsgs::Dict{Int,LikelihoodMessage} )
@@ -52,71 +65,6 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return allfcts
 end
-
-
-# return ::Vector{DFGFactor}
-function addMsgFactors_Parametric!(subfg::AbstractDFG,
-                                   msgs::LikelihoodMessage)
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-# <<<<<<< Updated upstream
-  for (msym, belief) = (msgs.belief)
-    if msym in svars
-      #TODO covaraince
-      #TODO Maybe always use MvNormal
-      if size(belief.val)[1] == 1
-        msgPrior =  MsgPrior(Normal(belief.val[1], sqrt(belief.bw[1])), belief.inferdim)
-      else
-        mvnorm = createMvNormal(belief.val[:,1], belief.bw)
-        mvnorm == nothing &&
-          (return DFGFactor[])
-        msgPrior =  MsgPrior(mvnorm, belief.inferdim)
-      end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
-      push!(msgfcts, fc)
-    end
-# =======
-#   #convert to Normal or MvNormal
-#   varOrder = msgs.cobelief.varlbl
-#   Σ = msgs.cobelief.Σ
-#   μ = msgs.cobelief.μ
-#   if length(μ) == 1
-#     dist = Normal(μ[1], sqrt(Σ[1]))
-#   else
-#     dist = MvNormal(μ, Σ)
-#   end
-#
-#   #TODO add type of factor to message, maybe even send constucted function
-#   #TODO inferredDim
-#   if length(varOrder) == 1
-#     @info "Adding belief msg prior with $dist on $varOrder"
-#     fc = addFactor!(subfg, varOrder, MsgPrior(dist, 0.0), graphinit=false)
-#   elseif length(varOrder) == 2
-#     @error "this only works for linear conditional"
-#     fc = addFactor!(subfg, varOrder, LinearConditional(dist), graphinit=false)
-#   else
-#     error("Oops, not supported")
-#   end
-#   push!(msgfcts, fc)
-#
-#   # for (msym, belief) = (msgs.belief)
-#   #   if msym in svars
-#   #     #TODO covaraince
-#   #     #TODO Maybe always use MvNormal
-#   #     if size(belief.val)[1] == 1
-#   #       msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
-#   #     else
-#   #       msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
-#   #     end
-#   #     fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
-#   #     push!(msgfcts, fc)
-#   #   end
-# >>>>>>> Stashed changes
-  end
-  return msgfcts
-end
-
 
 
 """
@@ -137,64 +85,6 @@ function deleteMsgFactors!(subfg::AbstractDFG,
   end
 end
 
-
-
-"""
-    $SIGNATURES
-
-Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
-
-Notes
-- Use last parameter to select the return format.
-- Pull model #674
-
-DevNotes
-- Consolidate two versions getMsgsUpChildren
-"""
-function getMsgsUpChildren(fg_::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           cliq::TreeClique,
-                           ::Type{TreeBelief} )
-  #
-  chld = getChildren(treel, cliq)
-  retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
-  for i in 1:length(chld)
-    retmsgs[i] = getMsgsUpThis(chld[i])
-  end
-  return retmsgs
-end
-
-
-function getMsgsUpChildren(csmc::CliqStateMachineContainer,
-                            ::Type{TreeBelief}=TreeBelief )
-  #
-  # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
-end
-
-
-"""
-    $SIGNATURES
-
-Get the latest down message from the parent node (without calculating anything).
-
-Notes
-- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
-- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
-"""
-function getMsgDwnParent(treel::AbstractBayesTree, cliq::TreeClique)
-  downmsgs = IntermediateMultiSiblingMessages()
-  for prnt in getParent(treel, cliq)
-    for (key, bel) in getDwnMsgs(prnt)
-      if !haskey(downmsgs, key)
-        downmsgs[key] = IntermediateSiblingMessages()
-      end
-      # TODO insert true inferred dim
-      push!(downmsgs[key], bel)
-    end
-  end
-  return downmsgs
-end
 
 
 """
