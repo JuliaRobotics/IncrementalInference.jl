@@ -1,6 +1,9 @@
 # init utils for tree based inference
 
 
+convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
+
+
 ## =============================================================================
 # helper functions to add tree messages to subgraphs
 ## =============================================================================
@@ -68,8 +71,68 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 
-
-# TODO move addMsgFactors_Parametric! here
+# return ::Vector{DFGFactor}
+function addMsgFactors_Parametric!(subfg::AbstractDFG,
+                                   msgs::LikelihoodMessage)
+  # add messages as priors to this sub factor graph
+  msgfcts = DFGFactor[]
+  svars = DFG.listVariables(subfg)
+# <<<<<<< Updated upstream
+  for (msym, belief) = (msgs.belief)
+    if msym in svars
+      #TODO covaraince
+      #TODO Maybe always use MvNormal
+      if size(belief.val)[1] == 1
+        msgPrior =  MsgPrior(Normal(belief.val[1], sqrt(belief.bw[1])), belief.inferdim)
+      else
+        mvnorm = createMvNormal(belief.val[:,1], belief.bw)
+        mvnorm == nothing &&
+          (return DFGFactor[])
+        msgPrior =  MsgPrior(mvnorm, belief.inferdim)
+      end
+      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+      push!(msgfcts, fc)
+    end
+# =======
+#   #convert to Normal or MvNormal
+#   varOrder = msgs.cobelief.varlbl
+#   Σ = msgs.cobelief.Σ
+#   μ = msgs.cobelief.μ
+#   if length(μ) == 1
+#     dist = Normal(μ[1], sqrt(Σ[1]))
+#   else
+#     dist = MvNormal(μ, Σ)
+#   end
+#
+#   #TODO add type of factor to message, maybe even send constucted function
+#   #TODO inferredDim
+#   if length(varOrder) == 1
+#     @info "Adding belief msg prior with $dist on $varOrder"
+#     fc = addFactor!(subfg, varOrder, MsgPrior(dist, 0.0), graphinit=false)
+#   elseif length(varOrder) == 2
+#     @error "this only works for linear conditional"
+#     fc = addFactor!(subfg, varOrder, LinearConditional(dist), graphinit=false)
+#   else
+#     error("Oops, not supported")
+#   end
+#   push!(msgfcts, fc)
+#
+#   # for (msym, belief) = (msgs.belief)
+#   #   if msym in svars
+#   #     #TODO covaraince
+#   #     #TODO Maybe always use MvNormal
+#   #     if size(belief.val)[1] == 1
+#   #       msgPrior =  MsgPrior(Normal(belief.val[1], belief.bw[1]), belief.inferdim)
+#   #     else
+#   #       msgPrior =  MsgPrior(MvNormal(belief.val[:,1], belief.bw), belief.inferdim)
+#   #     end
+#   #     fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+#   #     push!(msgfcts, fc)
+#   #   end
+# >>>>>>> Stashed changes
+  end
+  return msgfcts
+end
 
 
 
@@ -93,94 +156,6 @@ end
 
 
 
-
-## =============================================================================
-# tree belief message accessors for nonparameteric in this section
-## =============================================================================
-
-
-"""
-    $SIGNATURES
-
-Based on a push model from child cliques that should have already completed their computation.
-"""
-getCliqInitUpMsgs(cliq::TreeClique)::Dict{Int, LikelihoodMessage} = getCliqueData(cliq).upInitMsgs
-
-getInitDownMsg(cliq::TreeClique)::LikelihoodMessage = getCliqueData(cliq).downInitMsg
-
-"""
-    $SIGNATURES
-
-Set cliques up init msgs.
-"""
-function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
-  cd = getCliqueData(cliq)
-  soco = getSolveCondition(cliq)
-  lockUpStatus!(cd)
-  cd.upInitMsgs[childid] = msg
-  # notify cliq condition that there was a change
-  notify(soco)
-  unlockUpStatus!(cd)
-  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
-  sleep(0.1)
-  notify(soco)
-  nothing
-end
-
-
-"""
-    $(SIGNATURES)
-
-Set the upward passing message for Bayes (Junction) tree clique `cliql`.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
-  csmc.msgsUp[cliqid] = msgs
-end
-
-function setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
-  getCliqueData(cliql).upMsg = msgs
-end
-
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in `cliq` of Bayes (Junction) tree.
-"""
-getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
-getUpMsgs(cliql::TreeClique) = getCliqueData(cliql).upMsg
-getUpMsgs(btl::AbstractBayesTree, sym::Symbol) = getUpMsgs(getCliq(btl, sym))
-
-
-"""
-    $(SIGNATURES)
-
-Set the downward passing message for Bayes (Junction) tree clique `cliql`.
-"""
-function setDwnMsg!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
-  csmc.msgsDown = msgs
-end
-
-function setDwnMsg!(cliql::TreeClique, msgs::LikelihoodMessage)
-  getCliqueData(cliql).dwnMsg = msgs
-end
-
-
-"""
-    $(SIGNATURES)
-
-Return the last down message stored in `cliq` of Bayes (Junction) tree.
-"""
-getDwnMsgs(csmc::CliqStateMachineContainer) = csmc.msgsDown
-getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
-getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
-
-
-
-
 """
     $SIGNATURES
 
@@ -191,28 +166,34 @@ Notes
 - Pull model #674
 
 DevNotes
-- Consolidate two versions getCliqChildMsgsUp
+- Consolidate two versions getMsgsUpChildren
 """
-function getCliqChildMsgsUp(fg_::AbstractDFG,
-                            treel::AbstractBayesTree,
-                            cliq::TreeClique,
-                            ::Type{TreeBelief} )
+function getMsgsUpChildren(fg_::AbstractDFG,
+                           treel::AbstractBayesTree,
+                           cliq::TreeClique,
+                           ::Type{TreeBelief} )
   #
-  childmsgs = LikelihoodMessage[]
-  for child in getChildren(treel, cliq)
-    nbpchild = LikelihoodMessage()
-    for (key, bel) in getUpMsgs(child).belief
-      # manis = getManifolds(fg_, key)
-      # inferdim = getVariableInferredDim(fg_, key)
-      dcBel = deepcopy(bel)
-      nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
-    end
-    push!(childmsgs, nbpchild)
+  chld = getChildren(treel, cliq)
+  retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
+  for i in 1:length(chld)
+    retmsgs[i] = getMsgsUpThis(chld[i])
   end
-  return childmsgs
+  return retmsgs
+  # childmsgs = LikelihoodMessage[]
+  # for child in getChildren(treel, cliq)
+  #   nbpchild = LikelihoodMessage()
+  #   for (key, bel) in getUpMsgs(child).belief
+  #     # manis = getManifolds(fg_, key)
+  #     # inferdim = getVariableInferredDim(fg_, key)
+  #     dcBel = deepcopy(bel)
+  #     nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
+  #   end
+  #   push!(childmsgs, nbpchild)
+  # end
+  # return childmsgs
 end
 
-function getCliqChildMsgsUp(treel::AbstractBayesTree,
+function getMsgsUpChildren(treel::AbstractBayesTree,
                             cliq::TreeClique,
                             ::Type{BallTreeDensity})
   #
@@ -230,16 +211,18 @@ function getCliqChildMsgsUp(treel::AbstractBayesTree,
   return childmsgs
 end
 
-function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
-                            ::Type{TreeBelief} )
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
+                            ::Type{TreeBelief}=TreeBelief )
   #
-  getCliqChildMsgsUp(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+  # TODO, replace with single channel stored in csmcs or cliques
+  getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
 end
 
-function getCliqChildMsgsUp(csmc::CliqStateMachineContainer,
+# TODO consolidate
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
                             ::Type{BallTreeDensity})
   #
-  getCliqChildMsgsUp(csmc.tree, csmc.cliq, BallTreeDensity)
+  getMsgsUpChildren(csmc.tree, csmc.cliq, BallTreeDensity)
 end
 
 """
@@ -251,7 +234,7 @@ Notes
 - Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
 - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
 """
-function getCliqParentMsgDown(treel::AbstractBayesTree, cliq::TreeClique)
+function getMsgDwnParent(treel::AbstractBayesTree, cliq::TreeClique)
   downmsgs = IntermediateMultiSiblingMessages()
   for prnt in getParent(treel, cliq)
     for (key, bel) in getDwnMsgs(prnt)
@@ -265,46 +248,6 @@ function getCliqParentMsgDown(treel::AbstractBayesTree, cliq::TreeClique)
   return downmsgs
 end
 
-
-
-"""
-    $SIGNATURES
-
-Blocking call until `cliq` upInit processes has arrived at a result.
-"""
-function getCliqInitUpResultFromChannel(cliq::TreeClique)
-  status = take!(getCliqueData(cliq).initUpChannel)
-  @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
-  return status
-end
-
-
-
-
-lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
-lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
-unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
-unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
-
-function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
-  with_logger(logger) do
-    @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-  end
-    flush(logger.stream)
-  # if isready(cdat.lockDwnStatus)
-  #   with_logger(logger) do
-  #     @info "lockDwnStatus! is locked with $(cdat.lockDwnStatus.data)"
-  #   end
-  #   flush(logger.stream)
-  # end
-  stf =  put!(cdat.lockDwnStatus, idx)
-  with_logger(logger) do
-    @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-  end
-  flush(logger.stream)
-  stf
-end
-unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 
 """
     $SIGNATURES
@@ -481,9 +424,5 @@ function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
 end
 
 
-
-## =============================================================================
-## DEPRECATED BELOW
-## =============================================================================
 
 #

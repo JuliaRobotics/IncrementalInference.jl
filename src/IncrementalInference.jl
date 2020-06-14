@@ -237,8 +237,6 @@ export AbstractDFG,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # buildCliqSubgraphUp,
-  # buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
@@ -296,6 +294,7 @@ export AbstractDFG,
   buildCliqSubgraph!,
   subgraphShortestPath,
   transferUpdateSubGraph!,
+  transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
   emptyBayesTree,
@@ -305,15 +304,14 @@ export AbstractDFG,
   prepBatchTree!,
   wipeBuildNewTree!,
   buildCliquePotentials,
-  hasCliq,
-  getCliq,
-  whichCliq,
+
   getCliqDepth,
   getTreeAllFrontalSyms,
   getTreeCliqUpMsgsAll,
   stackCliqUpMsgsByVariable,
-  getCliqChildMsgsUp,
-  getCliqParentMsgDown,
+  getMsgsUpChildren,
+  getMsgsUpThis,
+  getMsgDownParent,
   getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
@@ -431,7 +429,6 @@ export AbstractDFG,
   # user functions
   proposalbeliefs,
   predictbelief,
-  getCliq,
   getCliqMat,
   getCliqAssocMat,
   getCliqMsgMat,
@@ -473,15 +470,6 @@ export AbstractDFG,
   loadDFG!,  loadDFG,
   rebuildFactorMetadata!,
 
-  setUpMsg!,
-  upMsg,
-  getDwnMsgs,
-  getUpMsgs,
-  setDwnMsg!,
-  dwnMsg,
-  getDwnMsgs,
-  # getCliqMsgsUp,
-  # getCliqMsgsDown,
   getCliqVarSolveOrderUp,
 
   getSym,
@@ -549,6 +537,7 @@ include("CompareUtils.jl")
 # tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 

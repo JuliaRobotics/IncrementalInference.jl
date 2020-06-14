@@ -5,12 +5,73 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export getCliqparentMsgDown
+export setDwnMsg!
+export upMsg, dwnMsg
+export getDwnMsgs
+export getCliq, whichCliq, hasCliq
+export getCliqChildMsgsUp
+export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
+
+@deprecate LikelihoodMessage(status::CliqStatus) LikelihoodMessage(status=status)
+@deprecate LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, variableOrder=varOrder, cliqueLikelihood=cliqueLikelihood)
+@deprecate LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, cliqueLikelihood=cliqueLikelihood)
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::AbstractDFG, treel::AbstractBayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarIds(cliq)
+  subfg = buildSubgraph(fgl, syms, 1)
+
+  # add upward messages to subgraph
+  msgs = getMsgDownParent(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
+
+@deprecate getCliqParentMsgDown(x...) getMsgDwnParent(x...)
+
+# getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
+# whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
+# whichCliq(bt::AbstractBayesTree, frt::AbstractString) = whichCliq(bt, Symbol(frt))
+
+@deprecate getCliq(x...) getClique(x...)
+@deprecate whichCliq(x...) getClique(x...)
+@deprecate hasCliq(x...) hasClique(x...)
+
+@deprecate getCliqChildMsgsUp(x...) getMsgsUpChildren(x...)
 
 # export getCliqPotentials
 # @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq)
 
+@deprecate upMsg(x...) getMsgsUpThis(x...)
+@deprecate dwnMsg(x...) getMsgsDwnThis(x...)
+@deprecate getDwnMsgs(x...) getMsgsDwnThis(x...)
+@deprecate setDwnMsg!(x...) setMsgDwnThis!(x...)
+@deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
+@deprecate getUpMsgs(x...) getMsgsUpThis(x...)
+
+# NOTE decided not to store messages in CSMC, but closer to Tree instead (likely on edges)
+# function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
+#   csmc.msgsUp[cliqid] = msgs
+# end
+# getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 
 """
     $SIGNATURES
@@ -239,166 +300,5 @@ end
 ##==============================================================================
 ## Delete at end v0.11.x
 ##==============================================================================
-
-export getpackedtype
-
-# function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
-#   @warn "decodePackedType is deprecated, use convert instead"
-#   convert(IncrementalInference.VariableNodeData, packeddata)
-# end
-# # Factors
-# function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
-#   @warn "decodePackedType is deprecated, use convert instead"
-#   usrtyp = convert(FunctorInferenceType, packeddata.fnc)
-#   fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
-#   factor = convert(fulltype, packeddata)
-#   return factor
-# end
-#
-# """
-#     $(SIGNATURES)
-#
-# Make a full memory copy of the graph and encode all composite function node
-# types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
-# are used for database persistence with CloudGraphs.jl.
-# """
-# function encodefg(fgl::G ) where G <: AbstractDFG
-#   #
-#   @error "this encodefg function has been deprected in favor of serialization methods in DFG."
-#   fgs = deepcopy(fgl)
-#   # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
-#
-#   # @showprogress 1 "Encoding variables..."
-#   for vsym in listVariables(fgl)
-#     # cpvert = deepcopy(  )
-#     var = getVariable(fgl, vsym)
-#     # addVariable!(fgs, cpvert)
-#   end
-#
-#   # @showprogress 1 "Encoding factors..."
-#   for (fsym,fid) in fgs.fIDs
-#     data,ftyp = convert2packedfunctionnode(fgl, fsym)
-#     data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-#     # newvert = TreeClique(fid,string(fsym))
-#     # for (key,val) in getVert(fgl,fid,api=api).attributes
-#     #   newvert.attributes[key] = val
-#     # end
-#     ## losing fgl.fncargvID before setdata
-#     # setData!(newvert, data)
-#     # api.addvertex!(fgs, newvert)
-#   end
-#   fgs.g.inclist = typeof(fgl.g.inclist)()
-#
-#   # iterated over all edges
-#   # @showprogress 1 "Encoding edges..."
-#   for (eid, edges) in fgl.g.inclist
-#     fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
-#     for ed in edges
-#       newed = Graphs.Edge(ed.index,
-#           fgs.g.vertices[ed.source.index],
-#           fgs.g.vertices[ed.target.index]  )
-#       push!(fgs.g.inclist[eid], newed)
-#     end
-#   end
-#
-#   return fgs
-# end
-
-
-# excessive function, needs refactoring
-# fgl := srcv
-function updateFullVertData!(fgl::AbstractDFG,
-                             srcv::DFGNode;
-                             updatePPE::Bool=false )
-  #
-  @warn "Deprecated updateFullVertData!, need alternative likely DFG.updateGraphVariableData! or DFG.mergeGraphVariableData!"
-
-  sym = Symbol(srcv.label)
-  isvar = isVariable(fgl, sym)
-
-  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = getSolverData(dest)
-  srcvd = getSolverData(srcv)
-
-  if isvar
-    if size(lvd.val) == size(srcvd.val)
-      lvd.val .= srcvd.val
-    else
-      lvd.val = srcvd.val
-    end
-    lvd.bw[:] = srcvd.bw[:]
-    lvd.initialized = srcvd.initialized
-    lvd.inferdim = srcvd.inferdim
-    setSolvedCount!(lvd, getSolvedCount(srcvd))
-
-    if updatePPE
-      # set PPE in dest from values in srcv
-      # TODO must work for all keys involved
-      # dest := srcv
-      updatePPE!(fgl, srcv)
-      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
-    end
-  else
-    # assuming nothing to be done
-  end
-
-  nothing
-end
-
-@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
-
-
-"""
-$(TYPEDEF)
-
-NOTE: Deprecated by DistributedFactorGraphs.
-"""
-mutable struct FactorGraph
-  g::FGGdict
-  bn
-  IDs::Dict{Symbol,Int}
-  fIDs::Dict{Symbol,Int}
-  id::Int
-  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
-  factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
-  bnid::Int # TODO -- not sure if this is still used
-  dimID::Int
-  cg
-  cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
-  sessionname::String
-  robotname::String
-  username::String
-  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
-  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
-  stateless::Bool
-  fifo::Vector{Symbol}
-  qfl::Int # Quasi fixed length
-  isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      Dict{Symbol,Int}(),
-                      Dict{Symbol,Int}(),
-                      0,
-                      [],
-                      [],
-                      Dict{Int,Graphs.ExVertex}(),
-                      0,
-                      0,
-                      nothing,
-                      Dict{Int,Int}(),
-                      "",
-                      "",
-                      "",
-                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                      reference,
-                      false,
-                      Symbol[],
-                      0,
-                      false  )
-end
-
 
 #

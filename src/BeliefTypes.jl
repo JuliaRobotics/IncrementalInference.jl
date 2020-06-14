@@ -54,6 +54,7 @@ Notes:
 - belief -> Dictionary of [`TreeBelief`](@ref)
 - variableOrder -> Ordered variable id list of the seperators in cliqueLikelihood
 - cliqueLikelihood -> marginal distribution (<: `SamplableBelief`) over clique seperators.
+- Older names include: productFactor, Fnew, MsgPrior, LikelihoodMessage
 
 DevNotes:
 - Objective for parametric: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
@@ -68,17 +69,6 @@ mutable struct LikelihoodMessage <: Singleton
   cliqueLikelihood::Union{Nothing,SamplableBelief}
 end
 
-# EARLIER NAMES INCLUDE: productFactor, Fnew, MsgPrior, LikelihoodMessage
-
-LikelihoodMessage(status::CliqStatus) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
-
-LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), varOrder, cliqueLikelihood)
-
-#TODO Merge conflict... is this function used?
-LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
 
 LikelihoodMessage(;status::CliqStatus=NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
@@ -94,11 +84,6 @@ const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
 const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
-
-
-function convert(::Type{BallTreeDensity}, src::TreeBelief)
-  manikde!(src.val, src.bw[:,1], src.softtype)
-end
 
 
 """

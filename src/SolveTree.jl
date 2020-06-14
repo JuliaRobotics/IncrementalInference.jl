@@ -975,7 +975,7 @@ Future
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,
                                cliq::TreeClique,
-                               childmsgs=getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief);
+                               childmsgs=getMsgsUpChildren(fg_, tree_, cliq, TreeBelief);
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
@@ -1086,7 +1086,7 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer;
                                multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
                                logger=ConsoleLogger()  )
   #
-  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getCliqChildMsgsUp(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getMsgsUpChildren(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
 end
 
 

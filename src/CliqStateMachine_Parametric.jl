@@ -30,8 +30,8 @@ function initStartCliqStateMachineParametric!(dfg::G,
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq,
                                     cliqKey, prnt, children,
                                     false, incremental, drawtree, downsolve, delay,
-                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
-                                    Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger) #,
+                                    # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine
@@ -93,6 +93,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMessages = Dict{Int,LikelihoodMessage}()
   # beliefMessages = LikelihoodMessage[]
 
+  # fetch messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
       @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -104,15 +105,18 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
+  # FIXME why duplicate messages from edges into clique???
   for (idx,beliefMsg) in beliefMessages
     #save up message (and add priors to cliqSubFg)
-    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
+    #choose csmc for dbg messages, it's a vector, one per clique
+    # if beliefMsg.status != UPSOLVED # was ==
     if beliefMsg.status == UPSOLVED
-      setUpMsg!(csmc, idx, beliefMsg)
+      setUpMsg!(csmc.cliq, beliefMsg) # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
+      # setUpMsg!(csmc, idx, beliefMsg)
       # csmc.msgsUp[idx] = beliefMsg
       # push!(csmc.msgsUp, beliefMsg)
-
     else
+
       setCliqDrawColor(csmc.cliq, "red")
       # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
@@ -120,7 +124,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
         @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
         putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(ERROR_STATUS))#put!(csmc.tree.messages[e.index].upMsg,  LikelihoodMessage(ERROR_STATUS))
       end
-      #if its the root, propagate error down
+      #if its a root, propagate error down
       #FIXME rather check if no parents with function (hasParents or isRoot)
       if length(getParent(csmc.tree, csmc.cliq)) == 0
         @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
@@ -132,11 +136,11 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       end
       childrenOk = false
     end
-
   end
-
+  # if errored
   !childrenOk && (return waitForDown_ParametricStateMachine)
 
+  # continue to solve
   return solveUp_ParametricStateMachine
 end
 
@@ -170,9 +174,16 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
-  for (idx,upmsgs) in getUpMsgs(csmc) # csmc.msgsUp
-    append!(msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsgs))
+  # LITTLE WEIRD get previously set up msgs (stored in this clique)
+    # FIXME, fetch message buffered in channels
+    # for (idx,upmsgs) in getUpMsgs(csmc.cliq)
+      # NOTE, Old -- csmc.msgsUp
+  for upmsg in getCliqChildMsgsUp(csmc) # pull model, fetch messages from children
+    @show upmsg
+    append!( msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsg) )
   end
+  @info "length mgsfcts=$(length(msgfcts))"
+  infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
