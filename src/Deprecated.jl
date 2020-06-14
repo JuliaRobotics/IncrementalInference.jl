@@ -15,6 +15,124 @@ export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
+
+# # return ::Vector{DFGFactor}
+# # TODO, perhaps consolidate
+# function addMsgFactors_Parametric!(subfg::AbstractDFG,
+#                                    msgs::LikelihoodMessage)
+#   # add messages as priors to this sub factor graph
+#   msgfcts = DFGFactor[]
+#   svars = DFG.listVariables(subfg)
+#   for (msym, belief_) in msgs.belief
+#     if msym in svars
+#       #TODO covaraince
+#       #TODO Maybe always use MvNormal
+#       if size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
+#         msgPrior =  MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
+#       elseif size(belief_.val, 2) == 1 && 1 < size(belief_.val, 1)
+#         mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+#         mvnorm != nothing ? nothing : (return DFGFactor[])
+#         msgPrior =  MsgPrior(mvnorm, belief_.inferdim)
+#       else
+#         error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
+#       end
+#       fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+#       push!(msgfcts, fc)
+#     end
+#   end
+#   return msgfcts
+# end
+
+# # consolidated with AbstractBayesTree in TreeMessageAccessors.jl
+# function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
+#   # Blocks until data is available.
+#   beliefMsg = take!(getMsgUpChannel(tree, edge))
+#   return beliefMsg
+# end
+# function takeBeliefMessageDown!(tree::MetaBayesTree, edge)
+#   # Blocks until data is available.
+#   beliefMsg = take!(getMsgDwnChannel(tree, edge))
+#   return beliefMsg
+# end
+# function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
+#   # Blocks until data is available.
+#   put!(getMsgDwnChannel(tree, edge), beliefMsg)
+#   return beliefMsg
+# end
+# function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
+#   # Blocks until data is available.
+#   put!(getMsgUpChannel(tree, edge), beliefMsg)
+#   return beliefMsg
+# end
+
+
+# better version in TreeMessageUtils.jl
+# function getMsgsUpChildren(fg_::AbstractDFG,
+#                            treel::AbstractBayesTree,
+#                            cliq::TreeClique,
+#                            ::Type{TreeBelief} )
+  #
+  # childmsgs = LikelihoodMessage[]
+  # for child in getChildren(treel, cliq)
+  #   nbpchild = LikelihoodMessage()
+  #   for (key, bel) in getUpMsgs(child).belief
+  #     # manis = getManifolds(fg_, key)
+  #     # inferdim = getVariableInferredDim(fg_, key)
+  #     dcBel = deepcopy(bel)
+  #     nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
+  #   end
+  #   push!(childmsgs, nbpchild)
+  # end
+  # return childmsgs
+# end
+
+function getMsgsUpChildren(treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{BallTreeDensity})
+  #
+  @warn "BallTreeDensity version of getMsgsUpChildren is deprecated, use TreeBelief version instead."
+  childmsgs = IntermediateMultiSiblingMessages()
+  for child in getChildren(treel, cliq)
+    for (key, bel) in getUpMsgs(child).belief
+      # id = fg_.IDs[key]
+      # manis = getManifolds(fg_, id)
+      if !haskey(childmsgs, key)
+        childmsgs[key] = IntermediateSiblingMessages()
+      end
+      push!(childmsgs[key], bel )
+    end
+  end
+  return childmsgs
+end
+
+# TODO consolidate
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
+                            ::Type{BallTreeDensity})
+  #
+  @warn "BallTreeDensity version of getMsgsUpChildren is deprecated, use TreeBelief version instead."
+  getMsgsUpChildren(csmc.tree, csmc.cliq, BallTreeDensity)
+end
+
+function addMsgFactors!(subfg::AbstractDFG,
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
+      # msgs::
+  # add messages as priors to this sub factor graph
+  @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
+  msgfcts = DFGFactor[]
+  svars = DFG.listVariables(subfg)
+  for (msym, dms) in msgs
+    for dm in dms
+      if msym in svars
+        # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
+        push!(msgfcts, fc)
+      end
+    end
+  end
+  return msgfcts
+end
+
+
 @deprecate LikelihoodMessage(status::CliqStatus) LikelihoodMessage(status=status)
 @deprecate LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, variableOrder=varOrder, cliqueLikelihood=cliqueLikelihood)
 @deprecate LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, cliqueLikelihood=cliqueLikelihood)
@@ -297,8 +415,5 @@ function getVert(dfg::AbstractDFG, sym::Symbol, nt::Symbol=:var)
   end
 end
 
-##==============================================================================
-## Delete at end v0.11.x
-##==============================================================================
 
 #

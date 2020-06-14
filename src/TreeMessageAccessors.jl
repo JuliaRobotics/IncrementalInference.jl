@@ -28,6 +28,17 @@ end
 unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 
 
+
+## =============================================================================
+## Regular up and down Message Registers/Channels, getters and setters
+## =============================================================================
+
+
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
+getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
+getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
+getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
+
 """
     $SIGNATURES
 
@@ -35,13 +46,7 @@ Remove and return a belief message from the down tree message channel edge. Bloc
 """
 function takeBeliefMessageDown!(tree::BayesTree, edge)
   # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge.index].downMsg)
-  return beliefMsg
-end
-
-function takeBeliefMessageDown!(tree::MetaBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :downMsg))
+  beliefMsg = take!(getMsgDwnChannel(tree, edge))
   return beliefMsg
 end
 
@@ -51,16 +56,9 @@ end
 
 Remove and return belief message from the up tree message channel edge. Blocks until data is available.
 """
-function takeBeliefMessageUp!(tree::BayesTree, edge)
+function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
   # Blocks until data is available.
-  beliefMsg = take!(tree.messages[edge.index].upMsg)
-  return beliefMsg
-end
-
-# TODO consolidate
-function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(MetaGraphs.get_prop(tree.bt, edge, :upMsg))
+  beliefMsg = take!(getMsgUpChannel(tree, edge))
   return beliefMsg
 end
 
@@ -72,16 +70,9 @@ Put a belief message on the down tree message channel edge. Blocks until a take!
 """
 function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
-  put!(tree.messages[edge.index].downMsg, beliefMsg)
+  put!(getMsgDwnChannel(tree, edge), beliefMsg)
   return beliefMsg
 end
-
-function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
-  # Blocks until data is available.
-  put!(MetaGraphs.get_prop(tree.bt, edge, :downMsg), beliefMsg)
-  return beliefMsg
-end
-
 
 """
     $SIGNATURES
@@ -90,45 +81,8 @@ Put a belief message on the up tree message channel `edge`. Blocks until a take!
 """
 function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
-  put!(tree.messages[edge.index].upMsg, beliefMsg)
+  put!(getMsgUpChannel(tree, edge), beliefMsg)
   return beliefMsg
-end
-
-function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
-  # Blocks until data is available.
-  put!(MetaGraphs.get_prop(tree.bt, edge, :upMsg), beliefMsg)
-  return beliefMsg
-end
-
-
-
-"""
-    $SIGNATURES
-
-Based on a push model from child cliques that should have already completed their computation.
-"""
-getCliqInitUpMsgs(cliq::TreeClique) = getCliqueData(cliq).upInitMsgs
-
-getInitDownMsg(cliq::TreeClique) = getCliqueData(cliq).downInitMsg
-
-"""
-    $SIGNATURES
-
-Set cliques up init msgs.
-"""
-function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
-  cd = getCliqueData(cliq)
-  soco = getSolveCondition(cliq)
-  lockUpStatus!(cd)
-  cd.upInitMsgs[childid] = msg
-  # TODO simplify and fix need for repeat
-  # notify cliq condition that there was a change
-  notify(soco)
-  unlockUpStatus!(cd)
-  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
-  sleep(0.1)
-  notify(soco)
-  nothing
 end
 
 
@@ -177,6 +131,119 @@ Return the last down message stored in `cliq` of Bayes (Junction) tree.
 getMsgsDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 getMsgsDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq) # NOTE, old csmc.msgsDown
 getMsgsDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
+
+
+
+
+## =============================================================================
+## Family message getters and setters
+## =============================================================================
+
+
+"""
+    $SIGNATURES
+
+Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
+
+Notes
+- Use last parameter to select the return format.
+- Pull model #674
+
+DevNotes
+- Consolidate two versions getMsgsUpChildren
+"""
+function getMsgsUpChildren(fg_::AbstractDFG,
+                           treel::AbstractBayesTree,
+                           cliq::TreeClique,
+                           ::Type{TreeBelief} )
+  #
+  chld = getChildren(treel, cliq)
+  retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
+  for i in 1:length(chld)
+    retmsgs[i] = getMsgsUpThis(chld[i])
+  end
+  return retmsgs
+end
+
+
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
+                            ::Type{TreeBelief}=TreeBelief )
+  #
+  # TODO, replace with single channel stored in csmcs or cliques
+  getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+end
+
+
+"""
+    $SIGNATURES
+
+Get the latest down message from the parent node (without calculating anything).
+
+Notes
+- Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+- Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+"""
+function getMsgDwnParent(treel::AbstractBayesTree, cliq::TreeClique)
+  downmsgs = IntermediateMultiSiblingMessages()
+  for prnt in getParent(treel, cliq)
+    for (key, bel) in getDwnMsgs(prnt)
+      if !haskey(downmsgs, key)
+        downmsgs[key] = IntermediateSiblingMessages()
+      end
+      # TODO insert true inferred dim
+      push!(downmsgs[key], bel)
+    end
+  end
+  return downmsgs
+end
+
+
+## =============================================================================
+## Older INIT up and down Message Registers/Channels, getters and setters
+## =============================================================================
+
+
+
+"""
+    $SIGNATURES
+
+Based on a push model from child cliques that should have already completed their computation.
+
+Dev Notes
+- FIXME: Old style -- design has been changed to a Pull model #674
+"""
+getCliqInitUpMsgs(cliq::TreeClique) = getCliqueData(cliq).upInitMsgs
+
+getInitDownMsg(cliq::TreeClique) = getCliqueData(cliq).downInitMsg
+
+
+"""
+    $SIGNATURES
+
+Set cliques up init msgs.
+"""
+function setCliqUpInitMsgs!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
+  # FIXME, consolidate with regular up channel
+  cd = getCliqueData(cliq)
+  soco = getSolveCondition(cliq)
+  lockUpStatus!(cd)
+  cd.upInitMsgs[childid] = msg
+  # TODO simplify and fix need for repeat
+  # notify cliq condition that there was a change
+  notify(soco)
+  unlockUpStatus!(cd)
+  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
+  sleep(0.1)
+  notify(soco)
+  nothing
+end
+
+
+
+## =============================================================================
+## Needs a home or consolidation
+## =============================================================================
+
 
 """
     $SIGNATURES
