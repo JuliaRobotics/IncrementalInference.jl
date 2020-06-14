@@ -5,6 +5,8 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export getCliqparentMsgDown
+export setDwnMsg!
 export upMsg, dwnMsg
 export getDwnMsgs
 export getCliq, whichCliq, hasCliq
@@ -13,9 +15,37 @@ export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
-@deprecate upMsg(x...) getMsgsUpThis(x...)
-@deprecate dwnMsg(x...) getMsgsDwnThis(x...)
-@deprecate getDwnMsgs(x...) getMsgsDwnThis(x...)
+@deprecate LikelihoodMessage(status::CliqStatus) LikelihoodMessage(status=status)
+@deprecate LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, variableOrder=varOrder, cliqueLikelihood=cliqueLikelihood)
+@deprecate LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, cliqueLikelihood=cliqueLikelihood)
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::AbstractDFG, treel::AbstractBayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarIds(cliq)
+  subfg = buildSubgraph(fgl, syms, 1)
+
+  # add upward messages to subgraph
+  msgs = getMsgDownParent(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
+
+@deprecate getCliqParentMsgDown(x...) getMsgDwnParent(x...)
 
 # getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 # whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
@@ -25,12 +55,15 @@ export getVertKDE,  getVert
 @deprecate whichCliq(x...) getClique(x...)
 @deprecate hasCliq(x...) hasClique(x...)
 
-
 @deprecate getCliqChildMsgsUp(x...) getMsgsUpChildren(x...)
 
 # export getCliqPotentials
 # @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq)
 
+@deprecate upMsg(x...) getMsgsUpThis(x...)
+@deprecate dwnMsg(x...) getMsgsDwnThis(x...)
+@deprecate getDwnMsgs(x...) getMsgsDwnThis(x...)
+@deprecate setDwnMsg!(x...) setMsgDwnThis!(x...)
 @deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
 @deprecate getUpMsgs(x...) getMsgsUpThis(x...)
 

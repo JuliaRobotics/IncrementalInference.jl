@@ -237,8 +237,6 @@ export AbstractDFG,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # buildCliqSubgraphUp,
-  # buildCliqSubgraphDown,
   setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
@@ -313,7 +311,7 @@ export AbstractDFG,
   stackCliqUpMsgsByVariable,
   getMsgsUpChildren,
   getMsgsUpThis,
-  getCliqParentMsgDown,
+  getMsgDownParent,
   getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
@@ -539,6 +537,7 @@ include("CompareUtils.jl")
 # tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 
