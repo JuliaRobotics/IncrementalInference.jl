@@ -1,14 +1,10 @@
 # init utils for tree based inference
 
-export  setMsgUpThis!,
-  upMsg,
+export
+  setMsgUpThis!,
   getDwnMsgsThis,
   getUpMsgs,
-  setDwnMsg!,
-  dwnMsg,
-  getDwnMsgs
-  # getCliqMsgsUp,
-  # getCliqMsgsDown,
+  setDwnMsg!
 
 
 ## =============================================================================
@@ -321,11 +317,9 @@ end
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
-getDwnMsgs(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
-getDwnMsgs(csmc::CliqStateMachineContainer) = getDwnMsgs(csmc.cliq) # NOTE, old csmc.msgsDown
-getDwnMsgs(btl::AbstractBayesTree, sym::Symbol) = getDwnMsgs(getCliq(btl, sym))
-
-
+getMsgsDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
+getMsgsDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq) # NOTE, old csmc.msgsDown
+getMsgsDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
 
 """

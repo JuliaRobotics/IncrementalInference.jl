@@ -24,8 +24,11 @@ getFrontals(cliqd::Union{TreeClique,BayesTreeNodeData})::Vector{Symbol} = getCli
 
 Create a new clique.
 """
-function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array{Symbol}=Symbol[])::TreeClique where G <: AbstractDFG
-  bt.btid += 1 #used by Graphs.jl for id
+function addClique!(bt::AbstractBayesTree,
+                    dfg::AbstractDFG,
+                    varID::Symbol,
+                    condIDs::Array{Symbol}=Symbol[]  )
+  bt.btid += 1 #used by Graphs.jl for id -- Graphs.jl will be deprecated
 
   clq = TreeClique(bt.btid, string("Clique", bt.btid))
   setLabel!(clq, "")

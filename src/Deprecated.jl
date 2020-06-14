@@ -5,11 +5,17 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export upMsg, dwnMsg
+export getDwnMsgs
 export getCliq, whichCliq, hasCliq
 export getCliqChildMsgsUp
 export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
+
+@deprecate upMsg(x...) getMsgsUpThis(x...)
+@deprecate dwnMsg(x...) getMsgsDwnThis(x...)
+@deprecate getDwnMsgs(x...) getMsgsDwnThis(x...)
 
 # getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 # whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
