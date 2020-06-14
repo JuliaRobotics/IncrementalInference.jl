@@ -25,7 +25,7 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::LikelihoodMessage)::Vector{DFGFactor}
+                        msgs::LikelihoodMessage)
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
@@ -40,23 +40,6 @@ function addMsgFactors!(subfg::AbstractDFG,
   return msgfcts
 end
 
-function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
-      # msgs::
-  # add messages as priors to this sub factor graph
-  msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-  for (msym, dms) in msgs
-    for dm in dms
-      if msym in svars
-        # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
-        push!(msgfcts, fc)
-      end
-    end
-  end
-  return msgfcts
-end
 
 function addMsgFactors!(subfg::AbstractDFG,
                         allmsgs::Dict{Int,LikelihoodMessage} )
@@ -179,37 +162,8 @@ function getMsgsUpChildren(fg_::AbstractDFG,
     retmsgs[i] = getMsgsUpThis(chld[i])
   end
   return retmsgs
-  # childmsgs = LikelihoodMessage[]
-  # for child in getChildren(treel, cliq)
-  #   nbpchild = LikelihoodMessage()
-  #   for (key, bel) in getUpMsgs(child).belief
-  #     # manis = getManifolds(fg_, key)
-  #     # inferdim = getVariableInferredDim(fg_, key)
-  #     dcBel = deepcopy(bel)
-  #     nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
-  #   end
-  #   push!(childmsgs, nbpchild)
-  # end
-  # return childmsgs
 end
 
-function getMsgsUpChildren(treel::AbstractBayesTree,
-                            cliq::TreeClique,
-                            ::Type{BallTreeDensity})
-  #
-  childmsgs = IntermediateMultiSiblingMessages()
-  for child in getChildren(treel, cliq)
-    for (key, bel) in getUpMsgs(child).belief
-      # id = fg_.IDs[key]
-      # manis = getManifolds(fg_, id)
-      if !haskey(childmsgs, key)
-        childmsgs[key] = IntermediateSiblingMessages()
-      end
-      push!(childmsgs[key], bel )
-    end
-  end
-  return childmsgs
-end
 
 function getMsgsUpChildren(csmc::CliqStateMachineContainer,
                             ::Type{TreeBelief}=TreeBelief )
@@ -218,12 +172,6 @@ function getMsgsUpChildren(csmc::CliqStateMachineContainer,
   getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
 end
 
-# TODO consolidate
-function getMsgsUpChildren(csmc::CliqStateMachineContainer,
-                            ::Type{BallTreeDensity})
-  #
-  getMsgsUpChildren(csmc.tree, csmc.cliq, BallTreeDensity)
-end
 
 """
     $SIGNATURES
@@ -261,7 +209,10 @@ Notes
 Dev Notes
 - Should be made an atomic transaction
 """
-function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+function notifyCliqUpInitStatus!(cliq::TreeClique,
+                                 status::Symbol;
+                                 logger=ConsoleLogger() )
+  #
   cd = getCliqueData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
@@ -295,7 +246,10 @@ function notifyCliqUpInitStatus!(cliq::TreeClique, status::Symbol; logger=Consol
   nothing
 end
 
-function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=ConsoleLogger())
+function notifyCliqDownInitStatus!(cliq::TreeClique,
+                                   status::Symbol;
+                                   logger=ConsoleLogger() )
+  #
   cdat = getCliqueData(cliq)
   with_logger(logger) do
     @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
@@ -328,6 +282,13 @@ function notifyCliqDownInitStatus!(cliq::TreeClique, status::Symbol; logger=Cons
 
   nothing
 end
+
+
+
+
+## =============================================================================
+## Multimessage assemplies from multiple cliques
+## =============================================================================
 
 
 """
@@ -397,8 +358,6 @@ function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
 end
 
 
-
-## From other random places
 
 """
     $SIGNATURES
