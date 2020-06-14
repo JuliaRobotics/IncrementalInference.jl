@@ -1,5 +1,7 @@
 export getVariableOrder, calcCliquesRecycled
 export getCliquePotentials
+export getClique, getCliques, getCliqueIds, getCliqueData
+export hasClique
 
 """
     $SIGNATURES
@@ -47,18 +49,49 @@ function addClique!(bt::AbstractBayesTree, dfg::G, varID::Symbol, condIDs::Array
 end
 
 
-#NOTE TODO Ideas towards a standard clique interface
-#TODO export
-export getClique, getCliques, getCliqueIds, getCliqueData
+"""
+    $(SIGNATURES)
 
-getClique(tree::AbstractBayesTree, cId::Int)::TreeClique = tree.cliques[cId]
+Return the TreeClique node object that represents a clique in the Bayes
+(Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
 
+Notes
+- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
+
+Related:
+
+getCliq, getTreeAllFrontalSyms
+"""
+getClique(tree::AbstractBayesTree, cId::Int) = tree.cliques[cId]
+getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 getClique(tree::MetaBayesTree, cId::Int)::TreeClique = MetaGraphs.get_prop(tree.bt, cId, :clique)
 
-#TODO
-addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique)::Bool = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
-updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
-deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
+
+"""
+    $SIGNATURES
+
+Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in the `::BayesTree`.
+"""
+hasClique(bt::AbstractBayesTree, frt::Symbol) = haskey(bt.frontals, frt)
+
+"""
+    $SIGNATURES
+
+Return depth in tree as `::Int`, with root as depth=0.
+
+Related
+
+getCliq
+"""
+function getCliqDepth(tree, cliq)::Int
+  prnt = getParent(tree, cliq)
+  if length(prnt) == 0
+    return 0
+  end
+  return getCliqDepth(tree, prnt[1]) + 1
+end
+getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
+
 
 getCliques(tree::AbstractBayesTree) = tree.cliques
 
@@ -81,8 +114,8 @@ end
 
 Return reference to the clique data container.
 """
-getCliqueData(cliq::TreeClique)::BayesTreeNodeData = cliq.data
-getCliqueData(tree::AbstractBayesTree, cId::Int)::BayesTreeNodeData = getClique(tree, cId) |> getCliqueData
+getCliqueData(cliq::TreeClique) = cliq.data
+getCliqueData(tree::AbstractBayesTree, cId::Int) = getClique(tree, cId) |> getCliqueData
 
 """
     $SIGNATURES
@@ -91,6 +124,11 @@ Set the clique data container to a new object `data`.
 """
 setCliqueData!(cliq::TreeClique, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = cliq.data = data
 setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNodeData, BayesTreeNodeData}) = setCliqueData!(getClique(tree, cId), data)
+
+# #TODO
+# addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) = error("addClique!(tree::AbstractBayesTree, parentCliqId::Int, cliq::TreeClique) not implemented")
+# updateClique!(tree::AbstractBayesTree, cliq::TreeClique) = error("updateClique!(tree::AbstractBayesTree, cliq::TreeClique)::Bool not implemented")
+# deleteClique!(tree::AbstractBayesTree, cId::Int) =  error("deleteClique!(tree::AbstractBayesTree, cId::Int)::TreeClique not implemented")
 
 """
     $SIGNATURES
@@ -714,64 +752,6 @@ function initTreeMessageChannels!(tree::MetaBayesTree)
   end
   return nothing
 end
-
-"""
-    $(SIGNATURES)
-
-Return the TreeClique node object that represents a clique in the Bayes
-(Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
-
-Notes
-- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
-
-Related:
-
-getCliq, getTreeAllFrontalSyms
-"""
-getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
-
-"""
-    $(SIGNATURES)
-
-Return the TreeClique node object that represents a clique in the Bayes
-(Junction) tree, as defined by one of the frontal variables `frt<:AbstractString`.
-
-Notes
-- Frontal variables only occur once in a clique per tree, therefore is a unique identifier.
-
-Related:
-
-getCliq, getTreeAllFrontalSyms
-"""
-whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
-whichCliq(bt::AbstractBayesTree, frt::T) where {T <: AbstractString} = whichCliq(bt, Symbol(string(frt)))
-
-
-"""
-    $SIGNATURES
-
-Return boolean on whether the frontal variable `frt::Symbol` exists somewhere in the `::BayesTree`.
-"""
-hasCliq(bt::AbstractBayesTree, frt::Symbol)::Bool = haskey(bt.frontals, frt)
-
-"""
-    $SIGNATURES
-
-Return depth in tree as `::Int`, with root as depth=0.
-
-Related
-
-getCliq
-"""
-function getCliqDepth(tree, cliq)::Int
-  prnt = getParent(tree, cliq)
-  if length(prnt) == 0
-    return 0
-  end
-  return getCliqDepth(tree, prnt[1]) + 1
-end
-getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
-
 
 
 function appendUseFcts!(usefcts,
@@ -1399,11 +1379,11 @@ end
 Return a vector of child cliques to `cliq`.
 """
 function childCliqs(treel::BayesTree, cliq::TreeClique)
-    childcliqs = Vector{TreeClique}(undef, 0)
-    for cl in Graphs.out_neighbors(cliq, treel.bt)
-        push!(childcliqs, cl)
-    end
-    return childcliqs
+  childcliqs = Vector{TreeClique}(undef, 0)
+  for cl in Graphs.out_neighbors(cliq, treel.bt)
+    push!(childcliqs, cl)
+  end
+  return childcliqs
 end
 function childCliqs(treel::BayesTree, frtsym::Symbol)
   childCliqs(treel,  whichCliq(treel, frtsym))
@@ -1411,12 +1391,12 @@ end
 
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
-    cliqKey = treel.bt[:index][cliq.index]
-    childcliqs = TreeClique[]
-    for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
-        push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
-    end
-    return childcliqs
+  cliqKey = treel.bt[:index][cliq.index]
+  childcliqs = TreeClique[]
+  for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
+    push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
+  end
+  return childcliqs
 end
 
 """

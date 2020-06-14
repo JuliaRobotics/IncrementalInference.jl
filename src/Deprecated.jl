@@ -5,15 +5,28 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export getCliq, whichCliq, hasCliq
+export getCliqChildMsgsUp
 export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
+# getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
+# whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
+# whichCliq(bt::AbstractBayesTree, frt::AbstractString) = whichCliq(bt, Symbol(frt))
+
+@deprecate getCliq(x...) getClique(x...)
+@deprecate whichCliq(x...) getClique(x...)
+@deprecate hasCliq(x...) hasClique(x...)
+
+
+@deprecate getCliqChildMsgsUp(x...) getMsgsUpChildren(x...)
+
 # export getCliqPotentials
 # @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq)
 
-@deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setUpMsgThis!(cliql, msgs)
-@deprecate getUpMsgs(x...) getUpMsgsThis(x...)
+@deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
+@deprecate getUpMsgs(x...) getMsgsUpThis(x...)
 
 # NOTE decided not to store messages in CSMC, but closer to Tree instead (likely on edges)
 # function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)

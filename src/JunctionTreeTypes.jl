@@ -269,6 +269,8 @@ mutable struct BayesTreeNodeData
   # these should become specialized LikelihoodMessage type
   upMsg::LikelihoodMessage
   dwnMsg::LikelihoodMessage
+
+  # FIXME Deprecate separate init message locations -- only use up and dwn
   upInitMsgs::Dict{Int, LikelihoodMessage}
   downInitMsg::LikelihoodMessage
 
