@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgUpThisInit(cliq) # TODO X getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)  # getMsgUpThisInit(cliq) # TODO X
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -116,7 +116,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+        putMsgUpInit!(cliq, cliq.index, msgs) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -361,7 +361,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
   # get the current messages ~~stored in~~ (provided to) the parent
-  currmsgs = getMsgUpThisInit(prnt) # TODO X getMsgsUpChildrenInitDict(tree, prnt, TreeBelief)
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -670,7 +670,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+    putMsgUpInit!(cliq, cliq.index, msg) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
   end
 
   return status

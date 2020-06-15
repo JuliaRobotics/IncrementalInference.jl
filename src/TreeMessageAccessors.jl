@@ -376,7 +376,8 @@ function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
   retmsgs = Dict{Int, LikelihoodMessage}()
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
-    retmsgs[ch.index] = getMsgUpThisInit(ch) # TODO X getMsgUpThisInit(ch)[ch.index]
+    @show cliq.index, ch.index, collect(keys(getMsgUpThisInit(ch)))
+    retmsgs[ch.index] = getMsgUpThisInit(ch)[ch.index] # getMsgUpThisInit(ch) # TODO X
   end
   return retmsgs
 end
@@ -384,7 +385,7 @@ function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
                                    ::Type{TreeBelief}=TreeBelief )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildrenInit(csmc.tree, csmc.cliq, TreeBelief)
+  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief)
 end
 
 
