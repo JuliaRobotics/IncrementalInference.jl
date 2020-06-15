@@ -236,6 +236,12 @@ fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
+function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
+  while fetchMsgDwnInit(cliq).status != status
+    wait(getSolveCondition(cliq))
+  end
+  nothing
+end
 
 """
     $SIGNATURES

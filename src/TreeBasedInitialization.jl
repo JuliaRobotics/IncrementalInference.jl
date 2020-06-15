@@ -450,13 +450,6 @@ end
 
 
 
-function blockMsgDwnUntilStatus(cliq::TreeClique, status)
-  while fetchMsgDwnInit(cliq).status != status
-    wait(getSolveCondition(cliq))
-  end
-  nothing
-end
-
 function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #
   lbl = getLabel(prnt)
