@@ -276,7 +276,7 @@ mutable struct BayesTreeNodeData
   downInitMsg::LikelihoodMessage
 
   initUpChannel::Channel{LikelihoodMessage}
-  initDownChannel::Channel{Symbol}
+  initDownChannel::Channel{LikelihoodMessage}
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
@@ -315,7 +315,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upInitMsgs=Dict{Int, LikelihoodMessage}(),
                             downInitMsg=LikelihoodMessage(),         #
                             initUpChannel=Channel{LikelihoodMessage}(1),
-                            initDownChannel=Channel{Symbol}(1),
+                            initDownChannel=Channel{LikelihoodMessage}(1),
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
