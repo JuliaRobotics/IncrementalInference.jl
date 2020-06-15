@@ -1,7 +1,64 @@
 # init utils for tree based inference
 
+export resetCliqSolve!
+
+
+## =============================================================================
+# short preamble funcions
+## =============================================================================
+
+
 
 convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
+
+
+## =============================================================================
+# helper functions for tree message channels
+## =============================================================================
+
+"""
+    $SIGNATURES
+
+Reset the state of all variables in a clique to not initialized.
+
+Notes
+- resets numberical values to zeros.
+
+Dev Notes
+- TODO not all kde manifolds will initialize to zero.
+- FIXME channels need to be consolidated
+"""
+function resetCliqSolve!(dfg::G,
+                         treel::AbstractBayesTree,
+                         cliq::TreeClique;
+                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
+  #
+  cda = getCliqueData(cliq)
+  vars = getCliqVarIdsAll(cliq)
+  for varis in vars
+    resetVariable!(dfg, varis, solveKey=solveKey)
+  end
+  prnt = getParent(treel, cliq)
+  if length(prnt) > 0
+    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
+  end
+  cda.upMsg  = LikelihoodMessage()
+  cda.dwnMsg = LikelihoodMessage()
+  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
+  cda.downInitMsg = LikelihoodMessage()
+  setCliqStatus!(cliq, :null)
+  setCliqDrawColor(cliq, "")
+  return nothing
+end
+
+function resetCliqSolve!(dfg::G,
+                         treel::AbstractBayesTree,
+                         frt::Symbol;
+                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
+  #
+  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
+end
+
 
 
 ## =============================================================================
@@ -87,6 +144,12 @@ end
 
 
 
+
+## =============================================================================
+## Atomic messaging during init -- might be deprecated TODO
+## =============================================================================
+
+
 """
     $SIGNATURES
 
@@ -110,24 +173,9 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
   end
   flush(logger.stream)
 
-  ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
-  # Wait until lock can be aquired
-  lockUpStatus!(cd)
+  # currently using a lock internally (hack message channels are consolidated)
+  putMsgUpInitStatus!(cliq, status)
 
-  cd.initialized = status
-  if isready(cd.initUpChannel)
-    tkst = take!(cd.initUpChannel)
-    # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
-  end
-  put!(cd.initUpChannel, status)
-  cond = getSolveCondition(cliq)
-  notify(cond)
-    # hack to avoid a race condition  -- remove with atomic lock logic upgrade
-    sleep(0.1)
-    notify(cond) # getSolveCondition(cliq)
-
-  # TODO unlock
-  unlockUpStatus!(cd)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
     @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
@@ -135,6 +183,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
 
   nothing
 end
+
 
 function notifyCliqDownInitStatus!(cliq::TreeClique,
                                    status::Symbol;
@@ -150,17 +199,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
 
   cdat.initialized = status
 
-  if isready(cdat.initDownChannel)
-    content = take!(cdat.initDownChannel)
-    with_logger(logger) do
-      @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
-    end
-  end
-  put!(cdat.initDownChannel, status)
-  notify(getSolveCondition(cliq))
-    # hack to avoid a race condition
-    sleep(0.1)
-    notify(getSolveCondition(cliq))
+  putMsgDwnInitStatus!(cliq, status, logger)
 
   # unlock for others to proceed
   unlockDwnStatus!(cdat)

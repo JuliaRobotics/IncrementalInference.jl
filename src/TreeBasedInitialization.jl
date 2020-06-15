@@ -85,38 +85,6 @@ end
 """
     $SIGNATURES
 
-Return `::Symbol` status a particular clique is in, with specific regard to solution
-or numerical initialization status:
-- :needdownmsg
-- :upsolved
-- :downsolved
-- :initialized
-- :marginalized
-- :null
-
-Notes:
-- `:null` represents the first uninitialized state of a cliq.
-"""
-getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
-getCliqStatus(cliq::TreeClique)::Symbol = getCliqStatus(getCliqueData(cliq))
-
-getCliqStatusUp(cliq::TreeClique)::Symbol = getCliqStatus(cliq)
-
-"""
-    $SIGNATURES
-
-Set up initialization or solve status of this `cliq`.
-"""
-function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getCliqueData(cliq).initialized = status
-end
-
-
-
-
-"""
-    $SIGNATURES
-
 Return true if all variables in clique are considered marginalized (and initialized).
 """
 function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
@@ -420,7 +388,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   end
 
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt)
+  products = getInitDownMsg(prnt) # INIT HERE ???
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -482,9 +450,12 @@ end
 
 
 
-
-
-
+function blockMsgDwnUntilStatus(cliq::TreeClique, status)
+  while fetchMsgDwnInit(cliq) != status
+    wait(getSolveCondition(cliq))
+  end
+  nothing
+end
 
 function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #
@@ -494,18 +465,7 @@ function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger()
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
   flush(logger.stream)
-  while fetch(getCliqueData(prnt).initDownChannel) != :downsolved
-    # @sync begin
-    #   @async begin
-    #     sleep(1)
-    #     notify(getSolveCondition(prnt))
-    #   end
-      with_logger(logger) do
-        @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | waiting on solve condition..."
-      end
-      wait(getSolveCondition(prnt))
-    # end
-  end
+  blockMsgDwnUntilStatus(prnt, :downsolved)
 
   return nothing
 end
@@ -526,7 +486,7 @@ Notes:
 """
 function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
                                             prnt::TreeClique,
-                                            logger=ConsoleLogger() )::Dict{Int, Symbol}
+                                            logger=ConsoleLogger() )
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
@@ -534,10 +494,10 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getCliqueData(ch).initUpChannel))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetch(getCliqueData(ch).initUpChannel)
+    ret[ch.index] = fetchMsgUpInit(ch)
   end
   with_logger(logger) do
       @info "cliq $(prnt.index), fetched all."
@@ -583,7 +543,8 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
         end
         flush(logger.stream)
         # do actual fetch
-        prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
+        prtmsg = fetchMsgDwnInit(prnt[1])
+        # prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
         with_logger(logger) do
             tt = split(string(now()), 'T')[end]
           @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
@@ -595,7 +556,6 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
                 tt = split(string(now()), 'T')[end]
                 @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
             end
-          # take!(getCliqueData(prnt[1]).initDownChannel)
         end
       end
     end

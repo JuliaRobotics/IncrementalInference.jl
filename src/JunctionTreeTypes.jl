@@ -267,6 +267,7 @@ mutable struct BayesTreeNodeData
 
   # future might concentrate these four fields down to two
   # these should become specialized LikelihoodMessage type
+  # TODO, likely to be replaced by Channel counterparts
   upMsg::LikelihoodMessage
   dwnMsg::LikelihoodMessage
 
@@ -280,12 +281,10 @@ mutable struct BayesTreeNodeData
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
   solvableDims::Channel{Dict{Symbol, Float64}}
-  # statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
-  # BayesTreeNodeData() = new()
-  # BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
-  #                               x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-  #                               x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29], x[30], x[31], x[32],
-  #                               Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
+
+  # in and out message channels relating to THIS clique
+  upMsgChannel::Channel{LikelihoodMessage}
+  dwnMsgChannel::Channel{LikelihoodMessage}
 end
 
 
@@ -320,8 +319,10 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
-                            solvableDims=Channel{Dict{Symbol,Float64}}(1)  )
-                            # statehistory=Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}() )
+                            solvableDims=Channel{Dict{Symbol,Float64}}(1),
+                            upMsgChannel=Channel{LikelihoodMessage}(1),
+                            dwnMsgChannel=Channel{LikelihoodMessage}(1)
+                          )
    BayesTreeNodeData(frontalIDs,
                         separatorIDs,
                         inmsgIDs,
@@ -353,8 +354,9 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         solveCondition,
                         lockUpStatus,
                         lockDwnStatus,
-                        solvableDims  )
-                        # statehistory  )
+                        solvableDims,
+                        upMsgChannel,
+                        dwnMsgChannel  )
 end
 #
 
