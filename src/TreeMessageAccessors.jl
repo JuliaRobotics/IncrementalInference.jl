@@ -276,7 +276,7 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
 end
 
 
-function putMsgUpInitStatus!(cliq::TreeClique, status)
+function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus)
   cdat = getCliqueData(cliq)
   cdc = getMsgUpInitChannel_(cdat)
   cond = getSolveCondition(cliq)
@@ -298,7 +298,7 @@ end
 
 
 
-function putMsgDwnInitStatus!(cliq::TreeClique, status, logger=ConsoleLogger())
+function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
   cdat = getCliqueData(cliq)
   cdc = getMsgDwnInitChannel_(cdat)
     if isready(cdc)
@@ -307,7 +307,7 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status, logger=ConsoleLogger())
         @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
       end
     end
-  put!(cdc, status)
+  put!(cdc, LikelihoodMessage(status=status))
   notify(getSolveCondition(cliq))
     # FIXME hack to mitigate old race condition
     sleep(0.1)

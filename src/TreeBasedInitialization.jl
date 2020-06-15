@@ -451,7 +451,7 @@ end
 
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status)
-  while fetchMsgDwnInit(cliq) != status
+  while fetchMsgDwnInit(cliq).status != status
     wait(getSolveCondition(cliq))
   end
   nothing
@@ -543,8 +543,7 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
         end
         flush(logger.stream)
         # do actual fetch
-        prtmsg = fetchMsgDwnInit(prnt[1])
-        # prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
+        prtmsg = fetchMsgDwnInit(prnt[1]).status
         with_logger(logger) do
             tt = split(string(now()), 'T')[end]
           @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
