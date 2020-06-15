@@ -9,6 +9,10 @@
 # """
 # @enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
 const CliqStatus = Symbol
+## Currently same name by used as Symbol, e.g. :NULL, ...
+## Older status names
+# :null; :upsolved; :downsolved; :marginalized; :uprecycled,
+## FIXME, consolidate at end of #459 work
 
 """
     $TYPEDEF
@@ -51,7 +55,7 @@ getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 
 """
   $(TYPEDEF)
-Belief message for message passing on the tree.
+Belief message for message passing on the tree.  This should be considered an incomplete joint probility.
 
 Notes:
 - belief -> Dictionary of [`TreeBelief`](@ref)
@@ -60,9 +64,12 @@ Notes:
 - Older names include: productFactor, Fnew, MsgPrior, LikelihoodMessage
 
 DevNotes:
-- Objective for parametric: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
-- TODO confirm why <: Singleton
-- #459
+- Used by both nonparametric and parametric.
+- Objective for parametric case: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`.
+- Part of the consolidation effort, see #459.
+- Better conditioning for joint structure in the works using deconvolution, see #579, #635.
+  - TODO confirm why <: Singleton.
+
   $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage <: Singleton
