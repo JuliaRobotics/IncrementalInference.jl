@@ -116,7 +116,7 @@ function setTreeCliquesMarginalized!(dfg::G,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        setCliqUpInitMsgs!(prnt[1], cliq.index, msgs)
+        putMsgUpInit!(prnt[1], cliq.index, msgs)
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -497,7 +497,7 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
       @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetchMsgUpInit(ch)
+    ret[ch.index] = fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       @info "cliq $(prnt.index), fetched all."
@@ -678,7 +678,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
+    putMsgUpInit!(prnt[1], cliq.index, msg)
   end
 
   return status
@@ -785,7 +785,7 @@ Notes:
 - assume `subfg` as a subgraph that can be modified by this function (add message factors)
   - should remove message prior factors from subgraph before returning.
 - May modify `cliq` values.
-  - `setCliqUpInitMsgs!(cliq, cliq.index, msg)`
+  - `putMsgUpInit!(cliq, cliq.index, msg)`
   - `setCliqStatus!(cliq, status)`
   - `setCliqDrawColor(cliq, "sienna")`
   - `notifyCliqDownInitStatus!(cliq, status)`

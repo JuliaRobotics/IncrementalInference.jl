@@ -1,11 +1,14 @@
 
-"""
-    CliqStatus
-Clique status message enumerated type with status:
-NULL, INITIALIZED, UPSOLVED, MARGINALIZED, DOWNSOLVED, UPRECYCLED, ERROR_STATUS
-"""
-@enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
-
+# """
+#     CliqStatus
+# Clique status message enumerated type with status.
+#
+# DevNotes
+# - Temporary convert to Symbol to support #459 consolidation effort
+# - Long term enum looks like a good idea (see #744)
+# """
+# @enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
+const CliqStatus = Symbol
 
 """
     $TYPEDEF
@@ -70,7 +73,7 @@ mutable struct LikelihoodMessage <: Singleton
 end
 
 
-LikelihoodMessage(;status::CliqStatus=NULL,
+LikelihoodMessage(;status::CliqStatus=:NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    variableOrder=Symbol[],
                    cliqueLikelihood=nothing ) =

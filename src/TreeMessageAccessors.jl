@@ -4,19 +4,19 @@ export
   setCliqStatus!,
   getSolveCondition
 
-# TODO consolidate
-export
-  getMsgUpThisInit,
-  getMsgDwnThisInit,
-  getMsgDwnInitChannel_,
-  getMsgUpInitChannel_
-
 # Reguler accessors
 export
   fetchMsgUpThis,
   fetchDwnMsgsThis,
   fetchMsgDwnInit,
   fetchMsgUpInit
+
+# TODO consolidate
+export
+  getMsgUpThisInit,
+  getMsgUpInitChannel_,
+  getMsgDwnThisInit,
+  getMsgDwnInitChannel_
 
 export
   putMsgUpThis!,
@@ -221,14 +221,18 @@ Based on a push model from child cliques that should have already completed thei
 Dev Notes
 - FIXME: Old style -- design has been changed to a Pull model #674
 """
-getMsgUpThisInit(cliq::TreeClique) = getCliqueData(cliq).upInitMsgs
-getMsgDwnThisInit(cliq::TreeClique) = getCliqueData(cliq).downInitMsg
+getMsgUpThisInit(cdat::BayesTreeNodeData) = cdat.upInitMsgs
+getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel
 
+getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
+
+getMsgUpThisInit(cliq::TreeClique) = getMsgUpThisInit(getCliqueData(cliq))
+getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))
+
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
-getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel
 getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
@@ -239,8 +243,8 @@ fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 Blocking call until `cliq` upInit processes has arrived at a result.
 """
 function getCliqInitUpResultFromChannel(cliq::TreeClique)
-  status = take!(getMsgUpInitChannel_(cliq))
-  @info "$(current_task()) Clique $(cliq.index), dumping initUpChannel status, $status"
+  status = take!(getMsgUpInitChannel_(cliq)).status
+  @info "$(current_task()) Clique $(cliq.index), dumping up init status $status"
   return status
 end
 
@@ -259,8 +263,8 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
   lockUpStatus!(cd)
-  # FIXME, consolidation required
-  cd.upInitMsgs[childid] = msg
+  # FIXME, consolidation required, convert to Pull model #674
+  getMsgUpThisInit(cd)[childid] = msg
   # TODO simplify and fix need for repeat
   # notify cliq condition that there was a change
   notify(soco)
@@ -282,7 +286,7 @@ function putMsgUpInitStatus!(cliq::TreeClique, status)
   # FIXME, lock should not be required in all cases.
   lockUpStatus!(cdat)
   cdat.initialized = status
-  put!(cdc, status)
+  put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
     # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
     sleep(0.1)
