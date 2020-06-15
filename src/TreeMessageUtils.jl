@@ -28,10 +28,10 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 - FIXME channels need to be consolidated
 """
-function resetCliqSolve!(dfg::G,
+function resetCliqSolve!(dfg::AbstractDFG,
                          treel::AbstractBayesTree,
                          cliq::TreeClique;
-                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
+                         solveKey::Symbol=:default)
   #
   cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
@@ -40,7 +40,7 @@ function resetCliqSolve!(dfg::G,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    putMsgUpInit!(prnt[1], cliq.index, LikelihoodMessage())
+    putMsgUpInit!(prnt[1], cliq.index, LikelihoodMessage()) # TODO X putMsgUpInit!( cliq, cliq.index, LikelihoodMessage() )
   end
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
@@ -51,10 +51,10 @@ function resetCliqSolve!(dfg::G,
   return nothing
 end
 
-function resetCliqSolve!(dfg::G,
+function resetCliqSolve!(dfg::AbstractDFG,
                          treel::AbstractBayesTree,
                          frt::Symbol;
-                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
+                         solveKey::Symbol=:default  )
   #
   resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
 end

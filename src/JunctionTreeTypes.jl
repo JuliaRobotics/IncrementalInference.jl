@@ -281,7 +281,7 @@ mutable struct BayesTreeNodeData
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
-  # FIXME consolidate Dict with LikelihoodMessage
+  # FIXME consolidate Dict with LikelihoodMessage, make pull model first #674
   solvableDims::Channel{Dict{Symbol, Float64}}
 
   # in and out message channels relating to THIS clique -- only for pull model #674

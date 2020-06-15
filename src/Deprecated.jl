@@ -19,6 +19,10 @@ export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
+
+@deprecate getMsgsUpChildren(::AbstractDFG, treel::AbstractBayesTree, cliq::TreeClique, ::Type{TreeBelief}) getMsgsUpChildren(treel,cliq,TreeBelief)
+
+
 @deprecate setCliqUpInitMsgs!(x...) putMsgUpInit!(x...)
 
 @deprecate getCliqInitUpMsgs(x...) getMsgUpThisInit(x...)

@@ -20,7 +20,7 @@ sequence).
 Notes:
 - sorts id for increasing number of connected factors.
 """
-function getCliqVarInitOrderUp(cliq::TreeClique)
+function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   # rules to explore dimension from one to the other?
 
   # get all variable ids and number of associated factors
@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getCliqInitUpMsgs(cliq)
+  upmsgs = getMsgUpThisInit(cliq) # TODO X getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -104,8 +104,8 @@ end
 
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
-function setTreeCliquesMarginalized!(dfg::G,
-                                     tree::AbstractBayesTree) where G <: AbstractDFG
+function setTreeCliquesMarginalized!(dfg::AbstractDFG,
+                                     tree::AbstractBayesTree )
   #
   for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
@@ -116,7 +116,7 @@ function setTreeCliquesMarginalized!(dfg::G,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(prnt[1], cliq.index, msgs)
+        putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -360,8 +360,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
-  # get the current messages stored in the parent
-  currmsgs = getCliqInitUpMsgs(prnt)
+  # get the current messages ~~stored in~~ (provided to) the parent
+  currmsgs = getMsgUpThisInit(prnt) # TODO X getMsgsUpChildrenInitDict(tree, prnt, TreeBelief)
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -583,7 +583,7 @@ function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)
     # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqVarInitOrderUp(cliq)
+    varorder = getCliqVarInitOrderUp(tree, cliq)
     # do physical inits, ignore cycle return value
     with_logger(logger) do
       @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
@@ -670,7 +670,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(prnt[1], cliq.index, msg)
+    putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
   end
 
   return status

@@ -236,6 +236,11 @@ fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
+
+function setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage)
+  getMsgUpThisInit(cdat)[idx] = msg
+end
+
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   while fetchMsgDwnInit(cliq).status != status
     wait(getSolveCondition(cliq))
@@ -270,7 +275,7 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
   # FIXME, locks should not be required in all cases
   lockUpStatus!(cd)
   # FIXME, consolidation required, convert to Pull model #674
-  getMsgUpThisInit(cd)[childid] = msg
+  setMsgUpThisInitDict!(cd, childid, msg)
   # TODO simplify and fix need for repeat
   # notify cliq condition that there was a change
   notify(soco)
@@ -342,8 +347,7 @@ Notes
 DevNotes
 - Consolidate two versions getMsgsUpChildren
 """
-function getMsgsUpChildren(fg_::AbstractDFG,
-                           treel::AbstractBayesTree,
+function getMsgsUpChildren(treel::AbstractBayesTree,
                            cliq::TreeClique,
                            ::Type{TreeBelief} )
   #
@@ -360,8 +364,29 @@ function getMsgsUpChildren(csmc::CliqStateMachineContainer,
                            ::Type{TreeBelief}=TreeBelief )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildren(csmc.cliqSubFg, csmc.tree, csmc.cliq, TreeBelief)
+  getMsgsUpChildren(csmc.tree, csmc.cliq, TreeBelief)
 end
+
+# FIXME TEMPORARY CONSOLIDATION FUNCTIONS
+function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
+                                   cliq::TreeClique,
+                                   ::Type{TreeBelief} )
+  #
+  chld = getChildren(treel, cliq)
+  retmsgs = Dict{Int, LikelihoodMessage}()
+  # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
+  for ch in chld
+    retmsgs[ch.index] = getMsgUpThisInit(ch)
+  end
+  return retmsgs
+end
+function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
+                                   ::Type{TreeBelief}=TreeBelief )
+  #
+  # TODO, replace with single channel stored in csmcs or cliques
+  getMsgsUpChildrenInit(csmc.tree, csmc.cliq, TreeBelief)
+end
+
 
 
 """
