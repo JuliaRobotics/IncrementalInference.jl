@@ -1,7 +1,64 @@
 # init utils for tree based inference
 
+export resetCliqSolve!
+
+
+## =============================================================================
+# short preamble funcions
+## =============================================================================
+
+
 
 convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
+
+
+## =============================================================================
+# helper functions for tree message channels
+## =============================================================================
+
+"""
+    $SIGNATURES
+
+Reset the state of all variables in a clique to not initialized.
+
+Notes
+- resets numberical values to zeros.
+
+Dev Notes
+- TODO not all kde manifolds will initialize to zero.
+- FIXME channels need to be consolidated
+"""
+function resetCliqSolve!(dfg::G,
+                         treel::AbstractBayesTree,
+                         cliq::TreeClique;
+                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
+  #
+  cda = getCliqueData(cliq)
+  vars = getCliqVarIdsAll(cliq)
+  for varis in vars
+    resetVariable!(dfg, varis, solveKey=solveKey)
+  end
+  prnt = getParent(treel, cliq)
+  if length(prnt) > 0
+    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
+  end
+  cda.upMsg  = LikelihoodMessage()
+  cda.dwnMsg = LikelihoodMessage()
+  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
+  cda.downInitMsg = LikelihoodMessage()
+  setCliqStatus!(cliq, :null)
+  setCliqDrawColor(cliq, "")
+  return nothing
+end
+
+function resetCliqSolve!(dfg::G,
+                         treel::AbstractBayesTree,
+                         frt::Symbol;
+                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
+  #
+  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
+end
+
 
 
 ## =============================================================================
@@ -116,13 +173,8 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
   end
   flush(logger.stream)
 
-  ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
-  # Wait until lock can be aquired
-  lockUpStatus!(cd)
-  cd.initialized = status
+  # currently using a lock internally (hack message channels are consolidated)
   putMsgUpInitStatus!(cliq, status)
-  # TODO unlock
-  unlockUpStatus!(cd)
 
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
