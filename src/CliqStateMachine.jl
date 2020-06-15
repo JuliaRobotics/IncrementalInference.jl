@@ -414,7 +414,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
     infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
-    setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
+    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
 
@@ -714,7 +714,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
       msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
-      setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
+      putMsgUpInit!(prnt[1], csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end
     #go to 10

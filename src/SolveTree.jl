@@ -588,7 +588,7 @@ MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
 function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
-  m = LikelihoodMessage( NULL ) #  Dict{Symbol,TreeBelief}()
+  m = LikelihoodMessage( :NULL ) #  Dict{Symbol,TreeBelief}()
   for id in IDs
     m.belief[id] = d[id]
   end
@@ -995,7 +995,7 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     cliqc = deepcopy(cliq)
     cliqcd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
-    cliqcd.initUpChannel = Channel{Symbol}(1)
+    cliqcd.initUpChannel = Channel{LikelihoodMessage}(1)
     cliqcd.initDownChannel = Channel{Symbol}(1)
     cliqcd.solveCondition = Condition()
     # cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
