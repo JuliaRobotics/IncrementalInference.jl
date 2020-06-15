@@ -5,6 +5,8 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export setMsgUpThis!, getMsgsUpThis
+export setMsgDwnThis!, getMsgsDwnThis
 export getCliqparentMsgDown
 export setDwnMsg!
 export upMsg, dwnMsg
@@ -14,6 +16,13 @@ export getCliqChildMsgsUp
 export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
+
+
+@deprecate getMsgsUpThis(x...) fetchMsgUpThis(x...)
+@deprecate setMsgUpThis!(x...) putMsgUpThis!(x...)
+
+@deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
+@deprecate setMsgDwnThis!(x...) putMsgDwnThis!(x...)
 
 
 # # return ::Vector{DFGFactor}

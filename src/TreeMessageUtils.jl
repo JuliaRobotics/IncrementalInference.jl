@@ -87,6 +87,12 @@ end
 
 
 
+
+## =============================================================================
+## Atomic messaging during init -- might be deprecated TODO
+## =============================================================================
+
+
 """
     $SIGNATURES
 
@@ -113,21 +119,11 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
   ## TODO only notify if not data structure is not locked by other user (can then remove the hack)
   # Wait until lock can be aquired
   lockUpStatus!(cd)
-
   cd.initialized = status
-  if isready(cd.initUpChannel)
-    tkst = take!(cd.initUpChannel)
-    # @info "dumping stale cliq=$(cliq.index) status message $(tkst), replacing with $(status)"
-  end
-  put!(cd.initUpChannel, status)
-  cond = getSolveCondition(cliq)
-  notify(cond)
-    # hack to avoid a race condition  -- remove with atomic lock logic upgrade
-    sleep(0.1)
-    notify(cond) # getSolveCondition(cliq)
-
+  putMsgUpInitStatus!(cliq, status)
   # TODO unlock
   unlockUpStatus!(cd)
+
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
     @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
@@ -135,6 +131,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
 
   nothing
 end
+
 
 function notifyCliqDownInitStatus!(cliq::TreeClique,
                                    status::Symbol;
@@ -150,17 +147,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
 
   cdat.initialized = status
 
-  if isready(cdat.initDownChannel)
-    content = take!(cdat.initDownChannel)
-    with_logger(logger) do
-      @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
-    end
-  end
-  put!(cdat.initDownChannel, status)
-  notify(getSolveCondition(cliq))
-    # hack to avoid a race condition
-    sleep(0.1)
-    notify(getSolveCondition(cliq))
+  putMsgDwnInitStatus!(cliq, status, logger)
 
   # unlock for others to proceed
   unlockDwnStatus!(cdat)
