@@ -10,6 +10,7 @@ function initStartCliqStateMachineParametric!(dfg::G,
                                               cliq::TreeClique,
                                               cliqKey::Int;
                                               oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
+                                              verbose::Bool=false,
                                               drawtree::Bool=false,
                                               show::Bool=false,
                                               incremental::Bool=true,
@@ -27,7 +28,8 @@ function initStartCliqStateMachineParametric!(dfg::G,
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq,
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                    tree, cliq,
                                     cliqKey, prnt, children,
                                     false, incremental, drawtree, downsolve, delay,
                                     getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger) #,
@@ -37,7 +39,7 @@ function initStartCliqStateMachineParametric!(dfg::G,
   nxt = buildCliqSubgraph_ParametricStateMachine
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt)
-  while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
 
