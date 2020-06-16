@@ -25,6 +25,7 @@ solveCliq!, wipeBuildNewTree!
 function solveTree!(dfgl::G,
                     oldtree::AbstractBayesTree=emptyBayesTree();
                     storeOld::Bool=false,
+                    verbose::Bool=false,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     skipcliqids::Vector{Symbol}=Symbol[],
@@ -88,9 +89,9 @@ function solveTree!(dfgl::G,
 
   @info "Do tree based init-inference on tree"
   if opt.async
-    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
   end
   @info "Finished tree based init-inference"
 
@@ -131,6 +132,7 @@ solveTree!, wipeBuildNewTree!
 function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,
                     cliqid::Symbol;
+                    verbose::Bool=false,
                     recordcliq::Bool=false,
                     # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
                     async::Bool=false )
@@ -146,9 +148,9 @@ function solveCliq!(dfgl::AbstractDFG,
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = whichCliq(tree, cliqid)
   cliqtask = if async
-    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
-    tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+    tryCliqStateMachineSolve!(dfgl, tree, cliq.index, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   end
   # end # if
 
@@ -174,6 +176,8 @@ tree, smt, hist = solveTree!(fg ,tree)
 """
 function solveTreeParametric!(dfgl::DFG.AbstractDFG,
                               tree::AbstractBayesTree;
+                              storeOld::Bool=false,
+                              verbose::Bool=false,
                               delaycliqs::Vector{Symbol}=Symbol[],
                               recordcliqs::Vector{Symbol}=Symbol[],
                               skipcliqids::Vector{Symbol}=Symbol[],
@@ -191,6 +195,8 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
     opt.maxincidence = maxparallel
   end
 
+  storeOld ? @error("parametric storeOld keyword not wired up yet.") : nothing
+
   # update worker pool incase there are more or less
   setWorkerPool!()
   if getSolverParams(dfgl).multiproc && nprocs() == 1
@@ -203,7 +209,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
 
   @info "Do tree based init-inference"
   # if opt.async
-  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
 
   if opt.async && opt.drawtree
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"

@@ -81,7 +81,6 @@ export AbstractDFG,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
-  assignTreeHistory!,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
@@ -213,7 +212,6 @@ export AbstractDFG,
   setVariableInitialized!,
   setVariableInferDim!,
   resetVariable!,
-  resetCliqSolve!,
   getFactor,
   getFactorDim,
   getVariableDim,
@@ -238,9 +236,6 @@ export AbstractDFG,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # buildCliqSubgraphUp,
-  # buildCliqSubgraphDown,
-  setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
   # state machine functions
@@ -276,10 +271,6 @@ export AbstractDFG,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   doCliqUpSolve!,
-  getCliqInitUpMsgs,
-  getCliqStatus,
-  setCliqStatus!,
-  getSolveCondition,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
@@ -297,6 +288,7 @@ export AbstractDFG,
   buildCliqSubgraph!,
   subgraphShortestPath,
   transferUpdateSubGraph!,
+  transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
   emptyBayesTree,
@@ -306,16 +298,10 @@ export AbstractDFG,
   prepBatchTree!,
   wipeBuildNewTree!,
   buildCliquePotentials,
-  hasCliq,
-  getCliq,
-  whichCliq,
+
   getCliqDepth,
   getTreeAllFrontalSyms,
   getTreeCliqUpMsgsAll,
-  stackCliqUpMsgsByVariable,
-  getCliqChildMsgsUp,
-  getCliqParentMsgDown,
-  getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
@@ -432,7 +418,6 @@ export AbstractDFG,
   # user functions
   proposalbeliefs,
   predictbelief,
-  getCliq,
   getCliqMat,
   getCliqAssocMat,
   getCliqMsgMat,
@@ -474,15 +459,6 @@ export AbstractDFG,
   loadDFG!,  loadDFG,
   rebuildFactorMetadata!,
 
-  setUpMsg!,
-  upMsg,
-  getDwnMsgs,
-  getUpMsgs,
-  setDwnMsg!,
-  dwnMsg,
-  getDwnMsgs,
-  # getCliqMsgsUp,
-  # getCliqMsgsDown,
   getCliqVarSolveOrderUp,
 
   getSym,
@@ -550,6 +526,7 @@ include("CompareUtils.jl")
 # tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 
@@ -558,15 +535,14 @@ include("SolverUtilities.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
-include("SolveTree01.jl")
+include("SolveTree.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
-include("ParametricMessageUtils.jl")
-include("ParametricSolveTree.jl")
-include("ParametricCliqStateMachine.jl")
+include("SolveTree_Parametric.jl")
+include("CliqStateMachine_Parametric.jl")
 include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples

@@ -201,10 +201,10 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   oldcliqdata::BTND
   logger::SimpleLogger
   #TODO towards consolidated messages
-  # TBD DECISION, push or pull #674
+  # Decision is pull/fetch-model #674 -- i.e. CSM only works inside its own csmc and fetchs messages from neighbors
   # NOTE, DF going for Dict over Vector
-  msgsUp::Dict{Int, LikelihoodMessage} # Vector{LikelihoodMessage}
-  msgsDown::LikelihoodMessage # Vector{LikelihoodMessage}
+  # msgsUp::Dict{Int, LikelihoodMessage} # Vector{LikelihoodMessage}
+  # msgsDown::LikelihoodMessage # Vector{LikelihoodMessage}
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -222,12 +222,12 @@ function CliqStateMachineContainer(x1::G,
                                    x10aa::Bool,
                                    x10aaa::SolverParams,
                                    x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
-                                   x11::BTND=emptyBTNodeData(),
+                                   x11::BTND=BayesTreeNodeData(),
                                    x13::SimpleLogger=SimpleLogger(Base.stdout);
                                    x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13,
-              Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13 )
+              # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 end
 
 
@@ -258,55 +258,109 @@ mutable struct BayesTreeNodeData
   debug
   debugDwn
 
-  # future might concentrate these four fields down to two
-  # these should become specialized LikelihoodMessage type
-  upMsg::LikelihoodMessage
-  dwnMsg::LikelihoodMessage
-  upInitMsgs::Dict{Int, LikelihoodMessage}
-  downInitMsg::LikelihoodMessage
-
   allmarginalized::Bool
   initialized::Symbol
   upsolved::Bool
   downsolved::Bool
-  initUpChannel::Channel{Symbol}
-  initDownChannel::Channel{Symbol}
+  #  iSAM2 style
+  isCliqReused::Bool
+
+  # future might concentrate these four fields down to two
+  # these should become specialized LikelihoodMessage type
+  # TODO, likely to be replaced by Channel counterparts
+  upMsg::LikelihoodMessage
+  dwnMsg::LikelihoodMessage
+
+  # FIXME Deprecate separate init message locations -- only use up and dwn
+  # FIXME ensure these are converted to pull model first #674
+  upInitMsgs::Dict{Int, LikelihoodMessage} # FIXME drop dict
+  downInitMsg::LikelihoodMessage
+  initUpChannel::Channel{LikelihoodMessage}
+  initDownChannel::Channel{LikelihoodMessage}
+
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
+  # FIXME consolidate Dict with LikelihoodMessage, make pull model first #674
   solvableDims::Channel{Dict{Symbol, Float64}}
-  statehistory::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
-  #  iSAM2 style
-  isCliqReused::Bool
-  BayesTreeNodeData() = new()
-  BayesTreeNodeData(x...) = new(x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],
-                                x[11],x[12],x[13],x[14],x[15],x[16],x[17],x[18],x[19],x[20],
-                                x[21], x[22], x[23], x[24], x[25], x[26], x[27], x[28], x[29], x[30], x[31],
-                                Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(), false  )
-end
 
-# TODO -- this should be a constructor
-function emptyBTNodeData()
-  BayesTreeNodeData(Symbol[],Symbol[],Symbol[],
-                    Symbol[],Symbol[],Bool[], # 6
-                    Symbol[],Bool[],
-                    Array{Bool}(undef, 0,0),
-                    Array{Bool}(undef, 0,0),
-                    Int[],Int[],             # 10+2
-                    Int[],Int[],Int[],       # 13+2
-                    nothing, nothing,        # 15+2
-                    LikelihoodMessage(),
-                    LikelihoodMessage(),
-                    Dict{Int, LikelihoodMessage}(),
-                    LikelihoodMessage(),         # 19+2
-                    false, :null,
-                    false, false,            # 23+2
-                    Channel{Symbol}(1), Channel{Symbol}(1), Condition(), # 26+2
-                    Channel{Int}(1), Channel{Int}(1),
-                    Channel{Dict{Symbol,Float64}}(1) )
+  # in and out message channels relating to THIS clique -- only for pull model #674
+  upMsgChannel::Channel{LikelihoodMessage}
+  dwnMsgChannel::Channel{LikelihoodMessage}
 end
 
 
+function BayesTreeNodeData(;frontalIDs=Symbol[],
+                            separatorIDs=Symbol[],
+                            inmsgIDs=Symbol[],
+                            potIDs=Symbol[],
+                            potentials=Symbol[],
+                            partialpotential=Bool[],            # 6
+                            dwnPotentials=Symbol[],
+                            dwnPartialPotential=Bool[],
+                            cliqAssocMat=Array{Bool}(undef, 0,0),
+                            cliqMsgMat=Array{Bool}(undef, 0,0),
+                            directvarIDs=Int[],
+                            directFrtlMsgIDs=Int[],             # 10+2
+                            msgskipIDs=Int[],
+                            itervarIDs=Int[],
+                            directPriorMsgIDs=Int[],            # 13+2
+                            debug=nothing,
+                            debugDwn=nothing,                   # 15+2
+                            allmarginalized=false,
+                            initialized=:null,
+                            upsolved=false,
+                            downsolved=false,                   #
+                            isCliqReused=false,
+                            upMsg=LikelihoodMessage(),
+                            dwnMsg=LikelihoodMessage(),
+                            upInitMsgs=Dict{Int, LikelihoodMessage}(),
+                            downInitMsg=LikelihoodMessage(),         #
+                            initUpChannel=Channel{LikelihoodMessage}(1),
+                            initDownChannel=Channel{LikelihoodMessage}(1),
+                            solveCondition=Condition(),
+                            lockUpStatus=Channel{Int}(1),
+                            lockDwnStatus=Channel{Int}(1),
+                            solvableDims=Channel{Dict{Symbol,Float64}}(1),
+                            upMsgChannel=Channel{LikelihoodMessage}(1),
+                            dwnMsgChannel=Channel{LikelihoodMessage}(1)
+                          )
+   BayesTreeNodeData(frontalIDs,
+                        separatorIDs,
+                        inmsgIDs,
+                        potIDs,
+                        potentials,
+                        partialpotential,
+                        dwnPotentials,
+                        dwnPartialPotential,
+                        cliqAssocMat,
+                        cliqMsgMat,
+                        directvarIDs,
+                        directFrtlMsgIDs,
+                        msgskipIDs,
+                        itervarIDs,
+                        directPriorMsgIDs,
+                        debug,
+                        debugDwn,
+                        allmarginalized,
+                        initialized,
+                        upsolved,
+                        downsolved,
+                        isCliqReused,
+                        upMsg,
+                        dwnMsg,
+                        upInitMsgs,
+                        downInitMsg,
+                        initUpChannel,
+                        initDownChannel,
+                        solveCondition,
+                        lockUpStatus,
+                        lockDwnStatus,
+                        solvableDims,
+                        upMsgChannel,
+                        dwnMsgChannel  )
+end
+#
 
 
 """
@@ -376,7 +430,7 @@ end
 
 
 function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
-  btnd = emptyBTNodeData()
+  btnd = BayesTreeNodeData()
     btnd.frontalIDs = pbtnd.frontalIDs
     btnd.separatorIDs = pbtnd.separatorIDs
     btnd.inmsgIDs = pbtnd.inmsgIDs

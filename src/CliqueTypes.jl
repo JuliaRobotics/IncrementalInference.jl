@@ -17,7 +17,7 @@ mutable struct TreeClique
   #solveInProgress #on a clique level a "solve in progress" might be very handy
 end
 
-TreeClique(i::Int, label::Symbol) = TreeClique(i, label, emptyBTNodeData(), Dict{String,Any}())
+TreeClique(i::Int, label::Symbol) = TreeClique(i, label, BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
 
 Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))

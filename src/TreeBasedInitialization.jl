@@ -20,7 +20,7 @@ sequence).
 Notes:
 - sorts id for increasing number of connected factors.
 """
-function getCliqVarInitOrderUp(cliq::TreeClique)
+function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   # rules to explore dimension from one to the other?
 
   # get all variable ids and number of associated factors
@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getCliqInitUpMsgs(cliq)
+  upmsgs = getMsgUpThisInit(cliq) # TODO X getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -85,38 +85,6 @@ end
 """
     $SIGNATURES
 
-Return `::Symbol` status a particular clique is in, with specific regard to solution
-or numerical initialization status:
-- :needdownmsg
-- :upsolved
-- :downsolved
-- :initialized
-- :marginalized
-- :null
-
-Notes:
-- `:null` represents the first uninitialized state of a cliq.
-"""
-getCliqStatus(cliqdata::BayesTreeNodeData)::Symbol = cliqdata.initialized
-getCliqStatus(cliq::TreeClique)::Symbol = getCliqStatus(getCliqueData(cliq))
-
-getCliqStatusUp(cliq::TreeClique)::Symbol = getCliqStatus(cliq)
-
-"""
-    $SIGNATURES
-
-Set up initialization or solve status of this `cliq`.
-"""
-function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getCliqueData(cliq).initialized = status
-end
-
-
-
-
-"""
-    $SIGNATURES
-
 Return true if all variables in clique are considered marginalized (and initialized).
 """
 function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
@@ -136,8 +104,8 @@ end
 
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
-function setTreeCliquesMarginalized!(dfg::G,
-                                     tree::AbstractBayesTree) where G <: AbstractDFG
+function setTreeCliquesMarginalized!(dfg::AbstractDFG,
+                                     tree::AbstractBayesTree )
   #
   for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
@@ -148,7 +116,7 @@ function setTreeCliquesMarginalized!(dfg::G,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        setCliqUpInitMsgs!(prnt[1], cliq.index, msgs)
+        putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -392,8 +360,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
-  # get the current messages stored in the parent
-  currmsgs = getCliqInitUpMsgs(prnt)
+  # get the current messages ~~stored in~~ (provided to) the parent
+  currmsgs = getMsgUpThisInit(prnt) # TODO X getMsgsUpChildrenInitDict(tree, prnt, TreeBelief)
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -420,7 +388,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   end
 
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt)
+  products = getInitDownMsg(prnt) # INIT HERE ???
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -482,10 +450,6 @@ end
 
 
 
-
-
-
-
 function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #
   lbl = getLabel(prnt)
@@ -494,18 +458,7 @@ function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger()
     @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
   end
   flush(logger.stream)
-  while fetch(getCliqueData(prnt).initDownChannel) != :downsolved
-    # @sync begin
-    #   @async begin
-    #     sleep(1)
-    #     notify(getSolveCondition(prnt))
-    #   end
-      with_logger(logger) do
-        @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | waiting on solve condition..."
-      end
-      wait(getSolveCondition(prnt))
-    # end
-  end
+  blockMsgDwnUntilStatus(prnt, :downsolved)
 
   return nothing
 end
@@ -526,7 +479,7 @@ Notes:
 """
 function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
                                             prnt::TreeClique,
-                                            logger=ConsoleLogger() )::Dict{Int, Symbol}
+                                            logger=ConsoleLogger() )
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, prnt)
@@ -534,10 +487,10 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqStatusUp(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getCliqueData(ch).initUpChannel))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetch(getCliqueData(ch).initUpChannel)
+    ret[ch.index] = fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       @info "cliq $(prnt.index), fetched all."
@@ -583,7 +536,7 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
         end
         flush(logger.stream)
         # do actual fetch
-        prtmsg = fetch(getCliqueData(prnt[1]).initDownChannel)
+        prtmsg = fetchMsgDwnInit(prnt[1]).status
         with_logger(logger) do
             tt = split(string(now()), 'T')[end]
           @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
@@ -595,7 +548,6 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
                 tt = split(string(now()), 'T')[end]
                 @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
             end
-          # take!(getCliqueData(prnt[1]).initDownChannel)
         end
       end
     end
@@ -631,7 +583,7 @@ function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
   # attempt initialize if necessary
   if !areCliqVariablesAllInitialized(subfg, cliq)
     # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqVarInitOrderUp(cliq)
+    varorder = getCliqVarInitOrderUp(tree, cliq)
     # do physical inits, ignore cycle return value
     with_logger(logger) do
       @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
@@ -718,7 +670,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    setCliqUpInitMsgs!(prnt[1], cliq.index, msg)
+    putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
   end
 
   return status
@@ -825,7 +777,7 @@ Notes:
 - assume `subfg` as a subgraph that can be modified by this function (add message factors)
   - should remove message prior factors from subgraph before returning.
 - May modify `cliq` values.
-  - `setCliqUpInitMsgs!(cliq, cliq.index, msg)`
+  - `putMsgUpInit!(cliq, cliq.index, msg)`
   - `setCliqStatus!(cliq, status)`
   - `setCliqDrawColor(cliq, "sienna")`
   - `notifyCliqDownInitStatus!(cliq, status)`

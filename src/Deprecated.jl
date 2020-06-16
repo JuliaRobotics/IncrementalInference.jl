@@ -5,10 +5,279 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export setCliqUpInitMsgs!
+export getCliqInitUpMsgs, getInitDownMsg
+export setMsgUpThis!, getMsgsUpThis
+export setMsgDwnThis!, getMsgsDwnThis
+export getCliqparentMsgDown
+export setDwnMsg!
+export upMsg, dwnMsg
+export getDwnMsgs
+export getCliq, whichCliq, hasCliq
+export getCliqChildMsgsUp
+export setUpMsg!, getUpMsgs
+export assignTreeHistory!
 export getVertKDE,  getVert
 
+
+@deprecate getMsgsUpChildren(::AbstractDFG, treel::AbstractBayesTree, cliq::TreeClique, ::Type{TreeBelief}) getMsgsUpChildren(treel,cliq,TreeBelief)
+
+
+@deprecate setCliqUpInitMsgs!(x...) putMsgUpInit!(x...)
+
+@deprecate getCliqInitUpMsgs(x...) getMsgUpThisInit(x...)
+@deprecate getInitDownMsg(x...) getMsgDwnThisInit(x...)
+
+@deprecate getMsgsUpThis(x...) fetchMsgUpThis(x...)
+@deprecate setMsgUpThis!(x...) putMsgUpThis!(x...)
+
+@deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
+@deprecate setMsgDwnThis!(x...) putMsgDwnThis!(x...)
+
+
+# # return ::Vector{DFGFactor}
+# # TODO, perhaps consolidate
+# function addMsgFactors_Parametric!(subfg::AbstractDFG,
+#                                    msgs::LikelihoodMessage)
+#   # add messages as priors to this sub factor graph
+#   msgfcts = DFGFactor[]
+#   svars = DFG.listVariables(subfg)
+#   for (msym, belief_) in msgs.belief
+#     if msym in svars
+#       #TODO covaraince
+#       #TODO Maybe always use MvNormal
+#       if size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
+#         msgPrior =  MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
+#       elseif size(belief_.val, 2) == 1 && 1 < size(belief_.val, 1)
+#         mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+#         mvnorm != nothing ? nothing : (return DFGFactor[])
+#         msgPrior =  MsgPrior(mvnorm, belief_.inferdim)
+#       else
+#         error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
+#       end
+#       fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+#       push!(msgfcts, fc)
+#     end
+#   end
+#   return msgfcts
+# end
+
+# # consolidated with AbstractBayesTree in TreeMessageAccessors.jl
+# function takeBeliefMessageUp!(tree::MetaBayesTree, edge)
+#   # Blocks until data is available.
+#   beliefMsg = take!(getMsgUpChannel(tree, edge))
+#   return beliefMsg
+# end
+# function takeBeliefMessageDown!(tree::MetaBayesTree, edge)
+#   # Blocks until data is available.
+#   beliefMsg = take!(getMsgDwnChannel(tree, edge))
+#   return beliefMsg
+# end
+# function putBeliefMessageDown!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
+#   # Blocks until data is available.
+#   put!(getMsgDwnChannel(tree, edge), beliefMsg)
+#   return beliefMsg
+# end
+# function putBeliefMessageUp!(tree::MetaBayesTree, edge, beliefMsg::LikelihoodMessage)
+#   # Blocks until data is available.
+#   put!(getMsgUpChannel(tree, edge), beliefMsg)
+#   return beliefMsg
+# end
+
+
+# better version in TreeMessageUtils.jl
+# function getMsgsUpChildren(fg_::AbstractDFG,
+#                            treel::AbstractBayesTree,
+#                            cliq::TreeClique,
+#                            ::Type{TreeBelief} )
+  #
+  # childmsgs = LikelihoodMessage[]
+  # for child in getChildren(treel, cliq)
+  #   nbpchild = LikelihoodMessage()
+  #   for (key, bel) in getUpMsgs(child).belief
+  #     # manis = getManifolds(fg_, key)
+  #     # inferdim = getVariableInferredDim(fg_, key)
+  #     dcBel = deepcopy(bel)
+  #     nbpchild.belief[key] = TreeBelief(dcBel.val, dcBel.bw, dcBel.inferdim, getSofttype(getVariable(fg_, key)))
+  #   end
+  #   push!(childmsgs, nbpchild)
+  # end
+  # return childmsgs
+# end
+
+function getMsgsUpChildren(treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{BallTreeDensity})
+  #
+  @warn "BallTreeDensity version of getMsgsUpChildren is deprecated, use TreeBelief version instead."
+  childmsgs = IntermediateMultiSiblingMessages()
+  for child in getChildren(treel, cliq)
+    for (key, bel) in getUpMsgs(child).belief
+      # id = fg_.IDs[key]
+      # manis = getManifolds(fg_, id)
+      if !haskey(childmsgs, key)
+        childmsgs[key] = IntermediateSiblingMessages()
+      end
+      push!(childmsgs[key], bel )
+    end
+  end
+  return childmsgs
+end
+
+# TODO consolidate
+function getMsgsUpChildren(csmc::CliqStateMachineContainer,
+                            ::Type{BallTreeDensity})
+  #
+  @warn "BallTreeDensity version of getMsgsUpChildren is deprecated, use TreeBelief version instead."
+  getMsgsUpChildren(csmc.tree, csmc.cliq, BallTreeDensity)
+end
+
+function addMsgFactors!(subfg::AbstractDFG,
+                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
+      # msgs::
+  # add messages as priors to this sub factor graph
+  @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
+  msgfcts = DFGFactor[]
+  svars = DFG.listVariables(subfg)
+  for (msym, dms) in msgs
+    for dm in dms
+      if msym in svars
+        # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
+        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
+        push!(msgfcts, fc)
+      end
+    end
+  end
+  return msgfcts
+end
+
+
+@deprecate LikelihoodMessage(status::CliqStatus) LikelihoodMessage(status=status)
+@deprecate LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, variableOrder=varOrder, cliqueLikelihood=cliqueLikelihood)
+@deprecate LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) LikelihoodMessage(status=status, cliqueLikelihood=cliqueLikelihood)
+
+"""
+    $SIGNATURES
+
+Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
+associated with `cliq`.  Additionally add the upward message prior factors as
+needed for belief propagation (inference).
+
+Notes
+- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
+- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
+  separator variable is required instead.
+"""
+function buildCliqSubgraphDown(fgl::AbstractDFG, treel::AbstractBayesTree, cliqsym::Symbol, varsym::Symbol=cliqsym)
+  @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
+  # build a subgraph copy of clique
+  cliq = whichCliq(treel, cliqsym)
+  syms = getCliqAllVarIds(cliq)
+  subfg = buildSubgraph(fgl, syms, 1)
+
+  # add upward messages to subgraph
+  msgs = getMsgDownParent(treel, cliq)
+  addMsgFactors!(subfg, msgs)
+  return subfg
+end
+
+
+@deprecate getCliqParentMsgDown(x...) getMsgDwnParent(x...)
+
+# getCliq(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
+# whichCliq(bt::AbstractBayesTree, frt::Symbol) = getCliq(bt, frt)
+# whichCliq(bt::AbstractBayesTree, frt::AbstractString) = whichCliq(bt, Symbol(frt))
+
+@deprecate getCliq(x...) getClique(x...)
+@deprecate whichCliq(x...) getClique(x...)
+@deprecate hasCliq(x...) hasClique(x...)
+
+@deprecate getCliqChildMsgsUp(x...) getMsgsUpChildren(x...)
+
 # export getCliqPotentials
-# @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq) 
+# @deprecate getCliqPotentials(dfg::AbstractDFG,bt::AbstractBayesTree,cliq::TreeClique) getCliquePotentials(dfg, bt, cliq)
+
+@deprecate upMsg(x...) getMsgsUpThis(x...)
+@deprecate dwnMsg(x...) getMsgsDwnThis(x...)
+@deprecate getDwnMsgs(x...) getMsgsDwnThis(x...)
+@deprecate setDwnMsg!(x...) setMsgDwnThis!(x...)
+@deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
+@deprecate getUpMsgs(x...) getMsgsUpThis(x...)
+
+# NOTE decided not to store messages in CSMC, but closer to Tree instead (likely on edges)
+# function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
+#   csmc.msgsUp[cliqid] = msgs
+# end
+# getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
+
+"""
+    $SIGNATURES
+
+Return clique state machine history from `tree` if it was solved with `recordcliqs`.
+
+Notes
+- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
+"""
+function getCliqSolveHistory(cliq::TreeClique)
+  @error ".statehistory is obsolete, use fetch.(smt) instead."
+  # getCliqueData(cliq).statehistory
+end
+function getCliqSolveHistory(tree::AbstractBayesTree, frntal::Symbol)
+  cliq = whichCliq(tree, frntal)
+  getCliqSolveHistory(cliq)
+end
+
+"""
+    $SIGNATURES
+
+Return dict of all histories in a Bayes Tree.
+"""
+function getTreeCliqsSolverHistories(fg::G,
+                                     tree::AbstractBayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
+  #
+  @error "obsolete"
+  # fsy = getTreeAllFrontalSyms(fg, tree)
+  # histories = Dict{Symbol, CSMHistory}()
+  # for fs in fsy
+  #   hist = getCliqSolveHistory(tree, fs)
+  #   if length(hist) > 0
+  #     histories[fs] = hist
+  #   end
+  # end
+  # return histories
+end
+
+function printCliqHistorySummary(cliq::TreeClique)
+  hist = getCliqSolveHistory(cliq)
+  printCliqHistorySummary(hist)
+end
+
+function printCliqHistorySummary(tree::AbstractBayesTree, frontal::Symbol)
+  hist = getCliqSolveHistory(tree, frontal)
+  printCliqHistorySummary(hist)
+end
+
+"""
+    $SIGNATURES
+
+After solving, clique histories can be inserted back into the tree for later reference.
+This function helps do the required assigment task.
+"""
+function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
+  @error "assignTreeHistory! is obsolete."
+  # for i in 1:length(getCliques(treel))
+  #   if haskey(cliqHistories, i)
+  #     hist = cliqHistories[i]
+  #     for i in 1:length(hist)
+  #       hist[i][4].logger = SimpleLogger(stdout)
+  #     end
+  #     # getCliqueData(treel, i).statehistory=hist
+  #   end
+  # end
+end
+
+
+@deprecate emptyBTNodeData() BayesTreeNodeData()
 
 
 function evalPotentialSpecific(Xi::Vector{DFGVariable},
@@ -163,170 +432,6 @@ function getVert(dfg::AbstractDFG, sym::Symbol, nt::Symbol=:var)
   else
     error("unknown getVert request nt=$nt")
   end
-end
-
-##==============================================================================
-## Delete at end v0.11.x
-##==============================================================================
-
-export getpackedtype
-
-# function decodePackedType(dfg::G, packeddata::PackedVariableNodeData) where G <: AbstractDFG
-#   @warn "decodePackedType is deprecated, use convert instead"
-#   convert(IncrementalInference.VariableNodeData, packeddata)
-# end
-# # Factors
-# function decodePackedType(dfg::G, packeddata::GenericFunctionNodeData{PT,<:AbstractString}) where {PT, G <: AbstractDFG}
-#   @warn "decodePackedType is deprecated, use convert instead"
-#   usrtyp = convert(FunctorInferenceType, packeddata.fnc)
-#   fulltype = FunctionNodeData{CommonConvWrapper{usrtyp}}
-#   factor = convert(fulltype, packeddata)
-#   return factor
-# end
-#
-# """
-#     $(SIGNATURES)
-#
-# Make a full memory copy of the graph and encode all composite function node
-# types -- assuming that convert methods for 'Packed<type>' formats exist.  The same converters
-# are used for database persistence with CloudGraphs.jl.
-# """
-# function encodefg(fgl::G ) where G <: AbstractDFG
-#   #
-#   @error "this encodefg function has been deprected in favor of serialization methods in DFG."
-#   fgs = deepcopy(fgl)
-#   # fgs.g = Graphs.incdict(TreeClique,is_directed=false)
-#
-#   # @showprogress 1 "Encoding variables..."
-#   for vsym in listVariables(fgl)
-#     # cpvert = deepcopy(  )
-#     var = getVariable(fgl, vsym)
-#     # addVariable!(fgs, cpvert)
-#   end
-#
-#   # @showprogress 1 "Encoding factors..."
-#   for (fsym,fid) in fgs.fIDs
-#     data,ftyp = convert2packedfunctionnode(fgl, fsym)
-#     data = FunctionNodeData{ftyp}(Int[], false, false, Int[], m, gwpf)
-#     # newvert = TreeClique(fid,string(fsym))
-#     # for (key,val) in getVert(fgl,fid,api=api).attributes
-#     #   newvert.attributes[key] = val
-#     # end
-#     ## losing fgl.fncargvID before setdata
-#     # setData!(newvert, data)
-#     # api.addvertex!(fgs, newvert)
-#   end
-#   fgs.g.inclist = typeof(fgl.g.inclist)()
-#
-#   # iterated over all edges
-#   # @showprogress 1 "Encoding edges..."
-#   for (eid, edges) in fgl.g.inclist
-#     fgs.g.inclist[eid] = Vector{typeof(edges[1])}()
-#     for ed in edges
-#       newed = Graphs.Edge(ed.index,
-#           fgs.g.vertices[ed.source.index],
-#           fgs.g.vertices[ed.target.index]  )
-#       push!(fgs.g.inclist[eid], newed)
-#     end
-#   end
-#
-#   return fgs
-# end
-
-
-# excessive function, needs refactoring
-# fgl := srcv
-function updateFullVertData!(fgl::AbstractDFG,
-                             srcv::DFGNode;
-                             updatePPE::Bool=false )
-  #
-  @warn "Deprecated updateFullVertData!, need alternative likely DFG.updateGraphVariableData! or DFG.mergeGraphVariableData!"
-
-  sym = Symbol(srcv.label)
-  isvar = isVariable(fgl, sym)
-
-  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = getSolverData(dest)
-  srcvd = getSolverData(srcv)
-
-  if isvar
-    if size(lvd.val) == size(srcvd.val)
-      lvd.val .= srcvd.val
-    else
-      lvd.val = srcvd.val
-    end
-    lvd.bw[:] = srcvd.bw[:]
-    lvd.initialized = srcvd.initialized
-    lvd.inferdim = srcvd.inferdim
-    setSolvedCount!(lvd, getSolvedCount(srcvd))
-
-    if updatePPE
-      # set PPE in dest from values in srcv
-      # TODO must work for all keys involved
-      # dest := srcv
-      updatePPE!(fgl, srcv)
-      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
-    end
-  else
-    # assuming nothing to be done
-  end
-
-  nothing
-end
-
-@deprecate setData!(v::TreeClique, data) setCliqueData!(v,data)
-
-
-"""
-$(TYPEDEF)
-
-NOTE: Deprecated by DistributedFactorGraphs.
-"""
-mutable struct FactorGraph
-  g::FGGdict
-  bn
-  IDs::Dict{Symbol,Int}
-  fIDs::Dict{Symbol,Int}
-  id::Int
-  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
-  factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
-  bnid::Int # TODO -- not sure if this is still used
-  dimID::Int
-  cg
-  cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
-  sessionname::String
-  robotname::String
-  username::String
-  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
-  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
-  stateless::Bool
-  fifo::Vector{Symbol}
-  qfl::Int # Quasi fixed length
-  isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      Dict{Symbol,Int}(),
-                      Dict{Symbol,Int}(),
-                      0,
-                      [],
-                      [],
-                      Dict{Int,Graphs.ExVertex}(),
-                      0,
-                      0,
-                      nothing,
-                      Dict{Int,Int}(),
-                      "",
-                      "",
-                      "",
-                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                      reference,
-                      false,
-                      Symbol[],
-                      0,
-                      false  )
 end
 
 

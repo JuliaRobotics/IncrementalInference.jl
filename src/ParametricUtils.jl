@@ -333,8 +333,8 @@ function createMvNormal(val,cov)
         return MvNormal(val,Symmetric(cov))
     else
         @error("Covariance matrix error", cov)
-        return nothing
-        #return MvNormal(val, ones(length(val)))
+        # return nothing # FIXME, blanking nothing during #459 consolidation
+        return MvNormal(val, ones(length(val)))
     end
 end
 

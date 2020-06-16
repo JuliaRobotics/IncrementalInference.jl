@@ -274,7 +274,8 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
     # check if init is required and possible
     infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
     # get incoming clique up messages
-    upmsgs = getCliqInitUpMsgs(csmc.cliq)
+    # FIXME, should change to interface for children
+    upmsgs = getMsgUpThisInit(csmc.cliq) # TODO X getMsgsUpChildrenInitDict(csmc)
     # add incoming up messages as priors to subfg
     infocsm(csmc, "8b, doCliqAutoInitUpPart1! -- adding up message factors")
     msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
@@ -414,7 +415,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
     infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
-    setCliqUpInitMsgs!(csmc.cliq, csmc.cliq.index, msg)
+    # FIXME, not sure how to fake specific message when converting from push to pull model, #674
+    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg) # TODO X ????
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
 
@@ -707,14 +709,14 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "1, isCliqUpSolved_StateMachine")
   cliqst = getCliqStatus(csmc.cliq)
 
+  # if upward complete for any reason, prepare and send new upward message
   if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
-    # prep and send upward message
     prnt = getParent(csmc.tree, csmc.cliq)
     if length(prnt) > 0
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
       msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
-      setCliqUpInitMsgs!(prnt[1], csmc.cliq.index, msg)
+      putMsgUpInit!(prnt[1], csmc.cliq.index, msg) # TODO X putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end
     #go to 10
@@ -815,7 +817,8 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::AbstractBayesTree,
                                         cliq::TreeClique;
                                         N::Int=100,
-                                        oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                        verbose::Bool=false,
+                                        oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
                                         incremental::Bool=true,
@@ -837,8 +840,8 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 
-  statemachine = StateMachine{CliqStateMachineContainer}(next=nxt)
-  while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
 

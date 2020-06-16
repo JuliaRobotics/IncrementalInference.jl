@@ -588,7 +588,7 @@ MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
 function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{Float64,2}
   @info "Outgoing msg density on: "
   len = length(IDs)
-  m = LikelihoodMessage( NULL ) #  Dict{Symbol,TreeBelief}()
+  m = LikelihoodMessage( :NULL ) #  Dict{Symbol,TreeBelief}()
   for id in IDs
     m.belief[id] = d[id]
   end
@@ -975,7 +975,7 @@ Future
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,
                                cliq::TreeClique,
-                               childmsgs=getCliqChildMsgsUp(fg_, tree_, cliq, TreeBelief);
+                               childmsgs=getMsgsUpChildren(fg_, tree_, cliq, TreeBelief);
                                N::Int=100,
                                dbg::Bool=false,
                                iters::Int=3,
@@ -995,10 +995,10 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     cliqc = deepcopy(cliq)
     cliqcd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
-    cliqcd.initUpChannel = Channel{Symbol}(1)
-    cliqcd.initDownChannel = Channel{Symbol}(1)
+    cliqcd.initUpChannel = Channel{LikelihoodMessage}(1)
+    cliqcd.initDownChannel = Channel{LikelihoodMessage}(1)
     cliqcd.solveCondition = Condition()
-    cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+    # cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
@@ -1086,7 +1086,7 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer;
                                multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
                                logger=ConsoleLogger()  )
   #
-  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getCliqChildMsgsUp(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getMsgsUpChildren(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
 end
 
 
@@ -1215,8 +1215,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   function EMPTYCLIQ()
     clq = TreeClique(-1,"null")
     setLabel!(clq, "")
-    setCliqueData!(clq, emptyBTNodeData())
-    # setData!(clq, emptyBTNodeData())
+    setCliqueData!(clq, BayesTreeNodeData())
     return clq
   end
 
@@ -1259,7 +1258,7 @@ end
 function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                    treel::AbstractBayesTree,
                                    i::Int;
-                                   # cliqHistories;
+                                   verbose::Bool=false,
                                    N::Int=100,
                                    oldtree::AbstractBayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
@@ -1283,7 +1282,8 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree,
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N,
+                                             verbose=verbose, drawtree=drawtree,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
@@ -1334,24 +1334,6 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
   return history
 end
 
-"""
-    $SIGNATURES
-
-After solving, clique histories can be inserted back into the tree for later reference.
-This function helps do the required assigment task.
-"""
-function assignTreeHistory!(treel::AbstractBayesTree, cliqHistories::Dict)
-  @warn "assignTreeHistory! likely to be deprecated without replacement."
-  for i in 1:length(getCliques(treel))
-    if haskey(cliqHistories, i)
-      hist = cliqHistories[i]
-      for i in 1:length(hist)
-        hist[i][4].logger = SimpleLogger(stdout)
-      end
-      getCliqueData(treel, i).statehistory=hist
-    end
-  end
-end
 
 """
     $SIGNATURES
@@ -1391,6 +1373,7 @@ initInferTreeUp!
 function asyncTreeInferUp!(dfg::G,
                            treel::AbstractBayesTree;
                            oldtree::AbstractBayesTree=emptyBayesTree(),
+                           verbose::Bool=false,
                            drawtree::Bool=false,
                            N::Int=100,
                            limititers::Int=-1,
@@ -1418,7 +1401,7 @@ function asyncTreeInferUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1450,6 +1433,7 @@ asyncTreeInferUp!
 function initInferTreeUp!(dfg::G,
                           treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
+                          verbose::Bool=false,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
@@ -1478,7 +1462,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync
