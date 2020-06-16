@@ -817,6 +817,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::AbstractBayesTree,
                                         cliq::TreeClique;
                                         N::Int=100,
+                                        verbose::Bool=false,
                                         oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
@@ -840,7 +841,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
-  while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
 
