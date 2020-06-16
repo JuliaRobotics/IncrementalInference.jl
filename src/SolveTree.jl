@@ -1258,7 +1258,7 @@ end
 function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                    treel::AbstractBayesTree,
                                    i::Int;
-                                   # cliqHistories;
+                                   verbose::Bool=false,
                                    N::Int=100,
                                    oldtree::AbstractBayesTree=emptyBayesTree(),
                                    drawtree::Bool=false,
@@ -1282,7 +1282,8 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N, drawtree=drawtree,
+    history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, N=N,
+                                             verbose=verbose, drawtree=drawtree,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
@@ -1372,6 +1373,7 @@ initInferTreeUp!
 function asyncTreeInferUp!(dfg::G,
                            treel::AbstractBayesTree;
                            oldtree::AbstractBayesTree=emptyBayesTree(),
+                           verbose::Bool=false,
                            drawtree::Bool=false,
                            N::Int=100,
                            limititers::Int=-1,
@@ -1399,7 +1401,7 @@ function asyncTreeInferUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1431,6 +1433,7 @@ asyncTreeInferUp!
 function initInferTreeUp!(dfg::G,
                           treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
+                          verbose::Bool=false,
                           drawtree::Bool=false,
                           N::Int=100,
                           limititers::Int=-1,
@@ -1459,7 +1462,7 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync
