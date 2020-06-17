@@ -342,7 +342,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   lockUpStatus!(getCliqueData(prnt))
 
   dbgnew = !haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew) # csmc.cliqSubFg
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew)
   dwnkeys = collect(keys(dwinmsgs.belief))
 
 
