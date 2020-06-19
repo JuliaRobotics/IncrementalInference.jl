@@ -377,7 +377,10 @@ function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
     @show cliq.index, ch.index, collect(keys(getMsgUpThisInit(ch)))
-    retmsgs[ch.index] = getMsgUpThisInit(ch)[ch.index] # getMsgUpThisInit(ch) # TODO X
+    chmsg = getMsgUpThisInit(ch)
+    # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
+      retmsgs[ch.index] = chmsg[ch.index] # getMsgUpThisInit(ch) # TODO X
+    # end
   end
   return retmsgs
 end

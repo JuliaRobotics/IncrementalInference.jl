@@ -342,7 +342,7 @@ Initialization downward message passing is different from regular inference sinc
 it is possible that none of the child cliq variables have been initialized.
 
 Notes
-- init msgs from child upward passes are individually stored in this `cliq`.
+- init upward msgs are individually stored in child cliques ().
 - fresh product of overlapping beliefs are calculated on each function call.
 - Assumed that `prnt` of siblings
 
@@ -361,7 +361,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
   # get the current messages ~~stored in~~ (provided to) the parent
-  currmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief) # prnt # getMsgUpThisInit(prnt) # TODO X
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
