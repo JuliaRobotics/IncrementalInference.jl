@@ -197,7 +197,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
-    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true)
+    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
     sdims = Dict{Symbol,Float64}()
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
@@ -330,9 +330,6 @@ Notes
 """
 function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
-  # should never happen to
-  setCliqDrawColor(csmc.cliq, "green")
-
   # initialize clique in downward direction
   # not if parent also needs downward init message
   infocsm(csmc, "8a, needs down message -- attempt down init")
@@ -340,7 +337,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # take atomic lock when waiting for down ward information
   infocsm(csmc, "8a, before up lock in $(csmc.cliq.index) for prnt $(prnt.index)")
-  lockUpStatus!(prnt, csmc.cliq.index, true, csmc.logger, true)
+  lockUpStatus!(prnt, csmc.cliq.index, true, csmc.logger, true, "8a.attemptCliqInitDown")
+  setCliqDrawColor(csmc.cliq, "gold")
   infocsm(csmc, "8a, after up lock")
 
   dbgnew = !haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)
@@ -382,6 +380,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
   # unlock
   unlockUpStatus!(getCliqueData(prnt))
+  setCliqDrawColor(csmc.cliq, "green")
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
