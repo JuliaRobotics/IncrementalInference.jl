@@ -360,7 +360,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
-  # get the current messages ~~stored in~~ (provided to) the parent
+  # get the current messages ~~stored in~~ [going to] the parent
   currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
@@ -387,8 +387,10 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
   end
 
+  flush(logger.stream)
+
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt) # INIT HERE ???
+  products = getMsgDwnThisInit(prnt) # TODO XY INIT HERE ???
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
