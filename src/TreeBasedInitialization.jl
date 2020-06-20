@@ -670,7 +670,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(cliq, cliq.index, msg) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
+    putMsgUpInit!(cliq, cliq.index, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
   end
 
   return status

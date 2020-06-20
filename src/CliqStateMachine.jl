@@ -197,7 +197,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
-    lockUpStatus!(csmc.cliq)
+    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true)
     sdims = Dict{Symbol,Float64}()
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
@@ -339,7 +339,9 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)[1]
 
   # take atomic lock when waiting for down ward information
-  lockUpStatus!(getCliqueData(prnt))
+  infocsm(csmc, "8a, before up lock in $(csmc.cliq.index) for prnt $(prnt.index)")
+  lockUpStatus!(prnt, csmc.cliq.index, true, csmc.logger, true)
+  infocsm(csmc, "8a, after up lock")
 
   dbgnew = !haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew)
@@ -416,7 +418,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
     # FIXME, not sure how to fake specific message when converting from push to pull model, #674
-    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg) # TODO X ????
+    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg, csmc.logger) # TODO X ????
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
 

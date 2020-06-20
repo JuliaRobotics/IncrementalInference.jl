@@ -68,8 +68,22 @@ end
 ## Clique condition locks
 ## =============================================================================
 
-lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
-lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
+function lockUpStatus!(cdat::BayesTreeNodeData,
+                       owner::Int=1,
+                       idx::Int=1,
+                       verbose::Bool=false,
+                       logger=SimpleLogger(stdout),
+                       flushLogger::Bool=false )
+  #
+  with_logger(logger) do
+    tt = now()
+    verbose ? @info("$(tt) -- Lock $owner, UP from $idx") : nothing
+    verbose && isready(cdat.lockUpStatus) ? @info("$(tt) -- Lock $owner, UP from $idx blocked on existing by $(fetch(cdat.lockUpStatus))") : nothing
+  end
+  flushLogger ? (flush(logger.stream); sleep(0.01)) : nothing
+  put!(cdat.lockUpStatus, idx)
+end
+lockUpStatus!(cliq::TreeClique, idx::Int=cliq.index, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false) = lockUpStatus!(getCliqueData(cliq), cliq.index, idx, verbose, logger)
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
@@ -269,11 +283,11 @@ DevNotes
 - ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED.
 - TODO, must be consolidated
 """
-function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
+function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage, logger=SimpleLogger(stdout))
   cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
-  lockUpStatus!(cd)
+  lockUpStatus!(cliq, cliq.index, true, logger, true) # TODO XX
   # FIXME, consolidation required, convert to Pull model #674
   setMsgUpThisInitDict!(cd, childid, msg)
   # TODO simplify and fix need for repeat
@@ -287,7 +301,7 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
 end
 
 
-function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus)
+function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
   cdat = getCliqueData(cliq)
   cdc = getMsgUpInitChannel_(cdat)
   cond = getSolveCondition(cliq)
@@ -295,7 +309,7 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus)
       content = take!(cdc)
     end
   # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cdat)
+  lockUpStatus!(cliq, cliq.index, true, logger, true) # TODO XX
   cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
