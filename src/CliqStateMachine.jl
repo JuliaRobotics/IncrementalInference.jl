@@ -316,6 +316,36 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   return finishCliqSolveCheck_StateMachine
 end
 
+# 8d
+function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
+  #
+  infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
+
+  children = getChildren(csmc.tree, csmc.cliq)
+  if areCliqChildrenNeedDownMsg(children)
+    # set messages if children :needdownmsg
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
+    # construct init's up msg to place in parent from initialized separator variables
+    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
+
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
+    # set fake up and notify down status -- repeat change status to same as notifyUp above
+    # FIXME, not sure how to fake specific message when converting from push to pull model, #674
+    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg) # TODO X ????
+    # setCliqStatus!(csmc.cliq, cliqst)
+    setCliqDrawColor(csmc.cliq, "sienna")
+
+    cliqst = getCliqStatus(csmc.cliq)
+    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
+  end
+
+  # go to 8b
+  return attemptCliqInitUp_StateMachine
+end
+
+
 
 """
     $SIGNATURES
@@ -338,10 +368,12 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, needs down message -- attempt down init")
   prnt = getParent(csmc.tree, csmc.cliq)[1]
 
+  opt = getSolverParams(csmc.dfg)
+
   # take atomic lock when waiting for down ward information
   lockUpStatus!(getCliqueData(prnt))
 
-  dbgnew = !haskey(getSolverParams(csmc.dfg).devParams,:dontUseParentFactorsInitDown)
+  dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew) # csmc.cliqSubFg
   dwnkeys = collect(keys(dwinmsgs.belief))
 
@@ -383,13 +415,12 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
-  infocsm(csmc, "8a, attemptCliqInitD., before are Siblings")
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8a, attemptCliqInitD., $mustwait, $noOneElse, solord = $solord")
+  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
     # go to 8c
-    infocsm(csmc, "8a, attemptCliqInitD., mustwait, so wait on change.")
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., must wait, so wait on change.")
     return waitChangeOnParentCondition_StateMachine
   end
 
@@ -397,37 +428,18 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8a, attemptCliqInitD.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
-  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=getSolverParams(csmc.dfg).dbg, logger=csmc.logger, logpath=getSolverParams(csmc.dfg).logpath )
+  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
+  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
 
   # # TODO: is status of notify required here?
   setCliqStatus!(csmc.cliq, cliqst)
   # notifyCliqUpInitStatus!(csmc.cliq, cliqst)
 
-  # TODO move out
-  children = getChildren(csmc.tree, csmc.cliq)
-  if areCliqChildrenNeedDownMsg(children)
-    # set messages if children :needdownmsg
-    infocsm(csmc, "8a, doCliqInitDown! -- must set messages for future down init")
-    # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
-
-    infocsm(csmc, "8a, putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
-    # set fake up and notify down status -- repeat change status to same as notifyUp above
-    # FIXME, not sure how to fake specific message when converting from push to pull model, #674
-    putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg) # TODO X ????
-    # setCliqStatus!(csmc.cliq, cliqst)
-    setCliqDrawColor(csmc.cliq, "sienna")
-
-
-    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-
-    infocsm(csmc, "8a, near-end down init attempt, $cliqst.")
-  end
-
-  return attemptCliqInitUp_StateMachine
+  # got to 8d
+  return downInitRequirement_StateMachine!
 end
+
 
 
 """
