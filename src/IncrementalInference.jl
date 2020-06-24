@@ -95,7 +95,9 @@ export AbstractDFG,
   filterHistAllToArray,
   cliqHistFilterTransitions,
   printCliqSummary,
+  printHistoryLine,
   printCliqHistorySummary,
+  printCliqHistorySequential,
   printGraphSummary,
   printSummary,
   print,
@@ -449,10 +451,6 @@ export AbstractDFG,
   loadTree,
   landmarks,
   setCliqDrawColor,
-
-  # csm utils
-  fetchCliqTaskHistoryAll!,
-  fetchAssignTaskHistoryAll!,
 
   # Temp placeholder for evaluating string types to real types
   saveDFG,
