@@ -1,3 +1,8 @@
+
+# starting to add exports here
+export fetchCliqHistoryAll!
+
+
 #global pidx
 global pidx = 1
 global pidl = 1
@@ -1339,20 +1344,19 @@ end
 
 Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
 """
-function fetchCliqTaskHistoryAll!(smt, hist)
+function fetchCliqHistoryAll!(smt::Vector{Task},
+                              hist::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}=Dict{Int,Vector{Tuple{DateTime, Int,
+                                                                    Function, CliqStateMachineContainer}}}() )
+  #
   for i in 1:length(smt)
     sm = smt[i]
     # only fetch states that have completed processing
     if sm.state == :done
+      haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
     end
   end
-end
-
-function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
-  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
-  fetchCliqTaskHistoryAll!(smt, hist)
-  assignTreeHistory!(tree, hist)
+  hist
 end
 
 
