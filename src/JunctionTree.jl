@@ -1389,7 +1389,7 @@ function childCliqs(treel::BayesTree, cliq::TreeClique)
   return childcliqs
 end
 function childCliqs(treel::BayesTree, frtsym::Symbol)
-  childCliqs(treel,  whichCliq(treel, frtsym))
+  childCliqs(treel,  getClique(treel, frtsym))
 end
 
 

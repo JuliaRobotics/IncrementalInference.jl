@@ -41,38 +41,54 @@ function printHistoryLine(fid,
                           hi::Tuple{DateTime, Int, Function, CliqStateMachineContainer},
                           cliqid::AbstractString="")
   #
+  # 5.13
   first = "$cliqid.$(string(hi[2])) "
   for i in length(first):6  first = first*" "; end
+  # time
   first = first*(split(string(hi[1]), 'T')[end])*" "
-  for i in length(first):16  first = first*" "; end
-  # first = first*string(hi[2])
-  len = length(first)
-  for i in len:20  first = first*" "; end
-  first = first*string(getCliqStatus(hi[4].cliq))
-  len = length(first)
-  for i in len:33  first = first*" "; end
+  # for i in length(first):16  first = first*" "; end
+  for i in length(first):19  first = first*" "; end
+  # next function
   nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-  lenf = length(nextfn)
-  nextfn = 20 < lenf ? nextfn[1:20]*"." : nextfn
+  nextfn = 18 < length(nextfn) ? nextfn[1:18] : nextfn
   first = first*nextfn
-  len = length(first)
-  for i in len:55  first = first*" "; end
-  first = first*string(hi[4].forceproceed)
-  len = length(first)
-  for i in len:61  first = first*" "; end
+  for i in length(first):38  first = first*" "; end
+  # force proceed
+  first = first*string(Int(hi[4].forceproceed))
+  for i in length(first):39  first = first*" "; end
+  # this clique status
+  first *= " | "
+  first = first*string(getCliqStatus(hi[4].cliq))
+  for i in length(first):53  first = first*" "; end
+  # parent status
   first *= " P "
   if 0 < length(hi[4].parentCliq)
-    first = first*string(getCliqStatus(hi[4].parentCliq[1]))
+    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqStatus(hi[4].parentCliq[1]))
   else
     first = first*"----"
   end
-    for i in length(first):76  first = first*" "; end
+  for i in length(first):69  first = first*" "; end
+  # children status
   first = first*"C "
   if 0 < length(hi[4].childCliqs)
     for ch in hi[4].childCliqs
-      first = first*string(getCliqStatus(ch))*" "
+      first = first*"$(ch.index)"*string(getCliqStatus(ch))*" "
+    end
+  else
+    first = first*"---- "
+  end
+  # sibling status
+  first *= "|S| "
+  if 0 < length(hi[4].parentCliq)
+    frt = (hi[4].parentCliq[1] |> getFrontals)[1]
+    childs = getChildren(hi[4].tree, frt)
+    # remove current clique to leave only siblings
+    filter!(x->x.index!=hi[4].cliq.index, childs)
+    for ch in childs
+      first = first*"$(ch.index)"*string(getCliqStatus(ch))*" "
     end
   end
+
   println(fid, first)
 end
 
