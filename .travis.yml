@@ -27,7 +27,9 @@ jobs:
   allow_failures:
     - julia: nightly
     - arch: arm64
-      if: NOT branch =~ ^release.*$
+    # Keep this to allow failures again when DFG minor revision is updated
+    # - name: "MASTER AND TAGS"
+    #   if: NOT branch =~ ^release.*$
 
 addons:
   apt:
