@@ -557,6 +557,7 @@ function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
     blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1], csmc.logger)
   end
 
+  infocsm(csmc, "5, finishing")
   # go to 6c
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
