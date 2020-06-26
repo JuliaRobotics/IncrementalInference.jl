@@ -105,7 +105,8 @@ end
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
 function setTreeCliquesMarginalized!(dfg::AbstractDFG,
-                                     tree::AbstractBayesTree )
+                                     tree::AbstractBayesTree,
+                                     logger=SimpleLogger(stdout))
   #
   for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
@@ -116,7 +117,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+        putMsgUpInit!(prnt[1], cliq.index, msgs, logger) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -671,7 +672,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+    putMsgUpInit!(prnt[1], cliq.index, msg, logger) # TODO X putMsgUpInit!(cliq, cliq.index, msg, logger)
   end
 
   return status

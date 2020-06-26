@@ -174,7 +174,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
   flush(logger.stream)
 
   # currently using a lock internally (hack message channels are consolidated)
-  putMsgUpInitStatus!(cliq, status)
+  putMsgUpInitStatus!(cliq, status, logger)
 
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
