@@ -105,7 +105,8 @@ end
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
 function setTreeCliquesMarginalized!(dfg::AbstractDFG,
-                                     tree::AbstractBayesTree )
+                                     tree::AbstractBayesTree,
+                                     logger=SimpleLogger(stdout))
   #
   for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)

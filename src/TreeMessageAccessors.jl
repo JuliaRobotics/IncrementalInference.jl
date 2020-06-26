@@ -68,6 +68,8 @@ end
 ## Clique condition locks
 ## =============================================================================
 
+# lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = put!(cdat.lockUpStatus, idx)
+# lockUpStatus!(cliq::TreeClique, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), idx, verbose, logger, flushLogger, msg)
 function lockUpStatus!(cdat::BayesTreeNodeData,
                        owner::Int=1,
                        idx::Int=1,
