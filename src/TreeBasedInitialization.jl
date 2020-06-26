@@ -790,13 +790,16 @@ Algorithm:
 - initialize from singletons to most connected non-singletons
 - revert back to needdownmsg if cycleInit does nothing
 - can only ever return :initialized or :needdownmsg status
+
+DevNotes
+- TODO Lots of cleanup required, especially from calling function.
 """
-function doCliqInitDown!(subfg::G,
+function doCliqInitDown!(subfg::AbstractDFG,
                          cliq::TreeClique,
                          dwinmsgs::LikelihoodMessage;
                          dbg::Bool=false,
                          logpath::String="/tmp/caesar/",
-                         logger=ConsoleLogger() ) where G <: AbstractDFG
+                         logger=ConsoleLogger() )
   #
   with_logger(logger) do
     @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
@@ -835,19 +838,6 @@ function doCliqInitDown!(subfg::G,
   if dbg
       DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
   end
-
-  return status
-end
-
-function doCliqInitDown!(subfg::G,
-                         tree::AbstractBayesTree,
-                         cliq::TreeClique;
-                         dbg::Bool=false ) where G <: AbstractDFG
-  #
-  @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
-  prnt = getParent(tree, cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
 
   return status
 end

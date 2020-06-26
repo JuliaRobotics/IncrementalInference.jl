@@ -245,9 +245,9 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.3
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.4
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.5
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.6
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.7
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.6
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.7
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.8
 
 end
 
