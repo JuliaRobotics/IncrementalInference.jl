@@ -1409,15 +1409,6 @@ function asyncTreeInferUp!(dfg::G,
     # end # sync
   end # if
 
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     getCliqueData(treel, i).statehistory=cliqHistories[i]
-  #   end
-  # end
-
   return alltasks #, cliqHistories
 end
 
@@ -1469,19 +1460,8 @@ function initInferTreeUp!(dfg::G,
     end # sync
   end # if
 
-  fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
-
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     hist = cliqHistories[i]
-  #     for i in 1:length(hist)
-  #       hist[i][4].logger = ConsoleLogger()
-  #     end
-  #     getCliqueData(treel,i).statehistory=hist
-  #   end
-  # end
+  # if record cliques is in use, else skip computational delay
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
 
   return alltasks, cliqHistories
 end
