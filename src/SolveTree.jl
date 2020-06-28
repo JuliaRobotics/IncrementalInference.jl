@@ -1226,7 +1226,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
 
   # does the other clique even exist?
   seekFrontals = getCliqFrontalVarIds(seeksSimilar)
-  if !hasCliq(othertree, seekFrontals[1])
+  if !hasClique(othertree, seekFrontals[1])
     return EMPTYCLIQ()
   end
 

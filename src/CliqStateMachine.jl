@@ -365,7 +365,7 @@ Notes
 function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
   infocsm(csmc, "8a, needs down message -- attempt down init")
-  setCliqDrawColor(csmc.cliq, "green")
+  setCliqDrawColor(csmc.cliq, "gold")
 
   # initialize clique in downward direction
   # not if parent also needs downward init message
@@ -374,6 +374,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   # take atomic lock when waiting for down ward information
   lockUpStatus!(prnt) # TODO XY ????
+  infocsm(csmc, "8a, after up lock")
 
   dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew) # csmc.cliqSubFg
@@ -408,6 +409,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # unlock
   unlockUpStatus!(prnt) # TODO XY ????
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
+  setCliqDrawColor(csmc.cliq, "green")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)

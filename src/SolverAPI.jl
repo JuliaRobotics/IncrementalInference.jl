@@ -151,7 +151,7 @@ function solveCliq!(dfgl::AbstractDFG,
   end
 
   # if !isTreeSolved(treel, skipinitialized=true)
-  cliq = whichCliq(tree, cliqid)
+  cliq = getClique(tree, cliqid)
   cliqtask = if async
     @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
