@@ -52,6 +52,14 @@ TreeBelief(vari::DFGVariable, solveKey=:default) = TreeBelief(getSolverData(vari
 
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 
+function compare(t1::TreeBelief, t2::TreeBelief)
+  TP = true
+  TP = TP && norm(t1.val - t2.val) < 1e-5
+  TP = TP && norm(t1.bw - t2.bw) < 1e-5
+  TP = TP && abs(t1.inferdim - t2.inferdim) < 1e-5
+  TP = TP && t1.softtype == t2.softtype
+  return TP
+end
 
 """
   $(TYPEDEF)
@@ -86,6 +94,23 @@ LikelihoodMessage(;status::CliqStatus=:NULL,
                    cliqueLikelihood=nothing ) =
         LikelihoodMessage(status, beliefDict, variableOrder, cliqueLikelihood)
 #
+
+
+function compare(l1::LikelihoodMessage,
+                 l2::LikelihoodMessage;
+                 skip::Vector{Symbol}=[] )
+  #
+  TP = true
+  TP = TP && l1.status == l2.status
+  TP = TP && l1.variableOrder == l2.variableOrder
+  TP = TP && l1.cliqueLikelihood |> typeof == l2.cliqueLikelihood |> typeof
+  for (k,v) in l1.belief
+    TP = TP && haskey(l2.belief, k)
+    TP = TP && compare(v, l2.belief[k])
+  end
+end
+
+==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
 # FIXME, better standardize intermediate types
