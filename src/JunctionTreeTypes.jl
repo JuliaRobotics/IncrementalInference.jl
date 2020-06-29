@@ -209,6 +209,7 @@ end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 
+
 function CliqStateMachineContainer(x1::G,
                                    x2::InMemoryDFGTypes,
                                    x3::AbstractBayesTree,
@@ -228,6 +229,49 @@ function CliqStateMachineContainer(x1::G,
   #
   CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13 )
               # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+end
+
+compare(a::Int, b::Int) = a == b
+compare(a::Bool, b::Bool) = a == b
+compare(a::Dict, b::Dict) = a == b
+
+function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
+                 cs2::CliqStateMachineContainer{BTND2, T2, InMemG2, BT2};
+                 skip::Vector{Symbol}=Symbol[] ) where {BTND1, T1 <: AbstractDFG, InMemG1 <: InMemoryDFGTypes, BT1 <: AbstractBayesTree, BTND2, T2 <: AbstractDFG, InMemG2 <: InMemoryDFGTypes, BT2 <: AbstractBayesTree}
+  #
+  BTND1 == BTND2 ? nothing : @warn("oldcliqdata::$BTND1 != oldcliqdata::$BTND2")
+  T1 == T2 ? nothing : @warn("dfg::$T1 != dfg::$T2")
+  InMemG1 == InMemG2 ? nothing : @warn("cliqSubFg::$InMemG1 != cliqSubFg::$InMemG2")
+  BT1 == BT2 ? nothing : @warn("tree::$BQ1 != tree::$BT2")
+
+  TP = true
+  @warn "Skipping compare of CSMC.dfg and .cliqSubFg"
+  # TP = TP && compare(cs1.dfg,  cs2.dfg)
+  # TP = TP && compare(cs1.cliqSubFg,  cs2.cliqSubFg)
+  @warn "Skipping compare of CSMC.tree"
+  # TP = TP && compare(cs1.tree,  cs2.tree)
+  TP = TP && compare(cs1.cliq,  cs2.cliq)
+  TP = TP && compare(cs1.cliqKey,  cs2.cliqKey)
+  TP = TP && length(cs1.parentCliq) == length(cs2.parentCliq)
+  for i in 1:length(cs1.parentCliq)
+    TP = TP && compare(cs1.parentCliq[i],  cs2.parentCliq[i])
+  end
+  TP = TP && length(cs1.childCliqs) == length(cs2.childCliqs)
+  for i in 1:length(cs1.childCliqs)
+    TP = TP && compare(cs1.childCliqs[i],  cs2.childCliqs[i])
+  end
+  TP = TP && compare(cs1.forceproceed,  cs2.forceproceed)
+  TP = TP && compare(cs1.incremental,  cs2.incremental)
+  TP = TP && compare(cs1.drawtree,  cs2.drawtree)
+  TP = TP && compare(cs1.dodownsolve,  cs2.dodownsolve)
+  TP = TP && compare(cs1.delay,  cs2.delay)
+  @warn "skipping compare on csmc.opts::SolverParams"
+  # TP = TP && compare(cs1.opts,  cs2.opts)
+  TP = TP && compare(cs1.refactoring,  cs2.refactoring)
+  # TP = TP && compare(cs1.oldcliqdata,  cs2.oldcliqdata)
+  # TP = TP && compare(cs1.logger,  cs2.logger)
+
+  return TP
 end
 
 
@@ -362,31 +406,69 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
 end
 #
 
-
-"""
-$(TYPEDEF)
-"""
-mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
-  fg::T3
-  bt::T2
-  cliq::TreeClique
-  prnt::T
-  sendmsgs::Vector{LikelihoodMessage}
-end
-
-const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
-const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
-
-
-function ExploreTreeType(fgl::G,
-                         btl::AbstractBayesTree,
-                         vertl::TreeClique,
-                         prt::T,
-                         msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+function compare(c1::Channel,
+                 c2::Channel;
+                 skip::Vector{Symbol}=[] )
   #
-  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
+  TP = true
+  TP = TP && c1.state == c2.state
+  TP = TP && c1.sz_max == c2.sz_max
+  TP = TP && c1.data |> length == c2.data |> length
+  # exit early if tests already failed
+  !TP && (return false)
+  # now check contents of data
+  for i in 1:length(c1.data)
+    TP = TP && c1.data[i] == c2.data[i]
+  end
+  return TP
 end
 
+function compare(c1::BayesTreeNodeData,
+                 c2::BayesTreeNodeData;
+                 skip::Vector{Symbol}=[] )
+  #
+  TP = true
+
+  TP = TP && c1.frontalIDs == c2.frontalIDs
+  TP = TP && c1.separatorIDs == c2.separatorIDs
+  TP = TP && c1.inmsgIDs == c2.inmsgIDs
+  TP = TP && c1.potIDs == c2.potIDs
+  TP = TP && c1.potentials == c2.potentials
+  TP = TP && c1.partialpotential == c2.partialpotential
+  TP = TP && c1.dwnPotentials == c2.dwnPotentials
+  TP = TP && c1.dwnPartialPotential == c2.dwnPartialPotential
+  TP = TP && c1.cliqAssocMat == c2.cliqAssocMat
+  TP = TP && c1.cliqMsgMat == c2.cliqMsgMat
+  TP = TP && c1.directvarIDs == c2.directvarIDs
+  TP = TP && c1.directFrtlMsgIDs == c2.directFrtlMsgIDs
+  TP = TP && c1.msgskipIDs == c2.msgskipIDs
+  TP = TP && c1.itervarIDs == c2.itervarIDs
+  TP = TP && c1.directPriorMsgIDs == c2.directPriorMsgIDs
+  TP = TP && c1.debug == c2.debug
+  TP = TP && c1.debugDwn == c2.debugDwn
+  TP = TP && c1.allmarginalized == c2.allmarginalized
+  TP = TP && c1.initialized == c2.initialized
+  TP = TP && c1.upsolved == c2.upsolved
+  TP = TP && c1.downsolved == c2.downsolved
+  TP = TP && c1.isCliqReused == c2.isCliqReused
+  TP = TP && c1.upMsg == c2.upMsg
+  TP = TP && c1.dwnMsg == c2.dwnMsg
+  TP = TP && c1.upInitMsgs == c2.upInitMsgs
+  TP = TP && c1.downInitMsg == c2.downInitMsg
+  TP = TP && c1.initUpChannel == c2.initUpChannel
+  TP = TP && c1.initDownChannel == c2.initDownChannel
+  # TP = TP && c1.solveCondition == c2.solveCondition
+  TP = TP && c1.lockUpStatus == c2.lockUpStatus
+  TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
+  TP = TP && c1.solvableDims == c2.solvableDims
+  TP = TP && c1.upMsgChannel == c2.upMsgChannel
+  TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
+
+  return TP
+end
+
+
+## Packed types for serialization
 
 
 mutable struct PackedBayesTreeNodeData
@@ -447,4 +529,33 @@ function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
     btnd.itervarIDs = pbtnd.itervarIDs
     btnd.directPriorMsgIDs = pbtnd.directPriorMsgIDs
   return btnd
+end
+
+
+
+
+## And some more old stuff still in use but must be removed
+
+"""
+$(TYPEDEF)
+"""
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
+  bt::T2
+  cliq::TreeClique
+  prnt::T
+  sendmsgs::Vector{LikelihoodMessage}
+end
+
+const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
+const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+
+
+function ExploreTreeType(fgl::G,
+                         btl::AbstractBayesTree,
+                         vertl::TreeClique,
+                         prt::T,
+                         msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+  #
+  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end

@@ -41,7 +41,7 @@ using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
 
-import Base: convert
+import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
