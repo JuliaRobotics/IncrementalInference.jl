@@ -362,7 +362,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
   # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief) # getMsgUpThisInit(prnt) # TODO X
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end

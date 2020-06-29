@@ -387,25 +387,30 @@ end
 # FIXME TEMPORARY CONSOLIDATION FUNCTIONS
 function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
                                    cliq::TreeClique,
-                                   ::Type{TreeBelief} )
+                                   ::Type{TreeBelief},
+                                   skip::Vector{Int}=Int[])
   #
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
-    @show cliq.index, ch.index, collect(keys(getMsgUpThisInit(ch)))
+    @show cliq.index, ch.index, skip, collect(keys(getMsgUpThisInit(ch)))
     chmsg = getMsgUpThisInit(ch)
+    @assert !(length(chmsg) == 1 && !haskey(chmsg, ch.index)) "getMsgUpThisInit must contain only local clique messages."
     # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
+    if !(ch.index in skip)
       retmsgs[ch.index] = chmsg[ch.index] # getMsgUpThisInit(ch) # TODO X
+    end
     # end
   end
   return retmsgs
 end
 function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
-                                   ::Type{TreeBelief}=TreeBelief )
+                                   ::Type{TreeBelief}=TreeBelief,
+                                   skip::Vector{Int}=Int[] )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief)
+  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief, skip)
 end
 
 
