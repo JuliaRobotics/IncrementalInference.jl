@@ -1,5 +1,6 @@
 
 export setVariablePosteriorEstimates!
+export attachCSM!
 
 """
     $SIGNATURES
@@ -1072,3 +1073,34 @@ function solveCliqDownFrontalProducts!(subfg::G,
 
   return nothing
 end
+
+
+"""
+    $SIGNATURES
+Reattach a CSM's data container after the deepcopy used from recordcliq.
+"""
+function attachCSM!(csmc::CliqStateMachineContainer,
+                    dfg::AbstractDFG,
+                    tree::BayesTree;
+                    logger = SimpleLogger(stdout))
+  #
+  # csmc = csmc__
+
+  csmc.dfg = dfg
+  csmc.tree = tree
+  csmc.logger = logger # TODO option to reopen and append to previous logger file
+
+  @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
+  cid = csmc.cliq.index
+  pids = csmc.parentCliq .|> x->x.index
+  cids = csmc.childCliqs .|> x->x.index
+
+  csmc.cliq = tree.cliques[cid]
+  csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
+  csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
+
+  return csmc
+end
+
+
+#
