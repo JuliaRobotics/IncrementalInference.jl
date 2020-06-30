@@ -1291,7 +1291,7 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
-    if length(history) >= limititers && limititers != -1
+    if getSolverParams(dfg).dbg || length(history) >= limititers && limititers != -1
       @info "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
       fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
