@@ -398,7 +398,7 @@ function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
     chmsg = getMsgUpThisInit(ch)
     @assert !(length(chmsg) == 1 && !haskey(chmsg, ch.index)) "getMsgUpThisInit must contain only local clique messages."
     # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
-    if !(ch.index in skip)
+    if length(chmsg) == 1 && !(ch.index in skip)
       retmsgs[ch.index] = chmsg[ch.index] # getMsgUpThisInit(ch) # TODO X
     end
     # end
