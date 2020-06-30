@@ -478,6 +478,7 @@ Notes
 function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
   # TODO, remove csmc.forceproceed
   csmc.forceproceed = false
+  sleep(0.1) # FIXME remove after #459 resolved # TODO XY
   # return doCliqInferAttempt_StateMachine
   cliqst = getCliqStatus(csmc.cliq)
   infocsm(csmc, "7b, status=$(cliqst), before attemptCliqInitDown_StateMachine")
