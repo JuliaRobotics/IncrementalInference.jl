@@ -1,3 +1,8 @@
+
+# starting to add exports here
+export fetchCliqHistoryAll!
+
+
 #global pidx
 global pidx = 1
 global pidl = 1
@@ -1221,7 +1226,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
 
   # does the other clique even exist?
   seekFrontals = getCliqFrontalVarIds(seeksSimilar)
-  if !hasCliq(othertree, seekFrontals[1])
+  if !hasClique(othertree, seekFrontals[1])
     return EMPTYCLIQ()
   end
 
@@ -1287,7 +1292,7 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
-    if length(history) >= limititers && limititers != -1
+    if getSolverParams(dfg).dbg || length(history) >= limititers && limititers != -1
       @info "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
       fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
@@ -1340,20 +1345,19 @@ end
 
 Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
 """
-function fetchCliqTaskHistoryAll!(smt, hist)
+function fetchCliqHistoryAll!(smt::Vector{Task},
+                              hist::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}=Dict{Int,Vector{Tuple{DateTime, Int,
+                                                                    Function, CliqStateMachineContainer}}}() )
+  #
   for i in 1:length(smt)
     sm = smt[i]
     # only fetch states that have completed processing
     if sm.state == :done
+      haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
     end
   end
-end
-
-function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
-  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
-  fetchCliqTaskHistoryAll!(smt, hist)
-  assignTreeHistory!(tree, hist)
+  hist
 end
 
 
@@ -1407,15 +1411,6 @@ function asyncTreeInferUp!(dfg::G,
     # end # sync
   end # if
 
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     getCliqueData(treel, i).statehistory=cliqHistories[i]
-  #   end
-  # end
-
   return alltasks #, cliqHistories
 end
 
@@ -1468,19 +1463,8 @@ function initInferTreeUp!(dfg::G,
     end # sync
   end # if
 
-  fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
-
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     hist = cliqHistories[i]
-  #     for i in 1:length(hist)
-  #       hist[i][4].logger = ConsoleLogger()
-  #     end
-  #     getCliqueData(treel,i).statehistory=hist
-  #   end
-  # end
+  # if record cliques is in use, else skip computational delay
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
 
   return alltasks, cliqHistories
 end

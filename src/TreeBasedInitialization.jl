@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgUpThisInit(cliq) # TODO X getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)  # getMsgUpThisInit(cliq) # TODO X
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -105,7 +105,8 @@ end
 Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
 """
 function setTreeCliquesMarginalized!(dfg::AbstractDFG,
-                                     tree::AbstractBayesTree )
+                                     tree::AbstractBayesTree,
+                                     logger=SimpleLogger(stdout))
   #
   for (cliid, cliq) in getCliques(tree)
     if areCliqVariablesAllMarginalized(dfg, cliq)
@@ -116,7 +117,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+        putMsgUpInit!(cliq, cliq.index, msgs) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -342,7 +343,7 @@ Initialization downward message passing is different from regular inference sinc
 it is possible that none of the child cliq variables have been initialized.
 
 Notes
-- init msgs from child upward passes are individually stored in this `cliq`.
+- init upward msgs are individually stored in child cliques ().
 - fresh product of overlapping beliefs are calculated on each function call.
 - Assumed that `prnt` of siblings
 
@@ -360,8 +361,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
-  # get the current messages ~~stored in~~ (provided to) the parent
-  currmsgs = getMsgUpThisInit(prnt) # TODO X getMsgsUpChildrenInitDict(tree, prnt, TreeBelief)
+  # get the current messages ~~stored in~~ [going to] the parent
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -387,8 +388,10 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
   end
 
+  flush(logger.stream)
+
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt) # INIT HERE ???
+  products = getMsgDwnThisInit(prnt) # TODO XY INIT HERE ???
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -490,10 +493,11 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
       @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetchMsgUpInit(ch).status
+    ret[ch.index] = fetchMsgUpInit(ch).status # TODO XY
   end
   with_logger(logger) do
-      @info "cliq $(prnt.index), fetched all."
+      tt = split(string(now()), 'T')[end]
+      @info "cliq $(prnt.index), $(tt), fetched all, keys=$(keys(ret))."
   end
   return ret
 end
@@ -670,7 +674,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+    putMsgUpInit!(cliq, cliq.index, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
   end
 
   return status
@@ -787,27 +791,17 @@ Algorithm:
 - initialize from singletons to most connected non-singletons
 - revert back to needdownmsg if cycleInit does nothing
 - can only ever return :initialized or :needdownmsg status
+
+DevNotes
+- TODO Lots of cleanup required, especially from calling function.
 """
-function doCliqInitDown!(subfg::G,
+function doCliqInitDown!(subfg::AbstractDFG,
                          cliq::TreeClique,
-                         dwinmsgs::LikelihoodMessage;
+                         initorder;
                          dbg::Bool=false,
                          logpath::String="/tmp/caesar/",
-                         logger=ConsoleLogger() ) where G <: AbstractDFG
+                         logger=ConsoleLogger() )
   #
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
-  end
-  status = :needdownmsg #:badinit
-
-  # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
-  end
-
-  # add messages as priors to this sub factor graph
-  msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
   # store the cliqSubFg for later debugging
   if dbg
@@ -818,6 +812,8 @@ function doCliqInitDown!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
   end
+
+  status = :needdownmsg
   if cycleInitByVarOrder!(subfg, initorder)
     status = :initialized
   end
@@ -825,26 +821,11 @@ function doCliqInitDown!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), doCliqInitDown! -- 6, current status: $status"
   end
-  # remove msg factors previously added
-  deleteMsgFactors!(subfg, msgfcts)
 
   # store the cliqSubFg for later debugging
   if dbg
       DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
   end
-
-  return status
-end
-
-function doCliqInitDown!(subfg::G,
-                         tree::AbstractBayesTree,
-                         cliq::TreeClique;
-                         dbg::Bool=false ) where G <: AbstractDFG
-  #
-  @error "deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead."
-  prnt = getParent(tree, cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
-  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
 
   return status
 end

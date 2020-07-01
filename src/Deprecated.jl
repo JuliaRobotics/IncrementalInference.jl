@@ -5,6 +5,7 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
 export setCliqUpInitMsgs!
 export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
@@ -19,6 +20,27 @@ export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
+
+function doCliqInitDown!(subfg::AbstractDFG,
+                         tree::AbstractBayesTree,
+                         cliq::TreeClique;
+                         dbg::Bool=false )
+  #
+  @error("deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead.")
+  prnt = getParent(tree, cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
+  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
+
+  return status
+end
+
+@deprecate fetchCliqTaskHistoryAll!(x...) fetchCliqHistoryAll!(x...)
+
+function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
+  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
+  fetchCliqTaskHistoryAll!(smt, hist)
+  assignTreeHistory!(tree, hist)
+end
 
 @deprecate getMsgsUpChildren(::AbstractDFG, treel::AbstractBayesTree, cliq::TreeClique, ::Type{TreeBelief}) getMsgsUpChildren(treel,cliq,TreeBelief)
 

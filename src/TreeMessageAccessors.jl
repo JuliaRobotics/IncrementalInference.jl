@@ -68,8 +68,25 @@ end
 ## Clique condition locks
 ## =============================================================================
 
-lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1) = put!(cdat.lockUpStatus, idx)
-lockUpStatus!(cliq::TreeClique, idx::Int=1) = lockUpStatus!(getCliqueData(cliq), idx)
+# lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = put!(cdat.lockUpStatus, idx)
+# lockUpStatus!(cliq::TreeClique, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), idx, verbose, logger, flushLogger, msg)
+function lockUpStatus!(cdat::BayesTreeNodeData,
+                       owner::Int=1,
+                       idx::Int=1,
+                       verbose::Bool=false,
+                       logger=SimpleLogger(stdout),
+                       flushLogger::Bool=false,
+                       msg::AbstractString="")
+  #
+  with_logger(logger) do
+    tt = now()
+    verbose ? @info("$(tt) -- Lock $owner, UP from $idx | $msg") : nothing
+    verbose && isready(cdat.lockUpStatus) ? @info("$(tt) -- Lock $owner, UP from $idx blocked by $(fetch(cdat.lockUpStatus))") : nothing
+  end
+  flushLogger ? (flush(logger.stream); sleep(0.01)) : nothing
+  put!(cdat.lockUpStatus, idx)
+end
+lockUpStatus!(cliq::TreeClique, idx::Int=cliq.index, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), cliq.index, idx, verbose, logger, flushLogger, msg)
 unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
@@ -269,11 +286,11 @@ DevNotes
 - ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED.
 - TODO, must be consolidated
 """
-function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
+function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage, logger=SimpleLogger(stdout))
   cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
-  lockUpStatus!(cd)
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!") # TODO XX
   # FIXME, consolidation required, convert to Pull model #674
   setMsgUpThisInitDict!(cd, childid, msg)
   # TODO simplify and fix need for repeat
@@ -287,7 +304,7 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage)
 end
 
 
-function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus)
+function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
   cdat = getCliqueData(cliq)
   cdc = getMsgUpInitChannel_(cdat)
   cond = getSolveCondition(cliq)
@@ -295,7 +312,7 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus)
       content = take!(cdc)
     end
   # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cdat)
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!") # TODO XX
   cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
@@ -370,21 +387,38 @@ end
 # FIXME TEMPORARY CONSOLIDATION FUNCTIONS
 function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
                                    cliq::TreeClique,
-                                   ::Type{TreeBelief} )
+                                   ::Type{TreeBelief},
+                                   skip::Vector{Int}=Int[])
   #
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
+  # add possible information that may have come via grandparents from elsewhere in the tree
+  thismsg = getMsgUpThisInit(cliq)
+  @assert length(thismsg) <= 1 "getMsgUpThisInit must contain this clique local info only."
+  for (ke, va) in thismsg
+    retmsgs[ke] = va
+  end
+
+  # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
-    retmsgs[ch.index] = getMsgUpThisInit(ch)
+    # @show cliq.index, ch.index, skip, collect(keys(getMsgUpThisInit(ch)))
+    chmsg = getMsgUpThisInit(ch)
+    @assert !(length(chmsg) == 1 && !haskey(chmsg, ch.index)) "getMsgUpThisInit must contain only local clique messages."
+    # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
+    if length(chmsg) == 1 && !(ch.index in skip)
+      retmsgs[ch.index] = chmsg[ch.index] # getMsgUpThisInit(ch) # TODO X
+    end
+    # end
   end
   return retmsgs
 end
 function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
-                                   ::Type{TreeBelief}=TreeBelief )
+                                   ::Type{TreeBelief}=TreeBelief,
+                                   skip::Vector{Int}=Int[] )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildrenInit(csmc.tree, csmc.cliq, TreeBelief)
+  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief, skip)
 end
 
 

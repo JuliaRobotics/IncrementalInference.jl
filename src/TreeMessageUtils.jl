@@ -40,7 +40,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    putMsgUpInit!(prnt[1], cliq.index, LikelihoodMessage()) # TODO X putMsgUpInit!( cliq, cliq.index, LikelihoodMessage() )
+    putMsgUpInit!( cliq, cliq.index, LikelihoodMessage() ) # putMsgUpInit!(prnt[1], cliq.index, LikelihoodMessage()) # TODO X
   end
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
@@ -174,7 +174,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
   flush(logger.stream)
 
   # currently using a lock internally (hack message channels are consolidated)
-  putMsgUpInitStatus!(cliq, status)
+  putMsgUpInitStatus!(cliq, status, logger)
 
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]
