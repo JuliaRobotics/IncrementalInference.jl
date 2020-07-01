@@ -797,24 +797,11 @@ DevNotes
 """
 function doCliqInitDown!(subfg::AbstractDFG,
                          cliq::TreeClique,
-                         dwinmsgs::LikelihoodMessage;
+                         initorder;
                          dbg::Bool=false,
                          logpath::String="/tmp/caesar/",
                          logger=ConsoleLogger() )
   #
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
-  end
-  status = :needdownmsg #:badinit
-
-  # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(subfg, cliq, dwinmsgs)
-  with_logger(logger) do
-    @info "cliq $(cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
-  end
-
-  # add messages as priors to this sub factor graph
-  msgfcts = addMsgFactors!(subfg, dwinmsgs)
 
   # store the cliqSubFg for later debugging
   if dbg
@@ -832,8 +819,6 @@ function doCliqInitDown!(subfg::AbstractDFG,
   with_logger(logger) do
     @info "cliq $(cliq.index), doCliqInitDown! -- 6, current status: $status"
   end
-  # remove msg factors previously added
-  deleteMsgFactors!(subfg, msgfcts)
 
   # store the cliqSubFg for later debugging
   if dbg

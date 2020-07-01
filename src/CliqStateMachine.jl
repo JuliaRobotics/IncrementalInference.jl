@@ -409,26 +409,66 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # unlock
   unlockUpStatus!(prnt) # TODO XY ????
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
-  setCliqDrawColor(csmc.cliq, "green")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., $(prnt.index), $mustwait, $noOneElse, solord = $solord")
+  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., $(prnt.index), $mustwait, $noOneElse, solord =   $solord")
 
   if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
-    # go to 8c
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., must wait, so wait on change.")
+    # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
+
+  return attemptDownSolve_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
+Do down solve calculations, loosely translates to solving Chapman-Kolmogorov
+transit integral in downward direction.
+
+Notes
+- State machine function nr. 8e
+- Follows routines in 8c.
+  - Pretty major repeat of functionality, FIXME
+- TODO: Make multi-core
+"""
+function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "green")
+
+  opt = getSolverParams(csmc.dfg)
+  dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
+  prnt = getParent(csmc.tree, csmc.cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew)
 
   ## TODO deal with partial inits only, either delay or continue at end...
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
-  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, dwinmsgs, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
-  # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
+  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
+  with_logger(csmc.logger) do
+    @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
+  end
+  # status = :needdownmsg
 
+  # get down variable initialization order
+  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
+  with_logger(csmc.logger) do
+    @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
+  end
+
+  # add messages as priors to this sub factor graph
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs)
+
+  cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
+
+  # remove msg factors previously added
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
   # # TODO: is status of notify required here?
   setCliqStatus!(csmc.cliq, cliqst)
   # notifyCliqUpInitStatus!(csmc.cliq, cliqst)
