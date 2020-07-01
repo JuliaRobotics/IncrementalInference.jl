@@ -373,7 +373,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   opt = getSolverParams(csmc.dfg)
 
   # take atomic lock when waiting for down ward information
-  lockUpStatus!(prnt) # TODO XY ????
+  lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
   infocsm(csmc, "8a, after up lock")
 
   dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
