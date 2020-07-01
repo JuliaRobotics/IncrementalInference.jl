@@ -452,7 +452,6 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   with_logger(csmc.logger) do
     @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
   end
-  # status = :needdownmsg
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
