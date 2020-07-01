@@ -812,6 +812,8 @@ function doCliqInitDown!(subfg::AbstractDFG,
   with_logger(logger) do
     @info "cliq $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
   end
+
+  status = :needdownmsg
   if cycleInitByVarOrder!(subfg, initorder)
     status = :initialized
   end
