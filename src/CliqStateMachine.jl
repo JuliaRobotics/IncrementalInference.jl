@@ -201,7 +201,7 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
-    lockUpStatus!(csmc.cliq)
+    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
     sdims = Dict{Symbol,Float64}()
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
@@ -279,7 +279,7 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
     # get incoming clique up messages
     # FIXME, should change to interface for children
-    upmsgs = getMsgUpThisInit(csmc.cliq) # TODO X getMsgsUpChildrenInitDict(csmc)
+    upmsgs = getMsgsUpChildrenInitDict(csmc) # getMsgUpThisInit(csmc.cliq) # TODO X
     # add incoming up messages as priors to subfg
     infocsm(csmc, "8b, doCliqAutoInitUpPart1! -- adding up message factors")
     msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
@@ -804,7 +804,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
       # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
       msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
-      putMsgUpInit!(prnt[1], csmc.cliq.index, msg) # TODO X putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg)
+      putMsgUpInit!(csmc.cliq, csmc.cliq.index, msg) # putMsgUpInit!(prnt[1], csmc.cliq.index, msg) # TODO X
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end
     #go to 10

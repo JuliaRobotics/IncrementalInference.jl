@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgUpThisInit(cliq) # TODO X getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)  # getMsgUpThisInit(cliq) # TODO X
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -117,7 +117,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(prnt[1], cliq.index, msgs, logger) # TODO X putMsgUpInit!(cliq, cliq.index, msg)
+        putMsgUpInit!(cliq, cliq.index, msgs) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -343,7 +343,7 @@ Initialization downward message passing is different from regular inference sinc
 it is possible that none of the child cliq variables have been initialized.
 
 Notes
-- init msgs from child upward passes are individually stored in this `cliq`.
+- init upward msgs are individually stored in child cliques ().
 - fresh product of overlapping beliefs are calculated on each function call.
 - Assumed that `prnt` of siblings
 
@@ -361,8 +361,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
   end
-  # get the current messages ~~stored in~~ (provided to) the parent
-  currmsgs = getMsgUpThisInit(prnt) # TODO X getMsgsUpChildrenInitDict(tree, prnt, TreeBelief)
+  # get the current messages ~~stored in~~ [going to] the parent
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -388,8 +388,10 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
   end
 
+  flush(logger.stream)
+
   # reference to default allocated dict location
-  products = getInitDownMsg(prnt) # INIT HERE ???
+  products = getMsgDwnThisInit(prnt) # TODO XY INIT HERE ???
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -672,7 +674,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(prnt[1], cliq.index, msg, logger) # TODO X putMsgUpInit!(cliq, cliq.index, msg, logger)
+    putMsgUpInit!(cliq, cliq.index, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
   end
 
   return status

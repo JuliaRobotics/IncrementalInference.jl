@@ -290,7 +290,7 @@ function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage, l
   cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!") # TODO XX
   # FIXME, consolidation required, convert to Pull model #674
   setMsgUpThisInitDict!(cd, childid, msg)
   # TODO simplify and fix need for repeat
@@ -312,7 +312,7 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Simple
       content = take!(cdc)
     end
   # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!") # TODO XX
   cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
@@ -387,21 +387,38 @@ end
 # FIXME TEMPORARY CONSOLIDATION FUNCTIONS
 function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
                                    cliq::TreeClique,
-                                   ::Type{TreeBelief} )
+                                   ::Type{TreeBelief},
+                                   skip::Vector{Int}=Int[])
   #
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
+  # add possible information that may have come via grandparents from elsewhere in the tree
+  thismsg = getMsgUpThisInit(cliq)
+  @assert length(thismsg) <= 1 "getMsgUpThisInit must contain this clique local info only."
+  for (ke, va) in thismsg
+    retmsgs[ke] = va
+  end
+
+  # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
-    retmsgs[ch.index] = getMsgUpThisInit(ch) # TODO X getMsgUpThisInit(ch)[ch.index]
+    @show cliq.index, ch.index, skip, collect(keys(getMsgUpThisInit(ch)))
+    chmsg = getMsgUpThisInit(ch)
+    @assert !(length(chmsg) == 1 && !haskey(chmsg, ch.index)) "getMsgUpThisInit must contain only local clique messages."
+    # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
+    if length(chmsg) == 1 && !(ch.index in skip)
+      retmsgs[ch.index] = chmsg[ch.index] # getMsgUpThisInit(ch) # TODO X
+    end
+    # end
   end
   return retmsgs
 end
 function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
-                                   ::Type{TreeBelief}=TreeBelief )
+                                   ::Type{TreeBelief}=TreeBelief,
+                                   skip::Vector{Int}=Int[] )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildrenInit(csmc.tree, csmc.cliq, TreeBelief)
+  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief, skip)
 end
 
 
