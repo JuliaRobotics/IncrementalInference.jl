@@ -402,7 +402,7 @@ function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   # retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for ch in chld
-    @show cliq.index, ch.index, skip, collect(keys(getMsgUpThisInit(ch)))
+    # @show cliq.index, ch.index, skip, collect(keys(getMsgUpThisInit(ch)))
     chmsg = getMsgUpThisInit(ch)
     @assert !(length(chmsg) == 1 && !haskey(chmsg, ch.index)) "getMsgUpThisInit must contain only local clique messages."
     # if haskey(chmsg, ch.index) # FIXME, this should not be required, since it wasnt before
