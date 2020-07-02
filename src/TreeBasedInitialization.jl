@@ -359,7 +359,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
-    @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! --"
+    @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
   # get the current messages ~~stored in~~ [going to] the parent
   currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
@@ -367,11 +367,15 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
   end
 
+  # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
   # msgspervar = LikelihoodMessage()  # TODO -- this is not right
   msgspervar = IntermediateMultiSiblingMessages()
 
   for (prntid, msgs) in currmsgs
+    with_logger(logger) do
+      @info "prepCliqInitMsgsDown! -- prntid=$prntid, msgs.belief=$(collect(keys(msgs.belief)))"
+    end
     for (msgsym, msg) in msgs.belief
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
