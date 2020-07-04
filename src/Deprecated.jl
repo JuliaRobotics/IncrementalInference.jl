@@ -5,6 +5,7 @@
 ## Delete at end v0.12.x
 ##==============================================================================
 
+export doCliqUpSolve!
 export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
 export setCliqUpInitMsgs!
 export getCliqInitUpMsgs, getInitDownMsg
@@ -20,6 +21,88 @@ export setUpMsg!, getUpMsgs
 export assignTreeHistory!
 export getVertKDE,  getVert
 
+
+function approxCliqMarginalUp!(fg_::AbstractDFG,
+                               tree_::AbstractBayesTree,
+                               cliq::TreeClique,
+                               childmsgs=getMsgsUpChildren(fg_, tree_, cliq, TreeBelief);
+                               N::Int=100,
+                               dbg::Bool=false,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true,
+                               logger=ConsoleLogger()  )
+  #
+  error("OBSOLETE: approxCliqMarginalUp!(::AbstractDFG,...)")
+  # approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getMsgsUpChildren(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
+
+"""
+    $SIGNATURES
+
+Update `subfg<:AbstractDFG` according to internal computations for a full upsolve.
+"""
+function doCliqUpSolve!(csmc::CliqStateMachineContainer;
+                        multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
+                        logger=ConsoleLogger()  )
+  #
+  approxCliqMarginalUp!(csmc, multiproc=multiproc, logger=logger)
+  # csym = getCliqFrontalVarIds(csmc.cliq)[1]
+  # approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
+
+  # TODO replace with msg channels only
+  getCliqueData(csmc.cliq).upsolved = true
+  return :upsolved
+end
+
+function approxCliqMarginalUp!(fgl::AbstractDFG,
+                               treel::AbstractBayesTree,
+                               csym::Symbol,
+                               onduplicate::Bool;  # this must be deprecated for simplicity!
+                               N::Int=100,
+                               dbg::Bool=false,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true,
+                               logger=ConsoleLogger()  )
+  #
+  @warn "approxCliqMarginalUp! API is changing, use csmc version instead."
+  @assert !onduplicate "approxCliqMarginalUp! onduplicate keyword is being deprecated"
+  fg_ = onduplicate ? deepcopy(fgl) : fgl
+  # onduplicate
+  with_logger(logger) do
+    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
+  end
+  # FIXME, should not be building a new tree here since variable orderings can differ!!!
+  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
+  # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
+  if onduplicate
+    for (id, cliq) in treel.cliques
+      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
+      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
+    end
+  end
+
+  cliq = getCliq(tree_, csym)
+  # setCliqDrawColor(cliq, "red")
+
+  approxCliqMarginalUp!(fg_, tree_, cliq, N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
+
+function doCliqUpSolve!(subfg::AbstractDFG,
+                        tree::AbstractBayesTree,
+                        cliq::TreeClique;
+                        multiproc::Bool=true,
+                        logger=ConsoleLogger()  )
+  #
+  @error "doCliqUpSolve! is being refactored, use the csmc version instead"
+  csym = getCliqFrontalVarIds(cliq)[1]
+  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
+  approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
+  getCliqueData(cliq).upsolved = true
+  return :upsolved
+end
 
 function doCliqInitDown!(subfg::AbstractDFG,
                          tree::AbstractBayesTree,

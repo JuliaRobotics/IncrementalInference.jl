@@ -133,9 +133,6 @@ end
 
 
 
-
-
-
 """
     $SIGNATURES
 
@@ -181,37 +178,6 @@ function cycleInitByVarOrder!(subfg::AbstractDFG,
   return retval
 end
 
-"""
-    $SIGNATURES
-
-Update `subfg<:AbstractDFG` according to internal computations for a full upsolve.
-"""
-function doCliqUpSolve!(subfg::AbstractDFG,
-                        tree::AbstractBayesTree,
-                        cliq::TreeClique;
-                        multiproc::Bool=true,
-                        logger=ConsoleLogger()  )
-  #
-  @error "doCliqUpSolve! is being refactored, use the csmc version instead"
-  csym = getCliqFrontalVarIds(cliq)[1]
-  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
-  approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
-  getCliqueData(cliq).upsolved = true
-  return :upsolved
-end
-
-function doCliqUpSolve!(csmc::CliqStateMachineContainer;
-                        multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
-                        logger=ConsoleLogger()  )
-  #
-  approxCliqMarginalUp!(csmc, multiproc=multiproc, logger=logger)
-  # csym = getCliqFrontalVarIds(csmc.cliq)[1]
-  # approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
-
-  # TODO replace with msg channels only
-  getCliqueData(csmc.cliq).upsolved = true
-  return :upsolved
-end
 
 # currently for internal use only
 # initialize variables based on best current achievable ordering
@@ -434,6 +400,9 @@ end
     $SIGNATURES
 
 Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
+
+Notes
+- Does not require tree message likelihood factors in subfg.
 """
 function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
@@ -575,6 +544,9 @@ Notes
 - adds msg priors added to clique subgraph
 - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
+
+DevNotes
+- FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
 """
 function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
                                 tree::AbstractBayesTree,
@@ -628,6 +600,8 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
   subfg = csmc.cliqSubFg
   tree  = csmc.tree
   cliq  = csmc.cliq
+  prnt = getParent(tree, cliq)
+  opt = getSolverParams(csmc.cliqSubFg)
 
   cliqst = getCliqStatus(cliq)
   status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
@@ -651,8 +625,18 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
       tt = split(string(now()),'T')[end]
       @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
     end
-    status = doCliqUpSolve!(csmc, logger=logger)
-    # status = doCliqUpSolve!(subfg, tree, cliq, multiproc=multiproc, logger=logger)
+
+    # TODO replace with msg channels only
+    urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+    # is clique fully upsolved or only partially?
+    # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+    setUpMsg!(csmc.cliq, urt.keepupmsgs)
+    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=opt.dbg, fillcolor="brown", logger=csmc.logger)
+
+    # set clique color accordingly, using local memory
+    setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+    getCliqueData(csmc.cliq).upsolved = true
+    status = :upsolved
   else
     with_logger(logger) do
       @info "cliq $(cliq.index), all variables not initialized, status = $(status)"
@@ -660,16 +644,9 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
   end
 
   # construct init's up msg to place in parent from initialized separator variables
-  with_logger(logger) do
-    @info "cliq $(cliq.index), going to prepCliqInitMsgsUp"
-  end
   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
   # put the init result in the parent cliq.
-  prnt = getParent(tree, cliq)
-  with_logger(logger) do
-    @info "cliq $(cliq.index), prnt = getParent(tree, cliq) = $(prnt)"
-  end
   if length(prnt) > 0
     # not a root clique
     with_logger(logger) do
