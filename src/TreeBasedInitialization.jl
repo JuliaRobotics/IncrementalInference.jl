@@ -364,7 +364,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   # get the current messages ~~stored in~~ [going to] the parent
   currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
   with_logger(logger) do
-    @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- prnt ids::Int=$(collect(keys(currmsgs)))"
+    @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
 
   # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
@@ -372,9 +372,9 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   # msgspervar = LikelihoodMessage()  # TODO -- this is not right
   msgspervar = IntermediateMultiSiblingMessages()
 
-  for (prntid, msgs) in currmsgs
+  for (msgcliqid, msgs) in currmsgs
     with_logger(logger) do
-      @info "prepCliqInitMsgsDown! -- prntid=$prntid, msgs.belief=$(collect(keys(msgs.belief)))"
+      @info "prepCliqInitMsgsDown! -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
     end
     for (msgsym, msg) in msgs.belief
       if !haskey(msgspervar, msgsym)
@@ -382,7 +382,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
         msgspervar[msgsym] = IntermediateSiblingMessages()
       end
       with_logger(logger) do
-        @info "prepCliqInitMsgsDown! -- prntid=$(prntid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
+        @info "prepCliqInitMsgsDown! -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
       end
       push!(msgspervar[msgsym], msg)
     end
