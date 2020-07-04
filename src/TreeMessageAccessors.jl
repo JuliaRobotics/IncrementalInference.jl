@@ -29,6 +29,8 @@ export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
 
+# likely to be deleted at some point
+export getMsgsUpChildrenInitDict
 
 ## =============================================================================
 ## Clique status accessors

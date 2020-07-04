@@ -2,6 +2,7 @@
 
 # newer exports
 export getBetterName7b_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
+export mustInitUpCliq_StateMachine
 
 
 """
@@ -253,7 +254,6 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
   return isCliqNull_StateMachine
 end
 
-
 """
     $SIGNATURES
 
@@ -261,59 +261,77 @@ Do up initialization calculations, loosely translates to solving Chapman-Kolmogo
 transit integral in upward direction.
 
 Notes
-- State machine function nr. 8b
+- State machine function nr. 8f
 - Includes initialization routines.
 - TODO: Make multi-core
+
+DevNotes
+- TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 """
-function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
-  # get a few pointers to relevant data
+function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
+  # FIXME separate out into nr 8f. mustInitUpCliq_StateMachine
+  setCliqDrawColor(csmc.cliq, "red")
   cliqst = getCliqStatus(csmc.cliq)
   opts = getSolverParams(csmc.dfg)
 
+  # check if init is required and possible
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
+  # get incoming clique up messages
+  # FIXME, should change to interface for children
+  upmsgs = getMsgsUpChildrenInitDict(csmc) # getMsgUpThisInit(csmc.cliq) # TODO X
+  # add incoming up messages as priors to subfg
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
+
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
+  end
+
+  doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- areCliqVariablesAllInitialized(subfgcliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+
+  # do actual up solve
+  retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
+  # retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, multiproc=csmc.opts.multiproc, logger=csmc.logger)
+
+  # remove msg factors that were added to the subfg
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine! -- removing up message factors, length=$(length(msgfcts))")
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
+  end
+
+  # notify of results
+  if cliqst != retstatus
+    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- post-doCliqAu. -- notification retstatus=$retstatus")
+    notifyCliqUpInitStatus!(csmc.cliq, retstatus, logger=csmc.logger)
+  else
+    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- post-doCliqAu. -- no notification required $cliqst=$retstatus")
+  end
+
+  # go to 9
+  return finishCliqSolveCheck_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Determine if up initialization calculations should be attempted.
+
+Notes
+- State machine function nr. 8b
+"""
+function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
+  # should calculations be avoided.
   infocsm(csmc, "8b, attemptCliqInitUp, !areCliqChildrenNeedDownMsg()=$(!areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq))" )
-  if cliqst in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
-    setCliqDrawColor(csmc.cliq, "red")
-
-
-    # check if init is required and possible
-    infocsm(csmc, "8b, attemptCliqInitUp, going for doCliqAutoInitUpPart1!.")
-    # get incoming clique up messages
-    # FIXME, should change to interface for children
-    upmsgs = getMsgsUpChildrenInitDict(csmc) # getMsgUpThisInit(csmc.cliq) # TODO X
-    # add incoming up messages as priors to subfg
-    infocsm(csmc, "8b, doCliqAutoInitUpPart1! -- adding up message factors")
-    msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
-
-    # store the cliqSubFg for later debugging
-    if opts.dbg
-      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
-      drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
-    end
-
-    doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
-    infocsm(csmc, "8b, attemptCliqInitUp, areCliqVariablesAllInitialized(subfg, cliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
-
-    # do actual up solve
-    retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
-    # retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, multiproc=csmc.opts.multiproc, logger=csmc.logger)
-
-    # remove msg factors that were added to the subfg
-    infocsm(csmc, "8b, doCliqAutoInitUpPart2! -- removing up message factors, length=$(length(msgfcts))")
-    deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
-
-    # store the cliqSubFg for later debugging
-    if opts.dbg
-      DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
-      drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
-    end
-
-    # notify of results
-    if cliqst != retstatus
-      infocsm(csmc, "8b, attemptCliqInitUp, post-doCliqAu. -- notification retstatus=$retstatus")
-      notifyCliqUpInitStatus!(csmc.cliq, retstatus, logger=csmc.logger)
-    else
-      infocsm(csmc, "8b, attemptCliqInitUp, post-doCliqAu. -- no notification required $cliqst=$retstatus")
-    end
+  if getCliqStatus(csmc.cliq) in [:initialized; :null; :needdownmsg] && !areCliqChildrenNeedDownMsg(csmc.tree, csmc.cliq)
+    # go to 8f.
+    return mustInitUpCliq_StateMachine
   end
 
   # go to 9
