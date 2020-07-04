@@ -651,7 +651,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     # not a root clique
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
-      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg in prnt=$(prnt[1].index), with $(collect(keys(msg.belief)))"
+      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg with $(collect(keys(msg.belief)))"
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
