@@ -285,10 +285,16 @@ end
 Set cliques up init msgs.
 
 DevNotes
-- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED.
+- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
+  -- Likely problem for siblings wanting to have notified parent
+    -- Notifications might have to remain on parent while msgs are stored in each' own clique
 - TODO, must be consolidated
 """
-function putMsgUpInit!(cliq::TreeClique, childid::Int, msg::LikelihoodMessage, logger=SimpleLogger(stdout))
+function putMsgUpInit!(cliq::TreeClique,
+                       childid::Int,
+                       msg::LikelihoodMessage,
+                       logger=SimpleLogger(stdout))
+  #
   cd = getCliqueData(cliq)
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
