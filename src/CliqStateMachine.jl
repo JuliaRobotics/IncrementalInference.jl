@@ -294,7 +294,6 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
 
   # do actual up solve
   retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
-  # retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, multiproc=csmc.opts.multiproc, logger=csmc.logger)
 
   # remove msg factors that were added to the subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine! -- removing up message factors, length=$(length(msgfcts))")
@@ -805,10 +804,12 @@ end
 """
     $SIGNATURES
 
-Notify possible parent if clique is upsolved and exit the state machine.
+Either construct and notify of a new upward initialization message and progress to downsolve checks,
+or circle back and start building the local clique subgraph.
 
 Notes
 - State machine function nr.1
+- Root clique message should be empty since it has an empty separator.
 """
 function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -910,7 +911,7 @@ end
 """
     $SIGNATURES
 
-EXPERIMENTAL: perform upward inference using a state machine solution approach.
+Perform upward inference using a state machine solution approach.
 
 Notes:
 - will call on values from children or parent cliques

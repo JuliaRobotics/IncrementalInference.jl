@@ -932,16 +932,13 @@ function updateFGBT!(fg::AbstractDFG,
                      logger=ConsoleLogger()  )
   #
   if dbg
+    # TODO find better location for the debug information (this is old code)
     cliq.attributes["debug"] = deepcopy(urt.dbgUp)
   end
-  # setUpMsg!(cliq, urt.keepupmsgs)
-  # move to drawTree
   if fillcolor != ""
     setCliqDrawColor(cliq, fillcolor)
   end
-  # cliqFulldim = true
   for (id,dat) in urt.IDvals
-    # cliqFulldim &= dat.fulldim
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
     end
