@@ -257,7 +257,8 @@ fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
 
 function setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage)
-  getMsgUpThisInit(cdat) = msg
+  cdat.upInitMsgs = msg
+  # getMsgUpThisInit(cdat) = msg
 end
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
