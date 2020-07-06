@@ -120,6 +120,11 @@ function solveTree!(dfgl::G,
   return oldtree, smtasks, hist
 end
 
+"""
+$SIGNATURES
+See solveTree!.
+"""
+const solveGraph! = solveTree!
 
 """
     $SIGNATURES
