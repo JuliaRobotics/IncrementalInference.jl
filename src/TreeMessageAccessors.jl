@@ -170,32 +170,6 @@ end
 """
     $(SIGNATURES)
 
-Set the upward passing message for This `cliql` in Bayes (Junction) tree.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
-  # TODO change into a replace put!
-  cd = getCliqueData(cliql)
-
-  # older interface
-  cd.upMsg = msgs
-
-  # new interface
-  if isready(cd.upMsgChannel)
-    # first clear an existing value
-    take!(cd.upMsgChannel)
-  end
-  # insert the new value
-  put!(cd.upMsgChannel, msgs)
-  nothing
-end
-
-
-"""
-    $(SIGNATURES)
-
 Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
 """
 fetchMsgUpThis(cliql::TreeClique) = getCliqueData(cliql).upMsg
@@ -278,6 +252,31 @@ function getCliqInitUpResultFromChannel(cliq::TreeClique)
   return status
 end
 
+
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for This `cliql` in Bayes (Junction) tree.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
+"""
+function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+  # TODO change into a replace put!
+  cd = getCliqueData(cliql)
+
+  # older interface
+  cd.upMsg = msgs
+
+  # new interface
+  if isready(cd.upMsgChannel)
+    # first clear an existing value
+    take!(cd.upMsgChannel)
+  end
+  # insert the new value
+  put!(cd.upMsgChannel, msgs)
+  nothing
+end
 
 """
     $SIGNATURES
