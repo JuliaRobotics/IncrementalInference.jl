@@ -44,7 +44,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   end
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
-  setMsgUpThisInitDict!(cda, LikelihoodMessage() )
+  setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
   setCliqStatus!(cliq, :null)
@@ -85,10 +85,12 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::LikelihoodMessage)
+                        msgs::LikelihoodMessage;
+                        tags::Vector{Symbol}=Symbol[])
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
+  tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
   for (msym, belief_) in msgs.belief
     if msym in svars
       if 5 < size(belief_.val,2)
@@ -105,7 +107,7 @@ function addMsgFactors!(subfg::AbstractDFG,
       else
         error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
       end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false)
+      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false, tags=tags__)
       push!(msgfcts, fc)
     end
   end
@@ -113,12 +115,13 @@ function addMsgFactors!(subfg::AbstractDFG,
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        allmsgs::Dict{Int,LikelihoodMessage} )
+                        allmsgs::Dict{Int,LikelihoodMessage};
+                        tags::Vector{Symbol}=Symbol[] )
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
     # do each dict in array separately
-    newfcts = addMsgFactors!(subfg, msgs)
+    newfcts = addMsgFactors!(subfg, msgs, tags=tags)
     union!( allfcts, newfcts )
   end
   return allfcts

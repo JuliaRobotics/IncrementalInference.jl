@@ -42,7 +42,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # get down msg from parent (assing root clique CSM wont make it here)
   prnt = getParent(csmc.tree, csmc.cliq)
-  dwnmsgs = getDwnMsgs(prnt[1])
+  dwnmsgs = getMsgsDwnThis(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
@@ -269,7 +269,6 @@ DevNotes
 - TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
-  # FIXME separate out into nr 8f. mustInitUpCliq_StateMachine
   setCliqDrawColor(csmc.cliq, "red")
   cliqst = getCliqStatus(csmc.cliq)
   opts = getSolverParams(csmc.dfg)
@@ -277,10 +276,10 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # check if init is required and possible
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
   # get incoming clique up messages
-  # FIXME, should change to interface for children
-  upmsgs = getMsgsUpChildrenInitDict(csmc)
+  upmsgs = getMsgsUpInitChildren(csmc)
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
+  # interally adds :LIKELIHOODMESSAGE to each of the factors
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
 
   # store the cliqSubFg for later debugging
@@ -289,16 +288,37 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
   end
 
-  doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
-  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- areCliqVariablesAllInitialized(subfgcliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+  # attempt initialize if necessary
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    # structure for all up message densities computed during this initialization procedure.
+    varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+    cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+  end
+  # doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- are all init $(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+
+  # print out the partial init status of all vars in clique
+  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+
+  # FIXME split CSM doCliqUpsSolveInitialized_StateMachine
 
   # do actual up solve
   retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
-  # retstatus = doCliqAutoInitUpPart2!(csmc.cliqSubFg, csmc.tree, csmc.cliq, multiproc=csmc.opts.multiproc, logger=csmc.logger)
 
   # remove msg factors that were added to the subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine! -- removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+
+  # put the init upinitmsg
+  with_logger(csmc.logger) do
+	tt = split(string(now()),'T')[end]
+	@info "$tt, cliq $(csmc.cliq.index), doCliqAutoInitUpPart2! -- upinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+  # this is a push model instance #674
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
 
   # store the cliqSubFg for later debugging
   if opts.dbg
@@ -805,10 +825,12 @@ end
 """
     $SIGNATURES
 
-Notify possible parent if clique is upsolved and exit the state machine.
+Either construct and notify of a new upward initialization message and progress to downsolve checks,
+or circle back and start building the local clique subgraph.
 
 Notes
 - State machine function nr.1
+- Root clique message should be empty since it has an empty separator.
 """
 function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -816,15 +838,11 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
 
   # if upward complete for any reason, prepare and send new upward message
-  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
-    prnt = getParent(csmc.tree, csmc.cliq)
-    # not a root clique
-    if length(prnt) > 0
-      # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
-      putMsgUpInit!(csmc.cliq, msg)
-      notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-    end
+  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]
+    # construct init's up msg from initialized separator variables
+    msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
+    putMsgUpInit!(csmc.cliq, msg)
+    notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     #go to 10
     return determineCliqIfDownSolve_StateMachine
   end
@@ -865,7 +883,10 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     setCliqStatus!(csmc.cliq, :uprecycled)
     setCliqDrawColor(csmc.cliq, "orange")
 
-    csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt_incremental.pdf")) : nothing
+    opt = getSolverParams(csmc.dfg)
+    if opt.dbg
+      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinLogPath(csmc.dfg, "bt_incremental.pdf")) : nothing
+    end
     # go to 1
     return isCliqUpSolved_StateMachine
   end
@@ -910,7 +931,7 @@ end
 """
     $SIGNATURES
 
-EXPERIMENTAL: perform upward inference using a state machine solution approach.
+Perform upward inference using a state machine solution approach.
 
 Notes:
 - will call on values from children or parent cliques
