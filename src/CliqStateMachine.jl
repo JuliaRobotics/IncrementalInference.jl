@@ -278,7 +278,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
   # get incoming clique up messages
   # FIXME, should change to interface for children
-  upmsgs = getMsgsUpChildrenInitDict(csmc) # getMsgUpThisInit(csmc.cliq) # TODO X
+  upmsgs = getMsgsUpChildrenInitDict(csmc)
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
@@ -352,8 +352,8 @@ function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
 
     infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
-    # FIXME, not sure how to fake specific message when converting from push to pull model, #674
-    putMsgUpInit!(csmc.cliq, msg) # TODO X ????
+    # NOTE, not sure how to fake specific message when converting from push to pull model, #674
+    putMsgUpInit!(csmc.cliq, msg)
     # setCliqStatus!(csmc.cliq, cliqst)
     setCliqDrawColor(csmc.cliq, "sienna")
 
@@ -535,7 +535,7 @@ Notes
 function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
   # TODO, remove csmc.forceproceed
   csmc.forceproceed = false
-  sleep(0.1) # FIXME remove after #459 resolved # TODO XY
+  sleep(0.1) # FIXME remove after #459 resolved
   # return doCliqInferAttempt_StateMachine
   cliqst = getCliqStatus(csmc.cliq)
   infocsm(csmc, "7b, status=$(cliqst), before attemptCliqInitDown_StateMachine")
@@ -818,11 +818,11 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   # if upward complete for any reason, prepare and send new upward message
   if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
     prnt = getParent(csmc.tree, csmc.cliq)
+    # not a root clique
     if length(prnt) > 0
-      # not a root clique
       # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger) # csmc.tree,
-      putMsgUpInit!(csmc.cliq, msg) # putMsgUpInit!(prnt[1], csmc.cliq.index, msg) # TODO X
+      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
+      putMsgUpInit!(csmc.cliq, msg)
       notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     end
     #go to 10

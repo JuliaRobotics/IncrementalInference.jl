@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)  # getMsgUpThisInit(cliq) # TODO X
+  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -117,7 +117,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(cliq, msgs, logger) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
+        putMsgUpInit!(cliq, msgs, logger)
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -328,7 +328,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
   # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;]) # getMsgUpThisInit(prnt) # TODO X
+  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;])
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -360,8 +360,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
 
   flush(logger.stream)
 
-  # reference to default allocated dict location
-  products = getMsgDwnThisInit(prnt) # TODO XY INIT HERE ???
+  # reference to default dict location
+  products = getMsgDwnThisInit(prnt)
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -466,7 +466,7 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
       @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetchMsgUpInit(ch).status # TODO XY
+    ret[ch.index] = fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       tt = split(string(now()), 'T')[end]
@@ -647,16 +647,12 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
   # put the init msg
-  # if length(prnt) > 0 # TODO XX
-    # not a root clique
-    with_logger(logger) do
-      tt = split(string(now()),'T')[end]
-      @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg with $(collect(keys(msg.belief)))"
-    end
-    # does internal notify on parent -- TODO update as part of #459
-    # this is a push model instance #674
-    putMsgUpInit!(cliq, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
-  # end
+  with_logger(logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg with $(collect(keys(msg.belief)))"
+  end
+  # this is a push model instance #674
+  putMsgUpInit!(cliq, msg, logger)
 
   return status
 end

@@ -40,7 +40,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   end
   prnt = getParent(treel, cliq)
   if length(prnt) > 0
-    putMsgUpInit!( cliq, LikelihoodMessage() ) # putMsgUpInit!(prnt[1], cliq.index, LikelihoodMessage()) # TODO X
+    putMsgUpInit!( cliq, LikelihoodMessage() )
   end
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
