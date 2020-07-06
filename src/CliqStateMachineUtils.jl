@@ -932,7 +932,7 @@ function getSetDownMessagesComplete!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
-  setDwnMsg!(cliq, newDwnMsgs)
+  setMsgDwnThis!(cliq, newDwnMsgs)
 
   return nothing
 end
