@@ -1130,10 +1130,11 @@ function addFactor!(dfg::AbstractDFG,
     graphinit = autoinit # force user spec
   end
   if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
     union!(tags, labels)
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
 
 
