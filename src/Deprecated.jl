@@ -2,7 +2,7 @@
 
 
 ##==============================================================================
-## Delete at end v0.12.x
+## Delete at end v0.13.x
 ##==============================================================================
 
 export doCliqUpSolve!
@@ -11,16 +11,11 @@ export setCliqUpInitMsgs!
 export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
-export getCliqparentMsgDown
-export setDwnMsg!
-export upMsg, dwnMsg
-export getDwnMsgs
-export getCliq, whichCliq, hasCliq
-export getCliqChildMsgsUp
-export setUpMsg!, getUpMsgs
-export assignTreeHistory!
-export getVertKDE,  getVert
 
+
+@deprecate putMsgUpInit!(cliq::TreeClique,childid::Int,msg::LikelihoodMessage,logger=SimpleLogger(stdout)) putMsgUpInit!(cliq,msg,logger=logger)
+
+@deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInitDict!(cdat, msg)
 
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,
@@ -138,6 +133,22 @@ end
 
 @deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
 @deprecate setMsgDwnThis!(x...) putMsgDwnThis!(x...)
+
+
+
+##==============================================================================
+## Delete at end v0.12.x
+##==============================================================================
+
+# export getCliqparentMsgDown
+export setDwnMsg!
+export upMsg, dwnMsg
+export getDwnMsgs
+export getCliq, whichCliq, hasCliq
+export getCliqChildMsgsUp
+export setUpMsg!, getUpMsgs
+export assignTreeHistory!
+export getVertKDE,  getVert
 
 
 # # return ::Vector{DFGFactor}

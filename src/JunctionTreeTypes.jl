@@ -317,7 +317,7 @@ mutable struct BayesTreeNodeData
 
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure these are converted to pull model first #674
-  upInitMsgs::LikelihoodMessage # NOTE drop Dict
+  upInitMsgs::LikelihoodMessage # TODO, drop this field and only use upMsg
   downInitMsg::LikelihoodMessage
   initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
@@ -325,7 +325,7 @@ mutable struct BayesTreeNodeData
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
-  # FIXME consolidate Dict with LikelihoodMessage, make pull model first #674
+  # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
   solvableDims::Channel{Dict{Symbol, Float64}}
 
   # in and out message channels relating to THIS clique -- only for pull model #674

@@ -256,9 +256,8 @@ getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
 
-function setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage)
+function setMsgUpThisInitDict!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
   cdat.upInitMsgs = msg
-  # getMsgUpThisInit(cdat) = msg
 end
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
@@ -292,7 +291,6 @@ DevNotes
 - TODO, must be consolidated
 """
 function putMsgUpInit!(cliq::TreeClique,
-                       childid::Int,
                        msg::LikelihoodMessage,
                        logger=SimpleLogger(stdout))
   #
@@ -300,8 +298,8 @@ function putMsgUpInit!(cliq::TreeClique,
   soco = getSolveCondition(cliq)
   # FIXME, locks should not be required in all cases
   lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!") # TODO XX
-  # FIXME, consolidation required, convert to Pull model #674
-  setMsgUpThisInitDict!(cd, childid, msg)
+  # update the register
+  setMsgUpThisInitDict!(cd, msg)
   # TODO simplify and fix need for repeat
   # notify cliq condition that there was a change
   notify(soco)

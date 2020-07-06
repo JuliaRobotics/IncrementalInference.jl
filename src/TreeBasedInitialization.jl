@@ -117,7 +117,7 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
         # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(cliq, cliq.index, msgs) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
+        putMsgUpInit!(cliq, msgs, logger) # putMsgUpInit!(prnt[1], cliq.index, msgs) # TODO X
       end
 
       setCliqStatus!(cliq, :marginalized)
@@ -655,7 +655,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
-    putMsgUpInit!(cliq, cliq.index, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
+    putMsgUpInit!(cliq, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
   # end
 
   return status
@@ -762,7 +762,7 @@ Notes:
 - assume `subfg` as a subgraph that can be modified by this function (add message factors)
   - should remove message prior factors from subgraph before returning.
 - May modify `cliq` values.
-  - `putMsgUpInit!(cliq, cliq.index, msg)`
+  - `putMsgUpInit!(cliq, msg)`
   - `setCliqStatus!(cliq, status)`
   - `setCliqDrawColor(cliq, "sienna")`
   - `notifyCliqDownInitStatus!(cliq, status)`
