@@ -817,15 +817,11 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqStatus(csmc.cliq)
 
   # if upward complete for any reason, prepare and send new upward message
-  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]  #moved to 4 --- csmc.incremental &&
-    prnt = getParent(csmc.tree, csmc.cliq)
-    # not a root clique
-    if length(prnt) > 0
-      # construct init's up msg to place in parent from initialized separator variables
-      msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
-      putMsgUpInit!(csmc.cliq, msg)
-      notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-    end
+  if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]
+    # construct init's up msg from initialized separator variables
+    msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
+    putMsgUpInit!(csmc.cliq, msg)
+    notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     #go to 10
     return determineCliqIfDownSolve_StateMachine
   end
