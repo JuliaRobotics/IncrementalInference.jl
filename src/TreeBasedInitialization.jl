@@ -403,6 +403,7 @@ Prepare the upward inference messages from clique to parent and return as `Dict{
 
 Notes
 - Does not require tree message likelihood factors in subfg.
+- Also see #579 regarding elimited likelihoods and priors.
 """
 function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
@@ -418,7 +419,6 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
     var = DFG.getVariable(subfg, vid)
     if isInitialized(var)
       msg.belief[Symbol(var.label)] = TreeBelief(var)
-      # msg.belief[Symbol(var.label)] = TreeBelief(getKDE(var), getSolverData(var).inferdim)
     end
   end
   return msg
@@ -643,11 +643,11 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     end
   end
 
-  # construct init's up msg to place in parent from initialized separator variables
+  # construct init's up msg from initialized separator variables
   msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
 
-  # put the init result in the parent cliq.
-  if length(prnt) > 0
+  # put the init msg
+  # if length(prnt) > 0 # TODO XX
     # not a root clique
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
@@ -656,7 +656,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     # does internal notify on parent -- TODO update as part of #459
     # this is a push model instance #674
     putMsgUpInit!(cliq, cliq.index, msg, logger) # putMsgUpInit!(prnt[1], cliq.index, msg) # TODO X
-  end
+  # end
 
   return status
 end
