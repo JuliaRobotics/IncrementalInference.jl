@@ -134,17 +134,22 @@ end
 Delete from the subgraph`::AbstractDFG` prior belief `msgs` that could/would be used
 during clique inference.
 
+DevNotes
+- TODO make `::Vector{Symbol}` version.
+
 Related
 
 `addMsgFactors!`
 """
 function deleteMsgFactors!(subfg::AbstractDFG,
-                           fcts::Vector{DFGFactor} )
+                           fcts::Vector )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
   end
 end
+# deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
+
 
 
 

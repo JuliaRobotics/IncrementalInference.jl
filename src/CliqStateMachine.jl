@@ -263,15 +263,14 @@ transit integral in upward direction.
 Notes
 - State machine function nr. 8f
 - Includes initialization routines.
+- Adds LIKELIHOODMESSAGE factors but does not remove
 - TODO: Make multi-core
 
 DevNotes
 - TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "red")
-  cliqst = getCliqStatus(csmc.cliq)
-  opts = getSolverParams(csmc.dfg)
+  setCliqDrawColor(csmc.cliq, "green")
 
   # check if init is required and possible
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
@@ -283,6 +282,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
 
   # store the cliqSubFg for later debugging
+  opts = getSolverParams(csmc.dfg)
   if opts.dbg
     DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
@@ -300,13 +300,38 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # print out the partial init status of all vars in clique
   printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
-  # FIXME split CSM doCliqUpsSolveInitialized_StateMachine
+  # go to 8g.
+  return doCliqUpsSolveInitialized_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Find Chapman-Kolmogorov transit integral solution approximation.
+
+Notes
+- State machine function nr. 8g
+- Includes initialization routines.
+- Assumes LIKELIHOODMESSAGE factors are in csmc.cliqSubFg and also removes them.
+- TODO: Make multi-core
+
+DevNotes
+- TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
+- NEEDS DFG v0.8.1, see IIF #760
+"""
+function doCliqUpsSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "red")
+  cliqst = getCliqStatus(csmc.cliq)
+  opts = getSolverParams(csmc.dfg)
 
   # do actual up solve
   retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
 
+  msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
+  # @assert isa(msgfcts, Vector{DFGFactor}) "not a Vector{DFGFactor}??? $(typeof(msgfcts))"
+
   # remove msg factors that were added to the subfg
-  infocsm(csmc, "8f, mustInitUpCliq_StateMachine! -- removing up message factors, length=$(length(msgfcts))")
+  infocsm(csmc, "8g, doCliqUpsSolveInit.! -- removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # construct init's up msg from initialized separator variables
@@ -315,7 +340,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # put the init upinitmsg
   with_logger(csmc.logger) do
 	tt = split(string(now()),'T')[end]
-	@info "$tt, cliq $(csmc.cliq.index), doCliqAutoInitUpPart2! -- upinitmsg with $(collect(keys(upinitmsg.belief)))"
+	@info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
   end
   # this is a push model instance #674
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
@@ -328,10 +353,10 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
 
   # notify of results
   if cliqst != retstatus
-    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- post-doCliqAu. -- notification retstatus=$retstatus")
+    infocsm(csmc, "8g, doCliqUpsSolveInit. -- post-doCliqAu. -- notification retstatus=$retstatus")
     notifyCliqUpInitStatus!(csmc.cliq, retstatus, logger=csmc.logger)
   else
-    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- post-doCliqAu. -- no notification required $cliqst=$retstatus")
+    infocsm(csmc, "8g, doCliqUpsSolveInit. -- post-doCliqAu. -- no notification required $cliqst=$retstatus")
   end
 
   # go to 9
