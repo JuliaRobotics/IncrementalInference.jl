@@ -269,7 +269,6 @@ DevNotes
 - TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
-  # FIXME separate out into nr 8f. mustInitUpCliq_StateMachine
   setCliqDrawColor(csmc.cliq, "red")
   cliqst = getCliqStatus(csmc.cliq)
   opts = getSolverParams(csmc.dfg)
@@ -280,6 +279,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   upmsgs = getMsgsUpInitChildren(csmc)
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
+  # interally adds :LIKELIHOODMESSAGE to each of the factors
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
 
   # store the cliqSubFg for later debugging
@@ -288,8 +288,19 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
   end
 
-  doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
-  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- areCliqVariablesAllInitialized(subfgcliq)=$(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+  # attempt initialize if necessary
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    # structure for all up message densities computed during this initialization procedure.
+    varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+    cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+  end
+  # doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
+  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- are all init $(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
+
+  # print out the partial init status of all vars in clique
+  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+
+  # FIXME split CSM doCliqUpsSolveInitialized_StateMachine
 
   # do actual up solve
   retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
@@ -297,6 +308,17 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # remove msg factors that were added to the subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine! -- removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+
+  # put the init upinitmsg
+  with_logger(csmc.logger) do
+	tt = split(string(now()),'T')[end]
+	@info "$tt, cliq $(csmc.cliq.index), doCliqAutoInitUpPart2! -- upinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+  # this is a push model instance #674
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
 
   # store the cliqSubFg for later debugging
   if opts.dbg

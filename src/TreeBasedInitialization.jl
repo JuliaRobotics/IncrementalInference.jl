@@ -113,7 +113,6 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
       # need to set the upward messages
       msgs = prepCliqInitMsgsUp(dfg, cliq)
       putMsgUpThis!(cliq, msgs)
-      # setUpMsg!(cliq, msgs)
 
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
@@ -535,49 +534,51 @@ end
 
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
+#
+# Perform cliq initalization calculation based on current state of the tree and factor graph,
+# using upward message passing logic.
+#
+# Notes
+# - adds msg priors added to clique subgraph
+# - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
+# - must use factors in cliq only, ensured by using subgraph -- TODO general case.
+#
+# DevNotes
+# - FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
+# """
+# function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
+#                                 tree::AbstractBayesTree,
+#                                 cliq::TreeClique;
+#                                 up_solve_if_able::Bool=true,
+#                                 multiproc::Bool=true,
+#                                 logger=ConsoleLogger() )
+#   #
+#
+#   # attempt initialize if necessary
+#   if !areCliqVariablesAllInitialized(subfg, cliq)
+#     # structure for all up message densities computed during this initialization procedure.
+#     varorder = getCliqVarInitOrderUp(tree, cliq)
+#     # do physical inits, ignore cycle return value
+#     cycleInitByVarOrder!(subfg, varorder, logger=logger)
+#   end
+#
+#   return nothing
+# end
 
-Perform cliq initalization calculation based on current state of the tree and factor graph,
-using upward message passing logic.
-
-Notes
-- adds msg priors added to clique subgraph
-- Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
-- must use factors in cliq only, ensured by using subgraph -- TODO general case.
-
-DevNotes
-- FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
-"""
-function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
-                                tree::AbstractBayesTree,
-                                cliq::TreeClique;
-                                up_solve_if_able::Bool=true,
-                                multiproc::Bool=true,
-                                logger=ConsoleLogger() )
-  #
-
-  # init up msg has special procedure for incomplete messages
-  varorder = Int[]
-
-
-  # attempt initialize if necessary
-  if !areCliqVariablesAllInitialized(subfg, cliq)
-    # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqVarInitOrderUp(tree, cliq)
-    # do physical inits, ignore cycle return value
-    with_logger(logger) do
-      @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- going for up cycle order"
-    end
-
-    cycleInitByVarOrder!(subfg, varorder, logger=logger)
-    with_logger(logger) do
-      @info "cliq $(cliq.index), doCliqAutoInitUpPart1! -- finished with up cycle order"
-    end
+function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
+  varids = getCliqAllVarIds(cliq)
+  initstatus = Vector{Bool}(undef, length(varids))
+  initpartial = Vector{Float64}(undef, length(varids))
+  for i in 1:length(varids)
+    initstatus[i] = getSolverData(getVariable(subfg, varids[i])).initialized
+    initpartial[i] = getSolverData(getVariable(subfg, varids[i])).inferdim
   end
-  flush(logger.stream)
-
-  return nothing
+  with_logger(logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+  end
 end
 
 """
@@ -598,33 +599,20 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
                                 multiproc::Bool=true,
                                 logger=ConsoleLogger()  )
   #
-  subfg = csmc.cliqSubFg
-  tree  = csmc.tree
-  cliq  = csmc.cliq
-  prnt = getParent(tree, cliq)
-  opt = getSolverParams(csmc.cliqSubFg)
+  # subfg = csmc.cliqSubFg
+  # tree  = csmc.tree
+  # cliq  = csmc.cliq
+  # prnt = getParent(csmc.tree, csmc.cliq)
+  # opt = getSolverParams(csmc.cliqSubFg)
 
-  cliqst = getCliqStatus(cliq)
-  status = (cliqst == :initialized || length(getParent(tree, cliq)) == 0) ? cliqst : :needdownmsg
-
-  # print out the partial init status of all vars in clique
-  varids = getCliqAllVarIds(cliq)
-  initstatus = Vector{Bool}(undef, length(varids))
-  initpartial = Vector{Float64}(undef, length(varids))
-  for i in 1:length(varids)
-    initstatus[i] = getSolverData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getSolverData(getVariable(subfg, varids[i])).inferdim
-  end
-  with_logger(logger) do
-    tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
-  end
+  cliqst = getCliqStatus(csmc.cliq)
+  status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
-  if areCliqVariablesAllInitialized(subfg, cliq)
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     with_logger(logger) do
       tt = split(string(now()),'T')[end]
-      @info "$(tt), cliq $(cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
+      @info "$(tt), cliq $(csmc.cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
     end
 
     # TODO replace with msg channels only
@@ -632,8 +620,7 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     # is clique fully upsolved or only partially?
     # TODO verify the need for this update (likely part of larger refactor, WIP #459)
     putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-    # setUpMsg!(csmc.cliq, urt.keepupmsgs)
-    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=opt.dbg, fillcolor="brown", logger=csmc.logger)
+    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
 
     # set clique color accordingly, using local memory
     setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
@@ -641,20 +628,9 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     status = :upsolved
   else
     with_logger(logger) do
-      @info "cliq $(cliq.index), all variables not initialized, status = $(status)"
+      @info "cliq $(csmc.cliq.index), all variables not initialized, status = $(status)"
     end
   end
-
-  # construct init's up msg from initialized separator variables
-  msg = prepCliqInitMsgsUp(subfg, cliq) # , tree
-
-  # put the init msg
-  with_logger(logger) do
-    tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(cliq.index), doCliqAutoInitUpPart2! -- umsg with $(collect(keys(msg.belief)))"
-  end
-  # this is a push model instance #674
-  putMsgUpInit!(cliq, msg, logger)
 
   return status
 end

@@ -1052,7 +1052,8 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    labels::Vector{Symbol}=Symbol[],
+                    labels::Union{Nothing, Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
                     timestamp::DateTime=now(UTC),
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
@@ -1073,6 +1074,10 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
+  if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
+    union!(tags, labels)
+  end
 
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi)
@@ -1080,7 +1085,7 @@ function addFactor!(dfg::AbstractDFG,
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
-                        tags=Set(union(labels, [:FACTOR])),
+                        tags=Set(union(tags, [:FACTOR])),
                         solvable=solvable,
                         timestamp=timestamp)
 
@@ -1104,7 +1109,8 @@ function addFactor!(dfg::AbstractDFG,
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
                     timestamp::DateTime=now(UTC),
-                    labels::Vector{Symbol}=Symbol[],
+                    labels::Union{Nothing,Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
@@ -1122,6 +1128,9 @@ function addFactor!(dfg::AbstractDFG,
   if isa(autoinit, Bool)
     @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
     graphinit = autoinit # force user spec
+  end
+  if !isa(labels, Nothing)
+    union!(tags, labels)
   end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
