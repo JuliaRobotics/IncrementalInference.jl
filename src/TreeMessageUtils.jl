@@ -44,7 +44,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   end
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
-  setMsgUpThisInitDict!(cda, LikelihoodMessage() )
+  setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
   setCliqStatus!(cliq, :null)

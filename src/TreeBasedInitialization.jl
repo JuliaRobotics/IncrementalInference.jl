@@ -112,7 +112,8 @@ function setTreeCliquesMarginalized!(dfg::AbstractDFG,
     if areCliqVariablesAllMarginalized(dfg, cliq)
       # need to set the upward messages
       msgs = prepCliqInitMsgsUp(dfg, cliq)
-      setUpMsg!(cliq, msgs)
+      putMsgUpThis!(cliq, msgs)
+      # setUpMsg!(cliq, msgs)
 
       prnt = getParent(tree, cliq)
       if length(prnt) > 0
@@ -630,7 +631,8 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # TODO verify the need for this update (likely part of larger refactor, WIP #459)
-    setUpMsg!(csmc.cliq, urt.keepupmsgs)
+    putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+    # setUpMsg!(csmc.cliq, urt.keepupmsgs)
     updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=opt.dbg, fillcolor="brown", logger=csmc.logger)
 
     # set clique color accordingly, using local memory

@@ -230,7 +230,7 @@ getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
 
-function setMsgUpThisInitDict!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
+function setMsgUpThisInit!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
   cdat.upInitMsgs = msg
 end
 
@@ -298,7 +298,7 @@ function putMsgUpInit!(cliq::TreeClique,
   # FIXME, locks should not be required in all cases
   lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
   # update the register
-  setMsgUpThisInitDict!(cd, msg)
+  setMsgUpThisInit!(cd, msg)
   # TODO simplify and fix need for repeat
   # notify cliq condition that there was a change
   notify(soco)

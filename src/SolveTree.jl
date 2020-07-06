@@ -752,7 +752,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     # upmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
     # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
   end
-  setUpMsg!(inp.cliq, upmsgs)
+  putMsgUpThis!(inp.cliq, upmsgs) # setUpMsg!(inp.cliq, upmsgs)
 
   # flag cliq as definitely being initialized
   cliqdata.upsolved = true

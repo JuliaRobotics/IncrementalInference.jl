@@ -21,7 +21,7 @@ export setMsgDwnThis!, getMsgsDwnThis
 
 @deprecate putMsgUpInit!(cliq::TreeClique,childid::Int,msg::LikelihoodMessage,logger=SimpleLogger(stdout)) putMsgUpInit!(cliq,msg,logger=logger)
 
-@deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInitDict!(cdat, msg)
+@deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInit!(cdat, msg)
 
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,
