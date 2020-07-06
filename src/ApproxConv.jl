@@ -78,14 +78,15 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    N::Int  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, N, solvefor)
+  # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
+  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate
   fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, maxlen, fmd, vnds...)
+  freshSamples!(ccwl, maxlen, fmd, vnds)
   # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
@@ -104,7 +105,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
     ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for FunctorPairwiseMinimize
   end
 
-  return sfidx, maxlen
+  return sfidx, maxlen, manis
 end
 
 function generateNullhypoEntropy(val::AbstractMatrix{<:Real},
@@ -178,7 +179,8 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   activehypo,
                                   certainidx::Vector{Int},
                                   sfidx::Int,
-                                  maxlen::Int;
+                                  maxlen::Int,
+                                  maniAddOps::Tuple;
                                   spreadNH::Float64=3.0  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
@@ -208,13 +210,18 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # make spread (1σ) equal to mean distance of other fractionals
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
-      # on-manifold add????
       # add 1σ "noise" level to max distance as control
-      meanVal = Statistics.mean(addEntr, dims=2)
-      addEntr .= rand(ENT, size(addEntr,2))
-      # addEntr .= rand(MvNormal([0;0],[1 0; 0 1.0]), size(addEntr,2))
+      # NOTE not around mean
+      # meanVal = Statistics.mean(addEntr, dims=2)
+      # addEntr .= rand(ENT, size(addEntr,2))
       for i in 1:size(addEntr, 1)
-        addEntr[i,:] .+= meanVal[i,1]
+        for j in 1:size(addEntr,2)
+          addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+        end
+        # FIXME should be on manifold
+        # addEntr[i,:] .+= (spreadDist*rand(size(addEntr,2)) .- 0.5*spreadDist)
+        # NOTE previous around mean approach
+        # addEntr[i,:] .+= meanVal[i,1]
       end
       @assert addEntr[1,1] == ccwl.params[sfidx][1, allelements[count][1]] "bad view memory"
     else
@@ -280,31 +287,11 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
                                spreadNH::Real=3.0,
-                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
-  #
-  @warn "FunctorPairwiseNH will be deprecated in favor of common `nullhypo=` interface."
-  # TODO -- could be constructed and maintained at addFactor! time
-  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
-  # prepare nullhypothesis
-  allelements, nhc, ENT = assembleNullHypothesis(ccwl, maxlen, spreadNH)
-
-  # Compute across the true or null hypothesis
-  computeAcrossNullHypothesis!(ccwl, allelements, nhc, ENT )
-
-  return ccwl.params[ccwl.varidx]
-end
-
-function evalPotentialSpecific(Xi::Vector{DFGVariable},
-                               ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol,
-                               measurement::Tuple=(zeros(0,100),);
-                               N::Int=size(measurement[1],2),
-                               spreadNH::Real=3.0,
                                dbg::Bool=false  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
   #
 
   # Prep computation variables
-  sfidx, maxlen = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
@@ -314,12 +301,15 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   isinit = map(x->isInitialized(x), Xi)
 
   # assemble how hypotheses should be computed
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit)
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
   certainidx = ccwl.certainhypo
+
+  # get manifold add operations
+  addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, spreadNH=spreadNH)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH)
 
   return ccwl.params[ccwl.varidx]
 end
@@ -338,7 +328,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
   # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds...) # in-place version
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds) # in-place version
   if !ccwl.partial
     return ccwl.measurement[1]
   else
@@ -350,44 +340,6 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
     end
     return val
   end
-end
-
-function evalPotentialSpecific(Xi::Vector{DFGVariable},
-                               ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol,
-                               measurement::Tuple=(zeros(0,100),);
-                               N::Int=size(measurement[1],2),
-                               spreadfactor::Float64=10.0,
-                               dbg::Bool=false,
-                               spreadNH::Float64=3.0 ) where {T <: FunctorSingletonNH}
-  #
-  @warn "FunctorSingletonNH will be deprecated in favor of common `nullhypo=` interface."
-  fnc = ccwl.usrfnc!
-
-  val = getVal(Xi[1])
-  d = size(val,1)
-  var = Statistics.var(val, dims=2) .+ 1e-3
-
-  # prep in case special samplers used
-  vnds = Xi # (x->getSolverData(x)).(Xi)
-  # determine amount share of null hypothesis particles
-  freshSamples!(ccwl, N, FactorMetadata(), vnds...)
-  # ccwl.measurement = getSample(ccwl.usrfnc!, N)
-  # values of 0 imply null hypothesis
-  # ccwl.usrfnc!.nullhypothesis::Distributions.Categorical
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, N) .- 1
-
-  # TODO -- not valid for manifold
-  # TODO bad memory management
-  ENT = Distributions.MvNormal(zeros(d), spreadfactor*Matrix(Diagonal(var[:])) )
-
-  for i in 1:N
-    if nhc[i] == 0
-      ccwl.measurement[1][:,i] = val[:,i] + rand(ENT)  # TODO use view and inplace add operation
-    end
-  end
-  # TODO -- returning to memory location inside
-  return ccwl.measurement[1]
 end
 
 """
@@ -407,9 +359,8 @@ function evalFactor2(dfg::AbstractDFG,
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
-  # TODO replace fncargvID with neighbors
-  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))  # getSolverData(fct).fncargvID
-  for id in getVariableOrder(fct) # getSolverData(fct).fncargvID
+  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))
+  for id in getVariableOrder(fct)
     count += 1
     xi = DFG.getVariable(dfg, id)
     push!(Xi, xi )
@@ -472,7 +423,7 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
-  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds...) : measurement
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

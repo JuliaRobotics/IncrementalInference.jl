@@ -293,7 +293,11 @@ function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
   for (v,val) in vardict
     vnd = getVariableSolverData(fg, v, :parametric)
     vnd.val .= val.val
-    vnd.bw .= val.cov
+    if size(vnd.bw) != size(val.cov)
+      vnd.bw = val.cov
+    else
+      vnd.bw .= val.cov
+    end
   end
 end
 
@@ -329,8 +333,8 @@ function createMvNormal(val,cov)
         return MvNormal(val,Symmetric(cov))
     else
         @error("Covariance matrix error", cov)
-        return nothing
-        #return MvNormal(val, ones(length(val)))
+        # return nothing # FIXME, blanking nothing during #459 consolidation
+        return MvNormal(val, ones(length(val)))
     end
 end
 

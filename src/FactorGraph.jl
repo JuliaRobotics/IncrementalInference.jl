@@ -1,5 +1,6 @@
-reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
+# Should deprecate in favor of TensorCast.jl
+reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 """
     $SIGNATURES
@@ -22,9 +23,7 @@ getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].v
 getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
 getVal(vnd::VariableNodeData) = vnd.val
 getVal(vnd::VariableNodeData, idx::Int) = vnd.val[:, idx]
-function getVal(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where {T <: AbstractDFG}
-  return getVariable(dfg, lbl).solverDataDict[solveKey].val
-end
+getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default) = getVariable(dfg, lbl).solverDataDict[solveKey].val
 
 """
     $(SIGNATURES)
@@ -413,7 +412,7 @@ function addVariable!(dfg::AbstractDFG,
                       N::Int=100,
                       autoinit::Union{Nothing,Bool}=true,
                       solvable::Int=1,
-                      timestamp::DateTime=now(),
+                      timestamp::DateTime=now(UTC),
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
@@ -443,7 +442,7 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Union{Bool, Nothing}=true,
-                      timestamp::DateTime=now(),
+                      timestamp::DateTime=now(UTC),
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
@@ -513,12 +512,12 @@ Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-            Xi::Vector{<:DFGVariable},
-            N::Int,
-            solvefor::Union{Nothing, Symbol}  ) # TODO: Confirm we can use symbols here
+                             Xi::Vector{<:DFGVariable},
+                             solvefor::Union{Nothing, Symbol},
+                             N::Int=0  )
   #
   LEN = Int[]
-  maxlen = N
+  maxlen = N # FIXME see #105
   count = 0
   sfidx = 0
 
@@ -544,7 +543,13 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
   if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
-  return maxlen, sfidx
+
+  # get solvefor manifolds
+  manis = length(Xi)==0 || sfidx==0 ? (:null,) : getManifolds(Xi[sfidx])
+
+  # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
+  # maxlen = N == 0 ? maxlen : N
+  return maxlen, sfidx, manis
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -579,7 +584,7 @@ function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: Functor
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
-    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds...)[1]
+    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds)[1]
     size(smpls,1)
   else
     0
@@ -595,7 +600,7 @@ function prepgenericconvolution(
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx = prepareparamsarray!(ARR, Xi, 0, nothing) # Nothing for init.
+  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
   zdim = calcZDim(usrfnc, Xi)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
@@ -645,7 +650,7 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(Int[], false, false, Int[], Symbol(T.name.module), ccw, multihypo, ccw.certainhypo)
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, 0)
   return data_ccw
 end
 
@@ -1006,20 +1011,29 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
   nothing
 end
 
-function assembleFactorName(dfg::AbstractDFG, Xi::Vector{<:DFGVariable}; maxparallel::Int=200)::Symbol
+function assembleFactorName(dfg::AbstractDFG,
+                            Xi::Vector{<:DFGVariable};
+                            maxparallel::Union{Nothing,Int}=nothing)
+  #
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
+
   existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
   namestring = ""
   for vert in Xi #f.Xi
     namestring = string(namestring,vert.label)
   end
-  for i in 1:maxparallel
+  opt = getSolverParams(dfg)
+  for i in 1:opt.maxincidence
     tempnm = string(namestring, "f$i")
     if !haskey(existingFactorLabelDict, Symbol(tempnm))
       namestring = tempnm
       break
     end
-    i != maxparallel ? nothing : error("Artificial restriction to not connect more than $(maxparallel) factors to a variable (bad for sparsity), try calling the same function again with the keyword argument maxparallel=1000 to override this restriction.")
+    i != opt.maxincidence ? nothing : error("Artificial restriction to not connect more than $(opt.maxincidence) factors to a variable (bad for sparsity), try setting getSolverParams(fg).maxincidence=1000 to adjust this restriction.")
   end
   return Symbol(namestring)
 end
@@ -1038,14 +1052,20 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    labels::Vector{Symbol}=Symbol[],
-                    timestamp::DateTime=now(),
+                    labels::Union{Nothing, Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(UTC),
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=200  ) where
+                    maxparallel::Union{Int,Nothing}=nothing  ) where
                       {R <: Union{FunctorInferenceType, InferenceType}}
   #
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   if isa(multihypo, Tuple)
     @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
     multihypo = [multihypo...]
@@ -1054,13 +1074,18 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
+  if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
+    union!(tags, labels)
+  end
+
   varOrderLabels = [v.label for v=Xi]
-  namestring = assembleFactorName(dfg, Xi, maxparallel=maxparallel)
+  namestring = assembleFactorName(dfg, Xi)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, nullhypo=nullhypo, threadmodel=threadmodel)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
-                        tags=Set(union(labels, [:FACTOR])),
+                        tags=Set(union(tags, [:FACTOR])),
                         solvable=solvable,
                         timestamp=timestamp)
 
@@ -1083,13 +1108,19 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    timestamp::DateTime=now(),
-                    labels::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(UTC),
+                    labels::Union{Nothing,Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Int=200  )
+                    maxparallel::Union{Nothing,Int}=nothing  )
   #
+  # depcrecation
+  if maxparallel !== nothing
+    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   if isa(multihypo, Tuple)
     @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
     multihypo = [multihypo...]
@@ -1098,8 +1129,12 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
     graphinit = autoinit # force user spec
   end
+  if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
+    union!(tags, labels)
+  end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, maxparallel=maxparallel, timestamp=timestamp )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
 
 
@@ -1168,7 +1203,9 @@ end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol,1})
+function addBayesNetVerts!(dfg::AbstractDFG,
+                           elimOrder::Array{Symbol,1} )
+  #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
     if getSolverData(vert).BayesNetVertID == nothing || getSolverData(vert).BayesNetVertID == :_null # Special serialization case of nothing
@@ -1180,7 +1217,10 @@ function addBayesNetVerts!(dfg::AbstractDFG, elimOrder::Array{Symbol,1})
   end
 end
 
-function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::Nothing
+function addConditional!(dfg::AbstractDFG,
+                         vertId::Symbol,
+                         Si::Vector{Symbol} )
+  #
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getSolverData(bnv)
   bnvd.separator = Si
@@ -1190,9 +1230,15 @@ function addConditional!(dfg::AbstractDFG, vertId::Symbol, Si::Vector{Symbol})::
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel::Int=200)
+function addChainRuleMarginal!(dfg::AbstractDFG,
+                               Si::Vector{Symbol};
+                               maxparallel::Union{Nothing,Int}=nothing )
   #
-    @show Si
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
+
   lbls = String[]
   genmarg = GenericMarginal()
   Xi = map(v -> DFG.getVariable(dfg, v), Si)
@@ -1200,14 +1246,19 @@ function addChainRuleMarginal!(dfg::AbstractDFG, Si::Vector{Symbol}; maxparallel
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!(dfg, Xi, genmarg, graphinit=false, maxparallel=maxparallel)
+  addFactor!( dfg, Xi, genmarg, graphinit=false )
   nothing
 end
 
-function rmVarFromMarg(dfg::G,
+function rmVarFromMarg(dfg::AbstractDFG,
                        fromvert::DFGVariable,
                        gm::Vector{DFGFactor};
-                       maxparallel::Int=200 )::Nothing where G <: AbstractDFG
+                       maxparallel::Union{Nothing,Int}=nothing  )
+  #
+  if maxparallel !== nothing
+    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
+    getSolverParams(dfg).maxincidence = maxparallel
+  end
   @info " - Removing $(fromvert.label)"
   for m in gm
     @info "Looking at $(m.label)"
@@ -1221,7 +1272,7 @@ function rmVarFromMarg(dfg::G,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @info "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, maxparallel=maxparallel)
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
         else
           @info "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1236,10 +1287,10 @@ function rmVarFromMarg(dfg::G,
   return nothing
 end
 
-function buildBayesNet!(dfg::G,
+function buildBayesNet!(dfg::AbstractDFG,
                         elimorder::Vector{Symbol};
-                        maxparallel::Int=200,
-                        solvable::Int=1)::Nothing where G <: AbstractDFG
+                        maxparallel::Union{Nothing,Int}=nothing,
+                        solvable::Int=1 )
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
@@ -1282,11 +1333,11 @@ function buildBayesNet!(dfg::G,
     getSolverData(vert).eliminated = true
 
     # TODO -- remove links from current vertex to any marginals
-    rmVarFromMarg(dfg, vert, gm, maxparallel=maxparallel)
+    rmVarFromMarg(dfg, vert, gm)
 
     #add marginal on remaining variables... ? f(xyz) = f(x | yz) f(yz)
     # new function between all Si (round the outside, right the outside)
-    length(Si) > 0 && addChainRuleMarginal!(dfg, Si, maxparallel=maxparallel)
+    length(Si) > 0 && addChainRuleMarginal!(dfg, Si)
 
   end
   return nothing
@@ -1294,39 +1345,16 @@ end
 
 
 
-function getKDE(vnd::VariableNodeData)
-  AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
-end
-
-
 """
     $(SIGNATURES)
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-function getKDE(v::DFGVariable)
-  return getKDE(getSolverData(v))
-end
+getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
+getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
 
-function getVert(dfg::G, sym::Symbol, nt::Symbol=:var) where G <: AbstractDFG
-  @warn "IIF.getVert is deprecated, use DFG.getVariable or DFG.getFactor instead."
-  if nt == :var
-    return DFG.getVariable(dfg, sym)
-  elseif nt == :fct
-    return DFG.getFactor(dfg, sym)
-  else
-    error("unknown getVert request nt=$nt")
-  end
-end
-
-"""
-    $(SIGNATURES)
-
-Get KernelDensityEstimate marginal stored in variable data.
-"""
-getKDE(dfg::AbstractDFG, lbl::Symbol) = getKDE(getVariable(dfg, lbl))
-
-
+const getKDE = getBelief
 
 
 #

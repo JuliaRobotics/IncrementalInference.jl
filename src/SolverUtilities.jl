@@ -22,7 +22,7 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
-function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:FunctorInferenceType}
+function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
@@ -38,16 +38,22 @@ function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
 end
 
 function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
-  freshSamples(getFactorType(dfg, sym), N)
+  fct = getFactor(dfg, sym)
+  usrfnc = getFactorType(fct)
+  if hasfield(typeof(usrfnc), :specialSampler)
+    freshSamples(usrfnc, N, FactorMetadata(), getVariable.(dfg,getVariableOrder(fct)) )
+  else
+    freshSamples(usrfnc, N)
+  end
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
-function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
+function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[])
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd)
   # end
   nothing
 end
@@ -225,56 +231,13 @@ end
 
 
 
-
 """
     $SIGNATURES
 
-Reset the state of all variables in a clique to not initialized.
+Inverse solve for the predicted noise value and return in order asMeasured, asPredicted.
 
-Notes
-- resets numberical values to zeros.
-
-Dev Notes
-- TODO not all kde manifolds will initialize to zero.
-"""
-function resetCliqSolve!(dfg::G,
-                         treel::AbstractBayesTree,
-                         cliq::TreeClique;
-                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
-  #
-  cda = getCliqueData(cliq)
-  vars = getCliqVarIdsAll(cliq)
-  for varis in vars
-    resetVariable!(dfg, varis, solveKey=solveKey)
-  end
-  prnt = getParent(treel, cliq)
-  if length(prnt) > 0
-    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
-  end
-  cda.upMsg  = LikelihoodMessage()
-  cda.dwnMsg = LikelihoodMessage()
-  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
-  cda.downInitMsg = LikelihoodMessage()
-  setCliqStatus!(cliq, :null)
-  setCliqDrawColor(cliq, "")
-  return nothing
-end
-
-function resetCliqSolve!(dfg::G,
-                         treel::AbstractBayesTree,
-                         frt::Symbol;
-                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
-  #
-  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
-end
-
-
-
-
-"""
-    $SIGNATURES
-
-Inverse solve of predicted noise value and returns the associated "measured" noise value (also used as starting point for the solve).
+DevNotes
+- Perhaps generalize to return full measurement tuple and not just meas[1] values.
 """
 function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
@@ -293,7 +256,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   vnds = VV # (v->getSolverData(v)).(VV)
   meas = freshSamples(fcttype, N, ud, vnds)
   # meas = getSample(fcttype, N)
-  meas0 = deepcopy(meas[1])
+  givenMeasModel = deepcopy(meas[1])
 
   function makemeas!(i, meas, dm)
     meas[1][:,i] = dm
@@ -332,8 +295,47 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   end
 
   # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
-  return meas[1], meas0
+  return givenMeasModel, meas[1]
 end
 
+"""
+    $SIGNATURES
+
+Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
+
+Notes
+- assume single variable separators only.
+"""
+function accumulateFactorChain(dfg::AbstractDFG,
+                               from::Symbol,
+                               to::Symbol,
+                               fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
+                               initval=zeros(size(getVal(dfg, from))))
+
+  # get associated variables
+  svars = union(ls.(dfg, fsyms)...)
+
+  # use subgraph copys to do calculations
+  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
+  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
+
+  # drive variable values manually to ensure no additional stochastics are introduced.
+  nextvar = from
+  initManual!(tfg_meas, nextvar, initval)
+  initManual!(tfg_pred, nextvar, initval)
+
+  # nextfct = fsyms[1] # for debugging
+  for nextfct in fsyms
+    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
+    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
+    nextvar = nextvars[1]
+    meas, pred = solveFactorMeasurements(dfg, nextfct)
+    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
+    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
+    initManual!(tfg_meas, nextvar, pts_meas)
+    initManual!(tfg_pred, nextvar, pts_pred)
+  end
+  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
+end
 
 #

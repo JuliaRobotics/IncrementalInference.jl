@@ -9,7 +9,8 @@ function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
                                               cliq::TreeClique,
                                               cliqKey::Int;
-                                              oldcliqdata::BayesTreeNodeData=emptyBTNodeData(),
+                                              oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
+                                              verbose::Bool=false,
                                               drawtree::Bool=false,
                                               show::Bool=false,
                                               incremental::Bool=true,
@@ -27,17 +28,18 @@ function initStartCliqStateMachineParametric!(dfg::G,
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq,
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                    tree, cliq,
                                     cliqKey, prnt, children,
                                     false, incremental, drawtree, downsolve, delay,
-                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
-                                    Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger) #,
+                                    # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt)
-  while statemachine(csmc, verbose=true, iterlimit=limititers, recordhistory=recordhistory); end
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
 
@@ -93,50 +95,49 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   beliefMessages = Dict{Int,LikelihoodMessage}()
   # beliefMessages = LikelihoodMessage[]
 
+  # fetch messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
       @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
       # Blocks until data is available. -- pull model #674
-      beliefMsg = takeBeliefMessageUp!(csmc.tree, e)#take!(csmc.tree.messages[e.index].upMsg)
+      beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
       beliefMessages[e.target.index] = beliefMsg
-      # push!(beliefMessages, beliefMsg)
       @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
     end
   end
 
+  # FIXME why duplicate messages from edges into clique???
   for (idx,beliefMsg) in beliefMessages
     #save up message (and add priors to cliqSubFg)
-    #kies csmc vir boodskappe vir debugging, dis 'n vector een per kind knoop
-    if beliefMsg.status == UPSOLVED
-      setUpMsg!(csmc, idx, beliefMsg)
-      # csmc.msgsUp[idx] = beliefMsg
-      # push!(csmc.msgsUp, beliefMsg)
-
+    #choose csmc for dbg messages, it's a vector, one per clique
+    if beliefMsg.status == :UPSOLVED
+      putMsgUpThis!(csmc.cliq, beliefMsg) # setUpMsg! # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
     else
+
       setCliqDrawColor(csmc.cliq, "red")
       # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       for e in getEdgesParent(csmc.tree, csmc.cliq)
         @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(ERROR_STATUS))#put!(csmc.tree.messages[e.index].upMsg,  LikelihoodMessage(ERROR_STATUS))
+        putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
       end
-      #if its the root, propagate error down
+      #if its a root, propagate error down
       #FIXME rather check if no parents with function (hasParents or isRoot)
       if length(getParent(csmc.tree, csmc.cliq)) == 0
         @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
           @info "Par-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-          @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(ERROR_STATUS))#put!(csmc.tree.messages[e.index].downMsg,  LikelihoodMessage(ERROR_STATUS))
+          @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
         end
         @error "Par-2 $(csmc.cliq.index): Exit with error state"
         return IncrementalInference.exitStateMachine
       end
       childrenOk = false
     end
-
   end
-
+  # if errored
   !childrenOk && (return waitForDown_ParametricStateMachine)
 
+  # continue to solve
   return solveUp_ParametricStateMachine
 end
 
@@ -170,9 +171,16 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   msgfcts = DFGFactor[]
-  for (idx,upmsgs) in getUpMsgs(csmc) # csmc.msgsUp
-    append!(msgfcts, addMsgFactors_Parametric!(csmc.cliqSubFg, upmsgs))
+  # LITTLE WEIRD get previously set up msgs (stored in this clique)
+    # FIXME, fetch message buffered in channels
+    # for (idx,upmsgs) in getUpMsgs(csmc.cliq)
+      # NOTE, Old -- csmc.msgsUp
+  for upmsg in getCliqChildMsgsUp(csmc) # pull model, fetch messages from children
+    @show upmsg
+    append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg) ) # addMsgFactors_Parametric!
   end
+  @info "length mgsfcts=$(length(msgfcts))"
+  infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
@@ -204,16 +212,16 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve" result
 
     # propagate error to cleanly exit all cliques?
-    beliefMsg = LikelihoodMessage(ERROR_STATUS)
+    beliefMsg = LikelihoodMessage(status=:ERROR_STATUS)
     for e in getEdgesParent(csmc.tree, csmc.cliq)
       @info "Par-3, $(csmc.cliq.index): generate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-      putBeliefMessageUp!(csmc.tree, e, beliefMsg)# put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
+      putBeliefMessageUp!(csmc.tree, e, beliefMsg)
     end
 
     if length(getParent(csmc.tree, csmc.cliq)) == 0
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
         @info "Par-3 Root $(csmc.cliq.index): generate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(ERROR_STATUS))#put!(csmc.tree.messages[e.index].downMsg,  LikelihoodMessage(ERROR_STATUS))
+        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
       end
       @error "Par-3 $(csmc.cliq.index): Exit with error state"
       return IncrementalInference.exitStateMachine
@@ -238,20 +246,19 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #Fil in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
+  beliefMsg = LikelihoodMessage(:UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
     for si in cliqSeparatorVarIds
       vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
       beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
-      # beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     end
   end
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-    putBeliefMessageUp!(csmc.tree, e, beliefMsg)# put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
+    putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
   return waitForDown_ParametricStateMachine
@@ -279,7 +286,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
 
     #save down messages in msgsDown
-    if beliefMsg.status == DOWNSOLVED
+    if beliefMsg.status == :DOWNSOLVED
       setDwnMsg!(csmc, beliefMsg)
       # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
@@ -290,7 +297,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
         @info "Par-4, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(ERROR_STATUS))#put!(csmc.tree.messages[e.index].downMsg,  LikelihoodMessage(ERROR_STATUS))
+        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
       end
       @error "Par-4, $(csmc.cliq.index): Exit with error state"
       return IncrementalInference.exitStateMachine
@@ -361,7 +368,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve" result
 
       #propagate error to cleanly exit all cliques?
-      beliefMsg = LikelihoodMessage(ERROR_STATUS)
+      beliefMsg = LikelihoodMessage(status=:ERROR_STATUS)
       @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
         @info "Par-5, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
         @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
@@ -376,7 +383,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = LikelihoodMessage(DOWNSOLVED)
+  beliefMsg = LikelihoodMessage(:DOWNSOLVED)
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)

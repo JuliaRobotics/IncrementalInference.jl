@@ -6,23 +6,30 @@ os:
 arch:
   - amd64
 
-julia:
-  - 1.2
-  - 1.4
-  - nightly
-
 notifications:
   email: false
 
 jobs:
   include:
-    - arch: arm64
-      julia: 1.3
-      name: "ARM64, Julia 1.3"
+    - name: "DEV MASTERS, Julia 1.5"
+      if: NOT branch =~ ^release.*$
+      julia: 1.5
+      script:
+      - julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs", rev="master")); Pkg.build(); Pkg.test(coverage=true)'
+    - name: "MASTER AND TAGS"
+      julia: 1.4
+    - name: "Julia nightly"
+      julia: nightly
+    - name: "ARM64, Julia 1.4"
+      arch: arm64
+      julia: 1.4
   fast_finish: true
   allow_failures:
     - julia: nightly
     - arch: arm64
+    # Keep this to allow failures again when DFG minor revision is updated
+    # - name: "MASTER AND TAGS"
+    #   if: NOT branch =~ ^release.*$
 
 addons:
   apt:
@@ -39,6 +46,7 @@ before_script:
 # script:
 #   - julia --color=yes -e 'using Pkg; Pkg.build()'
 #   - julia --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'
+#temporary testing agains DFG master for DFG v0.8.0 development
 # script:
 #   - julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs", rev="master")); Pkg.build(); Pkg.test(coverage=true)'
 

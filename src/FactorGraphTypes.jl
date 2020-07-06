@@ -52,6 +52,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   treeinit::Bool # still experimental with known errors
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
+  maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -76,6 +77,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
                 spreadNH::Float64=3.0,
+                maxincidence::Int=500,
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()
               ) = new(dimID,
                       registeredModuleFunctions,
@@ -100,6 +102,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       treeinit,
                       algorithms,
                       spreadNH,
+                      maxincidence,
                       devParams )
   #
 end
@@ -110,7 +113,7 @@ end
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=InMemDFGType(params=SolverParams());
+function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                     sessionname="NA",
                                     robotname="",
                                     username="",
@@ -121,20 +124,20 @@ end
 
 
 #init an empty fg with a provided type and SolverParams
-function initfg(::Type{T}; params=SolverParams(),
+function initfg(::Type{T}; solverParams=SolverParams(),
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T(params=params)
+  return T(solverParams=solverParams)
 end
 
-function initfg(::Type{T}, params::SolverParams;
+function initfg(::Type{T}, solverParams::SolverParams;
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T{SolverParams}(params=params)
+  return T{SolverParams}(solverParams=solverParams)
 end
 
 """
@@ -213,7 +216,7 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+mutable struct CommonConvWrapper{T} <: FactorOperationalMemory where {T<:FunctorInferenceType}
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
   # general setup

@@ -1,11 +1,18 @@
 
-"""
-    CliqStatus
-Clique status message enumerated type with status:
-NULL, INITIALIZED, UPSOLVED, MARGINALIZED, DOWNSOLVED, UPRECYCLED, ERROR_STATUS
-"""
-@enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
-
+# """
+#     CliqStatus
+# Clique status message enumerated type with status.
+#
+# DevNotes
+# - Temporary convert to Symbol to support #459 consolidation effort
+# - Long term enum looks like a good idea (see #744)
+# """
+# @enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
+const CliqStatus = Symbol
+## Currently same name by used as Symbol, e.g. :NULL, ...
+## Older status names
+# :null; :upsolved; :downsolved; :marginalized; :uprecycled,
+## FIXME, consolidate at end of #459 work
 
 """
     $TYPEDEF
@@ -45,20 +52,32 @@ TreeBelief(vari::DFGVariable, solveKey=:default) = TreeBelief(getSolverData(vari
 
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 
+function compare(t1::TreeBelief, t2::TreeBelief)
+  TP = true
+  TP = TP && norm(t1.val - t2.val) < 1e-5
+  TP = TP && norm(t1.bw - t2.bw) < 1e-5
+  TP = TP && abs(t1.inferdim - t2.inferdim) < 1e-5
+  TP = TP && t1.softtype == t2.softtype
+  return TP
+end
 
 """
   $(TYPEDEF)
-Belief message for message passing on the tree.
+Belief message for message passing on the tree.  This should be considered an incomplete joint probility.
 
 Notes:
 - belief -> Dictionary of [`TreeBelief`](@ref)
 - variableOrder -> Ordered variable id list of the seperators in cliqueLikelihood
 - cliqueLikelihood -> marginal distribution (<: `SamplableBelief`) over clique seperators.
+- Older names include: productFactor, Fnew, MsgPrior, LikelihoodMessage
 
 DevNotes:
-- Objective for parametric: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`
-- TODO confirm why <: Singleton
-- #459
+- Used by both nonparametric and parametric.
+- Objective for parametric case: `MvNormal(μ=[:x0;:x2;:l5], Σ=[+ * *; * + *; * * +])`.
+- Part of the consolidation effort, see #459.
+- Better conditioning for joint structure in the works using deconvolution, see #579, #635.
+  - TODO confirm why <: Singleton.
+
   $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage <: Singleton
@@ -68,24 +87,30 @@ mutable struct LikelihoodMessage <: Singleton
   cliqueLikelihood::Union{Nothing,SamplableBelief}
 end
 
-# EARLIER NAMES INCLUDE: productFactor, Fnew, MsgPrior, LikelihoodMessage
 
-LikelihoodMessage(status::CliqStatus) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], nothing)
-
-LikelihoodMessage(status::CliqStatus, varOrder::Vector{Symbol}, cliqueLikelihood::SamplableBelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), varOrder, cliqueLikelihood)
-
-#TODO Merge conflict... is this function used?
-LikelihoodMessage(status::CliqStatus, cliqueLikelihood::SamplableBelief) =
-        LikelihoodMessage(status, Dict{Symbol, TreeBelief}(), Symbol[], cliqueLikelihood)
-
-LikelihoodMessage(;status::CliqStatus=NULL,
+LikelihoodMessage(;status::CliqStatus=:NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    variableOrder=Symbol[],
                    cliqueLikelihood=nothing ) =
         LikelihoodMessage(status, beliefDict, variableOrder, cliqueLikelihood)
 #
+
+
+function compare(l1::LikelihoodMessage,
+                 l2::LikelihoodMessage;
+                 skip::Vector{Symbol}=[] )
+  #
+  TP = true
+  TP = TP && l1.status == l2.status
+  TP = TP && l1.variableOrder == l2.variableOrder
+  TP = TP && l1.cliqueLikelihood |> typeof == l2.cliqueLikelihood |> typeof
+  for (k,v) in l1.belief
+    TP = TP && haskey(l2.belief, k)
+    TP = TP && compare(v, l2.belief[k])
+  end
+end
+
+==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
 # FIXME, better standardize intermediate types
@@ -94,11 +119,6 @@ const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
 const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
-
-
-function convert(::Type{BallTreeDensity}, src::TreeBelief)
-  manikde!(src.val, src.bw[:,1], src.softtype)
-end
 
 
 """

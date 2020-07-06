@@ -9,10 +9,10 @@ using Test
   addFactor!(fg, [:x2;:x3;:x4], LinearConditional(Normal()), multihypo=[1.0;0.6;0.4])
 
   saveFolder = "/tmp/dfg_test"
-  saveDFG(fg, saveFolder) #, compress= VERSION < v"1.1" ? :none : :gzip)
+  saveDFG(fg, saveFolder)
   # VERSION above 1.0.x hack required since Julia 1.0 does not seem to havfunction `splitpath`
   if v"1.1" <= VERSION
-    retDFG = initfg() # LightDFG{SolverParams}(params=SolverParams())
+    retDFG = initfg()
     retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
     Base.rm(saveFolder*".tar.gz")
 
