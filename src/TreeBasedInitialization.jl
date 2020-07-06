@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgsUpChildrenInitDict(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -328,14 +328,14 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
   # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpChildrenInitDict(tree, prnt, TreeBelief, [cliq.index;])
+  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
 
   # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
-  # msgspervar = LikelihoodMessage()  # TODO -- this is not right
+  # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
   msgspervar = IntermediateMultiSiblingMessages()
 
   for (msgcliqid, msgs) in currmsgs

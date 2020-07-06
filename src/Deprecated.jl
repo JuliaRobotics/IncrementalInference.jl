@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export getMsgsUpChildrenInitDict
 export doCliqUpSolve!
 export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
 export setCliqUpInitMsgs!
@@ -12,6 +13,11 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+
+@deprecate getMsgsUpChildrenInitDict(treel::AbstractBayesTree,cliq::TreeClique,::Type{TreeBelief},skip::Vector{Int}=Int[]) getMsgsUpInitChildren(treel, cliq, TreeBelief, skip)
+
+@deprecate getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,::Type{TreeBelief}=TreeBelief,skip::Vector{Int}=Int[] ) getMsgsUpInitChildren(csmc,TreeBelief,skip=skip )
 
 @deprecate putMsgUpInit!(cliq::TreeClique,childid::Int,msg::LikelihoodMessage,logger=SimpleLogger(stdout)) putMsgUpInit!(cliq,msg,logger=logger)
 

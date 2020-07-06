@@ -30,7 +30,7 @@ export
   getCliqDownMsgsAfterDownSolve
 
 # likely to be deleted at some point
-export getMsgsUpChildrenInitDict
+export getMsgsUpInitChildren
 
 ## =============================================================================
 ## Clique status accessors
@@ -392,10 +392,10 @@ function getMsgsUpChildren(csmc::CliqStateMachineContainer,
 end
 
 # FIXME TEMPORARY CONSOLIDATION FUNCTIONS
-function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
-                                   cliq::TreeClique,
-                                   ::Type{TreeBelief},
-                                   skip::Vector{Int}=Int[])
+function getMsgsUpInitChildren(treel::AbstractBayesTree,
+                               cliq::TreeClique,
+                               ::Type{TreeBelief},
+                               skip::Vector{Int}=Int[])
   #
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
@@ -413,12 +413,12 @@ function getMsgsUpChildrenInitDict(treel::AbstractBayesTree,
   return retmsgs
 end
 
-function getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,
-                                   ::Type{TreeBelief}=TreeBelief,
-                                   skip::Vector{Int}=Int[] )
+function getMsgsUpInitChildren(csmc::CliqStateMachineContainer,
+                               ::Type{TreeBelief}=TreeBelief,
+                               skip::Vector{Int}=Int[] )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildrenInitDict(csmc.tree, csmc.cliq, TreeBelief, skip)
+  getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip)
 end
 
 

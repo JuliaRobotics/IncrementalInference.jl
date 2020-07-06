@@ -277,8 +277,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # check if init is required and possible
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
   # get incoming clique up messages
-  # FIXME, should change to interface for children
-  upmsgs = getMsgsUpChildrenInitDict(csmc)
+  upmsgs = getMsgsUpInitChildren(csmc)
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
