@@ -5,6 +5,8 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export getCliqStatusUp, getCliqueStatusUp
+export setCliqStatus!, getCliqStatus
 export getMsgsUpChildrenInitDict
 export doCliqUpSolve!
 export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
@@ -14,6 +16,10 @@ export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
 
+@deprecate getCliqueStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatus(x...) getCliqueStatus(x...)
+@deprecate setCliqStatus!(x...) setCliqueStatus!(x...)
 
 @deprecate getMsgsUpChildrenInitDict(treel::AbstractBayesTree,cliq::TreeClique,::Type{TreeBelief},skip::Vector{Int}=Int[]) getMsgsUpInitChildren(treel, cliq, TreeBelief, skip)
 

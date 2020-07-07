@@ -1,7 +1,7 @@
 
 export
-  getCliqStatus,
-  setCliqStatus!,
+  getCliqueStatus,
+  setCliqueStatus!,
   getSolveCondition
 
 # Reguler accessors
@@ -51,18 +51,18 @@ or numerical initialization status:
 Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
-getCliqStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
-getCliqStatus(cliq::TreeClique) = getCliqStatus(getCliqueData(cliq))
-getCliqStatusUp(cliq::TreeClique) = getCliqStatus(cliq)
+getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
+getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
 
 """
     $SIGNATURES
 
 Set up initialization or solve status of this `cliq`.
 """
-function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getCliqueData(cliq).initialized = status
+function setCliqueStatus!(cdat::BayesTreeNodeData, status::Symbol)
+  cdat.initialized = status
 end
+setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueData(cliq), status)
 
 
 
@@ -351,6 +351,36 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Conso
 end
 
 
+
+"""
+    $SIGNATURES
+
+Notify of new up status and message.
+
+Notes
+- Major part of #459 consolidation effort.
+"""
+function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
+                                   status::Symbol  )
+  #
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+  # put the init upinitmsg
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
+  if getCliqueStatus(csmc.cliq) != status
+	infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
+	notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+  end
+
+  # print a little late
+  with_logger(csmc.logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+
+  # return new up messages in case the user wants to see
+  return upinitmsg
+end
 
 
 ## =============================================================================

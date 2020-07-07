@@ -1049,7 +1049,7 @@ Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in getCliques(treel)
     cliqdata = getCliqueData(cliq)
-    cliqdata.initialized = :null
+    setCliqueStatus!(cliqdata, :null)
     cliqdata.upsolved = to
     cliqdata.downsolved = to
   end
@@ -1065,7 +1065,7 @@ function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)::Bo
   acclist = Symbol[:upsolved; :downsolved; :marginalized]
   skipinitialized ? nothing : push!(acclist, :initialized)
   for (clid, cliq) in getCliques(treel)
-    if !(getCliqStatus(cliq) in acclist)
+    if !(getCliqueStatus(cliq) in acclist)
       return false
     end
   end
@@ -1074,7 +1074,7 @@ end
 
 function isTreeSolvedUp(treel::AbstractBayesTree)::Bool
   for (clid, cliq) in getCliques(treel)
-    if getCliqStatus(cliq) != :upsolved
+    if getCliqueStatus(cliq) != :upsolved
       return false
     end
   end
@@ -1103,11 +1103,11 @@ Set the marginalized status of a clique.
 """
 function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
   if status
-    getCliqueData(cliq).initialized = :marginalized
+    setCliqueStatus!(cliq, :marginalized)
   else
     if getCliqueData(cliq).initialized == :marginalized
       @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      getCliqueData(cliq).initialized = :downsolved
+      setCliqueStatus!(cliq, :downsolved)
     else
       error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
     end
@@ -1143,8 +1143,8 @@ Notes
 function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
   acclist = Symbol[:downsolved;]
   for (clid, cliq) in getCliques(treel)
-    if getCliqStatus(cliq) in acclist
-      setCliqStatus!(cliq, :initialized)
+    if getCliqueStatus(cliq) in acclist
+      setCliqueStatus!(cliq, :initialized)
       setCliqDrawColor(cliq, "sienna")
     end
   end
@@ -1246,7 +1246,7 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
     end
     flush(logger.stream)
     close(logger.stream)
-    # clst = getCliqStatus(cliq)
+    # clst = getCliqueStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     ## TODO -- use this format instead

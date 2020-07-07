@@ -59,12 +59,12 @@ function printHistoryLine(fid,
   for i in length(first):39  first = first*" "; end
   # this clique status
   first *= " | "
-  first = first*string(getCliqStatus(hi[4].cliq))
+  first = first*string(getCliqueStatus(hi[4].cliq))
   for i in length(first):53  first = first*" "; end
   # parent status
   first *= " P "
   if 0 < length(hi[4].parentCliq)
-    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqStatus(hi[4].parentCliq[1]))
+    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqueStatus(hi[4].parentCliq[1]))
   else
     first = first*"----"
   end
@@ -73,7 +73,7 @@ function printHistoryLine(fid,
   first = first*"C "
   if 0 < length(hi[4].childCliqs)
     for ch in hi[4].childCliqs
-      first = first*"$(ch.index)"*string(getCliqStatus(ch))*" "
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
     end
   else
     first = first*"---- "
@@ -86,7 +86,7 @@ function printHistoryLine(fid,
     # remove current clique to leave only siblings
     filter!(x->x.index!=hi[4].cliq.index, childs)
     for ch in childs
-      first = first*"$(ch.index)"*string(getCliqStatus(ch))*" "
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
     end
   end
 
@@ -449,7 +449,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
   # safety net double check
-  cliqst = getCliqStatus(cliq)
+  cliqst = getCliqueStatus(cliq)
   if cliqst in solvedstats
     with_logger(logger) do
       @warn "getSiblingsDelayOrder -- clique status should not be here with a solved cliqst=$cliqst"
@@ -516,7 +516,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
     flush(logger.stream)
 
     # get each sibling status (entering atomic computation segment -- until wait command)
-    stat .= getCliqStatus.(sibs) #[maskcol]
+    stat .= getCliqueStatus.(sibs) #[maskcol]
 
     ## (long down chain case)
     # need different behaviour when all remaining siblings are blocking with :needdownmsg
@@ -626,7 +626,7 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
     if length(mighthave) > 0
       seps[si.index] = mighthave
-      if getCliqStatus(si) in [:initialized; :null; :needdownmsg]
+      if getCliqueStatus(si) in [:initialized; :null; :needdownmsg]
         # partials treated special -- this is slightly hacky
         if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
           # this sibling might have info to delay about
@@ -706,7 +706,7 @@ function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
   if length(prnt) > 0
     for si in getChildren(tree, prnt[1])
       # are any of the other siblings still busy?
-      if si.index != cliq.index && getCliqStatus(si) in stillbusylist
+      if si.index != cliq.index && getCliqueStatus(si) in stillbusylist
         return false
       end
     end
