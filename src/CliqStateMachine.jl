@@ -294,9 +294,10 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
     cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+    # is clique fully upsolved or only partially?
+    # print out the partial init status of all vars in clique
+    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
   end
-  # print out the partial init status of all vars in clique
-  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
   # check again if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
@@ -337,20 +338,17 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
   urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
-  # is clique fully upsolved or only partially?
-    # # TODO verify the need for this update (likely part of larger refactor, WIP #459)
-    # putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
 
   # set clique color accordingly, using local memory
-  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
+  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger)
   setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
 
   # notify of results (part of #459 consolidation effort)
   getCliqueData(csmc.cliq).upsolved = true
   status = :upsolved
-    # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+    # TODO consolidate (refactor WIP #459)
     putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-  prepPutCliqueStatusMsgUp!(csmc, status)
+    prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h
   return rmUpLikeliSaveSubFg_StateMachine
