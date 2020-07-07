@@ -584,6 +584,36 @@ end
 """
     $SIGNATURES
 
+Notify of new up status and message.
+
+Notes
+- Major part of #459 consolidation effort.
+"""
+function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
+                                   status::Symbol  )
+  #
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+  # put the init upinitmsg
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
+  if getCliqStatus(csmc.cliq) != status
+	infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
+	notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+  end
+
+  # print a little late
+  with_logger(csmc.logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+
+  # return new up messages in case the user wants to see
+  return upinitmsg
+end
+
+"""
+    $SIGNATURES
+
 Follows cliq initalization calculation and attempts full upsolve
 based on current state of the tree and factor graph,
 using upward message passing logic.
@@ -594,16 +624,10 @@ Notes
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
 function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
-                                # msgfcts;
                                 up_solve_if_able::Bool=true,
                                 multiproc::Bool=true,
                                 logger=ConsoleLogger()  )
   #
-  # subfg = csmc.cliqSubFg
-  # tree  = csmc.tree
-  # cliq  = csmc.cliq
-  # prnt = getParent(csmc.tree, csmc.cliq)
-  # opt = getSolverParams(csmc.cliqSubFg)
 
   cliqst = getCliqStatus(csmc.cliq)
   status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
@@ -626,6 +650,9 @@ function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
     setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
     getCliqueData(csmc.cliq).upsolved = true
     status = :upsolved
+
+    # NOTE moving message update here before moving back to CSM.jl
+
   else
     with_logger(logger) do
       @info "cliq $(csmc.cliq.index), all variables not initialized, status = $(status)"

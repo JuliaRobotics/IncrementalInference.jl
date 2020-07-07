@@ -304,6 +304,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   return doCliqUpsSolveInitialized_StateMachine
 end
 
+
 """
     $SIGNATURES
 
@@ -321,42 +322,23 @@ DevNotes
 """
 function doCliqUpsSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
-  cliqst = getCliqStatus(csmc.cliq)
   opts = getSolverParams(csmc.dfg)
 
   # do actual up solve
   retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
 
-  msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
-  # @assert isa(msgfcts, Vector{DFGFactor}) "not a Vector{DFGFactor}??? $(typeof(msgfcts))"
+  # notify of results
+  prepPutCliqueStatusMsgUp!(csmc, retstatus)
 
   # remove msg factors that were added to the subfg
+  msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
   infocsm(csmc, "8g, doCliqUpsSolveInit.! -- removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
-
-  # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
-
-  # put the init upinitmsg
-  with_logger(csmc.logger) do
-	tt = split(string(now()),'T')[end]
-	@info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
-  end
-  # this is a push model instance #674
-  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
 
   # store the cliqSubFg for later debugging
   if opts.dbg
     DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
-  end
-
-  # notify of results
-  if cliqst != retstatus
-    infocsm(csmc, "8g, doCliqUpsSolveInit. -- post-doCliqAu. -- notification retstatus=$retstatus")
-    notifyCliqUpInitStatus!(csmc.cliq, retstatus, logger=csmc.logger)
-  else
-    infocsm(csmc, "8g, doCliqUpsSolveInit. -- post-doCliqAu. -- no notification required $cliqst=$retstatus")
   end
 
   # go to 9
