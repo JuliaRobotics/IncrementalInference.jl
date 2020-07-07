@@ -3,6 +3,7 @@
 # newer exports
 export getBetterName7b_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
 export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
+export rmUpLikeliSaveSubFg_StateMachine
 
 
 """
@@ -263,11 +264,11 @@ transit integral in upward direction.
 Notes
 - State machine function nr. 8f
 - Includes initialization routines.
-- Adds LIKELIHOODMESSAGE factors but does not remove
+- Adds LIKELIHOODMESSAGE factors but does not remove.
 - TODO: Make multi-core
 
 DevNotes
-- TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
+- NEEDS DFG v0.8.1, see IIF #760
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "green")
@@ -296,64 +297,90 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   end
   # doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- are all init $(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
-
   # print out the partial init status of all vars in clique
   printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
-  # go to 8g.
-  return doCliqUpSolveInitialized_StateMachine
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    # go to 8g.
+    return doCliqUpSolveInitialized_StateMachine
+  else
+    status = getCliqueStatus(csmc.cliq)
+    status = (status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? status : :needdownmsg
+    # notify of results (big part of #459 consolidation effort)
+    prepPutCliqueStatusMsgUp!(csmc, status)
+    # go to 8h
+    return rmUpLikeliSaveSubFg_StateMachine
+  end
 end
 
 
 """
     $SIGNATURES
 
-Find Chapman-Kolmogorov transit integral solution approximation.
+Find upward Chapman-Kolmogorov transit integral solution (approximation).
 
 Notes
 - State machine function nr. 8g
-- Includes initialization routines.
-- Assumes LIKELIHOODMESSAGE factors are in csmc.cliqSubFg and also removes them.
+- Assumes LIKELIHOODMESSAGE factors are in csmc.cliqSubFg but does not remove them.
 - TODO: Make multi-core
 
 DevNotes
-- TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 - NEEDS DFG v0.8.1, see IIF #760
 """
 function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "red")
-  opts = getSolverParams(csmc.dfg)
 
-  cliqst = getCliqueStatus(csmc.cliq)
-  infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(cliqst)")
-
-  status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
   # check if all cliq vars have been initialized so that full inference can occur on clique
-  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+  # if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     # do actual up solve
+    status = getCliqueStatus(csmc.cliq)
+    infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
+    setCliqDrawColor(csmc.cliq, "red")
 	# TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
     urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # TODO verify the need for this update (likely part of larger refactor, WIP #459)
     putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
 
     # set clique color accordingly, using local memory
+    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
     setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+
+	# notify of results (part of #459 consolidation effort)
     getCliqueData(csmc.cliq).upsolved = true
-
     status = :upsolved
-    # status = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc)
-  end
+    prepPutCliqueStatusMsgUp!(csmc, status)
+  # else
+  #   status = getCliqueStatus(csmc.cliq)
+  #   status = (status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? status : :needdownmsg
+	# # notify of results (big part of #459 consolidation effort)
+  #   prepPutCliqueStatusMsgUp!(csmc, status)
+  # end
 
-  ## Doesnt work, IIF and RoME tests hang
+  # go to 8h
+  return rmUpLikeliSaveSubFg_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
+Close out up solve attempt by removing any LIKELIHOODMESSAGE and save a debug cliqSubFg.
+
+Notes
+- State machine function nr. 8h
+- Assumes LIKELIHOODMESSAGE factors are in csmc.cliqSubFg and also removes them.
+- TODO: Make multi-core
+
+DevNotes
+- NEEDS DFG v0.8.1, see IIF #760
+"""
+function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
+  ## MAYBE try move prepPut notification here as single point??
+  ## HAD TROUBLE: doesnt work, IIF and RoME tests hang
   # setCliqueStatus!(csmc.cliq, status)
-  # notify of results (big part of #459 consolidation effort)
-  prepPutCliqueStatusMsgUp!(csmc, status)
-
-  # status = getCliqueStatus(csmc.cliq)
-  # # FIXME try move prepPut notification down into into this CSM function only
-  ## prepPutCliqueStatusMsgUp!(csmc, status)
+  # prepPutCliqueStatusMsgUp!(csmc, status)
+  status = getCliqueStatus(csmc.cliq)
 
   # remove msg factors that were added to the subfg
   msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
@@ -361,6 +388,7 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # store the cliqSubFg for later debugging
+  opts = getSolverParams(csmc.dfg)
   if opts.dbg
     DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
