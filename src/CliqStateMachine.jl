@@ -295,16 +295,17 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
     varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
     cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
   end
-  # doCliqAutoInitUpPart1!(csmc.cliqSubFg, csmc.tree, csmc.cliq, logger=csmc.logger)
-  infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- are all init $(areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq))")
   # print out the partial init status of all vars in clique
   printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
-  # check if all cliq vars have been initialized so that full inference can occur on clique
+  # check again if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- all init'ed")
     # go to 8g.
     return doCliqUpSolveInitialized_StateMachine
   else
+    infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- not able to init all")
+    # TODO Simplify this
     status = getCliqueStatus(csmc.cliq)
     status = (status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? status : :needdownmsg
     # notify of results (big part of #459 consolidation effort)
@@ -331,31 +332,25 @@ DevNotes
 function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
 
   # check if all cliq vars have been initialized so that full inference can occur on clique
-  # if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
-    # do actual up solve
-    status = getCliqueStatus(csmc.cliq)
-    infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
-    setCliqDrawColor(csmc.cliq, "red")
-	# TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
-    urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
-    # is clique fully upsolved or only partially?
+  status = getCliqueStatus(csmc.cliq)
+  infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
+  setCliqDrawColor(csmc.cliq, "red")
+  # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
+  urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+  # is clique fully upsolved or only partially?
+    # # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+    # putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+
+  # set clique color accordingly, using local memory
+  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
+  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+
+  # notify of results (part of #459 consolidation effort)
+  getCliqueData(csmc.cliq).upsolved = true
+  status = :upsolved
     # TODO verify the need for this update (likely part of larger refactor, WIP #459)
     putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-
-    # set clique color accordingly, using local memory
-    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
-    setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-
-	# notify of results (part of #459 consolidation effort)
-    getCliqueData(csmc.cliq).upsolved = true
-    status = :upsolved
-    prepPutCliqueStatusMsgUp!(csmc, status)
-  # else
-  #   status = getCliqueStatus(csmc.cliq)
-  #   status = (status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? status : :needdownmsg
-	# # notify of results (big part of #459 consolidation effort)
-  #   prepPutCliqueStatusMsgUp!(csmc, status)
-  # end
+  prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h
   return rmUpLikeliSaveSubFg_StateMachine
