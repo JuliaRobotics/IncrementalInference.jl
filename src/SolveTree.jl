@@ -1049,7 +1049,7 @@ Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in getCliques(treel)
     cliqdata = getCliqueData(cliq)
-    cliqdata.initialized = :null
+    setCliqStatus!(cliqdata, :null)
     cliqdata.upsolved = to
     cliqdata.downsolved = to
   end
@@ -1103,11 +1103,11 @@ Set the marginalized status of a clique.
 """
 function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
   if status
-    getCliqueData(cliq).initialized = :marginalized
+    setCliqStatus!(cliq, :marginalized)
   else
     if getCliqueData(cliq).initialized == :marginalized
       @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      getCliqueData(cliq).initialized = :downsolved
+      setCliqStatus!(cliq, :downsolved)
     else
       error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
     end

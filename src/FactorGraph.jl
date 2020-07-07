@@ -886,7 +886,6 @@ Workaround function when first-version (factor graph based) auto initialization 
 """
 function initManual!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
-  # getData(vert).initialized = true
   return nothing
 end
 function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
@@ -899,8 +898,7 @@ function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
-  setValKDE!(vert, Xpre, true) # dfg, sym
-  # getData(dfg, sym).initialized = true
+  setValKDE!(vert, Xpre, true)
   return nothing
 end
 
