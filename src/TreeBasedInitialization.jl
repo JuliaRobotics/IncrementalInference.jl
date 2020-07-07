@@ -611,35 +611,37 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   return upinitmsg
 end
 
-"""
-    $SIGNATURES
-
-Follows cliq initalization calculation and attempts full upsolve
-based on current state of the tree and factor graph,
-using upward message passing logic.
-
-Notes
-- Removes msg priors added to clique subgraph
-- Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
-- must use factors in cliq only, ensured by using subgraph -- TODO general case.
-"""
-function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
-                                multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc  )
-  #
-
-  # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
-  urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
-  # is clique fully upsolved or only partially?
-  # TODO verify the need for this update (likely part of larger refactor, WIP #459)
-  putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
-
-  # set clique color accordingly, using local memory
-  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-  getCliqueData(csmc.cliq).upsolved = true
-
-  return :upsolved
-end
+# export doCliqAutoInitUpPart1!, doCliqAutoInitUpPart2!
+#
+# """
+#     $SIGNATURES
+#
+# Follows cliq initalization calculation and attempts full upsolve
+# based on current state of the tree and factor graph,
+# using upward message passing logic.
+#
+# Notes
+# - Removes msg priors added to clique subgraph
+# - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
+# - must use factors in cliq only, ensured by using subgraph -- TODO general case.
+# """
+# function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
+#                                 multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc  )
+#   #
+#
+#   # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
+#   urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+#   # is clique fully upsolved or only partially?
+#   # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+#   putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+#   updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
+#
+#   # set clique color accordingly, using local memory
+#   setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+#   getCliqueData(csmc.cliq).upsolved = true
+#
+#   return :upsolved
+# end
 
 
 """

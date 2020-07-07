@@ -331,16 +331,29 @@ function doCliqUpsSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   # check if all cliq vars have been initialized so that full inference can occur on clique
   if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     # do actual up solve
-    status = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc)
+	# TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
+    urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+    # is clique fully upsolved or only partially?
+    # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+    putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
+
+    # set clique color accordingly, using local memory
+    setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+    getCliqueData(csmc.cliq).upsolved = true
+
+    status = :upsolved
+    # status = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc)
   end
 
   ## Doesnt work, IIF and RoME tests hang
   # setCliqueStatus!(csmc.cliq, status)
-  # # FIXME prepare to split off CSM 8h.
-  # status = getCliqueStatus(csmc.cliq)
-
   # notify of results (big part of #459 consolidation effort)
   prepPutCliqueStatusMsgUp!(csmc, status)
+
+  # status = getCliqueStatus(csmc.cliq)
+  # # FIXME try move prepPut notification down into into this CSM function only
+  ## prepPutCliqueStatusMsgUp!(csmc, status)
 
   # remove msg factors that were added to the subfg
   msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
