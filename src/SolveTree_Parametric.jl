@@ -106,7 +106,7 @@ function tryCliqStateMachineSolveParametric!(dfg::G,
     end
     flush(logger.stream)
     close(logger.stream)
-    # clst = getCliqStatus(cliq)
+    # clst = getCliqueStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     bt = catch_backtrace()

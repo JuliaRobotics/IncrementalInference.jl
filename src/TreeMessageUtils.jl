@@ -47,7 +47,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
-  setCliqStatus!(cliq, :null)
+  setCliqueStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing
 end
@@ -213,7 +213,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
   # unlock for others to proceed
   unlockDwnStatus!(cdat)
   with_logger(logger) do
-    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqStatus(cliq))"
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
   end
 
   # flush(logger.stream)
