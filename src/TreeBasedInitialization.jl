@@ -396,35 +396,6 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
 end
 
 
-"""
-    $SIGNATURES
-
-Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
-
-Notes
-- Does not require tree message likelihood factors in subfg.
-- Also see #579 regarding elimited likelihoods and priors.
-"""
-function prepCliqInitMsgsUp(subfg::AbstractDFG,
-                            cliq::TreeClique,
-                            logger=ConsoleLogger() )::LikelihoodMessage
-  #
-  # construct init's up msg to place in parent from initialized separator variables
-  msg = LikelihoodMessage()
-  seps = getCliqSeparatorVarIds(cliq)
-  with_logger(logger) do
-    @info "prepCliqInitMsgsUp, seps=$seps"
-  end
-  for vid in seps
-    var = DFG.getVariable(subfg, vid)
-    if isInitialized(var)
-      msg.belief[Symbol(var.label)] = TreeBelief(var)
-    end
-  end
-  return msg
-end
-
-
 
 function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
   #

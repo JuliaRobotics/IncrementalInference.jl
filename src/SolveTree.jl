@@ -585,20 +585,6 @@ function fmcmc!(fgl::G,
   return mcmcdbg, msgdict
 end
 
-"""
-    $SIGNATURES
-
-MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
-"""
-function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{Float64,2}
-  @info "Outgoing msg density on: "
-  len = length(IDs)
-  m = LikelihoodMessage( :NULL ) #  Dict{Symbol,TreeBelief}()
-  for id in IDs
-    m.belief[id] = d[id]
-  end
-  return m
-end
 
 """
     $(SIGNATURES)
@@ -741,11 +727,11 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     end
   end
 
-  #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
+  # consolidation likely (prepCliqInitMsgsUp)
   m = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
   # prepare and convert upward belief messages
-  upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
+  upmsgs = LikelihoodMessage()
   for (msgsym, val) in m.belief
     # TODO confirm deepcopy
     upmsgs.belief[msgsym] = deepcopy(val)
