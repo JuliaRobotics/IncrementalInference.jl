@@ -1,7 +1,7 @@
 
 export
-  getCliqStatus,
-  setCliqStatus!,
+  getCliqueStatus,
+  setCliqueStatus!,
   getSolveCondition
 
 # Reguler accessors
@@ -51,18 +51,19 @@ or numerical initialization status:
 Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
-getCliqStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
-getCliqStatus(cliq::TreeClique) = getCliqStatus(getCliqueData(cliq))
-getCliqStatusUp(cliq::TreeClique) = getCliqStatus(cliq)
+getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
+getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
+getCliqueStatusUp(cliq::TreeClique) = getCliqueStatus(cliq)
 
 """
     $SIGNATURES
 
 Set up initialization or solve status of this `cliq`.
 """
-function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getCliqueData(cliq).initialized = status
+function setCliqueStatus!(cdat::BayesTreeNodeData, status::Symbol)
+  cdat.initialized = status
 end
+setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueData(cliq), status)
 
 
 
