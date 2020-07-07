@@ -53,7 +53,6 @@ Notes:
 """
 getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
 getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
-getCliqueStatusUp(cliq::TreeClique) = getCliqueStatus(cliq)
 
 """
     $SIGNATURES
