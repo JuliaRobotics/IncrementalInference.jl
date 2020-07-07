@@ -2,7 +2,7 @@
 
 # newer exports
 export getBetterName7b_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
-export mustInitUpCliq_StateMachine
+export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
 
 
 """
@@ -301,7 +301,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
 
   # go to 8g.
-  return doCliqUpsSolveInitialized_StateMachine
+  return doCliqUpSolveInitialized_StateMachine
 end
 
 
@@ -320,12 +320,12 @@ DevNotes
 - TODO split add and delete msg likelihoods into separate CSMs, see #765-ish? on listing message factors
 - NEEDS DFG v0.8.1, see IIF #760
 """
-function doCliqUpsSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
+function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   opts = getSolverParams(csmc.dfg)
 
   cliqst = getCliqueStatus(csmc.cliq)
-  infocsm(csmc, "8g, doCliqUpsSolveInitialized_StateMachine -- clique status = $(cliqst)")
+  infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(cliqst)")
 
   status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
   # check if all cliq vars have been initialized so that full inference can occur on clique

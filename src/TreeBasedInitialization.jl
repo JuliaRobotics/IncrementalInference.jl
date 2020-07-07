@@ -581,68 +581,6 @@ function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
   end
 end
 
-"""
-    $SIGNATURES
-
-Notify of new up status and message.
-
-Notes
-- Major part of #459 consolidation effort.
-"""
-function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol  )
-  #
-  # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
-  # put the init upinitmsg
-  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
-  if getCliqueStatus(csmc.cliq) != status
-	infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-	notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
-  end
-
-  # print a little late
-  with_logger(csmc.logger) do
-    tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
-  end
-
-  # return new up messages in case the user wants to see
-  return upinitmsg
-end
-
-# export doCliqAutoInitUpPart1!, doCliqAutoInitUpPart2!
-#
-# """
-#     $SIGNATURES
-#
-# Follows cliq initalization calculation and attempts full upsolve
-# based on current state of the tree and factor graph,
-# using upward message passing logic.
-#
-# Notes
-# - Removes msg priors added to clique subgraph
-# - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
-# - must use factors in cliq only, ensured by using subgraph -- TODO general case.
-# """
-# function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
-#                                 multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc  )
-#   #
-#
-#   # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
-#   urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
-#   # is clique fully upsolved or only partially?
-#   # TODO verify the need for this update (likely part of larger refactor, WIP #459)
-#   putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-#   updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
-#
-#   # set clique color accordingly, using local memory
-#   setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-#   getCliqueData(csmc.cliq).upsolved = true
-#
-#   return :upsolved
-# end
-
 
 """
     $SIGNATURES

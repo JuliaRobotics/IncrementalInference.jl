@@ -352,6 +352,36 @@ end
 
 
 
+"""
+    $SIGNATURES
+
+Notify of new up status and message.
+
+Notes
+- Major part of #459 consolidation effort.
+"""
+function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
+                                   status::Symbol  )
+  #
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+  # put the init upinitmsg
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
+  if getCliqueStatus(csmc.cliq) != status
+	infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
+	notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+  end
+
+  # print a little late
+  with_logger(csmc.logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+
+  # return new up messages in case the user wants to see
+  return upinitmsg
+end
+
 
 ## =============================================================================
 ## Family message getters and setters
