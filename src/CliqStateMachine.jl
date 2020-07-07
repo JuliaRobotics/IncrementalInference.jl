@@ -324,15 +324,27 @@ function doCliqUpsSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   opts = getSolverParams(csmc.dfg)
 
-  # do actual up solve
-  retstatus = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc, logger=csmc.logger)
+  cliqst = getCliqStatus(csmc.cliq)
+  infocsm(csmc, "8g, doCliqUpsSolveInitialized_StateMachine -- clique status = $(cliqst)")
 
-  # notify of results
-  prepPutCliqueStatusMsgUp!(csmc, retstatus)
+  status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    # do actual up solve
+    status = doCliqAutoInitUpPart2!(csmc, multiproc=csmc.opts.multiproc)
+  end
+
+  ## Doesnt work, IIF and RoME tests hang
+  # setCliqStatus!(csmc.cliq, status)
+  # # FIXME prepare to split off CSM 8h.
+  # status = getCliqStatus(csmc.cliq)
+
+  # notify of results (big part of #459 consolidation effort)
+  prepPutCliqueStatusMsgUp!(csmc, status)
 
   # remove msg factors that were added to the subfg
   msgfcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x->getFactor(csmc.cliqSubFg, x)
-  infocsm(csmc, "8g, doCliqUpsSolveInit.! -- removing up message factors, length=$(length(msgfcts))")
+  infocsm(csmc, "8g, doCliqUpsSolveInit.! -- status = $(status), removing up message factors, length=$(length(msgfcts))")
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # store the cliqSubFg for later debugging

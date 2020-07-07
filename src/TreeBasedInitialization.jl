@@ -624,42 +624,21 @@ Notes
 - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 """
 function doCliqAutoInitUpPart2!(csmc::CliqStateMachineContainer;
-                                up_solve_if_able::Bool=true,
-                                multiproc::Bool=true,
-                                logger=ConsoleLogger()  )
+                                multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc  )
   #
 
-  cliqst = getCliqStatus(csmc.cliq)
-  status = (cliqst == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0) ? cliqst : :needdownmsg
+  # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
+  urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+  # is clique fully upsolved or only partially?
+  # TODO verify the need for this update (likely part of larger refactor, WIP #459)
+  putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
 
-  # check if all cliq vars have been initialized so that full inference can occur on clique
-  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
-    with_logger(logger) do
-      tt = split(string(now()),'T')[end]
-      @info "$(tt), cliq $(csmc.cliq.index), doCliqUpSolvePart2!, clique status = $(status)"
-    end
+  # set clique color accordingly, using local memory
+  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+  getCliqueData(csmc.cliq).upsolved = true
 
-    # TODO replace with msg channels only
-    urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
-    # is clique fully upsolved or only partially?
-    # TODO verify the need for this update (likely part of larger refactor, WIP #459)
-    putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
-    updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, fillcolor="brown", logger=csmc.logger)
-
-    # set clique color accordingly, using local memory
-    setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-    getCliqueData(csmc.cliq).upsolved = true
-    status = :upsolved
-
-    # NOTE moving message update here before moving back to CSM.jl
-
-  else
-    with_logger(logger) do
-      @info "cliq $(csmc.cliq.index), all variables not initialized, status = $(status)"
-    end
-  end
-
-  return status
+  return :upsolved
 end
 
 
