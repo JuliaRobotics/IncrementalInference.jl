@@ -727,10 +727,6 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     end
   end
 
-  # FIXME consolidation likely (prepCliqInitMsgsUp)
-  # upmsgs = upPrepOutMsg!(d, cliqdata.separatorIDs)
-  # return UpReturnBPType(upmsgs, DebugCliqMCMC(), d, upmsgs, true)
-
   return d
 end
 
@@ -924,27 +920,6 @@ function updateFGBT!(fg::AbstractDFG,
   nothing
 end
 
-# FIXME make this a @deprecate call
-function updateFGBT!(fg::AbstractDFG,
-                     cliq::TreeClique,
-                     urt::UpReturnBPType;
-                     dbg::Bool=false,
-                     fillcolor::String="",
-                     logger=ConsoleLogger()  )
-  #
-  error("dont be here, its deprecated")
-  updateFGBT!(fg, cliq, urt.IDvals, dbg=dbg, fillcolor=fillcolor, logger=logger)
-end
-
-function updateFGBT!(fg::AbstractDFG,
-                     bt::AbstractBayesTree,
-                     cliqID::Int,
-                     urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String=""  )
-  #
-  cliq = getClique(bt, cliqID)
-  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor )
-end
 
 
 
@@ -978,7 +953,7 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     @info "=== start Clique $(getLabel(cliq)) ======================"
   end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
-  urt = UpReturnBPType()
+  
   if multiproc
     cliqc = deepcopy(cliq)
     cliqcd = getCliqueData(cliqc)
@@ -1012,11 +987,6 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
   with_logger(logger) do
     @info "=== end Clique $(getLabel(cliq)) ========================"
   end
-
-  ## FIXME remove
-  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq) )
-  # urt = UpReturnBPType(upmsgs, DebugCliqMCMC(), retdict, upmsgs, true)
-  # return urt
 
   return retdict
 end

@@ -29,6 +29,25 @@ export setMsgDwnThis!, getMsgsDwnThis
 
 @deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInit!(cdat, msg)
 
+
+"""
+$(TYPEDEF)
+"""
+mutable struct UpReturnBPType
+  upMsgs::LikelihoodMessage
+  dbgUp::DebugCliqMCMC
+  IDvals::Dict{Symbol, TreeBelief}
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs? FIXME consolidate with upMsgs
+  totalsolve::Bool
+  UpReturnBPType() = new()
+  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
+end
+
+@deprecate updateFGBT!(fg::AbstractDFG,cliq::TreeClique,urt::UpReturnBPType;dbg::Bool=false,fillcolor::String="",logger=ConsoleLogger()  ) updateFGBT!(fg, cliq, urt.IDvals, dbg=dbg, fillcolor=fillcolor, logger=logger)
+
+@deprecate updateFGBT!(fg::AbstractDFG,bt::AbstractBayesTree,cliqID::Int,urt::UpReturnBPType;dbg::Bool=false, fillcolor::String=""  ) updateFGBT!( fg, getClique(bt, cliqID), urt, dbg=dbg, fillcolor=fillcolor )
+
+
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,
                                cliq::TreeClique,

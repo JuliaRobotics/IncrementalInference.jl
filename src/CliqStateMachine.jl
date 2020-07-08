@@ -349,8 +349,7 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   status = :upsolved
     # TODO consolidate (refactor WIP #459)
     upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq) )
-    # urt = UpReturnBPType(upmsgs, DebugCliqMCMC(), retdict, upmsgs, true)
-    putMsgUpThis!(csmc.cliq, upmsgs) # urt.upMsgs
+    putMsgUpThis!(csmc.cliq, upmsgs)
     prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h
