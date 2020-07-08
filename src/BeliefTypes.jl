@@ -159,7 +159,7 @@ mutable struct UpReturnBPType
   upMsgs::LikelihoodMessage
   dbgUp::DebugCliqMCMC
   IDvals::Dict{Symbol, TreeBelief}
-  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs? FIXME consolidate with upMsgs
   totalsolve::Bool
   UpReturnBPType() = new()
   UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)

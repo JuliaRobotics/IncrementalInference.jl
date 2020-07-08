@@ -190,19 +190,17 @@ end
 """
     $SIGNATURES
 
-MUST BE REFACTORED OR DEPRECATED.  This is an old function.
+Consolidation likely
 
 DevNotes
 - consolidation likely (prepCliqInitMsgsUp)
 """
-function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol})
-  @info "Outgoing msg density on: "
-  len = length(IDs)
-  m = LikelihoodMessage( :NULL )
-  for id in IDs
-    m.belief[id] = d[id]
+function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol})
+  msg = LikelihoodMessage()
+  for vid in seps
+    msg.belief[vid] = dict[vid]
   end
-  return m
+  return msg
 end
 
 

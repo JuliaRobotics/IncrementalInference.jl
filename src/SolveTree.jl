@@ -727,22 +727,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     end
   end
 
-  # consolidation likely (prepCliqInitMsgsUp)
-  m = upPrepOutMsg!(d, cliqdata.separatorIDs)
+  # FIXME consolidation likely (prepCliqInitMsgsUp)
+  upmsgs = upPrepOutMsg!(d, cliqdata.separatorIDs)
 
-  # prepare and convert upward belief messages
-  upmsgs = LikelihoodMessage()
-  for (msgsym, val) in m.belief
-    # TODO confirm deepcopy
-    upmsgs.belief[msgsym] = deepcopy(val)
-  end
-  putMsgUpThis!(inp.cliq, upmsgs)
-
-  # flag cliq as definitely being initialized
-  cliqdata.upsolved = true
-
-  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, Dict{Symbol, Symbol}(), priorprods)
-  return UpReturnBPType(m, mdbg, d, upmsgs, true)
+  return UpReturnBPType(upmsgs, DebugCliqMCMC(), d, upmsgs, true)
 end
 
 
@@ -990,7 +978,6 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     # TODO create new dedicate file for separate process to log with
     try
       urt = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
-      # urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
