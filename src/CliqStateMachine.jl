@@ -336,18 +336,21 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   status = getCliqueStatus(csmc.cliq)
   infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
   setCliqDrawColor(csmc.cliq, "red")
-  # TODO replace with msg channels only (urt::UpReturnBPType is an old return type)
-  urt = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+  # TODO replace with msg channels only
+  # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
+  retdict = approxCliqMarginalUp!(csmc, logger=csmc.logger)
 
   # set clique color accordingly, using local memory
-  updateFGBT!(csmc.cliqSubFg, csmc.cliq, urt, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger)
+  updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
   setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
 
   # notify of results (part of #459 consolidation effort)
   getCliqueData(csmc.cliq).upsolved = true
   status = :upsolved
     # TODO consolidate (refactor WIP #459)
-    putMsgUpThis!(csmc.cliq, urt.keepupmsgs)
+    upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq) )
+    # urt = UpReturnBPType(upmsgs, DebugCliqMCMC(), retdict, upmsgs, true)
+    putMsgUpThis!(csmc.cliq, upmsgs) # urt.upMsgs
     prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h

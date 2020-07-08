@@ -728,9 +728,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
   end
 
   # FIXME consolidation likely (prepCliqInitMsgsUp)
-  upmsgs = upPrepOutMsg!(d, cliqdata.separatorIDs)
+  # upmsgs = upPrepOutMsg!(d, cliqdata.separatorIDs)
+  # return UpReturnBPType(upmsgs, DebugCliqMCMC(), d, upmsgs, true)
 
-  return UpReturnBPType(upmsgs, DebugCliqMCMC(), d, upmsgs, true)
+  return d
 end
 
 
@@ -898,19 +899,19 @@ Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt`
 """
 function updateFGBT!(fg::AbstractDFG,
                      cliq::TreeClique,
-                     urt::UpReturnBPType;
+                     IDvals::Dict{Symbol, TreeBelief};
                      dbg::Bool=false,
                      fillcolor::String="",
                      logger=ConsoleLogger()  )
   #
-  if dbg
-    # TODO find better location for the debug information (this is old code)
-    cliq.attributes["debug"] = deepcopy(urt.dbgUp)
-  end
+  # if dbg
+  #   # TODO find better location for the debug information (this is old code)
+  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+  # end
   if fillcolor != ""
     setCliqDrawColor(cliq, fillcolor)
   end
-  for (id,dat) in urt.IDvals
+  for (id,dat) in IDvals
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
     end
@@ -921,6 +922,18 @@ function updateFGBT!(fg::AbstractDFG,
     @info "updateFGBT! up -- updated $(getLabel(cliq))"
   end
   nothing
+end
+
+# FIXME make this a @deprecate call
+function updateFGBT!(fg::AbstractDFG,
+                     cliq::TreeClique,
+                     urt::UpReturnBPType;
+                     dbg::Bool=false,
+                     fillcolor::String="",
+                     logger=ConsoleLogger()  )
+  #
+  error("dont be here, its deprecated")
+  updateFGBT!(fg, cliq, urt.IDvals, dbg=dbg, fillcolor=fillcolor, logger=logger)
 end
 
 function updateFGBT!(fg::AbstractDFG,
@@ -977,7 +990,7 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
-      urt = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
+      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
@@ -993,23 +1006,19 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
     end
-    urt = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
+    retdict = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
   end
 
-  # # is clique fully upsolved or only partially?
-  # with_logger(logger) do
-  #   # TODO verify the need for this update (likely part of larger refactor)
-  #   updateFGBT!(fg_, cliq, urt, dbg=dbg, fillcolor="brown", logger=logger)
-  # end
-  #
-  # # set clique color accordingly, using local memory
-  # setCliqDrawColor(cliq, isCliqFullDim(fg_, cliq) ? "pink" : "tomato1")
-  #
-  # drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
     @info "=== end Clique $(getLabel(cliq)) ========================"
   end
-  return urt
+
+  ## FIXME remove
+  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq) )
+  # urt = UpReturnBPType(upmsgs, DebugCliqMCMC(), retdict, upmsgs, true)
+  # return urt
+
+  return retdict
 end
 
 
