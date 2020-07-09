@@ -99,38 +99,6 @@ function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
 end
 
 
-"""
-    $SIGNATURES
-
-Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
-"""
-function setTreeCliquesMarginalized!(dfg::AbstractDFG,
-                                     tree::AbstractBayesTree,
-                                     logger=SimpleLogger(stdout))
-  #
-  for (cliid, cliq) in getCliques(tree)
-    if areCliqVariablesAllMarginalized(dfg, cliq)
-      # need to set the upward messages
-      msgs = prepCliqInitMsgsUp(dfg, cliq)
-      putMsgUpThis!(cliq, msgs)
-
-      prnt = getParent(tree, cliq)
-      if length(prnt) > 0
-        # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(cliq, msgs, logger)
-      end
-
-      setCliqueStatus!(cliq, :marginalized)
-      setCliqDrawColor(cliq, "blue")
-
-      # set flag, looks to be previously unused???
-      getCliqueData(cliq).allmarginalized = true
-    end
-  end
-  nothing
-end
-
-
 
 
 """

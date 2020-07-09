@@ -952,6 +952,35 @@ end
 """
     $SIGNATURES
 
+Determine if clique is upsolved by incremental update and exit the state machine.
+
+Notes
+- State machine function nr.0c
+- can recycle if two checks:
+  - previous clique was identically downsolved
+  - all children are also :uprecycled
+"""
+function testCliqCanIncremtUpdate_StateMachine!(csmc::CliqStateMachineContainer)
+	# check if should be trying and can recycle clique computations
+    if csmc.incremental && getCliqueStatus(csmc.oldcliqdata) == :downsolved
+      csmc.cliq.data.isCliqReused = true
+      # check if a subgraph will be needed later
+      if csmc.dodownsolve
+        # yes need subgraph and need more checks, so go to 2
+        return buildCliqSubgraph_StateMachine
+      else
+         # one or two checks say yes, so go to 4
+        return isCliqNull_StateMachine
+      end
+    end
+
+    # nope, regular clique init-solve, go to 1
+    return isCliqUpSolved_StateMachine
+end
+
+"""
+    $SIGNATURES
+
 Notify possible parent if clique is upsolved and exit the state machine.
 
 Notes
@@ -964,21 +993,28 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
   # @show getCliqFrontalVarIds(csmc.oldcliqdata), getCliqueStatus(csmc.oldcliqdata)
   infocsm(csmc, "0., $(csmc.incremental) ? :uprecycled => getCliqueStatus(csmc.oldcliqdata)=$(getCliqueStatus(csmc.oldcliqdata))")
 
-  # check if should be trying and can recycle clique computations
-  if csmc.incremental && getCliqueStatus(csmc.oldcliqdata) == :downsolved
-    csmc.cliq.data.isCliqReused = true
-    # check if a subgraph will be needed later
-    if csmc.dodownsolve
-      # yes need subgraph and need more checks, so go to 2
-      return buildCliqSubgraph_StateMachine
-    else
-       # one or two checks say yes, so go to 4
-      return isCliqNull_StateMachine
-    end
+  if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
+
+    prepPutCliqueStatusMsgUp!(csmc, :marginalized, dfg=csmc.dfg)
+    ## FIXME, change to
+      # # need to set the upward messages
+      # msgs = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq)
+      # putMsgUpThis!(csmc.cliq, msgs)
+      # # THIS IS FOR INIT PASSES ONLY
+      # putMsgUpInit!(csmc.cliq, msgs, csmc.logger)
+      # setCliqueStatus!(csmc.cliq, :marginalized)
+
+    # set marginalized color
+    setCliqDrawColor(csmc.cliq, "blue")
+
+    # set flag, looks to be previously unused???
+    getCliqueData(csmc.cliq).allmarginalized = true
+
+    # FIXME divert to rapid CSM exit
   end
 
-  # nope, regular clique init-solve, go to 1
-  return isCliqUpSolved_StateMachine
+  # go to 0c.
+  return testCliqCanIncremtUpdate_StateMachine!
 end
 
 

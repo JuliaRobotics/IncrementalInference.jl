@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export setTreeCliquesMarginalized!
 export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
 export setCliqStatus!, getCliqStatus
@@ -16,6 +17,40 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+"""
+    $SIGNATURES
+
+Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
+"""
+function setTreeCliquesMarginalized!(dfg::AbstractDFG,
+                                     tree::AbstractBayesTree,
+                                     logger=SimpleLogger(stdout))
+  #
+  for (cliid, cliq) in getCliques(tree)
+    if areCliqVariablesAllMarginalized(dfg, cliq)
+
+      ## FIXME, change to prepPutCliqueStatusMsgUp!
+        # need to set the upward messages
+        msgs = prepCliqInitMsgsUp(dfg, cliq)
+        putMsgUpThis!(cliq, msgs)
+        # TODO must be converted to pull model #674
+        # prnt = getParent(tree, cliq)
+        # if length(prnt) > 0
+          # THIS IS FOR INIT PASSES ONLY
+          putMsgUpInit!(cliq, msgs, logger)
+        # end
+        setCliqueStatus!(cliq, :marginalized)
+
+      # set marginalized color
+      setCliqDrawColor(cliq, "blue")
+
+      # set flag, looks to be previously unused???
+      getCliqueData(cliq).allmarginalized = true
+    end
+  end
+  nothing
+end
 
 """
     $SIGNATURES
