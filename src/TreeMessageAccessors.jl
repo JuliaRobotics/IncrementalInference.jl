@@ -377,14 +377,10 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   if getCliqueStatus(csmc.cliq) != status
     infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
     putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
-    # notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
   end
 
   # print a little late
-  with_logger(csmc.logger) do
-    tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
-  end
+  infocsm(csmc, "8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))")
 
   # return new up messages in case the user wants to see
   return upinitmsg
