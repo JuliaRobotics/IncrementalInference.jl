@@ -68,6 +68,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
                                  status::Symbol;
                                  logger=ConsoleLogger() )
   #
+  @warn "notifyCliqUpInitStatus! is deprecated, use putMsgUpInitStatus! directly."
   cd = getCliqueData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]

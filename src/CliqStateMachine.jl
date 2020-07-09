@@ -562,7 +562,6 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
   # # TODO: is status of notify required here?
   setCliqueStatus!(csmc.cliq, cliqst)
-  # notifyCliqUpInitStatus!(csmc.cliq, cliqst)
 
   # got to 8d
   return downInitRequirement_StateMachine!
@@ -621,7 +620,7 @@ function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
   elseif cliqst == :marginalized
     # go to 1
     return isCliqUpSolved_StateMachine
-    ## NOTE -- what about notifyCliqUpInitStatus! ??
+    ## NOTE -- what about putMsgUpInitStatus! ??
     # go to 10
     # return determineCliqIfDownSolve_StateMachine
   end
@@ -790,7 +789,6 @@ function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
     # TODO maybe can happen where some children need more information?
     infocsm(csmc, "4d, checkIfCliqNullBlock_StateMachine, escalating to :needdownmsg since all children :needdownmsg")
     putMsgUpInitStatus!(csmc.cliq, :needdownmsg, csmc.logger)
-    # notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg, logger=csmc.logger)
     setCliqDrawColor(csmc.cliq, "yellowgreen")
 
     # debuggin #459 transition
@@ -995,14 +993,8 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
 
   if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
 
+    # no work required other than assembling upward message
     prepPutCliqueStatusMsgUp!(csmc, :marginalized, dfg=csmc.dfg)
-    ## FIXME, change to
-      # # need to set the upward messages
-      # msgs = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq)
-      # putMsgUpThis!(csmc.cliq, msgs)
-      # # THIS IS FOR INIT PASSES ONLY
-      # putMsgUpInit!(csmc.cliq, msgs, csmc.logger)
-      # setCliqueStatus!(csmc.cliq, :marginalized)
 
     # set marginalized color
     setCliqDrawColor(csmc.cliq, "blue")
@@ -1011,6 +1003,8 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
     getCliqueData(csmc.cliq).allmarginalized = true
 
     # FIXME divert to rapid CSM exit
+	# GUESSING THIS THE RIGHT WAY go to 4
+	# return isCliqNull_StateMachine
   end
 
   # go to 0c.

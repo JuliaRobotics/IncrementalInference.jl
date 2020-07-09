@@ -1285,13 +1285,9 @@ function asyncTreeInferUp!(dfg::G,
                            recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   resetTreeCliquesForUpSolve!(treel)
-    # FIXME incorporate into CSM
-    # setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
     pdfpath = joinLogPath(dfg,"bt.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
-    # pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
-    # drawTree(treel, show=false, filepath=pdfpath)
   end
 
   # queue all the tasks
@@ -1338,13 +1334,9 @@ function initInferTreeUp!(dfg::G,
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
-    # FIXME incorporate into CSM
-    # setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
     pdfpath = joinLogPath(dfg,"bt.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
-    # pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
-    # drawTree(treel, show=false, filepath=pdfpath)
   end
 
   # queue all the tasks
