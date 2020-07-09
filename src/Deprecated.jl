@@ -18,6 +18,41 @@ export setMsgDwnThis!, getMsgsDwnThis
 
 
 """
+    $SIGNATURES
+
+Update clique status and notify of the change
+
+Notes
+- Assumes users will lock the status state before getting status until after decision whether to update status.
+- If so, only unlock after status and condition has been updated.
+
+Dev Notes
+- Should be made an atomic transaction
+"""
+function notifyCliqUpInitStatus!(cliq::TreeClique,
+                                 status::Symbol;
+                                 logger=ConsoleLogger() )
+  #
+  cd = getCliqueData(cliq)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
+  end
+  flush(logger.stream)
+
+  # currently using a lock internally (hack message channels are consolidated)
+  putMsgUpInitStatus!(cliq, status, logger)
+
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
+  end
+
+  nothing
+end
+
+
+"""
 $(TYPEDEF)
 """
 mutable struct MsgPassType

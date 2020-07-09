@@ -789,7 +789,8 @@ function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
   if len > 0 && sum(chstatus .== :needdownmsg) == len
     # TODO maybe can happen where some children need more information?
     infocsm(csmc, "4d, checkIfCliqNullBlock_StateMachine, escalating to :needdownmsg since all children :needdownmsg")
-    notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg, logger=csmc.logger)
+    putMsgUpInitStatus!(csmc.cliq, :needdownmsg, csmc.logger)
+    # notifyCliqUpInitStatus!(csmc.cliq, :needdownmsg, logger=csmc.logger)
     setCliqDrawColor(csmc.cliq, "yellowgreen")
 
     # debuggin #459 transition
@@ -896,7 +897,8 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     # construct init's up msg from initialized separator variables
     msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, logger=csmc.logger)
     putMsgUpInit!(csmc.cliq, msg)
-    notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+    putMsgUpInitStatus!(csmc.cliq, cliqst, csmc.logger)
+    # notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     #go to 10
     return determineCliqIfDownSolve_StateMachine
   end

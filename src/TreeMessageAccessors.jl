@@ -376,7 +376,8 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
   if getCliqueStatus(csmc.cliq) != status
     infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-    notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+    # notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
   end
 
   # print a little late
