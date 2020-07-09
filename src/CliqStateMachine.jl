@@ -347,8 +347,9 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   # notify of results (part of #459 consolidation effort)
   getCliqueData(csmc.cliq).upsolved = true
   status = :upsolved
+
     # TODO consolidate (refactor WIP #459)
-    upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq) )
+    upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
     putMsgUpThis!(csmc.cliq, upmsgs)
     prepPutCliqueStatusMsgUp!(csmc, status)
 

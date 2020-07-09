@@ -265,7 +265,7 @@ function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
   # TODO change into a replace put!
   cd = getCliqueData(cliql)
 
-  # older interface
+  # TODO older interface, likely to be removed at end of #459
   cd.upMsg = msgs
 
   # new interface
@@ -365,6 +365,7 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   #
   # construct init's up msg from initialized separator variables
   upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+
   # put the init upinitmsg
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
   if getCliqueStatus(csmc.cliq) != status

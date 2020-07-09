@@ -172,8 +172,10 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
                             logger=ConsoleLogger() )
   #
+  # get the current clique status
+  status = getCliqueStatus(cliq)
   # construct init's up msg to place in parent from initialized separator variables
-  msg = LikelihoodMessage()
+  msg = LikelihoodMessage(status)
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
     @info "prepCliqInitMsgsUp, seps=$seps"
@@ -195,8 +197,8 @@ Consolidation likely
 DevNotes
 - consolidation likely (prepCliqInitMsgsUp)
 """
-function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol})
-  msg = LikelihoodMessage()
+function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol}, status::Symbol=:NULL)
+  msg = LikelihoodMessage(status)
   for vid in seps
     msg.belief[vid] = dict[vid]
   end
