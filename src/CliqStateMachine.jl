@@ -895,12 +895,8 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   # if upward complete for any reason, prepare and send new upward message
   if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]
     # construct init's up msg from initialized separator variables
-
-    prepPutCliqueStatusMsgUp!(csmc, cliqst)
-      # msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, logger=csmc.logger)
-      # putMsgUpInit!(csmc.cliq, msg)
-      # putMsgUpInitStatus!(csmc.cliq, cliqst, csmc.logger)
-        # notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+    # NOTE cliqSubFg has not been copied yet
+    prepPutCliqueStatusMsgUp!(csmc, cliqst, dfg=csmc.dfg)
     #go to 10
     return determineCliqIfDownSolve_StateMachine
   end
