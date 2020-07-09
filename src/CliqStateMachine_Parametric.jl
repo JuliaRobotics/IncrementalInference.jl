@@ -111,7 +111,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     #save up message (and add priors to cliqSubFg)
     #choose csmc for dbg messages, it's a vector, one per clique
     if beliefMsg.status == :UPSOLVED
-      putMsgUpThis!(csmc.cliq, beliefMsg) # setUpMsg! # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
+      putMsgUpThis!(csmc.cliq, beliefMsg) # TODO prepPutCliqueStatusMsgUp!
     else
 
       setCliqDrawColor(csmc.cliq, "red")
