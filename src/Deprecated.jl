@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
 export setCliqStatus!, getCliqStatus
 export getMsgsUpChildrenInitDict
@@ -15,6 +16,35 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+"""
+$(TYPEDEF)
+"""
+mutable struct MsgPassType
+  fg::GraphsDFG
+  cliq::TreeClique
+  vid::Symbol # Int
+  msgs::Array{LikelihoodMessage,1}
+  N::Int
+end
+
+
+"""
+    $SIGNATURES
+
+Consolidation likely
+
+DevNotes
+- consolidation likely (prepCliqInitMsgsUp)
+"""
+function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol}, status::Symbol=:NULL)
+  @error "upPrepOutMsg! is deprecated, use prepCliqInitMsgUP! instead."
+  msg = LikelihoodMessage(status)
+  for vid in seps
+    msg.belief[vid] = dict[vid]
+  end
+  return msg
+end
 
 @deprecate getCliqueStatusUp(x...) getCliqueStatus(x...)
 @deprecate getCliqStatusUp(x...) getCliqueStatus(x...)

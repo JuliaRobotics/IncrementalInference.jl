@@ -151,10 +151,6 @@ end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
 
-## =============================================================================
-## Consolidation work in progress TODO
-## =============================================================================
-
 
 """
     $SIGNATURES
@@ -165,8 +161,8 @@ Notes
 - Does not require tree message likelihood factors in subfg.
 - Also see #579 regarding elimited likelihoods and priors.
 
-DevNotes:
-- consolidation likely with `upPrepOutMsg!`
+DevNotes
+- Consolidation in progress, part of #459
 """
 function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
@@ -192,21 +188,6 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   return msg
 end
 
-"""
-    $SIGNATURES
-
-Consolidation likely
-
-DevNotes
-- consolidation likely (prepCliqInitMsgsUp)
-"""
-function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol}, status::Symbol=:NULL)
-  msg = LikelihoodMessage(status)
-  for vid in seps
-    msg.belief[vid] = dict[vid]
-  end
-  return msg
-end
 
 
 
