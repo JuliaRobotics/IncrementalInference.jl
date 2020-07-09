@@ -412,7 +412,7 @@ function addVariable!(dfg::AbstractDFG,
                       N::Int=100,
                       autoinit::Union{Nothing,Bool}=true,
                       solvable::Int=1,
-                      timestamp::DateTime=now(),
+                      timestamp::DateTime=now(UTC),
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
@@ -442,7 +442,7 @@ function addVariable!(dfg::G,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
                       autoinit::Union{Bool, Nothing}=true,
-                      timestamp::DateTime=now(),
+                      timestamp::DateTime=now(UTC),
                       solvable::Int=1,
                       dontmargin::Bool=false,
                       labels::Vector{Symbol}=Symbol[],
@@ -886,7 +886,6 @@ Workaround function when first-version (factor graph based) auto initialization 
 """
 function initManual!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
   setValKDE!(vert, pX, true)
-  # getData(vert).initialized = true
   return nothing
 end
 function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
@@ -899,8 +898,7 @@ function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
-  setValKDE!(vert, Xpre, true) # dfg, sym
-  # getData(dfg, sym).initialized = true
+  setValKDE!(vert, Xpre, true)
   return nothing
 end
 
@@ -1052,8 +1050,9 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    labels::Vector{Symbol}=Symbol[],
-                    timestamp::DateTime=now(),
+                    labels::Union{Nothing, Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(UTC),
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
@@ -1073,6 +1072,10 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit deprecated, use graphinit instead" # v0.10.0
     graphinit = autoinit # force to user spec
   end
+  if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
+    union!(tags, labels)
+  end
 
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi)
@@ -1080,7 +1083,7 @@ function addFactor!(dfg::AbstractDFG,
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
-                        tags=Set(union(labels, [:FACTOR])),
+                        tags=Set(union(tags, [:FACTOR])),
                         solvable=solvable,
                         timestamp=timestamp)
 
@@ -1103,8 +1106,9 @@ function addFactor!(dfg::AbstractDFG,
                     multihypo::Union{Tuple,Vector{Float64}}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    timestamp::DateTime=now(),
-                    labels::Vector{Symbol}=Symbol[],
+                    timestamp::DateTime=now(UTC),
+                    labels::Union{Nothing,Vector{Symbol}}=nothing,
+                    tags::Vector{Symbol}=Symbol[],
                     autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
@@ -1123,8 +1127,12 @@ function addFactor!(dfg::AbstractDFG,
     @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
     graphinit = autoinit # force user spec
   end
+  if !isa(labels, Nothing)
+    @warn "labels deprecated, use tags instead" # v0.12.0
+    union!(tags, labels)
+  end
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, labels=labels, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
+  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
 
 

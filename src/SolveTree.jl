@@ -1,3 +1,8 @@
+
+# starting to add exports here
+export fetchCliqHistoryAll!
+
+
 #global pidx
 global pidx = 1
 global pidl = 1
@@ -580,20 +585,6 @@ function fmcmc!(fgl::G,
   return mcmcdbg, msgdict
 end
 
-"""
-    $SIGNATURES
-
-MUST BE REFACTORED OR DEPRECATED.  Seems like a wasteful function.
-"""
-function upPrepOutMsg!(d::Dict{Symbol,TreeBelief}, IDs::Vector{Symbol}) #Array{Float64,2}
-  @info "Outgoing msg density on: "
-  len = length(IDs)
-  m = LikelihoodMessage( :NULL ) #  Dict{Symbol,TreeBelief}()
-  for id in IDs
-    m.belief[id] = d[id]
-  end
-  return m
-end
 
 """
     $(SIGNATURES)
@@ -736,24 +727,7 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
     end
   end
 
-  #m = upPrepOutMsg!(inp.fg, inp.cliq, inp.sendmsgs, condids, N)
-  m = upPrepOutMsg!(d, cliqdata.separatorIDs)
-
-  # prepare and convert upward belief messages
-  upmsgs = LikelihoodMessage() #Dict{Symbol, BallTreeDensity}()
-  for (msgsym, val) in m.belief
-    # TODO confirm deepcopy
-    upmsgs.belief[msgsym] = deepcopy(val)
-    # upmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
-    # (convert(BallTreeDensity, val), getVariableInferredDim(inp.fg,msgsym))
-  end
-  setUpMsg!(inp.cliq, upmsgs)
-
-  # flag cliq as definitely being initialized
-  cliqdata.upsolved = true
-
-  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, Dict{Symbol, Symbol}(), priorprods)
-  return UpReturnBPType(m, mdbg, d, upmsgs, true)
+  return d
 end
 
 
@@ -883,13 +857,13 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::G,
+function updateFGBT!(fg::AbstractDFG,
                      bt::AbstractBayesTree,
                      cliqID::Int,
                      drt::DownReturnBPType;
                      dbg::Bool=false,
                      fillcolor::String="",
-                     logger=ConsoleLogger()  ) where G <: AbstractDFG
+                     logger=ConsoleLogger()  )
     #
     cliq = getClique(bt, cliqID)
     # if dbg
@@ -919,24 +893,21 @@ end
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
 """
-function updateFGBT!(fg::G,
+function updateFGBT!(fg::AbstractDFG,
                      cliq::TreeClique,
-                     urt::UpReturnBPType;
+                     IDvals::Dict{Symbol, TreeBelief};
                      dbg::Bool=false,
                      fillcolor::String="",
-                     logger=ConsoleLogger()  ) where G <: AbstractDFG
+                     logger=ConsoleLogger()  )
   #
-  if dbg
-    cliq.attributes["debug"] = deepcopy(urt.dbgUp)
-  end
-  setUpMsg!(cliq, urt.keepupmsgs)
-  # move to drawTree
+  # if dbg
+  #   # TODO find better location for the debug information (this is old code)
+  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+  # end
   if fillcolor != ""
     setCliqDrawColor(cliq, fillcolor)
   end
-  # cliqFulldim = true
-  for (id,dat) in urt.IDvals
-    # cliqFulldim &= dat.fulldim
+  for (id,dat) in IDvals
     with_logger(logger) do
       @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
     end
@@ -949,15 +920,6 @@ function updateFGBT!(fg::G,
   nothing
 end
 
-function updateFGBT!(fg::G,
-                     bt::AbstractBayesTree,
-                     cliqID::Int,
-                     urt::UpReturnBPType;
-                     dbg::Bool=false, fillcolor::String=""  ) where G <: AbstractDFG
-  #
-  cliq = getClique(bt, cliqID)
-  updateFGBT!( fg, cliq, urt, dbg=dbg, fillcolor=fillcolor )
-end
 
 
 
@@ -972,17 +934,18 @@ Notes
 Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
-function approxCliqMarginalUp!(fg_::AbstractDFG,
-                               tree_::AbstractBayesTree,
-                               cliq::TreeClique,
-                               childmsgs=getMsgsUpChildren(fg_, tree_, cliq, TreeBelief);
-                               N::Int=100,
-                               dbg::Bool=false,
+function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
+                               childmsgs=getMsgsUpChildren(csmc, TreeBelief);
+                               N::Int=getSolverParams(csmc.cliqSubFg).N,
+                               dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
+                               multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
+                               logger=ConsoleLogger(),
                                iters::Int=3,
-                               drawpdf::Bool=false,
-                               multiproc::Bool=true,
-                               logger=ConsoleLogger()  )
+                               drawpdf::Bool=false  )
   #
+  fg_ = csmc.cliqSubFg
+  tree_ = csmc.tree
+  cliq = csmc.cliq
 
   # ?? TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
@@ -990,7 +953,7 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     @info "=== start Clique $(getLabel(cliq)) ======================"
   end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
-  urt = UpReturnBPType()
+  
   if multiproc
     cliqc = deepcopy(cliq)
     cliqcd = getCliqueData(cliqc)
@@ -1002,8 +965,7 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
-      urt = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
-      # urt = remotecall_fetch(upGibbsCliqueDensity, upp2(), ett, N, dbg, iters)
+      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
@@ -1019,74 +981,14 @@ function approxCliqMarginalUp!(fg_::AbstractDFG,
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
     end
-    urt = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
+    retdict = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
   end
 
-  # is clique fully upsolved or only partially?
-  with_logger(logger) do
-    # TODO verify the need for this update (likely part of larger refactor)
-    updateFGBT!(fg_, cliq, urt, dbg=dbg, fillcolor="brown", logger=logger)
-  end
-
-  # is clique fulldim/partially solved?
-  # for (id, val) in urt.IDvals
-  #     cliqFulldim += val.fulldim
-  # end
-
-  # set clique color accordingly, using local memory
-  setCliqDrawColor(cliq, isCliqFullDim(fg_, cliq) ? "pink" : "tomato1")
-
-  drawpdf ? drawTree(tree_) : nothing
   with_logger(logger) do
     @info "=== end Clique $(getLabel(cliq)) ========================"
   end
-  return urt
-end
 
-function approxCliqMarginalUp!(fgl::AbstractDFG,
-                               treel::AbstractBayesTree,
-                               csym::Symbol,
-                               onduplicate::Bool;  # this must be deprecated for simplicity!
-                               N::Int=100,
-                               dbg::Bool=false,
-                               iters::Int=3,
-                               drawpdf::Bool=false,
-                               multiproc::Bool=true,
-                               logger=ConsoleLogger()  )
-  #
-  @warn "approxCliqMarginalUp! API is changing, use csmc version instead."
-  @assert !onduplicate "approxCliqMarginalUp! onduplicate keyword is being deprecated"
-  fg_ = onduplicate ? deepcopy(fgl) : fgl
-  # onduplicate
-  with_logger(logger) do
-    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
-  end
-  # FIXME, should not be building a new tree here since variable orderings can differ!!!
-  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
-
-  # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
-  if onduplicate
-    for (id, cliq) in treel.cliques
-      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
-      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
-    end
-  end
-
-  cliq = getCliq(tree_, csym)
-  # setCliqDrawColor(cliq, "red")
-
-  approxCliqMarginalUp!(fg_, tree_, cliq, N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
-end
-
-function approxCliqMarginalUp!(csmc::CliqStateMachineContainer;
-                               N::Int=getSolverParams(csmc.cliqSubFg).N,
-                               dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
-                               iters::Int=3,
-                               drawpdf::Bool=false,
-                               multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
-                               logger=ConsoleLogger()  )
-  #
-  approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getMsgsUpChildren(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+  return retdict
 end
 
 
@@ -1099,7 +1001,7 @@ Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in getCliques(treel)
     cliqdata = getCliqueData(cliq)
-    cliqdata.initialized = :null
+    setCliqueStatus!(cliqdata, :null)
     cliqdata.upsolved = to
     cliqdata.downsolved = to
   end
@@ -1115,7 +1017,7 @@ function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)::Bo
   acclist = Symbol[:upsolved; :downsolved; :marginalized]
   skipinitialized ? nothing : push!(acclist, :initialized)
   for (clid, cliq) in getCliques(treel)
-    if !(getCliqStatus(cliq) in acclist)
+    if !(getCliqueStatus(cliq) in acclist)
       return false
     end
   end
@@ -1124,7 +1026,7 @@ end
 
 function isTreeSolvedUp(treel::AbstractBayesTree)::Bool
   for (clid, cliq) in getCliques(treel)
-    if getCliqStatus(cliq) != :upsolved
+    if getCliqueStatus(cliq) != :upsolved
       return false
     end
   end
@@ -1153,11 +1055,11 @@ Set the marginalized status of a clique.
 """
 function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
   if status
-    getCliqueData(cliq).initialized = :marginalized
+    setCliqueStatus!(cliq, :marginalized)
   else
     if getCliqueData(cliq).initialized == :marginalized
       @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      getCliqueData(cliq).initialized = :downsolved
+      setCliqueStatus!(cliq, :downsolved)
     else
       error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
     end
@@ -1193,8 +1095,8 @@ Notes
 function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
   acclist = Symbol[:downsolved;]
   for (clid, cliq) in getCliques(treel)
-    if getCliqStatus(cliq) in acclist
-      setCliqStatus!(cliq, :initialized)
+    if getCliqueStatus(cliq) in acclist
+      setCliqueStatus!(cliq, :initialized)
       setCliqDrawColor(cliq, "sienna")
     end
   end
@@ -1221,7 +1123,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
 
   # does the other clique even exist?
   seekFrontals = getCliqFrontalVarIds(seeksSimilar)
-  if !hasCliq(othertree, seekFrontals[1])
+  if !hasClique(othertree, seekFrontals[1])
     return EMPTYCLIQ()
   end
 
@@ -1287,7 +1189,7 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
                                              oldcliqdata=oldcliqdata,
                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
-    if length(history) >= limititers && limititers != -1
+    if getSolverParams(dfg).dbg || length(history) >= limititers && limititers != -1
       @info "writing logs/cliq$i/csm.txt"
       # @save "/tmp/cliqHistories/cliq$i.jld2" history
       fid = open(joinpath(opts.logpath,"logs/cliq$i/csm.txt"), "w")
@@ -1296,7 +1198,7 @@ function tryCliqStateMachineSolve!(dfg::AbstractDFG,
     end
     flush(logger.stream)
     close(logger.stream)
-    # clst = getCliqStatus(cliq)
+    # clst = getCliqueStatus(cliq)
     # clst = cliqInitSolveUp!(dfg, treel, cliq, drawtree=drawtree, limititers=limititers )
   catch err
     ## TODO -- use this format instead
@@ -1340,20 +1242,19 @@ end
 
 Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
 """
-function fetchCliqTaskHistoryAll!(smt, hist)
+function fetchCliqHistoryAll!(smt::Vector{Task},
+                              hist::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}=Dict{Int,Vector{Tuple{DateTime, Int,
+                                                                    Function, CliqStateMachineContainer}}}() )
+  #
   for i in 1:length(smt)
     sm = smt[i]
     # only fetch states that have completed processing
     if sm.state == :done
+      haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
     end
   end
-end
-
-function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
-  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
-  fetchCliqTaskHistoryAll!(smt, hist)
-  assignTreeHistory!(tree, hist)
+  hist
 end
 
 
@@ -1407,15 +1308,6 @@ function asyncTreeInferUp!(dfg::G,
     # end # sync
   end # if
 
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     getCliqueData(treel, i).statehistory=cliqHistories[i]
-  #   end
-  # end
-
   return alltasks #, cliqHistories
 end
 
@@ -1468,19 +1360,8 @@ function initInferTreeUp!(dfg::G,
     end # sync
   end # if
 
-  fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
-
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  # assignTreeHistory!(treel, cliqHistories)
-  # for i in 1:length(getCliques(treel))
-  #   if haskey(cliqHistories, i)
-  #     hist = cliqHistories[i]
-  #     for i in 1:length(hist)
-  #       hist[i][4].logger = ConsoleLogger()
-  #     end
-  #     getCliqueData(treel,i).statehistory=hist
-  #   end
-  # end
+  # if record cliques is in use, else skip computational delay
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
 
   return alltasks, cliqHistories
 end

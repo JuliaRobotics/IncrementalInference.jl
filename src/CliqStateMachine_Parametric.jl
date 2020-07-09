@@ -100,9 +100,8 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @async begin
       @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
       # Blocks until data is available. -- pull model #674
-      beliefMsg = takeBeliefMessageUp!(csmc.tree, e)#take!(csmc.tree.messages[e.index].upMsg)
+      beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
       beliefMessages[e.target.index] = beliefMsg
-      # push!(beliefMessages, beliefMsg)
       @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
     end
   end
@@ -112,7 +111,7 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     #save up message (and add priors to cliqSubFg)
     #choose csmc for dbg messages, it's a vector, one per clique
     if beliefMsg.status == :UPSOLVED
-      setUpMsg!(csmc.cliq, beliefMsg) # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
+      putMsgUpThis!(csmc.cliq, beliefMsg) # setUpMsg! # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
     else
 
       setCliqDrawColor(csmc.cliq, "red")
@@ -254,13 +253,12 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     for si in cliqSeparatorVarIds
       vnd = getSolverData(getVariable(csmc.cliqSubFg, si), :parametric)
       beliefMsg.belief[si] = TreeBelief(deepcopy(vnd))
-      # beliefMsg.belief[si] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
     end
   end
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     @info "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-    putBeliefMessageUp!(csmc.tree, e, beliefMsg)# put!(csmc.tree.messages[e.index].upMsg, beliefMsg)
+    putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
   return waitForDown_ParametricStateMachine

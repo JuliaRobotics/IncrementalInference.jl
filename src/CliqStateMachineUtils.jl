@@ -1,5 +1,6 @@
 
 export setVariablePosteriorEstimates!
+export attachCSM!
 
 """
     $SIGNATURES
@@ -28,8 +29,69 @@ function dbgSaveDFG(dfg::AbstractDFG,
   folder*filename
 end
 
+"""
+    $SIGNATURES
 
+Print one specific line of a clique state machine history.
 
+Related:
+
+printCliqHistorySummary, printCliqHistorySequential
+"""
+function printHistoryLine(fid,
+                          hi::Tuple{DateTime, Int, Function, CliqStateMachineContainer},
+                          cliqid::AbstractString="")
+  #
+  # 5.13
+  first = "$cliqid.$(string(hi[2])) "
+  for i in length(first):6  first = first*" "; end
+  # time
+  first = first*(split(string(hi[1]), 'T')[end])*" "
+  # for i in length(first):16  first = first*" "; end
+  for i in length(first):19  first = first*" "; end
+  # next function
+  nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
+  nextfn = 18 < length(nextfn) ? nextfn[1:18] : nextfn
+  first = first*nextfn
+  for i in length(first):38  first = first*" "; end
+  # force proceed
+  first = first*string(Int(hi[4].forceproceed))
+  for i in length(first):39  first = first*" "; end
+  # this clique status
+  first *= " | "
+  first = first*string(getCliqueStatus(hi[4].cliq))
+  for i in length(first):53  first = first*" "; end
+  # parent status
+  first *= " P "
+  if 0 < length(hi[4].parentCliq)
+    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqueStatus(hi[4].parentCliq[1]))
+  else
+    first = first*"----"
+  end
+  for i in length(first):69  first = first*" "; end
+  # children status
+  first = first*"C "
+  if 0 < length(hi[4].childCliqs)
+    for ch in hi[4].childCliqs
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
+    end
+  else
+    first = first*"---- "
+  end
+  # sibling status
+  first *= "|S| "
+  if 0 < length(hi[4].parentCliq)
+    frt = (hi[4].parentCliq[1] |> getFrontals)[1]
+    childs = getChildren(hi[4].tree, frt)
+    # remove current clique to leave only siblings
+    filter!(x->x.index!=hi[4].cliq.index, childs)
+    for ch in childs
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
+    end
+  end
+
+  println(fid, first)
+end
 
 """
     $SIGNATURES
@@ -38,57 +100,76 @@ Print a short summary of state machine history for a clique solve.
 
 Related:
 
-getTreeAllFrontalSyms, animateCliqStateMachines
+getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
-function printCliqHistorySummary(fid, hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
+function printCliqHistorySummary(fid,
+                                 hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                 cliqid::AbstractString="")
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
   end
   for hi in hist
-    first = (split(string(hi[1]), 'T')[end])*" "
-    len = length(first)
-    for i in len:13  first = first*" "; end
-    first = first*string(hi[2])
-    len = length(first)
-    for i in len:17  first = first*" "; end
-    first = first*string(getCliqStatus(hi[4].cliq))
-    len = length(first)
-    for i in len:30  first = first*" "; end
-    nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-    lenf = length(nextfn)
-    nextfn = 20 < lenf ? nextfn[1:20]*"." : nextfn
-    first = first*nextfn
-    len = length(first)
-    for i in len:52  first = first*" "; end
-    first = first*string(hi[4].forceproceed)
-    len = length(first)
-    for i in len:58  first = first*" "; end
-    if 0 < length(hi[4].parentCliq)
-      first = first*string(getCliqStatus(hi[4].parentCliq[1]))
-    else
-      first = first*"----"
-    end
-    first = first*" | "
-    if 0 < length(hi[4].childCliqs)
-      for ch in hi[4].childCliqs
-        first = first*string(getCliqStatus(ch))*" "
-      end
-    end
-    println(fid, first)
+    printHistoryLine(fid,hi,cliqid)
   end
   nothing
 end
 
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
-  printCliqHistorySummary(stdout, hist)
+function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                 cliqid::AbstractString="")
+  printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}, tree::AbstractBayesTree, sym::Symbol)
+function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                 tree::AbstractBayesTree,
+                                 sym::Symbol  )
+  #
   hist = hists[getCliq(tree, sym).index]
-  printCliqHistorySummary(stdout, hist)
+  printCliqHistorySummary(stdout, hist, string(getCliq(tree, sym).index))
 end
 
+"""
+    $SIGNATURES
 
+Print a sequential summary lines of clique state machine histories in hists::Dict.
+
+Related:
+
+printHistoryLine, printCliqHistory
+"""
+function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    fid=stdout)
+  # vectorize all histories in single Array
+  allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  alltimes = Vector{DateTime}()
+  allcliqids = Vector{Int}()
+  for (cid,hist) in hists, hi in hist
+    push!(allhists, hi)
+    push!(alltimes, hi[1])
+    push!(allcliqids, cid)
+  end
+
+  # sort array by timestamp element
+  pm = sortperm(alltimes)
+  allhists_ = allhists[pm]
+  alltimes_ = alltimes[pm]
+  allcliqids_ = allcliqids[pm]
+
+  # print each line of the sorted array with correct cliqid marker
+  for idx in 1:length(alltimes)
+    printHistoryLine(fid,allhists_[idx],string(allcliqids_[idx]))
+  end
+  nothing
+end
+
+function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    fid::AbstractString)
+  #
+  @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
+  file = open(fid, "w")
+  printCliqHistorySequential(hists, file)
+  close(file)
+  nothing
+end
 
 """
   $SIGNATURES
@@ -368,7 +449,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
   # safety net double check
-  cliqst = getCliqStatus(cliq)
+  cliqst = getCliqueStatus(cliq)
   if cliqst in solvedstats
     with_logger(logger) do
       @warn "getSiblingsDelayOrder -- clique status should not be here with a solved cliqst=$cliqst"
@@ -435,7 +516,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
     flush(logger.stream)
 
     # get each sibling status (entering atomic computation segment -- until wait command)
-    stat .= getCliqStatus.(sibs) #[maskcol]
+    stat .= getCliqueStatus.(sibs) #[maskcol]
 
     ## (long down chain case)
     # need different behaviour when all remaining siblings are blocking with :needdownmsg
@@ -545,7 +626,7 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
     if length(mighthave) > 0
       seps[si.index] = mighthave
-      if getCliqStatus(si) in [:initialized; :null; :needdownmsg]
+      if getCliqueStatus(si) in [:initialized; :null; :needdownmsg]
         # partials treated special -- this is slightly hacky
         if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
           # this sibling might have info to delay about
@@ -625,7 +706,7 @@ function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
   if length(prnt) > 0
     for si in getChildren(tree, prnt[1])
       # are any of the other siblings still busy?
-      if si.index != cliq.index && getCliqStatus(si) in stillbusylist
+      if si.index != cliq.index && getCliqueStatus(si) in stillbusylist
         return false
       end
     end
@@ -851,7 +932,7 @@ function getSetDownMessagesComplete!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
-  setDwnMsg!(cliq, newDwnMsgs)
+  setMsgDwnThis!(cliq, newDwnMsgs)
 
   return nothing
 end
@@ -992,3 +1073,34 @@ function solveCliqDownFrontalProducts!(subfg::G,
 
   return nothing
 end
+
+
+"""
+    $SIGNATURES
+Reattach a CSM's data container after the deepcopy used from recordcliq.
+"""
+function attachCSM!(csmc::CliqStateMachineContainer,
+                    dfg::AbstractDFG,
+                    tree::BayesTree;
+                    logger = SimpleLogger(stdout))
+  #
+  # csmc = csmc__
+
+  csmc.dfg = dfg
+  csmc.tree = tree
+  csmc.logger = logger # TODO option to reopen and append to previous logger file
+
+  @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
+  cid = csmc.cliq.index
+  pids = csmc.parentCliq .|> x->x.index
+  cids = csmc.childCliqs .|> x->x.index
+
+  csmc.cliq = tree.cliques[cid]
+  csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
+  csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
+
+  return csmc
+end
+
+
+#

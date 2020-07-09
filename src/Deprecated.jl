@@ -2,23 +2,219 @@
 
 
 ##==============================================================================
-## Delete at end v0.12.x
+## Delete at end v0.13.x
 ##==============================================================================
 
+export upPrepOutMsg!
+export getCliqStatusUp, getCliqueStatusUp
+export setCliqStatus!, getCliqStatus
+export getMsgsUpChildrenInitDict
+export doCliqUpSolve!
+export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
 export setCliqUpInitMsgs!
 export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
-export getCliqparentMsgDown
-export setDwnMsg!
-export upMsg, dwnMsg
-export getDwnMsgs
-export getCliq, whichCliq, hasCliq
-export getCliqChildMsgsUp
-export setUpMsg!, getUpMsgs
-export assignTreeHistory!
-export getVertKDE,  getVert
 
+
+"""
+    $SIGNATURES
+
+Update clique status and notify of the change
+
+Notes
+- Assumes users will lock the status state before getting status until after decision whether to update status.
+- If so, only unlock after status and condition has been updated.
+
+Dev Notes
+- Should be made an atomic transaction
+"""
+function notifyCliqUpInitStatus!(cliq::TreeClique,
+                                 status::Symbol;
+                                 logger=ConsoleLogger() )
+  #
+  cd = getCliqueData(cliq)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
+  end
+  flush(logger.stream)
+
+  # currently using a lock internally (hack message channels are consolidated)
+  putMsgUpInitStatus!(cliq, status, logger)
+
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
+  end
+
+  nothing
+end
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct MsgPassType
+  fg::GraphsDFG
+  cliq::TreeClique
+  vid::Symbol # Int
+  msgs::Array{LikelihoodMessage,1}
+  N::Int
+end
+
+
+"""
+    $SIGNATURES
+
+Consolidation likely
+
+DevNotes
+- consolidation likely (prepCliqInitMsgsUp)
+"""
+function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol}, status::Symbol=:NULL)
+  @error "upPrepOutMsg! is deprecated, use prepCliqInitMsgUP! instead."
+  msg = LikelihoodMessage(status)
+  for vid in seps
+    msg.belief[vid] = dict[vid]
+  end
+  return msg
+end
+
+@deprecate getCliqueStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatus(x...) getCliqueStatus(x...)
+@deprecate setCliqStatus!(x...) setCliqueStatus!(x...)
+
+@deprecate getMsgsUpChildrenInitDict(treel::AbstractBayesTree,cliq::TreeClique,::Type{TreeBelief},skip::Vector{Int}=Int[]) getMsgsUpInitChildren(treel, cliq, TreeBelief, skip)
+
+@deprecate getMsgsUpChildrenInitDict(csmc::CliqStateMachineContainer,::Type{TreeBelief}=TreeBelief,skip::Vector{Int}=Int[] ) getMsgsUpInitChildren(csmc,TreeBelief,skip=skip )
+
+@deprecate putMsgUpInit!(cliq::TreeClique,childid::Int,msg::LikelihoodMessage,logger=SimpleLogger(stdout)) putMsgUpInit!(cliq,msg,logger=logger)
+
+@deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInit!(cdat, msg)
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct UpReturnBPType
+  upMsgs::LikelihoodMessage
+  dbgUp::DebugCliqMCMC
+  IDvals::Dict{Symbol, TreeBelief}
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs? FIXME consolidate with upMsgs
+  totalsolve::Bool
+  UpReturnBPType() = new()
+  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
+end
+
+@deprecate updateFGBT!(fg::AbstractDFG,cliq::TreeClique,urt::UpReturnBPType;dbg::Bool=false,fillcolor::String="",logger=ConsoleLogger()  ) updateFGBT!(fg, cliq, urt.IDvals, dbg=dbg, fillcolor=fillcolor, logger=logger)
+
+@deprecate updateFGBT!(fg::AbstractDFG,bt::AbstractBayesTree,cliqID::Int,urt::UpReturnBPType;dbg::Bool=false, fillcolor::String=""  ) updateFGBT!( fg, getClique(bt, cliqID), urt, dbg=dbg, fillcolor=fillcolor )
+
+
+function approxCliqMarginalUp!(fg_::AbstractDFG,
+                               tree_::AbstractBayesTree,
+                               cliq::TreeClique,
+                               childmsgs=getMsgsUpChildren(fg_, tree_, cliq, TreeBelief);
+                               N::Int=100,
+                               dbg::Bool=false,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true,
+                               logger=ConsoleLogger()  )
+  #
+  error("OBSOLETE: approxCliqMarginalUp!(::AbstractDFG,...)")
+  # approxCliqMarginalUp!(csmc.cliqSubFg, csmc.tree, csmc.cliq, getMsgsUpChildren(csmc, TreeBelief),N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
+
+"""
+    $SIGNATURES
+
+Update `subfg<:AbstractDFG` according to internal computations for a full upsolve.
+"""
+function doCliqUpSolve!(csmc::CliqStateMachineContainer;
+                        multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
+                        logger=ConsoleLogger()  )
+  #
+  approxCliqMarginalUp!(csmc, multiproc=multiproc, logger=logger)
+  # csym = getCliqFrontalVarIds(csmc.cliq)[1]
+  # approxCliqMarginalUp!(csmc, csym, false, N=getSolverParams(csmc.cliqSubFg).N, logger=logger, multiproc=multiproc)
+
+  # TODO replace with msg channels only
+  getCliqueData(csmc.cliq).upsolved = true
+  return :upsolved
+end
+
+function approxCliqMarginalUp!(fgl::AbstractDFG,
+                               treel::AbstractBayesTree,
+                               csym::Symbol,
+                               onduplicate::Bool;  # this must be deprecated for simplicity!
+                               N::Int=100,
+                               dbg::Bool=false,
+                               iters::Int=3,
+                               drawpdf::Bool=false,
+                               multiproc::Bool=true,
+                               logger=ConsoleLogger()  )
+  #
+  @warn "approxCliqMarginalUp! API is changing, use csmc version instead."
+  @assert !onduplicate "approxCliqMarginalUp! onduplicate keyword is being deprecated"
+  fg_ = onduplicate ? deepcopy(fgl) : fgl
+  # onduplicate
+  with_logger(logger) do
+    @warn "rebuilding new Bayes tree on deepcopy of factor graph"
+  end
+  # FIXME, should not be building a new tree here since variable orderings can differ!!!
+  tree_ = onduplicate ? wipeBuildNewTree!(fgl) : treel
+
+  # copy up and down msgs that may already exists #TODO Exists where? it copies from tree_ to tree
+  if onduplicate
+    for (id, cliq) in treel.cliques
+      setUpMsg!(tree_.cliques[cliq.index], getUpMsgs(cliq)) #TODO cliq.index may be problematic, how do we know it will be the same index on rebuilding?
+      setDwnMsg!(tree_.cliques[cliq.index], getDwnMsgs(cliq))
+    end
+  end
+
+  cliq = getCliq(tree_, csym)
+  # setCliqDrawColor(cliq, "red")
+
+  approxCliqMarginalUp!(fg_, tree_, cliq, N=N, dbg=dbg, iters=iters, drawpdf=drawpdf, multiproc=multiproc, logger=logger)
+end
+
+function doCliqUpSolve!(subfg::AbstractDFG,
+                        tree::AbstractBayesTree,
+                        cliq::TreeClique;
+                        multiproc::Bool=true,
+                        logger=ConsoleLogger()  )
+  #
+  @error "doCliqUpSolve! is being refactored, use the csmc version instead"
+  csym = getCliqFrontalVarIds(cliq)[1]
+  # csym = DFG.getVariable(subfg, getCliqFrontalVarIds(cliq)[1]).label # ??
+  approxCliqMarginalUp!(subfg, tree, csym, false, N=getSolverParams(subfg).N, logger=logger, multiproc=multiproc)
+  getCliqueData(cliq).upsolved = true
+  return :upsolved
+end
+
+function doCliqInitDown!(subfg::AbstractDFG,
+                         tree::AbstractBayesTree,
+                         cliq::TreeClique;
+                         dbg::Bool=false )
+  #
+  @error("deprecated doCliqInitDown!(subfg, tree, cliq) use doCliqInitDown!(subfg, cliq, dwinmsgs) instead.")
+  prnt = getParent(tree, cliq)[1]
+  dwinmsgs = prepCliqInitMsgsDown!(subfg, tree, prnt)
+  status = doCliqInitDown!(subfg, cliq, dwinmsgs, dbg=dbg)
+
+  return status
+end
+
+@deprecate fetchCliqTaskHistoryAll!(x...) fetchCliqHistoryAll!(x...)
+
+function fetchAssignTaskHistoryAll!(tree::AbstractBayesTree, smt)
+  hist = Dict{Int, Vector{Tuple{DateTime,Int,Function,CliqStateMachineContainer}}}()
+  fetchCliqTaskHistoryAll!(smt, hist)
+  assignTreeHistory!(tree, hist)
+end
 
 @deprecate getMsgsUpChildren(::AbstractDFG, treel::AbstractBayesTree, cliq::TreeClique, ::Type{TreeBelief}) getMsgsUpChildren(treel,cliq,TreeBelief)
 
@@ -33,6 +229,22 @@ export getVertKDE,  getVert
 
 @deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
 @deprecate setMsgDwnThis!(x...) putMsgDwnThis!(x...)
+
+
+
+##==============================================================================
+## Delete at end v0.12.x
+##==============================================================================
+
+# export getCliqparentMsgDown
+export setDwnMsg!
+export upMsg, dwnMsg
+export getDwnMsgs
+export getCliq, whichCliq, hasCliq
+export getCliqChildMsgsUp
+export setUpMsg!, getUpMsgs
+export assignTreeHistory!
+export getVertKDE,  getVert
 
 
 # # return ::Vector{DFGFactor}

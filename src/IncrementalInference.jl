@@ -41,7 +41,7 @@ using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
 
-import Base: convert
+import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
@@ -95,7 +95,9 @@ export AbstractDFG,
   filterHistAllToArray,
   cliqHistFilterTransitions,
   printCliqSummary,
+  printHistoryLine,
   printCliqHistorySummary,
+  printCliqHistorySequential,
   printGraphSummary,
   printSummary,
   print,
@@ -266,11 +268,8 @@ export AbstractDFG,
   areCliqChildrenAllUpSolved,
   ensureSolvable!,
   ensureAllInitialized!,
-  doCliqAutoInitUpPart1!,
-  doCliqAutoInitUpPart2!,
   doCliqInitDown!,
   cycleInitByVarOrder!,
-  doCliqUpSolve!,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
@@ -313,6 +312,7 @@ export AbstractDFG,
   initializeNode!,
   CliqStateMachineContainer,
   solveTree!,
+  solveGraph!,
   solveCliq!,
   fifoFreeze!,
   getCurrentWorkspaceFactors,
@@ -377,7 +377,7 @@ export AbstractDFG,
   getCliqOrderUpSolve,
   getCliqVarInitOrderUp,
   getCliqInitVarOrderDown,
-  getCliqStatusUp,
+  getCliqueStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
@@ -449,10 +449,6 @@ export AbstractDFG,
   loadTree,
   landmarks,
   setCliqDrawColor,
-
-  # csm utils
-  fetchCliqTaskHistoryAll!,
-  fetchAssignTaskHistoryAll!,
 
   # Temp placeholder for evaluating string types to real types
   saveDFG,
