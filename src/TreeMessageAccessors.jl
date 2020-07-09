@@ -1,7 +1,7 @@
 
 export
-  getCliqStatus,
-  setCliqStatus!,
+  getCliqueStatus,
+  setCliqueStatus!,
   getSolveCondition
 
 # Reguler accessors
@@ -51,18 +51,18 @@ or numerical initialization status:
 Notes:
 - `:null` represents the first uninitialized state of a cliq.
 """
-getCliqStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
-getCliqStatus(cliq::TreeClique) = getCliqStatus(getCliqueData(cliq))
-getCliqStatusUp(cliq::TreeClique) = getCliqStatus(cliq)
+getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
+getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
 
 """
     $SIGNATURES
 
 Set up initialization or solve status of this `cliq`.
 """
-function setCliqStatus!(cliq::TreeClique, status::Symbol)
-  getCliqueData(cliq).initialized = status
+function setCliqueStatus!(cdat::BayesTreeNodeData, status::Symbol)
+  cdat.initialized = status
 end
+setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueData(cliq), status)
 
 
 
@@ -265,7 +265,7 @@ function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
   # TODO change into a replace put!
   cd = getCliqueData(cliql)
 
-  # older interface
+  # TODO older interface, likely to be removed at end of #459
   cd.upMsg = msgs
 
   # new interface
@@ -319,7 +319,8 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Simple
     end
   # FIXME, lock should not be required in all cases.
   lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  cdat.initialized = status
+  setCliqueStatus!(cdat, status)
+  # cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
     # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
@@ -351,6 +352,43 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Conso
 end
 
 
+
+"""
+    $SIGNATURES
+
+Notify of new up status and message.
+
+Notes
+- Major part of #459 consolidation effort.
+"""
+function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
+                                   status::Symbol  )
+  #
+  # TODO replace with msg channels only
+
+  # construct init's up msg from initialized separator variables
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, status)
+
+  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
+  putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
+
+  # put the init upinitmsg
+  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
+  if getCliqueStatus(csmc.cliq) != status
+    infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
+    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+    # notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+  end
+
+  # print a little late
+  with_logger(csmc.logger) do
+    tt = split(string(now()),'T')[end]
+    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
+  end
+
+  # return new up messages in case the user wants to see
+  return upinitmsg
+end
 
 
 ## =============================================================================

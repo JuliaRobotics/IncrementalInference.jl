@@ -5,6 +5,9 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export upPrepOutMsg!
+export getCliqStatusUp, getCliqueStatusUp
+export setCliqStatus!, getCliqStatus
 export getMsgsUpChildrenInitDict
 export doCliqUpSolve!
 export fetchAssignTaskHistoryAll!, fetchCliqTaskHistoryAll!
@@ -14,6 +17,74 @@ export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
 
+"""
+    $SIGNATURES
+
+Update clique status and notify of the change
+
+Notes
+- Assumes users will lock the status state before getting status until after decision whether to update status.
+- If so, only unlock after status and condition has been updated.
+
+Dev Notes
+- Should be made an atomic transaction
+"""
+function notifyCliqUpInitStatus!(cliq::TreeClique,
+                                 status::Symbol;
+                                 logger=ConsoleLogger() )
+  #
+  cd = getCliqueData(cliq)
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
+  end
+  flush(logger.stream)
+
+  # currently using a lock internally (hack message channels are consolidated)
+  putMsgUpInitStatus!(cliq, status, logger)
+
+  with_logger(logger) do
+    tt = split(string(now()), 'T')[end]
+    @info "$(tt), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
+  end
+
+  nothing
+end
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct MsgPassType
+  fg::GraphsDFG
+  cliq::TreeClique
+  vid::Symbol # Int
+  msgs::Array{LikelihoodMessage,1}
+  N::Int
+end
+
+
+"""
+    $SIGNATURES
+
+Consolidation likely
+
+DevNotes
+- consolidation likely (prepCliqInitMsgsUp)
+"""
+function upPrepOutMsg!(dict::Dict{Symbol,TreeBelief}, seps::Vector{Symbol}, status::Symbol=:NULL)
+  @error "upPrepOutMsg! is deprecated, use prepCliqInitMsgUP! instead."
+  msg = LikelihoodMessage(status)
+  for vid in seps
+    msg.belief[vid] = dict[vid]
+  end
+  return msg
+end
+
+@deprecate getCliqueStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatusUp(x...) getCliqueStatus(x...)
+@deprecate getCliqStatus(x...) getCliqueStatus(x...)
+@deprecate setCliqStatus!(x...) setCliqueStatus!(x...)
 
 @deprecate getMsgsUpChildrenInitDict(treel::AbstractBayesTree,cliq::TreeClique,::Type{TreeBelief},skip::Vector{Int}=Int[]) getMsgsUpInitChildren(treel, cliq, TreeBelief, skip)
 
@@ -22,6 +93,25 @@ export setMsgDwnThis!, getMsgsDwnThis
 @deprecate putMsgUpInit!(cliq::TreeClique,childid::Int,msg::LikelihoodMessage,logger=SimpleLogger(stdout)) putMsgUpInit!(cliq,msg,logger=logger)
 
 @deprecate setMsgUpThisInitDict!(cdat::BayesTreeNodeData, idx, msg::LikelihoodMessage) setMsgUpThisInit!(cdat, msg)
+
+
+"""
+$(TYPEDEF)
+"""
+mutable struct UpReturnBPType
+  upMsgs::LikelihoodMessage
+  dbgUp::DebugCliqMCMC
+  IDvals::Dict{Symbol, TreeBelief}
+  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs? FIXME consolidate with upMsgs
+  totalsolve::Bool
+  UpReturnBPType() = new()
+  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
+end
+
+@deprecate updateFGBT!(fg::AbstractDFG,cliq::TreeClique,urt::UpReturnBPType;dbg::Bool=false,fillcolor::String="",logger=ConsoleLogger()  ) updateFGBT!(fg, cliq, urt.IDvals, dbg=dbg, fillcolor=fillcolor, logger=logger)
+
+@deprecate updateFGBT!(fg::AbstractDFG,bt::AbstractBayesTree,cliqID::Int,urt::UpReturnBPType;dbg::Bool=false, fillcolor::String=""  ) updateFGBT!( fg, getClique(bt, cliqID), urt, dbg=dbg, fillcolor=fillcolor )
+
 
 function approxCliqMarginalUp!(fg_::AbstractDFG,
                                tree_::AbstractBayesTree,

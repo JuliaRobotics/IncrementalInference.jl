@@ -142,6 +142,8 @@ mutable struct CliqGibbsMC
 end
 """
 $(TYPEDEF)
+
+TO BE DEPRECATED
 """
 mutable struct DebugCliqMCMC
   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
@@ -152,23 +154,11 @@ mutable struct DebugCliqMCMC
   DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
-"""
-$(TYPEDEF)
-"""
-mutable struct UpReturnBPType
-  upMsgs::LikelihoodMessage
-  dbgUp::DebugCliqMCMC
-  IDvals::Dict{Symbol, TreeBelief}
-  keepupmsgs::LikelihoodMessage # Dict{Symbol, BallTreeDensity} # TODO Why separate upMsgs?
-  totalsolve::Bool
-  UpReturnBPType() = new()
-  UpReturnBPType(x1,x2,x3,x4,x5) = new(x1,x2,x3,x4,x5)
-end
 
 """
 $(TYPEDEF)
 
-TODO refactor msgs into only a single variable
+TO BE DEPRECATED AND CONSOLIDATED
 """
 mutable struct DownReturnBPType
   dwnMsg::LikelihoodMessage
@@ -177,17 +167,6 @@ mutable struct DownReturnBPType
   keepdwnmsgs::LikelihoodMessage
 end
 
-
-"""
-$(TYPEDEF)
-"""
-mutable struct MsgPassType
-  fg::GraphsDFG
-  cliq::TreeClique
-  vid::Symbol # Int
-  msgs::Array{LikelihoodMessage,1}
-  N::Int
-end
 
 
 

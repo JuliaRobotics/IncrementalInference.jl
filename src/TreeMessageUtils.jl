@@ -47,7 +47,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
   setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
-  setCliqStatus!(cliq, :null)
+  setCliqueStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing
 end
@@ -134,16 +134,58 @@ end
 Delete from the subgraph`::AbstractDFG` prior belief `msgs` that could/would be used
 during clique inference.
 
+DevNotes
+- TODO make `::Vector{Symbol}` version.
+
 Related
 
 `addMsgFactors!`
 """
 function deleteMsgFactors!(subfg::AbstractDFG,
-                           fcts::Vector{DFGFactor} )
+                           fcts::Vector )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
   end
+end
+# deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
+
+
+
+"""
+    $SIGNATURES
+
+Prepare the upward inference messages from clique to parent and return as `Dict{Symbol}`.
+
+Notes
+- Does not require tree message likelihood factors in subfg.
+- Also see #579 regarding elimited likelihoods and priors.
+
+DevNotes
+- Consolidation in progress, part of #459
+"""
+function prepCliqInitMsgsUp(subfg::AbstractDFG,
+                            cliq::TreeClique,
+                            status::Symbol=getCliqueStatus(cliq);
+                            logger=ConsoleLogger(),
+                            duplicate::Bool=true )
+  #
+  # get the current clique status
+
+  # construct init's up msg to place in parent from initialized separator variables
+  msg = LikelihoodMessage(status)
+  seps = getCliqSeparatorVarIds(cliq)
+  with_logger(logger) do
+    @info "prepCliqInitMsgsUp, seps=$seps"
+  end
+  for vid in seps
+    var = DFG.getVariable(subfg, vid)
+    var = duplicate ? deepcopy(var) : var
+    if isInitialized(var)
+      msg.belief[Symbol(var.label)] = TreeBelief(var)
+    end
+  end
+  return msg
 end
 
 
@@ -154,39 +196,6 @@ end
 ## =============================================================================
 
 
-"""
-    $SIGNATURES
-
-Update clique status and notify of the change
-
-Notes
-- Assumes users will lock the status state before getting status until after decision whether to update status.
-- If so, only unlock after status and condition has been updated.
-
-Dev Notes
-- Should be made an atomic transaction
-"""
-function notifyCliqUpInitStatus!(cliq::TreeClique,
-                                 status::Symbol;
-                                 logger=ConsoleLogger() )
-  #
-  cd = getCliqueData(cliq)
-  with_logger(logger) do
-    tt = split(string(now()), 'T')[end]
-    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- pre-lock, $(cd.initialized)-->$(status)"
-  end
-  flush(logger.stream)
-
-  # currently using a lock internally (hack message channels are consolidated)
-  putMsgUpInitStatus!(cliq, status, logger)
-
-  with_logger(logger) do
-    tt = split(string(now()), 'T')[end]
-    @info "$(tt) $(current_task()), cliq=$(cliq.index), notifyCliqUpInitStatus! -- unlocked, $(cd.initialized)"
-  end
-
-  nothing
-end
 
 
 function notifyCliqDownInitStatus!(cliq::TreeClique,
@@ -208,7 +217,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
   # unlock for others to proceed
   unlockDwnStatus!(cdat)
   with_logger(logger) do
-    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqStatus(cliq))"
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
   end
 
   # flush(logger.stream)
@@ -220,7 +229,7 @@ end
 
 
 ## =============================================================================
-## Multimessage assemplies from multiple cliques
+## Multimessage assemblies from multiple cliques
 ## =============================================================================
 
 
