@@ -336,7 +336,6 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   status = getCliqueStatus(csmc.cliq)
   infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
   setCliqDrawColor(csmc.cliq, "red")
-  # TODO replace with msg channels only
   # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
   retdict = approxCliqMarginalUp!(csmc, logger=csmc.logger)
 
@@ -348,10 +347,9 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   getCliqueData(csmc.cliq).upsolved = true
   status = :upsolved
 
-    # TODO consolidate (refactor WIP #459)
-	    # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
-	    # putMsgUpThis!(csmc.cliq, upmsgs)
-    prepPutCliqueStatusMsgUp!(csmc, status)
+  # Send upward message, NOTE consolidation WIP #459
+  infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- setting up messages with status = $(status)")
+  prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h
   return rmUpLikeliSaveSubFg_StateMachine

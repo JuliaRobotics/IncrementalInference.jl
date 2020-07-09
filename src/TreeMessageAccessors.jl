@@ -319,7 +319,8 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Simple
     end
   # FIXME, lock should not be required in all cases.
   lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  cdat.initialized = status
+  setCliqueStatus!(cdat, status)
+  # cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
     # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
@@ -363,6 +364,8 @@ Notes
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
                                    status::Symbol  )
   #
+  # TODO replace with msg channels only
+
   # construct init's up msg from initialized separator variables
   upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, status)
 
