@@ -265,7 +265,7 @@ function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
   # TODO change into a replace put!
   cd = getCliqueData(cliql)
 
-  # older interface
+  # TODO older interface, likely to be removed at end of #459
   cd.upMsg = msgs
 
   # new interface
@@ -319,7 +319,8 @@ function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Simple
     end
   # FIXME, lock should not be required in all cases.
   lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  cdat.initialized = status
+  setCliqueStatus!(cdat, status)
+  # cdat.initialized = status
   put!(cdc, LikelihoodMessage(status=status))
   notify(cond)
     # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
@@ -363,13 +364,20 @@ Notes
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
                                    status::Symbol  )
   #
+  # TODO replace with msg channels only
+
   # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
+  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, status)
+
+  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
+  putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
+
   # put the init upinitmsg
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
   if getCliqueStatus(csmc.cliq) != status
     infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-    notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
+    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+    # notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
   end
 
   # print a little late

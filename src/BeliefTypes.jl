@@ -142,6 +142,8 @@ mutable struct CliqGibbsMC
 end
 """
 $(TYPEDEF)
+
+TO BE DEPRECATED
 """
 mutable struct DebugCliqMCMC
   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
@@ -156,7 +158,7 @@ end
 """
 $(TYPEDEF)
 
-TODO refactor msgs into only a single variable
+TO BE DEPRECATED AND CONSOLIDATED
 """
 mutable struct DownReturnBPType
   dwnMsg::LikelihoodMessage
@@ -165,17 +167,6 @@ mutable struct DownReturnBPType
   keepdwnmsgs::LikelihoodMessage
 end
 
-
-"""
-$(TYPEDEF)
-"""
-mutable struct MsgPassType
-  fg::GraphsDFG
-  cliq::TreeClique
-  vid::Symbol # Int
-  msgs::Array{LikelihoodMessage,1}
-  N::Int
-end
 
 
 
