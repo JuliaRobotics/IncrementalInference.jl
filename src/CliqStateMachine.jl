@@ -349,8 +349,8 @@ function doCliqUpSolveInitialized_StateMachine(csmc::CliqStateMachineContainer)
   status = :upsolved
 
     # TODO consolidate (refactor WIP #459)
-    upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
-    putMsgUpThis!(csmc.cliq, upmsgs)
+	    # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
+	    # putMsgUpThis!(csmc.cliq, upmsgs)
     prepPutCliqueStatusMsgUp!(csmc, status)
 
   # go to 8h
@@ -424,7 +424,7 @@ function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
     # set messages if children :needdownmsg
     infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
     # construct init's up msg to place in parent from initialized separator variables
-    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, csmc.logger) # , tree,
+    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, logger=csmc.logger) # , tree,
 
     infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
     # set fake up and notify down status -- repeat change status to same as notifyUp above
@@ -896,7 +896,7 @@ function isCliqUpSolved_StateMachine(csmc::CliqStateMachineContainer)
   # if upward complete for any reason, prepare and send new upward message
   if cliqst in [:upsolved; :downsolved; :marginalized; :uprecycled]
     # construct init's up msg from initialized separator variables
-    msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, csmc.logger)
+    msg = prepCliqInitMsgsUp(csmc.dfg, csmc.cliq, logger=csmc.logger)
     putMsgUpInit!(csmc.cliq, msg)
     notifyCliqUpInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
     #go to 10

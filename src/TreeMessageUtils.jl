@@ -170,10 +170,12 @@ DevNotes:
 """
 function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
-                            logger=ConsoleLogger() )
+                            status::Symbol=getCliqueStatus(cliq);
+                            logger=ConsoleLogger(),
+                            duplicate::Bool=true )
   #
   # get the current clique status
-  status = getCliqueStatus(cliq)
+
   # construct init's up msg to place in parent from initialized separator variables
   msg = LikelihoodMessage(status)
   seps = getCliqSeparatorVarIds(cliq)
@@ -182,6 +184,7 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   end
   for vid in seps
     var = DFG.getVariable(subfg, vid)
+    var = duplicate ? deepcopy(var) : var
     if isInitialized(var)
       msg.belief[Symbol(var.label)] = TreeBelief(var)
     end

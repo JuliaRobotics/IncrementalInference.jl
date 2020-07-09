@@ -366,6 +366,9 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   # construct init's up msg from initialized separator variables
   upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq)
 
+  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
+  putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
+
   # put the init upinitmsg
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
   if getCliqueStatus(csmc.cliq) != status
