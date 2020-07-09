@@ -362,12 +362,13 @@ Notes
 - Major part of #459 consolidation effort.
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol  )
+                                   status::Symbol;
+                                   dfg::AbstractDFG=csmc.cliqSubFg)
   #
   # TODO replace with msg channels only
 
   # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, status)
+  upinitmsg = prepCliqInitMsgsUp(dfg, csmc.cliq, status)
 
   # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
   putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
