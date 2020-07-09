@@ -362,7 +362,7 @@ Notes
 - Major part of #459 consolidation effort.
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol;
+                                   status::Symbol=getCliqueStatus(csmc.cliq);
                                    dfg::AbstractDFG=csmc.cliqSubFg)
   #
   # TODO replace with msg channels only

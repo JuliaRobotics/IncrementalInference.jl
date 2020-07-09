@@ -423,13 +423,17 @@ function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
     # construct init's up msg to place in parent from initialized separator variables
 
-    msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, logger=csmc.logger) # , tree,
-    # infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
-    # set fake up and notify down status -- repeat change status to same as notifyUp above
-    # NOTE, not sure how to fake specific message when converting from push to pull model, #674
-    putMsgUpInit!(csmc.cliq, msg)
-    # setCliqueStatus!(csmc.cliq, cliqst)
+    # consolidated up messaging (#459)
+    prepPutCliqueStatusMsgUp!(csmc)
+      # msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, logger=csmc.logger) # , tree,
+      # # infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
+      # # set fake up and notify down status -- repeat change status to same as notifyUp above
+      # # NOTE, not sure how to fake specific message when converting from push to pull model, #674
+      # putMsgUpInit!(csmc.cliq, msg)
+
+
     cliqst = getCliqueStatus(csmc.cliq)
+    # setCliqueStatus!(csmc.cliq, cliqst)
     notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
 
     # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
