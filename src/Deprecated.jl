@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export setCliqueMsgUp!
 export getMsgUpInitChannel_
 export putMsgUpInit!, fetchMsgUpInit
 export putMsgUpInitStatus!
@@ -75,6 +76,7 @@ end
 @deprecate getMsgUpThisInit(cliq::TreeClique) getMsgUpThis(getCliqueData(cliq))
 
 @deprecate setMsgUpThisInit!(x...) setCliqueMsgUp!(x...)
+@deprecate setCliqueMsgUp!(x...) putCliqueMsgUp!(x...)
 
 """
     $SIGNATURES

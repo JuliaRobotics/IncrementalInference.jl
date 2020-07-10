@@ -170,6 +170,19 @@ getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
 getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 
+
+function putCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
+  # # new replace put! interface
+  # cdc_ = getMsgUpChannel(cd)
+  # if isready(cdc_)
+  #   # first clear an existing value
+  #   take!(cdc_)
+  # end
+  # put!(cdc_, upmsg)
+
+  cdat.upMsg = msg
+end
+
 """
     $(SIGNATURES)
 
@@ -179,9 +192,6 @@ getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
 getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
 getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
 
-function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  cdat.upMsg = msg
-end
 
 """
     $(SIGNATURES)
@@ -264,18 +274,20 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
 
   # put the init upmsg
   cd = getCliqueData(csmc.cliq)
-  # FIXME older interface, likely to be removed at end of #459 and only use upMsgChannel
-  setCliqueMsgUp!(cd, upmsg)
-
-  # new replace put! interface
-  cdc_ = getMsgUpChannel(cd)
-  if isready(cdc_)
-    # first clear an existing value
-    take!(cdc_)
-  end
-  put!(cdc_, upmsg)
 
   setCliqueStatus!(csmc.cliq, status)
+  # FIXME consolidate with upMsgChannel #459
+  putCliqueMsgUp!(cd, upmsg)
+
+    # TODO remove as part of putCliqueMsgUp!
+    # new replace put! interface
+    cdc_ = getMsgUpChannel(cd)
+    if isready(cdc_)
+      # first clear an existing value
+      take!(cdc_)
+    end
+    put!(cdc_, upmsg)
+
   notify(getSolveCondition(csmc.cliq))
 
   infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
@@ -331,12 +343,12 @@ function getMsgsUpInitChildren(treel::AbstractBayesTree,
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # add possible information that may have come via grandparents from elsewhere in the tree
-  thismsg = getMsgUpThis(cliq)  # NOTE was Init
+  thismsg = getMsgUpThis(cliq)
   retmsgs[cliq.index] = thismsg
 
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   for ch in chld
-    chmsg = getMsgUpThis(ch)    # NOTE was Init
+    chmsg = getMsgUpThis(ch)
     if !(ch.index in skip)
       retmsgs[ch.index] = chmsg
     end
