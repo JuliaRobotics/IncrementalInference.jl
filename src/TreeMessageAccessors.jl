@@ -332,7 +332,8 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
         if isready(cdc)
           content = take!(cdc)
         end
-      # FIXME, lock should not be required in all cases.
+      # TODO, lock should not be required in all cases.
+      # FIXME reduce hard print and stream flush calls here
       lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "putMsgUpInitStatus!")
       setCliqueStatus!(cdat, status)
       put!(cdc, LikelihoodMessage(status=status))
