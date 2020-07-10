@@ -255,6 +255,7 @@ function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
 end
 
 
+# FIXME will be consolidated as part of 459
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
   cdat = getCliqueData(cliq)
   cdc = getMsgDwnInitChannel_(cdat)
@@ -287,31 +288,27 @@ DevNotes
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
                                    status::Symbol=getCliqueStatus(csmc.cliq);
-                                   dfg::AbstractDFG=csmc.cliqSubFg)
+                                   dfg::AbstractDFG=csmc.cliqSubFg,
+                                   upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
   #
   # TODO replace with msg channels only
 
-  # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(dfg, csmc.cliq, status)
-
-  # put the init upinitmsg
-  putMsgUpThis!(csmc.cliq, upinitmsg )
+  # put the init upmsg
+  putMsgUpThis!(csmc.cliq, upmsg )
 
   cond = getSolveCondition(csmc.cliq)
   cdc = getMsgUpInitChannel_(csmc.cliq)
   if isready(cdc)
     content = take!(cdc)
   end
-  put!(cdc, upinitmsg)
+  put!(cdc, upmsg)
   setCliqueStatus!(csmc.cliq, status)
-  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
   notify(cond)
 
-  # print a little late
-  infocsm(csmc, "8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))")
+  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
 
   # return new up messages in case the user wants to see
-  return upinitmsg
+  return upmsg
 end
 
 

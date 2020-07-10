@@ -81,7 +81,7 @@ drawTree(tree, show=true)
 # manually
 
 resetTreeCliquesForUpSolve!(tree)
-setTreeCliquesMarginalized!(dfg, tree)
+# setTreeCliquesMarginalized!(dfg, tree) # NOTE, been deprecated as part of $459
 
 
 
