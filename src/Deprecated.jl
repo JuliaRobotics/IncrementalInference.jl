@@ -5,6 +5,8 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+
+export putMsgUpInit!
 export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
 export upPrepOutMsg!
@@ -18,6 +20,38 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+"""
+    $SIGNATURES
+
+Set cliques up init msgs.
+
+DevNotes
+- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
+  -- Likely problem for siblings wanting to have notified parent
+    -- Notifications might have to remain on parent while msgs are stored in each' own clique
+- TODO, must be consolidated with `putMsgUpThis!`
+"""
+function putMsgUpInit!(cliq::TreeClique,
+                       msg::LikelihoodMessage,
+                       logger=SimpleLogger(stdout))
+  #
+  @warn "putMsgUpInit! is deprecated, use putMsgUp! instead."
+  cd = getCliqueData(cliq)
+  soco = getSolveCondition(cliq)
+  # FIXME, locks should not be required in all cases
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
+  # update the register
+  setMsgUpThisInit!(cd, msg)
+  # TODO simplify and fix need for repeat
+  # notify cliq condition that there was a change
+  notify(soco)
+  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
+  sleep(0.1)
+  notify(soco)
+  unlockUpStatus!(cd)
+  nothing
+end
 
 function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
   @warn "putMsgUpInitStatus! is deprecated, try using prepPutCliqMsgUp! instead."

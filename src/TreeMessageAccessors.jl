@@ -19,8 +19,7 @@ export
   getMsgDwnInitChannel_
 
 export
-  putMsgUpThis!,
-  putMsgUpInit!
+  putMsgUpThis!
 
 export
   getMsgDownParent,
@@ -277,37 +276,6 @@ function putMsgUpThis!(cliql::TreeClique,
   end
   # insert the new value
   put!(cd.upMsgChannel, msgs)
-  nothing
-end
-
-"""
-    $SIGNATURES
-
-Set cliques up init msgs.
-
-DevNotes
-- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
-  -- Likely problem for siblings wanting to have notified parent
-    -- Notifications might have to remain on parent while msgs are stored in each' own clique
-- TODO, must be consolidated with `putMsgUpThis!`
-"""
-function putMsgUpInit!(cliq::TreeClique,
-                       msg::LikelihoodMessage,
-                       logger=SimpleLogger(stdout))
-  #
-  cd = getCliqueData(cliq)
-  soco = getSolveCondition(cliq)
-  # FIXME, locks should not be required in all cases
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
-  # update the register
-  setMsgUpThisInit!(cd, msg)
-  # TODO simplify and fix need for repeat
-  # notify cliq condition that there was a change
-  notify(soco)
-  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
-  sleep(0.1)
-  notify(soco)
-  unlockUpStatus!(cd)
   nothing
 end
 
