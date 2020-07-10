@@ -38,10 +38,9 @@ function resetCliqSolve!(dfg::AbstractDFG,
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)
   end
-  prnt = getParent(treel, cliq)
-  if length(prnt) > 0
-    putMsgUpInit!( cliq, LikelihoodMessage() )
-  end
+  # TODO remove once consolidation with upMsgs is done
+  putMsgUpInit!( cliq, LikelihoodMessage() )
+
   cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
   setMsgUpThisInit!(cda, LikelihoodMessage() )

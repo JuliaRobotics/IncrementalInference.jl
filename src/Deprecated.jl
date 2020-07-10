@@ -282,7 +282,7 @@ end
 @deprecate getCliqInitUpMsgs(x...) getMsgUpThisInit(x...)
 @deprecate getInitDownMsg(x...) getMsgDwnThisInit(x...)
 
-@deprecate getMsgsUpThis(x...) fetchMsgUpThis(x...)
+@deprecate getMsgsUpThis(x...) getMsgUpThis(x...)
 @deprecate setMsgUpThis!(x...) putMsgUpThis!(x...)
 
 @deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
@@ -474,11 +474,6 @@ end
 @deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
 @deprecate getUpMsgs(x...) getMsgsUpThis(x...)
 
-# NOTE decided not to store messages in CSMC, but closer to Tree instead (likely on edges)
-# function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
-#   csmc.msgsUp[cliqid] = msgs
-# end
-# getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 
 """
     $SIGNATURES

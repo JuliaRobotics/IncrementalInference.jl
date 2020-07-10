@@ -6,7 +6,7 @@ export
 
 # Reguler accessors
 export
-  fetchMsgUpThis,
+  getMsgUpThis,
   fetchDwnMsgsThis,
   fetchMsgDwnInit,
   fetchMsgUpInit
@@ -171,8 +171,9 @@ end
 
 Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
 """
-fetchMsgUpThis(cliql::TreeClique) = getCliqueData(cliql).upMsg
-fetchMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getUpMsgs(getClique(btl, frontal))
+getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
+getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
+getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getUpMsgs(getClique(btl, frontal))
 
 
 """
