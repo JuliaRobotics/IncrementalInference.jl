@@ -309,11 +309,9 @@ mutable struct BayesTreeNodeData
   isCliqReused::Bool             # iSAM2 holdover
 
   # FIXME remove and only use upMsgChannel / dwnMsgChannel
-  upMsg::LikelihoodMessage       # DEPRECATE for upMsgChannel only
-  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
-
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure dwn init is pull model #674
+  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
   downInitMsg::LikelihoodMessage
   initDownChannel::Channel{LikelihoodMessage}
 
@@ -324,8 +322,10 @@ mutable struct BayesTreeNodeData
   # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
   solvableDims::Channel{Dict{Symbol, Float64}}
 
-  # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
+  # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
+
+  # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
   dwnMsgChannel::Channel{LikelihoodMessage}
 end
 
@@ -352,7 +352,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
-                            upMsg=LikelihoodMessage(),                      # DEPRECATE
                             dwnMsg=LikelihoodMessage(),                     # DEPRECATE
                             downInitMsg=LikelihoodMessage(),                # DEPRECATE
                             initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
@@ -363,7 +362,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upMsgChannel=Channel{LikelihoodMessage}(1),
                             dwnMsgChannel=Channel{LikelihoodMessage}(1)
                           )
-   BayesTreeNodeData(frontalIDs,
+   btnd = BayesTreeNodeData(frontalIDs,
                         separatorIDs,
                         inmsgIDs,
                         potIDs,
@@ -385,7 +384,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        upMsg,
                         dwnMsg,
                         downInitMsg,
                         initDownChannel,
@@ -395,6 +393,9 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         solvableDims,
                         upMsgChannel,
                         dwnMsgChannel  )
+  #
+  put!(btnd.upMsgChannel, LikelihoodMessage())
+  return btnd
 end
 #
 
@@ -445,7 +446,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   TP = TP && c1.dwnMsg == c2.dwnMsg
-  TP = TP && c1.upInitMsgs == c2.upInitMsgs
+  # TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
   TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
