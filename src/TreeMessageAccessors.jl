@@ -283,7 +283,7 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   end
   put!(cdc_, upmsg)
 
-  cdc = getMsgUpInitChannel_(csmc.cliq)
+  cdc = getMsgUpInitChannel_(csmc.cliq)                   # TODO DEPRECATE
   if isready(cdc)
     content = take!(cdc)
   end

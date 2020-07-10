@@ -451,7 +451,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.dwnMsg == c2.dwnMsg
   TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
-  TP = TP && c1.initUpChannel == c2.initUpChannel
+  TP = TP && c1.initUpChannel == c2.initUpChannel                 # TODO DEPRECATE for upMsgChannel
   TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
