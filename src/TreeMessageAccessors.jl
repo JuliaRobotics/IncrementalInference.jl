@@ -13,7 +13,6 @@ export
 # TODO consolidate
 export
   getMsgUpThisInit,
-  getMsgUpInitChannel_,
   getMsgDwnThisInit,
   getMsgDwnInitChannel_
 
@@ -193,9 +192,6 @@ fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(
 
 getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
 getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
-getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel                 # TODO DEPRECATE for getMsgUpChannel
-getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq)) # TODO DEPRECATE for getMsgUpChannel
-
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
@@ -283,11 +279,11 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   end
   put!(cdc_, upmsg)
 
-  cdc = getMsgUpInitChannel_(csmc.cliq)                   # TODO DEPRECATE
-  if isready(cdc)
-    content = take!(cdc)
-  end
-  put!(cdc, upmsg)
+  # cdc = getMsgUpInitChannel_(csmc.cliq)                   # TODO DEPRECATE
+  # if isready(cdc)
+  #   content = take!(cdc)
+  # end
+  # put!(cdc, upmsg)
 
   setCliqueStatus!(csmc.cliq, status)
   notify(getSolveCondition(csmc.cliq))

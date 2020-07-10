@@ -316,7 +316,7 @@ mutable struct BayesTreeNodeData
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure dwn init is pull model #674
   downInitMsg::LikelihoodMessage
-  initUpChannel::Channel{LikelihoodMessage}
+  # initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
 
   # keep the Condition and Channel{Int}'s for now
@@ -357,7 +357,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upMsg=LikelihoodMessage(),
                             dwnMsg=LikelihoodMessage(),
                             downInitMsg=LikelihoodMessage(),         #
-                            initUpChannel=Channel{LikelihoodMessage}(1),
+                            # initUpChannel=Channel{LikelihoodMessage}(1),
                             initDownChannel=Channel{LikelihoodMessage}(1),
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
@@ -391,7 +391,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upMsg,
                         dwnMsg,
                         downInitMsg,
-                        initUpChannel,
+                        # initUpChannel,
                         initDownChannel,
                         solveCondition,
                         lockUpStatus,
@@ -451,7 +451,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.dwnMsg == c2.dwnMsg
   TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
-  TP = TP && c1.initUpChannel == c2.initUpChannel                 # TODO DEPRECATE for upMsgChannel
+  # TP = TP && c1.initUpChannel == c2.initUpChannel                 # TODO DEPRECATE for upMsgChannel
   TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
