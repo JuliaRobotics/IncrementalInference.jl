@@ -20,6 +20,22 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+"""
+    $SIGNATURES
+
+Blocking call until `cliq` upInit processes has arrived at a result.
+"""
+function getCliqInitUpResultFromChannel(cliq::TreeClique)
+  status = take!(getMsgUpInitChannel_(cliq)).status
+  @info "Clique $(cliq.index), dumping up init status $status"
+  return status
+end
+
+
+@deprecate getMsgUpThisInit(cdat::BayesTreeNodeData) getMsgUpThis(cdat)
+@deprecate getMsgUpThisInit(cliq::TreeClique) getMsgUpThis(getCliqueData(cliq))
+
 @deprecate setMsgUpThisInit!(x...) setCliqueMsgUp!(x...)
 
 """

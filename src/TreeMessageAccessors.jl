@@ -110,6 +110,10 @@ unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 ## Regular up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 
+## =============================================================================
+## Consolidating INIT up and down Message Registers/Channels, getters and setters
+## =============================================================================
+
 
 getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
 getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
@@ -188,38 +192,6 @@ fetchMsgDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
-
-
-## =============================================================================
-## Consolidating INIT up and down Message Registers/Channels, getters and setters
-## =============================================================================
-
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
-"""
-getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
-getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
-getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
-
-
-"""
-    $SIGNATURES
-
-Based on a push model from child cliques that should have already completed their computation.
-
-Dev Notes
-- FIXME: Old style -- design has been changed to a Pull model #674
-"""
-getMsgUpThisInit(cdat::BayesTreeNodeData) = cdat.upMsg # cdat.upInitMsgs
-getMsgUpThisInit(cliq::TreeClique) = getMsgUpThisInit(getCliqueData(cliq))
-
-function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  cdat.upMsg = msg
-end
-
 getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
@@ -233,6 +205,10 @@ fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
 fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
+
+function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
+  cdat.upMsg = msg
+end
 
 """
     $(SIGNATURES)
@@ -260,6 +236,16 @@ function putMsgUpThis!(cliql::TreeClique,
   nothing
 end
 
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
+"""
+getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
+getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
+getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
+
+
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   while fetchMsgDwnInit(cliq).status != status
@@ -267,19 +253,6 @@ function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   end
   nothing
 end
-
-"""
-    $SIGNATURES
-
-Blocking call until `cliq` upInit processes has arrived at a result.
-"""
-function getCliqInitUpResultFromChannel(cliq::TreeClique)
-  status = take!(getMsgUpInitChannel_(cliq)).status
-  @info "$(current_task()) Clique $(cliq.index), dumping up init status $status"
-  return status
-end
-
-
 
 
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
