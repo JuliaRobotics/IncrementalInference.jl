@@ -791,7 +791,6 @@ function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
 
     # NOTE, trying consolidation with prepPutUp for #459 effort
     prepPutCliqueStatusMsgUp!(csmc, :needdownmsg)
-    # putMsgUpInitStatus!(csmc.cliq, :needdownmsg, csmc.logger)
     setCliqDrawColor(csmc.cliq, "yellowgreen")
 
     # debuggin #459 transition
