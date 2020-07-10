@@ -75,6 +75,9 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
+
+  # FIXME split bottom part into new CSM (using #760 solution for deleteMsgFactors)
+
   # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
     # set PPE in cliqSubFg
@@ -95,13 +98,13 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
-  # setCliqueStatus!(csmc.cliq, :downsolved) # should be a notify
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
   notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(msgfcts))")
+  # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
@@ -931,16 +934,17 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
     end
-    updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
-    setCliqueStatus!(csmc.cliq, :uprecycled)
-    setCliqDrawColor(csmc.cliq, "orange")
 
-    opt = getSolverParams(csmc.dfg)
-    if opt.dbg
-      csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinLogPath(csmc.dfg, "bt_incremental.pdf")) : nothing
-    end
-    # go to 1
-    return isCliqUpSolved_StateMachine
+    # NOTE busy consolidating #459
+    updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
+        # setCliqueStatus!(csmc.cliq, :uprecycled)
+        # replacing similar functionality from CSM 1.
+    prepPutCliqueStatusMsgUp!(csmc, :uprecycled, dfg=csmc.dfg)
+    setCliqDrawColor(csmc.cliq, "orange")
+    #go to 10
+    return determineCliqIfDownSolve_StateMachine
+        # # go to 1
+        # return isCliqUpSolved_StateMachine
   end
 
   # return to regular solve, go to 2
