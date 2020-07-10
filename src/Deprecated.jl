@@ -9,6 +9,7 @@ export getMsgUpInitChannel_
 export putMsgUpInit!, fetchMsgUpInit
 export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
+export getMsgUpThisInit
 export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
 export setCliqStatus!, getCliqStatus

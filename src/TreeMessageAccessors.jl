@@ -12,7 +12,6 @@ export
 
 # TODO consolidate
 export
-  getMsgUpThisInit,
   getMsgDwnThisInit,
   getMsgDwnInitChannel_
 
@@ -332,12 +331,12 @@ function getMsgsUpInitChildren(treel::AbstractBayesTree,
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # add possible information that may have come via grandparents from elsewhere in the tree
-  thismsg = getMsgUpThisInit(cliq) # TODO change to getmsgUpThis
+  thismsg = getMsgUpThis(cliq)  # NOTE was Init
   retmsgs[cliq.index] = thismsg
 
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   for ch in chld
-    chmsg = getMsgUpThisInit(ch) # TODO change to getmsgUpThis
+    chmsg = getMsgUpThis(ch)    # NOTE was Init
     if !(ch.index in skip)
       retmsgs[ch.index] = chmsg
     end

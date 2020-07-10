@@ -279,7 +279,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # check if init is required and possible
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
   # get incoming clique up messages
-  upmsgs = getMsgsUpInitChildren(csmc)
+  upmsgs = getMsgsUpInitChildren(csmc)                                        # FIXME, post #459 calls?
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
   # interally adds :LIKELIHOODMESSAGE to each of the factors
