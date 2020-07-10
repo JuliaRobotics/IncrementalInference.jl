@@ -434,7 +434,6 @@ export AbstractDFG,
   getCliqFactorIdsAll,
   getCliqFactors,
   areCliqVariablesAllMarginalized,
-  setTreeCliquesMarginalized!,
 
   # generic marginal used during elimitation game
   GenericMarginal,

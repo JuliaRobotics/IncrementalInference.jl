@@ -20,8 +20,7 @@ export
 
 export
   putMsgUpThis!,
-  putMsgUpInit!,
-  putMsgUpInitStatus!
+  putMsgUpInit!
 
 export
   getMsgDownParent,
@@ -261,7 +260,8 @@ Set the upward passing message for This `cliql` in Bayes (Junction) tree.
 Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
-function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+function putMsgUpThis!(cliql::TreeClique,
+                       msgs::LikelihoodMessage )
   # TODO change into a replace put!
   cd = getCliqueData(cliql)
 
@@ -287,7 +287,7 @@ DevNotes
 - ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
   -- Likely problem for siblings wanting to have notified parent
     -- Notifications might have to remain on parent while msgs are stored in each' own clique
-- TODO, must be consolidated
+- TODO, must be consolidated with `putMsgUpThis!`
 """
 function putMsgUpInit!(cliq::TreeClique,
                        msg::LikelihoodMessage,
@@ -306,28 +306,6 @@ function putMsgUpInit!(cliq::TreeClique,
   sleep(0.1)
   notify(soco)
   unlockUpStatus!(cd)
-  nothing
-end
-
-
-function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
-  cdat = getCliqueData(cliq)
-  cdc = getMsgUpInitChannel_(cdat)
-  cond = getSolveCondition(cliq)
-    if isready(cdc)
-      content = take!(cdc)
-    end
-  # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  setCliqueStatus!(cdat, status)
-  # cdat.initialized = status
-  put!(cdc, LikelihoodMessage(status=status))
-  notify(cond)
-    # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
-    sleep(0.1)
-    notify(cond) # getSolveCondition(cliq)
-  #
-  unlockUpStatus!(cdat)
   nothing
 end
 
@@ -358,11 +336,13 @@ end
 
 Notify of new up status and message.
 
-Notes
+DevNotes
 - Major part of #459 consolidation effort.
+- FIXME require consolidation
+  - Perhaps deprecate putMsgUpInitStatus! as separate function?
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol;
+                                   status::Symbol=getCliqueStatus(csmc.cliq);
                                    dfg::AbstractDFG=csmc.cliqSubFg)
   #
   # TODO replace with msg channels only
@@ -370,14 +350,29 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   # construct init's up msg from initialized separator variables
   upinitmsg = prepCliqInitMsgsUp(dfg, csmc.cliq, status)
 
-  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
-  putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
-
   # put the init upinitmsg
+  putMsgUpThis!(csmc.cliq, upinitmsg )
   putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
+
   if getCliqueStatus(csmc.cliq) != status
     infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+      # putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+      cdat = getCliqueData(csmc.cliq)
+      cdc = getMsgUpInitChannel_(cdat)
+      cond = getSolveCondition(csmc.cliq)
+        if isready(cdc)
+          content = take!(cdc)
+        end
+      # FIXME, lock should not be required in all cases.
+      lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "putMsgUpInitStatus!")
+      setCliqueStatus!(cdat, status)
+      put!(cdc, LikelihoodMessage(status=status))
+      notify(cond)
+        # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
+        sleep(0.1)
+        notify(cond) # getSolveCondition(cliq)
+      #
+      unlockUpStatus!(cdat)
   end
 
   # print a little late

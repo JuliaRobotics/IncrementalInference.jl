@@ -5,6 +5,8 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export putMsgUpInitStatus!
+export setTreeCliquesMarginalized!
 export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
 export setCliqStatus!, getCliqStatus
@@ -16,6 +18,61 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
+  @warn "putMsgUpInitStatus! is deprecated, try using prepPutCliqMsgUp! instead."
+  cdat = getCliqueData(cliq)
+  cdc = getMsgUpInitChannel_(cdat)
+  cond = getSolveCondition(cliq)
+    if isready(cdc)
+      content = take!(cdc)
+    end
+  # FIXME, lock should not be required in all cases.
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
+  setCliqueStatus!(cdat, status)
+  put!(cdc, LikelihoodMessage(status=status))
+  notify(cond)
+    # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
+    sleep(0.1)
+    notify(cond) # getSolveCondition(cliq)
+  #
+  unlockUpStatus!(cdat)
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
+"""
+function setTreeCliquesMarginalized!(dfg::AbstractDFG,
+                                     tree::AbstractBayesTree,
+                                     logger=SimpleLogger(stdout))
+  #
+  for (cliid, cliq) in getCliques(tree)
+    if areCliqVariablesAllMarginalized(dfg, cliq)
+
+      ## FIXME, change to prepPutCliqueStatusMsgUp!
+        # need to set the upward messages
+        msgs = prepCliqInitMsgsUp(dfg, cliq)
+        putMsgUpThis!(cliq, msgs)
+        # TODO must be converted to pull model #674
+        # prnt = getParent(tree, cliq)
+        # if length(prnt) > 0
+          # THIS IS FOR INIT PASSES ONLY
+          putMsgUpInit!(cliq, msgs, logger)
+        # end
+        setCliqueStatus!(cliq, :marginalized)
+
+      # set marginalized color
+      setCliqDrawColor(cliq, "blue")
+
+      # set flag, looks to be previously unused???
+      getCliqueData(cliq).allmarginalized = true
+    end
+  end
+  nothing
+end
 
 """
     $SIGNATURES
@@ -33,6 +90,7 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
                                  status::Symbol;
                                  logger=ConsoleLogger() )
   #
+  @warn "notifyCliqUpInitStatus! is deprecated, use putMsgUpInitStatus! directly."
   cd = getCliqueData(cliq)
   with_logger(logger) do
     tt = split(string(now()), 'T')[end]

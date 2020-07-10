@@ -210,7 +210,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
   # take lock for atomic transaction
   lockDwnStatus!(cdat, cliq.index, logger=logger)
 
-  cdat.initialized = status
+  setCliqueStatus!(cdat, status)
 
   putMsgDwnInitStatus!(cliq, status, logger)
 
