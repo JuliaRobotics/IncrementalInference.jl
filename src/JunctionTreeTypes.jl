@@ -457,7 +457,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
   TP = TP && c1.solvableDims == c2.solvableDims
-  TP = TP && c1.upMsgChannel == c2.upMsgChannel
+  TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
   TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
 
   return TP

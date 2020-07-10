@@ -8,8 +8,7 @@ export
 export
   getMsgUpThis,
   fetchDwnMsgsThis,
-  fetchMsgDwnInit,
-  fetchMsgUpInit
+  fetchMsgDwnInit
 
 # TODO consolidate
 export
@@ -192,7 +191,11 @@ fetchMsgDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
-getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
+getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel                 # TODO DEPRECATE for getMsgUpChannel
+getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq)) # TODO DEPRECATE for getMsgUpChannel
+
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
@@ -202,39 +205,13 @@ getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
-getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
-fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
 
 
 function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
   cdat.upMsg = msg
 end
 
-"""
-    $(SIGNATURES)
 
-Set the upward passing message for This `cliql` in Bayes (Junction) tree.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function putMsgUpThis!(cliql::TreeClique,
-                       msgs::LikelihoodMessage )
-  #
-  cd = getCliqueData(cliql)
-
-  # FIXME older interface, likely to be removed at end of #459 and only use upMsgChannel
-  setCliqueMsgUp!(cd, msgs)
-
-  # new replace put! interface
-  if isready(cd.upMsgChannel)
-    # first clear an existing value
-    take!(cd.upMsgChannel)
-  end
-  # insert the new value
-  put!(cd.upMsgChannel, msgs)
-  nothing
-end
 
 """
     $(SIGNATURES)
@@ -294,16 +271,26 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   # TODO replace with msg channels only
 
   # put the init upmsg
-  putMsgUpThis!(csmc.cliq, upmsg )
+  cd = getCliqueData(csmc.cliq)
+  # FIXME older interface, likely to be removed at end of #459 and only use upMsgChannel
+  setCliqueMsgUp!(cd, upmsg)
 
-  cond = getSolveCondition(csmc.cliq)
+  # new replace put! interface
+  cdc_ = getMsgUpChannel(cd)
+  if isready(cdc_)
+    # first clear an existing value
+    take!(cdc_)
+  end
+  put!(cdc_, upmsg)
+
   cdc = getMsgUpInitChannel_(csmc.cliq)
   if isready(cdc)
     content = take!(cdc)
   end
   put!(cdc, upmsg)
+
   setCliqueStatus!(csmc.cliq, status)
-  notify(cond)
+  notify(getSolveCondition(csmc.cliq))
 
   infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
 

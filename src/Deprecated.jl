@@ -5,8 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
-
-export putMsgUpInit!
+export putMsgUpInit!, fetchMsgUpInit
 export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
 export upPrepOutMsg!
@@ -20,6 +19,39 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+function fetchMsgUpInit(cliq::TreeClique)
+  @warn "fetchMsgUpInit is deprecated, use getMsgUpInitChannel_ directly"
+  fetch(getMsgUpInitChannel_(cliq))
+end
+
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for This `cliql` in Bayes (Junction) tree.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
+"""
+function putMsgUpThis!(cliql::TreeClique,
+                       msgs::LikelihoodMessage )
+  #
+  @error "putMsgUpThis! has been deprecated, use prepPutCliqueStatusMsgUp! instead."
+  cd = getCliqueData(cliql)
+
+  # FIXME older interface, likely to be removed at end of #459 and only use upMsgChannel
+  setCliqueMsgUp!(cd, msgs)
+
+  # new replace put! interface
+  cdc_ = getMsgUpChannel(cd)
+  if isready(cdc_)
+    # first clear an existing value
+    take!(cdc_)
+  end
+  # insert the new value
+  put!(cdc_, msgs)
+  nothing
+end
 
 """
     $SIGNATURES
