@@ -424,16 +424,11 @@ function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
     # construct init's up msg to place in parent from initialized separator variables
 
     # consolidated up messaging (#459)
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
     prepPutCliqueStatusMsgUp!(csmc)
-      # msg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, logger=csmc.logger) # , tree,
-      # # infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq, msgs labels $(collect(keys(msg.belief)))")
-      # # set fake up and notify down status -- repeat change status to same as notifyUp above
-      # # NOTE, not sure how to fake specific message when converting from push to pull model, #674
-      # putMsgUpInit!(csmc.cliq, msg)
 
-
+    # also send a down message -- seem weird while doing #459 but okay
     cliqst = getCliqueStatus(csmc.cliq)
-    # setCliqueStatus!(csmc.cliq, cliqst)
     notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
 
     # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
@@ -625,9 +620,6 @@ function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
   elseif cliqst == :marginalized
     # go to 1
     return isCliqUpSolved_StateMachine
-    ## NOTE -- what about putMsgUpInitStatus! ??
-    # go to 10
-    # return determineCliqIfDownSolve_StateMachine
   end
 
   # go to 8b
@@ -793,7 +785,10 @@ function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
   if len > 0 && sum(chstatus .== :needdownmsg) == len
     # TODO maybe can happen where some children need more information?
     infocsm(csmc, "4d, checkIfCliqNullBlock_StateMachine, escalating to :needdownmsg since all children :needdownmsg")
-    putMsgUpInitStatus!(csmc.cliq, :needdownmsg, csmc.logger)
+
+    # NOTE, trying consolidation with prepPutUp for #459 effort
+    prepPutCliqueStatusMsgUp!(csmc, :needdownmsg)
+    # putMsgUpInitStatus!(csmc.cliq, :needdownmsg, csmc.logger)
     setCliqDrawColor(csmc.cliq, "yellowgreen")
 
     # debuggin #459 transition
