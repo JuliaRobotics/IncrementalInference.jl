@@ -167,6 +167,23 @@ function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage
 end
 
 
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
+
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
+"""
+getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
+getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
+getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
+
+function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
+  cdat.upMsg = msg
+end
+
 """
     $(SIGNATURES)
 
@@ -190,8 +207,6 @@ fetchMsgDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
-getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
-getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
@@ -200,24 +215,6 @@ getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))
 
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
-
-
-
-function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  cdat.upMsg = msg
-end
-
-
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
-"""
-getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
-getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
-getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
-
 
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
