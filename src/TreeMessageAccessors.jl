@@ -296,27 +296,15 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
 
   # put the init upinitmsg
   putMsgUpThis!(csmc.cliq, upinitmsg )
-  # putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
 
   cond = getSolveCondition(csmc.cliq)
-  if getCliqueStatus(csmc.cliq) != status
-    infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-      cdat = getCliqueData(csmc.cliq)
-      cdc = getMsgUpInitChannel_(cdat)
-        if isready(cdc)
-          content = take!(cdc)
-        end
-      # TODO, lock should not be required in all cases.
-      # FIXME reduce hard print and stream flush calls here
-      lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "putMsgUpInitStatus!")
-      setCliqueStatus!(cdat, status)
-      put!(cdc, LikelihoodMessage(status=status))
-      notify(cond)
-        # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
-        sleep(0.1)
-      #
-      unlockUpStatus!(cdat)
+  cdc = getMsgUpInitChannel_(csmc.cliq)
+  if isready(cdc)
+    content = take!(cdc)
   end
+  put!(cdc, upinitmsg)
+  setCliqueStatus!(csmc.cliq, status)
+  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
   notify(cond)
 
   # print a little late
