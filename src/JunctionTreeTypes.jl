@@ -309,9 +309,7 @@ mutable struct BayesTreeNodeData
   #  iSAM2 style
   isCliqReused::Bool
 
-  # future might concentrate these four fields down to two
-  # these should become specialized LikelihoodMessage type
-  # TODO, likely to be replaced by Channel counterparts
+  # FIXME remove and only use upMsgChannel / dwnMsgChannel
   upMsg::LikelihoodMessage
   dwnMsg::LikelihoodMessage
 
@@ -321,6 +319,7 @@ mutable struct BayesTreeNodeData
   initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
 
+  # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
