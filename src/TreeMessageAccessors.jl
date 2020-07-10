@@ -20,8 +20,7 @@ export
 
 export
   putMsgUpThis!,
-  putMsgUpInit!,
-  putMsgUpInitStatus!
+  putMsgUpInit!
 
 export
   getMsgDownParent,
@@ -261,7 +260,8 @@ Set the upward passing message for This `cliql` in Bayes (Junction) tree.
 Dev Notes
 - TODO setUpMsg! should also set inferred dimension
 """
-function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+function putMsgUpThis!(cliql::TreeClique,
+                       msgs::LikelihoodMessage )
   # TODO change into a replace put!
   cd = getCliqueData(cliql)
 
@@ -310,27 +310,6 @@ function putMsgUpInit!(cliq::TreeClique,
 end
 
 
-function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
-  cdat = getCliqueData(cliq)
-  cdc = getMsgUpInitChannel_(cdat)
-  cond = getSolveCondition(cliq)
-    if isready(cdc)
-      content = take!(cdc)
-    end
-  # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  setCliqueStatus!(cdat, status)
-  put!(cdc, LikelihoodMessage(status=status))
-  notify(cond)
-    # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
-    sleep(0.1)
-    notify(cond) # getSolveCondition(cliq)
-  #
-  unlockUpStatus!(cdat)
-  nothing
-end
-
-
 
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
   cdat = getCliqueData(cliq)
@@ -357,8 +336,10 @@ end
 
 Notify of new up status and message.
 
-Notes
+DevNotes
 - Major part of #459 consolidation effort.
+- FIXME require consolidation
+  - Perhaps deprecate putMsgUpInitStatus! as separate function?
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
                                    status::Symbol=getCliqueStatus(csmc.cliq);
@@ -375,7 +356,23 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
 
   if getCliqueStatus(csmc.cliq) != status
     infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+      # putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
+      cdat = getCliqueData(csmc.cliq)
+      cdc = getMsgUpInitChannel_(cdat)
+      cond = getSolveCondition(csmc.cliq)
+        if isready(cdc)
+          content = take!(cdc)
+        end
+      # FIXME, lock should not be required in all cases.
+      lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "putMsgUpInitStatus!")
+      setCliqueStatus!(cdat, status)
+      put!(cdc, LikelihoodMessage(status=status))
+      notify(cond)
+        # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
+        sleep(0.1)
+        notify(cond) # getSolveCondition(cliq)
+      #
+      unlockUpStatus!(cdat)
   end
 
   # print a little late

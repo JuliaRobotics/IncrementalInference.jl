@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
 export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
@@ -17,6 +18,27 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
+  @warn "putMsgUpInitStatus! is deprecated, try using prepPutCliqMsgUp! instead."
+  cdat = getCliqueData(cliq)
+  cdc = getMsgUpInitChannel_(cdat)
+  cond = getSolveCondition(cliq)
+    if isready(cdc)
+      content = take!(cdc)
+    end
+  # FIXME, lock should not be required in all cases.
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
+  setCliqueStatus!(cdat, status)
+  put!(cdc, LikelihoodMessage(status=status))
+  notify(cond)
+    # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
+    sleep(0.1)
+    notify(cond) # getSolveCondition(cliq)
+  #
+  unlockUpStatus!(cdat)
+  nothing
+end
 
 """
     $SIGNATURES
