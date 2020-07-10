@@ -20,6 +20,7 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+@deprecate setMsgUpThisInit!(x...) setCliqueMsgUp!(x...)
 
 """
     $SIGNATURES

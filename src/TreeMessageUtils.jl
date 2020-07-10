@@ -40,10 +40,10 @@ function resetCliqSolve!(dfg::AbstractDFG,
   end
   # TODO remove once consolidation with upMsgs is done
   putMsgUpInit!( cliq, LikelihoodMessage() )
+  setCliqueMsgUp(LikelihoodMessage())
+  setCliqueMsgUp!(cda, LikelihoodMessage() )
 
-  cda.upMsg  = LikelihoodMessage()
   cda.dwnMsg = LikelihoodMessage()
-  setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
   setCliqueStatus!(cliq, :null)

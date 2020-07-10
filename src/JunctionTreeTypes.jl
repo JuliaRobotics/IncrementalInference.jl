@@ -451,7 +451,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.upsolved == c2.upsolved
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
-  TP = TP && c1.upMsg == c2.upMsg
+  TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   TP = TP && c1.dwnMsg == c2.dwnMsg
   TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
