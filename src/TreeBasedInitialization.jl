@@ -402,14 +402,14 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqueStatus(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = (fetch(getMsgUpInitChannel_(ch))).status  # fetchMsgUpInit(ch).status
+    ret[ch.index] = (fetch(getMsgUpChannel(ch))).status  # fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       tt = split(string(now()), 'T')[end]
-      @info "cliq $(prnt.index), $(tt), fetched all, keys=$(keys(ret))."
+      @info "$(tt), cliq $(prnt.index), fetched all, keys=$(keys(ret))."
   end
   return ret
 end

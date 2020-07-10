@@ -959,10 +959,8 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     cliqcd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
     cliqcd.upMsgChannel = Channel{LikelihoodMessage}(1)
-    # cliqcd.initUpChannel = Channel{LikelihoodMessage}(1)           # TODO DEPRECATE
     cliqcd.initDownChannel = Channel{LikelihoodMessage}(1)
     cliqcd.solveCondition = Condition()
-    # cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
