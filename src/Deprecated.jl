@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export putMsgUpInit!, fetchMsgUpInit
 export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
 export upPrepOutMsg!
@@ -18,6 +19,88 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+function fetchMsgUpInit(cliq::TreeClique)
+  @warn "fetchMsgUpInit is deprecated, use getMsgUpInitChannel_ directly"
+  fetch(getMsgUpInitChannel_(cliq))
+end
+
+"""
+    $(SIGNATURES)
+
+Set the upward passing message for This `cliql` in Bayes (Junction) tree.
+
+Dev Notes
+- TODO setUpMsg! should also set inferred dimension
+"""
+function putMsgUpThis!(cliql::TreeClique,
+                       msgs::LikelihoodMessage )
+  #
+  @error "putMsgUpThis! has been deprecated, use prepPutCliqueStatusMsgUp! instead."
+  cd = getCliqueData(cliql)
+
+  # FIXME older interface, likely to be removed at end of #459 and only use upMsgChannel
+  setCliqueMsgUp!(cd, msgs)
+
+  # new replace put! interface
+  cdc_ = getMsgUpChannel(cd)
+  if isready(cdc_)
+    # first clear an existing value
+    take!(cdc_)
+  end
+  # insert the new value
+  put!(cdc_, msgs)
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Blocking call until `cliq` upInit processes has arrived at a result.
+"""
+function getCliqInitUpResultFromChannel(cliq::TreeClique)
+  status = take!(getMsgUpInitChannel_(cliq)).status
+  @info "Clique $(cliq.index), dumping up init status $status"
+  return status
+end
+
+
+@deprecate getMsgUpThisInit(cdat::BayesTreeNodeData) getMsgUpThis(cdat)
+@deprecate getMsgUpThisInit(cliq::TreeClique) getMsgUpThis(getCliqueData(cliq))
+
+@deprecate setMsgUpThisInit!(x...) setCliqueMsgUp!(x...)
+
+"""
+    $SIGNATURES
+
+Set cliques up init msgs.
+
+DevNotes
+- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
+  -- Likely problem for siblings wanting to have notified parent
+    -- Notifications might have to remain on parent while msgs are stored in each' own clique
+- TODO, must be consolidated with `putMsgUpThis!`
+"""
+function putMsgUpInit!(cliq::TreeClique,
+                       msg::LikelihoodMessage,
+                       logger=SimpleLogger(stdout))
+  #
+  @warn "putMsgUpInit! is deprecated, use putMsgUp! instead."
+  cd = getCliqueData(cliq)
+  soco = getSolveCondition(cliq)
+  # FIXME, locks should not be required in all cases
+  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
+  # update the register
+  setMsgUpThisInit!(cd, msg)
+  # TODO simplify and fix need for repeat
+  # notify cliq condition that there was a change
+  notify(soco)
+  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
+  sleep(0.1)
+  notify(soco)
+  unlockUpStatus!(cd)
+  nothing
+end
 
 function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
   @warn "putMsgUpInitStatus! is deprecated, try using prepPutCliqMsgUp! instead."
@@ -282,7 +365,7 @@ end
 @deprecate getCliqInitUpMsgs(x...) getMsgUpThisInit(x...)
 @deprecate getInitDownMsg(x...) getMsgDwnThisInit(x...)
 
-@deprecate getMsgsUpThis(x...) fetchMsgUpThis(x...)
+@deprecate getMsgsUpThis(x...) getMsgUpThis(x...)
 @deprecate setMsgUpThis!(x...) putMsgUpThis!(x...)
 
 @deprecate getMsgsDwnThis(x...) fetchMsgDwnThis(x...)
@@ -474,11 +557,6 @@ end
 @deprecate setUpMsg!(cliql::TreeClique, msgs::LikelihoodMessage) setMsgUpThis!(cliql, msgs)
 @deprecate getUpMsgs(x...) getMsgsUpThis(x...)
 
-# NOTE decided not to store messages in CSMC, but closer to Tree instead (likely on edges)
-# function setUpMsg!(csmc::CliqStateMachineContainer, cliqid::Int, msgs::LikelihoodMessage)
-#   csmc.msgsUp[cliqid] = msgs
-# end
-# getUpMsgs(csmc::CliqStateMachineContainer) = csmc.msgsUp
 
 """
     $SIGNATURES

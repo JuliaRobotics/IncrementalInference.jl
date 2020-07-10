@@ -38,13 +38,11 @@ function resetCliqSolve!(dfg::AbstractDFG,
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)
   end
-  prnt = getParent(treel, cliq)
-  if length(prnt) > 0
-    putMsgUpInit!( cliq, LikelihoodMessage() )
-  end
-  cda.upMsg  = LikelihoodMessage()
+  # TODO remove once consolidation with upMsgs is done
+  # putMsgUpInit!( cliq, LikelihoodMessage() )
+  setCliqueMsgUp!(cda, LikelihoodMessage() )
+
   cda.dwnMsg = LikelihoodMessage()
-  setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
   setCliqueStatus!(cliq, :null)

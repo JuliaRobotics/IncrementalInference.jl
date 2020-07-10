@@ -373,10 +373,7 @@ DevNotes
 - NEEDS DFG v0.8.1, see IIF #760
 """
 function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
-  ## MAYBE try move prepPut notification here as single point??
-  ## HAD TROUBLE: doesnt work, IIF and RoME tests hang
-  # setCliqueStatus!(csmc.cliq, status)
-  # prepPutCliqueStatusMsgUp!(csmc, status)
+  #
   status = getCliqueStatus(csmc.cliq)
 
   # remove msg factors that were added to the subfg

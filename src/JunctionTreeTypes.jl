@@ -309,26 +309,24 @@ mutable struct BayesTreeNodeData
   #  iSAM2 style
   isCliqReused::Bool
 
-  # future might concentrate these four fields down to two
-  # these should become specialized LikelihoodMessage type
-  # TODO, likely to be replaced by Channel counterparts
+  # FIXME remove and only use upMsgChannel / dwnMsgChannel
   upMsg::LikelihoodMessage
   dwnMsg::LikelihoodMessage
 
   # FIXME Deprecate separate init message locations -- only use up and dwn
-  # FIXME ensure these are converted to pull model first #674
-  upInitMsgs::LikelihoodMessage # TODO, drop this field and only use upMsg
+  # FIXME ensure dwn init is pull model #674
   downInitMsg::LikelihoodMessage
   initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
 
+  # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
   # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
   solvableDims::Channel{Dict{Symbol, Float64}}
 
-  # in and out message channels relating to THIS clique -- only for pull model #674
+  # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
   upMsgChannel::Channel{LikelihoodMessage}
   dwnMsgChannel::Channel{LikelihoodMessage}
 end
@@ -358,7 +356,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             isCliqReused=false,
                             upMsg=LikelihoodMessage(),
                             dwnMsg=LikelihoodMessage(),
-                            upInitMsgs=LikelihoodMessage(),  # Dict{Int, LikelihoodMessage}()
                             downInitMsg=LikelihoodMessage(),         #
                             initUpChannel=Channel{LikelihoodMessage}(1),
                             initDownChannel=Channel{LikelihoodMessage}(1),
@@ -393,7 +390,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         isCliqReused,
                         upMsg,
                         dwnMsg,
-                        upInitMsgs,
                         downInitMsg,
                         initUpChannel,
                         initDownChannel,
@@ -451,7 +447,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.upsolved == c2.upsolved
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
-  TP = TP && c1.upMsg == c2.upMsg
+  TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   TP = TP && c1.dwnMsg == c2.dwnMsg
   TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
@@ -461,7 +457,7 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
   TP = TP && c1.solvableDims == c2.solvableDims
-  TP = TP && c1.upMsgChannel == c2.upMsgChannel
+  TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
   TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
 
   return TP
