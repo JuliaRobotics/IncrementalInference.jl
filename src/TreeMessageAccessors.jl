@@ -287,7 +287,7 @@ DevNotes
 - ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
   -- Likely problem for siblings wanting to have notified parent
     -- Notifications might have to remain on parent while msgs are stored in each' own clique
-- TODO, must be consolidated
+- TODO, must be consolidated with `putMsgUpThis!`
 """
 function putMsgUpInit!(cliq::TreeClique,
                        msg::LikelihoodMessage,
