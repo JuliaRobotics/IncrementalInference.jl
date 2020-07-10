@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)                       # FIXME, post #459 calls?
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -296,7 +296,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
   # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])
+  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])     # FIXME, post #459 calls?
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -402,14 +402,14 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqueStatus(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = (fetch(getMsgUpInitChannel_(ch))).status # fetchMsgUpInit(ch).status
+    ret[ch.index] = (fetch(getMsgUpChannel(ch))).status  # fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       tt = split(string(now()), 'T')[end]
-      @info "cliq $(prnt.index), $(tt), fetched all, keys=$(keys(ret))."
+      @info "$(tt), cliq $(prnt.index), fetched all, keys=$(keys(ret))."
   end
   return ret
 end

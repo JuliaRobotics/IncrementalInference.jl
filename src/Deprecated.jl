@@ -5,9 +5,11 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export getMsgUpInitChannel_
 export putMsgUpInit!, fetchMsgUpInit
 export putMsgUpInitStatus!
 export setTreeCliquesMarginalized!
+export getMsgUpThisInit
 export upPrepOutMsg!
 export getCliqStatusUp, getCliqueStatusUp
 export setCliqStatus!, getCliqStatus
@@ -19,6 +21,10 @@ export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
 
+
+@deprecate getMsgUpInitChannel_(x...) getMsgUpChannel(x...)
+# getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel                 # TODO DEPRECATE for getMsgUpChannel
+# getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq)) # TODO DEPRECATE for getMsgUpChannel
 
 function fetchMsgUpInit(cliq::TreeClique)
   @warn "fetchMsgUpInit is deprecated, use getMsgUpInitChannel_ directly"

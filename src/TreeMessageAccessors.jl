@@ -12,8 +12,6 @@ export
 
 # TODO consolidate
 export
-  getMsgUpThisInit,
-  getMsgUpInitChannel_,
   getMsgDwnThisInit,
   getMsgDwnInitChannel_
 
@@ -168,6 +166,23 @@ function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage
 end
 
 
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
+
+
+"""
+    $(SIGNATURES)
+
+Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
+"""
+getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
+getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
+getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
+
+function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
+  cdat.upMsg = msg
+end
+
 """
     $(SIGNATURES)
 
@@ -191,11 +206,6 @@ fetchMsgDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
 fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
-getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
-getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
-getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel                 # TODO DEPRECATE for getMsgUpChannel
-getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq)) # TODO DEPRECATE for getMsgUpChannel
-
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
@@ -204,24 +214,6 @@ getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))
 
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
-
-
-
-function setCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  cdat.upMsg = msg
-end
-
-
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
-"""
-getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
-getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
-getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
-
 
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
@@ -283,12 +275,6 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   end
   put!(cdc_, upmsg)
 
-  cdc = getMsgUpInitChannel_(csmc.cliq)
-  if isready(cdc)
-    content = take!(cdc)
-  end
-  put!(cdc, upmsg)
-
   setCliqueStatus!(csmc.cliq, status)
   notify(getSolveCondition(csmc.cliq))
 
@@ -345,12 +331,12 @@ function getMsgsUpInitChildren(treel::AbstractBayesTree,
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # add possible information that may have come via grandparents from elsewhere in the tree
-  thismsg = getMsgUpThisInit(cliq) # TODO change to getmsgUpThis
+  thismsg = getMsgUpThis(cliq)  # NOTE was Init
   retmsgs[cliq.index] = thismsg
 
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   for ch in chld
-    chmsg = getMsgUpThisInit(ch) # TODO change to getmsgUpThis
+    chmsg = getMsgUpThis(ch)    # NOTE was Init
     if !(ch.index in skip)
       retmsgs[ch.index] = chmsg
     end

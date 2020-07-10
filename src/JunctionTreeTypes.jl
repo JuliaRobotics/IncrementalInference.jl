@@ -294,11 +294,11 @@ mutable struct BayesTreeNodeData
 
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Symbol} # Int
-  directFrtlMsgIDs::Vector{Symbol} # Int
-  msgskipIDs::Vector{Symbol} # Int
-  itervarIDs::Vector{Symbol} # Int
-  directPriorMsgIDs::Vector{Symbol} # Int
+  directvarIDs::Vector{Symbol}
+  directFrtlMsgIDs::Vector{Symbol}
+  msgskipIDs::Vector{Symbol}
+  itervarIDs::Vector{Symbol}
+  directPriorMsgIDs::Vector{Symbol}
   debug
   debugDwn
 
@@ -306,17 +306,15 @@ mutable struct BayesTreeNodeData
   initialized::Symbol
   upsolved::Bool
   downsolved::Bool
-  #  iSAM2 style
-  isCliqReused::Bool
+  isCliqReused::Bool             # iSAM2 holdover
 
   # FIXME remove and only use upMsgChannel / dwnMsgChannel
-  upMsg::LikelihoodMessage
-  dwnMsg::LikelihoodMessage
+  upMsg::LikelihoodMessage       # DEPRECATE for upMsgChannel only
+  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
 
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure dwn init is pull model #674
   downInitMsg::LikelihoodMessage
-  initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
 
   # keep the Condition and Channel{Int}'s for now
@@ -337,28 +335,27 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             inmsgIDs=Symbol[],
                             potIDs=Symbol[],
                             potentials=Symbol[],
-                            partialpotential=Bool[],            # 6
+                            partialpotential=Bool[],
                             dwnPotentials=Symbol[],
                             dwnPartialPotential=Bool[],
                             cliqAssocMat=Array{Bool}(undef, 0,0),
                             cliqMsgMat=Array{Bool}(undef, 0,0),
                             directvarIDs=Int[],
-                            directFrtlMsgIDs=Int[],             # 10+2
+                            directFrtlMsgIDs=Int[],
                             msgskipIDs=Int[],
                             itervarIDs=Int[],
-                            directPriorMsgIDs=Int[],            # 13+2
+                            directPriorMsgIDs=Int[],
                             debug=nothing,
-                            debugDwn=nothing,                   # 15+2
+                            debugDwn=nothing,
                             allmarginalized=false,
                             initialized=:null,
                             upsolved=false,
-                            downsolved=false,                   #
+                            downsolved=false,
                             isCliqReused=false,
-                            upMsg=LikelihoodMessage(),
-                            dwnMsg=LikelihoodMessage(),
-                            downInitMsg=LikelihoodMessage(),         #
-                            initUpChannel=Channel{LikelihoodMessage}(1),
-                            initDownChannel=Channel{LikelihoodMessage}(1),
+                            upMsg=LikelihoodMessage(),                      # DEPRECATE
+                            dwnMsg=LikelihoodMessage(),                     # DEPRECATE
+                            downInitMsg=LikelihoodMessage(),                # DEPRECATE
+                            initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
@@ -391,7 +388,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upMsg,
                         dwnMsg,
                         downInitMsg,
-                        initUpChannel,
                         initDownChannel,
                         solveCondition,
                         lockUpStatus,
@@ -451,7 +447,6 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.dwnMsg == c2.dwnMsg
   TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
-  TP = TP && c1.initUpChannel == c2.initUpChannel
   TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
