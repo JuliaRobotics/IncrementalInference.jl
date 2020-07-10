@@ -112,7 +112,7 @@ unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 ## =============================================================================
 
 
-getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  # FIXME convert to Channel only
 getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
 
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
@@ -171,16 +171,15 @@ getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 
 
-function putCliqueMsgUp!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  # # new replace put! interface
-  # cdc_ = getMsgUpChannel(cd)
-  # if isready(cdc_)
-  #   # first clear an existing value
-  #   take!(cdc_)
-  # end
-  # put!(cdc_, upmsg)
-
-  cdat.upMsg = msg
+function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
+  # new replace put! interface
+  cdc_ = getMsgUpChannel(cdat)
+  if isready(cdc_)
+    # first clear an existing value
+    take!(cdc_)
+  end
+  put!(cdc_, upmsg)
+  # cdat.upMsg = msg
 end
 
 """
@@ -188,7 +187,7 @@ end
 
 Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
 """
-getMsgUpThis(cdat::BayesTreeNodeData) = cdat.upMsg
+getMsgUpThis(cdat::BayesTreeNodeData) = fetch(getMsgUpChannel(cdat))  # cdat.upMsg    # TODO rename to fetchMsgUp
 getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
 getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
 
@@ -276,17 +275,17 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   cd = getCliqueData(csmc.cliq)
 
   setCliqueStatus!(csmc.cliq, status)
-  # FIXME consolidate with upMsgChannel #459
-  putCliqueMsgUp!(cd, upmsg)
 
+  # NOTE consolidate with upMsgChannel #459
+  putCliqueMsgUp!(cd, upmsg)
     # TODO remove as part of putCliqueMsgUp!
     # new replace put! interface
-    cdc_ = getMsgUpChannel(cd)
-    if isready(cdc_)
-      # first clear an existing value
-      take!(cdc_)
-    end
-    put!(cdc_, upmsg)
+    # cdc_ = getMsgUpChannel(cd)
+    # if isready(cdc_)
+    #   # first clear an existing value
+    #   take!(cdc_)
+    # end
+    # put!(cdc_, upmsg)
 
   notify(getSolveCondition(csmc.cliq))
 
