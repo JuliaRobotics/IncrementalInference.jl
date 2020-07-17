@@ -19,19 +19,19 @@ using
   Statistics,
   Random,
   NLsolve,
+  NLSolversBase,
+  Optim,
   StatsBase,
   JLD2,
   FileIO,
   ProgressMeter,
   DocStringExtensions,
   FunctionalStateMachine,
-  Optim, # might be deprecated in favor for only NLsolve dependency
   JSON2,
   Combinatorics
 
-#added for parametric
-using ValueShapes
-using NLSolversBase
+# experimental for replacing BayesTree on Graphs.jl
+using MetaGraphs
 
 using Logging
 
@@ -41,20 +41,13 @@ using SuiteSparse.CHOLMOD: SuiteSparse_long # For CCOLAMD constraints.
 using .Ccolamd
 
 
-
-
-import Base: convert
-# import HDF5: root
+import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, hasOrphans, compare, compareAllSpecial
-# import DistributedFactorGraphs: getVariableOrder
-# import DistributedFactorGraphs: getEstimates
-
-# missing exports
-import DistributedFactorGraphs: PackedFunctionNodeData, FunctionNodeData
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
+import DistributedFactorGraphs: rebuildFactorMetadata!
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -63,7 +56,6 @@ import DistributedFactorGraphs: isSolvable
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
 const AMP = ApproxManifoldProducts
-# const DFG = DistributedFactorGraphs
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 
@@ -81,13 +73,14 @@ export AbstractDFG,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
+  listSupersolves, listSolvekeys,
+  deepcopySolvekeys!, deepcopySupersolve!,
   # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
   *,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
-  assignTreeHistory!,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
@@ -102,7 +95,9 @@ export AbstractDFG,
   filterHistAllToArray,
   cliqHistFilterTransitions,
   printCliqSummary,
+  printHistoryLine,
   printCliqHistorySummary,
+  printCliqHistorySequential,
   printGraphSummary,
   printSummary,
   print,
@@ -161,7 +156,6 @@ export AbstractDFG,
   getVariablePPE,
   getVariablePPEs,
   sortVarNested,
-  hasOrphans,
   drawCopyFG,
   isVariable,
   isFactor,
@@ -178,12 +172,12 @@ export AbstractDFG,
   findClosestTimestamp,
   printVariable,
   printFactor,
+  getTimestamp,
 
   # using either dictionary or cloudgraphs
   # VariableNodeData,
   # PackedVariableNodeData,
   FactorMetadata,
-  getpackedtype,
   encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData, # moved to DFG
@@ -193,8 +187,10 @@ export AbstractDFG,
   categoricalfromstring,
   extractdistribution,
 
-  FactorGraph,
+  # FactorGraph,
   SolverParams,
+  getSolvable,
+  setSolvable!,
   addNode!,
   addVariable!,
   deleteVariable!,
@@ -207,6 +203,8 @@ export AbstractDFG,
   initManual!,
   initVariableManual!,
   initVariable!,
+  resetInitialValues!,
+  resetInitValues!,
   asyncTreeInferUp!,
   initInferTreeUp!,
   solveCliqWithStateMachine!,
@@ -216,7 +214,6 @@ export AbstractDFG,
   setVariableInitialized!,
   setVariableInferDim!,
   resetVariable!,
-  resetCliqSolve!,
   getFactor,
   getFactorDim,
   getVariableDim,
@@ -229,7 +226,6 @@ export AbstractDFG,
   getCliqSiblingsPriorityInitOrder,
   isCliqFullDim,
   getVariable,
-  # getVert, # deprecated use DFG.getVariable getFactor instead
   getCliqueData,
   setCliqueData!,
   getManifolds,
@@ -242,9 +238,6 @@ export AbstractDFG,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # buildCliqSubgraphUp,
-  # buildCliqSubgraphDown,
-  setCliqUpInitMsgs!,
   cliqInitSolveUpByStateMachine!,
 
   # state machine functions
@@ -273,16 +266,10 @@ export AbstractDFG,
   areCliqVariablesAllInitialized,
   areCliqChildrenNeedDownMsg,
   areCliqChildrenAllUpSolved,
+  ensureSolvable!,
   ensureAllInitialized!,
-  doCliqAutoInitUpPart1!,
-  doCliqAutoInitUpPart2!,
   doCliqInitDown!,
   cycleInitByVarOrder!,
-  doCliqUpSolve!,
-  getCliqInitUpMsgs,
-  getCliqStatus,
-  setCliqStatus!,
-  getSolveCondition,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
   updateFullVert!,
@@ -295,8 +282,11 @@ export AbstractDFG,
   ExploreTreeType,
   FactorGraph,
   initfg,
-  buildSubgraphFromLabels,
+  buildSubgraph,
+  copyGraph,
+  buildCliqSubgraph!,
   subgraphShortestPath,
+  transferUpdateSubGraph!,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
@@ -307,16 +297,10 @@ export AbstractDFG,
   prepBatchTree!,
   wipeBuildNewTree!,
   buildCliquePotentials,
-  hasCliq,
-  getCliq,
-  whichCliq,
+
   getCliqDepth,
   getTreeAllFrontalSyms,
   getTreeCliqUpMsgsAll,
-  stackCliqUpMsgsByVariable,
-  getCliqChildMsgsUp,
-  getCliqParentMsgDown,
-  getCliqDownMsgsAfterDownSolve,
   isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
@@ -324,12 +308,11 @@ export AbstractDFG,
   getParent,
   getCliqSiblings,
   getNumCliqs,
-  getKDE,
-  getVertKDE,
+  getBelief, getKDE,
   initializeNode!,
   CliqStateMachineContainer,
-  batchSolve!,
   solveTree!,
+  solveGraph!,
   solveCliq!,
   fifoFreeze!,
   getCurrentWorkspaceFactors,
@@ -342,17 +325,16 @@ export AbstractDFG,
   #functors need
   getSample,
   freshSamples!,
+  freshSamples,
 
   #Visualization
-  writeGraphPdf, # deprecated, but first move code to drawGraph before deleting
+  writeGraphPdf, # deprecated
   drawGraph,
   drawGraphCliq,
   drawCliqSubgraphUpMocking,
   drawTree,
+  drawTreeAsyncLoop,
   printgraphmax,
-  # allnums,
-  # isnestednum,
-  # sortnestedperm,
 
   # Bayes (Junction) Tree
   evalPotential,
@@ -395,7 +377,7 @@ export AbstractDFG,
   getCliqOrderUpSolve,
   getCliqVarInitOrderUp,
   getCliqInitVarOrderDown,
-  getCliqStatusUp,
+  getCliqueStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
@@ -435,12 +417,11 @@ export AbstractDFG,
   # user functions
   proposalbeliefs,
   predictbelief,
-  getCliq,
   getCliqMat,
   getCliqAssocMat,
   getCliqMsgMat,
   getCliqFrontalVarIds,
-  getFrontals,                     # duplicate
+  getFrontals,
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
   getCliqVarIdsAll,
@@ -452,7 +433,6 @@ export AbstractDFG,
   getCliqFactorIdsAll,
   getCliqFactors,
   areCliqVariablesAllMarginalized,
-  setTreeCliquesMarginalized!,
 
   # generic marginal used during elimitation game
   GenericMarginal,
@@ -465,33 +445,14 @@ export AbstractDFG,
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
-  # convert2packedfunctionnode,
-  # encodefg,
-  # decodefg,
-  # savejld,
-  # loadjld,
   landmarks,
   setCliqDrawColor,
 
-  # csm utils
-  fetchCliqTaskHistoryAll!,
-  fetchAssignTaskHistoryAll!,
-
   # Temp placeholder for evaluating string types to real types
-  _evalType,
   saveDFG,
-  loadDFG,
+  loadDFG!,  loadDFG,
   rebuildFactorMetadata!,
 
-  setUpMsg!,
-  upMsg,
-  getDwnMsgs,
-  getUpMsgs,
-  setDwnMsg!,
-  dwnMsg,
-  getDwnMsgs,
-  # getCliqMsgsUp,
-  # getCliqMsgsDown,
   getCliqVarSolveOrderUp,
 
   getSym,
@@ -514,6 +475,7 @@ export AbstractDFG,
   setVariableRefence!,
   shuffleXAltD,
   reshapeVec2Mat,
+  accumulateFactorChain,
 
 
   # For 1D example,
@@ -536,9 +498,13 @@ const NothingUnion{T} = Union{Nothing, T}
 # regular
 include("FactorGraphTypes.jl")
 
-# JT TODO move to somewhere more fitting?
-const InMemDFGType = DFG.LightDFG{SolverParams} #swap out default in v0.8.0/v0.9.0?
-# const InMemDFGType = DFG.GraphsDFG{SolverParams}
+# JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
+const InMemDFGType = DFG.LightDFG{SolverParams}
+
+import DistributedFactorGraphs: getFactorOperationalMemoryType
+
+getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
+
 
 include("AliasScalarSampling.jl")
 include("DefaultNodeTypes.jl")
@@ -554,6 +520,7 @@ include("CompareUtils.jl")
 # tree and init related functions
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
+include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 
@@ -563,15 +530,14 @@ include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
-include("SolveTree01.jl")
+include("SolveTree.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 
 #EXPERIMENTAL parametric
-include("ParametricMessageUtils.jl")
-include("ParametricSolveTree.jl")
-include("ParametricCliqStateMachine.jl")
+include("SolveTree_Parametric.jl")
+include("CliqStateMachine_Parametric.jl")
 include("ParametricUtils.jl")
 
 # special variables and factors, see RoME.jl for more examples
@@ -592,7 +558,7 @@ include("Deprecated.jl")
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
     @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
-      @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Juntion) tree"
+      @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Junction) tree"
 
       exportimg(pl) = Gadfly.PNG(pl)
 

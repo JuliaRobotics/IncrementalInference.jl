@@ -2,9 +2,9 @@
 
 > Click on badges to follow links
 
-Docs | Stable v0.9 | Stable v0.10 | Dev | Coverage
+Docs | Stable v0.11 | Stable v0.12 | Dev | Coverage
 --------------|-------------|-------------|-----|---------
-[![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.9)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.10)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
+[![docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.11)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.12)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master)
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
@@ -38,13 +38,6 @@ Examples
 ========
 
 This library is built as solver back-end which can be easily modified and extended. Specific emphasis is placed on allowing outside user defined constraint definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate.
-
-A few short example is available in the example folder here.
-
-Contributors
-============
-
-D. Fourie, M. Kaess, J. Leonard, as well as long list of Contributors in the community. 
 
 References
 ==========

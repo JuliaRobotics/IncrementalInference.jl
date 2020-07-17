@@ -22,7 +22,7 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
-function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd...) where {T<:FunctorInferenceType}
+function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
@@ -37,13 +37,23 @@ function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
   freshSamples(usrfnc, N, FactorMetadata(),)
 end
 
+function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
+  fct = getFactor(dfg, sym)
+  usrfnc = getFactorType(fct)
+  if hasfield(typeof(usrfnc), :specialSampler)
+    freshSamples(usrfnc, N, FactorMetadata(), getVariable.(dfg,getVariableOrder(fct)) )
+  else
+    freshSamples(usrfnc, N)
+  end
+end
+
 # TODO, add Xi::Vector{DFGVariable} if possible
-function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd...)
+function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[])
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
   # else
-    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd...)
+    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd)
   # end
   nothing
 end
@@ -220,117 +230,45 @@ function numericRootGenericRandomizedFnc!(
 end
 
 
-"""
-    $(SIGNATURES)
-
-Set variable(s) `sym` of factor graph to be marginalized -- i.e. not be updated by inference computation.
-"""
-function setfreeze!(dfg::AbstractDFG, sym::Symbol)
-  if !isInitialized(dfg, sym)
-    @warn "Vertex $(sym) is not initialized, and won't be frozen at this time."
-    return nothing
-  end
-  vert = DFG.getVariable(dfg, sym)
-  data = getSolverData(vert)
-  data.ismargin = true
-  nothing
-end
-function setfreeze!(dfg::AbstractDFG, syms::Vector{Symbol})
-  for sym in syms
-    setfreeze!(dfg, sym)
-  end
-end
-
-"""
-    $(SIGNATURES)
-
-Freeze nodes that are older than the quasi fixed-lag length defined by `fg.qfl`, according to `fg.fifo` ordering.
-
-Future:
-- Allow different freezing strategies beyond fifo.
-"""
-function fifoFreeze!(dfg::G)::Nothing where G <: AbstractDFG
-  if DFG.getSolverParams(dfg).qfl == 0
-    @warn "Quasi fixed-lag is enabled but QFL horizon is zero. Please set a valid window with FactoGraph.qfl"
-  end
-
-  # the fifo history
-  tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
-  if length(tofreeze) == 0
-      @info "[fifoFreeze] QFL - no nodes to freeze."
-      return nothing
-  end
-  @info "[fifoFreeze] QFL - Freezing nodes $(tofreeze[1]) -> $(tofreeze[end])."
-  setfreeze!(dfg, tofreeze)
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Return all factors currently registered in the workspace.
-"""
-function getCurrentWorkspaceFactors()::Vector{Type}
-    return [
-        subtypes(IncrementalInference.FunctorSingleton)...,
-        subtypes(IncrementalInference.FunctorPairwise)...,
-        subtypes(IncrementalInference.FunctorPairwiseMinimize)...];
-end
-
-"""
-    $(SIGNATURES)
-
-Return all variables currently registered in the workspace.
-"""
-function getCurrentWorkspaceVariables()::Vector{Type}
-    return subtypes(IncrementalInference.InferenceVariable);
-end
-
 
 """
     $SIGNATURES
 
-Reset the state of all variables in a clique to not initialized.
+Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
 
 Notes
-- resets numberical values to zeros.
-
-Dev Notes
-- TODO not all kde manifolds will initialize to zero.
+- assume single variable separators only.
 """
-function resetCliqSolve!(dfg::G,
-                         treel::AbstractBayesTree,
-                         cliq::TreeClique;
-                         solveKey::Symbol=:default)::Nothing where G <: AbstractDFG
-  #
-  cda = getCliqueData(cliq)
-  vars = getCliqVarIdsAll(cliq)
-  for varis in vars
-    resetVariable!(dfg, varis, solveKey=solveKey)
+function accumulateFactorChain(dfg::AbstractDFG,
+                               from::Symbol,
+                               to::Symbol,
+                               fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
+                               initval=zeros(size(getVal(dfg, from))))
+
+  # get associated variables
+  svars = union(ls.(dfg, fsyms)...)
+
+  # use subgraph copys to do calculations
+  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
+  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
+
+  # drive variable values manually to ensure no additional stochastics are introduced.
+  nextvar = from
+  initManual!(tfg_meas, nextvar, initval)
+  initManual!(tfg_pred, nextvar, initval)
+
+  # nextfct = fsyms[1] # for debugging
+  for nextfct in fsyms
+    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
+    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
+    nextvar = nextvars[1]
+    meas, pred = solveFactorMeasurements(dfg, nextfct)
+    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
+    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
+    initManual!(tfg_meas, nextvar, pts_meas)
+    initManual!(tfg_pred, nextvar, pts_pred)
   end
-  prnt = getParent(treel, cliq)
-  if length(prnt) > 0
-    setCliqUpInitMsgs!(prnt[1], cliq.index, LikelihoodMessage())
-  end
-  cda.upMsg  = LikelihoodMessage()
-  cda.dwnMsg = LikelihoodMessage()
-  cda.upInitMsgs = Dict{Int, LikelihoodMessage}()
-  cda.downInitMsg = LikelihoodMessage()
-  setCliqStatus!(cliq, :null)
-  setCliqDrawColor(cliq, "")
-  return nothing
+  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
 end
-
-function resetCliqSolve!(dfg::G,
-                         treel::AbstractBayesTree,
-                         frt::Symbol;
-                         solveKey::Symbol=:default  )::Nothing where G <: AbstractDFG
-  #
-  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
-end
-
-
-
-
 
 #

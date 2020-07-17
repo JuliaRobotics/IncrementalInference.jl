@@ -1,5 +1,6 @@
 
 export setVariablePosteriorEstimates!
+export attachCSM!
 
 """
     $SIGNATURES
@@ -28,41 +29,68 @@ function dbgSaveDFG(dfg::AbstractDFG,
   folder*filename
 end
 
-
 """
     $SIGNATURES
 
-Return dict of all histories in a Bayes Tree.
+Print one specific line of a clique state machine history.
+
+Related:
+
+printCliqHistorySummary, printCliqHistorySequential
 """
-function getTreeCliqsSolverHistories(fg::G,
-                                     tree::AbstractBayesTree)::Dict{Symbol, CSMHistory} where G <: AbstractDFG
+function printHistoryLine(fid,
+                          hi::Tuple{DateTime, Int, Function, CliqStateMachineContainer},
+                          cliqid::AbstractString="")
   #
-  fsy = getTreeAllFrontalSyms(fg, tree)
-  histories = Dict{Symbol, CSMHistory}()
-  for fs in fsy
-    hist = getCliqSolveHistory(tree, fs)
-    if length(hist) > 0
-      histories[fs] = hist
+  # 5.13
+  first = "$cliqid.$(string(hi[2])) "
+  for i in length(first):6  first = first*" "; end
+  # time
+  first = first*(split(string(hi[1]), 'T')[end])*" "
+  # for i in length(first):16  first = first*" "; end
+  for i in length(first):19  first = first*" "; end
+  # next function
+  nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
+  nextfn = 18 < length(nextfn) ? nextfn[1:18] : nextfn
+  first = first*nextfn
+  for i in length(first):38  first = first*" "; end
+  # force proceed
+  first = first*string(Int(hi[4].forceproceed))
+  for i in length(first):39  first = first*" "; end
+  # this clique status
+  first *= " | "
+  first = first*string(getCliqueStatus(hi[4].cliq))
+  for i in length(first):53  first = first*" "; end
+  # parent status
+  first *= " P "
+  if 0 < length(hi[4].parentCliq)
+    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqueStatus(hi[4].parentCliq[1]))
+  else
+    first = first*"----"
+  end
+  for i in length(first):69  first = first*" "; end
+  # children status
+  first = first*"C "
+  if 0 < length(hi[4].childCliqs)
+    for ch in hi[4].childCliqs
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
+    end
+  else
+    first = first*"---- "
+  end
+  # sibling status
+  first *= "|S| "
+  if 0 < length(hi[4].parentCliq)
+    frt = (hi[4].parentCliq[1] |> getFrontals)[1]
+    childs = getChildren(hi[4].tree, frt)
+    # remove current clique to leave only siblings
+    filter!(x->x.index!=hi[4].cliq.index, childs)
+    for ch in childs
+      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
     end
   end
-  return histories
-end
 
-
-"""
-    $SIGNATURES
-
-Return clique state machine history from `tree` if it was solved with `recordcliqs`.
-
-Notes
-- Cliques are identified by front variable `::Symbol` which are always unique across the cliques.
-"""
-function getCliqSolveHistory(cliq::TreeClique)
-  getCliqueData(cliq).statehistory
-end
-function getCliqSolveHistory(tree::AbstractBayesTree, frntal::Symbol)
-  cliq = whichCliq(tree, frntal)
-  getCliqSolveHistory(cliq)
+  println(fid, first)
 end
 
 """
@@ -72,86 +100,96 @@ Print a short summary of state machine history for a clique solve.
 
 Related:
 
-getTreeAllFrontalSyms, getCliqSolveHistory, animateCliqStateMachines
+getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
-function printCliqHistorySummary(fid, hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
+function printCliqHistorySummary(fid,
+                                 hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                 cliqid::AbstractString="")
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
   end
   for hi in hist
-    first = (split(string(hi[1]), 'T')[end])*" "
-    len = length(first)
-    for i in len:13  first = first*" "; end
-    first = first*string(hi[2])
-    len = length(first)
-    for i in len:17  first = first*" "; end
-    first = first*string(getCliqStatus(hi[4].cliq))
-    len = length(first)
-    for i in len:30  first = first*" "; end
-    nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-    lenf = length(nextfn)
-    nextfn = 20 < lenf ? nextfn[1:20]*"." : nextfn
-    first = first*nextfn
-    len = length(first)
-    for i in len:52  first = first*" "; end
-    first = first*string(hi[4].forceproceed)
-    len = length(first)
-    for i in len:58  first = first*" "; end
-    if 0 < length(hi[4].parentCliq)
-      first = first*string(getCliqStatus(hi[4].parentCliq[1]))
-    else
-      first = first*"----"
-    end
-    first = first*" | "
-    if 0 < length(hi[4].childCliqs)
-      for ch in hi[4].childCliqs
-        first = first*string(getCliqStatus(ch))*" "
-      end
-    end
-    println(fid, first)
+    printHistoryLine(fid,hi,cliqid)
   end
   nothing
 end
 
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}})
-  printCliqHistorySummary(stdout, hist)
+function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                 cliqid::AbstractString="")
+  printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}, tree::AbstractBayesTree, sym::Symbol)
+function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                 tree::AbstractBayesTree,
+                                 sym::Symbol  )
+  #
   hist = hists[getCliq(tree, sym).index]
-  printCliqHistorySummary(stdout, hist)
+  printCliqHistorySummary(stdout, hist, string(getCliq(tree, sym).index))
 end
 
+"""
+    $SIGNATURES
 
-function printCliqHistorySummary(cliq::TreeClique)
-  hist = getCliqSolveHistory(cliq)
-  printCliqHistorySummary(hist)
+Print a sequential summary lines of clique state machine histories in hists::Dict.
+
+Related:
+
+printHistoryLine, printCliqHistory
+"""
+function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    fid=stdout)
+  # vectorize all histories in single Array
+  allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  alltimes = Vector{DateTime}()
+  allcliqids = Vector{Int}()
+  for (cid,hist) in hists, hi in hist
+    push!(allhists, hi)
+    push!(alltimes, hi[1])
+    push!(allcliqids, cid)
+  end
+
+  # sort array by timestamp element
+  pm = sortperm(alltimes)
+  allhists_ = allhists[pm]
+  alltimes_ = alltimes[pm]
+  allcliqids_ = allcliqids[pm]
+
+  # print each line of the sorted array with correct cliqid marker
+  for idx in 1:length(alltimes)
+    printHistoryLine(fid,allhists_[idx],string(allcliqids_[idx]))
+  end
+  nothing
 end
 
-function printCliqHistorySummary(tree::AbstractBayesTree, frontal::Symbol)
-  hist = getCliqSolveHistory(tree, frontal)
-  printCliqHistorySummary(hist)
+function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    fid::AbstractString)
+  #
+  @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
+  file = open(fid, "w")
+  printCliqHistorySequential(hists, file)
+  close(file)
+  nothing
 end
-
 
 """
   $SIGNATURES
 
 Repeat a solver state machine step without changing history or primary values.
 
-printCliqSummary, printCliqHistorySummary, getCliqSolveHistory, cliqHistFilterTransitions
+printCliqSummary, printCliqHistorySummary, cliqHistFilterTransitions
 """
 function sandboxCliqResolveStep(tree::AbstractBayesTree,
                                 frontal::Symbol,
                                 step::Int)
   #
-  hist = getCliqSolveHistory(tree, frontal)
-  # clear Condition states to allow step solve
-  getCliqueData(hist[step][4].cliq).solveCondition = Condition()
-
-  # cond = getSolveCondition(hist[step][4].cliq)
-  # cond = Any[]
-  return sandboxStateMachineStep(hist, step)
+  @error "needs to be update to take hist directly"
+  # hist = getCliqSolveHistory(tree, frontal)
+  # # clear Condition states to allow step solve
+  # getCliqueData(hist[step][4].cliq).solveCondition = Condition()
+  #
+  # # cond = getSolveCondition(hist[step][4].cliq)
+  # # cond = Any[]
+  # return sandboxStateMachineStep(hist, step)
 end
 
 
@@ -171,7 +209,8 @@ Related
 printCliqHistorySummary
 """
 function animateCliqStateMachines(tree::AbstractBayesTree,
-                                  cliqsyms::Vector{Symbol};
+                                  cliqsyms::Vector{Symbol},
+                                  hists::Dict{Symbol, Tuple};
                                   frames::Int=100  )
   #
   startT = Dates.now()
@@ -180,7 +219,7 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
   # get start and stop times across all cliques
   first = true
   for sym in cliqsyms
-    hist = getCliqSolveHistory(tree, sym)
+    hist = hists[sym] #getCliqSolveHistory(tree, sym)
     if hist[1][1] < startT
       startT = hist[1][1]
     end
@@ -196,7 +235,8 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
   # export all figures
   folders = String[]
   for sym in cliqsyms
-    hist = getCliqSolveHistory(tree, sym)
+    hist = hists[sym] #getCliqSolveHistory(tree, sym)
+    # hist = getCliqSolveHistory(tree, sym)
     retval = animateStateMachineHistoryByTime(hist, frames=frames, folder="caesar/animatecsm/cliq$sym", title="$sym", startT=startT, stopT=stopT, rmfirst=false)
     push!(folders, "cliq$sym")
   end
@@ -211,7 +251,7 @@ Return state machine transition steps from history such that the `nextfnc::Funct
 
 Related:
 
-getCliqSolveHistory, printCliqHistorySummary, filterHistAllToArray, sandboxCliqResolveStep
+printCliqHistorySummary, filterHistAllToArray, sandboxCliqResolveStep
 """
 function cliqHistFilterTransitions(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}, nextfnc::Function)
   ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
@@ -230,12 +270,12 @@ Return state machine transition steps from all cliq histories with transition `n
 
 Related:
 
-getCliqSolveHistory, printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
+printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
-function filterHistAllToArray(tree::AbstractBayesTree, frontals::Vector{Symbol}, nextfnc::Function)
+function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frontals::Vector{Symbol}, nextfnc::Function)
   ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   for sym in frontals
-    hist = getCliqSolveHistory(tree, sym)
+    hist = hists[sym] # getCliqSolveHistory(tree, sym)
     fih = cliqHistFilterTransitions(hist, nextfnc)
     for fi in fih
       push!(ret, fi)
@@ -271,8 +311,8 @@ function solveCliqWithStateMachine!(dfg::G,
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
 
-  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, params=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
-  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc)
+  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc, name="cliq$(cliq.index)")
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
 end
@@ -409,7 +449,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
   # safety net double check
-  cliqst = getCliqStatus(cliq)
+  cliqst = getCliqueStatus(cliq)
   if cliqst in solvedstats
     with_logger(logger) do
       @warn "getSiblingsDelayOrder -- clique status should not be here with a solved cliqst=$cliqst"
@@ -476,7 +516,7 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
     flush(logger.stream)
 
     # get each sibling status (entering atomic computation segment -- until wait command)
-    stat .= getCliqStatus.(sibs) #[maskcol]
+    stat .= getCliqueStatus.(sibs) #[maskcol]
 
     ## (long down chain case)
     # need different behaviour when all remaining siblings are blocking with :needdownmsg
@@ -586,7 +626,7 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     mighthave = intersect(getCliqSeparatorVarIds(si), localsep)
     if length(mighthave) > 0
       seps[si.index] = mighthave
-      if getCliqStatus(si) in [:initialized; :null; :needdownmsg]
+      if getCliqueStatus(si) in [:initialized; :null; :needdownmsg]
         # partials treated special -- this is slightly hacky
         if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
           # this sibling might have info to delay about
@@ -666,7 +706,7 @@ function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
   if length(prnt) > 0
     for si in getChildren(tree, prnt[1])
       # are any of the other siblings still busy?
-      if si.index != cliq.index && getCliqStatus(si) in stillbusylist
+      if si.index != cliq.index && getCliqueStatus(si) in stillbusylist
         return false
       end
     end
@@ -736,7 +776,7 @@ Related
 getGraphFromHistory, printCliqHistorySummary, printCliqSummary
 """
 getCliqSubgraphFromHistory(hist::Vector{<:Tuple}, step::Int) = hist[step][4].cliqSubFg
-getCliqSubgraphFromHistory(tree::AbstractBayesTree, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(getCliqSolveHistory(tree, frnt), step)
+getCliqSubgraphFromHistory(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frnt::Symbol, step::Int) = getCliqSubgraphFromHistory(hists[frnt], step)
 
 
 function printCliqSummary(dfg::G,
@@ -831,9 +871,11 @@ function addDownVariableFactors!(dfg::G1,
   end
 
   # add the variables
-  DFG.getSubgraph(dfg, newsyms, false, subfg)
+  # DFG.getSubgraph(dfg, newsyms, false, subfg)
   # add the factors
-  DFG.getSubgraph(dfg, newfcts, false, subfg)
+  # DFG.getSubgraph(dfg, newfcts, false, subfg)
+  #TODO solvable?
+  DFG.mergeGraph!(subfg, dfg, newsyms, newfcts)
 
   return newsyms, newfcts
 end
@@ -890,7 +932,7 @@ function getSetDownMessagesComplete!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
-  setDwnMsg!(cliq, newDwnMsgs)
+  setMsgDwnThis!(cliq, newDwnMsgs)
 
   return nothing
 end
@@ -905,7 +947,7 @@ Related Functions from Upward Inference
 
 directPriorMsgIDs, directFrtlMsgIDs, directAssignmentIDs, mcmcIterationIDs
 """
-function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1)
+function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique; solvable::Int=1, logger=ConsoleLogger())
   frtl = getCliqFrontalVarIds(cliq)
 
   adj, varLabels, FactorLabels = DFG.getBiadjacencyMatrix(subfg, solvable=solvable)
@@ -918,13 +960,19 @@ function determineCliqVariableDownSequence(subfg::AbstractDFG, cliq::TreeClique;
     # subAdj = adj[2:end,mask] .!= nothing
     # newFrtlOrder = Symbol.(adj[1,mask])
 
-  crossCheck = sum(Int.(subAdj), dims=2) .> 1
+  crossCheck = 1 .< sum(Int.(subAdj), dims=2)
   iterVars = Symbol[]
   for i in 1:length(crossCheck)
     # must add associated variables to iterVars
     if crossCheck[i]
+           # # DEBUG loggin
+           # with_logger(logger) do
+           #   @info "newFrtlOrder=$newFrtlOrder"
+           #   @info "(subAdj[i,:]).nzind=$((subAdj[i,:]).nzind)"
+           # end
+           # flush(logger.stream)
       # find which variables are associated
-      varSym = newFrtlOrder[subAdj[i,:]]
+      varSym = newFrtlOrder[(subAdj[i,:]).nzind]
       union!(iterVars, varSym)
     end
   end
@@ -960,7 +1008,7 @@ function solveCliqDownFrontalProducts!(subfg::G,
 
   # determine if cliq has cross frontal factors
   # iterdwn, directdwns, passmsgs?
-  iterFrtls = determineCliqVariableDownSequence(subfg,cliq)
+  iterFrtls = determineCliqVariableDownSequence(subfg,cliq, logger=logger)
 
   # direct frontals
   directs = setdiff(frsyms, iterFrtls)
@@ -980,7 +1028,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
-        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false)
+        # downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
     with_logger(logger) do
@@ -994,7 +1043,8 @@ function solveCliqDownFrontalProducts!(subfg::G,
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
-        result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
+        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
+        # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
           @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
@@ -1025,59 +1075,32 @@ function solveCliqDownFrontalProducts!(subfg::G,
 end
 
 
-
-
 """
     $SIGNATURES
-
-Build a new subgraph from `fgl<:AbstractDFG` containing all variables and factors
-associated with `cliq`.  Additionally add the upward message prior factors as
-needed for belief propagation (inference).
-
-Notes
-- `cliqsym::Symbol` defines the cliq where variable appears as a frontal variable.
-- `varsym::Symbol` defaults to the cliq frontal variable definition but can in case a
-  separator variable is required instead.
-
-DevNotes
-- TODO review, are all updates atomic?? Then perhaps in-memory only can be reduced to references back to csmc.dfg.
+Reattach a CSM's data container after the deepcopy used from recordcliq.
 """
-function buildCliqSubgraph(dfg::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           cliq::TreeClique,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(dfg)) )
+function attachCSM!(csmc::CliqStateMachineContainer,
+                    dfg::AbstractDFG,
+                    tree::BayesTree;
+                    logger = SimpleLogger(stdout))
   #
-  # get cliq and variable labels
-  syms = getCliqAllVarIds(cliq)
-  # NOTE add all frontal factor neighbors DEV CASE -- use getCliqueData(cliq).dwnPotentials instead
-  # fnsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq)
+  # csmc = csmc__
 
-  # frontals treated special
-  frontals = getCliqFrontalVarIds(cliq)
-  # get neighboring factor labels
-  factorFilter = union(map(s->getNeighbors(dfg, s), frontals)...)
+  csmc.dfg = dfg
+  csmc.tree = tree
+  csmc.logger = logger # TODO option to reopen and append to previous logger file
 
-  # build the subgraph with subset of factors from frontals only
-  buildSubgraphFromLabels!(dfg, syms, subfg=subfg, solvable=1, allowedFactors=factorFilter )
-  # recent option but not consolidated
-  # buildSubgraphFromLabels!_SPECIAL(dfg, syms, subfg=subfg, solvable=1, allowedFactors=factorFilter ) # DFG v0.5.2
+  @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
+  cid = csmc.cliq.index
+  pids = csmc.parentCliq .|> x->x.index
+  cids = csmc.childCliqs .|> x->x.index
 
-  return subfg
+  csmc.cliq = tree.cliques[cid]
+  csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
+  csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
+
+  return csmc
 end
-# @warn "Obsolete, buildCliqSubGraph*() is no longer in use"
-# # build a subgraph copy of clique
-# subfg = buildSubgraphFromLabels!(fgl,syms)
-#
-# # add upward messages to subgraph
-# msgs = getCliqChildMsgsUp(treel, cliq, BallTreeDensity)
-# addMsgFactors!(subfg, msgs)
 
-function buildCliqSubgraph(fgl::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           cliqsym::Symbol,
-                           subfg::InMemoryDFGTypes=InMemDFGType(params=getSolverParams(fgl)) )
-  #
-  buildCliqSubgraph(fgl, treel, getCliq(treel, cliqsym), subfg)
-end
 
 #

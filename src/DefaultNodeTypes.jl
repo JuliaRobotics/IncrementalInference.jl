@@ -9,7 +9,7 @@ ParametricTypes = Union{Normal, MvNormal}
 """
 $(TYPEDEF)
 
-Most basic continuous scalar variable a `::FactorGraph` object.
+Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 """
 struct ContinuousScalar <: InferenceVariable
   dims::Int

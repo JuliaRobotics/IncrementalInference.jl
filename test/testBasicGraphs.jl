@@ -12,11 +12,31 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 
+# test solved flag
+@test getSolvedCount(fg, :x0) == 0
+@test !isSolved(getVariable(fg, :x0))
+
+# run solver once
 tree, smt, hist = solveTree!(fg)
+
+@test getSolvedCount(fg, :x0) == 1
+@test isSolved(fg, :x0)
+
+tree, smt, hist = solveTree!(fg)
+
+@test getSolvedCount(fg, :x0) == 2
+@test isSolved(fg, :x0)
 
 # check mean and covariance
 @test (getKDE(fg, :x0) |> getKDEMean .|> abs)[1] < 0.5
-@test 0.4 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.8
+@test 0.3 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 1.9
+
+# test free solvable variables (occurs in fixed-/ clique recycling)
+addVariable!(fg, :x1, ContinuousScalar, solvable=1)
+
+solveTree!(fg, storeOld=true)
+
+@test getSolvable(fg, :x1) == 0
 
 end
 
@@ -224,15 +244,42 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 @test abs(X2) < 2.2
 
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x0))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.4
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.4
-@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.5
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x1))[1,:] ) < 2.4
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.6
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.7
+@test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.8
 
 end
 
 
 
+@testset "Test graph reset to init..." begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addFactor!(fg, [:x0;], Prior(Normal(1000.0,1.0)))
+
+ensureAllInitialized!(fg)
+
+# init values before solve
+X0 = getPoints( getKDE(fg, :x0)) |> deepcopy
+
+tree, smt, hist = solveTree!(fg)
+
+# values after solve
+X0s = getPoints( getKDE(fg, :x0))
+
+@test 1e-10 < norm(X0 - X0s)
+
+resetInitialValues!(fg)
+
+X0reset = getPoints( getKDE(fg, :x0)) |> deepcopy
+
+@test norm(X0 - X0reset) < 1e-10
+
+
+end
 
 
 

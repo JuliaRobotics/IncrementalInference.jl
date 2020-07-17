@@ -77,15 +77,11 @@ drawTree(tree, show=true)
 
 
 ## Upward solve steps with clique state machine
-# @info "Complete upward solve..."
-# smtasks, ch = initInferTreeUp!(fgl, bt, N=N, drawtree=drawpdf, recordcliqs=recordcliqs, limititers=limititers, skipcliqids=skipcliqids )
 
-# @info "solve leaf clique with single state machine"
-# alltasks[i] = @async tryCliqStateMachineSolve!(fgl, treel, i, cliqHistories, drawtree=drawtree, N=N, limititers=limititers, recordcliqs=recordcliqs)
 # manually
 
 resetTreeCliquesForUpSolve!(tree)
-setTreeCliquesMarginalized!(dfg, tree)
+# setTreeCliquesMarginalized!(dfg, tree) # NOTE, been deprecated as part of $459
 
 
 

@@ -32,7 +32,7 @@ solveTree!(fg)
 marginalPts = getKDE(fg, :x0) |> getPoints
 
 # check solver solution consistent too
-@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.25*N
 
 
 end

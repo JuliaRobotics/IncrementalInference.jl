@@ -10,6 +10,7 @@ fg = generateCanonicalFG_CaesarRing1D(graphinit=false)
 getSolverParams(fg).graphinit = false
 
 # do all init on tree as part of solve
+# getSolverParams(fg).drawtree = true
 tree, smt, hist = solveTree!(fg)
 
 

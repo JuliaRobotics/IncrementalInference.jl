@@ -52,7 +52,7 @@ good_trees_bad_mats_ids = min_ids_02[findall(x->x == maximum(all_nnzs[min_ids_02
 
 # Get AMDs variable ordering.
 amd_ordering = getEliminationOrder(fg)
-amd_tree = buildTreeFromOrdering!(deepcopy(fg), amd_ordering)
+amd_tree = resetBuildTreeFromOrder!(deepcopy(fg), amd_ordering)
 amd_tree_nnz = nnzTree(amd_tree)
 amd_tree_cost02 = getTreeCost_02(amd_tree)
 
@@ -60,7 +60,7 @@ amd_tree_cost02 = getTreeCost_02(amd_tree)
 include(normpath(Base.find_package("IncrementalInference"), "..", "ccolamd.jl"))
 A, varsym, fctsym = getAdjacencyMatrixSparse(fg)
 colamd_ordering = varsym[Ccolamd.ccolamd(A)]
-colamd_tree = buildTreeFromOrdering!(deepcopy(fg), colamd_ordering)
+colamd_tree = resetBuildTreeFromOrder!(deepcopy(fg), colamd_ordering)
 colamd_tree_nnz = nnzTree(colamd_tree)
 colamd_tree_cost02 = getTreeCost_02(colamd_tree)
 
@@ -68,7 +68,7 @@ colamd_tree_cost02 = getTreeCost_02(colamd_tree)
 cons = zeros(SuiteSparse_long, length(A.colptr) - 1)
 cons[findall(x->x == :x3, varsym)[1]] = 1 # NOTE(tonioteran) hardcoded for Kaess' example.
 ccolamd_ordering = varsym[Ccolamd.ccolamd(A, cons)]
-ccolamd_tree = buildTreeFromOrdering!(deepcopy(fg), ccolamd_ordering)
+ccolamd_tree = resetBuildTreeFromOrder!(deepcopy(fg), ccolamd_ordering)
 ccolamd_tree_nnz = nnzTree(ccolamd_tree)
 ccolamd_tree_cost02 = getTreeCost_02(ccolamd_tree)
 

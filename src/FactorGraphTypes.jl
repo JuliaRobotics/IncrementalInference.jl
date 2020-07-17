@@ -41,6 +41,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   downsolve::Bool
   drawtree::Bool
   showtree::Bool
+  drawtreerate::Float64
   dbg::Bool
   async::Bool
   limititers::Int
@@ -50,6 +51,8 @@ mutable struct SolverParams <: DFG.AbstractParams
   graphinit::Bool
   treeinit::Bool # still experimental with known errors
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
+  spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
+  maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -63,98 +66,54 @@ mutable struct SolverParams <: DFG.AbstractParams
                 downsolve::Bool=true,
                 drawtree::Bool=false,
                 showtree::Bool=false,
+                drawtreerate::Float64=0.5,
                 dbg::Bool=false,
                 async::Bool=false,
                 limititers::Int=500,
                 N::Int=100,
-                multiproc::Bool=true,
+                multiproc::Bool=1 < nprocs(),
                 logpath::String="/tmp/caesar/$(now())",
                 graphinit::Bool=true,
                 treeinit::Bool=false,
                 algorithms::Vector{Symbol}=[:default],
-                devParams::Dict{Symbol,String}=Dict{Symbol,String}()) = new(dimID,
-                                                                            registeredModuleFunctions,
-                                                                            reference,
-                                                                            stateless,
-                                                                            qfl,
-                                                                            isfixedlag,
-                                                                            limitfixeddown,
-                                                                            incremental,
-                                                                            upsolve,
-                                                                            downsolve,
-                                                                            drawtree,
-                                                                            showtree,
-                                                                            dbg,
-                                                                            async,
-                                                                            limititers,
-                                                                            N,
-                                                                            multiproc,
-                                                                            logpath,
-                                                                            graphinit,
-                                                                            treeinit,
-                                                                            algorithms,
-                                                                            devParams)
+                spreadNH::Float64=3.0,
+                maxincidence::Int=500,
+                devParams::Dict{Symbol,String}=Dict{Symbol,String}()
+              ) = new(dimID,
+                      registeredModuleFunctions,
+                      reference,
+                      stateless,
+                      qfl,
+                      isfixedlag,
+                      limitfixeddown,
+                      incremental,
+                      upsolve,
+                      downsolve,
+                      drawtree,
+                      showtree,
+                      drawtreerate,
+                      dbg,
+                      async,
+                      limititers,
+                      N,
+                      multiproc,
+                      logpath,
+                      graphinit,
+                      treeinit,
+                      algorithms,
+                      spreadNH,
+                      maxincidence,
+                      devParams )
   #
 end
 
-"""
-$(TYPEDEF)
-
-NOTE: Deprecated by DistributedFactorGraphs.
-"""
-mutable struct FactorGraph
-  g::FGGdict
-  bn
-  IDs::Dict{Symbol,Int}
-  fIDs::Dict{Symbol,Int}
-  id::Int
-  nodeIDs::Array{Int,1} # TODO -- ordering seems improved to use adj permutation -- pending merge JuliaArchive/Graphs.jl/#225
-  factorIDs::Array{Int,1}
-  bnverts::Dict{Int,Graphs.ExVertex} # TODO -- not sure if this is still used, remove
-  bnid::Int # TODO -- not sure if this is still used
-  dimID::Int
-  cg
-  cgIDs::Dict{Int,Int} # cgIDs[exvid] = neoid
-  sessionname::String
-  robotname::String
-  username::String
-  registeredModuleFunctions::NothingUnion{Dict{Symbol, Function}}
-  reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}
-  stateless::Bool
-  fifo::Vector{Symbol}
-  qfl::Int # Quasi fixed length
-  isfixedlag::Bool # true when adhering to qfl window size for solves
-  FactorGraph(;reference::NothingUnion{Dict{Symbol, Tuple{Symbol, Vector{Float64}}}}=nothing, is_directed::Bool=true ) = new(Graphs.incdict(Graphs.ExVertex,is_directed=false),
-                      Graphs.incdict(Graphs.ExVertex,is_directed=is_directed),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      #  Dict{Int,Graphs.ExVertex}(),
-                      Dict{Symbol,Int}(),
-                      Dict{Symbol,Int}(),
-                      0,
-                      [],
-                      [],
-                      Dict{Int,Graphs.ExVertex}(),
-                      0,
-                      0,
-                      nothing,
-                      Dict{Int,Int}(),
-                      "",
-                      "",
-                      "",
-                      Dict{Symbol, Function}(:IncrementalInference=>IncrementalInference.getSample), # TODO likely to be removed
-                      reference,
-                      false,
-                      Symbol[],
-                      0,
-                      false  )
-end
 
 """
     $SIGNATURES
 
 Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
 """
-function initfg(dfg::T=InMemDFGType(params=SolverParams());
+function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                     sessionname="NA",
                                     robotname="",
                                     username="",
@@ -165,20 +124,20 @@ end
 
 
 #init an empty fg with a provided type and SolverParams
-function initfg(::Type{T}; params=SolverParams(),
+function initfg(::Type{T}; solverParams=SolverParams(),
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T(params=params)
+  return T(solverParams=solverParams)
 end
 
-function initfg(::Type{T}, params::SolverParams;
+function initfg(::Type{T}, solverParams::SolverParams;
                            sessionname="NA",
                            robotname="",
                            username="",
                            cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
-  return T{SolverParams}(params=params)
+  return T{SolverParams}(solverParams=solverParams)
 end
 
 """
@@ -215,11 +174,16 @@ $(TYPEDEF)
 """
 mutable struct ConvPerThread
   thrid_::Int
-  particleidx::Int # the actual particle being solved at this moment
-  factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
-  activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
-  p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
-  perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
+  # the actual particle being solved at this moment
+  particleidx::Int
+  # additional data passed to user function -- optionally used by user function
+  factormetadata::FactorMetadata
+  # subsection indices to select which params should be used for this hypothesis evaluation
+  activehypo::Union{UnitRange{Int},Vector{Int}}
+  # a permutation vector for low-dimension solves (FunctorPairwise only)
+  p::Vector{Int}
+  # slight numerical perturbation for degenerate solver cases such as division by zero
+  perturb::Vector{Float64}
   X::Array{Float64,2}
   Y::Vector{Float64}
   res::Vector{Float64}
@@ -252,7 +216,7 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInferenceType}
+mutable struct CommonConvWrapper{T} <: FactorOperationalMemory where {T<:FunctorInferenceType}
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
   # general setup
@@ -262,25 +226,15 @@ mutable struct CommonConvWrapper{T} <: ConvolutionObject where {T<:FunctorInfere
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
-  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolugtion operation
+  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolution operation
   certainhypo::Union{Nothing, Vector{Int}}
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   measurement::Tuple # user defined measurement values for each approxConv operation
   threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
-
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{ConvPerThread}
-  # varidx::Int # which index is being solved for in params?
-  # factormetadata::FactorMetadata # additional data passed to user function -- optionally used by user function
-  # activehypo::Union{UnitRange{Int},Vector{Int}} # subsection indices to select which params should be used for this hypothesis evaluation
-  # particleidx::Int # the actual particle being solved at this moment
-  # p::Vector{Int} # a permutation vector for low-dimension solves (FunctorPairwise only)
-  # perturb::Vector{Float64} # slight numerical perturbation for degenerate solver cases such as division by zero
-  # X::Array{Float64,2}
-  # Y::Vector{Float64}
-  # res::Vector{Float64}
 
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
 end
@@ -337,45 +291,5 @@ function CommonConvWrapper(fnc::T,
 end
 
 
-
-# excessive function, needs refactoring
-# fgl := srcv
-function updateFullVertData!(fgl::AbstractDFG,
-                             srcv::DFGNode;
-                             updatePPE::Bool=false )
-  #
-  @warn "Deprecated updateFullVertData!, need alternative likely in DFG.mergeGraphVariableData!"
-
-  sym = Symbol(srcv.label)
-  isvar = isVariable(fgl, sym)
-
-  dest = isvar ? DFG.getVariable(fgl, sym) : DFG.getFactor(fgl, sym)
-  lvd = getSolverData(dest)
-  srcvd = getSolverData(srcv)
-
-  if isvar
-    if size(lvd.val) == size(srcvd.val)
-      lvd.val .= srcvd.val
-    else
-      lvd.val = srcvd.val
-    end
-    lvd.bw[:] = srcvd.bw[:]
-    lvd.initialized = srcvd.initialized
-    lvd.inferdim = srcvd.inferdim
-    setSolvedCount!(lvd, getSolvedCount(srcvd))
-
-    if updatePPE
-      # set PPE in dest from values in srcv
-      # TODO must work for all keys involved
-      # dest := srcv
-      updatePPE!(fgl, srcv)
-      # getVariablePPEs(dest)[:default] = getVariablePPEs(srcv)[:default]
-    end
-  else
-    # assuming nothing to be done
-  end
-
-  nothing
-end
 
 #
