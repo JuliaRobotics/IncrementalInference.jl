@@ -205,7 +205,7 @@ manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
 function kde!(em::TreeBelief)
   return AMP.manikde!(em.val, em.bw, em.manifolds)
 end
-
+manikde!(em::TreeBelief) = kde!(em)
 
 
 """

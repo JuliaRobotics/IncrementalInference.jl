@@ -1,19 +1,45 @@
 # series of deconvolution tools
 
-export solveFactorMeasurements
 
+export selectFactorType
+export buildFactorDefault
+export solveFactorMeasurements
+export buildGraphLikelihoodsDifferential!
+
+
+"""
+    $SIGNATURES
+
+First hacky version to return which factor type to use between two variables of types T1 and T2.
+"""
+selectFactorType(T1::Type{ContinuousScalar}, T2::Type{ContinuousScalar}) = LinearConditional
+selectFactorType(T1::InferenceType, T2::InferenceType) = selectFactorType(typeof(T1), typeof(T2))
+selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol) = selectFactorType( getVariableType(dfg, s1), getVariableType(dfg, s2) )
+
+"""
+    $SIGNATURES
+
+Need defaults for dummy factors as part of #577, #579 effort on generalized deconvolutions.
+
+DevNotes
+- Still early days on this function, so much rework required.
+"""
+buildFactorDefault(::Type{LinearConditional}) = LinearConditional(Normal())
 
 
 """
     $SIGNATURES
 
 Inverse solve of predicted noise value and returns the associated "measured" noise value (also used as starting point for the solve).
+
+DevNotes
+- This function is still part of the initial implementation and needs a lot of generalization improvements.
 """
 function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
   #
   fcto = getFactor(dfg, fctsym)
-  varsyms = fcto._variableOrderSymbols
+  varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
   fcttype = getFactorType(fcto)
 
@@ -68,16 +94,58 @@ end
 
 
 function approxDeconv(dfg::AbstractDFG, sym1::Symbol, sym2::Symbol)
+  # which factor
+  fnames = intersect(ls(dfg, sym1), ls(dfg,sym2))
 
-  var1 = getVariable(dfg, sym1)
-  var2 = getVariable(dfg, sym2)
-
-
+  @assert length(fnames) == 1 "approxDeconv cannot yet handle multiple parallel factors between the same variables -- this is a TODO, please open an issue with IncrementalInference"
+  pts = solveFactorMeasurements(dfg, fnames[1])
 
 
 end
 
 
+"""
+    $SIGNATURES
+
+Build from a `LikelihoodMessage` a temporary distributed factor graph object containing differential
+information likelihood factors based on values in the messages.
+
+DevNotes
+- Initial version which only works for Pose2 and Point2 at this stage.
+"""
+function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage, tfg = initfg())
+  # create new local dfg and add all the variables with data
+  for (label, val) in msgs.belief
+    addVariable!(tfg, label, val.softtype)
+    initManual!(tfg, label, manikde!(val))
+  end
+
+  # list all variables in order of dimension size
+  alreadylist = Symbol[]
+  listVarByDim = ls(tfg)
+  listDims = getDimension(getVariable.(tfg,listVarByDim))
+  per = sortperm(listDims, rev=true)
+  listVarDec = listVarByDim[per]
+  listVarAcc = reverse(listVarDec)
+  # add all differential factors (without deconvolution values)
+  for sym1_ in listVarDec
+    push!(alreadylist, sym1_)
+    for sym2_ in setdiff(listVarAcc, alreadylist)
+      nfactype = selectFactorType(dfg, sym1_, sym2_)
+      nfct = buildFactorDefault(nfactype)
+      afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
+      # calculate the general deconvolution between variables
+      pts = solveFactorMeasurements(dfg, afc.label)
+      newBel = manikde!(pts, nfactype)
+      # replace dummy factor with real deconv factor using manikde approx belief measurement
+      fullFct = nfactype(newBel)
+      deleteFactor!(tfg, afc.label)
+      addFactor!( tfg, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+    end
+  end
+
+  return tfg
+end
 
 
 #
