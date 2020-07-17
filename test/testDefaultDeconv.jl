@@ -1,19 +1,26 @@
-# test deconv functions
+# test deconvolution functions
 
+using Test
 using IncrementalInference
 
 
-fg = initfg()
+@testset "Testing default deconvolution tools" begin
 
-addVariable!(fg, :x0, ContinuousScalar)
-addFactor!(fg, [:x0], Prior(Normal()))
+fg = generateCanonicalFG_CaesarRing1D()
 
-addVariable!(fg, :x1, ContinuousScalar)
-addFactor!(fg, [:x0; :x1], LinearConditional(Normal(10, 1)))
+tree, smt, hist = solveTree!(fg)
 
+msg = getMsgUpThis(tree.cliques[2])
 
-ensureAllInitialized!(fg)
+tfg = buildGraphLikelihoodsDifferential!(msg)
 
+# drawGraph(tfg, show=true)
+
+@test intersect(ls(tfg), [:x2;:x6]) |> length == 2
+@test lsf(tfg) |> length == 1
+@test lsf(tfg, tags=[:UPWARD_DIFFERENTIAL]) |> length == 1
+
+end
 
 
 

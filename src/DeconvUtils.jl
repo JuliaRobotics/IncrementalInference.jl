@@ -7,13 +7,20 @@ export solveFactorMeasurements
 export buildGraphLikelihoodsDifferential!
 
 
+## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
+
+getManifolds(vartype::Type{LinearConditional}) = (:Euclid,)
+
+
+##
+
 """
     $SIGNATURES
 
 First hacky version to return which factor type to use between two variables of types T1 and T2.
 """
 selectFactorType(T1::Type{ContinuousScalar}, T2::Type{ContinuousScalar}) = LinearConditional
-selectFactorType(T1::InferenceType, T2::InferenceType) = selectFactorType(typeof(T1), typeof(T2))
+selectFactorType(T1::InferenceVariable, T2::InferenceVariable) = selectFactorType(typeof(T1), typeof(T2))
 selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol) = selectFactorType( getVariableType(dfg, s1), getVariableType(dfg, s2) )
 
 """
@@ -30,7 +37,10 @@ buildFactorDefault(::Type{LinearConditional}) = LinearConditional(Normal())
 """
     $SIGNATURES
 
-Inverse solve of predicted noise value and returns the associated "measured" noise value (also used as starting point for the solve).
+Inverse solve of predicted noise value and returns tuple of (newly predicted, and known "measured" noise) values.
+
+Notes
+- "measured" is used as starting point for the "predicted" values solve.
 
 DevNotes
 - This function is still part of the initial implementation and needs a lot of generalization improvements.
@@ -110,10 +120,14 @@ end
 Build from a `LikelihoodMessage` a temporary distributed factor graph object containing differential
 information likelihood factors based on values in the messages.
 
+Notes
+- Modifies tfg argument by adding `:UPWARD_DIFFERENTIAL` factors.
+
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
-function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage, tfg = initfg())
+function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
+                                            tfg=initfg() )
   # create new local dfg and add all the variables with data
   for (label, val) in msgs.belief
     addVariable!(tfg, label, val.softtype)
@@ -123,7 +137,7 @@ function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage, tfg = initf
   # list all variables in order of dimension size
   alreadylist = Symbol[]
   listVarByDim = ls(tfg)
-  listDims = getDimension(getVariable.(tfg,listVarByDim))
+  listDims = getDimension.(getVariable.(tfg,listVarByDim))
   per = sortperm(listDims, rev=true)
   listVarDec = listVarByDim[per]
   listVarAcc = reverse(listVarDec)
@@ -131,12 +145,12 @@ function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage, tfg = initf
   for sym1_ in listVarDec
     push!(alreadylist, sym1_)
     for sym2_ in setdiff(listVarAcc, alreadylist)
-      nfactype = selectFactorType(dfg, sym1_, sym2_)
+      nfactype = selectFactorType(tfg, sym1_, sym2_)
       nfct = buildFactorDefault(nfactype)
       afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
       # calculate the general deconvolution between variables
-      pts = solveFactorMeasurements(dfg, afc.label)
-      newBel = manikde!(pts, nfactype)
+      pts = solveFactorMeasurements(tfg, afc.label)
+      newBel = manikde!(pts[1], getManifolds(nfactype))
       # replace dummy factor with real deconv factor using manikde approx belief measurement
       fullFct = nfactype(newBel)
       deleteFactor!(tfg, afc.label)

@@ -194,21 +194,6 @@ end
 
 
 """
-    $(SIGNATURES)
-
-Construct a BallTreeDensity KDE object from an IIF.TreeBelief object.
-
-Related
-
-manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
-"""
-function kde!(em::TreeBelief)
-  return AMP.manikde!(em.val, em.bw, em.manifolds)
-end
-manikde!(em::TreeBelief) = kde!(em)
-
-
-"""
     $SIGNATURES
 
 Set variable initialized status.
