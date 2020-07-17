@@ -11,6 +11,21 @@ export resetCliqSolve!
 
 convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
 
+"""
+    $(SIGNATURES)
+
+Construct a BallTreeDensity KDE object from an IIF.TreeBelief object.
+
+Related
+
+manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
+"""
+function kde!(em::TreeBelief)
+  # return AMP.manikde!(em.val, em.bw, em.manifolds)
+  return convert(BallTreeDensity, em)
+end
+manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
+
 
 ## =============================================================================
 # helper functions for tree message channels
