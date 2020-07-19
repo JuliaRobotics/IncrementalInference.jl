@@ -6,22 +6,17 @@ export
 
 # Reguler accessors
 export
-  fetchMsgUpThis,
+  getMsgUpThis,
   fetchDwnMsgsThis,
-  fetchMsgDwnInit,
-  fetchMsgUpInit
+  fetchMsgDwnInit
 
 # TODO consolidate
 export
-  getMsgUpThisInit,
-  getMsgUpInitChannel_,
   getMsgDwnThisInit,
   getMsgDwnInitChannel_
 
 export
-  putMsgUpThis!,
-  putMsgUpInit!,
-  putMsgUpInitStatus!
+  putMsgUpThis!
 
 export
   getMsgDownParent,
@@ -112,8 +107,12 @@ unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 ## Regular up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 
+## =============================================================================
+## Consolidating INIT up and down Message Registers/Channels, getters and setters
+## =============================================================================
 
-getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
+
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  # FIXME convert to Channel only
 getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
 
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
@@ -167,13 +166,30 @@ function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage
 end
 
 
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
+
+
+
+function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
+  # new replace put! interface
+  cdc_ = getMsgUpChannel(cdat)
+  if isready(cdc_)
+    # first clear an existing value
+    take!(cdc_)
+  end
+  put!(cdc_, upmsg)
+  # cdat.upMsg = msg
+end
+
 """
     $(SIGNATURES)
 
 Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
 """
-fetchMsgUpThis(cliql::TreeClique) = getCliqueData(cliql).upMsg
-fetchMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getUpMsgs(getClique(btl, frontal))
+getMsgUpThis(cdat::BayesTreeNodeData) = fetch(getMsgUpChannel(cdat))  # cdat.upMsg    # TODO rename to fetchMsgUp
+getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
+getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
 
 
 """
@@ -200,39 +216,14 @@ fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
 
 
-
-## =============================================================================
-## Consolidating INIT up and down Message Registers/Channels, getters and setters
-## =============================================================================
-
-
-"""
-    $SIGNATURES
-
-Based on a push model from child cliques that should have already completed their computation.
-
-Dev Notes
-- FIXME: Old style -- design has been changed to a Pull model #674
-"""
-getMsgUpThisInit(cdat::BayesTreeNodeData) = cdat.upInitMsgs
-getMsgUpInitChannel_(cdat::BayesTreeNodeData) = cdat.initUpChannel
-
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
 
-getMsgUpThisInit(cliq::TreeClique) = getMsgUpThisInit(getCliqueData(cliq))
 getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))
 
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
-getMsgUpInitChannel_(cliq::TreeClique) = getMsgUpInitChannel_(getCliqueData(cliq))
-fetchMsgUpInit(cliq::TreeClique) = fetch(getMsgUpInitChannel_(cliq))
-
-
-function setMsgUpThisInit!(cdat::BayesTreeNodeData, msg::LikelihoodMessage)
-  cdat.upInitMsgs = msg
-end
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   while fetchMsgDwnInit(cliq).status != status
@@ -241,98 +232,8 @@ function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   nothing
 end
 
-"""
-    $SIGNATURES
 
-Blocking call until `cliq` upInit processes has arrived at a result.
-"""
-function getCliqInitUpResultFromChannel(cliq::TreeClique)
-  status = take!(getMsgUpInitChannel_(cliq)).status
-  @info "$(current_task()) Clique $(cliq.index), dumping up init status $status"
-  return status
-end
-
-
-"""
-    $(SIGNATURES)
-
-Set the upward passing message for This `cliql` in Bayes (Junction) tree.
-
-Dev Notes
-- TODO setUpMsg! should also set inferred dimension
-"""
-function putMsgUpThis!(cliql::TreeClique, msgs::LikelihoodMessage)
-  # TODO change into a replace put!
-  cd = getCliqueData(cliql)
-
-  # TODO older interface, likely to be removed at end of #459
-  cd.upMsg = msgs
-
-  # new interface
-  if isready(cd.upMsgChannel)
-    # first clear an existing value
-    take!(cd.upMsgChannel)
-  end
-  # insert the new value
-  put!(cd.upMsgChannel, msgs)
-  nothing
-end
-
-"""
-    $SIGNATURES
-
-Set cliques up init msgs.
-
-DevNotes
-- ORIGINALLY PART OF PUSH MODEL #674, MUST BE UPDATED TO PULL.
-  -- Likely problem for siblings wanting to have notified parent
-    -- Notifications might have to remain on parent while msgs are stored in each' own clique
-- TODO, must be consolidated
-"""
-function putMsgUpInit!(cliq::TreeClique,
-                       msg::LikelihoodMessage,
-                       logger=SimpleLogger(stdout))
-  #
-  cd = getCliqueData(cliq)
-  soco = getSolveCondition(cliq)
-  # FIXME, locks should not be required in all cases
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInit!")
-  # update the register
-  setMsgUpThisInit!(cd, msg)
-  # TODO simplify and fix need for repeat
-  # notify cliq condition that there was a change
-  notify(soco)
-  #hack for mitigating deadlocks, in case a user was not already waiting, but waiting on lock instead
-  sleep(0.1)
-  notify(soco)
-  unlockUpStatus!(cd)
-  nothing
-end
-
-
-function putMsgUpInitStatus!(cliq::TreeClique, status::CliqStatus, logger=SimpleLogger(stdout))
-  cdat = getCliqueData(cliq)
-  cdc = getMsgUpInitChannel_(cdat)
-  cond = getSolveCondition(cliq)
-    if isready(cdc)
-      content = take!(cdc)
-    end
-  # FIXME, lock should not be required in all cases.
-  lockUpStatus!(cliq, cliq.index, true, logger, true, "putMsgUpInitStatus!")
-  setCliqueStatus!(cdat, status)
-  # cdat.initialized = status
-  put!(cdc, LikelihoodMessage(status=status))
-  notify(cond)
-    # FIXME hack to avoid a race condition  -- remove with atomic lock logic upgrade
-    sleep(0.1)
-    notify(cond) # getSolveCondition(cliq)
-  #
-  unlockUpStatus!(cdat)
-  nothing
-end
-
-
-
+# FIXME will be consolidated as part of 459
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
   cdat = getCliqueData(cliq)
   cdc = getMsgDwnInitChannel_(cdat)
@@ -358,36 +259,40 @@ end
 
 Notify of new up status and message.
 
-Notes
+DevNotes
 - Major part of #459 consolidation effort.
+- FIXME require consolidation
+  - Perhaps deprecate putMsgUpInitStatus! as separate function?
 """
 function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol  )
+                                   status::Symbol=getCliqueStatus(csmc.cliq);
+                                   dfg::AbstractDFG=csmc.cliqSubFg,
+                                   upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
   #
   # TODO replace with msg channels only
 
-  # construct init's up msg from initialized separator variables
-  upinitmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, status)
+  # put the init upmsg
+  cd = getCliqueData(csmc.cliq)
 
-  # upmsgs = upPrepOutMsg!(retdict, getCliqSeparatorVarIds(csmc.cliq), status )
-  putMsgUpThis!(csmc.cliq, upinitmsg ) # upmsgs
+  setCliqueStatus!(csmc.cliq, status)
 
-  # put the init upinitmsg
-  putMsgUpInit!(csmc.cliq, upinitmsg, csmc.logger)
-  if getCliqueStatus(csmc.cliq) != status
-    infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notify status=$status")
-    putMsgUpInitStatus!(csmc.cliq, status, csmc.logger)
-    # notifyCliqUpInitStatus!(csmc.cliq, status, logger=csmc.logger)
-  end
+  # NOTE consolidate with upMsgChannel #459
+  putCliqueMsgUp!(cd, upmsg)
+    # TODO remove as part of putCliqueMsgUp!
+    # new replace put! interface
+    # cdc_ = getMsgUpChannel(cd)
+    # if isready(cdc_)
+    #   # first clear an existing value
+    #   take!(cdc_)
+    # end
+    # put!(cdc_, upmsg)
 
-  # print a little late
-  with_logger(csmc.logger) do
-    tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(csmc.cliq.index), 8g, doCliqUpsSolveInit. -- postupinitmsg with $(collect(keys(upinitmsg.belief)))"
-  end
+  notify(getSolveCondition(csmc.cliq))
+
+  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
 
   # return new up messages in case the user wants to see
-  return upinitmsg
+  return upmsg
 end
 
 
@@ -437,12 +342,12 @@ function getMsgsUpInitChildren(treel::AbstractBayesTree,
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # add possible information that may have come via grandparents from elsewhere in the tree
-  thismsg = getMsgUpThisInit(cliq)
+  thismsg = getMsgUpThis(cliq)
   retmsgs[cliq.index] = thismsg
 
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   for ch in chld
-    chmsg = getMsgUpThisInit(ch)
+    chmsg = getMsgUpThis(ch)
     if !(ch.index in skip)
       retmsgs[ch.index] = chmsg
     end

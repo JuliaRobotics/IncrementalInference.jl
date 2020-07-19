@@ -31,7 +31,7 @@ struct TreeBelief{T <: InferenceVariable}
   inferdim::Float64
   softtype::T
   # TODO -- DEPRECATE
-  manifolds::Tuple{Vararg{Symbol}}# TODO #459
+  manifolds::Tuple{Vararg{Symbol}}# NOTE added during #459 effort
 end
 TreeBelief(p::BallTreeDensity,
            inferdim::Real=0.0,

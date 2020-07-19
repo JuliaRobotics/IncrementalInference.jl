@@ -953,15 +953,14 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
     @info "=== start Clique $(getLabel(cliq)) ======================"
   end
   ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
-  
+
   if multiproc
     cliqc = deepcopy(cliq)
     cliqcd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
-    cliqcd.initUpChannel = Channel{LikelihoodMessage}(1)
+    cliqcd.upMsgChannel = Channel{LikelihoodMessage}(1)
     cliqcd.initDownChannel = Channel{LikelihoodMessage}(1)
     cliqcd.solveCondition = Condition()
-    # cliqcd.statehistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
@@ -1013,7 +1012,7 @@ end
 
 Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
 """
-function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)::Bool
+function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)
   acclist = Symbol[:upsolved; :downsolved; :marginalized]
   skipinitialized ? nothing : push!(acclist, :initialized)
   for (clid, cliq) in getCliques(treel)
@@ -1024,7 +1023,7 @@ function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)::Bo
   return true
 end
 
-function isTreeSolvedUp(treel::AbstractBayesTree)::Bool
+function isTreeSolvedUp(treel::AbstractBayesTree)
   for (clid, cliq) in getCliques(treel)
     if getCliqueStatus(cliq) != :upsolved
       return false
@@ -1285,11 +1284,8 @@ function asyncTreeInferUp!(dfg::G,
                            recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
   #
   resetTreeCliquesForUpSolve!(treel)
-  setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
     pdfpath = joinLogPath(dfg,"bt.pdf")
-    drawTree(treel, show=false, filepath=pdfpath)
-    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
   end
 
@@ -1337,11 +1333,8 @@ function initInferTreeUp!(dfg::G,
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
-  setTreeCliquesMarginalized!(dfg, treel)
   if drawtree
     pdfpath = joinLogPath(dfg,"bt.pdf")
-    drawTree(treel, show=false, filepath=pdfpath)
-    pdfpath = joinLogPath(dfg,"bt_marginalized.pdf")
     drawTree(treel, show=false, filepath=pdfpath)
   end
 

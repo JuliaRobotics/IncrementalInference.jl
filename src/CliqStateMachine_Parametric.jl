@@ -93,7 +93,6 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   childrenOk = true
   beliefMessages = Dict{Int,LikelihoodMessage}()
-  # beliefMessages = LikelihoodMessage[]
 
   # fetch messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
@@ -106,16 +105,16 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
-  # FIXME why duplicate messages from edges into clique???
+  # FIXME lets consolidate messages to just one Channel location on edges/clique?
   for (idx,beliefMsg) in beliefMessages
     #save up message (and add priors to cliqSubFg)
     #choose csmc for dbg messages, it's a vector, one per clique
     if beliefMsg.status == :UPSOLVED
-      putMsgUpThis!(csmc.cliq, beliefMsg) # setUpMsg! # FIXME only putMsgUp! only after solveUp_ParametricStateMachine
+      prepPutCliqueStatusMsgUp!( csmc, beliefMsg.status, upmsg=beliefMsg )
+      # putMsgUpThis!(csmc.cliq, beliefMsg) # NOTE replaced #459
     else
 
       setCliqDrawColor(csmc.cliq, "red")
-      # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
       for e in getEdgesParent(csmc.tree, csmc.cliq)
         @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"

@@ -50,6 +50,8 @@ include("testCcolamdOrdering.jl")
 
 include("testBasicGraphs.jl")
 
+include("testDefaultDeconv.jl")
+
 include("testlocalconstraintexamples.jl")
 
 include("testBasicTreeInit.jl")

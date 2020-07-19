@@ -75,8 +75,8 @@ export AbstractDFG,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolvekeys,
   deepcopySolvekeys!, deepcopySupersolve!,
-  # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
+  diagm,
   *,
   notifyCSMCondition,
   CSMHistory,
@@ -413,7 +413,6 @@ export AbstractDFG,
   numericRootGenericRandomized,
   numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
-  solveFactorMeasurements,
 
   # user functions
   proposalbeliefs,
@@ -434,7 +433,6 @@ export AbstractDFG,
   getCliqFactorIdsAll,
   getCliqFactors,
   areCliqVariablesAllMarginalized,
-  setTreeCliquesMarginalized!,
 
   # generic marginal used during elimitation game
   GenericMarginal,
@@ -528,6 +526,7 @@ include("TreeBasedInitialization.jl")
 
 # solving graphs
 include("SolverUtilities.jl")
+include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")

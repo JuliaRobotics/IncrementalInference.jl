@@ -294,11 +294,11 @@ mutable struct BayesTreeNodeData
 
   cliqAssocMat::Array{Bool,2}
   cliqMsgMat::Array{Bool,2}
-  directvarIDs::Vector{Symbol} # Int
-  directFrtlMsgIDs::Vector{Symbol} # Int
-  msgskipIDs::Vector{Symbol} # Int
-  itervarIDs::Vector{Symbol} # Int
-  directPriorMsgIDs::Vector{Symbol} # Int
+  directvarIDs::Vector{Symbol}
+  directFrtlMsgIDs::Vector{Symbol}
+  msgskipIDs::Vector{Symbol}
+  itervarIDs::Vector{Symbol}
+  directPriorMsgIDs::Vector{Symbol}
   debug
   debugDwn
 
@@ -306,30 +306,26 @@ mutable struct BayesTreeNodeData
   initialized::Symbol
   upsolved::Bool
   downsolved::Bool
-  #  iSAM2 style
-  isCliqReused::Bool
+  isCliqReused::Bool             # iSAM2 holdover
 
-  # future might concentrate these four fields down to two
-  # these should become specialized LikelihoodMessage type
-  # TODO, likely to be replaced by Channel counterparts
-  upMsg::LikelihoodMessage
-  dwnMsg::LikelihoodMessage
-
+  # FIXME remove and only use upMsgChannel / dwnMsgChannel
   # FIXME Deprecate separate init message locations -- only use up and dwn
-  # FIXME ensure these are converted to pull model first #674
-  upInitMsgs::LikelihoodMessage # TODO, drop this field and only use upMsg
+  # FIXME ensure dwn init is pull model #674
+  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
   downInitMsg::LikelihoodMessage
-  initUpChannel::Channel{LikelihoodMessage}
   initDownChannel::Channel{LikelihoodMessage}
 
+  # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
   # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
   solvableDims::Channel{Dict{Symbol, Float64}}
 
-  # in and out message channels relating to THIS clique -- only for pull model #674
+  # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
+
+  # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
   dwnMsgChannel::Channel{LikelihoodMessage}
 end
 
@@ -339,29 +335,26 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             inmsgIDs=Symbol[],
                             potIDs=Symbol[],
                             potentials=Symbol[],
-                            partialpotential=Bool[],            # 6
+                            partialpotential=Bool[],
                             dwnPotentials=Symbol[],
                             dwnPartialPotential=Bool[],
                             cliqAssocMat=Array{Bool}(undef, 0,0),
                             cliqMsgMat=Array{Bool}(undef, 0,0),
                             directvarIDs=Int[],
-                            directFrtlMsgIDs=Int[],             # 10+2
+                            directFrtlMsgIDs=Int[],
                             msgskipIDs=Int[],
                             itervarIDs=Int[],
-                            directPriorMsgIDs=Int[],            # 13+2
+                            directPriorMsgIDs=Int[],
                             debug=nothing,
-                            debugDwn=nothing,                   # 15+2
+                            debugDwn=nothing,
                             allmarginalized=false,
                             initialized=:null,
                             upsolved=false,
-                            downsolved=false,                   #
+                            downsolved=false,
                             isCliqReused=false,
-                            upMsg=LikelihoodMessage(),
-                            dwnMsg=LikelihoodMessage(),
-                            upInitMsgs=LikelihoodMessage(),  # Dict{Int, LikelihoodMessage}()
-                            downInitMsg=LikelihoodMessage(),         #
-                            initUpChannel=Channel{LikelihoodMessage}(1),
-                            initDownChannel=Channel{LikelihoodMessage}(1),
+                            dwnMsg=LikelihoodMessage(),                     # DEPRECATE
+                            downInitMsg=LikelihoodMessage(),                # DEPRECATE
+                            initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
@@ -369,7 +362,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upMsgChannel=Channel{LikelihoodMessage}(1),
                             dwnMsgChannel=Channel{LikelihoodMessage}(1)
                           )
-   BayesTreeNodeData(frontalIDs,
+   btnd = BayesTreeNodeData(frontalIDs,
                         separatorIDs,
                         inmsgIDs,
                         potIDs,
@@ -391,11 +384,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        upMsg,
                         dwnMsg,
-                        upInitMsgs,
                         downInitMsg,
-                        initUpChannel,
                         initDownChannel,
                         solveCondition,
                         lockUpStatus,
@@ -403,6 +393,9 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         solvableDims,
                         upMsgChannel,
                         dwnMsgChannel  )
+  #
+  put!(btnd.upMsgChannel, LikelihoodMessage())
+  return btnd
 end
 #
 
@@ -451,17 +444,16 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.upsolved == c2.upsolved
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
-  TP = TP && c1.upMsg == c2.upMsg
+  TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   TP = TP && c1.dwnMsg == c2.dwnMsg
-  TP = TP && c1.upInitMsgs == c2.upInitMsgs
+  # TP = TP && c1.upInitMsgs == c2.upInitMsgs
   TP = TP && c1.downInitMsg == c2.downInitMsg
-  TP = TP && c1.initUpChannel == c2.initUpChannel
   TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
   TP = TP && c1.solvableDims == c2.solvableDims
-  TP = TP && c1.upMsgChannel == c2.upMsgChannel
+  TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
   TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
 
   return TP

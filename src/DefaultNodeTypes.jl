@@ -169,6 +169,8 @@ Default linear offset between two scalar variables.
 struct LinearConditional{T} <: IncrementalInference.FunctorPairwise where T <: SamplableBelief
   Z::T
 end
+LinearConditional(z::T=Normal()) where T = LinearConditional{T}(z)
+
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 userdata::FactorMetadata,

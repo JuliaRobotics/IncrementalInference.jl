@@ -31,7 +31,7 @@ function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
 
   # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)
+  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)                       # FIXME, post #459 calls?
   upmsgids = collect(keys(upmsgs))
 
   # all singleton variables
@@ -96,38 +96,6 @@ function areCliqVariablesAllMarginalized(subfg::AbstractDFG,
     end
   end
   return true
-end
-
-
-"""
-    $SIGNATURES
-
-Set all Bayes (Junction) tree cliques that have all marginalized and initialized variables.
-"""
-function setTreeCliquesMarginalized!(dfg::AbstractDFG,
-                                     tree::AbstractBayesTree,
-                                     logger=SimpleLogger(stdout))
-  #
-  for (cliid, cliq) in getCliques(tree)
-    if areCliqVariablesAllMarginalized(dfg, cliq)
-      # need to set the upward messages
-      msgs = prepCliqInitMsgsUp(dfg, cliq)
-      putMsgUpThis!(cliq, msgs)
-
-      prnt = getParent(tree, cliq)
-      if length(prnt) > 0
-        # THIS IS FOR INIT PASSES ONLY
-        putMsgUpInit!(cliq, msgs, logger)
-      end
-
-      setCliqueStatus!(cliq, :marginalized)
-      setCliqDrawColor(cliq, "blue")
-
-      # set flag, looks to be previously unused???
-      getCliqueData(cliq).allmarginalized = true
-    end
-  end
-  nothing
 end
 
 
@@ -328,7 +296,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
   # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])
+  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])     # FIXME, post #459 calls?
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -434,14 +402,14 @@ function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
     # either wait to fetch new result, or report or result
     chst = getCliqueStatus(ch)
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpInitChannel_(ch)))."
+      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
     end
     flush(logger.stream)
-    ret[ch.index] = fetchMsgUpInit(ch).status
+    ret[ch.index] = (fetch(getMsgUpChannel(ch))).status  # fetchMsgUpInit(ch).status
   end
   with_logger(logger) do
       tt = split(string(now()), 'T')[end]
-      @info "cliq $(prnt.index), $(tt), fetched all, keys=$(keys(ret))."
+      @info "$(tt), cliq $(prnt.index), fetched all, keys=$(keys(ret))."
   end
   return ret
 end

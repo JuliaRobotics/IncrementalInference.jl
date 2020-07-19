@@ -11,6 +11,21 @@ export resetCliqSolve!
 
 convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
 
+"""
+    $(SIGNATURES)
+
+Construct a BallTreeDensity KDE object from an IIF.TreeBelief object.
+
+Related
+
+manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
+"""
+function kde!(em::TreeBelief)
+  # return AMP.manikde!(em.val, em.bw, em.manifolds)
+  return convert(BallTreeDensity, em)
+end
+manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
+
 
 ## =============================================================================
 # helper functions for tree message channels
@@ -38,13 +53,10 @@ function resetCliqSolve!(dfg::AbstractDFG,
   for varis in vars
     resetVariable!(dfg, varis, solveKey=solveKey)
   end
-  prnt = getParent(treel, cliq)
-  if length(prnt) > 0
-    putMsgUpInit!( cliq, LikelihoodMessage() )
-  end
-  cda.upMsg  = LikelihoodMessage()
+  # TODO remove once consolidation with upMsgs is done
+  putCliqueMsgUp!(cda, LikelihoodMessage() )
+
   cda.dwnMsg = LikelihoodMessage()
-  setMsgUpThisInit!(cda, LikelihoodMessage() )
   # cda.upInitMsgs = LikelihoodMessage()
   cda.downInitMsg = LikelihoodMessage()
   setCliqueStatus!(cliq, :null)
@@ -210,7 +222,7 @@ function notifyCliqDownInitStatus!(cliq::TreeClique,
   # take lock for atomic transaction
   lockDwnStatus!(cdat, cliq.index, logger=logger)
 
-  cdat.initialized = status
+  setCliqueStatus!(cdat, status)
 
   putMsgDwnInitStatus!(cliq, status, logger)
 
