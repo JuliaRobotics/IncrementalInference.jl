@@ -23,16 +23,6 @@ selectFactorType(T1::Type{ContinuousScalar}, T2::Type{ContinuousScalar}) = Linea
 selectFactorType(T1::InferenceVariable, T2::InferenceVariable) = selectFactorType(typeof(T1), typeof(T2))
 selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol) = selectFactorType( getVariableType(dfg, s1), getVariableType(dfg, s2) )
 
-"""
-    $SIGNATURES
-
-Need defaults for dummy factors as part of #577, #579 effort on generalized deconvolutions.
-
-DevNotes
-- Still early days on this function, so much rework required.
-"""
-buildFactorDefault(::Type{LinearConditional}) = LinearConditional(Normal())
-
 
 """
     $SIGNATURES
@@ -146,7 +136,8 @@ function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
     push!(alreadylist, sym1_)
     for sym2_ in setdiff(listVarAcc, alreadylist)
       nfactype = selectFactorType(tfg, sym1_, sym2_)
-      nfct = buildFactorDefault(nfactype)
+      # assume default helper function # buildFactorDefault(nfactype)
+      nfct = nfactype()
       afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
       # calculate the general deconvolution between variables
       pts = solveFactorMeasurements(tfg, afc.label)

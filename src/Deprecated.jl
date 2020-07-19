@@ -5,6 +5,7 @@
 ## Delete at end v0.13.x
 ##==============================================================================
 
+export buildFactorDefault
 export setCliqueMsgUp!
 export getMsgUpInitChannel_
 export putMsgUpInit!, fetchMsgUpInit
@@ -21,6 +22,16 @@ export setCliqUpInitMsgs!
 export getCliqInitUpMsgs, getInitDownMsg
 export setMsgUpThis!, getMsgsUpThis
 export setMsgDwnThis!, getMsgsDwnThis
+
+"""
+    $SIGNATURES
+
+Need defaults for dummy factors as part of #577, #579 effort on generalized deconvolutions.
+
+DevNotes
+- Still early days on this function, so much rework required.
+"""
+buildFactorDefault(::Type{LinearConditional}) = LinearConditional(Normal())
 
 
 @deprecate getMsgUpInitChannel_(x...) getMsgUpChannel(x...)
