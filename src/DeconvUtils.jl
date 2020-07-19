@@ -31,9 +31,13 @@ Inverse solve of predicted noise value and returns tuple of (newly predicted, an
 
 Notes
 - "measured" is used as starting point for the "predicted" values solve.
+- Not all factor evaluation cases are support yet.
 
 DevNotes
 - This function is still part of the initial implementation and needs a lot of generalization improvements.
+- FIXME FactorMetadata object for all use-cases, not just empty object.
+- Test for various cases with multiple variables.
+- Test for cases with `nullhypo` and `multihypo`.
 """
 function solveFactorMeasurements(dfg::AbstractDFG,
                                  fctsym::Symbol  )
