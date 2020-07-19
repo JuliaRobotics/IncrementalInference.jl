@@ -2,6 +2,31 @@
 
 
 ##==============================================================================
+## Delete at end v0.14.x
+##==============================================================================
+
+
+export Pairwise, Singleton
+export FunctorSingletonNH, FunctorPairwiseNH
+export FunctorInferenceType, FunctorPairwise, FunctorPairwiseMinimize, FunctorSingleton
+
+
+
+# TODO been replaced by Functor types, but may be reused for non-numerical cases
+abstract type Pairwise <: InferenceType end
+abstract type Singleton <: InferenceType end
+
+# TODO deprecate with standard null hypothesis only
+abstract type FunctorSingletonNH <: FunctorSingleton end
+abstract type FunctorPairwiseNH <: FunctorPairwise end
+# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+
+
+# const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
+# const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
+
+
+##==============================================================================
 ## Delete at end v0.13.x
 ##==============================================================================
 

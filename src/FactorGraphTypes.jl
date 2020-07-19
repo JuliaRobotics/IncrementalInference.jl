@@ -3,19 +3,6 @@ import Base: ==
 
 
 
-# TODO been replaced by Functor types, but may be reused for non-numerical cases
-abstract type Pairwise <: InferenceType end
-abstract type Singleton <: InferenceType end
-
-# TODO deprecate with standard null hypothesis only
-abstract type FunctorSingletonNH <: FunctorSingleton end
-abstract type FunctorPairwiseNH <: FunctorPairwise end
-# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
-
-
-const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
-const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
-
 const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
