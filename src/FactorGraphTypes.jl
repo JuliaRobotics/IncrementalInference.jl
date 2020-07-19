@@ -4,12 +4,13 @@ import Base: ==
 
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
+# TODO DEPRECATE
 abstract type Pairwise <: InferenceType end
 abstract type Singleton <: InferenceType end
 
 # TODO deprecate with standard null hypothesis only
-abstract type AbstractPriorNH <: AbstractPrior end
-abstract type AbstractRelativeFactorNH <: AbstractRelativeFactor end
+abstract type FunctorSingletonNH <: AbstractPrior end
+abstract type FunctorPairwiseNH <: AbstractRelativeFactor end
 # abstract type AbstractRelativeFactorNHMinimize <: AbstractRelativeFactorMinimize end # TODO
 
 
