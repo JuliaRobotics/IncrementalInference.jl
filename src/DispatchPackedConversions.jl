@@ -22,7 +22,7 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
   # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
           convert(P, d.fnc.usrfnc!),
-          d.multihypo, d.fnc.certainhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
+          d.multihypo, d.fnc.certainhypo, d.nullhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -36,8 +36,7 @@ function convert(
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, d.fnc)
-  # FIXME add proper nullhypo value
-  mhcat, nh = parseusermultihypo(d.multihypo, 0.0)
+  mhcat, nh = parseusermultihypo(d.multihypo, d.nullhypo)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
@@ -45,8 +44,9 @@ function convert(
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
   ccw.certainhypo = d.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}( d.eliminated, d.potentialused, d.edgeIDs, ccw, d.multihypo, d.certainhypo, d.solveInProgress)
-  # error("what what $(ret.fnc.certainhypo)")
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.eliminated, d.potentialused, d.edgeIDs, ccw,
+                                                            d.multihypo, d.certainhypo, d.nullhypo, d.solveInProgress)
+  #
   return ret
 end
 

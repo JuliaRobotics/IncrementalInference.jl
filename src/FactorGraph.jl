@@ -623,10 +623,10 @@ function getDefaultFactorData(
       usrfnc::T;
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded  )::GenericFunctionNodeData where
+      threadmodel=SingleThreaded ) where
         {T <: Union{FunctorInferenceType, InferenceType}}
   #
-  nullhypo != 0.0 ? error("nullhypo being renovated and not available in this new format yet.") : nothing
+
   # prepare multihypo particulars
   # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
@@ -635,7 +635,7 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, 0)
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, nullhypo, 0)
   return data_ccw
 end
 

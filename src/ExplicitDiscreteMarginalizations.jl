@@ -110,7 +110,6 @@ function assembleHypothesesElements!(mh::Categorical,
   mhidx = Int[]
 
   allidx = 1:maxlen
-  # @show sfidx
   allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
   # allmhp = 1:length(mh.p)
   # certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
@@ -173,7 +172,7 @@ function assembleHypothesesElements!(mh::Categorical,
     elseif !pidxincer && !sfincer && pidx != 0 # pval >= 1e-15 && mh.p[sfidx] >= 1e-10
       iterah = uncertnidx #allmhp[mh.p .> 1e-15]
     elseif pidx == 0
-      # nullhypo for bad init case
+      # nullhypo only take values from self sfidx, might add entropy later (for bad init case)
       iterah = [sfidx;]
     else
       error("Unknown hypothesis case, got sfidx=$(sfidx) with mh.p=$(mh.p), pidx=$(pidx)")
@@ -212,6 +211,9 @@ function assembleHypothesesElements!(mh::Nothing,
       push!(activehypo, (i,Int[]))
     end
   end
+
+  # TODO add cases where nullhypo occurs, see DFG #536, and IIF #237
+
   return certainidx, allelements, activehypo, mhidx # certainidx = allhp
 end
 

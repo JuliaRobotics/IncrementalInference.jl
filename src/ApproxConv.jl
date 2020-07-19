@@ -305,6 +305,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   certainidx = ccwl.certainhypo
 
   # get manifold add operations
+  # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
 
   # perform the numeric solutions on the indicated elements
