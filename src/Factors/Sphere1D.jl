@@ -5,7 +5,7 @@ export Sphere1Sphere1, PriorSphere1, PackedSphere1Sphere1, PackedPriorSphere1
 """
 $(TYPEDEF)
 """
-mutable struct Sphere1Sphere1{T} <: IncrementalInference.FunctorPairwise where {T <: SamplableBelief}
+mutable struct Sphere1Sphere1{T} <: IncrementalInference.AbstractRelativeFactor where {T <: SamplableBelief}
   Z::T
   Sphere1Sphere1{T}() where {T <: SamplableBelief} = new{T}()
   Sphere1Sphere1{T}(z1::T) where {T <: SamplableBelief} = new{T}(z1)
@@ -38,7 +38,7 @@ Example:
 PriorSphere1( MvNormal([10; 10; pi/6.0], Matrix(Diagonal([0.1;0.1;0.05].^2))) )
 ```
 """
-mutable struct PriorSphere1{T} <: IncrementalInference.FunctorSingleton  where {T <: IncrementalInference.SamplableBelief}
+mutable struct PriorSphere1{T} <: IncrementalInference.AbstractRelativeFactor  where {T <: IncrementalInference.SamplableBelief}
     Z::T
     PriorSphere1{T}() where T = new{T}()
     PriorSphere1{T}(x::T) where {T <: IncrementalInference.SamplableBelief}  = new{T}(x)

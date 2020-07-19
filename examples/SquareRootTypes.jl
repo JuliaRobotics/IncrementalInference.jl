@@ -1,5 +1,5 @@
 
-struct ProductNumbers <: IncrementalInference.FunctorPairwise
+struct ProductNumbers <: IncrementalInference.AbstractRelativeFactor
   z::Distributions.Normal
 end
 getSample(s::ProductNumbers, N::Int=1) = (reshape(rand(s.z,N),1,:), )
@@ -18,7 +18,7 @@ end
 
 
 
-struct AreEqual <: IncrementalInference.FunctorPairwise
+struct AreEqual <: IncrementalInference.AbstractRelativeFactor
   z::Distributions.Normal
 end
 function getSample(s::AreEqual, N::Int=1)
@@ -38,7 +38,7 @@ end
 
 
 
-struct Square <: IncrementalInference.FunctorPairwise
+struct Square <: IncrementalInference.AbstractRelativeFactor
   z::Distributions.Normal
 end
 getSample(s::Square, N::Int=1) = (reshape(rand(s.z,N),1,:), )
@@ -55,7 +55,7 @@ function (s::Square)(res::AbstractArray{<:Real},
 end
 
 
-mutable struct NumbersPrior <: IncrementalInference.FunctorSingleton
+mutable struct NumbersPrior <: IncrementalInference.AbstractPrior
   z::BallTreeDensity
 end
 getSample(s::NumbersPrior, N::Int=1) = (reshape(rand(s.z,N),1,:), )

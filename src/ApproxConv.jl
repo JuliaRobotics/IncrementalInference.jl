@@ -12,7 +12,7 @@ Future work:
 
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -36,7 +36,7 @@ Future work:
 
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -60,7 +60,7 @@ Future work:
 
 """
 function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   #
   approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
 end
@@ -102,7 +102,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
     ccwl.cpt[i].X = ccwl.params[sfidx]
     ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
     ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for FunctorPairwiseMinimize
+    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeFactorMinimize
   end
 
   return sfidx, maxlen, manis
@@ -172,7 +172,7 @@ end
 """
     $(SIGNATURES)
 
-Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `FunctorPairwise` and `FunctorPairwiseMinimize` factors.
+Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   allelements,
@@ -181,7 +181,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   sfidx::Int,
                                   maxlen::Int,
                                   maniAddOps::Tuple;
-                                  spreadNH::Float64=3.0  ) where {T <:Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                                  spreadNH::Float64=3.0  ) where {T <:Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -252,12 +252,12 @@ end
 """
     $(SIGNATURES)
 
-Do true and null hypothesis computations based on data structures prepared earlier -- specific to `FunctorPairwiseNH`.  This function will be merged into a standard case for `FunctorPairwise/Minimize` in the future.
+Do true and null hypothesis computations based on data structures prepared earlier -- specific to `AbstractRelativeFactorNH`.  This function will be merged into a standard case for `AbstractRelativeFactor/Minimize` in the future.
 """
 function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
                                       allelements,
                                       nhc,
-                                      ENT  ) where {T <: FunctorPairwiseNH}
+                                      ENT  ) where {T <: AbstractRelativeFactorNH}
   #
   # TODO --  Threads.@threads see area4 branch
   for n in allelements
@@ -277,7 +277,7 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for `<:FunctorPairwise` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
@@ -287,7 +287,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
                                spreadNH::Real=3.0,
-                               dbg::Bool=false  ) where {T <: Union{FunctorPairwise, FunctorPairwiseMinimize}}
+                               dbg::Bool=false  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   #
 
   # Prep computation variables
@@ -320,7 +320,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                measurement::Tuple=(zeros(0,0),);
                                N::Int=size(measurement[1],2),
                                dbg::Bool=false,
-                               spreadNH::Float64=3.0 ) where {T <: FunctorSingleton}
+                               spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
   fnc = ccwl.usrfnc!
 

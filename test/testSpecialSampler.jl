@@ -7,14 +7,14 @@ using DistributedFactorGraphs
 # import IncrementalInference: getSample
 
 
-struct SpecialPrior{T} <: IncrementalInference.FunctorSingleton where T <: Distribution
+struct SpecialPrior{T} <: IncrementalInference.AbstractPrior where T <: Distribution
   z::T
   specialSampler::Function
 end
 specialSample(s::SpecialPrior, N::Int, fmd::FactorMetadata, Xi) = (reshape(rand(s.z,N),1,:), )
 SpecialPrior(z::T) where {T <: SamplableBelief}= SpecialPrior{T}(z, specialSample)
 
-struct SpecialLinearOffset{T} <: IncrementalInference.FunctorPairwise where T <: Distribution
+struct SpecialLinearOffset{T} <: IncrementalInference.AbstractRelativeFactor where T <: Distribution
   z::T
   specialSampler::Function
 end

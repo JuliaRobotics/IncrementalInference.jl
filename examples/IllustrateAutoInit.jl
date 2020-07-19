@@ -11,7 +11,7 @@ import IncrementalInference: getSample
 # and a bi-modal conditional function
 
 ## TODO: NEW STANDARD FEATURE USE addFactor!(fg, .., multihypo=[...]),   or  MixtureLinearConditional
-# struct MixtureConditional <: IncrementalInference.FunctorPairwise
+# struct MixtureConditional <: IncrementalInference.AbstractRelativeFactor
 #   z::Vector{Distribution}
 #   c::Categorical
 # end

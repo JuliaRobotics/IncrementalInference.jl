@@ -23,7 +23,7 @@ end
 
 
 # abstract functional defintion
-mutable struct OneDimensionTest{T} <: FunctorPairwise
+mutable struct OneDimensionTest{T} <: AbstractRelativeFactor
   Dx::T
   OneDimensionTest{T}(a::T) where T = new(a)
 end

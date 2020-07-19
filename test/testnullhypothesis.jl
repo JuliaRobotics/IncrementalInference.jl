@@ -6,7 +6,7 @@ using IncrementalInference
 import IncrementalInference: getSample
 
 
-mutable struct DevelopPriorNH <: IncrementalInference.FunctorSingletonNH
+mutable struct DevelopPriorNH <: IncrementalInference.AbstractPriorNH
   x::Distribution
   nullhypothesis::Distributions.Categorical
 end

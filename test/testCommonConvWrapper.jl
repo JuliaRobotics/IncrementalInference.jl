@@ -121,7 +121,7 @@ end
 
 # abstract Nonparametric <: Function
 # This is what the internmediate user would be contributing
-mutable struct Pose1Pose1Test{T} <: FunctorPairwise
+mutable struct Pose1Pose1Test{T} <: AbstractRelativeFactor
   Dx::T
   Pose1Pose1Test{T}() where T = new()
   Pose1Pose1Test{T}(a::T) where T = new(a)
