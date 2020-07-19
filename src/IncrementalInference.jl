@@ -75,8 +75,8 @@ export AbstractDFG,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolvekeys,
   deepcopySolvekeys!, deepcopySupersolve!,
-  # solverData, # this may have caused some weirdness see issue JuliaRobotics/DistributedFactorGraphs.jl #342
 
+  diagm,
   *,
   notifyCSMCondition,
   CSMHistory,

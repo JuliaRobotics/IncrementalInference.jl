@@ -2,7 +2,7 @@ name = "IncrementalInference"
 uuid = "904591bb-b899-562f-9e6f-b8df64c7d480"
 keywords = ["mm-iSAM", "SLAM", "inference", "sum-product", "belief-propagation"]
 desc = "Implements the multimodal iSAM algorithm."
-version = "0.13.0"
+version = "0.13.1"
 
 
 [deps]
