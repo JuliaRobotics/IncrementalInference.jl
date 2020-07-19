@@ -2,7 +2,7 @@ name = "IncrementalInference"
 uuid = "904591bb-b899-562f-9e6f-b8df64c7d480"
 keywords = ["mm-iSAM", "SLAM", "inference", "sum-product", "belief-propagation"]
 desc = "Implements the multimodal iSAM algorithm."
-version = "0.13.1"
+version = "0.14.0"
 
 
 [deps]
@@ -38,7 +38,7 @@ SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 [compat]
 ApproxManifoldProducts = "0.1, 0.2"
 Combinatorics = "1.0"
-DistributedFactorGraphs = "0.8.1"
+DistributedFactorGraphs = "0.9.0"
 Distributions = "0.20, 0.21, 0.22, 0.23"
 DocStringExtensions = "0.8, 0.9, 0.10, 1"
 FileIO = "1.0.2, 1.1, 1.2"
