@@ -653,7 +653,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                measurement::Tuple=(zeros(0,100),);
                                N::Int=size(measurement[1],2),
                                spreadNH::Real=3.0,
-                               dbg::Bool=false ) where {T <: AbstractRelativeFactorNH}
+                               dbg::Bool=false ) where {T <: FunctorPairwiseNH}
   #
   @warn "AbstractRelativeFactorNH will be deprecated in favor of common `nullhypo=` interface."
   # TODO -- could be constructed and maintained at addFactor! time
@@ -675,7 +675,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                N::Int=size(measurement[1],2),
                                spreadfactor::Real=10.0,
                                dbg::Bool=false,
-                               spreadNH::Float64=3.0 ) where {T <: AbstractPriorNH}
+                               spreadNH::Float64=3.0 ) where {T <: FunctorSingletonNH}
   #
   @warn "AbstractPriorNH will be deprecated in favor of common `nullhypo=` interface."
   fnc = ccwl.usrfnc!
