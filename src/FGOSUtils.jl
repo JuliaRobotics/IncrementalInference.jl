@@ -105,9 +105,9 @@ Return all factors currently registered in the workspace.
 """
 function getCurrentWorkspaceFactors()
     return [
-        subtypes(IncrementalInference.AbstractPrior)...,
-        subtypes(IncrementalInference.AbstractRelativeFactor)...,
-        subtypes(IncrementalInference.AbstractRelativeFactorMinimize)...];
+        subtypes(AbstractPrior)...,
+        subtypes(AbstractRelativeFactor)...,
+        subtypes(AbstractRelativeFactorMinimize)...];
 end
 
 """

@@ -43,7 +43,7 @@ $(TYPEDEF)
 Default prior on all dimensions of a variable node in the factor graph.  `Prior` is
 not recommended when non-Euclidean dimensions are used in variables.
 """
-struct Prior{T} <: IncrementalInference.AbstractPrior where T <: SamplableBelief
+struct Prior{T} <: AbstractPrior where T <: SamplableBelief
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
@@ -80,7 +80,7 @@ Message prior on all dimensions of a variable node in the factor graph.
 Notes
 - Only temporary existance during CSM operations.
 """
-struct MsgPrior{T} <: IncrementalInference.AbstractPrior where T <: SamplableBelief
+struct MsgPrior{T} <: AbstractPrior where T <: SamplableBelief
   Z::T
   inferdim::Float64
   MsgPrior{T}() where {T} = new{T}()
@@ -152,7 +152,7 @@ $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
 """
-struct PartialPrior{T,P} <: IncrementalInference.AbstractPrior where {T <: SamplableBelief, P <: Tuple}
+struct PartialPrior{T,P} <: AbstractPrior where {T <: SamplableBelief, P <: Tuple}
   Z::T
   partial::P
 end
@@ -166,7 +166,7 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearConditional{T} <: IncrementalInference.AbstractRelativeFactor where T <: SamplableBelief
+struct LinearConditional{T} <: AbstractRelativeFactor where T <: SamplableBelief
   Z::T
 end
 LinearConditional(z::T=Normal()) where T = LinearConditional{T}(z)
@@ -215,7 +215,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-mutable struct MixturePrior{T} <: IncrementalInference.AbstractPrior where {T <: SamplableBelief}
+mutable struct MixturePrior{T} <: AbstractPrior where {T <: SamplableBelief}
   Z::Vector{T}
   C::Distributions.Categorical
   #derived values
@@ -249,7 +249,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of (relative) likelihood beliefs between any two variables.
 """
-struct MixtureLinearConditional{T} <: IncrementalInference.AbstractRelativeFactor
+struct MixtureLinearConditional{T} <: AbstractRelativeFactor
   Z::Vector{T}
   C::Distributions.Categorical
   MixtureLinearConditional{T}() where T  = new{T}()
