@@ -403,8 +403,8 @@ export AbstractDFG,
   AbstractRelativeFactorMinimize,
   AbstractPrior,
   # FunctorPartialSingleton,
-  AbstractRelativeFactorNH,
-  AbstractPriorNH,
+  FunctorPairwiseNH,
+  FunctorSingletonNH,
 
   # Solving utils
   findRelatedFromPotential,
