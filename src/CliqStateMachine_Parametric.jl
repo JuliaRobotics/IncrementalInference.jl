@@ -25,7 +25,7 @@ function initStartCliqStateMachineParametric!(dfg::G,
   children = TreeClique[]#getChildren(tree, cliq)
   prnt = TreeClique[]#getParent(tree, cliq)
 
-  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType#GraphsDFG{SolverParams}
+  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
 
   #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
