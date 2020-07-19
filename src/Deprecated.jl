@@ -212,17 +212,6 @@ function notifyCliqUpInitStatus!(cliq::TreeClique,
 end
 
 
-"""
-$(TYPEDEF)
-"""
-mutable struct MsgPassType
-  fg::GraphsDFG
-  cliq::TreeClique
-  vid::Symbol # Int
-  msgs::Array{LikelihoodMessage,1}
-  N::Int
-end
-
 
 """
     $SIGNATURES
