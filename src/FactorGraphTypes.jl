@@ -4,13 +4,14 @@ import Base: ==
 
 
 # TODO been replaced by Functor types, but may be reused for non-numerical cases
+# TODO DEPRECATE
 abstract type Pairwise <: InferenceType end
 abstract type Singleton <: InferenceType end
 
 # TODO deprecate with standard null hypothesis only
-abstract type FunctorSingletonNH <: FunctorSingleton end
-abstract type FunctorPairwiseNH <: FunctorPairwise end
-# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+abstract type FunctorSingletonNH <: AbstractPrior end
+abstract type FunctorPairwiseNH <: AbstractRelativeFactor end
+# abstract type AbstractRelativeFactorNHMinimize <: AbstractRelativeFactorMinimize end # TODO
 
 
 const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
@@ -180,7 +181,7 @@ mutable struct ConvPerThread
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (FunctorPairwise only)
+  # a permutation vector for low-dimension solves (AbstractRelativeFactor only)
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}

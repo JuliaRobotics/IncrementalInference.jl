@@ -10,12 +10,12 @@ import Base: convert
 import IncrementalInference: getSample
 
 
-mutable struct DevelopPrior <: FunctorSingleton
+mutable struct DevelopPrior <: AbstractPrior
   x::Distribution
 end
 getSample(dpl::DevelopPrior, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
 
-mutable struct DevelopLikelihood <: FunctorPairwise
+mutable struct DevelopLikelihood <: AbstractRelativeFactor
   x::Distribution
 end
 getSample(dpl::DevelopLikelihood, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )

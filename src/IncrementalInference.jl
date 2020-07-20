@@ -399,9 +399,9 @@ export AbstractDFG,
 
   # functor abstracts
   FunctorInferenceType,
-  FunctorPairwise,
-  FunctorPairwiseMinimize,
-  FunctorSingleton,
+  AbstractRelativeFactor,
+  AbstractRelativeFactorMinimize,
+  AbstractPrior,
   # FunctorPartialSingleton,
   FunctorPairwiseNH,
   FunctorSingletonNH,

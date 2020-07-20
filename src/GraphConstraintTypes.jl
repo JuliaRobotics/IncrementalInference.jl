@@ -1,9 +1,9 @@
-# basic agnostic factors.  See RoME.jl for more comprehensive factors 
+# basic agnostic factors.  See RoME.jl for more comprehensive factors
 
 """
 $(TYPEDEF)
 """
-mutable struct Ranged <: FunctorPairwise
+mutable struct Ranged <: AbstractRelativeFactor
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -49,7 +49,7 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct GenericMarginal <: FunctorPairwise
+mutable struct GenericMarginal <: AbstractRelativeFactor
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}

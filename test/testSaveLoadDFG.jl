@@ -13,7 +13,7 @@ using Test
   # VERSION above 1.0.x hack required since Julia 1.0 does not seem to havfunction `splitpath`
   if v"1.1" <= VERSION
     retDFG = initfg()
-    retDFG = loadDFG(saveFolder, IncrementalInference, retDFG)
+    retDFG = loadDFG!(retDFG, saveFolder)
     Base.rm(saveFolder*".tar.gz")
 
     @test symdiff(ls(fg), ls(retDFG)) == []

@@ -66,7 +66,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   for idx in 1:N
     retry = 10
     while 0 < retry
-      if isa(fcttype, FunctorPairwiseMinimize)
+      if isa(fcttype, AbstractRelativeFactorMinimize)
         r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
         retry -= 1
         if !r.g_converged
@@ -77,11 +77,11 @@ function solveFactorMeasurements(dfg::AbstractDFG,
         else
           break
         end
-      elseif isa(fcttype, FunctorPairwise)
+      elseif isa(fcttype, AbstractRelativeFactor)
         ggnl = (rs, dm) -> fcttype(rs,ud,idx,makemeas!(idx, meas, dm),vars...)
         r = nlsolve(ggnl, meas[1][:,idx])
         break
-      elseif isa(fcttype, FunctorSingleton)
+      elseif isa(fcttype, AbstractPrior)
         # assuming no partials at this point
         meas[1][:,:] .= vars[1][:,:]
         break

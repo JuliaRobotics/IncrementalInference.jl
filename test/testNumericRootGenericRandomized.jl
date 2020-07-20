@@ -4,7 +4,7 @@ using Test
 
 
 
-mutable struct LineResidual <: FunctorPairwise
+mutable struct LineResidual <: AbstractRelativeFactor
   m::Float64
   c::Float64
 end
@@ -27,7 +27,7 @@ end
 @testset "test CommonConvWrapper{T}, solve of residual functions..." begin
 
 
-function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: FunctorPairwise}
+function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: AbstractRelativeFactor}
   # @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
