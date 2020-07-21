@@ -6,6 +6,7 @@ using IncrementalInference
 import IncrementalInference: getSample
 
 
+# TODO fix this test to use new API, see #237
 mutable struct DevelopPriorNH <: FunctorSingletonNH
   x::Distribution
   nullhypothesis::Distributions.Categorical

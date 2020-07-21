@@ -249,29 +249,6 @@ function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
   return allelements, nhc, ENT
 end
 
-"""
-    $(SIGNATURES)
-
-Do true and null hypothesis computations based on data structures prepared earlier -- specific to `FunctorPairwiseNH`.  This function will be merged into a standard case for `AbstractRelativeFactor/Minimize` in the future.
-"""
-function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
-                                      allelements,
-                                      nhc,
-                                      ENT  ) where {T <: FunctorPairwiseNH}
-  #
-  # TODO --  Threads.@threads see area4 branch
-  for n in allelements
-    # ccwl.gwp(x, res)
-    if nhc[n] != 0
-      ccwl.cpt[Threads.threadid()].particleidx = n
-      numericRootGenericRandomizedFnc!( ccwl )
-    else
-      ccwl.params[ccwl.varidx][:,n] += rand(ENT)
-    end
-  end
-  nothing
-end
-
 
 
 """

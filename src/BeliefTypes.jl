@@ -80,7 +80,7 @@ DevNotes:
 
   $(TYPEDFIELDS)
 """
-mutable struct LikelihoodMessage <: Singleton
+mutable struct LikelihoodMessage <: AbstractPrior
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief}
   variableOrder::Vector{Symbol}
