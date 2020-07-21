@@ -123,7 +123,7 @@ end
 function numericRootGenericRandomizedFnc!(
             ccwl::CommonConvWrapper{T};
             perturb::Float64=1e-10,
-            testshuffle::Bool=false ) where {T <: FunctorPairwiseMinimize}
+            testshuffle::Bool=false ) where {T <: AbstractRelativeFactorMinimize}
   #
   fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
 
@@ -158,7 +158,7 @@ ccw.X must be set to memory ref the param[varidx] being solved, at creation of c
 function numericRootGenericRandomizedFnc!(
             ccwl::CommonConvWrapper{T};
             perturb::Float64=1e-10,
-            testshuffle::Bool=false ) where {T <: FunctorPairwise}
+            testshuffle::Bool=false ) where {T <: AbstractRelativeFactor}
   #
   ## TODO desperately needs cleaning up and refactoring
   # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"

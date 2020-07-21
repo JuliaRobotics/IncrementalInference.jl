@@ -167,7 +167,7 @@ mutable struct ConvPerThread
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (FunctorPairwise only)
+  # a permutation vector for low-dimension solves (AbstractRelativeFactor only)
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}

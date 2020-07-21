@@ -6,14 +6,14 @@ import IncrementalInference: getSample
 using Statistics
 
 
-mutable struct DevelopPartial <: IncrementalInference.FunctorSingleton
+mutable struct DevelopPartial <: AbstractPrior
   x::Distribution
   partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
 end
 getSample(dpl::DevelopPartial, N::Int=1) = (rand(dpl.x, N)', )
 
 
-mutable struct DevelopDim2 <: IncrementalInference.FunctorSingleton
+mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
 getSample(dpl::DevelopDim2, N::Int=1) = (rand(dpl.x, N), )
@@ -68,7 +68,7 @@ end
 
 
 
-mutable struct DevelopPartialPairwise <: IncrementalInference.FunctorPairwise
+mutable struct DevelopPartialPairwise <: AbstractRelativeFactor
   x::Distribution
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
