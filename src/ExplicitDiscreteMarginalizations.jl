@@ -230,11 +230,11 @@ function assembleHypothesesElements!(mh::Nothing,
     if i == 0
       # elements that occur during nullhypo active
       push!(allelements, nullarr)
-      push!(activehypo, (i,sfidx))
+      push!(activehypo, (i,[sfidx;]))
     elseif i == 1
       # elements that occur during regular hypothesis true
       push!(allelements, reguarr)
-      push!(activehypo, (i,certainidx))
+      push!(activehypo, (i,[certainidx;]))
     else
       # all remaining collections are empty (part of multihypo support)
       push!(allelements, Int[])
