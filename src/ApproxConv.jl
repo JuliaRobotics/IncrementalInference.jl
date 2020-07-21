@@ -189,7 +189,6 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
     count += 1
     if sfidx in certainidx || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
-      @show hypoidx, vars
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
     # elseif hypoidx == sfidx
