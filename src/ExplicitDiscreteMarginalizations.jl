@@ -98,6 +98,17 @@ sfidx=4, mhidx=2:  4 should take a value from 2
 sfidx=4, mhidx=3:  4 should take a value from 3
 sfidx=4, mhidx=4:  ah = [1;4]
 ```
+
+Also keeping the default case documented:
+```
+# the default case where mh==nothing
+# equivalent to mh=[1;1;1] # assuming 3 variables
+sfidx=1, allelements=allidx[nhidx.==0], activehypo=(0,[1;])
+sfidx=2, allelements=allidx[nhidx.==0], activehypo=(0,[2;])
+sfidx=3, allelements=allidx[nhidx.==0], activehypo=(0,[3;])
+```
+
+TODO still need to compensate multihypo case for user nullhypo addition.
 """
 function assembleHypothesesElements!(mh::Categorical,
                                      maxlen::Int,
@@ -111,13 +122,9 @@ function assembleHypothesesElements!(mh::Categorical,
 
   allidx = 1:maxlen
   allmhp, certainidx, uncertnidx = getHypothesesVectors(mh.p)
-  # allmhp = 1:length(mh.p)
-  # certainidx = allmhp[mh.p .== 0.0]  # TODO remove after gwp removed
-  # uncertnidx = allmhp[0.0 .< mh.p]
 
   # select only hypotheses that can be used (ie variables have been initialized)
   @assert !(sum(isinit) == 0 && sfidx == certainidx) # cannot init from nothing for any hypothesis
-
 
   mhh = if sum(isinit) < lenXi - 1
     @assert isLeastOneHypoAvailable(sfidx, certainidx, uncertnidx, isinit)
@@ -142,7 +149,7 @@ function assembleHypothesesElements!(mh::Categorical,
     mhh
   end
 
-  # prep mmultihypothesis selection values
+  # prep mm-nultihypothesis selection values
   mhidx = rand(mhh, maxlen)  # selection of which hypothesis is correct
   pidx = 0
   if sfidx in uncertnidx
@@ -152,7 +159,7 @@ function assembleHypothesesElements!(mh::Categorical,
   end
 
   sfincer = sfidx in certainidx
-  for pval in mhh.p # mh.p
+  for pval in mhh.p
     pidx += 1
     pidxincer = pidx in certainidx # ??
     # permutation vectors for later computation
@@ -181,7 +188,7 @@ function assembleHypothesesElements!(mh::Categorical,
     push!(activehypo, (pidx,iterah))
   end
 
-  # # retroactively add nullhypo compensation for bad-init case (the 0 case)
+  # # retroactively add nullhypo case (the 0 case)
   # if sfidx in uncertnidx
   #   #
   # end
@@ -192,29 +199,51 @@ function assembleHypothesesElements!(mh::Nothing,
                                      maxlen::Int,
                                      sfidx::Int,
                                      lenXi::Int,
-                                     isinit::Vector{Bool}=ones(Bool, lenXi)  )
+                                     isinit::Vector{Bool}=ones(Bool, lenXi),
+                                     nullhypo::Real=0  )
+  #
+  # the default case where mh==nothing
+  # equivalent to mh=[1;1;1] # assuming 3 variables
+  # sfidx=1, allelements=allidx[nhidx.==0], activehypo=(0,[1;])
+
   #
   allelements = []
   activehypo = []
-  mhidx = Int[]
+
+  # TODO add cases where nullhypo occurs, see DFG #536, and IIF #237
+  nmhw = [nullhypo; (1-nullhypo)]
+  nhh = Categorical(nmhw)
+
+  # prep mmultihypothesis selection values
+  # mhidx = Int[]
+  # NOTE, must do something special to get around Categorical([0;10]) error
+    # selection of which hypothesis is correct
+  mhidx = nullhypo == 0 ? ones(Int, maxlen) : (rand(nhh, maxlen) .- 1)
 
   allidx = 1:maxlen
   certainidx = 1:lenXi
-  doneall = false
-  for i in certainidx
-    if !doneall
-      push!(allelements, allidx)
+  # zero is nullhypo case, 1 is first sfidx variable
+  nullarr = allidx[mhidx .== 0]
+  # mhidx == 1 case is regular -- this will be all elements if nullhypo=0.0
+  reguarr = allidx[mhidx .!= 0]
+  for i in [0;certainidx]
+    if i == 0
+      # elements that occur during nullhypo active
+      push!(allelements, nullarr)
+      push!(activehypo, (i,sfidx))
+    elseif i == 1
+      # elements that occur during regular hypothesis true
+      push!(allelements, reguarr)
       push!(activehypo, (i,certainidx))
-      doneall = true
     else
+      # all remaining collections are empty (part of multihypo support)
       push!(allelements, Int[])
       push!(activehypo, (i,Int[]))
     end
   end
 
-  # TODO add cases where nullhypo occurs, see DFG #536, and IIF #237
 
-  return certainidx, allelements, activehypo, mhidx # certainidx = allhp
+  return certainidx, allelements, activehypo, mhidx
 end
 
 

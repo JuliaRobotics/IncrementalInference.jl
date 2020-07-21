@@ -189,6 +189,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
     count += 1
     if sfidx in certainidx || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
+      @show hypoidx, vars
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
     # elseif hypoidx == sfidx
@@ -277,13 +278,13 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
 
-  # assemble how hypotheses should be computed
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
-  certainidx = ccwl.certainhypo
-
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+
+  # assemble how hypotheses should be computed
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
+  certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
