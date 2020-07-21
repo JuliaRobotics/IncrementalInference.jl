@@ -581,7 +581,7 @@ function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-            nullhypo=0.0,
+            nullhypo::Real=0.0,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
@@ -599,6 +599,7 @@ function prepgenericconvolution(
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo,
           certainhypo=certainhypo,
+          nullhypo=nullhypo,
           threadmodel=threadmodel
         )
   #

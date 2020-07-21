@@ -82,7 +82,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
-  # get factor metadata -- TODO, populate
+  # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -187,7 +187,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
     count += 1
-    if sfidx in certainidx || hypoidx in certainidx || hypoidx == sfidx
+    if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
@@ -235,25 +235,6 @@ end
 """
     $(SIGNATURES)
 
-Prepare data required for null hypothesis cases during convolution.
-"""
-function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
-                                maxlen::Int,
-                                spreadfactor::Real=10 ) where {T}
-  #
-  @warn "this assembleNullHypothesis method has been updated for e.g. `addFactor!(; nullhypo=0.1)` instead."
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
-  arr = ccwl.params[ccwl.varidx]
-  ENT = generateNullhypoEntropy(arr, maxlen, spreadfactor)
-  allelements = 1:maxlen
-  return allelements, nhc, ENT
-end
-
-
-
-"""
-    $(SIGNATURES)
-
 Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
@@ -282,7 +263,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
 
   # assemble how hypotheses should be computed
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements

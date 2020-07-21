@@ -195,6 +195,8 @@ function assembleHypothesesElements!(mh::Categorical,
 
   return certainidx, allelements, activehypo, mhidx
 end
+
+
 function assembleHypothesesElements!(mh::Nothing,
                                      maxlen::Int,
                                      sfidx::Int,
@@ -202,6 +204,8 @@ function assembleHypothesesElements!(mh::Nothing,
                                      isinit::Vector{Bool}=ones(Bool, lenXi),
                                      nullhypo::Real=0  )
   #
+  # FIXME, consolidate with the general multihypo case
+
   # the default case where mh==nothing
   # equivalent to mh=[1;1;1] # assuming 3 variables
   # sfidx=1, allelements=allidx[nhidx.==0], activehypo=(0,[1;])
@@ -226,23 +230,24 @@ function assembleHypothesesElements!(mh::Nothing,
   nullarr = allidx[mhidx .== 0]
   # mhidx == 1 case is regular -- this will be all elements if nullhypo=0.0
   reguarr = allidx[mhidx .!= 0]
-  for i in [0;certainidx]
-    if i == 0
+  pidxAll = [0;certainidx]
+  for pidx in pidxAll
+    if pidx == 0
       # elements that occur during nullhypo active
       push!(allelements, nullarr)
-      push!(activehypo, (i,[sfidx;]))
-    elseif i == 1
+      push!(activehypo, (pidx,[sfidx;]))
+    elseif pidx == 1
       # elements that occur during regular hypothesis true
       push!(allelements, reguarr)
-      push!(activehypo, (i,[certainidx;]))
+      push!(activehypo, (pidx,certainidx))
     else
       # all remaining collections are empty (part of multihypo support)
       push!(allelements, Int[])
-      push!(activehypo, (i,Int[]))
+      push!(activehypo, (pidx,Int[]))
     end
   end
 
-
+  @show nullhypo, mhidx
   return certainidx, allelements, activehypo, mhidx
 end
 

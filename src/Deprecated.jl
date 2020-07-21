@@ -49,6 +49,26 @@ function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
   nothing
 end
 
+
+"""
+    $(SIGNATURES)
+
+Prepare data required for null hypothesis cases during convolution.
+"""
+function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
+                                maxlen::Int,
+                                spreadfactor::Real=10 ) where {T}
+  #
+  @warn "this assembleNullHypothesis method has been deprecated for e.g. `addFactor!(; nullhypo=0.1)` instead."
+  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
+  arr = ccwl.params[ccwl.varidx]
+  ENT = generateNullhypoEntropy(arr, maxlen, spreadfactor)
+  allelements = 1:maxlen
+  return allelements, nhc, ENT
+end
+
+
+
 ##==============================================================================
 ## Delete at end v0.13.x
 ##==============================================================================

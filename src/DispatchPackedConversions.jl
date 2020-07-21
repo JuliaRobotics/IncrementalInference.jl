@@ -32,20 +32,20 @@ end
 
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F}}},
-            d::IncrementalInference.GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            packed::IncrementalInference.GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
-  usrfnc = convert(F, d.fnc)
-  mhcat, nh = parseusermultihypo(d.multihypo, d.nullhypo)
+  usrfnc = convert(F, packed.fnc)
+  mhcat, nh = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
-  ccw.certainhypo = d.certainhypo
+  ccw.certainhypo = packed.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(d.eliminated, d.potentialused, d.edgeIDs, ccw,
-                                                            d.multihypo, d.certainhypo, d.nullhypo, d.solveInProgress)
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
+                                                            packed.multihypo, packed.certainhypo, packed.nullhypo, packed.solveInProgress)
   #
   return ret
 end
