@@ -126,35 +126,32 @@ end
 Control the amount of entropy to add to null-hypothesis in multihypo case.
 
 Notes:
-- Currently only supports Euclidean domains. (TODO expand)
+- FIXME, Currently only supports Euclidean domains.
 """
 function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 sfidx::Int,
                                                 certainidx::Vector{Int};
                                                 kappa::Float64=3.0  )
   #
-  @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
+  if sfidx in certainidx
+    return kappa*maximum(Statistics.std(ccwl.params[sfidx], dims=2))
+  end
+  # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
+
   # get mean of all fractional variables
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
   uncMeans = zeros(size(ccwl.params[sfidx],1), length(uncertainidx))
   dists = zeros(length(uncertainidx)+length(certainidx))
   dims = size(ccwl.params[sfidx],1)
-  # uncDev = zeros(Int, length(uncertainidx))
   count = 0
   for i in uncertainidx
     count += 1
-    # @show "MARK", i, size(uncMeans), size(Statistics.mean(ccwl.params[i], dims=2) ), length(ccwl.params)
     uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
-    # uncDev[i] = Statistics.std(ccwl.params[i], dims=2)
   end
   count = 0
   refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
   for i in uncertainidx
-    # if i == sfidx
-    #   continue
-    # end
     count += 1
-    # @show i, sfidx, count, size(uncMeans), size(uncMeans)
     dists[count] = norm(refMean - uncMeans[:,count])
   end
   # also check distance to certainidx for general scale reference (workaround heuristic)
@@ -165,7 +162,6 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   end
 
   push!(dists, 1e-2)
-  # @show round.(dists, digits=4)
   return kappa*maximum(dists)
 end
 
@@ -211,17 +207,10 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
       # add 1σ "noise" level to max distance as control
-      # NOTE not around mean
-      # meanVal = Statistics.mean(addEntr, dims=2)
-      # addEntr .= rand(ENT, size(addEntr,2))
       for i in 1:size(addEntr, 1)
         for j in 1:size(addEntr,2)
           addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
         end
-        # FIXME should be on manifold
-        # addEntr[i,:] .+= (spreadDist*rand(size(addEntr,2)) .- 0.5*spreadDist)
-        # NOTE previous around mean approach
-        # addEntr[i,:] .+= meanVal[i,1]
       end
       @assert addEntr[1,1] == ccwl.params[sfidx][1, allelements[count][1]] "bad view memory"
     else
