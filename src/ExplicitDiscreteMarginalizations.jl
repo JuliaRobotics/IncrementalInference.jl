@@ -246,8 +246,7 @@ function assembleHypothesesElements!(mh::Nothing,
       push!(activehypo, (pidx,Int[]))
     end
   end
-
-  @show nullhypo, mhidx
+  
   return certainidx, allelements, activehypo, mhidx
 end
 

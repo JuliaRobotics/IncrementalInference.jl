@@ -134,7 +134,11 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    return kappa*maximum(Statistics.std(ccwl.params[sfidx], dims=2))
+    # cannot calculate the stdev from uninitialized state
+    msst = Statistics.std(ccwl.params[sfidx], dims=2)
+    # FIXME use adaptive scale, see #802
+    msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+    return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
 
