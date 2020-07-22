@@ -6,35 +6,24 @@ using IncrementalInference
 import IncrementalInference: getSample
 
 
-# TODO fix this test to use new API, see #237
-mutable struct DevelopPriorNH <: FunctorSingletonNH
-  x::Distribution
-  nullhypothesis::Distributions.Categorical
-end
-function getSample(dpl::DevelopPriorNH, N::Int=1)
-  return (reshape(rand(dpl.x, N),1,N), )
-end
+@testset "Post 237 nullhypo test" begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+
+addFactor!(fg, [:x0;], Prior(Normal()))
+addFactor!(fg, [:x0;:x1], LinearConditional(Normal(10,1)), nullhypo=0.5)
 
 
-@testset "test null hypothesis singletons..." begin
+pts = approxConv(fg, :x0x1f1, :x1)
 
-global N  = 100
-global fg = initfg()
-
-global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
-
-global pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))
-global f1 = addFactor!(fg,[:x1],pr, graphinit=true)
-
-# ensureAllInitialized!(fg)
-# Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
-
-global pts = evalFactor2(fg, f1, v1.label, N=N)
-
-@test sum(abs.(pts .- 1.0) .< 5) > 30
-@test sum(abs.(pts .- 10.0) .< 5) > 30
+@test 20 < sum(pts .< 5)
+@test 20 < sum(5 .< pts .< 15)
 
 end
+
 
 
 
