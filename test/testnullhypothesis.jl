@@ -3,7 +3,7 @@
 using Test
 using IncrementalInference
 # going to introduce two new constraint types
-import IncrementalInference: getSample
+# import IncrementalInference: getSample
 
 
 @testset "Post 237 nullhypo test" begin
