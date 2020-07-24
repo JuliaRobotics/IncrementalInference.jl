@@ -291,23 +291,48 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
   fnc = ccwl.usrfnc!
-
-  nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
-  # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
+  nn = maximum([N; size(measurement[1],2); size(getVal(Xi[1]),2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds) # in-place version
-  if !ccwl.partial
-    return ccwl.measurement[1]
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds)
+  # FIXME, add more general nullhypo case too
+  sfidx = 1
+  # Check which variables have been initialized
+  isinit = map(x->isInitialized(x), Xi)
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # get solvefor manifolds
+  manis = getManifolds(Xi[sfidx])
+  addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+  # two cases on how to use the measurement
+  nhmask = mhidx .== 0
+  ahmask = mhidx .== 1
+  # generate nullhypo samples
+  # inject lots of entropy in nullhypo case
+  # make spread (1σ) equal to mean distance of other fractionals
+  addEntr = if size(ccwl.params[sfidx],2) == nn
+    deepcopy(ccwl.params[sfidx])
   else
-    val = deepcopy(getVal(Xi[1]))
+    ret = zeros(size(ccwl.params[sfidx],1),nn)
+    ret[:,1:size(ccwl.params[sfidx],2)] .= ccwl.params[sfidx]
+    ret
+  end
+  # @show nn, size(addEntr), size(nhmask), size(getVal(Xi[1]))
+  addEntrNH = view(addEntr, :, nhmask)
+  spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
+  # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
+  if !ccwl.partial
+      addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
+      addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
+    # return ccwl.measurement[1]
+  else
     i = 0
     for dimnum in fnc.partial
       i += 1
-      val[dimnum,:] = ccwl.measurement[1][i,:]
+      addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
+      addEntrNHp = view(addEntr, dimnum, nhmask)
+      addEntropyOnManifoldHack!(addEntrNHp, addOps, spreadDist)
     end
-    return val
   end
+  return addEntr
 end
 
 """
