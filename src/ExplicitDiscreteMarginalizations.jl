@@ -114,7 +114,8 @@ function assembleHypothesesElements!(mh::Categorical,
                                      maxlen::Int,
                                      sfidx::Int,
                                      lenXi::Int,
-                                     isinit::Vector{Bool}=ones(Bool, lenXi)  )
+                                     isinit::Vector{Bool}=ones(Bool, lenXi),
+                                     nullhypo::Real=0  )
   #
   allelements = []
   activehypo = []
@@ -246,7 +247,7 @@ function assembleHypothesesElements!(mh::Nothing,
       push!(activehypo, (pidx,Int[]))
     end
   end
-  
+
   return certainidx, allelements, activehypo, mhidx
 end
 

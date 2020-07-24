@@ -120,6 +120,14 @@ function generateNullhypoEntropy(val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
+function calcVariableCovarianceBasic(arr::AbstractMatrix)
+  # cannot calculate the stdev from uninitialized state
+  msst = Statistics.std(arr, dims=2)
+  # FIXME use adaptive scale, see #802
+  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+  return msst_
+end
+
 """
     $SIGNATURES
 
@@ -167,6 +175,16 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
 
   push!(dists, 1e-2)
   return kappa*maximum(dists)
+end
+
+function addEntropyOnManifoldHack!(addEntr::AbstractMatrix{<:Real}, maniAddOps, spreadDist::Real)
+  # add 1σ "noise" level to max distance as control
+  for i in 1:size(addEntr, 1)
+    for j in 1:size(addEntr,2)
+      addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+    end
+  end
+  nothing
 end
 
 """

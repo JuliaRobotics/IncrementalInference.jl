@@ -24,6 +24,22 @@ pts_ = getBelief(fg, :x1) |> getPoints
 end
 
 
+@testset "Post 237 nullhypo on prior" begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addFactor!(fg, [:x0;], Prior(Normal(10,1)), nullhypo=0.5)
+
+solveTree!(fg)
+
+pts_ = getBelief(fg, :x0) |> getPoints
+
+@test 20 < sum(-5 .< pts_ .< 5) < 80
+@test 30 < sum(5 .< pts_ .< 15) < 80
+
+end
+
 @testset "Post 237 with nullhypo test" begin
 
 fg = initfg()
@@ -44,7 +60,7 @@ solveTree!(fg)
 
 pts2 = getBelief(fg, :x1) |> getPoints
 
-@test 30 < sum(5 .< pts2 .< 15)
+@test 30 < sum(8 .< pts2 .< 12) <= 80
 @test 80 < sum(-10 .< pts2 .< 30)
 
 end
