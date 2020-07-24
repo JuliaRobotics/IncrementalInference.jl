@@ -291,11 +291,11 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
   fnc = ccwl.usrfnc!
-  nn = maximum([N; size(measurement[1],2); size(getVal(Xi[1]),2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds)
   # FIXME, add more general nullhypo case too
   sfidx = 1
+  nn = maximum([N; size(measurement[1],2); size(getVal(Xi[1]),2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
+  vnds = Xi # (x->getSolverData(x)).(Xi)
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds)
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
@@ -312,6 +312,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
     deepcopy(ccwl.params[sfidx])
   else
     ret = zeros(size(ccwl.params[sfidx],1),nn)
+    # @show nn, size(ccwl.params[sfidx],2), size(ret)
     ret[:,1:size(ccwl.params[sfidx],2)] .= ccwl.params[sfidx]
     ret
   end
