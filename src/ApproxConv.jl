@@ -142,10 +142,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 kappa::Float64=3.0  )
   #
   if sfidx in certainidx
-    # cannot calculate the stdev from uninitialized state
-    msst = Statistics.std(ccwl.params[sfidx], dims=2)
-    # FIXME use adaptive scale, see #802
-    msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+    msst_ = calcVariableCovarianceBasic(ccwl.params[sfidx])
     return kappa*msst_
   end
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
@@ -227,13 +224,15 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # make spread (1σ) equal to mean distance of other fractionals
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-      ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
+      # ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist) # TODO
       # add 1σ "noise" level to max distance as control
-      for i in 1:size(addEntr, 1)
-        for j in 1:size(addEntr,2)
-          addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
-        end
-      end
+      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+      # for i in 1:size(addEntr, 1)
+      #   for j in 1:size(addEntr,2)
+      #     # FIXME, should be with ENT
+      #     addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+      #   end
+      # end
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
