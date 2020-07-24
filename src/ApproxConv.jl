@@ -216,7 +216,6 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
           addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
         end
       end
-      @assert addEntr[1,1] == ccwl.params[sfidx][1, allelements[count][1]] "bad view memory"
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
