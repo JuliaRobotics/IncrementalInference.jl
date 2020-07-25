@@ -76,9 +76,13 @@ export AbstractDFG,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolvekeys,
   deepcopySolvekeys!, deepcopySupersolve!,
+  diagm
 
-  diagm,
-  *,
+# Inference types
+export InferenceType, PackedInferenceType
+export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
+
+export *,
   notifyCSMCondition,
   CSMHistory,
   getTreeCliqsSolverHistories,
@@ -388,24 +392,10 @@ export AbstractDFG,
   upMsgPassingIterative!,
   downMsgPassingIterative!,
 
-  # Inference types
-  InferenceType,
-  PackedInferenceType,
-  Singleton,
-  Pairwise,
   # introduced for approximate convolution operations
   setThreadModel!,
   SingleThreaded,
   MultiThreaded,
-
-  # functor abstracts
-  FunctorInferenceType,
-  AbstractRelativeFactor,
-  AbstractRelativeFactorMinimize,
-  AbstractPrior,
-  # FunctorPartialSingleton,
-  FunctorPairwiseNH,
-  FunctorSingletonNH,
 
   # Solving utils
   findRelatedFromPotential,

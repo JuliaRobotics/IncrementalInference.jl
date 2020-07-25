@@ -28,7 +28,7 @@ fg = initfg()
 
 v1 = addVariable!(fg,:x1,ContinuousMultivariate(2,manifolds=(:Euclid, :Euclid)),N=N)
 
-pr = DevelopDim2(MvNormal([0.0;0.0], 0.01*Matrix{Float64}(LinearAlgebra.I,2,2)))
+pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(LinearAlgebra.I,2,2)))
 f1  = addFactor!(fg,[:x1],pr)
 
 dp = DevelopPartial(Normal(2.0, 1.0),(1,))
@@ -45,16 +45,19 @@ end
 memcheck = getVal(v1)
 
 @testset "test evaluation of partial constraint prior" begin
-  X1pts = getVal(v1)
-  pts = evalFactor2(fg, f2, v1.label, N=N)
 
-  @test size(pts, 1) == 2
-  @test size(pts, 2) == N
-  @test norm(Statistics.mean(pts,dims=2)[1] .- [2.0]) < 0.75
-  # ensure the correct response from
-  @test norm(X1pts[1,:] - pts[1,:]) > 2.0
-  @test norm(X1pts[2,:] - pts[2,:]) < 1e-10
-  @test norm(X1pts - memcheck) < 1e-10
+X1pts = getVal(v1)
+# pts = evalFactor2(fg, f2, v1.label, N=N)
+pts = approxConv(fg, f2.label, :x1, N=N)
+
+@test size(pts, 1) == 2
+@test size(pts, 2) == N
+@test norm(Statistics.mean(pts,dims=2)[1] .- [2.0]) < 0.75
+# ensure the correct response from
+@test norm(X1pts[1,:] - pts[1,:]) > 2.0
+@test norm(X1pts[2,:] - pts[2,:]) < 1e-10
+@test norm(X1pts - memcheck) < 1e-10
+
 end
 
 @testset "test solving of factor graph" begin

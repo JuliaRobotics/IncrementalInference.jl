@@ -3,37 +3,68 @@
 using Test
 using IncrementalInference
 # going to introduce two new constraint types
-import IncrementalInference: getSample
+# import IncrementalInference: getSample
 
+@testset "Post 237 without nullhypo" begin
 
-mutable struct DevelopPriorNH <: FunctorSingletonNH
-  x::Distribution
-  nullhypothesis::Distributions.Categorical
-end
-function getSample(dpl::DevelopPriorNH, N::Int=1)
-  return (reshape(rand(dpl.x, N),1,N), )
-end
+fg = initfg()
 
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
 
-@testset "test null hypothesis singletons..." begin
+addFactor!(fg, [:x0;], Prior(Normal()))
+addFactor!(fg, [:x0;:x1], LinearConditional(Normal(10,1)))
 
-global N  = 100
-global fg = initfg()
+solveTree!(fg)
 
-global v1 = addVariable!(fg, :x1, ContinuousScalar, N=N)
+pts_ = getBelief(fg, :x1) |> getPoints
 
-global pr = DevelopPriorNH(Normal(10.0,1.0), Categorical([0.5;0.5]))
-global f1 = addFactor!(fg,[:x1],pr, graphinit=true)
-
-# ensureAllInitialized!(fg)
-# Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
-
-global pts = evalFactor2(fg, f1, v1.label, N=N)
-
-@test sum(abs.(pts .- 1.0) .< 5) > 30
-@test sum(abs.(pts .- 10.0) .< 5) > 30
+@test 80 < sum(5 .< pts_ .< 15)
 
 end
+
+
+@testset "Post 237 nullhypo on prior" begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addFactor!(fg, [:x0;], Prior(Normal(10,1)), nullhypo=0.5)
+
+solveTree!(fg)
+
+pts_ = getBelief(fg, :x0) |> getPoints
+
+@test 20 < sum(-5 .< pts_ .< 5) < 80
+@test 30 < sum(5 .< pts_ .< 15) < 80
+
+end
+
+@testset "Post 237 with nullhypo test" begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+
+addFactor!(fg, [:x0;], Prior(Normal()))
+addFactor!(fg, [:x0;:x1], LinearConditional(Normal(10,1)), nullhypo=0.5)
+
+
+pts = approxConv(fg, :x0x1f1, :x1)
+
+@test 20 < sum(pts .< 5)
+@test 20 < sum(5 .< pts .< 15)
+
+solveTree!(fg)
+
+pts2 = getBelief(fg, :x1) |> getPoints
+
+@test 30 < sum(8 .< pts2 .< 12) <= 80
+@test 80 < sum(-10 .< pts2 .< 30)
+
+end
+
 
 
 

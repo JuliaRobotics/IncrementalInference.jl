@@ -3,20 +3,6 @@ import Base: ==
 
 
 
-# TODO been replaced by Functor types, but may be reused for non-numerical cases
-# TODO DEPRECATE
-abstract type Pairwise <: InferenceType end
-abstract type Singleton <: InferenceType end
-
-# TODO deprecate with standard null hypothesis only
-abstract type FunctorSingletonNH <: AbstractPrior end
-abstract type FunctorPairwiseNH <: AbstractRelativeFactor end
-# abstract type AbstractRelativeFactorNHMinimize <: AbstractRelativeFactorMinimize end # TODO
-
-
-const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
-const FGGdict = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Dict{Int,Graphs.ExVertex},Dict{Int,Array{Graphs.Edge{Graphs.ExVertex},1}}}
-
 const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
 """
@@ -229,6 +215,7 @@ mutable struct CommonConvWrapper{T} <: FactorOperationalMemory where {T<:Functor
   # multi hypothesis settings
   hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolution operation
   certainhypo::Union{Nothing, Vector{Int}}
+  nullhypo::Float64
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
@@ -251,6 +238,7 @@ function CommonConvWrapper(fnc::T,
                            hypotheses=nothing,
                            certainhypo=nothing,
                            activehypo= 1:length(params),
+                           nullhypo::Real=0,
                            varidx::Int=1,
                            measurement::Tuple=(zeros(0,1),),
                            particleidx::Int=1,
@@ -270,6 +258,7 @@ function CommonConvWrapper(fnc::T,
   ccw.partial = partial
   ccw.hypotheses = hypotheses
   ccw.certainhypo=certainhypo
+  ccw.nullhypo=nullhypo
   ccw.params = params
   ccw.varidx = varidx
   ccw.threadmodel = threadmodel
