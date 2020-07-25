@@ -1033,13 +1033,11 @@ variables are related to data association uncertainty.
 function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
                     usrfnc::R;
-                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    multihypo::Vector{Float64}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    labels::Union{Nothing, Vector{Symbol}}=nothing,
                     tags::Vector{Symbol}=Symbol[],
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Int,Nothing}=nothing  ) where
@@ -1049,18 +1047,6 @@ function addFactor!(dfg::AbstractDFG,
   if maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
-  end
-  if isa(multihypo, Tuple)
-    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
-    multihypo = [multihypo...]
-  end
-  if isa(autoinit, Bool)
-    @warn "autoinit deprecated, use graphinit instead" # v0.10.0
-    graphinit = autoinit # force to user spec
-  end
-  if !isa(labels, Nothing)
-    @warn "labels deprecated, use tags instead" # v0.12.0
-    union!(tags, labels)
   end
 
   varOrderLabels = [v.label for v=Xi]
@@ -1072,11 +1058,7 @@ function addFactor!(dfg::AbstractDFG,
                         tags=Set(union(tags, [:FACTOR])),
                         solvable=solvable,
                         timestamp=timestamp)
-
-  # # TODO: Need to remove this...
-  # for vert in Xi
-  #   push!(solverData.fncargvID, vert.label)
-  # end
+  #
 
   success = DFG.addFactor!(dfg, newFactor)
 
@@ -1089,13 +1071,11 @@ end
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
-                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    multihypo::Vector{<:Real}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    labels::Union{Nothing,Vector{Symbol}}=nothing,
                     tags::Vector{Symbol}=Symbol[],
-                    autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Nothing,Int}=nothing  )
@@ -1105,18 +1085,7 @@ function addFactor!(dfg::AbstractDFG,
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
-  if isa(multihypo, Tuple)
-    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
-    multihypo = [multihypo...]
-  end
-  if isa(autoinit, Bool)
-    @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
-    graphinit = autoinit # force user spec
-  end
-  if !isa(labels, Nothing)
-    @warn "labels deprecated, use tags instead" # v0.12.0
-    union!(tags, labels)
-  end
+
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
