@@ -820,7 +820,7 @@ function doautoinit!(dfg::T,
         # Update the data in the event that it's not local
         updateVariableSolverData!(dfg, xi, :default, true)    # TODO perhaps usecopy=false
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]) # TODO add verbose as false DFG v0.7.5
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[], false)
         didinit = true
       end
     end
