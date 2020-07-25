@@ -320,7 +320,7 @@ function getMsgsUpChildren(treel::AbstractBayesTree,
   chld = getChildren(treel, cliq)
   retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
   for i in 1:length(chld)
-    retmsgs[i] = getMsgsUpThis(chld[i])
+    retmsgs[i] = getMsgUpThis(chld[i])
   end
   return retmsgs
 end

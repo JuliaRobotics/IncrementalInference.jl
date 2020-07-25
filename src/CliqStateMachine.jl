@@ -43,7 +43,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # get down msg from parent (assing root clique CSM wont make it here)
   prnt = getParent(csmc.tree, csmc.cliq)
-  dwnmsgs = getMsgsDwnThis(prnt[1])
+  dwnmsgs = fetchMsgDwnThis(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
@@ -158,7 +158,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
-    setDwnMsg!(csmc.cliq, dwnmsgs)
+    putMsgDwnThis!(csmc.cliq, dwnmsgs)    # setDwnMsg!(csmc.cliq, dwnmsgs) #
     setCliqueStatus!(csmc.cliq, :downsolved)
 	csmc.dodownsolve = false
 

@@ -19,7 +19,7 @@ solveTree!(fg)
 
 pts_ = getBelief(fg, :x1) |> getPoints
 
-@test 80 < sum(5 .< pts_ .< 15)
+@test 80 < sum(2 .< pts_ .< 18)
 
 end
 
@@ -35,7 +35,7 @@ solveTree!(fg)
 
 pts_ = getBelief(fg, :x0) |> getPoints
 
-@test 20 < sum(-5 .< pts_ .< 5) < 80
+@test 10 < sum(-8 .< pts_ .< 8) < 80
 @test 30 < sum(5 .< pts_ .< 15) < 80
 
 end
