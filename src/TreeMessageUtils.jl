@@ -162,6 +162,21 @@ function deleteMsgFactors!(subfg::AbstractDFG,
 end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
+#TODO JT can be removed, used as sanity check
+function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
+  cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
+  priorIds = Symbol[]
+  for v in cliqSeparatorVarIds
+    facs = getNeighbors(cliqSubFg, v)
+    for f in facs
+      isprior = length(getFactor(cliqSubFg, f)._variableOrderSymbols) == 1
+      isprior && push!(priorIds, f)
+      isprior && DFG.deleteFactor!(cliqSubFg, f)
+    end
+  end
+  return priorIds
+end
+
 
 
 """
