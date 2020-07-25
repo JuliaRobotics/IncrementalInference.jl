@@ -25,7 +25,8 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             frontals::Vector{Symbol},
                             separators::Vector{Symbol};
-                            solvable::Int = 0)
+                            solvable::Int = 0,
+                            verbose::Bool=false )
 
 
   allvars = union(frontals, separators)
@@ -55,7 +56,7 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   solvable != 0 && filter!(fid -> (getSolvable(dfg, fid) >= solvable),  allfacs)
 
   # add all the factors and variables to the new subgraph
-  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs)
+  DFG.deepcopyGraph!(cliqSubFg, dfg, allvars, allfacs, verbose=verbose)
 
   return cliqSubFg
 end
@@ -63,7 +64,8 @@ end
 function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             cliq::TreeClique;
-                            solvable::Int = 0)
+                            solvable::Int = 0,
+                            verbose::Bool=false )
 
   vars = getCliqVarIdsAll(cliq)
   facs = getCliqFactorIdsAll(cliq)
@@ -74,7 +76,7 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
   # fix for issue #681
   # @show ls(cliqSubFg), vars
   if length(intersect(ls(cliqSubFg), vars)) != length(vars)
-    DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs)
+    DFG.deepcopyGraph!(cliqSubFg, dfg, vars, facs, verbose=verbose)
   end
 
   return cliqSubFg
@@ -99,10 +101,11 @@ DevNotes
 function buildCliqSubgraph(dfg::AbstractDFG,
                            cliq::TreeClique,
                            subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(dfg));
-                           solvable::Int=1)
+                           solvable::Int=1,
+                           verbose::Bool=false )
 
   #TODO why was solvable hardcoded to 1?
-  buildCliqSubgraph!(subfg, dfg, cliq, solvable=solvable)
+  buildCliqSubgraph!(subfg, dfg, cliq, solvable=solvable, verbose=verbose)
   return subfg
 end
 
@@ -110,9 +113,10 @@ function buildCliqSubgraph(fgl::AbstractDFG,
                            treel::AbstractBayesTree,
                            cliqsym::Symbol,
                            subfg::InMemoryDFGTypes=InMemDFGType(solverParams=getSolverParams(fgl));
-                           solvable::Int=1)
+                           solvable::Int=1,
+                           verbose::Bool=false )
   #
-  buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable)
+  buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable, verbose=verbose)
   return subfg
 end
 
