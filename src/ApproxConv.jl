@@ -174,7 +174,7 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   return kappa*maximum(dists)
 end
 
-function addEntropyOnManifoldHack!(addEntr::AbstractMatrix{<:Real}, maniAddOps, spreadDist::Real)
+function addEntropyOnManifoldHack!(addEntr::Union{AbstractMatrix{<:Real},SubArray}, maniAddOps, spreadDist::Real)
   # add 1σ "noise" level to max distance as control
   for i in 1:size(addEntr, 1)
     for j in 1:size(addEntr,2)
@@ -290,10 +290,11 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                dbg::Bool=false,
                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
+  # FIXME, NEEDS TO BE CLEANED UP AND ADD MEAN ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  # FIXME, add more general nullhypo case too
   sfidx = 1
-  nn = maximum([N; size(measurement[1],2); size(getVal(Xi[1]),2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
+  oldVal = getVal(Xi[sfidx])
+  nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
   freshSamples!(ccwl, nn, FactorMetadata(), vnds)
   # Check which variables have been initialized
@@ -308,15 +309,15 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # generate nullhypo samples
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals
-  addEntr = if size(ccwl.params[sfidx],2) == nn
-    deepcopy(ccwl.params[sfidx])
+  addEntr = if size(oldVal,2) == nn
+    deepcopy(oldVal)  #ccwl.params[sfidx])
   else
-    ret = zeros(size(ccwl.params[sfidx],1),nn)
+    ret = zeros(size(oldVal,1),nn)
     # @show nn, size(ccwl.params[sfidx],2), size(ret)
-    ret[:,1:size(ccwl.params[sfidx],2)] .= ccwl.params[sfidx]
+    ret[:,1:size(oldVal,2)] .= oldVal #ccwl.params[sfidx]
     ret
   end
-  # @show nn, size(addEntr), size(nhmask), size(getVal(Xi[1]))
+  # @show nn, size(addEntr), size(nhmask), size(oldVal)
   addEntrNH = view(addEntr, :, nhmask)
   spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
   # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
@@ -330,7 +331,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
       i += 1
       addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
       addEntrNHp = view(addEntr, dimnum, nhmask)
-      addEntropyOnManifoldHack!(addEntrNHp, addOps, spreadDist)
+      addEntropyOnManifoldHack!(addEntrNHp, addOps[dimnum:dimnum], spreadDist)
     end
   end
   return addEntr
