@@ -286,7 +286,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     #save down messages in msgsDown
     if beliefMsg.status == :DOWNSOLVED
-      setDwnMsg!(csmc, beliefMsg)
+      setMsgDwnThis!(csmc, beliefMsg)
       # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
 
