@@ -395,26 +395,28 @@ function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
                       softtype::InferenceVariable;
                       N::Int=100,
-                      autoinit::Union{Nothing,Bool}=true,
+                      autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       dontmargin::Bool=false,
-                      labels::Vector{Symbol}=Symbol[],
+                      labels::Union{Vector{Symbol},Nothing}=nothing,
+                      tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
-
   #
+  autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
+  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
 
-  tags = union(labels, [:VARIABLE])
+  union!(tags, [:VARIABLE])
   v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
   (:default in initsolvekeys) &&
-    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
 
   (:parametric in initsolvekeys) &&
-    setDefaultNodeDataParametric!(v, softtype, initialized=!autoinit, dontmargin=dontmargin)
+    setDefaultNodeDataParametric!(v, softtype, initialized=false, dontmargin=dontmargin)
 
   DFG.addVariable!(dfg, v)
 
@@ -426,11 +428,12 @@ function addVariable!(dfg::G,
                       lbl::Symbol,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
-                      autoinit::Union{Bool, Nothing}=true,
+                      autoinit::Union{Bool, Nothing}=nothing,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       solvable::Int=1,
                       dontmargin::Bool=false,
-                      labels::Vector{Symbol}=Symbol[],
+                      labels::Union{Vector{Symbol},Nothing}=nothing,
+                      tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
   #
@@ -439,6 +442,7 @@ function addVariable!(dfg::G,
   if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
+  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   return addVariable!(dfg,
                       lbl,
                       sto,
@@ -447,7 +451,7 @@ function addVariable!(dfg::G,
                       solvable=solvable,
                       timestamp=timestamp,
                       dontmargin=dontmargin,
-                      labels=labels,
+                      tags=tags,
                       smalldata=smalldata  )
 end
 
