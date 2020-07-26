@@ -82,7 +82,7 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
-  # get factor metadata -- TODO, populate
+  # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -120,41 +120,47 @@ function generateNullhypoEntropy(val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
+function calcVariableCovarianceBasic(arr::AbstractMatrix)
+  # cannot calculate the stdev from uninitialized state
+  msst = Statistics.std(arr, dims=2)
+  # FIXME use adaptive scale, see #802
+  msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
+  return msst_
+end
+
 """
     $SIGNATURES
 
 Control the amount of entropy to add to null-hypothesis in multihypo case.
 
 Notes:
-- Currently only supports Euclidean domains. (TODO expand)
+- FIXME, Currently only supports Euclidean domains.
 """
 function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 sfidx::Int,
                                                 certainidx::Vector{Int};
                                                 kappa::Float64=3.0  )
   #
-  @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
+  if sfidx in certainidx
+    msst_ = calcVariableCovarianceBasic(ccwl.params[sfidx])
+    return kappa*msst_
+  end
+  # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
+
   # get mean of all fractional variables
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
   uncMeans = zeros(size(ccwl.params[sfidx],1), length(uncertainidx))
   dists = zeros(length(uncertainidx)+length(certainidx))
   dims = size(ccwl.params[sfidx],1)
-  # uncDev = zeros(Int, length(uncertainidx))
   count = 0
   for i in uncertainidx
     count += 1
-    # @show "MARK", i, size(uncMeans), size(Statistics.mean(ccwl.params[i], dims=2) ), length(ccwl.params)
     uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
-    # uncDev[i] = Statistics.std(ccwl.params[i], dims=2)
   end
   count = 0
   refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
   for i in uncertainidx
-    # if i == sfidx
-    #   continue
-    # end
     count += 1
-    # @show i, sfidx, count, size(uncMeans), size(uncMeans)
     dists[count] = norm(refMean - uncMeans[:,count])
   end
   # also check distance to certainidx for general scale reference (workaround heuristic)
@@ -165,8 +171,17 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   end
 
   push!(dists, 1e-2)
-  # @show round.(dists, digits=4)
   return kappa*maximum(dists)
+end
+
+function addEntropyOnManifoldHack!(addEntr::Union{AbstractMatrix{<:Real},SubArray}, maniAddOps, spreadDist::Real)
+  # add 1σ "noise" level to max distance as control
+  for i in 1:size(addEntr, 1)
+    for j in 1:size(addEntr,2)
+      addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+    end
+  end
+  nothing
 end
 
 """
@@ -187,7 +202,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
     count += 1
-    if sfidx in certainidx || hypoidx in certainidx || hypoidx == sfidx
+    if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
@@ -209,69 +224,21 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # make spread (1σ) equal to mean distance of other fractionals
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-      ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist)
+      # ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist) # TODO
       # add 1σ "noise" level to max distance as control
-      # NOTE not around mean
-      # meanVal = Statistics.mean(addEntr, dims=2)
-      # addEntr .= rand(ENT, size(addEntr,2))
-      for i in 1:size(addEntr, 1)
-        for j in 1:size(addEntr,2)
-          addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
-        end
-        # FIXME should be on manifold
-        # addEntr[i,:] .+= (spreadDist*rand(size(addEntr,2)) .- 0.5*spreadDist)
-        # NOTE previous around mean approach
-        # addEntr[i,:] .+= meanVal[i,1]
-      end
-      @assert addEntr[1,1] == ccwl.params[sfidx][1, allelements[count][1]] "bad view memory"
+      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+      # for i in 1:size(addEntr, 1)
+      #   for j in 1:size(addEntr,2)
+      #     # FIXME, should be with ENT
+      #     addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+      #   end
+      # end
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
   end
   nothing
 end
-
-
-"""
-    $(SIGNATURES)
-
-Prepare data required for null hypothesis cases during convolution.
-"""
-function assembleNullHypothesis(ccwl::CommonConvWrapper{T},
-                                maxlen::Int,
-                                spreadfactor::Real=10 ) where {T}
-  #
-  @warn "this assembleNullHypothesis method has been updated for e.g. `addFactor!(; nullhypo=0.1)` instead."
-  nhc = rand(ccwl.usrfnc!.nullhypothesis, maxlen) .- 1
-  arr = ccwl.params[ccwl.varidx]
-  ENT = generateNullhypoEntropy(arr, maxlen, spreadfactor)
-  allelements = 1:maxlen
-  return allelements, nhc, ENT
-end
-
-"""
-    $(SIGNATURES)
-
-Do true and null hypothesis computations based on data structures prepared earlier -- specific to `FunctorPairwiseNH`.  This function will be merged into a standard case for `AbstractRelativeFactor/Minimize` in the future.
-"""
-function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
-                                      allelements,
-                                      nhc,
-                                      ENT  ) where {T <: FunctorPairwiseNH}
-  #
-  # TODO --  Threads.@threads see area4 branch
-  for n in allelements
-    # ccwl.gwp(x, res)
-    if nhc[n] != 0
-      ccwl.cpt[Threads.threadid()].particleidx = n
-      numericRootGenericRandomizedFnc!( ccwl )
-    else
-      ccwl.params[ccwl.varidx][:,n] += rand(ENT)
-    end
-  end
-  nothing
-end
-
 
 
 """
@@ -300,12 +267,13 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
 
-  # assemble how hypotheses should be computed
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit )
-  certainidx = ccwl.certainhypo
-
   # get manifold add operations
+  # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+
+  # assemble how hypotheses should be computed
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  certainidx = ccwl.certainhypo
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
@@ -322,24 +290,51 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
                                dbg::Bool=false,
                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
+  # FIXME, NEEDS TO BE CLEANED UP AND ADD MEAN ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-
-  nn = (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  # ccwl.measurement = 0 < size(measurement[1],1) ? measurement : getSample(ccwl.usrfnc!, nn)
-  # ccwl.measurement = freshSamples(ccwl.usrfnc!, nn) # TODO make in-place
+  sfidx = 1
+  oldVal = getVal(Xi[sfidx])
+  nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds) # in-place version
-  if !ccwl.partial
-    return ccwl.measurement[1]
+  freshSamples!(ccwl, nn, FactorMetadata(), vnds)
+  # Check which variables have been initialized
+  isinit = map(x->isInitialized(x), Xi)
+  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  # get solvefor manifolds
+  manis = getManifolds(Xi[sfidx])
+  addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+  # two cases on how to use the measurement
+  nhmask = mhidx .== 0
+  ahmask = mhidx .== 1
+  # generate nullhypo samples
+  # inject lots of entropy in nullhypo case
+  # make spread (1σ) equal to mean distance of other fractionals
+  addEntr = if size(oldVal,2) == nn
+    deepcopy(oldVal)  #ccwl.params[sfidx])
   else
-    val = deepcopy(getVal(Xi[1]))
+    ret = zeros(size(oldVal,1),nn)
+    # @show nn, size(ccwl.params[sfidx],2), size(ret)
+    ret[:,1:size(oldVal,2)] .= oldVal #ccwl.params[sfidx]
+    ret
+  end
+  # @show nn, size(addEntr), size(nhmask), size(oldVal)
+  addEntrNH = view(addEntr, :, nhmask)
+  spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
+  # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
+  if !ccwl.partial
+      addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
+      addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
+    # return ccwl.measurement[1]
+  else
     i = 0
     for dimnum in fnc.partial
       i += 1
-      val[dimnum,:] = ccwl.measurement[1][i,:]
+      addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
+      addEntrNHp = view(addEntr, dimnum, nhmask)
+      addEntropyOnManifoldHack!(addEntrNHp, addOps[dimnum:dimnum], spreadDist)
     end
-    return val
   end
+  return addEntr
 end
 
 """

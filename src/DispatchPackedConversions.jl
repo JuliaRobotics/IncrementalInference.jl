@@ -22,7 +22,7 @@ function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) wher
   # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
           convert(P, d.fnc.usrfnc!),
-          d.multihypo, d.fnc.certainhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
+          d.multihypo, d.fnc.certainhypo, d.nullhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -32,21 +32,21 @@ end
 
 function convert(
             ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F}}},
-            d::IncrementalInference.GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            packed::IncrementalInference.GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
-  usrfnc = convert(F, d.fnc)
-  # FIXME add proper nullhypo value
-  mhcat, nh = parseusermultihypo(d.multihypo, 0.0)
+  usrfnc = convert(F, packed.fnc)
+  mhcat, nh = parseusermultihypo(packed.multihypo, packed.nullhypo)
 
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
-  ccw.certainhypo = d.certainhypo
+  ccw.certainhypo = packed.certainhypo
 
-  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}( d.eliminated, d.potentialused, d.edgeIDs, ccw, d.multihypo, d.certainhypo, d.solveInProgress)
-  # error("what what $(ret.fnc.certainhypo)")
+  ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
+                                                            packed.multihypo, packed.certainhypo, packed.nullhypo, packed.solveInProgress)
+  #
   return ret
 end
 

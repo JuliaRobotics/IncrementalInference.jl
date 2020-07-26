@@ -144,16 +144,16 @@ function generateCanonicalFG_lineStep(lineLength::Int;
     for i=0:lineLength
         if mod(i,poseEvery) == 0
             push!(x, i)
-            addVariable!(fg, Symbol("x",i), vtype, autoinit = graphinit)
+            addVariable!(fg, Symbol("x",i), vtype) #, autoinit = graphinit)
             (i in posePriorsAt) && addFactor!(fg, [Symbol("x",i)], Prior(xNoise(i, σ_pose_prior)))
             # "odo" type
-            (i > 0) && addFactor!(fg, [Symbol("x",i-poseEvery); Symbol("x",i)], LinearConditional(xNoise(poseEvery, σ_pose_pose)))
+            (i > 0) && addFactor!(fg, [Symbol("x",i-poseEvery); Symbol("x",i)], LinearConditional(xNoise(poseEvery, σ_pose_pose)), graphinit=graphinit)
         end
 
 
         if landmarkEvery != 0 && mod(i,landmarkEvery) == 0
             push!(lm, i)
-            addVariable!(fg, Symbol("lm",i), vtype, autoinit = graphinit)
+            addVariable!(fg, Symbol("lm",i), vtype) #, autoinit = graphinit)
             (i in landmarkPriorsAt) && addFactor!(fg, [Symbol("lm",i)], Prior(xNoise(i, σ_lm_prior)))
         end
     end
@@ -163,7 +163,7 @@ function generateCanonicalFG_lineStep(lineLength::Int;
         dist = lmi - xi
         if abs(dist) < sightDistance
             # @info "adding landmark lm$lmi to x$xi with dist $dist"
-            addFactor!(fg, [Symbol("x",xi); Symbol("lm",lmi)], LinearConditional(xNoise(dist, σ_pose_lm)))
+            addFactor!(fg, [Symbol("x",xi); Symbol("lm",lmi)], LinearConditional(xNoise(dist, σ_pose_lm)), graphinit=graphinit)
         end
     end
 

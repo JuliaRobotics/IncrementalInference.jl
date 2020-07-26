@@ -90,16 +90,16 @@ N = 100
 fg.solverParams.N = N
 graphinit = false
 
-addVariable!(fg, :x0, ContinuousScalar, autoinit = graphinit, N=N)
+addVariable!(fg, :x0, ContinuousScalar, N=N) # autoinit = graphinit
 addFactor!(fg, [:x0], Prior(Normal(-1.0, 1.0)))
 
-addVariable!(fg, :x1, ContinuousScalar, autoinit = graphinit, N=N)
+addVariable!(fg, :x1, ContinuousScalar, N=N) # autoinit = graphinit
 
-addVariable!(fg, :x2, ContinuousScalar, autoinit = graphinit, N=N)
+addVariable!(fg, :x2, ContinuousScalar, N=N) # autoinit = graphinit
 addFactor!(fg, [:x2], Prior(Normal(+1.0, 1.0)))
 
-addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 1e-1)))
-addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 1e-1)))
+addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 1e-1)), graphinit=graphinit)
+addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 1e-1)), graphinit=graphinit)
 
 
 

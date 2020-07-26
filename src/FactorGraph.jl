@@ -395,26 +395,28 @@ function addVariable!(dfg::AbstractDFG,
                       lbl::Symbol,
                       softtype::InferenceVariable;
                       N::Int=100,
-                      autoinit::Union{Nothing,Bool}=true,
+                      autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
-                      timestamp::DateTime=now(UTC),
+                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       dontmargin::Bool=false,
-                      labels::Vector{Symbol}=Symbol[],
+                      labels::Union{Vector{Symbol},Nothing}=nothing,
+                      tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
-
   #
+  autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
+  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
 
-  tags = union(labels, [:VARIABLE])
+  union!(tags, [:VARIABLE])
   v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
   (:default in initsolvekeys) &&
-    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=!autoinit, softtype=softtype, dontmargin=dontmargin) # dodims
+    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
 
   (:parametric in initsolvekeys) &&
-    setDefaultNodeDataParametric!(v, softtype, initialized=!autoinit, dontmargin=dontmargin)
+    setDefaultNodeDataParametric!(v, softtype, initialized=false, dontmargin=dontmargin)
 
   DFG.addVariable!(dfg, v)
 
@@ -426,11 +428,12 @@ function addVariable!(dfg::G,
                       lbl::Symbol,
                       softtype::Type{<:InferenceVariable};
                       N::Int=100,
-                      autoinit::Union{Bool, Nothing}=true,
-                      timestamp::DateTime=now(UTC),
+                      autoinit::Union{Bool, Nothing}=nothing,
+                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       solvable::Int=1,
                       dontmargin::Bool=false,
-                      labels::Vector{Symbol}=Symbol[],
+                      labels::Union{Vector{Symbol},Nothing}=nothing,
+                      tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{String, String}())::DFGVariable where
                       {G <: AbstractDFG} #
   #
@@ -439,6 +442,7 @@ function addVariable!(dfg::G,
   if :ut in fieldnames(typeof(sto))
     sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
   end
+  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   return addVariable!(dfg,
                       lbl,
                       sto,
@@ -447,7 +451,7 @@ function addVariable!(dfg::G,
                       solvable=solvable,
                       timestamp=timestamp,
                       dontmargin=dontmargin,
-                      labels=labels,
+                      tags=tags,
                       smalldata=smalldata  )
 end
 
@@ -581,7 +585,7 @@ function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
             usrfnc::T;
             multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-            nullhypo=0.0,
+            nullhypo::Real=0.0,
             threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
@@ -599,6 +603,7 @@ function prepgenericconvolution(
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo,
           certainhypo=certainhypo,
+          nullhypo=nullhypo,
           threadmodel=threadmodel
         )
   #
@@ -623,10 +628,10 @@ function getDefaultFactorData(
       usrfnc::T;
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded  )::GenericFunctionNodeData where
+      threadmodel=SingleThreaded ) where
         {T <: Union{FunctorInferenceType, InferenceType}}
   #
-  nullhypo != 0.0 ? error("nullhypo being renovated and not available in this new format yet.") : nothing
+
   # prepare multihypo particulars
   # storeMH::Vector{Float64} = multihypo == nothing ? Float64[] : [multihypo...]
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
@@ -635,7 +640,7 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, 0)
+  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, nullhypo, 0)
   return data_ccw
 end
 
@@ -819,7 +824,7 @@ function doautoinit!(dfg::T,
         # Update the data in the event that it's not local
         updateVariableSolverData!(dfg, xi, :default, true)    # TODO perhaps usecopy=false
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]) # TODO add verbose as false DFG v0.7.5
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[], false)
         didinit = true
       end
     end
@@ -1032,13 +1037,11 @@ variables are related to data association uncertainty.
 function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
                     usrfnc::R;
-                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    multihypo::Vector{Float64}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    labels::Union{Nothing, Vector{Symbol}}=nothing,
                     tags::Vector{Symbol}=Symbol[],
-                    timestamp::DateTime=now(UTC),
-                    autoinit=:null,
+                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Int,Nothing}=nothing  ) where
@@ -1048,18 +1051,6 @@ function addFactor!(dfg::AbstractDFG,
   if maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
-  end
-  if isa(multihypo, Tuple)
-    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
-    multihypo = [multihypo...]
-  end
-  if isa(autoinit, Bool)
-    @warn "autoinit deprecated, use graphinit instead" # v0.10.0
-    graphinit = autoinit # force to user spec
-  end
-  if !isa(labels, Nothing)
-    @warn "labels deprecated, use tags instead" # v0.12.0
-    union!(tags, labels)
   end
 
   varOrderLabels = [v.label for v=Xi]
@@ -1071,11 +1062,7 @@ function addFactor!(dfg::AbstractDFG,
                         tags=Set(union(tags, [:FACTOR])),
                         solvable=solvable,
                         timestamp=timestamp)
-
-  # # TODO: Need to remove this...
-  # for vert in Xi
-  #   push!(solverData.fncargvID, vert.label)
-  # end
+  #
 
   success = DFG.addFactor!(dfg, newFactor)
 
@@ -1088,13 +1075,11 @@ end
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
                     usrfnc::Union{FunctorInferenceType, InferenceType};
-                    multihypo::Union{Tuple,Vector{Float64}}=Float64[],
+                    multihypo::Vector{<:Real}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,
-                    timestamp::DateTime=now(UTC),
-                    labels::Union{Nothing,Vector{Symbol}}=nothing,
+                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     tags::Vector{Symbol}=Symbol[],
-                    autoinit=:null,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Nothing,Int}=nothing  )
@@ -1104,18 +1089,7 @@ function addFactor!(dfg::AbstractDFG,
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
-  if isa(multihypo, Tuple)
-    @warn "multihypo should be used as a Vector, since the Tuple version will be deprecated beyond v0.10.0"
-    multihypo = [multihypo...]
-  end
-  if isa(autoinit, Bool)
-    @warn "autoinit keyword argument deprecated, use graphinit instead." # v0.10.0
-    graphinit = autoinit # force user spec
-  end
-  if !isa(labels, Nothing)
-    @warn "labels deprecated, use tags instead" # v0.12.0
-    union!(tags, labels)
-  end
+
   verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
   addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end

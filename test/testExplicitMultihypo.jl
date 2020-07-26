@@ -5,37 +5,107 @@ using Test
 
 using IncrementalInference
 
+
+@testset "test IncrementalInference.assembleHypothesesElements! with only nullhypothesis..." begin
+
+# n2_1 == (certainidx, allelements, activehypo, mhidx)
+n2_1_gt1 = 1:2
+n2_1_gt2_ = (3,3,0)
+n2_1_gt3 = [(0,Int[1;]); (1,1:2); (2,Int[])]
+n2_1_gt4_ = 20
+n2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 1, 2, ones(Bool, 2), 0.5 )
+
+@test sum([n2_1_gt1;] - [n2_1[1];]) == 0
+@test length(n2_1[2][1]) > n2_1_gt2_[1]
+@test length(n2_1[2][2]) > n2_1_gt2_[2]
+@test length(n2_1[2][3]) == n2_1_gt2_[3]
+@test length(n2_1[2][1]) + length(n2_1[2][2]) == n2_1_gt4_
+@test n2_1_gt3[1][1] == n2_1[3][1][1]
+@test n2_1_gt3[2][1] == n2_1[3][2][1]
+@test n2_1_gt3[3][1] == n2_1[3][3][1]
+@test sum(n2_1_gt3[1][2] .- n2_1[3][1][2]) == 0
+@test sum([n2_1_gt3[2][2];] .- [n2_1[3][2][2];]) == 0
+@test sum(n2_1_gt3[3][2] .- n2_1[3][3][2]) == 0
+@test sum(n2_1[4] .== 0) > n2_1_gt2_[1]
+@test sum(n2_1[4] .== 1) > n2_1_gt2_[1]
+@test sum( [1:n2_1_gt4_;][n2_1[4] .== 0] .== n2_1[2][1] ) == length(n2_1[2][1])
+@test sum( [1:n2_1_gt4_;][n2_1[4] .== 1] .== n2_1[2][2] ) == length(n2_1[2][2])
+@test length(n2_1[4]) == n2_1_gt4_
+
+
+
+
+# n2_1 == (certainidx, allelements, activehypo, mhidx)
+n2_1_gt1 = 1:2
+n2_1_gt2_ = (3,3,0)
+n2_1_gt3 = [(0,Int[2;]); (1,1:2); (2,Int[])]
+n2_1_gt4_ = 20
+n2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 2, 2, ones(Bool, 2), 0.5 )
+
+@test sum([n2_1_gt1;] - [n2_1[1];]) == 0
+@test length(n2_1[2][1]) > n2_1_gt2_[1]
+@test length(n2_1[2][2]) > n2_1_gt2_[2]
+@test length(n2_1[2][3]) == n2_1_gt2_[3]
+@test length(n2_1[2][1]) + length(n2_1[2][2]) == n2_1_gt4_
+@test n2_1_gt3[1][1] == n2_1[3][1][1]
+@test n2_1_gt3[2][1] == n2_1[3][2][1]
+@test n2_1_gt3[3][1] == n2_1[3][3][1]
+@test sum(n2_1_gt3[1][2] .- n2_1[3][1][2]) == 0
+@test sum([n2_1_gt3[2][2];] .- [n2_1[3][2][2];]) == 0
+@test sum(n2_1_gt3[3][2] .- n2_1[3][3][2]) == 0
+@test sum(n2_1[4] .== 0) > n2_1_gt2_[1]
+@test sum(n2_1[4] .== 1) > n2_1_gt2_[1]
+@test sum( [1:n2_1_gt4_;][n2_1[4] .== 0] .== n2_1[2][1] ) == length(n2_1[2][1])
+@test sum( [1:n2_1_gt4_;][n2_1[4] .== 1] .== n2_1[2][2] ) == length(n2_1[2][2])
+@test length(n2_1[4]) == n2_1_gt4_
+
+
+
+end
+
+
 @testset "test IncrementalInference.assembleHypothesesElements! without multihypothesis..." begin
 
+# certainidx = 1 ## ??
+# sfidx=1, mhidx=0:  ah = [1;]
+# sfidx=1, mhidx=1:  ah = [1;2]
+
+# s2_1 == (certainidx, allelements, activehypo, mhidx)
 s2_1_gt1 = 1:2
-s2_1_gt2 = (1:20,Int[])
-s2_1_gt3 = [(1,1:2); (2,Int[])]
-s2_1_gt4 = Int[]
+s2_1_gt2 = (Int[],1:20,Int[])
+s2_1_gt3 = [(0,Int[1;]); (1,1:2); (2,Int[])]
+s2_1_gt4 = ones(20)
 s2_1 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 1, 2 )
 @test sum([s2_1_gt1;] .- [s2_1[1];]) == 0
-@test sum([s2_1_gt2[1];] .- [s2_1[2][1];]) == 0
-@test sum(s2_1_gt2[2] .- s2_1[2][2]) == 0
+@test sum( s2_1_gt2[1] .- s2_1[2][1]) == 0
+@test sum([s2_1_gt2[2];] .- [s2_1[2][2];]) == 0
+@test sum( s2_1_gt2[3] .- s2_1[2][3]) == 0
 @test s2_1_gt3[1][1] == s2_1[3][1][1]
-@test sum([s2_1_gt3[1][2];] .- [s2_1[3][1][2];]) == 0
+@test sum(s2_1_gt3[1][2] .- s2_1[3][1][2]) == 0
 @test s2_1_gt3[2][1] == s2_1[3][2][1]
-@test sum(s2_1_gt3[2][2] .- s2_1[3][2][2]) == 0
+@test sum([s2_1_gt3[2][2];] .- [s2_1[3][2][2];]) == 0
+@test s2_1_gt3[3][1] == s2_1[3][3][1]
+@test sum(s2_1_gt3[3][2] .- s2_1[3][3][2]) == 0
 @test sum(s2_1_gt4 .- s2_1[4])  == 0
 
 
 s2_2_gt1 = 1:2
-s2_2_gt2 = (1:20,Int[])
-s2_2_gt3 = [(1,1:2); (2,Int[])]
-s2_2_gt4 = Int[]
+s2_2_gt2 = (Int[],1:20,Int[])
+s2_2_gt3 = [(0,Int[2;]); (1,1:2); (2,Int[])]
+s2_2_gt4 = ones(20) # Int[]
 
 s2_2 = IncrementalInference.assembleHypothesesElements!(nothing, 20, 2, 2 )
 
 @test sum([s2_2_gt1;] .- [s2_2[1];]) == 0
 @test sum([s2_2_gt2[1];] .- [s2_2[2][1];]) == 0
 @test sum(s2_2_gt2[2] .- s2_2[2][2]) == 0
-@test s2_2_gt3[1][1] == s2_2[3][1][1]
+@test sum(s2_2_gt2[3] .- s2_2[2][3]) == 0
+@test      s2_2_gt3[1][1]   ==  s2_2[3][1][1]
 @test sum([s2_2_gt3[1][2];] .- [s2_2[3][1][2];]) == 0
 @test s2_2_gt3[2][1] == s2_2[3][2][1]
-@test sum(s2_2_gt3[2][2] .- s2_2[3][2][2]) == 0
+@test sum([s2_2_gt3[2][2];] .- [s2_2[3][2][2];]) == 0
+@test s2_2_gt3[3][1] == s2_2[3][3][1]
+@test sum([s2_2_gt3[3][2];] .- [s2_2[3][3][2];]) == 0
 @test sum(s2_2_gt4 .- s2_2[4])  == 0
 
 end
