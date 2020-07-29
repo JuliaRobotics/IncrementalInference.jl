@@ -121,7 +121,7 @@ DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
 function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
-                                            tfg=initfg() )
+                                            tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   for (label, val) in msgs.belief
     addVariable!(tfg, label, val.softtype)
@@ -154,6 +154,47 @@ function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
   end
 
   return tfg
+end
+# default verbNoun API spec (dest, src)
+buildGraphLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = buildGraphLikelihoodsDifferential!(msgs, tfg)
+
+"""
+    $SIGNATURES
+Place a single message likelihood prior on the highest dimension variable with highest connectivity in existing subfg.
+"""
+function addLikelihoodPriorCommon!(subfg::AbstractDFG, msgs::LikelihoodMessage;
+                                   tags::Vector{Symbol}=Symbol[])
+  # find max dimension variable, which also has highest biadjacency
+
+  len = length(msgs.belief)
+  dims = Vector{Int}(undef, len)
+  syms = Vector{Symbol}(undef, len)
+  biAdj = Vector{Int}(undef, len)
+  # TODO, not considering existing priors for MsgPrior placement at this time
+  # priors = Vector{Int}(undef, len)
+  i = 0
+  for (label, val) in msgs.belief
+    i += 1
+    dims[i] = getDimension(val.softtype)
+    syms[i] = label
+    biAdj[i] = ls(subfg, label) |> length
+  end
+  # work only with highest dimension variable
+  maxDim = maximum(dims)
+  dimMask = dims .== maxDim
+  mdAdj = biAdj[dimMask]
+  pe = sortperm(mdAdj, rev=true) # decending
+  topCandidate = (syms[dimMask])[pe][1]
+
+  # get prior for top candidate
+  belief_ = msgs.belief[topCandidate]
+  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
+  msgPrior = MsgPrior(kdePr, belief_.inferdim)
+
+  # get ready
+  tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
+  # finally add the single AbstractPrior from LikelihoodMessage
+  addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
 end
 
 

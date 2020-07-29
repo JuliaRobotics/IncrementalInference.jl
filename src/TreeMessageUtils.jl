@@ -125,6 +125,8 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return msgfcts
 end
+# buildGraphLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
+# addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
 
 function addMsgFactors!(subfg::AbstractDFG,
                         allmsgs::Dict{Int,LikelihoodMessage};
