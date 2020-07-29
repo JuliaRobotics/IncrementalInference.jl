@@ -14,7 +14,13 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 struct ContinuousScalar <: InferenceVariable
   dims::Int
   manifolds::Tuple{Symbol}
-  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
+  # ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
+  function ContinuousScalar(;manifolds=nothing)
+    manifolds != nothing &&
+      Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
+
+    return new(1, (:Euclid,))
+  end
 end
 
 """
@@ -34,6 +40,19 @@ function ContinuousMultivariate(x::Int;
   #
   maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
   ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
+end
+
+export ContinuousEuclid
+struct ContinuousEuclid{N} <: InferenceVariable end
+
+ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
+
+function Base.getproperty(::ContinuousEuclid{N}, f::Symbol) where N
+  if f == :dims
+    return N
+  elseif f == :manifolds
+    return ntuple(i -> :Euclid, N)
+  end
 end
 
 

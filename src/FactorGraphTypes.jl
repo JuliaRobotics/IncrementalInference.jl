@@ -132,18 +132,24 @@ $(TYPEDEF)
 
 TODO remove Union types -- issue #383
 """
-mutable struct FactorMetadata
-  factoruserdata
-  variableuserdata::Union{Vector, Tuple}
-  variablesmalldata::Union{Vector, Tuple}
-  solvefor::Union{Symbol, Nothing}
-  variablelist::Union{Nothing, Vector{Symbol}}
-  dbg::Bool
-  FactorMetadata() = new() # [], []
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3) = new(x1, x2, x3, nothing, nothing, false)
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol) = new(x1, x2, x3, x4, nothing, false)
-  FactorMetadata(x1, x2::Union{Vector,Tuple},x3,x4::Symbol,x5::Vector{Symbol};dbg::Bool=false) = new(x1, x2, x3, x4, x5, dbg)
+mutable struct FactorMetadata{T}
+  factoruserdata # deprecate, not in use
+  variableuserdata::Union{Vector, Tuple} # deprecate
+  variablesmalldata::Union{Vector, Tuple} # deprecate
+  solvefor::Union{Symbol, Nothing} # Change to Symbol?
+  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #deprecate
+  dbg::Bool #
+    cachedata::Union{Nothing,Vector{T}} # New. change to Vector{T}
+    fullvariable::Union{Nothing,Vector{DFGVariable}} # New. Vector{DFGVariable}
+
+  FactorMetadata{T}() where T = new{T}()
+  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T =
+      FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+# FactorMetadata{T}(fud, vud::Union{Vector, Tuple}, vsm::Union{Vector, Tuple}, sf::Union{Symbol, Nothing}, vl:Union{Nothing, Vector{Symbol}}, dbg::Bool, cd::Union{Nothing,Vector{T}}, fv::Union{Nothing,Vector{DFGVariable}}) =
 end
+FactorMetadata() = FactorMetadata{Any}()
+FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=nothing) =
+               FactorMetadata(fud, vud, vsm, sf, vl, dbg, cd, fv)
 
 """
 $(TYPEDEF)
