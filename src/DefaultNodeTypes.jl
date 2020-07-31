@@ -16,7 +16,7 @@ struct ContinuousScalar <: InferenceVariable
   manifolds::Tuple{Symbol}
   # ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
   function ContinuousScalar(;manifolds=nothing)
-    manifolds != nothing &&
+    manifolds !== nothing &&
       Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
 
     return new(1, (:Euclid,))
@@ -62,7 +62,7 @@ $(TYPEDEF)
 Default prior on all dimensions of a variable node in the factor graph.  `Prior` is
 not recommended when non-Euclidean dimensions are used in variables.
 """
-struct Prior{T} <: AbstractPrior where T <: SamplableBelief
+struct Prior{T <: SamplableBelief} <: AbstractPrior 
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
@@ -99,7 +99,7 @@ Message prior on all dimensions of a variable node in the factor graph.
 Notes
 - Only temporary existance during CSM operations.
 """
-struct MsgPrior{T} <: AbstractPrior where T <: SamplableBelief
+struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
   inferdim::Float64
   MsgPrior{T}() where {T} = new{T}()
@@ -133,7 +133,7 @@ function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
   end                    #
 end
 
-struct PackedMsgPrior <: PackedInferenceType where T
+struct PackedMsgPrior <: PackedInferenceType
   Z::String
   inferdim::Float64
   PackedMsgPrior() = new()
@@ -171,7 +171,7 @@ $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
 """
-struct PartialPrior{T,P} <: AbstractPrior where {T <: SamplableBelief, P <: Tuple}
+struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
@@ -185,7 +185,7 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearConditional{T} <: AbstractRelativeFactor where T <: SamplableBelief
+struct LinearConditional{T <: SamplableBelief} <: AbstractRelativeFactor
   Z::T
 end
 LinearConditional() = LinearConditional(Normal())
@@ -234,7 +234,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-mutable struct MixturePrior{T} <: AbstractPrior where {T <: SamplableBelief}
+mutable struct MixturePrior{T <: SamplableBelief} <: AbstractPrior
   Z::Vector{T}
   C::Distributions.Categorical
   #derived values
