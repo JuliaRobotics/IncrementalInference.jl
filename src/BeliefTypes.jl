@@ -14,6 +14,11 @@ const CliqStatus = Symbol
 # :null; :upsolved; :downsolved; :marginalized; :uprecycled,
 ## FIXME, consolidate at end of #459 work
 
+# Used for UPWARD_DIFFERENTIAL, UPWARD_COMMON, DOWNWARD_COMMON marginalized types
+abstract type MessagePassDirection end
+struct UpwardPass <: MessagePassDirection end
+struct DownwardPass <: MessagePassDirection end
+
 """
     $TYPEDEF
 

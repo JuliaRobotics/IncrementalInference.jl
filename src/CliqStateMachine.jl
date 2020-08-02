@@ -47,7 +47,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
   # force separator variables to adopt down message values
   updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
@@ -283,7 +283,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- adding up message factors")
   # interally adds :LIKELIHOODMESSAGE to each of the factors
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs, UpwardPass)
 
   # store the cliqSubFg for later debugging
   opts = getSolverParams(csmc.dfg)
@@ -474,7 +474,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
 
   ## DEVIdea
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
   # determine if more info is needed for partial
   sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
   updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
@@ -552,7 +552,7 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # add messages as priors to this sub factor graph
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
 

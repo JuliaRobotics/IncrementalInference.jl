@@ -97,7 +97,8 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::LikelihoodMessage;
+                        msgs::LikelihoodMessage,
+                        dir::Type{<:MessagePassDirection};
                         tags::Vector{Symbol}=Symbol[])
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
@@ -129,13 +130,14 @@ end
 # addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        allmsgs::Dict{Int,LikelihoodMessage};
+                        allmsgs::Dict{Int,LikelihoodMessage},
+                        dir::Type{<:MessagePassDirection};
                         tags::Vector{Symbol}=Symbol[] )
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
     # do each dict in array separately
-    newfcts = addMsgFactors!(subfg, msgs, tags=tags)
+    newfcts = addMsgFactors!(subfg, msgs, dir, tags=tags)
     union!( allfcts, newfcts )
   end
   return allfcts
