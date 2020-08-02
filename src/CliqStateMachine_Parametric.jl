@@ -245,7 +245,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #Fil in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(:UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
+  beliefMsg = LikelihoodMessage(status=:UPSOLVED, variableOrder=cliqSeparatorVarIds, cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage())
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
@@ -382,7 +382,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = LikelihoodMessage(:DOWNSOLVED)
+  beliefMsg = LikelihoodMessage(status=:DOWNSOLVED, msgType=ParametricMessage())
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)

@@ -344,7 +344,7 @@ Notes:
 function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
+  container = LikelihoodMessage() 
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
