@@ -1,6 +1,7 @@
 # init utils for tree based inference
 
 export resetCliqSolve!
+export buildGraphLikelihoodsDifferential!
 
 
 ## =============================================================================
@@ -110,14 +111,17 @@ DevNotes
 function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
                                             tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
+  listVarByDim = Symbol[]
   for (label, val) in msgs.belief
-    addVariable!(tfg, label, val.softtype)
-    initManual!(tfg, label, manikde!(val))
+    push!(listVarByDim, label)
+    if !exists(tfg, label)
+      addVariable!(tfg, label, val.softtype)
+      initManual!(tfg, label, manikde!(val))
+    end
   end
 
   # list all variables in order of dimension size
   alreadylist = Symbol[]
-  listVarByDim = ls(tfg)
   listDims = getDimension.(getVariable.(tfg,listVarByDim))
   per = sortperm(listDims, rev=true)
   listVarDec = listVarByDim[per]
@@ -211,12 +215,14 @@ function addMsgFactors!(subfg::AbstractDFG,
                         tags::Vector{Symbol}=Symbol[])
   #
   # add messages as priors to this sub factor graph
-  if getSolverParams(subfg).useMsgLikelihoods
-    # currently only works for nonparametric
-    buildGraphLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
-    addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
+  msgfcts = DFGFactor[]
+  if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass
+    if 0 < msgs.belief |> length
+      # currently only works for nonparametric
+      buildGraphLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
+      prFcts = addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
+    end
   else
-    msgfcts = DFGFactor[]
     svars = DFG.listVariables(subfg)
     tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
     for (msym, belief_) in msgs.belief

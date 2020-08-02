@@ -4,7 +4,6 @@
 export selectFactorType
 export buildFactorDefault
 export solveFactorMeasurements
-export buildGraphLikelihoodsDifferential!
 
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later

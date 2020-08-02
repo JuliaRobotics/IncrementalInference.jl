@@ -152,6 +152,7 @@ export *,
   # from DFG
   ls,
   lsf,
+  exists,
   sortDFG,
   getVariableIds,
   getVariableOrder,
