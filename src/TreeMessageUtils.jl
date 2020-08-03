@@ -1,6 +1,7 @@
 # init utils for tree based inference
 
 export resetCliqSolve!
+export addLikelihoodsDifferential!
 
 
 ## =============================================================================
@@ -78,6 +79,118 @@ end
 # helper functions to add tree messages to subgraphs
 ## =============================================================================
 
+function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
+  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
+  MsgPrior(kdePr, belief_.inferdim)
+end
+
+function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
+  msgPrior = if size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
+    MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
+  elseif size(belief_.val, 2) == 1 && 1 != size(belief_.val, 1)
+    mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
+    mvnorm != nothing ? nothing : (return DFGFactor[])
+    MsgPrior(mvnorm, belief_.inferdim)
+  end
+  return msgPrior
+end
+
+
+"""
+    $SIGNATURES
+
+Build from a `LikelihoodMessage` a temporary distributed factor graph object containing differential
+information likelihood factors based on values in the messages.
+
+Notes
+- Modifies tfg argument by adding `:UPWARD_DIFFERENTIAL` factors.
+
+DevNotes
+- Initial version which only works for Pose2 and Point2 at this stage.
+"""
+function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
+                                            tfg::AbstractDFG=initfg() )
+  # create new local dfg and add all the variables with data
+  listVarByDim = Symbol[]
+  for (label, val) in msgs.belief
+    push!(listVarByDim, label)
+    if !exists(tfg, label)
+      addVariable!(tfg, label, val.softtype)
+      initManual!(tfg, label, manikde!(val))
+    end
+  end
+
+  # list all variables in order of dimension size
+  alreadylist = Symbol[]
+  listDims = getDimension.(getVariable.(tfg,listVarByDim))
+  per = sortperm(listDims, rev=true)
+  listVarDec = listVarByDim[per]
+  listVarAcc = reverse(listVarDec)
+  # add all differential factors (without deconvolution values)
+  for sym1_ in listVarDec
+    push!(alreadylist, sym1_)
+    for sym2_ in setdiff(listVarAcc, alreadylist)
+      nfactype = selectFactorType(tfg, sym1_, sym2_)
+      # assume default helper function # buildFactorDefault(nfactype)
+      nfct = nfactype()
+      afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
+      # calculate the general deconvolution between variables
+      pts = solveFactorMeasurements(tfg, afc.label)
+      newBel = manikde!(pts[1], getManifolds(nfactype))
+      # replace dummy factor with real deconv factor using manikde approx belief measurement
+      fullFct = nfactype(newBel)
+      deleteFactor!(tfg, afc.label)
+      addFactor!( tfg, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+    end
+  end
+
+  return tfg
+end
+# default verbNoun API spec (dest, src)
+addLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, tfg)
+
+"""
+    $SIGNATURES
+Place a single message likelihood prior on the highest dimension variable with highest connectivity in existing subfg.
+"""
+function addLikelihoodPriorCommon!(subfg::AbstractDFG, 
+                                   msgs::LikelihoodMessage;
+                                   tags::Vector{Symbol}=Symbol[])
+  #
+  # find max dimension variable, which also has highest biadjacency
+
+  len = length(msgs.belief)
+  dims = Vector{Int}(undef, len)
+  syms = Vector{Symbol}(undef, len)
+  biAdj = Vector{Int}(undef, len)
+  # TODO, not considering existing priors for MsgPrior placement at this time
+  # priors = Vector{Int}(undef, len)
+  i = 0
+  for (label, val) in msgs.belief
+    i += 1
+    dims[i] = getDimension(val.softtype)
+    syms[i] = label
+    biAdj[i] = ls(subfg, label) |> length
+  end
+  # work only with highest dimension variable
+  maxDim = maximum(dims)
+  dimMask = dims .== maxDim
+  mdAdj = biAdj[dimMask]
+  pe = sortperm(mdAdj, rev=true) # decending
+  topCandidate = (syms[dimMask])[pe][1]
+
+  # get prior for top candidate
+  msgPrior = generateMsgPrior(msgs.belief[topCandidate], msgs.msgType)
+  # belief_ = msgs.belief[topCandidate]
+  # kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
+  # msgPrior = MsgPrior(kdePr, belief_.inferdim)
+
+  # get ready
+  tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
+  # finally add the single AbstractPrior from LikelihoodMessage
+  addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
+end
+
 
 """
     $SIGNATURES
@@ -97,43 +210,41 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::LikelihoodMessage;
+                        msgs::LikelihoodMessage,
+                        dir::Type{<:MessagePassDirection};
                         tags::Vector{Symbol}=Symbol[])
+  #
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  svars = DFG.listVariables(subfg)
-  tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
-  for (msym, belief_) in msgs.belief
-    if msym in svars
-      if 5 < size(belief_.val,2)
-        # NOTE kde case assumes lower limit of 5 particles
-        # manifold information is contained in the factor graph DFGVariable object
-        kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
-        msgPrior = MsgPrior(kdePr, belief_.inferdim)
-      elseif size(belief_.val, 2) == 1 && size(belief_.val, 1) == 1
-        msgPrior =  MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
-      elseif size(belief_.val, 2) == 1 && 1 != size(belief_.val, 1)
-        mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
-        mvnorm != nothing ? nothing : (return DFGFactor[])
-        msgPrior =  MsgPrior(mvnorm, belief_.inferdim)
-      else
-        error("Don't know what what to do with size(belief_.val)=$(size(belief_.val))")
+  if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass
+    if 0 < msgs.belief |> length
+      # currently only works for nonparametric
+      addLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
+      prFcts = addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
+    end
+  else
+    svars = DFG.listVariables(subfg)
+    tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
+    for (msym, belief_) in msgs.belief
+      if msym in svars
+        msgPrior = generateMsgPrior(belief_, msgs.msgType)
+        fc = addFactor!(subfg, [msym], msgPrior, graphinit=false, tags=tags__)
+        push!(msgfcts, fc)
       end
-      fc = addFactor!(subfg, [msym], msgPrior, graphinit=false, tags=tags__)
-      push!(msgfcts, fc)
     end
   end
   return msgfcts
 end
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        allmsgs::Dict{Int,LikelihoodMessage};
+                        allmsgs::Dict{Int,LikelihoodMessage},
+                        dir::Type{<:MessagePassDirection};
                         tags::Vector{Symbol}=Symbol[] )
   #
   allfcts = DFGFactor[]
   for (cliqid, msgs) in allmsgs
     # do each dict in array separately
-    newfcts = addMsgFactors!(subfg, msgs, tags=tags)
+    newfcts = addMsgFactors!(subfg, msgs, dir, tags=tags)
     union!( allfcts, newfcts )
   end
   return allfcts
@@ -340,7 +451,7 @@ Notes:
 function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = LikelihoodMessage() # Dict{Symbol,BallTreeDensity}()
+  container = LikelihoodMessage() 
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
