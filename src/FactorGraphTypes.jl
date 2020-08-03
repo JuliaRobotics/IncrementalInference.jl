@@ -24,6 +24,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   limitfixeddown::Bool # if true, then fixed lag will also not update marginalized during down (default false)
   # new functions
   incremental::Bool
+  useMsgLikelihoods::Bool
   upsolve::Bool
   downsolve::Bool
   drawtree::Bool
@@ -49,6 +50,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 isfixedlag::Bool=false,
                 limitfixeddown::Bool=false,
                 incremental::Bool=true,
+                useMsgLikelihoods::Bool=false,
                 upsolve::Bool=true,
                 downsolve::Bool=true,
                 drawtree::Bool=false,
@@ -74,6 +76,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       isfixedlag,
                       limitfixeddown,
                       incremental,
+                      useMsgLikelihoods,
                       upsolve,
                       downsolve,
                       drawtree,
