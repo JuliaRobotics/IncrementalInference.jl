@@ -174,7 +174,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # FIXME, fetch message buffered in channels
     # for (idx,upmsgs) in getUpMsgs(csmc.cliq)
       # NOTE, Old -- csmc.msgsUp
-  for upmsg in getCliqChildMsgsUp(csmc) # pull model, fetch messages from children
+  for upmsg in getMsgsUpChildren(csmc) # pull model, fetch messages from children
     @show upmsg
     append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
   end
@@ -286,7 +286,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     #save down messages in msgsDown
     if beliefMsg.status == :DOWNSOLVED
-      setMsgDwnThis!(csmc, beliefMsg)
+      putMsgDwnThis!(csmc, beliefMsg)
       # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
 
@@ -322,7 +322,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   # for downmsgs in csmc.msgsDown
-  downmsgs = getDwnMsgs(csmc) # csmc.msgsDown
+  downmsgs = fetchMsgDwnThis(csmc) # csmc.msgsDown
     # TODO
     # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
     svars = getCliqSeparatorVarIds(csmc.cliq)

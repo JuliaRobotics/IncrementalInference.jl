@@ -301,7 +301,7 @@ tree, smt, hist = solveTree!(fg)
 
 # using Gadfly
 # plot(y=rand(10))
-# plotKDE(getVertKDE(fg,:x2))
+# plotKDE(getBelief(fg,:x2))
 
 global pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0

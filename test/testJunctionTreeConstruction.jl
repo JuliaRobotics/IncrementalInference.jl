@@ -28,14 +28,14 @@ tree = buildTreeFromOrdering!(fg,eo)
 
 @test length(tree.cliques) == 6
 
-C0 = getCliq(tree, :x3)
+C0 = getClique(tree, :x3)
 @test intersect( C0 |> getFrontals, [:x3; :x5; :l1]) |> length == 3
 @test C0 |> getCliqSeparatorVarIds |> length == 0
 
 cC0 = getChildren(tree, C0)
 @test cC0 |> length == 3
 
-C1 = getCliq(tree, :x1)
+C1 = getClique(tree, :x1)
 @test C1 in cC0
 @test C1 |> getFrontals == [:x1;]
 @test intersect(C1 |> getCliqSeparatorVarIds, [:x3;:l1]) |> length == 2
@@ -43,22 +43,22 @@ C1 = getCliq(tree, :x1)
 cC1 = getChildren(tree, C1)
 @test cC1 |> length == 2
 
-C4 = getCliq(tree, :x2)
+C4 = getClique(tree, :x2)
 @test C4 in cC1
 @test C4 |> getFrontals == [:x2;]
 @test intersect(C4 |> getCliqSeparatorVarIds, [:x3;:x1]) |> length == 2
 
-C5 = getCliq(tree, :x0)
+C5 = getClique(tree, :x0)
 @test C5 in cC1
 @test C5 |> getFrontals == [:x0;]
 @test intersect(C5 |> getCliqSeparatorVarIds, [:l1;:x1]) |> length == 2
 
-C2 = getCliq(tree, :x6)
+C2 = getClique(tree, :x6)
 @test C2 in cC0
 @test C2 |> getFrontals == [:x6;]
 @test intersect(C2 |> getCliqSeparatorVarIds, [:l1;:x5]) |> length == 2
 
-C3 = getCliq(tree, :x4)
+C3 = getClique(tree, :x4)
 @test C3 in cC0
 @test C3 |> getFrontals == [:x4;]
 @test intersect(C3 |> getCliqSeparatorVarIds, [:x3;:x5]) |> length == 2

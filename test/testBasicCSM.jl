@@ -39,10 +39,10 @@ addFactor!(dfg, [VAR1], Prior(Normal()))
 ensureAllInitialized!(dfg)
 
 
-# cliq= getCliq(tree, VAR3)
+# cliq= getClique(tree, VAR3)
 # getCliqueData(cliq)
 #
-# cliq= getCliq(tree, VAR1)
+# cliq= getClique(tree, VAR1)
 # getCliqueData(cliq)
 
 

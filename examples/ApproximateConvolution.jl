@@ -66,7 +66,7 @@ pts = approxConv(fg, :x1x2f1, :x2)
 
 
 q2 = kde!(getSample(mmc,2000)[1])
-h1 = plotKDE([getVertKDE(v1), q2],c=["red";"green"],fill=true, xlbl="")
+h1 = plotKDE([getBelief(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")
 
 

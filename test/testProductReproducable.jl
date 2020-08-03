@@ -57,8 +57,8 @@ addVariable!(fg, :b, ContinuousScalar)
 
 addFactor!(fg, [:a;:b], LinearConditional(Normal(10, 1)), graphinit=false)
 
-manualinit!(fg, :a, randn(1,100))
-manualinit!(fg, :b, 10 .+randn(1,100))
+initManual!(fg, :a, randn(1,100))
+initManual!(fg, :b, 10 .+randn(1,100))
 
 A = getKDE(fg, :a)
 B = getKDE(fg, :b)
@@ -69,12 +69,12 @@ for i in 1:10
   pts = approxConv(fg, :abf1, :b)
   B_ = manikde!(pts,ContinuousScalar)
   # plotKDE([B_; B])
-  manualinit!(fg, :b, B_)
+  initManual!(fg, :b, B_)
 
   pts = approxConv(fg, :abf1, :a)
   A_ = manikde!(pts, ContinuousScalar)
   # plotKDE([A_; A])
-  manualinit!(fg, :a, A_)
+  initManual!(fg, :a, A_)
 end
 
 A_ = getKDE(fg, :a)
