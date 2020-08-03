@@ -175,7 +175,6 @@ struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
-PartialPrior(z::T, par::P) where {T <: SamplableBelief, P<:Tuple} = PartialPrior{T, P}(z, par)
 getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 

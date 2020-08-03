@@ -133,22 +133,21 @@ $(TYPEDEF)
 TODO remove Union types -- issue #383
 """
 mutable struct FactorMetadata{T}
-  factoruserdata # deprecate, not in use
-  variableuserdata::Union{Vector, Tuple} # deprecate
-  variablesmalldata::Union{Vector, Tuple} # deprecate
-  solvefor::Union{Symbol, Nothing} # Change to Symbol?
-  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #deprecate
+  factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
+  variableuserdata::Union{Vector, Tuple} # TODOO deprecate, to be replaced by cachedata
+  variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
+  solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
+  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
   dbg::Bool #
-    cachedata::Union{Nothing,Vector{T}} # New. change to Vector{T}
-    fullvariable::Union{Nothing,Vector{DFGVariable}} # New. Vector{DFGVariable}
+  cachedata::Union{Nothing,Vector{T}} # New. Maybe change to Vector{T}
+  fullvariables::Vector{DFGVariable}# New. Vector{DFGVariable}
 
   FactorMetadata{T}() where T = new{T}()
   FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T =
       FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
-# FactorMetadata{T}(fud, vud::Union{Vector, Tuple}, vsm::Union{Vector, Tuple}, sf::Union{Symbol, Nothing}, vl:Union{Nothing, Vector{Symbol}}, dbg::Bool, cd::Union{Nothing,Vector{T}}, fv::Union{Nothing,Vector{DFGVariable}}) =
 end
 FactorMetadata() = FactorMetadata{Any}()
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=nothing) =
+FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=DFGVariable[]) =
                FactorMetadata(fud, vud, vsm, sf, vl, dbg, cd, fv)
 
 """
