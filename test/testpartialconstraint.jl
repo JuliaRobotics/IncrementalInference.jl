@@ -67,7 +67,7 @@ end
   @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.25
   @test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.25
 end
-# plotKDE(getVertKDE(fg, :x1),levels=3)
+# plotKDE(getBelief(fg, :x1),levels=3)
 
 
 
@@ -208,7 +208,7 @@ pts = getVal(fg, :x2)
 
 end
 
-# plotKDE(getVertKDE(fg, :x2),levels=3)
+# plotKDE(getBelief(fg, :x2),levels=3)
 
 # spyCliqMat(tree, :x2)
 

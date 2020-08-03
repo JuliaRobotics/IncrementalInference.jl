@@ -43,7 +43,7 @@ end
 
 # using RoMEPlotting
 #
-# plotKDE( getVertKDE(fg,:x2) )
+# plotKDE( getBelief(fg,:x2) )
 # plotKDE(kde!(pts))
 
 
