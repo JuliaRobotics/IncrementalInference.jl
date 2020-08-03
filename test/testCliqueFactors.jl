@@ -42,7 +42,7 @@ tree = resetBuildTreeFromOrder!(fg, vo)
 
 
 # check that frontal variables only show up once
-frontals = getCliqFrontalVarIds.((x->getCliq(tree, x)).([:x0; :l0; :x4]))
+frontals = getCliqFrontalVarIds.((x->getClique(tree, x)).([:x0; :l0; :x4]))
 
 @test intersect(frontals[1], frontals[2]) |> length == 0
 @test intersect(frontals[2], frontals[3]) |> length == 0
@@ -56,7 +56,7 @@ lsvars = ls(fg)
 
 ## Now check if factors in cliques are okay
 
-C3 = getCliq(tree, :x0)
+C3 = getClique(tree, :x0)
 C3_fg = buildCliqSubgraph(fg, C3)
 # drawGraph(C3_fg, show=true)
 
@@ -67,7 +67,7 @@ C3_fcts = [:x0l0f1;:x0l1f1;:x0x1f1;:x0f1]
 @test intersect(getCliqFactorIdsAll(C3), C3_fcts) |> length == length(C3_fcts)
 
 
-C2 = getCliq(tree, :l0)
+C2 = getClique(tree, :l0)
 C2_fg = buildCliqSubgraph(fg, C2)
 # drawGraph(C2_fg, show=true)
 
@@ -78,7 +78,7 @@ C2_fcts = [:x1x2f1; :x2x3f1; :x2l0f1; :x2l1f1; :l0f1]
 @test intersect(getCliqFactorIdsAll(C2), C2_fcts) |> length == length(C2_fcts)
 
 
-C1 = getCliq(tree, :x4)
+C1 = getClique(tree, :x4)
 C1_fg = buildCliqSubgraph(fg, C1)
 # drawGraph(C1_fg, show=true)
 

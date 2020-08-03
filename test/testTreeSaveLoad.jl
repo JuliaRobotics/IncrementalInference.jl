@@ -18,7 +18,7 @@ using IncrementalInference
 
     for (clid,cl) in tree.cliques
       fsyms = getFrontals(cl)
-      cl2 = getCliq(tree2, fsyms[1])
+      cl2 = getClique(tree2, fsyms[1])
       fsyms2 = getFrontals(cl2)
       @test fsyms == fsyms2
       @test getCliqSeparatorVarIds(cl) == getCliqSeparatorVarIds(cl2)
@@ -43,7 +43,7 @@ end
 
     for (clid,cl) in tree.cliques
       fsyms = getFrontals(cl)
-      cl2 = getCliq(trees[1], fsyms[1])
+      cl2 = getClique(trees[1], fsyms[1])
       fsyms2 = getFrontals(cl2)
       @test fsyms == fsyms2
       @test getCliqSeparatorVarIds(cl) == getCliqSeparatorVarIds(cl2)
