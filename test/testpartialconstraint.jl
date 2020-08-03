@@ -26,7 +26,8 @@ N=100 # 50
 fg = initfg()
 
 
-v1 = addVariable!(fg,:x1,ContinuousMultivariate(2,manifolds=(:Euclid, :Euclid)),N=N)
+
+v1 = addVariable!(fg,:x1,ContinuousEuclid{2}(),N=N)
 
 pr = DevelopDim2(MvNormal([0.0;0.0], diagm([0.01;0.01]))) # *Matrix{Float64}(LinearAlgebra.I,2,2)))
 f1  = addFactor!(fg,[:x1],pr)
@@ -91,7 +92,7 @@ end
 
 
 
-v2 = addVariable!(fg,:x2,ContinuousMultivariate(2),N=N)
+v2 = addVariable!(fg,:x2,ContinuousEuclid{2},N=N)
 
 
 dpp = DevelopPartialPairwise(Normal(10.0, 1.0))

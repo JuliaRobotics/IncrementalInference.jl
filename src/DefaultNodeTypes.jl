@@ -14,7 +14,13 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 struct ContinuousScalar <: InferenceVariable
   dims::Int
   manifolds::Tuple{Symbol}
-  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
+  # ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
+  function ContinuousScalar(;manifolds=nothing)
+    manifolds !== nothing &&
+      Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
+
+    return new(1, (:Euclid,))
+  end
 end
 
 """
@@ -36,6 +42,19 @@ function ContinuousMultivariate(x::Int;
   ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
 end
 
+export ContinuousEuclid
+struct ContinuousEuclid{N} <: InferenceVariable end
+
+ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
+
+function Base.getproperty(::ContinuousEuclid{N}, f::Symbol) where N
+  if f == :dims
+    return N
+  elseif f == :manifolds
+    return ntuple(i -> :Euclid, N)
+  end
+end
+
 
 """
 $(TYPEDEF)
@@ -43,7 +62,7 @@ $(TYPEDEF)
 Default prior on all dimensions of a variable node in the factor graph.  `Prior` is
 not recommended when non-Euclidean dimensions are used in variables.
 """
-struct Prior{T} <: AbstractPrior where T <: SamplableBelief
+struct Prior{T <: SamplableBelief} <: AbstractPrior 
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
@@ -80,7 +99,7 @@ Message prior on all dimensions of a variable node in the factor graph.
 Notes
 - Only temporary existance during CSM operations.
 """
-struct MsgPrior{T} <: AbstractPrior where T <: SamplableBelief
+struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
   inferdim::Float64
   MsgPrior{T}() where {T} = new{T}()
@@ -114,7 +133,7 @@ function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
   end                    #
 end
 
-struct PackedMsgPrior <: PackedInferenceType where T
+struct PackedMsgPrior <: PackedInferenceType
   Z::String
   inferdim::Float64
   PackedMsgPrior() = new()
@@ -152,11 +171,10 @@ $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
 """
-struct PartialPrior{T,P} <: AbstractPrior where {T <: SamplableBelief, P <: Tuple}
+struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
-PartialPrior(z::T, par::P) where {T <: SamplableBelief, P<:Tuple} = PartialPrior{T, P}(z, par)
 getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
@@ -166,7 +184,7 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearConditional{T} <: AbstractRelativeFactor where T <: SamplableBelief
+struct LinearConditional{T <: SamplableBelief} <: AbstractRelativeFactor
   Z::T
 end
 LinearConditional() = LinearConditional(Normal())
@@ -215,7 +233,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-mutable struct MixturePrior{T} <: AbstractPrior where {T <: SamplableBelief}
+mutable struct MixturePrior{T <: SamplableBelief} <: AbstractPrior
   Z::Vector{T}
   C::Distributions.Categorical
   #derived values
