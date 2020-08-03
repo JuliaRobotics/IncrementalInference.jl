@@ -100,26 +100,7 @@ function fifoFreeze!(dfg::AbstractDFG)
   nothing
 end
 
-"""
-    $(SIGNATURES)
 
-Return all factors currently registered in the workspace.
-"""
-function getCurrentWorkspaceFactors()
-    return [
-        subtypes(AbstractPrior)...,
-        subtypes(AbstractRelativeFactor)...,
-        subtypes(AbstractRelativeFactorMinimize)...];
-end
-
-"""
-    $(SIGNATURES)
-
-Return all variables currently registered in the workspace.
-"""
-function getCurrentWorkspaceVariables()
-    return subtypes(IncrementalInference.InferenceVariable);
-end
 
 """
     $SIGNATURES
@@ -361,7 +342,6 @@ function findVariablesNear(dfg::AbstractDFG,
   prm = (dist |> sortperm)[1:number]
   return (xy[1][prm], sqrt.(dist[prm]))
 end
-
 
 
 
