@@ -48,11 +48,13 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
   msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-  # force separator variables to adopt down message values
+  # force separator variables in cliqSubFg to adopt down message values
   updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
   # add required all frontal connected factors
-  newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
+  if !opts.useMsgLikelihoods
+    newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
+  end
 
   # store the cliqSubFg for later debugging
   if opts.dbg
