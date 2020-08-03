@@ -1,7 +1,7 @@
 # init utils for tree based inference
 
 export resetCliqSolve!
-export buildGraphLikelihoodsDifferential!
+export addLikelihoodsDifferential!
 
 
 ## =============================================================================
@@ -108,7 +108,7 @@ Notes
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
-function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
+function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
                                             tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   listVarByDim = Symbol[]
@@ -147,7 +147,7 @@ function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
   return tfg
 end
 # default verbNoun API spec (dest, src)
-buildGraphLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = buildGraphLikelihoodsDifferential!(msgs, tfg)
+addLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, tfg)
 
 """
     $SIGNATURES
@@ -219,7 +219,7 @@ function addMsgFactors!(subfg::AbstractDFG,
   if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass
     if 0 < msgs.belief |> length
       # currently only works for nonparametric
-      buildGraphLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
+      addLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
       prFcts = addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
     end
   else

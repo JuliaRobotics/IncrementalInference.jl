@@ -12,7 +12,7 @@ tree, smt, hist = solveTree!(fg)
 
 msg = getMsgUpThis(tree.cliques[2])
 
-tfg = buildGraphLikelihoodsDifferential!(msg)
+tfg = addLikelihoodsDifferential!(msg)
 
 # drawGraph(tfg, show=true)
 
