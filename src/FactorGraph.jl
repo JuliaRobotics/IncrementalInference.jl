@@ -689,7 +689,7 @@ Development Notes
 
 Related
 
-doautoinit!, manualinit!, isInitialized, isMultihypo
+doautoinit!, initManual!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,

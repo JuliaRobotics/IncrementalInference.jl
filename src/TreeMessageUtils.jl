@@ -70,7 +70,7 @@ function resetCliqSolve!(dfg::AbstractDFG,
                          frt::Symbol;
                          solveKey::Symbol=:default  )
   #
-  resetCliqSolve!(dfg, treel, getCliq(treel, frt), solveKey=solveKey)
+  resetCliqSolve!(dfg, treel, getClique(treel, frt), solveKey=solveKey)
 end
 
 
@@ -311,7 +311,7 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   # get the current clique status
 
   # construct init's up msg to place in parent from initialized separator variables
-  msg = LikelihoodMessage(status)
+  msg = LikelihoodMessage(status=status)
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
     @info "prepCliqInitMsgsUp, seps=$seps"

@@ -77,9 +77,9 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 @test sum(abs.(getSolverData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
-manualinit!(fg, :x2, 1*ones(1,100))
-manualinit!(fg, :x3, 2*ones(1,100))
-manualinit!(fg, :x4, 3*ones(1,100))
+initManual!(fg, :x2, 1*ones(1,100))
+initManual!(fg, :x3, 2*ones(1,100))
+initManual!(fg, :x4, 3*ones(1,100))
 
 end
 

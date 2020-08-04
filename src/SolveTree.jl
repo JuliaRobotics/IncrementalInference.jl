@@ -432,7 +432,7 @@ function initVariable!(fgl::G,
                        sym::Symbol;
                        N::Int=100 ) where G <: AbstractDFG
   #
-  @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
+  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
   belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
@@ -599,7 +599,7 @@ function treeProductUp(fg::AbstractDFG,
                        N::Int=100,
                        dbg::Bool=false  )
   #
-  cliq = getCliq(tree, cliq)
+  cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get all the incoming (upward) messages from the tree cliques

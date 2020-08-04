@@ -35,7 +35,7 @@ addFactor!(fg, [:x,:xy], xty)
 # initialize from prior
 doautoinit!(fg, :xy)
 # initialize any random numbers for the square root initial value
-manualinit!(fg, :x, randn(1,100))
+initManual!(fg, :x, randn(1,100))
 
 # find solution
 tree, smt, hist = solveTree!(fg)

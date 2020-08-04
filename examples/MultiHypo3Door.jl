@@ -256,9 +256,9 @@ cliq = tree.cliques[2]
 
 ##
 
-manualinit!(fg, :l2, [:l2f1])
-manualinit!(fg, :l1, [:l1f1])
-manualinit!(fg, :l0, [:l0f1])
+initManual!(fg, :l2, [:l2f1])
+initManual!(fg, :l1, [:l1f1])
+initManual!(fg, :l0, [:l0f1])
 
 # regular procedure
 ptsX1, = predictbelief(fg, :x1, [:x1l0l1l2f1])
