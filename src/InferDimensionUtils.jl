@@ -31,7 +31,7 @@ Related
 
 getVariableInferredDim, getVariableInferredDimFraction
 """
-getVariableDim(vard::VariableNodeData)::Int = getSofttype(vard).dims
+getVariableDim(vard::VariableNodeData)::Int = getSofttype(vard) |> getDimension
 getVariableDim(var::DFGVariable)::Int = getVariableDim(getSolverData(var))
 
 """

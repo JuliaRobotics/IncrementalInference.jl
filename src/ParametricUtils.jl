@@ -88,6 +88,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
 
   mc_mani = IIF.MixedCircular(fg, varIds)
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
+  # alg = algorithm(; algorithmkwargs...)
 
   tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
   result = optimize(tdtotalCost, initValues, alg, options)
@@ -313,7 +314,7 @@ end
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getSofttype(fg, k).manifolds .== :Circular)
+    append!(circMask, getSofttype(fg, k) |> getManifolds .== :Circular)
   end
   MixedCircular(circMask)
 end
@@ -329,7 +330,7 @@ Optim.project_tangent!(S::MixedCircular,g,x) = g
 
 function createMvNormal(val,cov)
     #TODO do something better for properly formed covariance, but for now just a hack...FIXME
-    if all(diag(cov) .> 0) && isapprox(cov, transpose(cov), atol=1e-5)
+    if all(diag(cov) .> 0.001) && isapprox(cov, transpose(cov), rtol=1e-4)
         return MvNormal(val,Symmetric(cov))
     else
         @error("Covariance matrix error", cov)

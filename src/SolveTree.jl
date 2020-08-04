@@ -65,7 +65,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
     for psym in keys(m.belief)
       if psym == vsym
         pdi = m.belief[vsym]
-        push!(dens, manikde!(pdi.val, pdi.bw[:,1], pdi.manifolds) )
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
       end
@@ -231,7 +231,7 @@ function productbelief(dfg::G,
                        logger=ConsoleLogger()  ) where {G <: AbstractDFG}
   #
   vert = DFG.getVariable(dfg, vertlabel)
-  manis = getSofttype(vert).manifolds
+  manis = getSofttype(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
@@ -416,7 +416,7 @@ function localProduct(dfg::G,
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
   vari = DFG.getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getSofttype(vari).manifolds )
+  pp = AMP.manikde!(pGM, getSofttype(vari) |> getManifolds )
 
   return pp, dens, partials, lb, sum(inferdim)
 end
@@ -499,7 +499,7 @@ function compileFMCMessages(fgl::AbstractDFG,
     vari = DFG.getVariable(fgl,vsym)
     pden = getKDE(vari)
     bws = vec(getBW(pden)[:,1])
-    manis = getSofttype(vari).manifolds
+    manis = getSofttype(vari) |> getManifolds
     d[vsym] = TreeBelief(vari) # getVal(vari), bws, manis, getSolverData(vari).inferdim
     with_logger(logger) do
       @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
@@ -522,7 +522,7 @@ function doFMCIteration(fgl::AbstractDFG,
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert) |> getManifolds, logger)
 
       # countsolve += 1
       # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
@@ -617,7 +617,7 @@ function treeProductUp(fg::AbstractDFG,
   end
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, sym)).manifolds
+  manis = getSofttype(getVariable(fg, sym)) |> getManifolds
   pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod

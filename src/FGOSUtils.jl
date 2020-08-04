@@ -33,7 +33,7 @@ end
 
 Get graph node (variable or factor) dimension.
 """
-getDimension(vartype::InferenceVariable) = vartype.dims
+getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
 getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
 getDimension(var::DFGVariable) = getDimension(getSofttype(var))
 getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
