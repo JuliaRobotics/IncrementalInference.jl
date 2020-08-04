@@ -12,16 +12,14 @@ $(TYPEDEF)
 Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 """
 struct ContinuousScalar <: InferenceVariable
-  dims::Int
-  manifolds::Tuple{Symbol}
-  # ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
   function ContinuousScalar(;manifolds=nothing)
     manifolds !== nothing &&
-      Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
-
-    return new(1, (:Euclid,))
+    Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
+    return new()
   end
 end
+getDimension(::ContinuousScalar) = 1
+getManifolds(::ContinuousScalar) = (:Euclid,)
 
 """
 $(TYPEDEF)
@@ -42,19 +40,18 @@ function ContinuousMultivariate(x::Int;
   ContinuousMultivariate{typeof(maniT)}(x, manifolds=maniT)
 end
 
+
 export ContinuousEuclid
+"""
+    ContinuousEuclid{N}
+Continuous Euclidean variable of dimension `N`.
+"""
 struct ContinuousEuclid{N} <: InferenceVariable end
 
 ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
 
-function Base.getproperty(::ContinuousEuclid{N}, f::Symbol) where N
-  if f == :dims
-    return N
-  elseif f == :manifolds
-    return ntuple(i -> :Euclid, N)
-  end
-end
-
+getDimension(::ContinuousEuclid{N}) where N = N::Int
+getManifolds(::ContinuousEuclid{N}) where N = ntuple(i -> :Euclid, N)
 
 """
 $(TYPEDEF)

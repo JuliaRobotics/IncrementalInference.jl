@@ -6,7 +6,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-getManifolds(vd::VariableNodeData) = getSofttype(vd).manifolds
+getManifolds(vd::VariableNodeData) = getSofttype(vd) |> getManifolds
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
@@ -137,7 +137,7 @@ function setValKDE!(vd::VariableNodeData,
                     inferdim::Float64=0 )::Nothing
   # recover softtype information
   sty = getSofttype(vd)
-  p = AMP.manikde!(val, sty.manifolds)
+  p = AMP.manikde!(val, getManifolds(sty))
   setValKDE!(vd, p, setinit, inferdim)
   nothing
 end
@@ -292,7 +292,7 @@ function DefaultNodeDataParametric(dodims::Int,
 end
 
 function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
-  vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
+  vnd = DefaultNodeDataParametric(0, softtype |> getDimension, softtype; kwargs...)
   setSolverData!(v, vnd, :parametric)
   return nothing
 end
@@ -310,7 +310,7 @@ function setDefaultNodeData!(v::DFGVariable,
   data = nothing
   if initialized
 
-      pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+      pN = AMP.manikde!(randn(dims, N), getManifolds(softtype));
 
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
@@ -413,7 +413,7 @@ function addVariable!(dfg::AbstractDFG,
   v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
 
   (:default in initsolvekeys) &&
-    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
+    setDefaultNodeData!(v, 0, N, getDimension(softtype), initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
 
   (:parametric in initsolvekeys) &&
     setDefaultNodeDataParametric!(v, softtype, initialized=false, dontmargin=dontmargin)
@@ -887,7 +887,7 @@ function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   @info "initManual! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
-  Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
+  Xpre = AMP.manikde!(pts, getSofttype(vert) |> getManifolds )
   setValKDE!(vert, Xpre, true)
   return nothing
 end
@@ -1307,7 +1307,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd) |> getManifolds)
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
 
