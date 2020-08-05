@@ -85,7 +85,7 @@ resetTreeCliquesForUpSolve!(tree)
 
 
 
-cliq = whichCliq(tree, :x1)
+cliq = getClique(tree, :x1)
 
 
 
@@ -194,7 +194,7 @@ DFG.getFactor(dfg, :x1x2f1)
 ## See picture of upward clique association matrix
 
 using Gadfly
-cliq = whichCliq(tree, :x1)
+cliq = getClique(tree, :x1)
 spyCliqMat(cliq)
 
 
