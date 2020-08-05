@@ -181,10 +181,20 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearConditional{T <: SamplableBelief} <: AbstractRelativeFactor
+struct LinearConditional{N, T <: SamplableBelief} <: AbstractRelativeFactor
   Z::T
 end
-LinearConditional() = LinearConditional(Normal())
+function LinearConditional{N}() where N
+  newval = MvNormal(zeros(N), diagm(ones(N)))
+  LinearConditional{N,typeof(newval)}(newval)
+end
+LinearConditional(n::Int=1) = LinearConditional{n}()
+LinearConditional(nm::Distributions.ContinuousUnivariateDistribution) = LinearConditional{1, typeof(nm)}(nm)
+LinearConditional(nm::MvNormal) = LinearConditional{length(nm.μ), typeof(nm)}(nm)
+LinearConditional(nm::BallTreeDensity) = LinearConditional{Ndim(nm), typeof(nm)}(nm)
+
+getDimension(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = N
+getManifolds(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 function (s::LinearConditional)(res::AbstractArray{<:Real},
@@ -194,16 +204,18 @@ function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 X1::AbstractArray{<:Real,2},
                                 X2::AbstractArray{<:Real,2}  )
   #
-  res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
+  res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
   nothing
 end
 
 # parametric specific functor
-function (s::LinearConditional{<:ParametricTypes})(X1::AbstractVector{T},
-                                X2::AbstractVector{T};
-                                userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+function (s::LinearConditional{N,<:ParametricTypes})(
+                                X1::AbstractArray{<:Real},
+                                X2::AbstractArray{<:Real};
+                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
                                 #can I change userdata to a keyword arg
-
+  #
+  # FIXME, replace if with dispatch
   if isa(s.Z, Normal)
     meas = mean(s.Z)
     σ = std(s.Z)
