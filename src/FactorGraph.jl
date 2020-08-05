@@ -398,6 +398,7 @@ function addVariable!(dfg::AbstractDFG,
                       autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
@@ -405,12 +406,24 @@ function addVariable!(dfg::AbstractDFG,
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
   #
+
+  if :ut in fieldnames(typeof(softtype))
+    Base.depwarn("Field `ut` (microseconds) for softtype $(softtype) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)
+    if isnothing(nanosecondtime)
+      nanosecondtime = Nanosecond(softtype.ut*1000)
+    else 
+      @warn "Nanosecond time has been speciefied as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
+    end
+  elseif isnothing(nanosecondtime)
+    nanosecondtime = Nanosecond(0)
+  end
+
   autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
   labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
 
   union!(tags, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
 
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, getDimension(softtype), initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
