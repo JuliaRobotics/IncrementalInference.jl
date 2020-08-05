@@ -1133,12 +1133,12 @@ function getEliminationOrder(dfg::G;
   # Create dense adjacency matrix
 
   p = Int[]
-  if ordering==:chol
-    # hack for dense matrix....
-    A = Array(adjMat)
-    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
-    @warn "check cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
-  elseif ordering==:qr
+  # if ordering==:chol
+  #   # hack for dense matrix....
+  #   A = Array(adjMat)
+  #   p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
+    # @warn "check cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
+  if ordering==:qr
     # hack for dense matrix....
     A = Array(adjMat)
     # this is the default
