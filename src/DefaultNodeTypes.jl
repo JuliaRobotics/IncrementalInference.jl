@@ -193,6 +193,7 @@ function LinearConditional{N}() where N
 end
 LinearConditional() = LinearConditional{1}()
 LinearConditional(nm::Distributions.ContinuousUnivariateDistribution) = LinearConditional{1, typeof(nm)}(nm)
+LinearConditional(nm::MvNormal) = LinearConditional{length(nm.μ), typeof(nm)}(nm)
 LinearConditional(nm::BallTreeDensity) = LinearConditional{Ndim(nm), typeof(nm)}(nm)
 
 
@@ -204,16 +205,15 @@ function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 X1::AbstractArray{<:Real,2},
                                 X2::AbstractArray{<:Real,2}  )
   #
-  @show size(res), size(meas[1]), size(X1), size(X2)
   res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
   nothing
 end
 
 # parametric specific functor
-function (s::LinearConditional{<:ParametricTypes})(
-                                X1::AbstractVector{<:Real},
-                                X2::AbstractVector{<:Real};
-                                userdata::Union{Nothing,FactorMetadata}=nothing )
+function (s::LinearConditional{N,<:ParametricTypes})(
+                                X1::AbstractArray{<:Real},
+                                X2::AbstractArray{<:Real};
+                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
                                 #can I change userdata to a keyword arg
   #
   # FIXME, replace if with dispatch
