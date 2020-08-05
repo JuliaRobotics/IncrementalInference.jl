@@ -1465,7 +1465,7 @@ function parentCliq(treel::BayesTree, cliq::TreeClique)
     Graphs.in_neighbors(cliq, treel.bt)
 end
 function parentCliq(treel::BayesTree, frtsym::Symbol)
-  parentCliq(treel,  whichCliq(treel, frtsym))
+  parentCliq(treel,  getClique(treel, frtsym))
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)

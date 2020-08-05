@@ -590,7 +590,7 @@ end
     $(SIGNATURES)
 
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
+Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductUp(fg::AbstractDFG,
                        tree::AbstractBayesTree,
@@ -628,7 +628,7 @@ end
     $(SIGNATURES)
 
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the downward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
+Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductDwn(fg::G,
                         tree::AbstractBayesTree,
@@ -638,7 +638,7 @@ function treeProductDwn(fg::G,
                         dbg::Bool=false  ) where G <: AbstractDFG
   #
   @warn "treeProductDwn might not be working properly at this time. (post DFG v0.6 upgrade maintenance required)"
-  cliq = whichCliq(tree, cliq)
+  cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get the local variable id::Int identifier
@@ -1127,7 +1127,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   end
 
   # do the cliques share the same frontals?
-  otherCliq = whichCliq(othertree, seekFrontals[1])
+  otherCliq = getClique(othertree, seekFrontals[1])
   otherFrontals = getCliqFrontalVarIds(otherCliq)
   commonFrontals = intersect(seekFrontals, otherFrontals)
   if length(commonFrontals) != length(seekFrontals) || length(commonFrontals) != length(otherFrontals)

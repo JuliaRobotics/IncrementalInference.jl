@@ -600,7 +600,7 @@ function __init__()
         return sp
       end
       function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
-        spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
+        spyCliqMat(getClique(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end
 end
