@@ -191,11 +191,13 @@ function LinearConditional{N}() where N
   newval = MvNormal(zeros(N), diagm(ones(N)))
   LinearConditional{N,typeof(newval)}(newval)
 end
-LinearConditional() = LinearConditional{1}()
+LinearConditional(n::Int=1) = LinearConditional{n}()
 LinearConditional(nm::Distributions.ContinuousUnivariateDistribution) = LinearConditional{1, typeof(nm)}(nm)
 LinearConditional(nm::MvNormal) = LinearConditional{length(nm.μ), typeof(nm)}(nm)
 LinearConditional(nm::BallTreeDensity) = LinearConditional{Ndim(nm), typeof(nm)}(nm)
 
+getDimension(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = N
+getManifolds(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 function (s::LinearConditional)(res::AbstractArray{<:Real},

@@ -216,7 +216,8 @@ function addMsgFactors!(subfg::AbstractDFG,
   #
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
-  if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass
+  # TODO, expand -- this deconv approach only works for NonparametricMessage at this time.
+  if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass && msgs.msgType isa NonparametricMessage
     if 0 < msgs.belief |> length
       # currently only works for nonparametric
       addLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
