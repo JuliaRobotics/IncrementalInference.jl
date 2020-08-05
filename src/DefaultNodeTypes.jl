@@ -204,7 +204,7 @@ function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 X1::AbstractArray{<:Real,2},
                                 X2::AbstractArray{<:Real,2}  )
   #
-  @show size(res), size(meas[1]), size(X1), size(X2)
+  #   @show size(res), size(meas[1]), size(X1), size(X2)
   res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
   nothing
 end
