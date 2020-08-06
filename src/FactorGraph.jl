@@ -112,7 +112,7 @@ function setValKDE!(vd::VariableNodeData,
                     pts::Array{Float64,2},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -134,7 +134,7 @@ end
 function setValKDE!(vd::VariableNodeData,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   # recover softtype information
   sty = getSofttype(vd)
   p = AMP.manikde!(val, getManifolds(sty))
@@ -157,7 +157,7 @@ end
 function setValKDE!(v::DFGVariable,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0;
+                    inferdim::Float64=0.0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
@@ -412,7 +412,7 @@ function addVariable!(dfg::AbstractDFG,
     if isnothing(nanosecondtime)
       nanosecondtime = Nanosecond(softtype.ut*1000)
     else 
-      @warn "Nanosecond time has been speciefied as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
+      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
     end
   elseif isnothing(nanosecondtime)
     nanosecondtime = Nanosecond(0)
@@ -621,6 +621,8 @@ function prepgenericconvolution(
         )
   #
   for i in 1:Threads.nthreads()
+    # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
+    ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
