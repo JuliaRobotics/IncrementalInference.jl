@@ -402,7 +402,7 @@ function addVariable!(dfg::AbstractDFG,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}(),
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
   #
@@ -447,7 +447,7 @@ function addVariable!(dfg::G,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}())::DFGVariable where
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}())::DFGVariable where
                       {G <: AbstractDFG} #
   #
   sto = softtype()
