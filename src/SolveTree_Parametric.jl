@@ -45,19 +45,8 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
     end # sync
   end # if
 
-  fetchCliqTaskHistoryAll!(alltasks, cliqHistories)
-
-  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
-  assignTreeHistory!(treel, cliqHistories)
-  # for i in 1:length(treel.cliques)
-  #   if haskey(cliqHistories, i)
-  #     hist = cliqHistories[i]
-  #     for i in 1:length(hist)
-  #       hist[i][4].logger = ConsoleLogger()
-  #     end
-  #     getCliqueData(treel.cliques[i]).statehistory=hist
-  #   end
-  # end
+  # if record cliques is in use, else skip computational delay
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
 
   return alltasks, cliqHistories
 end

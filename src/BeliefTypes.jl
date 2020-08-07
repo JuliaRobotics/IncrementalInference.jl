@@ -14,6 +14,15 @@ const CliqStatus = Symbol
 # :null; :upsolved; :downsolved; :marginalized; :uprecycled,
 ## FIXME, consolidate at end of #459 work
 
+# Used for UPWARD_DIFFERENTIAL, UPWARD_COMMON, DOWNWARD_COMMON marginalized types
+abstract type MessagePassDirection end
+struct UpwardPass <: MessagePassDirection end
+struct DownwardPass <: MessagePassDirection end
+
+abstract type MessageType end
+struct NonparametricMessage <: MessageType end
+struct ParametricMessage <: MessageType end
+
 """
     $TYPEDEF
 
@@ -80,19 +89,21 @@ DevNotes:
 
   $(TYPEDFIELDS)
 """
-mutable struct LikelihoodMessage <: AbstractPrior
+mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief}
   variableOrder::Vector{Symbol}
   cliqueLikelihood::Union{Nothing,SamplableBelief}
+  msgType::T
 end
 
 
 LikelihoodMessage(;status::CliqStatus=:NULL,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
-                   variableOrder=Symbol[],
-                   cliqueLikelihood=nothing ) =
-        LikelihoodMessage(status, beliefDict, variableOrder, cliqueLikelihood)
+                   variableOrder::Vector{Symbol}=Symbol[],
+                   cliqueLikelihood=nothing,
+                   msgType::T=NonparametricMessage() ) where {T <: MessageType} =
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType)
 #
 
 
@@ -103,6 +114,7 @@ function compare(l1::LikelihoodMessage,
   TP = true
   TP = TP && l1.status == l2.status
   TP = TP && l1.variableOrder == l2.variableOrder
+  TP = TP && l1.msgType == l2.msgType
   TP = TP && l1.cliqueLikelihood |> typeof == l2.cliqueLikelihood |> typeof
   for (k,v) in l1.belief
     TP = TP && haskey(l2.belief, k)

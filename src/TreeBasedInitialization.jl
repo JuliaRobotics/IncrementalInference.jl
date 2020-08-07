@@ -235,7 +235,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   end
 
   # add message priors
-  addMsgFactors!(lsfg, msgspervar)
+  addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
   # perform initialization/inference
   # ....uhhh TODO

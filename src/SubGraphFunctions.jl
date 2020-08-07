@@ -101,7 +101,7 @@ function buildCliqSubgraph(fgl::AbstractDFG,
                            solvable::Int=1,
                            verbose::Bool=false )
   #
-  buildCliqSubgraph!(subfg, fgl, getCliq(treel, cliqsym), solvable=solvable, verbose=verbose)
+  buildCliqSubgraph!(subfg, fgl, getClique(treel, cliqsym), solvable=solvable, verbose=verbose)
   return subfg
 end
 

@@ -49,6 +49,7 @@ import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
+import DistributedFactorGraphs: getDimension, getManifolds
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -152,6 +153,7 @@ export *,
   # from DFG
   ls,
   lsf,
+  exists,
   sortDFG,
   getVariableIds,
   getVariableOrder,
@@ -320,8 +322,6 @@ export *,
   solveGraph!,
   solveCliq!,
   fifoFreeze!,
-  getCurrentWorkspaceFactors,
-  getCurrentWorkspaceVariables,
 
   # temp const types TODO
   TempBeliefMsg,
@@ -546,8 +546,14 @@ include("AnalysisTools.jl")
 include("Deprecated.jl")
 
 
+
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
+    @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" begin
+      @info "Including InteractiveUtils related functions in IncrementalInference."
+      @eval include("RequireInteractiveUtils.jl")
+    end
+
     @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
       @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Junction) tree"
 
@@ -594,7 +600,7 @@ function __init__()
         return sp
       end
       function spyCliqMat(bt::AbstractBayesTree, lbl::Symbol; showmsg=true, suppressprint::Bool=false)
-        spyCliqMat(whichCliq(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
+        spyCliqMat(getClique(bt,lbl), showmsg=showmsg, suppressprint=suppressprint)
       end
     end
 end

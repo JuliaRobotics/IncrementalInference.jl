@@ -59,7 +59,7 @@ IIF.drawTree(tree, show=true)
 ## can also show the Clique Association matrix by first importing Cairo, Fontconfig, Gadfly
 
 cliq = tree.cliques[1]
-cliq = whichCliq(tree, :x0) # where is :x0 a frontal variable
+cliq = getClique(tree, :x0) # where is :x0 a frontal variable
 spyCliqMat()
 
 tree = drawTree(tree, show=true, imgs=true)

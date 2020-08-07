@@ -31,8 +31,8 @@ function extractCycleProjections(FGl::Vector{FactorGraph}, FR; N::Int=1000)
   DIVREF[:xy] = Float64[]
 
   for i in 1:itersl
-    p[:x] = getVertKDE(FGl[i], :x)
-    p[:xy] = getVertKDE(FGl[i], :xy)
+    p[:x] = getBelief(FGl[i], :x)
+    p[:xy] = getBelief(FGl[i], :xy)
 
     push!(PP[:x], deepcopy(p[:x]))
     push!(PP[:xy], deepcopy(p[:xy]))
@@ -50,16 +50,16 @@ function extractCycleProjections(FGl::Vector{FactorGraph}, FR; N::Int=1000)
 
     if i > 1
       # KL-divergence
-      mkl = minimum([kld(p[:x],getVertKDE(FGl[i-1],:x))[1]; kld(getVertKDE(FGl[i-1],:x),p[:x])[1]])
+      mkl = minimum([kld(p[:x],getBelief(FGl[i-1],:x))[1]; kld(getBelief(FGl[i-1],:x),p[:x])[1]])
       push!(DIV[:x], abs(mkl))
-      mklxy = minimum([kld(p[:xy],getVertKDE(FGl[i-1],:xy))[1]; kld(getVertKDE(FGl[i-1],:xy),p[:xy])[1]])
+      mklxy = minimum([kld(p[:xy],getBelief(FGl[i-1],:xy))[1]; kld(getBelief(FGl[i-1],:xy),p[:xy])[1]])
       push!(DIV[:xy], abs(mklxy))
     end
 
     # reference KL-divergence
-    mkl = minimum([kld(p[:x],getVertKDE(FGl[end],:x))[1]; kld(getVertKDE(FGl[end],:x),p[:x])[1]])
+    mkl = minimum([kld(p[:x],getBelief(FGl[end],:x))[1]; kld(getBelief(FGl[end],:x),p[:x])[1]])
     push!(DIVREF[:x], abs(mkl))
-    mklxy = minimum([kld(p[:xy],getVertKDE(FGl[end],:xy))[1]; kld(getVertKDE(FGl[end],:xy),p[:xy])[1]])
+    mklxy = minimum([kld(p[:xy],getBelief(FGl[end],:xy))[1]; kld(getBelief(FGl[end],:xy),p[:xy])[1]])
     push!(DIVREF[:xy], abs(mklxy))
   end
 
@@ -364,7 +364,7 @@ Gadfly.draw(PDF("sqrtexamplekldreferenced.pdf",10cm,6cm),pldivref)
 #
 #
 #
-# # plotKDE(getVertKDE(fg,:y))
+# # plotKDE(getBelief(fg,:y))
 #
 # PL[1,3]
 # PL[2,3]
@@ -397,11 +397,11 @@ Gadfly.draw(PDF("sqrtexamplekldreferenced.pdf",10cm,6cm),pldivref)
 using KernelDensityEstimatePlotting
 
 
-plot(getVertKDE(fg,:xy),N=2000)
+plot(getBelief(fg,:xy),N=2000)
 
-plot(getVertKDE(fg,:x),N=2000)
+plot(getBelief(fg,:x),N=2000)
 
-# plot(getVertKDE(fg,:y))
+# plot(getBelief(fg,:y))
 
 
 

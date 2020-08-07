@@ -33,14 +33,14 @@ tree, smt, hist = solveTree!(fg, variableOrder=vo)
 # test tree will have two different root nodes
 @test getEliminationOrder(tree) == vo
 
-@test getParent(tree, getCliq(tree, :x1)) |> length == 0
-@test getParent(tree, getCliq(tree, :x10)) |> length == 0
+@test getParent(tree, getClique(tree, :x1)) |> length == 0
+@test getParent(tree, getClique(tree, :x10)) |> length == 0
 
-@test getChildren(tree, getCliq(tree, :x1)) |> length == 1
-@test getChildren(tree, getCliq(tree, :x10)) |> length == 1
+@test getChildren(tree, getClique(tree, :x1)) |> length == 1
+@test getChildren(tree, getClique(tree, :x10)) |> length == 1
 
-@test getChildren(tree, getCliq(tree, :x2)) |> length == 0
-@test getChildren(tree, getCliq(tree, :x12)) |> length == 0
+@test getChildren(tree, getClique(tree, :x2)) |> length == 0
+@test getChildren(tree, getClique(tree, :x12)) |> length == 0
 
 
 ## Test the numerical values are correct

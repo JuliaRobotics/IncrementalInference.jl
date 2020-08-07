@@ -127,7 +127,7 @@ function generateCanonicalFG_lineStep(lineLength::Int;
                     solverParams=SolverParams())
                     # solverParams=SolverParams(algorithms=[:default, :parametric]))
 
-    vtype = (vardims == 1) ? ContinuousScalar() : ContinuousMultivariate(vardims)
+    vtype = (vardims == 1) ? ContinuousScalar() : ContinuousEuclid(vardims)
 
     fg = LightDFG{SolverParams}( solverParams=solverParams)
 

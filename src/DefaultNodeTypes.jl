@@ -12,10 +12,14 @@ $(TYPEDEF)
 Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 """
 struct ContinuousScalar <: InferenceVariable
-  dims::Int
-  manifolds::Tuple{Symbol}
-  ContinuousScalar(;manifolds::Tuple{Symbol}=(:Euclid,)) = new(1, manifolds)
+  function ContinuousScalar(;manifolds=nothing)
+    manifolds !== nothing &&
+    Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
+    return new()
+  end
 end
+getDimension(::ContinuousScalar) = 1
+getManifolds(::ContinuousScalar) = (:Euclid,)
 
 """
 $(TYPEDEF)
@@ -37,13 +41,25 @@ function ContinuousMultivariate(x::Int;
 end
 
 
+export ContinuousEuclid
+"""
+    ContinuousEuclid{N}
+Continuous Euclidean variable of dimension `N`.
+"""
+struct ContinuousEuclid{N} <: InferenceVariable end
+
+ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
+
+getDimension(::ContinuousEuclid{N}) where N = N::Int
+getManifolds(::ContinuousEuclid{N}) where N = ntuple(i -> :Euclid, N)
+
 """
 $(TYPEDEF)
 
 Default prior on all dimensions of a variable node in the factor graph.  `Prior` is
 not recommended when non-Euclidean dimensions are used in variables.
 """
-struct Prior{T} <: AbstractPrior where T <: SamplableBelief
+struct Prior{T <: SamplableBelief} <: AbstractPrior 
   Z::T
 end
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
@@ -80,7 +96,7 @@ Message prior on all dimensions of a variable node in the factor graph.
 Notes
 - Only temporary existance during CSM operations.
 """
-struct MsgPrior{T} <: AbstractPrior where T <: SamplableBelief
+struct MsgPrior{T <: SamplableBelief} <: AbstractPrior
   Z::T
   inferdim::Float64
   MsgPrior{T}() where {T} = new{T}()
@@ -114,7 +130,7 @@ function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
   end                    #
 end
 
-struct PackedMsgPrior <: PackedInferenceType where T
+struct PackedMsgPrior <: PackedInferenceType
   Z::String
   inferdim::Float64
   PackedMsgPrior() = new()
@@ -152,11 +168,10 @@ $(TYPEDEF)
 
 Partial prior belief (absolute data) on any variable, given `<:SamplableBelief` and which dimensions of the intended variable.
 """
-struct PartialPrior{T,P} <: AbstractPrior where {T <: SamplableBelief, P <: Tuple}
+struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
-PartialPrior(z::T, par::P) where {T <: SamplableBelief, P<:Tuple} = PartialPrior{T, P}(z, par)
 getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
@@ -166,10 +181,20 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearConditional{T} <: AbstractRelativeFactor where T <: SamplableBelief
+struct LinearConditional{N, T <: SamplableBelief} <: AbstractRelativeFactor
   Z::T
 end
-LinearConditional() = LinearConditional(Normal())
+function LinearConditional{N}() where N
+  newval = MvNormal(zeros(N), diagm(ones(N)))
+  LinearConditional{N,typeof(newval)}(newval)
+end
+LinearConditional(n::Int=1) = LinearConditional{n}()
+LinearConditional(nm::Distributions.ContinuousUnivariateDistribution) = LinearConditional{1, typeof(nm)}(nm)
+LinearConditional(nm::MvNormal) = LinearConditional{length(nm.μ), typeof(nm)}(nm)
+LinearConditional(nm::BallTreeDensity) = LinearConditional{Ndim(nm), typeof(nm)}(nm)
+
+getDimension(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = N
+getManifolds(::Type{LinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
 getSample(s::LinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 function (s::LinearConditional)(res::AbstractArray{<:Real},
@@ -179,16 +204,18 @@ function (s::LinearConditional)(res::AbstractArray{<:Real},
                                 X1::AbstractArray{<:Real,2},
                                 X2::AbstractArray{<:Real,2}  )
   #
-  res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
+  res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
   nothing
 end
 
 # parametric specific functor
-function (s::LinearConditional{<:ParametricTypes})(X1::AbstractVector{T},
-                                X2::AbstractVector{T};
-                                userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+function (s::LinearConditional{N,<:ParametricTypes})(
+                                X1::AbstractArray{<:Real},
+                                X2::AbstractArray{<:Real};
+                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
                                 #can I change userdata to a keyword arg
-
+  #
+  # FIXME, replace if with dispatch
   if isa(s.Z, Normal)
     meas = mean(s.Z)
     σ = std(s.Z)
@@ -215,7 +242,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable.
 """
-mutable struct MixturePrior{T} <: AbstractPrior where {T <: SamplableBelief}
+mutable struct MixturePrior{T <: SamplableBelief} <: AbstractPrior
   Z::Vector{T}
   C::Distributions.Categorical
   #derived values

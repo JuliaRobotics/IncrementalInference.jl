@@ -123,8 +123,8 @@ function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Fun
                                  tree::AbstractBayesTree,
                                  sym::Symbol  )
   #
-  hist = hists[getCliq(tree, sym).index]
-  printCliqHistorySummary(stdout, hist, string(getCliq(tree, sym).index))
+  hist = hists[getClique(tree, sym).index]
+  printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).index))
 end
 
 """
@@ -303,7 +303,7 @@ function solveCliqWithStateMachine!(dfg::G,
                                     nextfnc::Function=testCliqCanRecycled_StateMachine,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
-  cliq = whichCliq(tree, frontal)
+  cliq = getClique(tree, frontal)
 
   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
 
@@ -648,7 +648,7 @@ end
 
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
-notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCondition(whichCliq(tree, frsym)))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCondition(getClique(tree, frsym)))
 
 
 """
@@ -784,7 +784,7 @@ function printCliqSummary(dfg::G,
                           frs::Symbol,
                           logger=ConsoleLogger() ) where G <: AbstractDFG
   #
-  printCliqSummary(dfg, getCliq(tree, frs), logger)
+  printCliqSummary(dfg, getClique(tree, frs), logger)
 end
 
 

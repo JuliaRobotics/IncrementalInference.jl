@@ -93,7 +93,7 @@ function getCliqDepth(tree, cliq)::Int
   end
   return getCliqDepth(tree, prnt[1]) + 1
 end
-getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, getCliq(tree, sym))
+getCliqDepth(tree::AbstractBayesTree, sym::Symbol)::Int = getCliqDepth(tree, getClique(tree, sym))
 
 
 getCliques(tree::AbstractBayesTree) = tree.cliques
@@ -1050,7 +1050,7 @@ getCliqVarIdsAll, getCliqFactors
 """
 getCliqFactorIdsAll(cliqd::BayesTreeNodeData) = cliqd.potentials
 getCliqFactorIdsAll(cliq::TreeClique) = getCliqFactorIdsAll(getCliqueData(cliq))
-getCliqFactorIdsAll(treel::AbstractBayesTree, frtl::Symbol) = getCliqFactorIdsAll(getCliq(treel, frtl))
+getCliqFactorIdsAll(treel::AbstractBayesTree, frtl::Symbol) = getCliqFactorIdsAll(getClique(treel, frtl))
 
 const getCliqFactors = getCliqFactorIdsAll
 
@@ -1465,7 +1465,7 @@ function parentCliq(treel::BayesTree, cliq::TreeClique)
     Graphs.in_neighbors(cliq, treel.bt)
 end
 function parentCliq(treel::BayesTree, frtsym::Symbol)
-  parentCliq(treel,  whichCliq(treel, frtsym))
+  parentCliq(treel,  getClique(treel, frtsym))
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)

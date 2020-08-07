@@ -2,9 +2,7 @@
 
 
 export selectFactorType
-export buildFactorDefault
 export solveFactorMeasurements
-export buildGraphLikelihoodsDifferential!
 
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
@@ -20,6 +18,7 @@ getManifolds(vartype::Type{LinearConditional}) = (:Euclid,)
 First hacky version to return which factor type to use between two variables of types T1 and T2.
 """
 selectFactorType(T1::Type{ContinuousScalar}, T2::Type{ContinuousScalar}) = LinearConditional
+selectFactorType(T1::Type{<:ContinuousEuclid{N}}, T2::Type{<:ContinuousEuclid{N}}) where N = LinearConditional{N}
 selectFactorType(T1::InferenceVariable, T2::InferenceVariable) = selectFactorType(typeof(T1), typeof(T2))
 selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol) = selectFactorType( getVariableType(dfg, s1), getVariableType(dfg, s2) )
 
@@ -107,54 +106,6 @@ function approxDeconv(dfg::AbstractDFG, sym1::Symbol, sym2::Symbol)
 
 end
 
-
-"""
-    $SIGNATURES
-
-Build from a `LikelihoodMessage` a temporary distributed factor graph object containing differential
-information likelihood factors based on values in the messages.
-
-Notes
-- Modifies tfg argument by adding `:UPWARD_DIFFERENTIAL` factors.
-
-DevNotes
-- Initial version which only works for Pose2 and Point2 at this stage.
-"""
-function buildGraphLikelihoodsDifferential!(msgs::LikelihoodMessage,
-                                            tfg=initfg() )
-  # create new local dfg and add all the variables with data
-  for (label, val) in msgs.belief
-    addVariable!(tfg, label, val.softtype)
-    initManual!(tfg, label, manikde!(val))
-  end
-
-  # list all variables in order of dimension size
-  alreadylist = Symbol[]
-  listVarByDim = ls(tfg)
-  listDims = getDimension.(getVariable.(tfg,listVarByDim))
-  per = sortperm(listDims, rev=true)
-  listVarDec = listVarByDim[per]
-  listVarAcc = reverse(listVarDec)
-  # add all differential factors (without deconvolution values)
-  for sym1_ in listVarDec
-    push!(alreadylist, sym1_)
-    for sym2_ in setdiff(listVarAcc, alreadylist)
-      nfactype = selectFactorType(tfg, sym1_, sym2_)
-      # assume default helper function # buildFactorDefault(nfactype)
-      nfct = nfactype()
-      afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
-      # calculate the general deconvolution between variables
-      pts = solveFactorMeasurements(tfg, afc.label)
-      newBel = manikde!(pts[1], getManifolds(nfactype))
-      # replace dummy factor with real deconv factor using manikde approx belief measurement
-      fullFct = nfactype(newBel)
-      deleteFactor!(tfg, afc.label)
-      addFactor!( tfg, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
-    end
-  end
-
-  return tfg
-end
 
 
 #

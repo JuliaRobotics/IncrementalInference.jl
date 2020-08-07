@@ -6,7 +6,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-getManifolds(vd::VariableNodeData) = getSofttype(vd).manifolds
+getManifolds(vd::VariableNodeData) = getSofttype(vd) |> getManifolds
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
@@ -112,7 +112,7 @@ function setValKDE!(vd::VariableNodeData,
                     pts::Array{Float64,2},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -134,10 +134,10 @@ end
 function setValKDE!(vd::VariableNodeData,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   # recover softtype information
   sty = getSofttype(vd)
-  p = AMP.manikde!(val, sty.manifolds)
+  p = AMP.manikde!(val, getManifolds(sty))
   setValKDE!(vd, p, setinit, inferdim)
   nothing
 end
@@ -157,7 +157,7 @@ end
 function setValKDE!(v::DFGVariable,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0;
+                    inferdim::Float64=0.0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
@@ -292,7 +292,7 @@ function DefaultNodeDataParametric(dodims::Int,
 end
 
 function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
-  vnd = DefaultNodeDataParametric(0, softtype.dims, softtype; kwargs...)
+  vnd = DefaultNodeDataParametric(0, softtype |> getDimension, softtype; kwargs...)
   setSolverData!(v, vnd, :parametric)
   return nothing
 end
@@ -310,7 +310,7 @@ function setDefaultNodeData!(v::DFGVariable,
   data = nothing
   if initialized
 
-      pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+      pN = AMP.manikde!(randn(dims, N), getManifolds(softtype));
 
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
@@ -398,22 +398,35 @@ function addVariable!(dfg::AbstractDFG,
                       autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}(),
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
   #
+
+  if :ut in fieldnames(typeof(softtype))
+    Base.depwarn("Field `ut` (microseconds) for softtype $(softtype) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)
+    if isnothing(nanosecondtime)
+      nanosecondtime = Nanosecond(softtype.ut*1000)
+    else 
+      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
+    end
+  elseif isnothing(nanosecondtime)
+    nanosecondtime = Nanosecond(0)
+  end
+
   autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
   labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
 
   union!(tags, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
 
   (:default in initsolvekeys) &&
-    setDefaultNodeData!(v, 0, N, softtype.dims, initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
+    setDefaultNodeData!(v, 0, N, getDimension(softtype), initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
 
   (:parametric in initsolvekeys) &&
     setDefaultNodeDataParametric!(v, softtype, initialized=false, dontmargin=dontmargin)
@@ -434,7 +447,7 @@ function addVariable!(dfg::G,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}())::DFGVariable where
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}())::DFGVariable where
                       {G <: AbstractDFG} #
   #
   sto = softtype()
@@ -608,6 +621,8 @@ function prepgenericconvolution(
         )
   #
   for i in 1:Threads.nthreads()
+    # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
+    ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
@@ -689,7 +704,7 @@ Development Notes
 
 Related
 
-doautoinit!, manualinit!, isInitialized, isMultihypo
+doautoinit!, initManual!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,
@@ -887,7 +902,7 @@ function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::No
   @info "initManual! $sym"
   pts = predictbelief(dfg, sym, usefcts)
   vert = getVariable(dfg, sym)
-  Xpre = AMP.manikde!(pts, getSofttype(vert).manifolds )
+  Xpre = AMP.manikde!(pts, getSofttype(vert) |> getManifolds )
   setValKDE!(vert, Xpre, true)
   return nothing
 end
@@ -1307,7 +1322,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd).manifolds)
+getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd) |> getManifolds)
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
 

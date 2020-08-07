@@ -174,9 +174,9 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # FIXME, fetch message buffered in channels
     # for (idx,upmsgs) in getUpMsgs(csmc.cliq)
       # NOTE, Old -- csmc.msgsUp
-  for upmsg in getCliqChildMsgsUp(csmc) # pull model, fetch messages from children
+  for upmsg in getMsgsUpChildren(csmc) # pull model, fetch messages from children
     @show upmsg
-    append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg) ) # addMsgFactors_Parametric!
+    append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
   end
   @info "length mgsfcts=$(length(msgfcts))"
   infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
@@ -245,7 +245,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #Fil in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(:UPSOLVED, cliqSeparatorVarIds, cliqlikelihood)
+  beliefMsg = LikelihoodMessage(status=:UPSOLVED, variableOrder=cliqSeparatorVarIds, cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage())
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
@@ -286,7 +286,7 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
     #save down messages in msgsDown
     if beliefMsg.status == :DOWNSOLVED
-      setMsgDwnThis!(csmc, beliefMsg)
+      putMsgDwnThis!(csmc, beliefMsg)
       # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
 
@@ -322,7 +322,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe change to symbols
   # for downmsgs in csmc.msgsDown
-  downmsgs = getDwnMsgs(csmc) # csmc.msgsDown
+  downmsgs = fetchMsgDwnThis(csmc) # csmc.msgsDown
     # TODO
     # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
     svars = getCliqSeparatorVarIds(csmc.cliq)
@@ -382,7 +382,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = LikelihoodMessage(:DOWNSOLVED)
+  beliefMsg = LikelihoodMessage(status=:DOWNSOLVED, msgType=ParametricMessage())
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)

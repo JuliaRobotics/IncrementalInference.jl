@@ -90,7 +90,7 @@ function drawGraphCliq(hists::Dict{Int, <: Tuple},
                        frontal::Symbol;
                        show::Bool=true  )
   #
-  cid = getCliq(tree, frontal).index
+  cid = getClique(tree, frontal).index
   cfg = hists[cid][step][4].cliqSubFg
   drawGraph(cfg, show=show)
 end
@@ -195,7 +195,7 @@ function approxConvCircular(pX::BallTreeDensity, pDX::BallTreeDensity; N::Int=10
   addVariable!(tfg, :s1, Sphere1)
   addVariable!(tfg, :s2, Sphere1)
   addFactor!(tfg, [:s1;:s2], Sphere1Sphere1(pDX), graphinit=false)
-  manualinit!(tfg,:s1, pX)
+  initManual!(tfg,:s1, pX)
 
   # solve for outgoing proposal value
   approxConv(tfg,:s1s2f1,:s2)

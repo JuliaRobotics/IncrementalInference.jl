@@ -65,7 +65,7 @@ function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
     for psym in keys(m.belief)
       if psym == vsym
         pdi = m.belief[vsym]
-        push!(dens, manikde!(pdi.val, pdi.bw[:,1], pdi.manifolds) )
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
         push!(wfac, :msg)
         inferdim += pdi.inferdim
       end
@@ -231,7 +231,7 @@ function productbelief(dfg::G,
                        logger=ConsoleLogger()  ) where {G <: AbstractDFG}
   #
   vert = DFG.getVariable(dfg, vertlabel)
-  manis = getSofttype(vert).manifolds
+  manis = getSofttype(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
@@ -416,7 +416,7 @@ function localProduct(dfg::G,
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
   vari = DFG.getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getSofttype(vari).manifolds )
+  pp = AMP.manikde!(pGM, getSofttype(vari) |> getManifolds )
 
   return pp, dens, partials, lb, sum(inferdim)
 end
@@ -432,7 +432,7 @@ function initVariable!(fgl::G,
                        sym::Symbol;
                        N::Int=100 ) where G <: AbstractDFG
   #
-  @warn "initVariable! has been displaced by doautoinit! or manualinit! -- might be revived in the future"
+  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
 
   vert = getVariable(fgl, sym)
   belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
@@ -499,7 +499,7 @@ function compileFMCMessages(fgl::AbstractDFG,
     vari = DFG.getVariable(fgl,vsym)
     pden = getKDE(vari)
     bws = vec(getBW(pden)[:,1])
-    manis = getSofttype(vari).manifolds
+    manis = getSofttype(vari) |> getManifolds
     d[vsym] = TreeBelief(vari) # getVal(vari), bws, manis, getSolverData(vari).inferdim
     with_logger(logger) do
       @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
@@ -522,7 +522,7 @@ function doFMCIteration(fgl::AbstractDFG,
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
     # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert).manifolds, logger)
+    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert) |> getManifolds, logger)
 
       # countsolve += 1
       # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
@@ -590,7 +590,7 @@ end
     $(SIGNATURES)
 
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
+Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductUp(fg::AbstractDFG,
                        tree::AbstractBayesTree,
@@ -599,7 +599,7 @@ function treeProductUp(fg::AbstractDFG,
                        N::Int=100,
                        dbg::Bool=false  )
   #
-  cliq = getCliq(tree, cliq)
+  cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get all the incoming (upward) messages from the tree cliques
@@ -617,7 +617,7 @@ function treeProductUp(fg::AbstractDFG,
   end
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, sym)).manifolds
+  manis = getSofttype(getVariable(fg, sym)) |> getManifolds
   pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
@@ -628,7 +628,7 @@ end
     $(SIGNATURES)
 
 Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the downward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `whichCliq(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
+Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
 function treeProductDwn(fg::G,
                         tree::AbstractBayesTree,
@@ -638,7 +638,7 @@ function treeProductDwn(fg::G,
                         dbg::Bool=false  ) where G <: AbstractDFG
   #
   @warn "treeProductDwn might not be working properly at this time. (post DFG v0.6 upgrade maintenance required)"
-  cliq = whichCliq(tree, cliq)
+  cliq = getClique(tree, cliq)
   cliqdata = getCliqueData(cliq)
 
   # get the local variable id::Int identifier
@@ -1127,7 +1127,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree, seeksSimilar::Ba
   end
 
   # do the cliques share the same frontals?
-  otherCliq = whichCliq(othertree, seekFrontals[1])
+  otherCliq = getClique(othertree, seekFrontals[1])
   otherFrontals = getCliqFrontalVarIds(otherCliq)
   commonFrontals = intersect(seekFrontals, otherFrontals)
   if length(commonFrontals) != length(seekFrontals) || length(commonFrontals) != length(otherFrontals)

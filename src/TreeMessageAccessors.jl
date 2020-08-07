@@ -212,8 +212,8 @@ end
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
 fetchMsgDwnThis(cliql::TreeClique) = getCliqueData(cliql).dwnMsg
-fetchMsgDwnThis(csmc::CliqStateMachineContainer) = getMsgsDwnThis(csmc.cliq)
-fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = getMsgsDwnThis(getClique(btl, sym))
+fetchMsgDwnThis(csmc::CliqStateMachineContainer) = fetchMsgDwnThis(csmc.cliq)
+fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = fetchMsgDwnThis(getClique(btl, sym))
 
 
 getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
