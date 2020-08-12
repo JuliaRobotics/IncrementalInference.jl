@@ -1153,7 +1153,7 @@ function getEliminationOrder(dfg::G;
     A = adjMat
     p = cholesky(Matrix(A'A),Val(true)).piv
     @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
-  if ordering==:qr
+  elseif ordering==:qr
     # hack for dense matrix....
     A = Array(adjMat)
     # this is the default
