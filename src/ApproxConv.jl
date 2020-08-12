@@ -103,6 +103,8 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
     ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
     ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
     ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeFactorMinimize
+    # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
+    # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
   end
 
   return sfidx, maxlen, manis

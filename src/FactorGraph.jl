@@ -112,7 +112,7 @@ function setValKDE!(vd::VariableNodeData,
                     pts::Array{Float64,2},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -134,7 +134,7 @@ end
 function setValKDE!(vd::VariableNodeData,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0 )::Nothing
+                    inferdim::Float64=0.0)::Nothing
   # recover softtype information
   sty = getSofttype(vd)
   p = AMP.manikde!(val, getManifolds(sty))
@@ -157,7 +157,7 @@ end
 function setValKDE!(v::DFGVariable,
                     val::Array{Float64,2},
                     setinit::Bool=true,
-                    inferdim::Float64=0;
+                    inferdim::Float64=0.0;
                     solveKey::Symbol=:default)::Nothing
   # recover softtype information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
@@ -398,19 +398,32 @@ function addVariable!(dfg::AbstractDFG,
                       autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}(),
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
                       initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
   #
+
+  if :ut in fieldnames(typeof(softtype))
+    Base.depwarn("Field `ut` (microseconds) for softtype $(softtype) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)
+    if isnothing(nanosecondtime)
+      nanosecondtime = Nanosecond(softtype.ut*1000)
+    else 
+      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
+    end
+  elseif isnothing(nanosecondtime)
+    nanosecondtime = Nanosecond(0)
+  end
+
   autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
   labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
 
   union!(tags, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp)
+  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
 
   (:default in initsolvekeys) &&
     setDefaultNodeData!(v, 0, N, getDimension(softtype), initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
@@ -434,7 +447,7 @@ function addVariable!(dfg::G,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{String, String}())::DFGVariable where
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}())::DFGVariable where
                       {G <: AbstractDFG} #
   #
   sto = softtype()
@@ -608,6 +621,8 @@ function prepgenericconvolution(
         )
   #
   for i in 1:Threads.nthreads()
+    # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
+    ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
@@ -629,7 +644,7 @@ function getDefaultFactorData(
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
       threadmodel=SingleThreaded ) where
-        {T <: Union{FunctorInferenceType, InferenceType}}
+        {T <: FunctorInferenceType}
   #
 
   # prepare multihypo particulars
@@ -1045,7 +1060,7 @@ function addFactor!(dfg::AbstractDFG,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Int,Nothing}=nothing  ) where
-                      {R <: Union{FunctorInferenceType, InferenceType}}
+                      {R <: FunctorInferenceType}
   #
   # depcrecation
   if maxparallel !== nothing
@@ -1074,7 +1089,7 @@ end
 
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
-                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    usrfnc::FunctorInferenceType;
                     multihypo::Vector{<:Real}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,

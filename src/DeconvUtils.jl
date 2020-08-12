@@ -2,7 +2,6 @@
 
 
 export selectFactorType
-export buildFactorDefault
 export solveFactorMeasurements
 
 
@@ -19,6 +18,7 @@ getManifolds(vartype::Type{LinearConditional}) = (:Euclid,)
 First hacky version to return which factor type to use between two variables of types T1 and T2.
 """
 selectFactorType(T1::Type{ContinuousScalar}, T2::Type{ContinuousScalar}) = LinearConditional
+selectFactorType(T1::Type{<:ContinuousEuclid{N}}, T2::Type{<:ContinuousEuclid{N}}) where N = LinearConditional{N}
 selectFactorType(T1::InferenceVariable, T2::InferenceVariable) = selectFactorType(typeof(T1), typeof(T2))
 selectFactorType(dfg::AbstractDFG, s1::Symbol, s2::Symbol) = selectFactorType( getVariableType(dfg, s1), getVariableType(dfg, s2) )
 
