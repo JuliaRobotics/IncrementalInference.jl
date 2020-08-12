@@ -644,7 +644,7 @@ function getDefaultFactorData(
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
       threadmodel=SingleThreaded ) where
-        {T <: Union{FunctorInferenceType, InferenceType}}
+        {T <: FunctorInferenceType}
   #
 
   # prepare multihypo particulars
@@ -1060,7 +1060,7 @@ function addFactor!(dfg::AbstractDFG,
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
                     maxparallel::Union{Int,Nothing}=nothing  ) where
-                      {R <: Union{FunctorInferenceType, InferenceType}}
+                      {R <: FunctorInferenceType}
   #
   # depcrecation
   if maxparallel !== nothing
@@ -1089,7 +1089,7 @@ end
 
 function addFactor!(dfg::AbstractDFG,
                     xisyms::Vector{Symbol},
-                    usrfnc::Union{FunctorInferenceType, InferenceType};
+                    usrfnc::FunctorInferenceType;
                     multihypo::Vector{<:Real}=Float64[],
                     nullhypo::Float64=0.0,
                     solvable::Int=1,

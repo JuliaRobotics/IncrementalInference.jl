@@ -8,9 +8,9 @@ using IncrementalInference
 
 module First
 
-export solve, InferenceType, Container
+export solve, AnotherInferenceType, Container
 
-abstract type InferenceType end
+abstract type AnotherInferenceType end
 
 mutable struct Container
   col::Dict{Symbol, Function}
@@ -25,7 +25,7 @@ function registerCallback!(col::Container, fnc::Function)
   col.col[m] = fnc
 end
 
-function solve(ctl::Container, val::InferenceType) # m::Symbol,
+function solve(ctl::Container, val::AnotherInferenceType) # m::Symbol,
   m = Symbol(typeof(val).name.module)
   if false
     # doesnt work
@@ -44,10 +44,10 @@ module Second
 using Main.First
 export SecondType, SecondAgain, evalPotential, solve, registerCallback!, Container
 
-struct SecondType <: Main.First.InferenceType
+struct SecondType <: Main.First.AnotherInferenceType
   x::Int
 end
-struct SecondAgain <: Main.First.InferenceType
+struct SecondAgain <: Main.First.AnotherInferenceType
   x::Int
 end
 
