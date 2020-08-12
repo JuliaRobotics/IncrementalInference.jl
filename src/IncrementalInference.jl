@@ -80,7 +80,7 @@ export AbstractDFG,
   diagm
 
 # Inference types
-export InferenceType, PackedInferenceType
+export FunctorInferenceType, PackedInferenceType
 export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
 
 export *,
