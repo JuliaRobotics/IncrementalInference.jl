@@ -27,8 +27,8 @@ end
 
 
 export Pairwise, Singleton
-export FunctorSingletonNH, FunctorPairwiseNH
-export FunctorInferenceType, FunctorPairwise, FunctorPairwiseMinimize, FunctorSingleton
+export AbstractPriorNH, AbstractRelativeFactorNH
+export FunctorInferenceType, AbstractRelativeFactor, AbstractRelativeFactorMinimize, AbstractPrior
 
 
 
@@ -37,9 +37,9 @@ abstract type Pairwise <: InferenceType end
 abstract type Singleton <: InferenceType end
 
 # TODO deprecate with standard null hypothesis only
-abstract type FunctorSingletonNH <: FunctorSingleton end
-abstract type FunctorPairwiseNH <: FunctorPairwise end
-# abstract type FunctorPairwiseNHMinimize <: FunctorPairwiseMinimize end # TODO
+abstract type AbstractPriorNH <: AbstractPrior end
+abstract type AbstractRelativeFactorNH <: AbstractRelativeFactor end
+# abstract type AbstractRelativeFactorNHMinimize <: AbstractRelativeFactorMinimize end # TODO
 
 
 # const FGG = Graphs.GenericIncidenceList{Graphs.ExVertex,Graphs.Edge{Graphs.ExVertex},Array{Graphs.ExVertex,1},Array{Array{Graphs.Edge{Graphs.ExVertex},1},1}}
@@ -49,12 +49,12 @@ abstract type FunctorPairwiseNH <: FunctorPairwise end
 """
     $(SIGNATURES)
 
-Do true and null hypothesis computations based on data structures prepared earlier -- specific to `FunctorPairwiseNH`.  This function will be merged into a standard case for `AbstractRelativeFactor/Minimize` in the future.
+Do true and null hypothesis computations based on data structures prepared earlier -- specific to `AbstractRelativeFactorNH`.  This function will be merged into a standard case for `AbstractRelativeFactor/Minimize` in the future.
 """
 function computeAcrossNullHypothesis!(ccwl::CommonConvWrapper{T},
                                       allelements,
                                       nhc,
-                                      ENT  ) where {T <: FunctorPairwiseNH}
+                                      ENT  ) where {T <: AbstractRelativeFactorNH}
   #
   # TODO --  Threads.@threads see area4 branch
   for n in allelements
