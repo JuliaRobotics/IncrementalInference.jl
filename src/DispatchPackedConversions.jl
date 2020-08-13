@@ -83,15 +83,6 @@ veeCategorical(val::Categorical) = val.p
 veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 
-# extend convenience function
-function manikde!(pts::AbstractArray{Float64,2},
-                  bws::Vector{Float64},
-                  softtype::InferenceVariable  )
-  #
-  manikde!(pts, bws, getManifolds(softtype))
-end
-
-
 function convert(::Type{Tuple{BallTreeDensity,Float64}},
                  p::TreeBelief )
   # @show size(p.val), size(p.bw), p.manifolds

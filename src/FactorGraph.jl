@@ -427,8 +427,34 @@ function addVariable!(dfg::AbstractDFG,
 end
 
 
-addVariable!(dfg::AbstractDFG,label::Symbol,stT::Type{<:InferenceVariable};kwargs...) = addVariable!(dfg,label,stT(),kwargs...)
-
+function addVariable!(dfg::AbstractDFG,
+                      label::Symbol,
+                      stT::Type{<:InferenceVariable};
+                      N::Int=100,
+                      solvable::Int=1,
+                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                      nanosecondtime::Union{Nanosecond,Int64}=Nanosecond(0),
+                      dontmargin::Bool=false,
+                      labels::Union{Vector{Symbol},Nothing}=nothing,
+                      tags::Vector{Symbol}=Symbol[],
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
+                      checkduplicates::Bool=true,
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms )
+  #
+  addVariable!(dfg,
+               label,
+               stT();
+               N=N,
+               solvable=solvable,
+               timestamp=timestamp,
+               nanosecondtime=nanosecondtime,
+               dontmargin=dontmargin,
+               labels=labels,
+               tags=tags,
+               smalldata=smalldata,
+               checkduplicates=checkduplicates,
+               initsolvekeys=initsolvekeys  )
+end
 
 
 """

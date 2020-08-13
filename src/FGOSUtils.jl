@@ -11,11 +11,17 @@ export loadDFG
 
 # export setSolvable!
 
-manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
-manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
-#getVariableOrder moved to DFG
+# extend convenience function
+function manikde!(pts::AbstractArray{Float64,2},
+  bws::Vector{Float64},
+  softtype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+#
+manikde!(pts, bws, getManifolds(softtype))
+end
+
 
 """
     $SIGNATURES
