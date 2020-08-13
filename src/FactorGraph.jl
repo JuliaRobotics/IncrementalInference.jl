@@ -304,13 +304,13 @@ function setDefaultNodeData!(v::DFGVariable,
                              gt=Dict(),
                              initialized::Bool=true,
                              dontmargin::Bool=false,
-                             softtype=nothing)::Nothing
+                             varType=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
   if initialized
 
-      pN = AMP.manikde!(randn(dims, N), getManifolds(softtype));
+      pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
 
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
@@ -320,23 +320,23 @@ function setDefaultNodeData!(v::DFGVariable,
     #initval, stdev
     setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], varType, true, 0.0, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], varType, false, 0.0, false, dontmargin))
   end
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
 #   @warn "setDefaultNodeData! -- deprecated use of stdev."
-#   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
+#   p = AMP.manikde!(initval,diag(stdev), varType.manifolds);
 #   pN = resample(p,N)
 # if size(initval,2) < N && size(initval, 1) != dims
   # @info "Node value memory allocated but not initialized"
 # else
-#   pN = AMP.manikde!(initval, softtype.manifolds)
+#   pN = AMP.manikde!(initval, varType.manifolds)
 # end
 # dims = size(initval,1) # rows indicate dimensions
 
