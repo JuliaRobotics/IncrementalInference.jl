@@ -3,6 +3,7 @@
 
 export selectFactorType
 export solveFactorMeasurements
+export approxDeconv, deconvSolveKey
 
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
@@ -39,11 +40,12 @@ DevNotes
 - Test for cases with `nullhypo` and `multihypo`.
 """
 function solveFactorMeasurements(dfg::AbstractDFG,
-                                 fctsym::Symbol  )
+                                 fctsym::Symbol,
+                                 solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
   varsyms = getVariableOrder(fcto)
-  vars = map(x->getPoints(getKDE(dfg,x)), varsyms)
+  vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
   fcttype = getFactorType(fcto)
 
   N = size(vars[1])[2]
@@ -95,15 +97,94 @@ end
 
 
 
+"""
+    $SIGNATURES
 
-function approxDeconv(dfg::AbstractDFG, sym1::Symbol, sym2::Symbol)
+Generalized deconvolution to find the predicted measurement values of the factor `fctsym` in `dfg`.
+
+Notes
+- Opposite operation contained in `approxConv`
+
+Related
+
+solveFactorMeasurements, deconvSolveKey, approxConv
+"""
+function approxDeconv(dfg::AbstractDFG, fctsym::Symbol, solveKey::Symbol=:default)
   # which factor
-  fnames = intersect(ls(dfg, sym1), ls(dfg,sym2))
+  pts = solveFactorMeasurements(dfg, fctsym, solveKey)
+  return pts
+end
 
-  @assert length(fnames) == 1 "approxDeconv cannot yet handle multiple parallel factors between the same variables -- this is a TODO, please open an issue with IncrementalInference"
-  pts = solveFactorMeasurements(dfg, fnames[1])
 
+"""
+    $SIGNATURES
 
+Calculate the relative difference between two variables and across solveKeys.
+
+Example
+
+```julia
+fg = generateCanonicalFG_Kaess()
+solveTree!(fg, storeOld=true)
+# calculate the relative motion induced by the solver from init to solve.
+pts = deconvSolveKey(fg, :x1, :default, :x1, :graphinit)
+```
+
+Related
+
+approxDeconv, mmd
+"""
+function deconvSolveKey(dfg::AbstractDFG, 
+                        refSym::Symbol, 
+                        refKey::Symbol, 
+                        tstSym::Symbol, 
+                        tstKey::Symbol  )
+  #
+  # create a new temporary factor graph for calculations
+  tfg = initfg()
+
+  # add the first "reference" variable
+  refVarType = getVariableType(dfg, refSym)
+  Xref = getBelief(dfg, refSym, refKey)
+  refSym_ = Symbol(refSym, "_ref")
+  addVariable!(tfg, refSym_, refVarType)
+  initManual!(tfg, refSym_, Xref)
+
+  # add the second "test" variable
+  tstVarType = getVariableType(dfg, tstSym)
+  Xtst = getBelief(dfg, tstSym, tstKey)
+  tstSym_ = Symbol(tstSym, "_tst")
+  addVariable!(tfg, tstSym_, tstVarType)
+  initManual!(tfg, tstSym_, Xtst)
+
+  # add the new dummy factor with default manifold for computations
+  fctType = selectFactorType(refVarType, tstVarType)
+  nf = addFactor!(tfg, [refSym_; tstSym_], fctType())
+
+  # TODO connect from dfg all other data that might form part of FactorMetadata in tfg
+  pts = approxDeconv(tfg, nf.label)
+
+  # return result
+  return pts, fctType
+end
+
+const InstanceType{T} = Union{Type{<:T},T}
+
+function mmd(p1::AbstractMatrix{<:Real}, 
+             p2::AbstractMatrix, 
+             manifold::InstanceType{InferenceVariable};
+             bw::AbstractVector{<:Real}=[0.001;] )
+  #
+  manis = convert(AMP.Manifold, manifold)
+  mmd(p1, p2, manis, bw=bw)  
+end
+
+function mmd(p1::BallTreeDensity, 
+             p2::BallTreeDensity, 
+             manifold::InstanceType{InferenceVariable};
+             bw::AbstractVector{<:Real}=[0.001;])
+  #
+  mmd(getPoints(p1), getPoints(p2), manifold, bw=bw)
 end
 
 

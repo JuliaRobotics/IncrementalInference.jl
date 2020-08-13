@@ -2,10 +2,11 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import DistributedFactorGraphs: AbstractPointParametricEst
+import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 
 
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
+export loadDFG
 
 
 # export setSolvable!
@@ -343,7 +344,19 @@ function findVariablesNear(dfg::AbstractDFG,
   return (xy[1][prm], sqrt.(dist[prm]))
 end
 
+"""
+    $SIGNATURES
 
+Convenience wrapper to `DFG.loadDFG!` taking only one argument, the file name, to load a DFG object in standard format.
+"""
+loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
+
+## ============================================================================
+# Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first
+## ============================================================================
+
+# FIXME, much consolidation required here
+convert(::Type{<:AMP.Manifold}, ::Union{ContinuousEuclid, Type{ContinuousEuclid}}) = AMP.Euclid
 
 
 #
