@@ -38,7 +38,7 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 [compat]
 ApproxManifoldProducts = "0.1, 0.2"
 Combinatorics = "1.0"
-DistributedFactorGraphs = "0.9.0"
+DistributedFactorGraphs = "0.10"
 Distributions = "0.20, 0.21, 0.22, 0.23"
 DocStringExtensions = "0.8, 0.9, 0.10, 1"
 FileIO = "1.0.2, 1.1, 1.2"
