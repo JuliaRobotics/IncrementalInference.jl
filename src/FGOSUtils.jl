@@ -2,7 +2,7 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
+import DistributedFactorGraphs: AbstractPointParametricEst
 
 
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
