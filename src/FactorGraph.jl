@@ -304,13 +304,13 @@ function setDefaultNodeData!(v::DFGVariable,
                              gt=Dict(),
                              initialized::Bool=true,
                              dontmargin::Bool=false,
-                             softtype=nothing)::Nothing
+                             varType=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
   if initialized
 
-      pN = AMP.manikde!(randn(dims, N), getManifolds(softtype));
+      pN = AMP.manikde!(randn(dims, N), getManifolds(varType));
 
     sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     gbw = getBW(pN)[:,1]
@@ -320,23 +320,23 @@ function setDefaultNodeData!(v::DFGVariable,
     #initval, stdev
     setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], varType, true, 0.0, false, dontmargin))
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], varType, false, 0.0, false, dontmargin))
   end
   return nothing
 end
 # if size(initval,2) < N && size(initval, 1) == dims
 #   @warn "setDefaultNodeData! -- deprecated use of stdev."
-#   p = AMP.manikde!(initval,diag(stdev), softtype.manifolds);
+#   p = AMP.manikde!(initval,diag(stdev), varType.manifolds);
 #   pN = resample(p,N)
 # if size(initval,2) < N && size(initval, 1) != dims
   # @info "Node value memory allocated but not initialized"
 # else
-#   pN = AMP.manikde!(initval, softtype.manifolds)
+#   pN = AMP.manikde!(initval, varType.manifolds)
 # end
 # dims = size(initval,1) # rows indicate dimensions
 
@@ -381,7 +381,11 @@ end
 """
 $(SIGNATURES)
 
-Add a variable node `lbl::Symbol` to `fg::AbstractDFG`, as `softtype<:InferenceVariable`.
+Add a variable node `label::Symbol` to `dfg::AbstractDFG`, as `varType<:InferenceVariable`.
+
+Notes
+-----
+- keyword `nanosecondtime` is experimental and intended as the whole subsection portion -- i.e. accurateTime = (timestamp MOD second) + Nanosecond
 
 Example
 -------
@@ -392,44 +396,30 @@ addVariable!(fg, :x0, Pose2)
 ```
 """
 function addVariable!(dfg::AbstractDFG,
-                      lbl::Symbol,
-                      softtype::InferenceVariable;
+                      label::Symbol,
+                      varType::InferenceVariable;
                       N::Int=100,
-                      autoinit::Union{Nothing,Bool}=nothing,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
+                      nanosecondtime::Union{Nanosecond,Int64}=Nanosecond(0),
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
-                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms)::DFGVariable
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms )
   #
-
-  if :ut in fieldnames(typeof(softtype))
-    Base.depwarn("Field `ut` (microseconds) for softtype $(softtype) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)
-    if isnothing(nanosecondtime)
-      nanosecondtime = Nanosecond(softtype.ut*1000)
-    else 
-      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(softtype.ut)."
-    end
-  elseif isnothing(nanosecondtime)
-    nanosecondtime = Nanosecond(0)
-  end
-
-  autoinit isa Bool ? @warn("autoinit deprecated in this context") : nothing
+  # deprecate in v0.16
   labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
-  # autoinit != nothing ? @error("addVariable! autoinit=::Bool is obsolete.  See initManual! or addFactor!.") : nothing
-
+  
   union!(tags, [:VARIABLE])
-  v = DFGVariable(lbl, softtype; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
+  v = DFGVariable(label, varType; tags=Set(tags), smallData=smalldata, solvable=solvable, timestamp=timestamp, nstime=Nanosecond(nanosecondtime))
 
   (:default in initsolvekeys) &&
-    setDefaultNodeData!(v, 0, N, getDimension(softtype), initialized=false, softtype=softtype, dontmargin=dontmargin) # dodims
+    setDefaultNodeData!(v, 0, N, getDimension(varType), initialized=false, varType=varType, dontmargin=dontmargin) # dodims
 
   (:parametric in initsolvekeys) &&
-    setDefaultNodeDataParametric!(v, softtype, initialized=false, dontmargin=dontmargin)
+    setDefaultNodeDataParametric!(v, varType, initialized=false, dontmargin=dontmargin)
 
   DFG.addVariable!(dfg, v)
 
@@ -437,37 +427,34 @@ function addVariable!(dfg::AbstractDFG,
 end
 
 
-function addVariable!(dfg::G,
-                      lbl::Symbol,
-                      softtype::Type{<:InferenceVariable};
+function addVariable!(dfg::AbstractDFG,
+                      label::Symbol,
+                      stT::Type{<:InferenceVariable};
                       N::Int=100,
-                      autoinit::Union{Bool, Nothing}=nothing,
-                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       solvable::Int=1,
+                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                      nanosecondtime::Union{Nanosecond,Int64}=Nanosecond(0),
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{Symbol, DFG.SmallDataTypes}())::DFGVariable where
-                      {G <: AbstractDFG} #
+                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
+                      checkduplicates::Bool=true,
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms )
   #
-  sto = softtype()
-  #TODO: Refactor
-  if :ut in fieldnames(typeof(sto))
-    sto.ut != -9999999999 ? nothing : error("please define a microsecond time (;ut::Int64=___) for $(softtype)")
-  end
-  labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
-  return addVariable!(dfg,
-                      lbl,
-                      sto,
-                      N=N,
-                      autoinit=autoinit,
-                      solvable=solvable,
-                      timestamp=timestamp,
-                      dontmargin=dontmargin,
-                      tags=tags,
-                      smalldata=smalldata  )
+  addVariable!(dfg,
+               label,
+               stT();
+               N=N,
+               solvable=solvable,
+               timestamp=timestamp,
+               nanosecondtime=nanosecondtime,
+               dontmargin=dontmargin,
+               labels=labels,
+               tags=tags,
+               smalldata=smalldata,
+               checkduplicates=checkduplicates,
+               initsolvekeys=initsolvekeys  )
 end
-
 
 
 """
@@ -538,7 +525,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   SAMP=LEN.<maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KernelDensityEstimate.sample(getKDE(Xi[i]), maxlen)[1]
+      ARR[i] = KDE.sample(getKDE(Xi[i]), maxlen)[1]
     end
   end
 

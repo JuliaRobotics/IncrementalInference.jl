@@ -8,7 +8,9 @@ export approxDeconv, deconvSolveKey
 
 ## Initial version of selecting the dimension of a factor -- will be consolidated with existing infrastructure later
 
-getManifolds(vartype::Type{LinearConditional}) = (:Euclid,)
+getDomain(::InstanceType{LinearConditional}) = ContinuousScalar
+
+getManifolds(fctType::Type{LinearConditional}) = getManifolds(getDomain(fctType))
 
 
 ##
@@ -168,23 +170,22 @@ function deconvSolveKey(dfg::AbstractDFG,
   return pts, fctType
 end
 
-const InstanceType{T} = Union{Type{<:T},T}
 
 function mmd(p1::AbstractMatrix{<:Real}, 
-             p2::AbstractMatrix, 
-             manifold::InstanceType{InferenceVariable};
+             p2::AbstractMatrix{<:Real}, 
+             varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
              bw::AbstractVector{<:Real}=[0.001;] )
   #
-  manis = convert(AMP.Manifold, manifold)
+  manis = convert(AMP.Manifold, varType)
   mmd(p1, p2, manis, bw=bw)  
 end
 
 function mmd(p1::BallTreeDensity, 
              p2::BallTreeDensity, 
-             manifold::InstanceType{InferenceVariable};
+             nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
              bw::AbstractVector{<:Real}=[0.001;])
   #
-  mmd(getPoints(p1), getPoints(p2), manifold, bw=bw)
+  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
 end
 
 

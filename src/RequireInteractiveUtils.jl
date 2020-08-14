@@ -1,4 +1,6 @@
 
+@info "Including InteractiveUtils related functions in IncrementalInference."
+
 # this requires InteractiveUtils
 
 export getCurrentWorkspaceFactors, getCurrentWorkspaceVariables
