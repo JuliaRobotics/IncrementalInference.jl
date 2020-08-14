@@ -132,6 +132,9 @@ solveTree!(fg, storeOld=true)
 pts = deconvSolveKey(fg, :x1, :default, :x1, :graphinit)
 ```
 
+DevNotes
+- TODO use dfg, rather than building new tfg internally.
+
 Related
 
 approxDeconv, mmd

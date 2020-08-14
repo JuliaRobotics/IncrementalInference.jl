@@ -4,6 +4,7 @@
 ## LEGACY SUPPORT FOR ZMQ IN CAESAR
 ##==============================================================================
 
+export listSolvekeys
 
 export _evalType
 
