@@ -362,7 +362,7 @@ loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
 ## ============================================================================
 
 # FIXME, much consolidation required here
-convert(::Type{<:AMP.Manifold}, ::Union{ContinuousEuclid, Type{ContinuousEuclid}}) = AMP.Euclid
+convert(::Type{<:AMP.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
 
 
 #
