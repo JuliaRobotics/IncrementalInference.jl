@@ -45,19 +45,19 @@ fg.solverParams.spreadNH = 1.0
 # lp landmark prior information
 # lm landmark measurement
 
-addVariable!(fg, :lp1, ContinuousScalar, autoinit=graphinit, N=n_samples)
-addFactor!(fg, [:lp1], Prior(Normal(l1, lm_prior_noise)))
+addVariable!(fg, :lp1, ContinuousScalar, N=n_samples)
+addFactor!(fg, [:lp1], Prior(Normal(l1, lm_prior_noise)), graphinit=graphinit)
 
-addVariable!(fg, :lp2, ContinuousScalar, autoinit=graphinit, N=n_samples)
-addFactor!(fg, [:lp2], Prior(Normal(l2, lm_prior_noise)))
+addVariable!(fg, :lp2, ContinuousScalar, N=n_samples)
+addFactor!(fg, [:lp2], Prior(Normal(l2, lm_prior_noise)), graphinit=graphinit)
 
-addVariable!(fg, :x1, ContinuousScalar, autoinit=graphinit, N=n_samples)
+addVariable!(fg, :x1, ContinuousScalar, N=n_samples)
 
-addVariable!(fg, :lm2, ContinuousScalar, autoinit=graphinit, N=n_samples)
-addFactor!(fg, [:x1; :lm2; :lp2], LinearConditional(Normal(20., meas_noise)), multihypo=[1.0; p_meas; p_map])
+addVariable!(fg, :lm2, ContinuousScalar, N=n_samples)
+addFactor!(fg, [:x1; :lm2; :lp2], LinearConditional(Normal(20., meas_noise)), multihypo=[1.0; p_meas; p_map], graphinit=graphinit)
 
-addVariable!(fg, :lm1, ContinuousScalar, autoinit=graphinit, N=n_samples)
-addFactor!(fg, [:x1; :lm1; :lp1], LinearConditional(Normal(-20., meas_noise)), multihypo=[1.0; p_meas; p_map])
+addVariable!(fg, :lm1, ContinuousScalar, N=n_samples)
+addFactor!(fg, [:x1; :lm1; :lp1], LinearConditional(Normal(-20., meas_noise)), multihypo=[1.0; p_meas; p_map], graphinit=graphinit)
 
 #weak lp1 lm1 relation to nudge one of two symmetric options
 # addFactor!(fg, [:lp1; :lm1], LinearConditional(Normal(0., 100.)))

@@ -12,7 +12,7 @@ Notes
 
 Related
 
-saveDFG, loadDFG
+saveDFG, loadDFG!, loadDFG
 """
 function dbgSaveDFG(dfg::AbstractDFG,
                     filename::AbstractString="fg_temp",

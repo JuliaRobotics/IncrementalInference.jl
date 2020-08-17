@@ -2,19 +2,26 @@
 #  IIF methods should direclty detect extended types from user import
 # of convert in their namespace
 
-import DistributedFactorGraphs: AbstractPointParametricEst
+import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 
 
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
+export loadDFG
 
 
 # export setSolvable!
 
-manikde!(pts::AbstractArray{Float64,2}, vartype::InferenceVariable) = manikde!(pts, getManifolds(vartype))
-manikde!(pts::AbstractArray{Float64,2}, vartype::Type{<:InferenceVariable}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
-#getVariableOrder moved to DFG
+# extend convenience function
+function manikde!(pts::AbstractArray{Float64,2},
+  bws::Vector{Float64},
+  softtype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+#
+manikde!(pts, bws, getManifolds(softtype))
+end
+
 
 """
     $SIGNATURES
@@ -343,7 +350,19 @@ function findVariablesNear(dfg::AbstractDFG,
   return (xy[1][prm], sqrt.(dist[prm]))
 end
 
+"""
+    $SIGNATURES
 
+Convenience wrapper to `DFG.loadDFG!` taking only one argument, the file name, to load a DFG object in standard format.
+"""
+loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
+
+## ============================================================================
+# Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first
+## ============================================================================
+
+# FIXME, much consolidation required here
+convert(::Type{<:AMP.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
 
 
 #

@@ -47,6 +47,7 @@ import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
+import ApproxManifoldProducts: mmd
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifolds
@@ -68,14 +69,15 @@ export KDE, AMP, DFG, FSM, IIF
 # TODO temporary for initial version of on-manifold products
 KDE.setForceEvalDirect!(true)
 
+const InstanceType{T} = Union{Type{<:T},T}
+
 # DFG SpecialDefinitions
 export AbstractDFG,
   InMemDFGType,
-  hasVariable,
   getSolverParams,
   LightDFG,
   getSolvedCount, isSolved, setSolvedCount!,
-  listSupersolves, listSolvekeys,
+  listSupersolves, listSolveKeys,
   deepcopySolvekeys!, deepcopySupersolve!,
   diagm
 
@@ -86,7 +88,7 @@ export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
 export *,
   notifyCSMCondition,
   CSMHistory,
-  getTreeCliqsSolverHistories,
+  # getTreeCliqsSolverHistories,
 
   updateCliqSolvableDims!,
   fetchCliqSolvableDims,
@@ -97,7 +99,6 @@ export *,
   # state machine methods
   StateMachine,
   exitStateMachine,
-  getCliqSolveHistory,
   filterHistAllToArray,
   cliqHistFilterTransitions,
   printCliqSummary,
@@ -149,21 +150,20 @@ export *,
   PackedMixtureLinearConditional,
 
   ls2,
-  lsRear,
+  # lsRear,
   # from DFG
   ls,
   lsf,
+  listVariables,
+  listFactors,
   exists,
   sortDFG,
-  getVariableIds,
+  # getVariableIds,
   getVariableOrder,
   calcVariablePPE,
   getPPE,
-  getPPEs,
+  getPPEDict,
   getVariablePPE,
-  getVariablePPEs,
-  sortVarNested,
-  drawCopyFG,
   isVariable,
   isFactor,
   # from dfg
@@ -182,23 +182,16 @@ export *,
   getTimestamp,
 
   # using either dictionary or cloudgraphs
-  # VariableNodeData,
-  # PackedVariableNodeData,
   FactorMetadata,
-  encodePackedType,
   FunctionNodeData,
   PackedFunctionNodeData, # moved to DFG
-  encodePackedType,
-  decodePackedType,
   normalfromstring,
   categoricalfromstring,
   extractdistribution,
 
-  # FactorGraph,
   SolverParams,
   getSolvable,
   setSolvable!,
-  addNode!,
   addVariable!,
   deleteVariable!,
   addFactor!,
@@ -226,7 +219,6 @@ export *,
   getVariableDim,
   getVariableInferredDim,
   getVariableInferredDimFraction,
-  getVariablePotentialDims,
   getVariableSolvableDim,
   getFactorSolvableDim,
   getFactorInferFraction,
@@ -236,7 +228,6 @@ export *,
   getCliqueData,
   setCliqueData!,
   getManifolds,
-  getVarNode,
   getVal,
   getBW,
   setVal!,
@@ -249,16 +240,12 @@ export *,
 
   # state machine functions
   finishCliqSolveCheck_StateMachine,
-  doCliqInferAttempt_StateMachine,
   determineCliqNeedDownMsg_StateMachine,
-  blockUntilChildrenStatus_StateMachine,
   blockUntilSiblingsStatus_StateMachine,
   doesCliqNeeddownmsg_StateMachine,
   slowCliqIfChildrenNotUpsolved_StateMachine,
-  whileCliqNotSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
-  determineAllChildrenNeedDownMsg_StateMachine,
   testCliqCanRecycled_StateMachine,
   buildCliqSubgraphForDown_StateMachine,
 
@@ -268,7 +255,6 @@ export *,
   isTreeSolved,
   isUpInferenceComplete,
   isCliqInitialized,
-  isCliqReadyInferenceUp,
   isCliqUpSolved,
   areCliqVariablesAllInitialized,
   areCliqChildrenNeedDownMsg,
@@ -279,20 +265,15 @@ export *,
   cycleInitByVarOrder!,
   prepCliqInitMsgsUp,
   prepCliqInitMsgsDown!,
-  updateFullVert!,
   getOutNeighbors,
   BayesTree,
   TreeBelief,
-  NBPMessage,
   LikelihoodMessage,
   FullExploreTreeType,
   ExploreTreeType,
-  FactorGraph,
   initfg,
   buildSubgraph,
-  copyGraph,
   buildCliqSubgraph!,
-  subgraphShortestPath,
   transferUpdateSubGraph!,
   transferUpdateSubGraph!,
   getEliminationOrder,
@@ -308,7 +289,6 @@ export *,
   getCliqDepth,
   getTreeAllFrontalSyms,
   getTreeCliqUpMsgsAll,
-  isReadyCliqInferenceUp,
   childCliqs,
   getChildren,
   parentCliq,
@@ -316,7 +296,6 @@ export *,
   getCliqSiblings,
   getNumCliqs,
   getBelief, getKDE,
-  initializeNode!,
   CliqStateMachineContainer,
   solveTree!,
   solveGraph!,
@@ -324,7 +303,6 @@ export *,
   fifoFreeze!,
 
   # temp const types TODO
-  TempBeliefMsg,
   TempUpMsgPlotting,
 
   #functors need
@@ -333,16 +311,14 @@ export *,
   freshSamples,
 
   #Visualization
-  writeGraphPdf, # deprecated
   drawGraph,
   drawGraphCliq,
   drawCliqSubgraphUpMocking,
   drawTree,
   drawTreeAsyncLoop,
-  printgraphmax,
+  # printgraphmax,
 
   # Bayes (Junction) Tree
-  evalPotential,
   evalFactor2,
   approxConv,
   approxConvBinary,
@@ -372,25 +348,11 @@ export *,
   # new wrapper (experimental)
   CommonConvWrapper,
 
-  # solve inference
-  inferOverTree!,
-  inferOverTreeR!,
-  inferOverTreeIterative!,
-
-  #development interface
-  getTreeCliqSolveOrderUp,
-  getCliqOrderUpSolve,
   getCliqVarInitOrderUp,
   getCliqInitVarOrderDown,
-  getCliqueStatusUp,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
-  # upMsgPassingRecursive,
-  # downMsgPassingRecursive,
-
-  upMsgPassingIterative!,
-  downMsgPassingIterative!,
 
   # introduced for approximate convolution operations
   setThreadModel!,
@@ -401,12 +363,9 @@ export *,
   findRelatedFromPotential,
   shuffleXAltD!,
   numericRoot,
-  numericRootGenericRandomized,
-  numericRootGenericRandomizedFnc,
   numericRootGenericRandomizedFnc!,
 
   # user functions
-  proposalbeliefs,
   predictbelief,
   getCliqMat,
   getCliqAssocMat,
@@ -416,7 +375,6 @@ export *,
   getCliqSeparatorVarIds,
   getCliqAllVarIds,
   getCliqVarIdsAll,
-  getCliqVars,
   getCliqAllVarSyms,
   getCliqVarIdsPriors,
   getCliqVarSingletons,
@@ -436,7 +394,7 @@ export *,
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
-  landmarks,
+  # landmarks,
   setCliqDrawColor,
 
   # Temp placeholder for evaluating string types to real types
@@ -445,9 +403,6 @@ export *,
   rebuildFactorMetadata!,
 
   getCliqVarSolveOrderUp,
-
-  getSym,
-  doCliqInferenceUp!,
   getFactorsAmongVariablesOnly,
   setfreeze!,
 
@@ -468,22 +423,12 @@ export *,
   reshapeVec2Mat,
   accumulateFactorChain,
 
-
   # For 1D example,
   # TODO rename to L2 distance
   Ranged,
-  PackedRanged,
-
-  # development
-  # dev exports
-# TODO deprecate
-  addGraphsVert!,
-  makeAddEdge!
+  PackedRanged
 
 
-
-
-# TODO should be deprecated
 const NothingUnion{T} = Union{Nothing, T}
 
 # regular
@@ -549,10 +494,7 @@ include("Deprecated.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
-    @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" begin
-      @info "Including InteractiveUtils related functions in IncrementalInference."
-      @eval include("RequireInteractiveUtils.jl")
-    end
+    @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
 
     @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" begin
       @info "Defining spyCliqMat(..) for visualizing association matrix of a clique in the Bayes (Junction) tree"
