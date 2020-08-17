@@ -81,7 +81,8 @@ export AbstractDFG,
   deepcopySolvekeys!, deepcopySupersolve!,
   diagm,
   listDataEntries,
-  FolderStore
+  FolderStore,
+  addBlobStore!
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
