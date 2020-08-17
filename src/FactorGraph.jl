@@ -378,6 +378,10 @@ function setVariableRefence!(dfg::AbstractDFG,
 end
 
 
+# get instance from variableType
+_variableType(varType::InferenceVariable) = varType
+_variableType(varType::Type{<:InferenceVariable}) = varType()
+
 """
 $(SIGNATURES)
 
@@ -397,18 +401,32 @@ addVariable!(fg, :x0, Pose2)
 """
 function addVariable!(dfg::AbstractDFG,
                       label::Symbol,
-                      varType::InferenceVariable;
+                      varTypeU::Union{T, Type{T}}; 
                       N::Int=100,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                      nanosecondtime::Union{Nanosecond,Int64}=Nanosecond(0),
+                      nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,
                       dontmargin::Bool=false,
                       labels::Union{Vector{Symbol},Nothing}=nothing,
                       tags::Vector{Symbol}=Symbol[],
                       smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
                       checkduplicates::Bool=true,
-                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms )
+                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms ) where T<:InferenceVariable
   #
+  varType = _variableType(varTypeU)
+  # TODO Remove deprecation in v0.16 
+  if :ut in fieldnames(T)	
+    Base.depwarn("Field `ut` (microseconds) for variable type ($T) has been deprecated please use DFGVariable.nstime, kwarg: nanosecondtime", :addVariable!)	
+    if isnothing(nanosecondtime)
+      varType.ut == -9999999999 && error("please define a time for type $(T), use FGVariable.nstime, kwarg: nanosecondtime")
+      nanosecondtime = Nanosecond(varType.ut*1000)	
+    else 	
+      @warn "Nanosecond time has been specified as $nanosecondtime, ignoring `ut` field value: $(varType.ut)."	
+    end	
+  elseif isnothing(nanosecondtime)	
+    nanosecondtime = Nanosecond(0)	
+  end
+
   # deprecate in v0.16
   labels isa Vector ? (union!(tags, labels); @warn("labels is deprecated, use tags instead")) : nothing
   
@@ -424,36 +442,6 @@ function addVariable!(dfg::AbstractDFG,
   DFG.addVariable!(dfg, v)
 
   return v
-end
-
-
-function addVariable!(dfg::AbstractDFG,
-                      label::Symbol,
-                      stT::Type{<:InferenceVariable};
-                      N::Int=100,
-                      solvable::Int=1,
-                      timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                      nanosecondtime::Union{Nanosecond,Int64}=Nanosecond(0),
-                      dontmargin::Bool=false,
-                      labels::Union{Vector{Symbol},Nothing}=nothing,
-                      tags::Vector{Symbol}=Symbol[],
-                      smalldata=Dict{Symbol, DFG.SmallDataTypes}(),
-                      checkduplicates::Bool=true,
-                      initsolvekeys::Vector{Symbol}=getSolverParams(dfg).algorithms )
-  #
-  addVariable!(dfg,
-               label,
-               stT();
-               N=N,
-               solvable=solvable,
-               timestamp=timestamp,
-               nanosecondtime=nanosecondtime,
-               dontmargin=dontmargin,
-               labels=labels,
-               tags=tags,
-               smalldata=smalldata,
-               checkduplicates=checkduplicates,
-               initsolvekeys=initsolvekeys  )
 end
 
 
