@@ -1137,9 +1137,9 @@ function getEliminationOrder(dfg::G;
   p = Int[]
   if ordering==:chol
     # hack for dense matrix....
-    A = Array(adjMat)
-    p = cholfact(A'A,:U,Val(true))[:p] #,pivot=true
-    @warn "check cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
+    A = adjMat
+    p = cholesky(Matrix(A'A),Val(true)).piv
+    @warn "check that cholesky ordering is not reversed -- basically how much fill in (separator size) are you seeing???  Long skinny chains in tree is bad."
   elseif ordering==:qr
     # hack for dense matrix....
     A = Array(adjMat)
