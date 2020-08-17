@@ -79,7 +79,10 @@ export AbstractDFG,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,
   deepcopySolvekeys!, deepcopySupersolve!,
-  diagm
+  diagm,
+  listDataEntries,
+  FolderStore
+  # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
 export FunctorInferenceType, PackedInferenceType

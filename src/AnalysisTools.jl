@@ -158,3 +158,26 @@ function getTreeCost_02(tree::BayesTree; alpha::Float64=1.0)
 
   return getTreeCost_01(tree, alpha=alpha)/(totalNumChildren/numParents)
 end
+
+
+"""
+    $SIGNATURES
+
+Calculate all the delta MMD discrepancies between consecutive variables of a particular type.
+"""
+function mmdTypeConsecutiveAll(dfg::AbstractDFG,
+                               ::InstanceType{T},
+                               seqSolveKeys::Vector{Symbol}=listSolveKeys(dfg, T)) where T <: Union{InferenceVariable, FunctorInferenceType}
+  #
+  @show T
+  @show seqSolveKeys  
+
+  
+
+end
+
+
+
+
+
+#
