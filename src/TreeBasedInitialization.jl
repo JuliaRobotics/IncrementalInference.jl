@@ -344,7 +344,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     # end
 
   # FIXME THIS IS A PUSH MODEL
-  putCliqueMsgDown!(getCliqueData(prnt), products)
+  putCliqueInitMsgDown!(getCliqueData(prnt), products)
 
   # remove msgs that have no data
   rmlist = Symbol[]

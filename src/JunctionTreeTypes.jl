@@ -357,7 +357,7 @@ function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
   elseif sym == :downInitMsg
     # iifdepwarn("#459 get downInitMsg", :getproperty)
   elseif sym == :initDownChannel
-    iifdepwarn("#459 get initDownChannel", :getproperty)
+    # iifdepwarn("#459 get initDownChannel", :getproperty)
   end
   return getfield(obj, sym)
 end
@@ -368,7 +368,7 @@ function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
   elseif sym == :downInitMsg
     # iifdepwarn("#459 set downInitMsg", :setproperty!)
   elseif sym == :initDownChannel
-    iifdepwarn("#459 set initDownChannel", :setproperty!)
+    # iifdepwarn("#459 set initDownChannel", :setproperty!)
   end
   return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
 end
