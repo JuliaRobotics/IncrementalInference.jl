@@ -23,8 +23,11 @@ end
 
 
 ##==============================================================================
-## Delete at end v0.14.x
+## Delete at end v0.15.x
 ##==============================================================================
+
+
+@deprecate fetchDataElement(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol) fetchDataJSON(dfg, varsym, lbl)
 
 
 function addMsgFactors!(subfg::AbstractDFG,
