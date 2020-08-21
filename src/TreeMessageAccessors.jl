@@ -195,16 +195,17 @@ end
 ## =============================================================
 ## Make sure all users of .downInitMsg use these
 
-function getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
+function getfetchCliqueInitMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
   @debug "getfetchCliqueMsgDown from=$(from)"
   return cdata.downInitMsg
 end
-
+@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
 
 function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
   cdata.downInitMsg = initmsg
   nothing
 end
+
 ## =============================================================
 
 

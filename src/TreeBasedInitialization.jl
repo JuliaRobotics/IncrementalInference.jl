@@ -330,7 +330,9 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
 
   # reference to default dict location
   #JT 459 products = getMsgDwnThisInit(prnt)
-  products = getfetchCliqueMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
+  # converting to pull model #674
+  products = getfetchCliqueMsgDown(cliq.data, from=:getMsgDwnThisInit) |> deepcopy
+  # products = getfetchCliqueMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
@@ -343,8 +345,9 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     #     condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
     # end
 
+  putCliqueInitMsgDown!(getCliqueData(cliq), products)
   # FIXME THIS IS A PUSH MODEL
-  putCliqueInitMsgDown!(getCliqueData(prnt), products)
+  # putCliqueInitMsgDown!(getCliqueData(prnt), products)
 
   # remove msgs that have no data
   rmlist = Symbol[]

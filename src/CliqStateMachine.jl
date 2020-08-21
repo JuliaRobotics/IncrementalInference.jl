@@ -498,7 +498,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
   mustwait = false
-  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0 # length(dwinmsgs) == 0 ||
+  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0 
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
