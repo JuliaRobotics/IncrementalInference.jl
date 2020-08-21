@@ -488,10 +488,10 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
-  TP = TP && c1.dwnMsg == c2.dwnMsg
+  # TP = TP && c1.dwnMsg == c2.dwnMsg
   # TP = TP && c1.upInitMsgs == c2.upInitMsgs
-  TP = TP && c1.downInitMsg == c2.downInitMsg
-  TP = TP && c1.initDownChannel == c2.initDownChannel
+  # TP = TP && c1.downInitMsg == c2.downInitMsg
+  # TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus

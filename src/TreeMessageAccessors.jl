@@ -190,19 +190,22 @@ function putCliqueMsgDown!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; fro
   cdata.dwnMsg = msg
 end
 
+
+
+## =============================================================
+## Make sure all users of .downInitMsg use these
+
 function getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
   @debug "getfetchCliqueMsgDown from=$(from)"
   return cdata.downInitMsg
 end
-# function getMsgDwnThisInit(cdat::BayesTreeNodeData) 
-#   iifdepwarn("#459 replace with getfetchCliqueMsgDown", :getMsgDwnThisInit)
-#   return cdat.downInitMsg
-# end
+
 
 function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
   cdata.downInitMsg = initmsg
   nothing
 end
+## =============================================================
 
 
 
@@ -225,11 +228,8 @@ function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
   iifdepwarn("#459 replace with putCliqueMsgDown!", :putMsgDwnThis!)
   getCliqueData(cliql).dwnMsg = msgs
 end
+putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
 
-function putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
-  iifdepwarn("#459 replace with putCliqueMsgDown!", :putMsgDwnThis!)
-  putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
-end
 
 
 """

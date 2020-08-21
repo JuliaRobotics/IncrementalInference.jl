@@ -46,3 +46,10 @@ function addMsgFactors!(subfg::AbstractDFG,
   return msgfcts
 end
 
+##==============================================================================
+## deprecated as part of 459
+##==============================================================================
+# function getMsgDwnThisInit(cdat::BayesTreeNodeData) 
+#   iifdepwarn("#459 replace with getfetchCliqueMsgDown", :getMsgDwnThisInit)
+#   return cdat.downInitMsg
+# end
