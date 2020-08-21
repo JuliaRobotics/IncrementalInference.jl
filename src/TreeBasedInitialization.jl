@@ -277,7 +277,7 @@ Initialization downward message passing is different from regular inference sinc
 it is possible that none of the child cliq variables have been initialized.
 
 Notes
-- init upward msgs are individually stored in child cliques ().
+- init upward msgs are individually stored in child cliques (pull model good).
 - fresh product of overlapping beliefs are calculated on each function call.
 - Assumed that `prnt` of siblings
 
@@ -288,8 +288,8 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
                                tree::AbstractBayesTree,
                                prnt::TreeClique,
                                cliq::TreeClique;
-                               logger=ConsoleLogger(),
-                               dbgnew::Bool=true  )
+                               logger=ConsoleLogger() )
+                              #  ,dbgnew::Bool=true  )
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
@@ -329,18 +329,22 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   flush(logger.stream)
 
   # reference to default dict location
-  products = getMsgDwnThisInit(prnt)
+  #JT 459 products = getMsgDwnThisInit(prnt)
+  products = getfetchCliqueMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
 
     # products only method
     # @assert dbgnew "must use dbgnew=true for tree down init msg"
-    if dbgnew
+    # if dbgnew
         condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    else
-        condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
-    end
+    # else
+    #     condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
+    # end
+
+  # FIXME THIS IS A PUSH MODEL
+  putCliqueMsgDown!(getCliqueData(prnt), products)
 
   # remove msgs that have no data
   rmlist = Symbol[]

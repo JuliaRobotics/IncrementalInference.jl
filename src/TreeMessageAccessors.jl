@@ -182,6 +182,21 @@ function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
   # cdat.upMsg = msg
 end
 
+
+function putCliqueMsgDown!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing)
+  if from == :putMsgDwnThis! 
+    cdata.dwnMsg = msg
+  end
+
+end
+
+function getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
+  if from == :getMsgDwnThisInit 
+    return cdata.downInitMsg
+  end
+
+end
+
 """
     $(SIGNATURES)
 
@@ -198,10 +213,12 @@ getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(b
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """
 function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+  iifdepwarn("#459 replace with putCliqueMsgDown!", :putMsgDwnThis!)
   getCliqueData(cliql).dwnMsg = msgs
 end
 
 function putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage)
+  iifdepwarn("#459 replace with putCliqueMsgDown!", :putMsgDwnThis!)
   putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
 end
 
@@ -216,7 +233,11 @@ fetchMsgDwnThis(csmc::CliqStateMachineContainer) = fetchMsgDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = fetchMsgDwnThis(getClique(btl, sym))
 
 
-getMsgDwnThisInit(cdat::BayesTreeNodeData) = cdat.downInitMsg
+function getMsgDwnThisInit(cdat::BayesTreeNodeData) 
+  iifdepwarn("#459 replace with getfetchCliqueMsgDown", :getMsgDwnThisInit)
+  return cdat.downInitMsg
+end
+
 getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
 
 getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq))

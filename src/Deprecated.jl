@@ -31,7 +31,7 @@ function addMsgFactors!(subfg::AbstractDFG,
                         msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
   # msgs::
   # add messages as priors to this sub factor graph
-  @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
+  # @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
   for (msym, dms) in msgs
