@@ -223,6 +223,7 @@ function addMsgFactors!(subfg::AbstractDFG,
   else
     svars = DFG.listVariables(subfg)
     tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
+    dir == DownwardPass ? push!(tags__, :DOWNWARD_COMMON) : nothing
     for (msym, belief_) in msgs.belief
       if msym in svars
         msgPrior = generateMsgPrior(belief_, msgs.msgType)

@@ -524,6 +524,13 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, must wait on change.")
+    # remove all message factors
+    fctstorm = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
+    infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+    rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
+    # remove msg factors previously added
+    deleteMsgFactors!(csmc.cliqSubFg, rmfcts ) # msgfcts)
+
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
