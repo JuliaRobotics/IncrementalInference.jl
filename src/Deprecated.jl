@@ -63,6 +63,9 @@ end
 #   return cdat.downInitMsg
 # end
 
+@deprecate fetchDataElement(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol) fetchDataJSON(dfg, varsym, lbl)
+
+
 function addMsgFactors!(subfg::AbstractDFG,
                         msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
   # msgs::
