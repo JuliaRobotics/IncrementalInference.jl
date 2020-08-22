@@ -11,7 +11,6 @@ function getfetchCliqueInitMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothi
   @debug "getfetchCliqueInitMsgDown from=$(from)"
   return cdata.downInitMsg
 end
-@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
 
 function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
   cdata.downInitMsg = initmsg

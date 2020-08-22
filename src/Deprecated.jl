@@ -26,6 +26,9 @@ end
 ## Delete at end v0.15.x
 ##==============================================================================
 
+@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
+
+
 # """
 #     $SIGNATURES
 
