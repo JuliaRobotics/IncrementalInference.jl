@@ -23,9 +23,45 @@ end
 
 
 ##==============================================================================
-## Delete at end v0.14.x
+## Delete at end v0.15.x
 ##==============================================================================
 
+# """
+#     $SIGNATURES
+
+# Get the latest down message from the parent node (without calculating anything).
+
+# Notes
+# - Different from down initialization messages that do calculate new values -- see `prepCliqInitMsgsDown!`.
+# - Basically converts function `getDwnMsgs` from `Dict{Symbol,BallTreeDensity}` to `Dict{Symbol,Vector{BallTreeDensity}}`.
+
+# Related
+
+# getMsgInitDwnParent
+# """
+# function getMsgDwnParent(treel::AbstractBayesTree, cliq::TreeClique)
+#   downmsgs = IntermediateMultiSiblingMessages()
+#   prnts = getParent(treel, cliq)
+#   if 0 < length(prnts)
+#     prnt = prnts[1]
+#     prntmsgs = getDwnMsgs(prnt)
+#     for (key, bel) in prntmsgs
+#       if !haskey(downmsgs, key)
+#         downmsgs[key] = IntermediateSiblingMessages()
+#       end
+#       # TODO insert true inferred dim
+#       push!(downmsgs[key], bel)
+#     end
+#   end
+
+#   return downmsgs
+# end
+
+
+# function getMsgDwnThisInit(cdat::BayesTreeNodeData) 
+#   iifdepwarn("#459 replace with getfetchCliqueMsgDown", :getMsgDwnThisInit)
+#   return cdat.downInitMsg
+# end
 
 function addMsgFactors!(subfg::AbstractDFG,
                         msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
@@ -45,11 +81,3 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return msgfcts
 end
-
-##==============================================================================
-## deprecated as part of 459
-##==============================================================================
-# function getMsgDwnThisInit(cdat::BayesTreeNodeData) 
-#   iifdepwarn("#459 replace with getfetchCliqueMsgDown", :getMsgDwnThisInit)
-#   return cdat.downInitMsg
-# end

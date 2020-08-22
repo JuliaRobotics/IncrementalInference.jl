@@ -296,33 +296,11 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
 
-  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
-  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, skip=[cliq.index;])     # FIXME, post #459 calls?
-
-  with_logger(logger) do
-    @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
-  end
-
+  
   # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
-  msgspervar = IntermediateMultiSiblingMessages()
-
-  for (msgcliqid, msgs) in currmsgs
-    with_logger(logger) do
-      @info "prepCliqInitMsgsDown! -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
-    end
-    for (msgsym, msg) in msgs.belief
-      if !haskey(msgspervar, msgsym)
-        # there will be an entire list...
-        msgspervar[msgsym] = IntermediateSiblingMessages()
-      end
-      with_logger(logger) do
-        @info "prepCliqInitMsgsDown! -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
-      end
-      push!(msgspervar[msgsym], msg)
-    end
-  end
+  msgspervar = getMsgInitDwnParent(tree, cliq, logger=logger)
 
   with_logger(logger) do
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
@@ -332,7 +310,7 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
 
   # reference to default dict location
   #JT 459 products = getMsgDwnThisInit(prnt)
-  products = getfetchCliqueMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
+  products = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
