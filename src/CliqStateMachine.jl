@@ -489,7 +489,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   dwnkeys = collect(keys(dwinmsgs.belief))
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
 
-  ## DEVIdea
+  # add downward belief prop msgs
   msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
   # determine if more info is needed for partial
   sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
@@ -519,8 +519,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
   infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord =   $solord")
 
-  # remove the downward messages
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+  # # remove the downward messages
+  # deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, must wait on change.")
@@ -528,30 +528,31 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     return waitChangeOnParentCondition_StateMachine
   end
 
-  return attemptDownSolve_StateMachine
-end
+#   return attemptDownSolve_StateMachine
+# end
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-Do down solve calculations, loosely translates to solving Chapman-Kolmogorov
-transit integral in downward direction.
+# Do down solve calculations, loosely translates to solving Chapman-Kolmogorov
+# transit integral in downward direction.
 
-Notes
-- State machine function nr. 8e
-- Follows routines in 8c.
-  - Pretty major repeat of functionality, FIXME
-- TODO: Make multi-core
-"""
-function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+# Notes
+# - State machine function nr. 8e
+# - Follows routines in 8c.
+#   - Pretty major repeat of functionality, FIXME
+# - TODO: Make multi-core
+# """
+# function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  
+#   opt = getSolverParams(csmc.dfg)
+#   # get downward message from parent
+#   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
+#   prnt = getParent(csmc.tree, csmc.cliq)[1]
+#   dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
+
   setCliqDrawColor(csmc.cliq, "green")
-
-  opt = getSolverParams(csmc.dfg)
-  # get downward message from parent
-  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
-  prnt = getParent(csmc.tree, csmc.cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
 
   ## TODO deal with partial inits only, either delay or continue at end...
   # find intersect between downinitmsgs and local clique variables
@@ -569,7 +570,7 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # add messages as priors to this sub factor graph
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
+  # msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
 
