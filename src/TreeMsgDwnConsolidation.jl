@@ -82,7 +82,7 @@ end
 Calculate a new down message from the parent.
 """
 function getMsgInitDwnParent(treel::AbstractBayesTree, cliq::TreeClique; logger=SimpleLogger(stdout))
-  # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
+  # FIXME use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
 
@@ -98,17 +98,17 @@ function getMsgInitDwnParent(treel::AbstractBayesTree, cliq::TreeClique; logger=
   end
 
   for (msgcliqid, msgs) in prntmsgs
-    with_logger(logger) do
-      @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
-    end
+    # with_logger(logger) do
+    #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
+    # end
     for (msgsym, msg) in msgs.belief
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
         msgspervar[msgsym] = IntermediateSiblingMessages()
       end
-      with_logger(logger) do
-        @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
-      end
+      # with_logger(logger) do
+      #   @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
+      # end
       push!(msgspervar[msgsym], msg)
     end
   end

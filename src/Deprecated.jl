@@ -26,6 +26,39 @@ end
 ## Delete at end v0.15.x
 ##==============================================================================
 
+
+# Helper function for prepCliqInitMsgsDown!
+# populate products with products of upward messages
+function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
+                                      products::LikelihoodMessage,
+                                      msgspervar::IntermediateMultiSiblingMessages  )
+  #
+  error("condenseDownMsgsProductOnly!(::AbstractDFG,::LikelihoodMessage, ::IntermediateMultiSiblingMessages) is obsolete")
+  # multiply multiple messages together
+  for (msgsym, msgsBo) in msgspervar
+    # check if this particular down message requires msgsym
+    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
+      if length(msgspervar[msgsym]) > 1
+        msgs = getindex.(msgsBo, 1)
+        haspars = 0.0
+        for mb in msgsBo, val in mb[2]
+          haspars += val
+        end
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
+      else
+        # transfer if only have a single belief
+        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
+      end
+    else
+      # not required, therefore remove from message to avoid confusion
+      if haskey(products, msgsym)
+        delete!(products, msgsym)
+      end
+    end
+  end
+  nothing
+end
+
 @deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
 
 

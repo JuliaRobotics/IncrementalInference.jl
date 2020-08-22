@@ -162,47 +162,15 @@ function initSolveSubFg!(subfg::AbstractDFG,
 end
 
 
-# Helper function for prepCliqInitMsgsDown!
-# populate products with products of upward messages
-function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
-                                      products::LikelihoodMessage,
-                                      msgspervar::IntermediateMultiSiblingMessages  )
-  #
-  # multiply multiple messages together
-  for (msgsym, msgsBo) in msgspervar
-    # check if this particular down message requires msgsym
-    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
-      if length(msgspervar[msgsym]) > 1
-        msgs = getindex.(msgsBo, 1)
-        haspars = 0.0
-        for mb in msgsBo, val in mb[2]
-            haspars += val
-        end
-        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
-      else
-        # transfer if only have a single belief
-        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
-      end
-    else
-      # not required, therefore remove from message to avoid confusion
-      if haskey(products, msgsym)
-        delete!(products, msgsym)
-      end
-    end
-  end
-  nothing
-end
-
-
 
 # Helper function for prepCliqInitMsgsDown!
 # future, be used in a cached system with parent in one location only for all siblings
-function condenseDownMsgsProductPrntFactors!(fgl::G,
+function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
                                              products::LikelihoodMessage,
                                              msgspervar::IntermediateMultiSiblingMessages,
                                              prnt::TreeClique,
                                              cliq::TreeClique,
-                                             logger=ConsoleLogger()  ) where G <: AbstractDFG
+                                             logger=ConsoleLogger() )
   #
 
   # determine the variables of interest
@@ -238,7 +206,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
   # perform initialization/inference
-  # ....uhhh TODO
+  # FIXME, better consolidate with CSM ....uhhh TODO
   initSolveSubFg!(lsfg, logger)
 
       # QUICK DBG CODE
@@ -261,7 +229,6 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
     vari = getVariable(lsfg, id)
     products.belief[id] = TreeBelief(vari)
-    # products.belief[id] = (getKDE(vari), getVariableInferredDim(vari))
   end
 
   # if recycling lsfg
@@ -289,32 +256,28 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
                                prnt::TreeClique,
                                cliq::TreeClique;
                                logger=ConsoleLogger() )
-                              #  ,dbgnew::Bool=true  )
   #
   tt = split(string(now()), 'T')[end]
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
-
   
-  # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
+  # FIXME use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
   msgspervar = getMsgInitDwnParent(tree, cliq, logger=logger)
-
-  with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
-  end
-
-  flush(logger.stream)
-
   # reference to default dict location
   #JT 459 products = getMsgDwnThisInit(prnt)
   products = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
-
+  
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
   condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger)
+  
+  # with_logger(logger) do
+  #   @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
+  # end
+  # flush(logger.stream)
 
   # remove msgs that have no data
   rmlist = Symbol[]
