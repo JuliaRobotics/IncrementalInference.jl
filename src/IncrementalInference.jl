@@ -463,6 +463,7 @@ include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
+include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
 # solving graphs

@@ -58,8 +58,8 @@ function resetCliqSolve!(dfg::AbstractDFG,
   putCliqueMsgUp!(cda, LikelihoodMessage() )
 
   cda.dwnMsg = LikelihoodMessage()
-  # cda.upInitMsgs = LikelihoodMessage()
-  cda.downInitMsg = LikelihoodMessage()
+  putCliqueInitMsgDown!(cda, LikelihoodMessage() )
+
   setCliqueStatus!(cliq, :null)
   setCliqDrawColor(cliq, "")
   return nothing
@@ -181,9 +181,6 @@ function addLikelihoodPriorCommon!(subfg::AbstractDFG,
 
   # get prior for top candidate
   msgPrior = generateMsgPrior(msgs.belief[topCandidate], msgs.msgType)
-  # belief_ = msgs.belief[topCandidate]
-  # kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
-  # msgPrior = MsgPrior(kdePr, belief_.inferdim)
 
   # get ready
   tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
@@ -220,8 +217,8 @@ function addMsgFactors!(subfg::AbstractDFG,
   if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass && msgs.msgType isa NonparametricMessage
     if 0 < msgs.belief |> length
       # currently only works for nonparametric
-      addLikelihoodsDifferential!(subfg, msgs)  # :UPWARD_DIFFERENTIAL
-      prFcts = addLikelihoodPriorCommon!(subfg, msgs)           # :UPWARD_COMMON
+      addLikelihoodsDifferential!(subfg, msgs)          # :UPWARD_DIFFERENTIAL
+      prFcts = addLikelihoodPriorCommon!(subfg, msgs)   # :UPWARD_COMMON
     end
   else
     svars = DFG.listVariables(subfg)

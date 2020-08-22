@@ -160,7 +160,10 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     # this is the root clique, so assume already downsolved -- only special case
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
-    putMsgDwnThis!(csmc.cliq, dwnmsgs)    # setDwnMsg!(csmc.cliq, dwnmsgs) #
+
+    # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)    # setDwnMsg!(csmc.cliq, dwnmsgs) #
+    putCliqueMsgDown!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!)
+
     setCliqueStatus!(csmc.cliq, :downsolved)
 	csmc.dodownsolve = false
 
@@ -496,7 +499,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
   mustwait = false
-  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0 # length(dwinmsgs) == 0 ||
+  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
