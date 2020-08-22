@@ -295,8 +295,10 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
   end
-  # get the current messages ~~stored in~~ [going to] the parent
-  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, [cliq.index;])     # FIXME, post #459 calls?
+
+  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
+  currmsgs = getMsgsUpInitChildren(tree, prnt, TreeBelief, skip=[cliq.index;])     # FIXME, post #459 calls?
+
   with_logger(logger) do
     @info "prnt $(prnt.index), prepCliqInitMsgsDown! -- msg ids::Int=$(collect(keys(currmsgs)))"
   end
@@ -329,18 +331,12 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   flush(logger.stream)
 
   # reference to default dict location
-  products = getMsgDwnThisInit(prnt)
+  #JT 459 products = getMsgDwnThisInit(prnt)
+  products = getfetchCliqueMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
 
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
-
-    # products only method
-    # @assert dbgnew "must use dbgnew=true for tree down init msg"
-    if dbgnew
-        condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger) # WIP -- not ready yet
-    else
-        condenseDownMsgsProductOnly!(fgl, products, msgspervar) # BASELINE deprecated
-    end
+  condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger)
 
   # remove msgs that have no data
   rmlist = Symbol[]
@@ -360,6 +356,11 @@ function prepCliqInitMsgsDown!(fgl::AbstractDFG,
   with_logger(logger) do
     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products.belief)))"
   end
+
+  # now put the newly computed message in the appropriate container
+  # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
+  putCliqueInitMsgDown!(getCliqueData(prnt), products)
+
   return products
 end
 

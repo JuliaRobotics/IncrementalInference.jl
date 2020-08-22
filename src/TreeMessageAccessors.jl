@@ -182,6 +182,33 @@ function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
   # cdat.upMsg = msg
 end
 
+
+## All instances of `.downInitMsg` should use thse
+
+function putCliqueMsgDown!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing)
+  @debug "putCliqueMsgDown! from=$(from)"
+  cdata.dwnMsg = msg
+end
+
+
+
+## =============================================================
+## Make sure all users of .downInitMsg use these
+
+function getfetchCliqueInitMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
+  @debug "getfetchCliqueMsgDown from=$(from)"
+  return cdata.downInitMsg
+end
+@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
+
+function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
+  cdata.downInitMsg = initmsg
+  nothing
+end
+
+## =============================================================
+
+
 """
     $(SIGNATURES)
 
@@ -334,16 +361,20 @@ function getMsgsUpChildren(csmc::CliqStateMachineContainer,
 end
 
 # FIXME TEMPORARY CONSOLIDATION FUNCTIONS
+# this method adds children and own up msg info to the returning Dict.
+# own information is added to capture information from cousins during down init.
 function getMsgsUpInitChildren(treel::AbstractBayesTree,
                                cliq::TreeClique,
-                               ::Type{TreeBelief},
+                               ::Type{TreeBelief};
                                skip::Vector{Int}=Int[])
   #
   chld = getChildren(treel, cliq)
   retmsgs = Dict{Int, LikelihoodMessage}()
   # add possible information that may have come via grandparents from elsewhere in the tree
-  thismsg = getMsgUpThis(cliq)
-  retmsgs[cliq.index] = thismsg
+  if !(cliq.index in skip)
+    thismsg = getMsgUpThis(cliq)
+    retmsgs[cliq.index] = thismsg
+  end
 
   # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
   for ch in chld
@@ -356,11 +387,11 @@ function getMsgsUpInitChildren(treel::AbstractBayesTree,
 end
 
 function getMsgsUpInitChildren(csmc::CliqStateMachineContainer,
-                               ::Type{TreeBelief}=TreeBelief,
+                               ::Type{TreeBelief}=TreeBelief;
                                skip::Vector{Int}=Int[] )
   #
   # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip)
+  getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip=skip)
 end
 
 
