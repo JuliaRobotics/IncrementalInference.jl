@@ -270,9 +270,9 @@ Notes
 - State machine function nr. 8f
 - Includes initialization routines.
 - Adds LIKELIHOODMESSAGE factors but does not remove.
-- TODO: Make multi-core
 
 DevNotes
+- TODO: Make multi-core
 - NEEDS DFG v0.8.1, see IIF #760
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
@@ -281,7 +281,7 @@ function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   # check if init is required and possible
   infocsm(csmc, "8f, mustInitUpCliq_StateMachine -- going for doCliqAutoInitUpPart1!.")
   # get incoming clique up messages
-  upmsgs = getMsgsUpInitChildren(csmc)                                        # FIXME, post #459 calls?
+  upmsgs = getMsgsUpInitChildren(csmc, skip=[csmc.cliq.index;])                                        # FIXME, post #459 calls?
   # remove all lingering upmessage likelihoods
   oldTags = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
   0 < length(oldTags) ? @warn("stale LIKELIHOODMESSAGE tags present in mustInitUpCliq_StateMachine") : nothing
@@ -467,6 +467,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8a, needs down message -- attempt down init")
   setCliqDrawColor(csmc.cliq, "gold")
 
+  # TODO consider exit early for root clique rather than avoiding this function
+
   # initialize clique in downward direction
   # not if parent also needs downward init message
   prnt = getParent(csmc.tree, csmc.cliq)[1]
@@ -476,8 +478,11 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
   infocsm(csmc, "8a, after up lock")
 
-  dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew) # csmc.cliqSubFg
+  # get down message from the parent
+  # dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
+  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
+
   dwnkeys = collect(keys(dwinmsgs.belief))
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
 
@@ -487,9 +492,6 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
   updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
   infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims")
-  # remove the downward messages too
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
-
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
@@ -512,10 +514,13 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., $(prnt.index), $mustwait, $noOneElse, solord =   $solord")
+  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord =   $solord")
 
-  if mustwait && csmc.cliq.index!=solord[1] # && !noOneElse
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine., must wait, so wait on change.")
+  # remove the downward messages
+  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+
+  if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
+    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, must wait on change.")
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
   end
@@ -540,9 +545,10 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "green")
 
   opt = getSolverParams(csmc.dfg)
-  dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
+  # get downward message from parent
+  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
   prnt = getParent(csmc.tree, csmc.cliq)[1]
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger, dbgnew=dbgnew)
+  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
 
   ## TODO deal with partial inits only, either delay or continue at end...
   # find intersect between downinitmsgs and local clique variables
@@ -609,6 +615,8 @@ end
 
 """
     $SIGNATURES
+
+New function from refactoring.
 
 Notes
 - State machine function nr. 7b
