@@ -202,6 +202,9 @@ Notes
 - assume lower limit on number of particles is 5.
 - messages from children stored in vector or dict.
 
+DevNotes
+- TODO Split dispatch on `dir`, rather than internal `if` statement.
+
 Related
 
 `deleteMsgFactors!`
