@@ -558,10 +558,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine.,do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
-  with_logger(csmc.logger) do
-    @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 1, dwinmsgs=$(collect(keys(dwinmsgs.belief)))"
-  end
+  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
@@ -574,14 +571,18 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
 
+  # remove all message factors
+  fctstorm = ls(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
+  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+  rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
   # remove msg factors previously added
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+  deleteMsgFactors!(csmc.cliqSubFg, rmfcts ) # msgfcts)
 
   # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
   # # TODO: is status of notify required here?
   setCliqueStatus!(csmc.cliq, cliqst)
 
-  # got to 8d
+  # go to 8d
   return downInitRequirement_StateMachine!
 end
 
