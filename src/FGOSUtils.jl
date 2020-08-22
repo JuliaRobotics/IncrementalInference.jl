@@ -7,6 +7,7 @@ import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
+export fetchDataJSON
 
 
 # export setSolvable!
@@ -363,6 +364,22 @@ loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
 
 # FIXME, much consolidation required here
 convert(::Type{<:AMP.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
+
+
+
+"""
+    $SIGNATURES
+Fetch and unpack JSON dictionary stored as a data blob.
+"""
+function fetchDataJSON(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol)
+  gde,rawData = getData(dfg, varsym, lbl)
+  if gde.mimeType == "application/json/octet-stream"
+    JSON2.read(IOBuffer(rawData))
+  else
+    error("Unknown JSON Blob format $(gde.mimeType)")
+  end
+end
+
 
 
 #
