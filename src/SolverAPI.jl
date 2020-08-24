@@ -69,7 +69,7 @@ function solveTree!(dfgl::G,
   if storeOld || opt.dbg
     ss = listSupersolves(dfgl) .|> string
     ss_ = ss[occursin.(r"default_",ss)] .|> x->x[9:end]
-    filter!(x->occursin(r"^\d$",x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
+    filter!(x->occursin(r"^\d+$",x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
     allk = parse.(Int,ss_)
     nextk = length(allk) == 0 ? 0 : maximum(allk)+1
     newKey = Symbol(:default_, nextk)
