@@ -275,6 +275,18 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
 end
 
 
+# JT Using this to fix parametric tree again 
+# include additional Tx buffers for later use
+# fech vs take! #855
+# paremetric needs take! to work
+
+mutable struct MessageStore
+  upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
+  downRx::Union{Nothing, LikelihoodMessage} # down receive message buffer (one parent)
+  upTx::Union{Nothing, LikelihoodMessage} # RESERVED up outgoing message buffer (one parent)
+  downTx::Union{Nothing, LikelihoodMessage} # RESERVED down outgoing message buffer (multiple children but one message)
+end
+MessageStore() = MessageStore(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
 
 """
 $(TYPEDEF)
@@ -327,7 +339,13 @@ mutable struct BayesTreeNodeData
 
   # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
   dwnMsgChannel::Channel{LikelihoodMessage}
+
+  # JT Local messages saved for cache and debuging 
+  messages::MessageStore
 end
+
+messages(btnd::BayesTreeNodeData) = btnd.messages
+messages(clique::TreeClique) = getCliqueData(clique).messages
 
 
 function iifdepwarn(msg, funcsym; maxlog=nothing)
@@ -403,7 +421,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             lockDwnStatus=Channel{Int}(1),
                             solvableDims=Channel{Dict{Symbol,Float64}}(1),
                             upMsgChannel=Channel{LikelihoodMessage}(1),
-                            dwnMsgChannel=Channel{LikelihoodMessage}(1)
+                            dwnMsgChannel=Channel{LikelihoodMessage}(1),
+                            messages = MessageStore()
                           )
    btnd = BayesTreeNodeData(frontalIDs,
                         separatorIDs,
@@ -435,7 +454,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         lockDwnStatus,
                         solvableDims,
                         upMsgChannel,
-                        dwnMsgChannel  )
+                        dwnMsgChannel,
+                        messages  )
   #
   put!(btnd.upMsgChannel, LikelihoodMessage())
   return btnd

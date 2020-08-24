@@ -92,25 +92,31 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   childrenOk = true
-  beliefMessages = Dict{Int,LikelihoodMessage}()
+  # JT empty upRx buffer to save messages, TODO It may be ok not to empty 
+  beliefMessages = empty!(messages(csmc.cliq).upRx)
 
   # fetch messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
-      @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+      thisEdge = isa(e,Graphs.Edge) ? e.index : e
+      @info "$(csmc.cliq.index): take! on edge $thisEdge"
       # Blocks until data is available. -- pull model #674
       beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
-      beliefMessages[e.target.index] = beliefMsg
+      beliefMessages[thisEdge] = beliefMsg
       @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
     end
   end
 
   # FIXME lets consolidate messages to just one Channel location on edges/clique?
+  # JT see #855
   for (idx,beliefMsg) in beliefMessages
     #save up message (and add priors to cliqSubFg)
     #choose csmc for dbg messages, it's a vector, one per clique
     if beliefMsg.status == :UPSOLVED
-      prepPutCliqueStatusMsgUp!( csmc, beliefMsg.status, upmsg=beliefMsg )
+      # nothing to do here, copied directly into buffer
+      # TODO Consider adding message factors here 
+
+      # prepPutCliqueStatusMsgUp!( csmc, beliefMsg.status, upmsg=beliefMsg )
       # putMsgUpThis!(csmc.cliq, beliefMsg) # NOTE replaced #459
     else
 
@@ -172,11 +178,10 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   msgfcts = DFGFactor[]
   # LITTLE WEIRD get previously set up msgs (stored in this clique)
     # FIXME, fetch message buffered in channels
-    # for (idx,upmsgs) in getUpMsgs(csmc.cliq)
-      # NOTE, Old -- csmc.msgsUp
-  for upmsg in getMsgsUpChildren(csmc) # pull model, fetch messages from children
-    @show upmsg
-    append!( msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
+  # see #855
+  for (idx,upmsg) in messages(csmc.cliq).upRx #get cached messages taken from children saved in this clique
+    #TODO remove temp msgfcts container
+    append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
   end
   @info "length mgsfcts=$(length(msgfcts))"
   infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
@@ -281,15 +286,18 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
     # Blocks until data is available.
     beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messages[e.index].downMsg)
-    @info "$(csmc.cliq.index): Belief message recieved with status $(beliefMsg.status)"
+    @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
 
+    # save DOWNSOLVED incoming message for use and debugging
+    messages(csmc.cliq).downRx = beliefMsg
 
     #save down messages in msgsDown
     if beliefMsg.status == :DOWNSOLVED
-      putMsgDwnThis!(csmc, beliefMsg)
+      # nothing to do here
+
+      # putMsgDwnThis!(csmc, beliefMsg)
       # csmc.msgsDown = beliefMsg
       # push!(csmc.msgsDown, beliefMsg)
-
     else
       setCliqDrawColor(csmc.cliq, "red")
       # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
@@ -320,14 +328,12 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-  #TODO maybe change to symbols
-  # for downmsgs in csmc.msgsDown
-  downmsgs = fetchMsgDwnThis(csmc) # csmc.msgsDown
-    # TODO
-    # updateMsgSeparators!(csmc.cliqSubFg, downmsgs)
-    svars = getCliqSeparatorVarIds(csmc.cliq)
-    # svars = DFG.listVariables(csmc.cliqSubFg)
-    for (msym, belief) in downmsgs.belief
+  # TODO create function: 
+  # updateMsgSeparators!(csmc.cliqSubFg, downmsg)
+  downmsg = messages(csmc.cliq).downRx  #see #855
+  svars = getCliqSeparatorVarIds(csmc.cliq)
+  if !isnothing(downmsg)
+    for (msym, belief) in downmsg.belief
       if msym in svars
         #TODO maybe combine variable and factor in new prior?
         vnd = getSolverData(getVariable(csmc.cliqSubFg, msym), :parametric)
@@ -336,7 +342,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         vnd.bw .= belief.bw
       end
     end
-  # end
+  end
 
   # store the cliqSubFg for later debugging
   # NOTE ITS not changed for now but keep here for possible future use
@@ -346,7 +352,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #   drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
   # end
 
-  #TODO DownSolve cliqSubFg
+  # DownSolve cliqSubFg
   #only down solve if its not a root
   if length(getParent(csmc.tree, csmc.cliq)) != 0
     frontals = getCliqFrontalVarIds(csmc.cliq)
