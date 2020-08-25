@@ -450,7 +450,7 @@ end
 
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
-function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
+function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
   @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
@@ -472,7 +472,7 @@ function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Flo
       val[:,(cols[i]+1):cols[i+1]] = vals[i]
   end
   val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
-  return val
+  return val::Array{Float64, 2}
 end
 
 
@@ -491,7 +491,8 @@ Note for initialization, solveFor = Nothing.
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
                              Xi::Vector{<:DFGVariable},
                              solvefor::Union{Nothing, Symbol},
-                             N::Int=0  )
+                             N::Int=0;
+                             solveKey::Symbol=:default  )
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -499,7 +500,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   sfidx = 0
 
   for xi in Xi
-    push!(ARR, getVal(xi))
+    push!(ARR, getVal(xi, solveKey=solveKey))
     len = size(ARR[end], 2)
     push!(LEN, len)
     if len > maxlen
@@ -513,7 +514,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   SAMP=LEN.<maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getKDE(Xi[i]), maxlen)[1]
+      ARR[i] = KDE.sample(getKDE(Xi[i], solveKey), maxlen)[1]
     end
   end
 

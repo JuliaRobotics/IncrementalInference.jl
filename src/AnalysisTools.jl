@@ -158,3 +158,31 @@ function getTreeCost_02(tree::BayesTree; alpha::Float64=1.0)
 
   return getTreeCost_01(tree, alpha=alpha)/(totalNumChildren/numParents)
 end
+
+
+## ============================================================================
+# Tools for checking the numerical performance of the solve
+
+
+function mmdSolveKey(vari::DFGVariable,
+                    refKey::Symbol,
+                    tstKey::Symbol;
+                    bw::AbstractVector{<:Real}=[0.001;] )
+  #
+  refVal = getBelief(vari, refKey)
+  tstVal = getBelief(vari, tstKey)
+
+  # calc mmd distance
+  mmd(refVal, tstVal, getSofttype(vari), bw=bw)
+end
+
+
+
+# vari = getVariable(fg, :x1)
+# kys = filter(x->!(x in [:graphinit;:default]), listSolveKeys(fg) |> collect |>sortDFG)
+# X1_dist_0 = kys .|> x->mmdSolveKey(vari, :default_0, x)
+
+# kyD = [(kys[i],kys[i+1]) for i in 1:length(kys)-1]
+# X1_dist_D = kyD .|> x->mmdSolveKey(vari, x[1], x[2])
+
+# 

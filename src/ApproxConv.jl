@@ -75,11 +75,12 @@ Prepare a common functor computation object `prepareCommonConvWrapper{T}` contai
 function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
                                    Xi::Vector{DFGVariable},
                                    solvefor::Symbol,
-                                   N::Int  ) where {T <: FunctorInferenceType}
+                                   N::Int;
+                                   solveKey::Symbol=:default  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N)
+  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N, solveKey=solveKey)
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
@@ -250,17 +251,18 @@ Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and e
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
-function evalPotentialSpecific(Xi::Vector{DFGVariable},
-                               ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol,
-                               measurement::Tuple=(zeros(0,100),);
-                               N::Int=size(measurement[1],2),
-                               spreadNH::Real=3.0,
-                               dbg::Bool=false  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+function evalPotentialSpecific( Xi::Vector{DFGVariable},
+                                ccwl::CommonConvWrapper{T},
+                                solvefor::Symbol,
+                                measurement::Tuple=(zeros(0,100),);
+                                solveKey::Symbol=:default,
+                                N::Int=size(measurement[1],2),
+                                spreadNH::Real=3.0,
+                                dbg::Bool=false  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
   #
 
   # Prep computation variables
-  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N)
+  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
@@ -284,20 +286,23 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   return ccwl.params[ccwl.varidx]
 end
 
-function evalPotentialSpecific(Xi::Vector{DFGVariable},
-                               ccwl::CommonConvWrapper{T},
-                               solvefor::Symbol,
-                               measurement::Tuple=(zeros(0,0),);
-                               N::Int=size(measurement[1],2),
-                               dbg::Bool=false,
-                               spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
+function evalPotentialSpecific( Xi::Vector{DFGVariable},
+                                ccwl::CommonConvWrapper{T},
+                                solvefor::Symbol,
+                                measurement::Tuple=(zeros(0,0),);
+                                solveKey::Symbol=:default,
+                                N::Int=size(measurement[1],2),
+                                dbg::Bool=false,
+                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
   #
-  # FIXME, NEEDS TO BE CLEANED UP AND ADD MEAN ON MANIFOLDS PROPER
+  # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
   sfidx = 1
-  oldVal = getVal(Xi[sfidx])
+  oldVal = getVal(Xi[sfidx], solveKey=solveKey)
   nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
+  # FIXME better standardize in-place operations (considering solveKey)
+  # FIXME FMD is not always just ()
   freshSamples!(ccwl, nn, FactorMetadata(), vnds)
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
@@ -311,11 +316,11 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # generate nullhypo samples
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals
+  # FIXME better standardize in-place operations (considering solveKey)
   addEntr = if size(oldVal,2) == nn
     deepcopy(oldVal)  #ccwl.params[sfidx])
   else
     ret = zeros(size(oldVal,1),nn)
-    # @show nn, size(ccwl.params[sfidx],2), size(ret)
     ret[:,1:size(oldVal,2)] .= oldVal #ccwl.params[sfidx]
     ret
   end
@@ -325,6 +330,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
   # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
   if !ccwl.partial
       addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
+      # ongoing part of RoME.jl #244
       addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
     # return ccwl.measurement[1]
   else
@@ -333,6 +339,7 @@ function evalPotentialSpecific(Xi::Vector{DFGVariable},
       i += 1
       addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
       addEntrNHp = view(addEntr, dimnum, nhmask)
+      # ongoing part of RoME.jl #244
       addEntropyOnManifoldHack!(addEntrNHp, addOps[dimnum:dimnum], spreadDist)
     end
   end
@@ -348,6 +355,7 @@ function evalFactor2(dfg::AbstractDFG,
                      fct::DFGFactor,
                      solvefor::Symbol,
                      measurement::Tuple=(zeros(0,100),);
+                     solveKey::Symbol=:default,
                      N::Int=size(measurement[1],2),
                      dbg::Bool=false  )
   #
@@ -375,7 +383,7 @@ function evalFactor2(dfg::AbstractDFG,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
-  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
+  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
 end
 
 # import IncrementalInference: evalFactor2, approxConv
@@ -444,13 +452,14 @@ The remaining dimensions will keep pre-existing variable values.
 Notes
 - fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
 """
-function findRelatedFromPotential(dfg::G,
+function findRelatedFromPotential(dfg::AbstractDFG,
                                   fct::DFGFactor,
                                   varid::Symbol,
                                   N::Int,
-                                  dbg::Bool=false  )::Tuple{BallTreeDensity,Float64} where G <: AbstractDFG
+                                  dbg::Bool=false;
+                                  solveKey::Symbol=:default )
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(dfg, fct, varid, N=N, dbg=dbg);
+  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
 
   # solvable dimension
@@ -468,7 +477,7 @@ function findRelatedFromPotential(dfg::G,
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)
   end
-  return p, inferdim
+  return (p, inferdim)::Tuple{BallTreeDensity,Float64}
 end
 
 

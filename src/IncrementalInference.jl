@@ -83,7 +83,11 @@ export AbstractDFG,
   listDataEntries,
   FolderStore,
   addBlobStore!,
-  getData
+  getData,
+  DFGVariable,
+  DFGVariableSummary, 
+  DFGFactor,
+  DFGFactorSummary
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
@@ -165,7 +169,6 @@ export *,
   sortDFG,
   # getVariableIds,
   getVariableOrder,
-  calcVariablePPE,
   getPPE,
   getPPEDict,
   getVariablePPE,
@@ -418,7 +421,6 @@ export *,
   # some utils
   compare,
   compareAllSpecial,
-  getIdx,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
