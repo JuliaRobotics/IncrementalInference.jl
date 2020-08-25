@@ -300,8 +300,8 @@ function proposalbeliefs!(dfg::G,
   count = 0
   for fct in factors
     count += 1
-    data = getSolverData(fct, solveKey)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
+    data = getSolverData(fct)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg, solveKey=solveKey)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
