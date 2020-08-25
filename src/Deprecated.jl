@@ -26,6 +26,44 @@ end
 ## Delete at end v0.15.x
 ##==============================================================================
 
+export getIdx
+
+"""
+    $SIGNATURES
+
+Return interger index of desired variable element.
+
+Example
+-------
+```julia
+pp = RoME.Point2()
+getIdx(pp, :posY) # = 2
+```
+
+Internal Notes
+--------------
+- uses number i < 100 for index number, and
+- uses +100 offsets to track the minibatch number of the requested dimension
+"""
+function getIdx(pp::Tuple,
+                sym::Symbol,
+                i::Int=0)
+  #
+  error("getIdx is obsolete, use DistributedFactorGraphs objects/methods instead.")
+  i-=100
+  for p in pp
+    i,j = getIdx(p, sym, i)
+    if i > 0
+      return i, j
+    end
+  end
+  return i,-1
+end
+getIdx(pp::Symbol, sym::Symbol, i::Int=0) = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
+function getIdx(pp::InferenceVariable, sym::Symbol, i::Int=0)
+  return getIdx(pp.dimtype, sym)
+end
+
 # """
 #     $SIGNATURES
 

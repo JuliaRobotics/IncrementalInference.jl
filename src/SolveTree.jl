@@ -292,6 +292,7 @@ function proposalbeliefs!(dfg::G,
                           # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
+                          solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false)::Vector{Float64} where {G <: AbstractDFG, F <: DFGFactor}
   #
@@ -299,7 +300,7 @@ function proposalbeliefs!(dfg::G,
   count = 0
   for fct in factors
     count += 1
-    data = getSolverData(fct)
+    data = getSolverData(fct, solveKey)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
@@ -388,11 +389,12 @@ Using factor graph object `dfg`, project belief through connected factors
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
-function localProduct(dfg::G,
+function localProduct(dfg::AbstractDFG,
                       sym::Symbol;
+                      solveKey::Symbol=:default,
                       N::Int=100,
                       dbg::Bool=false,
-                      logger=ConsoleLogger() ) where G <: AbstractDFG
+                      logger=ConsoleLogger() )
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
@@ -411,7 +413,7 @@ function localProduct(dfg::G,
   # inferdim = Vector{Float64}(undef, length(fcts))
 
   # get proposal beliefs
-  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, N=N, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, solveKey=solveKey, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
@@ -420,7 +422,7 @@ function localProduct(dfg::G,
 
   return pp, dens, partials, lb, sum(inferdim)
 end
-localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
+localProduct(dfg::G, lbl::T; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
 
 
 """
