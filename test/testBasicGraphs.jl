@@ -223,7 +223,7 @@ addFactor!(fg, [:x3;:x4;], LinearConditional(Normal(0.0,1.0)))
 
 # drawGraph(fg, show=true)
 
-tree, smt, hist = solveTree!(fg)
+tree, smt, hist = solveTree!(fg, storeOld=true)
 
 # using KernelDensityEstimatePlotting
 # plotKDE((x->getKDE(fg,x)).([:x0;:x1;:x2;:x3;:x4]))
@@ -248,6 +248,15 @@ X4 = (getKDE(fg, :x4) |> getKDEMean)[1]
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x2))[1,:] ) < 2.6
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x3))[1,:] ) < 2.7
 @test 0.2 < Statistics.cov( getPoints(getKDE(fg, :x4))[1,:] ) < 2.8
+
+@testset "Test localProduct on solveKey" begin
+
+localProduct(fg,:x2)
+
+localProduct(fg,:x2, solveKey=:graphinit)
+
+end
+
 
 end
 
