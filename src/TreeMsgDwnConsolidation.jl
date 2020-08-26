@@ -81,34 +81,37 @@ end
 
 Calculate a new down message from the parent.
 """
-function getMsgInitDwnParent(treel::AbstractBayesTree, cliq::TreeClique; logger=SimpleLogger(stdout))
+function getMsgInitDwnParent(treel::AbstractBayesTree, 
+                              cliq::TreeClique; 
+                              logger=SimpleLogger(stdout) )
   # FIXME use only LikelihoodMessage
   # check if any msgs should be multiplied together for the same variable
   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
 
   # get the parent
   prnt = getParent(treel, cliq)[1]
-  msgspervar = IntermediateMultiSiblingMessages()
-
+  
   # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
-  prntmsgs = getMsgsUpInitChildren(treel, prnt, TreeBelief, skip=[cliq.index;])     # FIXME, post #459 calls?
-
+  # FIXME, post #459 calls?
+  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(treel, prnt, TreeBelief, skip=[cliq.index;])     
+  
   with_logger(logger) do
     @info "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))"
   end
-
+  
+  # FIXME type instability
+  msgspervar = nothing
   for (msgcliqid, msgs) in prntmsgs
-    # with_logger(logger) do
-    #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
-    # end
+    # with_logger(logger) do  #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.softtype)
+      msgspervar = msgspervar !== nothing ? msgspervar : IntermediateMultiSiblingMessagesTB{varType}()
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
-        msgspervar[msgsym] = IntermediateSiblingMessages()
+        msgspervar[msgsym] = IntermediateSiblingMessagesTB{varType}()
       end
-      # with_logger(logger) do
-      #   @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
-      # end
+      # with_logger(logger) do  @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
       push!(msgspervar[msgsym], msg)
     end
   end

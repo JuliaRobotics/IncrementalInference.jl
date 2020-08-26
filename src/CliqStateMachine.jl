@@ -464,6 +464,9 @@ Notes
 - State machine function nr. 8a
 - Includes initialization routines.
 - TODO: Make multi-core
+
+DevNotes
+- FIXME majore refactor of this function required.
 """
 function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
