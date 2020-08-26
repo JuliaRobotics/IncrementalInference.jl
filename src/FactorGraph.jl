@@ -1207,22 +1207,22 @@ function rmVarFromMarg(dfg::AbstractDFG,
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
-  @info " - Removing $(fromvert.label)"
+  @debug " - Removing $(fromvert.label)"
   for m in gm
-    @info "Looking at $(m.label)"
+    @debug "Looking at $(m.label)"
     for n in DFG.getNeighbors(dfg, m) #x1, x2
       if n == fromvert.label # n.label ==? x1
-        @info "   - Breaking link $(m.label)->$(fromvert.label)..."
-        @info "     - Original links: $(DFG.ls(dfg, m))"
+        @debug "   - Breaking link $(m.label)->$(fromvert.label)..."
+        @debug "     - Original links: $(DFG.ls(dfg, m))"
         remvars = setdiff(DFG.ls(dfg, m), [fromvert.label])
-        @info "     - New links: $remvars"
+        @debug "     - New links: $remvars"
 
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
-          @info "$(m.label) still has links to other variables, readding it back..."
+          @debug "$(m.label) still has links to other variables, readding it back..."
           addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
         else
-          @info "$(m.label) doesn't have any other links, not adding it back..."
+          @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
       end
     end
@@ -1242,10 +1242,10 @@ function buildBayesNet!(dfg::AbstractDFG,
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
-    @info ""
-    @info "Eliminating $(v)"
-    @info "==============="
-    @info ""
+    @debug """ 
+                 Eliminating $(v)
+                 ===============
+          """
     # which variable are we eliminating
 
     # all factors adjacent to this variable
