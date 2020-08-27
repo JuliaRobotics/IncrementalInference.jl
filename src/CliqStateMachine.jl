@@ -517,7 +517,8 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
 
   # now put the newly computed message in the appropriate container
-  # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
+  # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
+  # FIXME must be consolidated as part of #459
   putCliqueInitMsgDown!(getCliqueData(prnt), dwinmsgs)
 
   
@@ -533,10 +534,16 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
   infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims")
 
-  # FIXME try split CSM here, need replacement for dwinmsgs
+  # infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
+  # unlock
+  unlockUpStatus!(prnt) # TODO XY ????
+  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
-  dwnkeys_ = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
-  # dwnkeys = collect(keys(dwinmsgs.belief))
+
+  # FIXME try split CSM here, need replacement for dwinmsgs
+  dwnkeys_ = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) # FIXME THIS DOESNT WORK YET!
+  # @assert intersect(dwnkeys, dwnkeys_) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
+
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
@@ -547,15 +554,11 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys, logger=csmc.logger)  # dwinmsgs
     infocsm(csmc, "8a, attemptCliqInitD., prioritize")
     mustwait = true
-  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
+  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs.belief, logger=csmc.logger) # dwinmsgs
     infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
     mustwait = true
   end
 
-  infocsm(csmc, "8a, attemptCliqInitD., deleted msg factors and unlockUpStatus!")
-  # unlock
-  unlockUpStatus!(prnt) # TODO XY ????
-  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
@@ -607,10 +610,10 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(keys(dwinmsgs.belief))")
+  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(dwnkeys)")
 
   # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwinmsgs)
+  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys)  # dwinmsgs
   with_logger(csmc.logger) do
     @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
   end

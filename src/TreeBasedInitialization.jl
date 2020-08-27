@@ -412,14 +412,14 @@ Dev Notes
 - Streamline add/delete msg priors from calling function and csm.
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
-function getCliqInitVarOrderDown(dfg::G,
+function getCliqInitVarOrderDown(dfg::AbstractDFG,
                                  cliq::TreeClique,
-                                 downmsgs::LikelihoodMessage )::Vector{Symbol} where G <: AbstractDFG
+                                 dwnkeys::Vector{Symbol} )   # downmsgs
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs.belief)), DFG.listVariables(dfg)) #dfg.IDs
+  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg)) #collect(keys(downmsgs.belief)) ... dfg.IDs
   # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
@@ -456,7 +456,7 @@ function getCliqInitVarOrderDown(dfg::G,
   end
 
   # return variable order
-  return initorder
+  return initorder::Vector{Symbol}
 end
 
 

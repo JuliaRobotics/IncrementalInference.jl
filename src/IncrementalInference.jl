@@ -357,7 +357,7 @@ export *,
   CommonConvWrapper,
 
   getCliqVarInitOrderUp,
-  getCliqInitVarOrderDown,
+  # getCliqInitVarOrderDown,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
@@ -416,7 +416,7 @@ export *,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
-  getCliqSiblingsPartialNeeds,
+  # getCliqSiblingsPartialNeeds,
 
   # some utils
   compare,

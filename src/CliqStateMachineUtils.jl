@@ -596,11 +596,11 @@ Determine clique truely isn't able to proceed any further:
 function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
                                      cliq::TreeClique,
                                     #  prnt,
-                                     dwinmsgs::LikelihoodMessage;
+                                     dwinmsgsbelief::Dict{Symbol, TreeBelief};
                                      logger=ConsoleLogger())
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
-  for (sym, tmsg) in dwinmsgs.belief
+  for (sym, tmsg) in dwinmsgsbelief
     # assuming any down message per label that is not partial voids further partial consideration
     if sum(tmsg.inferdim) > 0
       if !haskey(hasPartials, sym)
