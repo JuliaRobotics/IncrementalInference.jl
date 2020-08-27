@@ -272,7 +272,7 @@ export *,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   prepCliqInitMsgsUp,
-  prepCliqInitMsgsDown!,
+  # prepCliqInitMsgsDown!, # obsolete
   getOutNeighbors,
   BayesTree,
   TreeBelief,

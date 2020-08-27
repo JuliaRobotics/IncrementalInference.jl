@@ -487,7 +487,45 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # get down message from the parent
   # dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
-  dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
+  # dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
+  # FIXME use only LikelihoodMessage
+  # check if any msgs should be multiplied together for the same variable
+  
+    # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
+    # FIXME, post #459 calls?
+    prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, prnt, TreeBelief, skip=[csmc.cliq.index;])         
+    infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
+  msgspervar = getMsgInitDwnParent(prntmsgs, logger=csmc.logger)  # ::Dict{Symbol, Vector{TreeBelief}()
+
+  # reference to default dict location
+  dwinmsgs = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
+  
+  ## TODO use parent factors too
+  # intersect with the asking clique's separator variables
+  # FIXME, should not be using full .dfg ???
+  condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, msgspervar, prnt, csmc.cliq, csmc.logger)
+  
+  # remove msgs that have no data
+  rmlist = Symbol[]
+  for (prsym,belmsg) in dwinmsgs.belief
+    if belmsg.inferdim < 1e-10
+      # no information so remove
+      push!(rmlist, prsym)
+    end
+  end
+  infocsm(csmc, "prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)")
+  for pr in rmlist
+    delete!(dwinmsgs.belief, pr)
+  end
+
+  infocsm(csmc, "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
+
+  # now put the newly computed message in the appropriate container
+  # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
+  putCliqueInitMsgDown!(getCliqueData(prnt), dwinmsgs)
+
+  
+  # and continue
 
   dwnkeys = collect(keys(dwinmsgs.belief))
   infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")

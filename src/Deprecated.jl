@@ -27,6 +27,75 @@ end
 ##==============================================================================
 
 
+# """
+#     $SIGNATURES
+
+# Initialization downward message passing is different from regular inference since
+# it is possible that none of the child cliq variables have been initialized.
+
+# Notes
+# - init upward msgs are individually stored in child cliques (pull model good).
+# - fresh product of overlapping beliefs are calculated on each function call.
+# - Assumed that `prnt` of siblings
+
+# Dev Notes
+# - This should be the initialization cycle of parent, build up bit by bit...
+# """
+# function prepCliqInitMsgsDown!(fgl::AbstractDFG,
+#                                tree::AbstractBayesTree,
+#                                prnt::TreeClique,
+#                                cliq::TreeClique;
+#                                logger=ConsoleLogger() )
+#   #
+#   # tt = split(string(now()), 'T')[end]
+#   # with_logger(logger) do
+#   #   @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
+#   # end
+  
+#   # FIXME use only LikelihoodMessage
+#   # check if any msgs should be multiplied together for the same variable
+#   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
+#   msgspervar = getMsgInitDwnParent(tree, cliq, logger=logger)
+#   # reference to default dict location
+#   #JT 459 products = getMsgDwnThisInit(prnt)
+#   products = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
+  
+#   ## TODO use parent factors too
+#   # intersect with the asking clique's separator variables
+#   condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger)
+  
+#   # with_logger(logger) do
+#   #   @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
+#   # end
+#   # flush(logger.stream)
+
+#   # remove msgs that have no data
+#   rmlist = Symbol[]
+#   for (prsym,belmsg) in products.belief
+#     if belmsg.inferdim < 1e-10
+#       # no information so remove
+#       push!(rmlist, prsym)
+#     end
+#   end
+#   with_logger(logger) do
+#     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)"
+#   end
+#   for pr in rmlist
+#     delete!(products.belief, pr)
+#   end
+
+#   with_logger(logger) do
+#     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products.belief)))"
+#   end
+
+#   # now put the newly computed message in the appropriate container
+#   # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
+#   putCliqueInitMsgDown!(getCliqueData(prnt), products)
+
+#   return products
+# end
+
+
 # used during nonparametric CK preparation, when information from multiple siblings must be shared together
 # const IntermediateSiblingMessagesTB{T} = Vector{TreeBelief{T}}
 # const IntermediateMultiSiblingMessagesTB{T} = Dict{Symbol, Vector{TreeBelief{T}}}

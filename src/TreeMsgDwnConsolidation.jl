@@ -80,27 +80,19 @@ end
     $SIGNATURES
 
 Calculate a new down message from the parent.
-"""
-function getMsgInitDwnParent(treel::AbstractBayesTree, 
-                              cliq::TreeClique; 
-                              logger=SimpleLogger(stdout) )
-  # FIXME use only LikelihoodMessage
-  # check if any msgs should be multiplied together for the same variable
-  # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
 
-  # get the parent
-  prnt = getParent(treel, cliq)[1]
-  
-  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
-  # FIXME, post #459 calls?
-  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(treel, prnt, TreeBelief, skip=[cliq.index;])     
-  
-  with_logger(logger) do
-    @info "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))"
-  end
+DevNotes
+- FIXME should be handled in CSM
+"""
+function getMsgInitDwnParent( prntmsgs;
+                              # treel::AbstractBayesTree, 
+                              # cliq::TreeClique; 
+                              logger=SimpleLogger(stdout) )
+  #
+  # check if any msgs should be multiplied together for the same variable
   
   # FIXME type instability
-  msgspervar = Dict{Symbol, Vector{TreeBelief}}() # IntermediateMultiSiblingMessagesTB{ContinuousScalar}()
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
   for (msgcliqid, msgs) in prntmsgs
     # with_logger(logger) do  #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief
