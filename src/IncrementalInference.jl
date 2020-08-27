@@ -136,7 +136,7 @@ export *,
   unlockUpStatus!,
   lockDwnStatus!,
   unlockDwnStatus!,
-  getSiblingsDelayOrder,
+  # getSiblingsDelayOrder,
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes

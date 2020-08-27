@@ -487,19 +487,15 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # get down message from the parent
   # dbgnew = !haskey(opt.devParams,:dontUseParentFactorsInitDown)
   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
-  # dwinmsgs = prepCliqInitMsgsDown!(csmc.dfg, csmc.tree, prnt, csmc.cliq, logger=csmc.logger)
-  # FIXME use only LikelihoodMessage
-  # check if any msgs should be multiplied together for the same variable
   
+  # check if any msgs should be multiplied together for the same variable
     # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
     # FIXME, post #459 calls?
     prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, prnt, TreeBelief, skip=[csmc.cliq.index;])         
     infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
   msgspervar = getMsgInitDwnParent(prntmsgs, logger=csmc.logger)  # ::Dict{Symbol, Vector{TreeBelief}()
-
   # reference to default dict location
   dwinmsgs = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
-  
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
   # FIXME, should not be using full .dfg ???
@@ -537,16 +533,21 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
   infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims")
 
+  # FIXME try split CSM here, need replacement for dwinmsgs
+
+  dwnkeys_ = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
+  # dwnkeys = collect(keys(dwinmsgs.belief))
+
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
   mustwait = false
   if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
-  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
+  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys, logger=csmc.logger)  # dwinmsgs
     infocsm(csmc, "8a, attemptCliqInitD., prioritize")
     mustwait = true
-  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, prnt, dwinmsgs, logger=csmc.logger)
+  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
     infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
     mustwait = true
   end
