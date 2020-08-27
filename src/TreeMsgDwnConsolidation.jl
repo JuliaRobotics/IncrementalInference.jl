@@ -100,16 +100,16 @@ function getMsgInitDwnParent(treel::AbstractBayesTree,
   end
   
   # FIXME type instability
-  msgspervar = IntermediateMultiSiblingMessagesTB{ContinuousScalar}()
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}() # IntermediateMultiSiblingMessagesTB{ContinuousScalar}()
   for (msgcliqid, msgs) in prntmsgs
     # with_logger(logger) do  #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief
       # re-initialize with new type
       varType = typeof(msg.softtype)
-      msgspervar = msgspervar !== nothing ? msgspervar : IntermediateMultiSiblingMessagesTB{varType}()
+      msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
-        msgspervar[msgsym] = IntermediateSiblingMessagesTB{varType}()
+        msgspervar[msgsym] = TreeBelief{varType}[]
       end
       # with_logger(logger) do  @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
       push!(msgspervar[msgsym], msg)

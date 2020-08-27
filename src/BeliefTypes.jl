@@ -125,12 +125,7 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
-# used during nonparametric CK preparation, when information from multiple siblings must be shared together
-# NEW
-const IntermediateSiblingMessagesTB{T} = Vector{TreeBelief{T}}
-const IntermediateMultiSiblingMessagesTB{T} = Dict{Symbol, IntermediateSiblingMessagesTB{T}}
-
-
+# figure out how to deprecate (not critical at the moment)
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 

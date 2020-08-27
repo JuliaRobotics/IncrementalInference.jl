@@ -27,18 +27,22 @@ end
 ##==============================================================================
 
 
+# used during nonparametric CK preparation, when information from multiple siblings must be shared together
+# const IntermediateSiblingMessagesTB{T} = Vector{TreeBelief{T}}
+# const IntermediateMultiSiblingMessagesTB{T} = Dict{Symbol, Vector{TreeBelief{T}}}
+
 
 # FIXME, better standardize intermediate types
 # can be replaced by Vector{TreeBelief}
-const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
-const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
+# const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
+# const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 
 
 # Helper function for prepCliqInitMsgsDown!
 # populate products with products of upward messages
 function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
                                       products::LikelihoodMessage,
-                                      msgspervar::IntermediateMultiSiblingMessages  )
+                                      msgspervar::Dict{Symbol, <:AbstractVector}  )
   #
   error("condenseDownMsgsProductOnly!(::AbstractDFG,::LikelihoodMessage, ::IntermediateMultiSiblingMessages) is obsolete")
   # multiply multiple messages together
@@ -148,7 +152,7 @@ end
 
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::IntermediateMultiSiblingMessagesTB{T} ) where T #Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
+                        msgs::Dict{Symbol, <:AbstractVector} )  #Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
   # msgs::
   # add messages as priors to this sub factor graph
   @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
