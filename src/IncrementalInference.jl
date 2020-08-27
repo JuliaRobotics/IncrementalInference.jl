@@ -136,7 +136,7 @@ export *,
   unlockUpStatus!,
   lockDwnStatus!,
   unlockDwnStatus!,
-  getSiblingsDelayOrder,
+  # getSiblingsDelayOrder,
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
@@ -272,7 +272,7 @@ export *,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   prepCliqInitMsgsUp,
-  prepCliqInitMsgsDown!,
+  # prepCliqInitMsgsDown!, # obsolete
   getOutNeighbors,
   BayesTree,
   TreeBelief,
@@ -357,7 +357,7 @@ export *,
   CommonConvWrapper,
 
   getCliqVarInitOrderUp,
-  getCliqInitVarOrderDown,
+  # getCliqInitVarOrderDown,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
@@ -416,7 +416,7 @@ export *,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
-  getCliqSiblingsPartialNeeds,
+  # getCliqSiblingsPartialNeeds,
 
   # some utils
   compare,

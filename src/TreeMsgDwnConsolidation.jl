@@ -11,7 +11,6 @@ function getfetchCliqueInitMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothi
   @debug "getfetchCliqueInitMsgDown from=$(from)"
   return cdata.downInitMsg
 end
-@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
 
 function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
   cdata.downInitMsg = initmsg
@@ -81,35 +80,30 @@ end
     $SIGNATURES
 
 Calculate a new down message from the parent.
+
+DevNotes
+- FIXME should be handled in CSM
 """
-function getMsgInitDwnParent(treel::AbstractBayesTree, cliq::TreeClique; logger=SimpleLogger(stdout))
-  # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
+function getMsgInitDwnParent( prntmsgs;
+                              # treel::AbstractBayesTree, 
+                              # cliq::TreeClique; 
+                              logger=SimpleLogger(stdout) )
+  #
   # check if any msgs should be multiplied together for the same variable
-  # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
-
-  # get the parent
-  prnt = getParent(treel, cliq)[1]
-  msgspervar = IntermediateMultiSiblingMessages()
-
-  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
-  prntmsgs = getMsgsUpInitChildren(treel, prnt, TreeBelief, skip=[cliq.index;])     # FIXME, post #459 calls?
-
-  with_logger(logger) do
-    @info "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))"
-  end
-
+  
+  # FIXME type instability
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
   for (msgcliqid, msgs) in prntmsgs
-    with_logger(logger) do
-      @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"
-    end
+    # with_logger(logger) do  #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.softtype)
+      msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
-        msgspervar[msgsym] = IntermediateSiblingMessages()
+        msgspervar[msgsym] = TreeBelief{varType}[]
       end
-      with_logger(logger) do
-        @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"
-      end
+      # with_logger(logger) do  @info "getMsgInitDwnParent -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
       push!(msgspervar[msgsym], msg)
     end
   end

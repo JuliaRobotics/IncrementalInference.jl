@@ -202,6 +202,9 @@ Notes
 - assume lower limit on number of particles is 5.
 - messages from children stored in vector or dict.
 
+DevNotes
+- TODO Split dispatch on `dir`, rather than internal `if` statement.
+
 Related
 
 `deleteMsgFactors!`
@@ -223,6 +226,7 @@ function addMsgFactors!(subfg::AbstractDFG,
   else
     svars = DFG.listVariables(subfg)
     tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
+    dir == DownwardPass ? push!(tags__, :DOWNWARD_COMMON) : nothing
     for (msym, belief_) in msgs.belief
       if msym in svars
         msgPrior = generateMsgPrior(belief_, msgs.msgType)

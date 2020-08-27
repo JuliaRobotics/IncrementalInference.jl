@@ -26,6 +26,121 @@ end
 ## Delete at end v0.15.x
 ##==============================================================================
 
+
+# """
+#     $SIGNATURES
+
+# Initialization downward message passing is different from regular inference since
+# it is possible that none of the child cliq variables have been initialized.
+
+# Notes
+# - init upward msgs are individually stored in child cliques (pull model good).
+# - fresh product of overlapping beliefs are calculated on each function call.
+# - Assumed that `prnt` of siblings
+
+# Dev Notes
+# - This should be the initialization cycle of parent, build up bit by bit...
+# """
+# function prepCliqInitMsgsDown!(fgl::AbstractDFG,
+#                                tree::AbstractBayesTree,
+#                                prnt::TreeClique,
+#                                cliq::TreeClique;
+#                                logger=ConsoleLogger() )
+#   #
+#   # tt = split(string(now()), 'T')[end]
+#   # with_logger(logger) do
+#   #   @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
+#   # end
+  
+#   # FIXME use only LikelihoodMessage
+#   # check if any msgs should be multiplied together for the same variable
+#   # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
+#   msgspervar = getMsgInitDwnParent(tree, cliq, logger=logger)
+#   # reference to default dict location
+#   #JT 459 products = getMsgDwnThisInit(prnt)
+#   products = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
+  
+#   ## TODO use parent factors too
+#   # intersect with the asking clique's separator variables
+#   condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger)
+  
+#   # with_logger(logger) do
+#   #   @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
+#   # end
+#   # flush(logger.stream)
+
+#   # remove msgs that have no data
+#   rmlist = Symbol[]
+#   for (prsym,belmsg) in products.belief
+#     if belmsg.inferdim < 1e-10
+#       # no information so remove
+#       push!(rmlist, prsym)
+#     end
+#   end
+#   with_logger(logger) do
+#     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)"
+#   end
+#   for pr in rmlist
+#     delete!(products.belief, pr)
+#   end
+
+#   with_logger(logger) do
+#     @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products.belief)))"
+#   end
+
+#   # now put the newly computed message in the appropriate container
+#   # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
+#   putCliqueInitMsgDown!(getCliqueData(prnt), products)
+
+#   return products
+# end
+
+
+# used during nonparametric CK preparation, when information from multiple siblings must be shared together
+# const IntermediateSiblingMessagesTB{T} = Vector{TreeBelief{T}}
+# const IntermediateMultiSiblingMessagesTB{T} = Dict{Symbol, Vector{TreeBelief{T}}}
+
+
+# FIXME, better standardize intermediate types
+# can be replaced by Vector{TreeBelief}
+# const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
+# const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
+
+
+# Helper function for prepCliqInitMsgsDown!
+# populate products with products of upward messages
+function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
+                                      products::LikelihoodMessage,
+                                      msgspervar::Dict{Symbol, <:AbstractVector}  )
+  #
+  error("condenseDownMsgsProductOnly!(::AbstractDFG,::LikelihoodMessage, ::IntermediateMultiSiblingMessages) is obsolete")
+  # multiply multiple messages together
+  for (msgsym, msgsBo) in msgspervar
+    # check if this particular down message requires msgsym
+    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
+      if length(msgspervar[msgsym]) > 1
+        msgs = getindex.(msgsBo, 1)
+        haspars = 0.0
+        for mb in msgsBo, val in mb[2]
+          haspars += val
+        end
+        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
+      else
+        # transfer if only have a single belief
+        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
+      end
+    else
+      # not required, therefore remove from message to avoid confusion
+      if haskey(products, msgsym)
+        delete!(products, msgsym)
+      end
+    end
+  end
+  nothing
+end
+
+@deprecate getfetchCliqueMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing) getfetchCliqueInitMsgDown(cdata, from=from)
+
 export getIdx
 
 """
@@ -63,6 +178,7 @@ getIdx(pp::Symbol, sym::Symbol, i::Int=0) = pp==sym ? (abs(i)%100+1, div(abs(i)-
 function getIdx(pp::InferenceVariable, sym::Symbol, i::Int=0)
   return getIdx(pp.dimtype, sym)
 end
+
 
 # """
 #     $SIGNATURES
@@ -105,17 +221,17 @@ end
 
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
+                        msgs::Dict{Symbol, <:AbstractVector} )  #Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
   # msgs::
   # add messages as priors to this sub factor graph
-  # @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
+  @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
   for (msym, dms) in msgs
-    for dm in dms
+    for treebelief in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(manikde!(treebelief), treebelief.inferdim), graphinit=false)
         push!(msgfcts, fc)
       end
     end

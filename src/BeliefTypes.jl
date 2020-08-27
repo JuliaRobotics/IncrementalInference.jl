@@ -125,11 +125,7 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
-# FIXME, better standardize intermediate types
-# used during nonparametric CK preparation, when information from multiple siblings must be shared together
-const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
-const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
-
+# figure out how to deprecate (not critical at the moment)
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 

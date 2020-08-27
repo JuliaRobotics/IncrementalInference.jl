@@ -162,47 +162,15 @@ function initSolveSubFg!(subfg::AbstractDFG,
 end
 
 
-# Helper function for prepCliqInitMsgsDown!
-# populate products with products of upward messages
-function condenseDownMsgsProductOnly!(fgl::AbstractDFG,
-                                      products::LikelihoodMessage,
-                                      msgspervar::IntermediateMultiSiblingMessages  )
-  #
-  # multiply multiple messages together
-  for (msgsym, msgsBo) in msgspervar
-    # check if this particular down message requires msgsym
-    if exists(fgl, msgsym) # DFG.hasVariable(fgl, msgsym)
-      if length(msgspervar[msgsym]) > 1
-        msgs = getindex.(msgsBo, 1)
-        haspars = 0.0
-        for mb in msgsBo, val in mb[2]
-            haspars += val
-        end
-        products[msgsym] = (manifoldProduct(msgs, getManifolds(fgl, msgsym)), haspars)
-      else
-        # transfer if only have a single belief
-        products[msgsym] = (msgsBo[1][1], msgsBo[1][2])
-      end
-    else
-      # not required, therefore remove from message to avoid confusion
-      if haskey(products, msgsym)
-        delete!(products, msgsym)
-      end
-    end
-  end
-  nothing
-end
-
-
 
 # Helper function for prepCliqInitMsgsDown!
 # future, be used in a cached system with parent in one location only for all siblings
-function condenseDownMsgsProductPrntFactors!(fgl::G,
+function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
                                              products::LikelihoodMessage,
-                                             msgspervar::IntermediateMultiSiblingMessages,
+                                             msgspervar::Dict{Symbol, <:AbstractVector},
                                              prnt::TreeClique,
                                              cliq::TreeClique,
-                                             logger=ConsoleLogger()  ) where G <: AbstractDFG
+                                             logger=ConsoleLogger() )
   #
 
   # determine the variables of interest
@@ -238,7 +206,7 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
   # perform initialization/inference
-  # ....uhhh TODO
+  # FIXME, better consolidate with CSM ....uhhh TODO
   initSolveSubFg!(lsfg, logger)
 
       # QUICK DBG CODE
@@ -261,85 +229,12 @@ function condenseDownMsgsProductPrntFactors!(fgl::G,
   for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
     vari = getVariable(lsfg, id)
     products.belief[id] = TreeBelief(vari)
-    # products.belief[id] = (getKDE(vari), getVariableInferredDim(vari))
   end
 
   # if recycling lsfg
   # deleteMsgFactors!(...)
 
   nothing
-end
-
-"""
-    $SIGNATURES
-
-Initialization downward message passing is different from regular inference since
-it is possible that none of the child cliq variables have been initialized.
-
-Notes
-- init upward msgs are individually stored in child cliques (pull model good).
-- fresh product of overlapping beliefs are calculated on each function call.
-- Assumed that `prnt` of siblings
-
-Dev Notes
-- This should be the initialization cycle of parent, build up bit by bit...
-"""
-function prepCliqInitMsgsDown!(fgl::AbstractDFG,
-                               tree::AbstractBayesTree,
-                               prnt::TreeClique,
-                               cliq::TreeClique;
-                               logger=ConsoleLogger() )
-                              #  ,dbgnew::Bool=true  )
-  #
-  tt = split(string(now()), 'T')[end]
-  with_logger(logger) do
-    @info "$(tt) prnt $(prnt.index), prepCliqInitMsgsDown! -- with cliq $(cliq.index)"
-  end
-
-  
-  # FIXME drop IntermediateMultiSiblingMessages and use only LikelihoodMessage
-  # check if any msgs should be multiplied together for the same variable
-  # msgspervar = LikelihoodMessage() # or maybe Dict{Int, LikelihoodMessage}()
-  msgspervar = getMsgInitDwnParent(tree, cliq, logger=logger)
-
-  with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- vars fw/ down msgs=$(collect(keys(msgspervar)))"
-  end
-
-  flush(logger.stream)
-
-  # reference to default dict location
-  #JT 459 products = getMsgDwnThisInit(prnt)
-  products = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy
-
-  ## TODO use parent factors too
-  # intersect with the asking clique's separator variables
-  condenseDownMsgsProductPrntFactors!(fgl, products, msgspervar, prnt, cliq, logger)
-
-  # remove msgs that have no data
-  rmlist = Symbol[]
-  for (prsym,belmsg) in products.belief
-    if belmsg.inferdim < 1e-10
-      # no information so remove
-      push!(rmlist, prsym)
-    end
-  end
-  with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)"
-  end
-  for pr in rmlist
-    delete!(products.belief, pr)
-  end
-
-  with_logger(logger) do
-    @info "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(products.belief)))"
-  end
-
-  # now put the newly computed message in the appropriate container
-  # FIXME THIS IS A PUSH MODEL, see #674 -- make pull model
-  putCliqueInitMsgDown!(getCliqueData(prnt), products)
-
-  return products
 end
 
 
@@ -517,14 +412,14 @@ Dev Notes
 - Streamline add/delete msg priors from calling function and csm.
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
-function getCliqInitVarOrderDown(dfg::G,
+function getCliqInitVarOrderDown(dfg::AbstractDFG,
                                  cliq::TreeClique,
-                                 downmsgs::LikelihoodMessage )::Vector{Symbol} where G <: AbstractDFG
+                                 dwnkeys::Vector{Symbol} )   # downmsgs
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(collect(keys(downmsgs.belief)), DFG.listVariables(dfg)) #dfg.IDs
+  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg)) #collect(keys(downmsgs.belief)) ... dfg.IDs
   # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
@@ -561,7 +456,7 @@ function getCliqInitVarOrderDown(dfg::G,
   end
 
   # return variable order
-  return initorder
+  return initorder::Vector{Symbol}
 end
 
 
