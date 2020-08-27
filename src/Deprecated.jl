@@ -27,6 +27,13 @@ end
 ##==============================================================================
 
 
+
+# FIXME, better standardize intermediate types
+# can be replaced by Vector{TreeBelief}
+const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
+const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
+
+
 # Helper function for prepCliqInitMsgsDown!
 # populate products with products of upward messages
 function condenseDownMsgsProductOnly!(fgl::AbstractDFG,

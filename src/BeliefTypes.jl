@@ -125,11 +125,7 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
-# FIXME, better standardize intermediate types
 # used during nonparametric CK preparation, when information from multiple siblings must be shared together
-# can be replaced by Vector{TreeBelief}
-const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
-const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
 # NEW
 const IntermediateSiblingMessagesTB{T} = Vector{TreeBelief{T}}
 const IntermediateMultiSiblingMessagesTB{T} = Dict{Symbol, IntermediateSiblingMessagesTB{T}}
