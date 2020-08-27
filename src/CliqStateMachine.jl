@@ -479,14 +479,13 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # not if parent also needs downward init message
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   opt = getSolverParams(csmc.dfg)
+  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
 
   # take atomic lock when waiting for down ward information
   lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
   infocsm(csmc, "8a, after up lock")
 
   # get down message from the parent
-  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
-  
   # check if any msgs should be multiplied together for the same variable
   # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
   # FIXME, post #459 calls?
@@ -537,9 +536,9 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
 
 
   # FIXME try split CSM here, need replacement for dwinmsgs
-  dwnkeys_ = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) # FIXME THIS DOESNT WORK YET!
+  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
   # FIXME, why is this breaking the IIF and RoME tests?
-  @assert intersect(dwnkeys, dwnkeys_) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
+  @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
