@@ -419,8 +419,7 @@ function getCliqInitVarOrderDown(dfg::AbstractDFG,
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
   # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg)) #collect(keys(downmsgs.belief)) ... dfg.IDs
-  # dwnmsgids =  map(x -> dfg.IDs[x], dwnmsgsym )
+  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg))
   dwnvarids = intersect(allsyms, dwnmsgsym)
 
   # find any other prior factors (might have partials)

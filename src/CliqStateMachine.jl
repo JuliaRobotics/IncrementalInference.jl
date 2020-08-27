@@ -242,8 +242,14 @@ end
 
 Notes
 - State machine function nr. 8c
+
+DevNotes
+- Must consolidate as part of #459
 """
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
+  # 
+  setCliqDrawColor(csmc.cliq, "coral")
+
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
     infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent=$(prnt[1].index) for condition notify.")
@@ -273,10 +279,10 @@ Notes
 - State machine function nr. 8f
 - Includes initialization routines.
 - Adds LIKELIHOODMESSAGE factors but does not remove.
+- gets msg likelihoods from cliqSubFg, see #760
 
 DevNotes
 - TODO: Make multi-core
-- NEEDS DFG v0.8.1, see IIF #760
 """
 function mustInitUpCliq_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "green")
@@ -533,27 +539,31 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # unlock
   unlockUpStatus!(prnt) # TODO XY ????
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
+  opt.dbg ? saveDFG(joinLogPath(csmc.cliqSubFg, "logs", "cliq$(csmc.cliq.index)", "fg_DWNCMN"), csmc.cliqSubFg) : nothing
+
 
 
   # FIXME try split CSM here, need replacement for dwinmsgs
+  # prnt = getParent(csmc.tree, csmc.cliq)[1]
+  # opt = getSolverParams(csmc.cliqSubFg) # csmc.dfg
+  
   dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
-  # FIXME, why is this breaking the IIF and RoME tests?
-  @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
+  # NOTE, only use separators, not all parent variables
+  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
   mustwait = false
-  if length(intersect(dwnkeys, getCliqSeparatorVarIds(csmc.cliq))) == 0
+  if length(intersect(dwnkeys_, getCliqSeparatorVarIds(csmc.cliq))) == 0
     infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
-  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys, logger=csmc.logger)
+  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys_, logger=csmc.logger)
     infocsm(csmc, "8a, attemptCliqInitD., prioritize")
     mustwait = true
   elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs.belief, logger=csmc.logger)
     infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
     mustwait = true
   end
-
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
@@ -572,7 +582,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     return waitChangeOnParentCondition_StateMachine
   end
 
-  ## FIXME split CSM here if possible
+  ## FIXME split CSM here if possible (back to 8e.ii.)
 
   setCliqDrawColor(csmc.cliq, "green")
 
@@ -580,10 +590,10 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(dwnkeys)")
+  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
 
   # get down variable initialization order
-  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys)  # dwinmsgs
+  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
   with_logger(csmc.logger) do
     @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
   end

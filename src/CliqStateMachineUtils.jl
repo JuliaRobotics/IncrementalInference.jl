@@ -441,10 +441,10 @@ Dev Notes
 - should precompute `allinters`.
 """
 function getSiblingsDelayOrder(tree::AbstractBayesTree,
-                               cliq::TreeClique,
-                              #  prnt,
-                               dwnkeys::Vector{Symbol}; # dwinmsgs::LikelihoodMessage;
-                               logger=ConsoleLogger())
+                                cliq::TreeClique,
+                                #  prnt,
+                                dwnkeys::Vector{Symbol}; # dwinmsgs::LikelihoodMessage;
+                                logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -467,7 +467,6 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
   dwninters = Vector{Int}(undef, len)
-  # dwnkeys = collect(keys(dwinmsgs.belief))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end

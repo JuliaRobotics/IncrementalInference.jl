@@ -9,9 +9,11 @@ using IncrementalInference
 fg = generateCanonicalFG_CaesarRing1D(graphinit=false)
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
+@show getLogPath(fg)
 
 # temporary
-# getSolverParams(fg).dbg = true
+getSolverParams(fg).drawtree = true
+getSolverParams(fg).dbg = true
 
 # do all init on tree as part of solve
 # getSolverParams(fg).drawtree = true
