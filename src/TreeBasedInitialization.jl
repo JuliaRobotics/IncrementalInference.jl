@@ -167,10 +167,10 @@ end
 # future, be used in a cached system with parent in one location only for all siblings
 function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
                                              products::LikelihoodMessage,
-                                             msgspervar::IntermediateMultiSiblingMessages,
+                                             msgspervar::IntermediateMultiSiblingMessagesTB{T},
                                              prnt::TreeClique,
                                              cliq::TreeClique,
-                                             logger=ConsoleLogger() )
+                                             logger=ConsoleLogger() ) where T
   #
 
   # determine the variables of interest

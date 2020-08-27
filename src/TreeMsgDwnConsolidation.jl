@@ -100,7 +100,7 @@ function getMsgInitDwnParent(treel::AbstractBayesTree,
   end
   
   # FIXME type instability
-  msgspervar = nothing
+  msgspervar = IntermediateMultiSiblingMessagesTB{ContinuousScalar}()
   for (msgcliqid, msgs) in prntmsgs
     # with_logger(logger) do  #   @info "getMsgInitDwnParent -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief

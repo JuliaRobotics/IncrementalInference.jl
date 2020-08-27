@@ -141,17 +141,17 @@ end
 
 
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
+                        msgs::IntermediateMultiSiblingMessagesTB{T} ) where T #Dict{Symbol, Vector{Tuple{BallTreeDensity, Float64}}} )
   # msgs::
   # add messages as priors to this sub factor graph
-  # @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
+  @warn "Tuple{KDE,Floa64} specific version of addMsgFactors! is deprecated, use LikelihoodMessage version instead."
   msgfcts = DFGFactor[]
   svars = DFG.listVariables(subfg)
   for (msym, dms) in msgs
-    for dm in dms
+    for treebelief in dms
       if msym in svars
         # TODO should be on manifold prior, not just generic euclidean prior -- okay since variable on manifold, but not for long term
-        fc = addFactor!(subfg, [msym], MsgPrior(dm[1], dm[2]), graphinit=false)
+        fc = addFactor!(subfg, [msym], MsgPrior(manikde!(treebelief), treebelief.inferdim), graphinit=false)
         push!(msgfcts, fc)
       end
     end
