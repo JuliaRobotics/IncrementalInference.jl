@@ -70,19 +70,19 @@ end
 
 
 function bruteForcePushErrorCSM(tree)
-    errMsg = LikelihoodMessage(IIF.ERROR_STATUS)
+    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
     for (i, ch) in tree.messages
 
         if isready(ch.upMsg)
             take!(ch.upMsg)
         else
-            @info(i, " ", ch.upMsg)
+            @info("Up edge $i", ch.upMsg)
             @async put!(ch.upMsg, errMsg)
         end
         if isready(ch.downMsg)
             take!(ch.downMsg)
         else
-            @info(i, " ", ch.downMsg)
+            @info("Down edge $i", ch.downMsg)
             @async put!(ch.downMsg, errMsg)
         end
 

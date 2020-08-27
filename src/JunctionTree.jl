@@ -756,6 +756,16 @@ function initTreeMessageChannels!(tree::MetaBayesTree)
   return nothing
 end
 
+function refTreeMessageChannelsFromBTND!(tree::BayesTree)
+  for inci in tree.bt.inclist
+    for e in inci
+        downMsg = e.target.data.dwnMsgChannel
+        upMsg = e.target.data.upMsgChannel
+        push!(tree.messages, e.index=>(upMsg=upMsg,downMsg=downMsg))
+    end
+  end
+  return nothing
+end
 
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
