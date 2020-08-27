@@ -608,6 +608,7 @@ function prepgenericconvolution(
   return ccw
 end
 
+# TODO perhaps consolidate with constructor?
 """
 $SIGNATURES
 
@@ -619,8 +620,11 @@ function getDefaultFactorData(
       usrfnc::T;
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded ) where
-        {T <: FunctorInferenceType}
+      threadmodel=SingleThreaded,
+      eliminated::Bool = false,
+      potentialused::Bool = false,
+      edgeIDs = Int[],
+      solveInProgress = 0) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -631,8 +635,8 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, nullhypo, 0)
-  return data_ccw
+  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress)
+
 end
 
 """

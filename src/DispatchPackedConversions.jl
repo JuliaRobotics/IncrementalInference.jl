@@ -65,10 +65,19 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFacto
   neighborUserData = map(v->getSolverData(v).softtype, neighbors)
 
   # Rebuilding the CCW
-  ccw_new = getDefaultFactorData(dfg, neighbors, getFactorType(factor), multihypo=getSolverData(factor).multihypo)
+  fsd = getSolverData(factor)
+  ccw_new = getDefaultFactorData(dfg, neighbors, getFactorType(factor), 
+                                 multihypo=fsd.multihypo,
+                                 nullhypo=fsd.nullhypo,
+                                 eliminated=fsd.eliminated,
+                                 potentialused=fsd.potentialused,
+                                 edgeIDs=fsd.edgeIDs,
+                                 solveInProgress=fsd.solveInProgress)
   setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
+  # JT TODO it looks like this is already updated in getDefaultFactorData -> prepgenericconvolution
+  # factormetadata.variableuserdata is deprecated, remove when removing deprecation
   for i in 1:Threads.nthreads()
     ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
   end
