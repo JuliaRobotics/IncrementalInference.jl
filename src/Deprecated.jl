@@ -27,6 +27,8 @@ end
 ##==============================================================================
 
 
+@deprecate putCliqueMsgDown!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing) putMsgDwnThis!(cdata, msg, from=from)
+
 # """
 #     $SIGNATURES
 

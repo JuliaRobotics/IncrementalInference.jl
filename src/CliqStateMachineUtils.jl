@@ -593,10 +593,11 @@ Determine clique truely isn't able to proceed any further:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
 function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
-                                     cliq::TreeClique,
-                                    #  prnt,
-                                     dwinmsgs::LikelihoodMessage;
-                                     logger=ConsoleLogger())
+                                      cliq::TreeClique,
+                                      #  prnt,
+                                      dwinmsgs::LikelihoodMessage;
+                                      logger=ConsoleLogger())
+  #
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs.belief
@@ -609,11 +610,11 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     end
   end
   partialKeys = collect(keys(hasPartials))
-
+  
   ## determine who might be able to help init this cliq
   # check sibling separator sets against this clique's separator
   sibs = getCliqSiblings(tree, cliq)
-
+  
   with_logger(logger) do
     @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
   end
@@ -637,7 +638,6 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
   end
   # determine if those cliques will / or will not be able to provide more info
   # when does clique change to :mustinitdown
-
   # default
   return false
 end

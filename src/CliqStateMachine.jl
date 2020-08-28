@@ -497,17 +497,17 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # this guy is getting any sibling up messages by calling on the parent
   prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, prnt, TreeBelief, skip=[csmc.cliq.index;])         
   
-  infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
-  # stack all parent incoming upward messages into dict of vector msgs
-  msgspervar = getMsgInitDwnParent(prntmsgs, logger=csmc.logger)  # ::Dict{Symbol, Vector{TreeBelief}()
   # reference to default dict location
   dwinmsgs = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
+  infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
+  
+  # stack all parent incoming upward messages into dict of vector msgs
+  prntBelDictVec::Dict{Symbol, Vector{TreeBelief}} = convertLikelihoodToVector(prntmsgs, logger=csmc.logger)
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
-  
-  # this function populates `dwinmsgs` with the appropriate products described in `msgspervar`
+  # this function populates `dwinmsgs` with the appropriate products described in `prntBelDictVec`
   # FIXME, should not be using full .dfg ???
-  condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, msgspervar, prnt, csmc.cliq, csmc.logger)
+  condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, prntBelDictVec, prnt, csmc.cliq, csmc.logger)
 
   # remove msgs that have no data
   rmlist = Symbol[]
@@ -529,7 +529,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # FIXME must be consolidated as part of #459
   putCliqueInitMsgDown!(getCliqueData(prnt), dwinmsgs)
   # unlock
-  unlockUpStatus!(prnt) # TODO XY ???? , maybe can remove after pull model #674?
+  unlockUpStatus!(prnt) # TODO XY ????, maybe can remove after pull model #674?
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
   # go to 8j.
