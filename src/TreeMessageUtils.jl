@@ -466,4 +466,47 @@ end
 
 
 
+"""
+    $SIGNATURES
+
+Calculate a new down message from the parent.
+
+DevNotes
+- FIXME should be handled in CSM
+"""
+function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
+                                    logger=SimpleLogger(stdout) )
+  #
+  # check if any msgs should be multiplied together for the same variable
+  
+  # FIXME type instability
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
+  for (msgcliqid, msgs) in prntmsgs
+    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
+    for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.softtype)
+      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
+      if !haskey(msgspervar, msgsym)
+        # there will be an entire list...
+        msgspervar[msgsym] = TreeBelief{varType}[]
+      end
+      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
+      push!(msgspervar[msgsym], msg)
+    end
+  end
+
+  return msgspervar
+end
+
+
+function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
+  while fetchMsgDwnInit(cliq).status != status
+    wait(getSolveCondition(cliq))
+  end
+  nothing
+end
+
+
+
 #

@@ -441,10 +441,10 @@ Dev Notes
 - should precompute `allinters`.
 """
 function getSiblingsDelayOrder(tree::AbstractBayesTree,
-                               cliq::TreeClique,
-                              #  prnt,
-                               dwnkeys::Vector{Symbol}; # dwinmsgs::LikelihoodMessage;
-                               logger=ConsoleLogger())
+                                cliq::TreeClique,
+                                #  prnt,
+                                dwnkeys::Vector{Symbol}; # dwinmsgs::LikelihoodMessage;
+                                logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -467,7 +467,6 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
   dwninters = Vector{Int}(undef, len)
-  # dwnkeys = collect(keys(dwinmsgs.belief))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end
@@ -594,13 +593,14 @@ Determine clique truely isn't able to proceed any further:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
 function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
-                                     cliq::TreeClique,
-                                    #  prnt,
-                                     dwinmsgsbelief::Dict{Symbol, TreeBelief};
-                                     logger=ConsoleLogger())
+                                      cliq::TreeClique,
+                                      #  prnt,
+                                      dwinmsgs::LikelihoodMessage;
+                                      logger=ConsoleLogger())
+  #
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
-  for (sym, tmsg) in dwinmsgsbelief
+  for (sym, tmsg) in dwinmsgs.belief
     # assuming any down message per label that is not partial voids further partial consideration
     if sum(tmsg.inferdim) > 0
       if !haskey(hasPartials, sym)
@@ -610,11 +610,11 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     end
   end
   partialKeys = collect(keys(hasPartials))
-
+  
   ## determine who might be able to help init this cliq
   # check sibling separator sets against this clique's separator
   sibs = getCliqSiblings(tree, cliq)
-
+  
   with_logger(logger) do
     @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
   end
@@ -638,7 +638,6 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
   end
   # determine if those cliques will / or will not be able to provide more info
   # when does clique change to :mustinitdown
-
   # default
   return false
 end
