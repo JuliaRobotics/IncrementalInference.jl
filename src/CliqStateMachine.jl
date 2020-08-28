@@ -476,10 +476,9 @@ DevNotes
 """
 function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   #
+  # TODO consider exit early for root clique rather than avoiding this function
   infocsm(csmc, "8a, needs down message -- attempt down init")
   setCliqDrawColor(csmc.cliq, "gold")
-
-  # TODO consider exit early for root clique rather than avoiding this function
 
   # initialize clique in downward direction
   # not if parent also needs downward init message
@@ -495,17 +494,21 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   # check if any msgs should be multiplied together for the same variable
   # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
   # FIXME, post #459 calls?
+  # this guy is getting any sibling up messages by calling on the parent
   prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, prnt, TreeBelief, skip=[csmc.cliq.index;])         
   
   infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
+  # stack all parent incoming upward messages into dict of vector msgs
   msgspervar = getMsgInitDwnParent(prntmsgs, logger=csmc.logger)  # ::Dict{Symbol, Vector{TreeBelief}()
   # reference to default dict location
   dwinmsgs = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
   ## TODO use parent factors too
   # intersect with the asking clique's separator variables
+  
+  # this function populates `dwinmsgs` with the appropriate products described in `msgspervar`
   # FIXME, should not be using full .dfg ???
   condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, msgspervar, prnt, csmc.cliq, csmc.logger)
-  
+
   # remove msgs that have no data
   rmlist = Symbol[]
   for (prsym,belmsg) in dwinmsgs.belief
@@ -519,27 +522,15 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
     delete!(dwinmsgs.belief, pr)
   end
 
-  infocsm(csmc, "cliq $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
+  infocsm(csmc, "prnt $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
 
   # now put the newly computed message in the appropriate container
   # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
   # FIXME must be consolidated as part of #459
   putCliqueInitMsgDown!(getCliqueData(prnt), dwinmsgs)
-
-  dwnkeys = collect(keys(dwinmsgs.belief))
-  infocsm(csmc, "8a, attemptCliqInitD., dwinmsgs=$(dwnkeys), adding msg factors")
-
-  # add downward belief prop msgs
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
-  # determine if more info is needed for partial
-  sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
-  updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
-  infocsm(csmc, "8a, attemptCliqInitD., updated clique solvable dims and unlock")
-
   # unlock
-  unlockUpStatus!(prnt) # TODO XY ????
+  unlockUpStatus!(prnt) # TODO XY ???? , maybe can remove after pull model #674?
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
-  opt.dbg ? saveDFG(joinLogPath(csmc.cliqSubFg, "logs", "cliq$(csmc.cliq.index)", "fg_DWNCMN"), csmc.cliqSubFg) : nothing
 
   # go to 8j.
   return dwnInitSiblingWaitOrder_StateMachine
@@ -547,10 +538,10 @@ end
 
 
 """
-    $SIGNATURES
+$SIGNATURES
 
 Test waiting order between siblings for cascading downward tree initialization.
-
+  
 Notes
 - State machine function 8j.
 
@@ -559,15 +550,28 @@ DevNotes
 - This might be replaced with 4-stroke tree-init, if that algorithm turns out to work in all cases.
 """
 function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
-  # FIXME try split CSM here, need replacement for dwinmsgs
+  
   prnt = getParent(csmc.tree, csmc.cliq)[1]
   opt = getSolverParams(csmc.cliqSubFg) # csmc.dfg
   
-  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
-  # NOTE, only use separators, not all parent variables
-  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
-
+  # now get the newly computed message from the appropriate container
+  # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
+  # FIXME must be consolidated as part of #459
   dwinmsgs = getfetchCliqueInitMsgDown(getCliqueData(prnt), from=:dwnInitSiblingWaitOrder_StateMachine)
+
+  # add downward belief prop msgs
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
+  # determine if more info is needed for partial
+  sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
+  updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
+    
+  opt.dbg ? saveDFG(joinLogPath(csmc.cliqSubFg, "logs", "cliq$(csmc.cliq.index)", "fg_DWNCMN"), csmc.cliqSubFg) : nothing
+
+  dwnkeys_ = collect(keys(dwinmsgs.belief))
+
+  # NOTE, only use separators, not all parent variables
+  # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
+  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344

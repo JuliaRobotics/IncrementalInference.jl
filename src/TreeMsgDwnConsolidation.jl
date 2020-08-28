@@ -98,7 +98,7 @@ function getMsgInitDwnParent( prntmsgs;
     for (msgsym, msg) in msgs.belief
       # re-initialize with new type
       varType = typeof(msg.softtype)
-      msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
+      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...
         msgspervar[msgsym] = TreeBelief{varType}[]

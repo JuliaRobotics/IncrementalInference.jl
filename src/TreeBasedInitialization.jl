@@ -165,12 +165,14 @@ end
 
 # Helper function for prepCliqInitMsgsDown!
 # future, be used in a cached system with parent in one location only for all siblings
+# this function rebuilds a local subgraph from dfg and performs the calculations of the parent here and does not wait on the CSM to perform anything.
+# 4-stroke compute may render this whole function obsolete.
 function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
-                                             products::LikelihoodMessage,
-                                             msgspervar::Dict{Symbol, <:AbstractVector},
-                                             prnt::TreeClique,
-                                             cliq::TreeClique,
-                                             logger=ConsoleLogger() )
+                                              products::LikelihoodMessage,
+                                              msgspervar::Dict{Symbol, <:AbstractVector},
+                                              prnt::TreeClique,
+                                              cliq::TreeClique,
+                                              logger=ConsoleLogger() )
   #
 
   # determine the variables of interest
@@ -180,11 +182,11 @@ function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
   lvarids = union(prntvars, reqMsgIds)
   # determine allowable factors, if any (only from parent cliq)
   awfcts = getCliqFactorIdsAll(prnt)
-  with_logger(logger) do
-      @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
-      @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
-      @info "condenseDownMsgsProductPrntFactors! -- allow factors $awfcts"
-  end
+    # with_logger(logger) do
+    #     @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
+    #     @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
+    #     @info "condenseDownMsgsProductPrntFactors! -- allow factors $awfcts"
+    # end
 
   # build required subgraph for parent/sibling down msgs
   lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
@@ -193,14 +195,14 @@ function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
   dellist = setdiff(awfcts, tempfcts)
   for delf in dellist
     # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-    if exists(lsfg, delf) # hasFactor
+    if exists(lsfg, delf)
       deleteFactor!(lsfg,delf)
     end
   end
-  with_logger(logger) do
-      @info "condenseDownMsgsProductPrntFactors! -- lsfg fcts=$(lsf(lsfg)),"
-      @info "condenseDownMsgsProductPrntFactors! -- excess factors $dellist"
-  end
+    # with_logger(logger) do
+    #     @info "condenseDownMsgsProductPrntFactors! -- lsfg fcts=$(lsf(lsfg)),"
+    #     @info "condenseDownMsgsProductPrntFactors! -- excess factors $dellist"
+    # end
 
   # add message priors
   addMsgFactors!(lsfg, msgspervar) # , DownwardPass
@@ -209,30 +211,27 @@ function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
   # FIXME, better consolidate with CSM ....uhhh TODO
   initSolveSubFg!(lsfg, logger)
 
-      # QUICK DBG CODE
-      vars = ls(lsfg)
-      len = length(vars)
-      tdims = Vector{Float64}(undef, len)
-      isinit = Vector{Bool}(undef, len)
-      for idx in 1:len
-        tdims[idx] = getVariableSolvableDim(lsfg, vars[idx])
-        isinit[idx] = isInitialized(lsfg, vars[idx])
-      end
-      with_logger(logger) do
-          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: vars=$vars"
-          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
-          @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
-      end
-      # QUICK DBG CODE
+    # # QUICK DBG CODE
+    # vars = ls(lsfg)
+    # len = length(vars)
+    # tdims = Vector{Float64}(undef, len)
+    # isinit = Vector{Bool}(undef, len)
+    # for idx in 1:len
+    #   tdims[idx] = getVariableSolvableDim(lsfg, vars[idx])
+    #   isinit[idx] = isInitialized(lsfg, vars[idx])
+    # end
+    # with_logger(logger) do
+    #     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: vars=$vars"
+    #     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
+    #     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
+    # end
+    # # QUICK DBG CODE
 
   # extract complete downward marginal msg priors
   for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
     vari = getVariable(lsfg, id)
     products.belief[id] = TreeBelief(vari)
   end
-
-  # if recycling lsfg
-  # deleteMsgFactors!(...)
 
   nothing
 end
