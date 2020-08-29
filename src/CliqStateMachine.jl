@@ -94,7 +94,7 @@ Notes
 """
 function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # RECENT split from 11 (using #760 solution for deleteMsgFactors)
-  opts = getSolverParams(csmc.dfg)
+  opts = getSolverParams(csmc.cliqSubFg)
 
   # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
