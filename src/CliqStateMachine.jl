@@ -80,9 +80,21 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
+  # go to 11b.
+  return cleanupAfterDownSolve_StateMachine
+end
 
-  
-  # FIXME split bottom part into new CSM (using #760 solution for deleteMsgFactors)
+"""
+    $SIGNATURES
+
+One of the last steps in CSM to clean up after a down solve.
+
+Notes
+- CSM function 11b.
+"""
+function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  # RECENT split from 11 (using #760 solution for deleteMsgFactors)
+  opts = getSolverParams(csmc.dfg)
 
   # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
@@ -109,8 +121,8 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(msgfcts))")
   rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(rmFcts))")
   deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
