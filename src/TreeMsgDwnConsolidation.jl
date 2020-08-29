@@ -1,13 +1,33 @@
 
 # these functions and their use in the code need to be consolidated to conclude #459
 
+## ============================================================================
+## NEW consolidated dwn message container
+## ============================================================================
+
+getDwnMsgConsolidated(btnd::BayesTreeNodeData) = btnd.dwnMsgChannel
+getDwnMsgConsolidated(cliq::TreeClique) = getDwnMsgConsolidated(getCliqueData(cliq))
+
+function fetchDwnMsgConsolidated(btnd::BayesTreeNodeData)
+  fetch(getDwnMsgConsolidated(btnd))
+end
+fetchDwnMsgConsolidated(cliq::TreeClique) = fetchDwnMsgConsolidated(getCliqueData(cliq))
+
+function putDwnMsgConsolidated!(btnd::BayesTreeNodeData, msg::LikelihoodMessage)
+  dmc = getDwnMsgConsolidated(btnd)
+  if isready(dmc)
+    take!(dmc)
+  end
+  put!(dmc, msg)
+end
+putDwnMsgConsolidated!(cliq::TreeClique, msg::LikelihoodMessage) = putDwnMsgConsolidated!(getCliqueData(cliq), msg)
 
 ## ============================================================================
 ## .initDownChannel
 ## ============================================================================
 
 
-getMsgDwnInitChannel_(cdat::BayesTreeNodeData) = cdat.initDownChannel
+getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
 
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 
@@ -58,7 +78,6 @@ function putMsgDwnThis!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::
   cdata.dwnMsg = msg
 end  
 function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
-  # iifdepwarn("#459 replace with putCliqueMsgDown!", :putMsgDwnThis!)
   getCliqueData(cliql).dwnMsg = msgs
 end  
 putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
