@@ -41,7 +41,8 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   opts = getSolverParams(csmc.dfg)
 
-  # get down msg from parent (assing root clique CSM wont make it here)
+  # get down msg from parent (assuming root clique CSM wont make it here)
+  # this looks like a pull model #674
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = fetchMsgDwnThis(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
@@ -68,16 +69,19 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # compute new down messages
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- going to set new down msgs.")
-  getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
-  # setDwnMsg!(cliq, drt.keepdwnmsgs)
+  newDwnMsgs = getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
+  
+    #JT 459 putMsgDwnThis!(cliq, newDwnMsgs), DF still looks like a pull model here #674
+    putCliqueMsgDown!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
 
-      # update clique subgraph with new status
-      setCliqDrawColor(csmc.cliq, "lightblue")
+    # update clique subgraph with new status
+    setCliqDrawColor(csmc.cliq, "lightblue")
 
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
 
+  
   # FIXME split bottom part into new CSM (using #760 solution for deleteMsgFactors)
 
   # set PPE and solved for all frontals
@@ -105,7 +109,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(msgfcts))")
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(msgfcts))")
   rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
   deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
 
@@ -146,6 +150,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   if length(prnt) > 0
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going to block on parent.")
     # TODO -- some cleanup
+    # this portion looks like a pull model #674
     blockCliqUntilParentDownSolved(prnt[1], logger=csmc.logger)
     prntst = getCliqueStatus(prnt[1])
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, parent status=$prntst.")
@@ -161,26 +166,26 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
 
-    # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)    # setDwnMsg!(csmc.cliq, dwnmsgs) #
+    # this part looks like a pull model
+    # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
     putCliqueMsgDown!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!)
-
     setCliqueStatus!(csmc.cliq, :downsolved)
-	csmc.dodownsolve = false
+	  csmc.dodownsolve = false
 
-	# Update estimates and transfer back to the graph
-	frsyms = getCliqFrontalVarIds(csmc.cliq)
+	  # Update estimates and transfer back to the graph
+	  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  
+	  # set PPE and solved for all frontals
+	  for sym in frsyms
+	    # set PPE in cliqSubFg
+	    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+	    # set solved flag
+	    vari = getVariable(csmc.cliqSubFg, sym)
+	    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+	  end
 
-	# set PPE and solved for all frontals
-	for sym in frsyms
-	  # set PPE in cliqSubFg
-	  setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-	  # set solved flag
-	  vari = getVariable(csmc.cliqSubFg, sym)
-	  setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
-	end
-
-	# Transfer to parent graph
-	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
+	  # Transfer to parent graph
+	  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 

@@ -64,7 +64,7 @@ end
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
- 
+
 
 ## ============================================================================
 ## .downInitMsg
