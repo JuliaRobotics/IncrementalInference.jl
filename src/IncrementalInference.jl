@@ -87,7 +87,8 @@ export AbstractDFG,
   DFGVariable,
   DFGVariableSummary, 
   DFGFactor,
-  DFGFactorSummary
+  DFGFactorSummary,
+  deleteVariableSolverData!
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
