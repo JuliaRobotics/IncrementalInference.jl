@@ -2,6 +2,17 @@
 using Test
 using IncrementalInference
 
+@testset "basic per clique stopping criteria" begin
+
+fg = generateCanonicalFG_lineStep(1)
+tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
+
+@test haskey(hist, 1)
+
+@test hist[1] |> length == 2
+
+end
+
 
 @testset "basic test for tree initialization functionality" begin
 

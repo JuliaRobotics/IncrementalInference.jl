@@ -1303,7 +1303,7 @@ function asyncTreeInferUp!(dfg::AbstractDFG,
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
-          limiter = 0<length(limthiscsm) ? limthiscsm[2] : limititers
+          limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
           alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
@@ -1355,7 +1355,7 @@ function initInferTreeUp!(dfg::AbstractDFG,
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
-          limiter = 0<length(limthiscsm) ? limthiscsm[2] : limititers
+          limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
           alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
