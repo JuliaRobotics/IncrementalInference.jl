@@ -487,6 +487,7 @@ Notes
 - State machine function nr. 8a
 - Includes initialization routines.
 - TODO: Make multi-core
+- FIXME this function does work that should actually occur in the parent CSM, there not all pull model #674
 
 DevNotes
 - FIXME majore refactor of this function required.
@@ -503,7 +504,7 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   opt = getSolverParams(csmc.dfg)
   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
 
-  # take atomic lock when waiting for down ward information
+  # take atomic lock OF PARENT ??? when waiting for downward information
   lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
   infocsm(csmc, "8a, after up lock")
 
