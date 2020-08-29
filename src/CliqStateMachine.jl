@@ -492,7 +492,7 @@ DevNotes
 - FIXME major refactor of this function required.
 - FIXME this function actually occur during the parent CSM, therefore not all pull model #674
 """
-function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
+function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContainer)
   #
   # TODO consider exit early for root clique rather than avoiding this function
   infocsm(csmc, "8a, needs down message -- attempt down init")
@@ -597,25 +597,25 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   # follow example from issue #344
   mustwait = false
   if length(intersect(dwnkeys_, getCliqSeparatorVarIds(csmc.cliq))) == 0
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys_, logger=csmc.logger)
-    infocsm(csmc, "8a, attemptCliqInitD., prioritize")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, prioritize")
     mustwait = true
   elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
-    infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, partialneedsmore")
     mustwait = true
   end
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
+  infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, must wait on change.")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, must wait on change.")
     # remove all message factors
     fctstorm = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
-    infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
     rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
     # remove msg factors previously added
     deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
@@ -651,7 +651,7 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
+  infocsm(csmc, "8e, collectDwnInitMsgFromParent_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
@@ -671,7 +671,7 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # remove all message factors
   # remove msg factors previously added
   fctstorm = ls(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+  infocsm(csmc, "8e, collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
   rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
   deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
 
@@ -726,11 +726,11 @@ function towardUpOrDwnSolve_StateMachine(csmc::CliqStateMachineContainer)
   sleep(0.1) # FIXME remove after #459 resolved
   # return doCliqInferAttempt_StateMachine
   cliqst = getCliqueStatus(csmc.cliq)
-  infocsm(csmc, "7b, status=$(cliqst), before attemptCliqInitDown_StateMachine")
+  infocsm(csmc, "7c, status=$(cliqst), before picking direction")
   # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
   if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq, csmc.logger)
     # go to 8a
-    return attemptCliqInitDown_StateMachine
+    return collectDwnInitMsgFromParent_StateMachine
   # HALF DUPLICATED IN STEP 4
   elseif cliqst == :marginalized
     # go to 1
