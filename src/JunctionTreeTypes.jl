@@ -231,9 +231,6 @@ function CliqStateMachineContainer(x1::G,
               # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
 end
 
-compare(a::Int, b::Int) = a == b
-compare(a::Bool, b::Bool) = a == b
-compare(a::Dict, b::Dict) = a == b
 
 function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
                  cs2::CliqStateMachineContainer{BTND2, T2, InMemG2, BT2};
@@ -306,14 +303,14 @@ mutable struct BayesTreeNodeData
   initialized::Symbol
   upsolved::Bool
   downsolved::Bool
-  isCliqReused::Bool             # iSAM2 holdover
+  isCliqReused::Bool             # holdover
 
   # FIXME remove and only use upMsgChannel / dwnMsgChannel
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure dwn init is pull model #674
   dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
   downInitMsg::LikelihoodMessage
-  initDownChannel::Channel{LikelihoodMessage}
+  # initDownChannel::Channel{LikelihoodMessage}
 
   # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
@@ -325,7 +322,7 @@ mutable struct BayesTreeNodeData
   # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
 
-  # NOT USED YET, FIXME in and out message channels relating to THIS clique -- to replace upMsg/dwnMsg
+  # fingal down channel container at conclusion of 459
   dwnMsgChannel::Channel{LikelihoodMessage}
 end
 
@@ -397,7 +394,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             isCliqReused=false,
                             dwnMsg=LikelihoodMessage(),                     # DEPRECATE
                             downInitMsg=LikelihoodMessage(),                # DEPRECATE
-                            initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
+                            # initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
@@ -429,7 +426,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         isCliqReused,
                         dwnMsg,
                         downInitMsg,
-                        initDownChannel,
+                        # initDownChannel,
                         solveCondition,
                         lockUpStatus,
                         lockDwnStatus,
@@ -442,22 +439,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
 end
 #
 
-function compare(c1::Channel,
-                 c2::Channel;
-                 skip::Vector{Symbol}=[] )
-  #
-  TP = true
-  TP = TP && c1.state == c2.state
-  TP = TP && c1.sz_max == c2.sz_max
-  TP = TP && c1.data |> length == c2.data |> length
-  # exit early if tests already failed
-  !TP && (return false)
-  # now check contents of data
-  for i in 1:length(c1.data)
-    TP = TP && c1.data[i] == c2.data[i]
-  end
-  return TP
-end
 
 function compare(c1::BayesTreeNodeData,
                  c2::BayesTreeNodeData;

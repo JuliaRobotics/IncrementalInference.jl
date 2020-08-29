@@ -1,6 +1,14 @@
 
 # these functions and their use in the code need to be consolidated to conclude #459
 
+# TODO consolidate
+export
+  fetchDwnMsgsThis,
+  getMsgDwnThisInit,
+  getMsgDownParent,
+  getMsgDwnInitChannel_
+
+
 ## ============================================================================
 ## NEW consolidated dwn message container
 ## ============================================================================
@@ -22,18 +30,41 @@ function putDwnMsgConsolidated!(btnd::BayesTreeNodeData, msg::LikelihoodMessage)
 end
 putDwnMsgConsolidated!(cliq::TreeClique, msg::LikelihoodMessage) = putDwnMsgConsolidated!(getCliqueData(cliq), msg)
 
+
+
+
+# FIXME OLD must be consolidated as part of 459
+function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
+  cdat = getCliqueData(cliq)
+  cdc = getMsgDwnInitChannel_(cdat)
+    if isready(cdc)
+      content = take!(cdc)
+      with_logger(logger) do
+        @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
+      end
+    end
+  put!(cdc, LikelihoodMessage(status=status))
+  notify(getSolveCondition(cliq))
+    # FIXME hack to mitigate old race condition
+    sleep(0.1)
+    notify(getSolveCondition(cliq))
+
+  nothing
+end
+
 ## ============================================================================
 ## .initDownChannel
 ## ============================================================================
 
 
-getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
+@deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
+@deprecate getMsgDwnInitChannel_(btnd::BayesTreeNodeData) getDwnMsgConsolidated(btnd)
+# getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
 
 getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
-
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
-
+ 
 
 ## ============================================================================
 ## .downInitMsg
@@ -82,29 +113,6 @@ function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
 end  
 putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
   
-
-
-
-
-# FIXME will be consolidated as part of 459
-function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
-  cdat = getCliqueData(cliq)
-  cdc = getMsgDwnInitChannel_(cdat)
-    if isready(cdc)
-      content = take!(cdc)
-      with_logger(logger) do
-        @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
-      end
-    end
-  put!(cdc, LikelihoodMessage(status=status))
-  notify(getSolveCondition(cliq))
-    # FIXME hack to mitigate old race condition
-    sleep(0.1)
-    notify(getSolveCondition(cliq))
-
-  nothing
-end
-
 
 
 

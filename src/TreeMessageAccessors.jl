@@ -7,20 +7,11 @@ export
 # Reguler accessors
 export
   getMsgUpThis,
-  fetchDwnMsgsThis,
-  fetchMsgDwnInit
-
-# TODO consolidate
-export
-  getMsgDwnThisInit,
-  getMsgDwnInitChannel_
-
-export
-  putMsgUpThis!
-
-export
-  getMsgDownParent,
   getMsgsUpChildren,
+  fetchMsgDwnInit
+  # putMsgUpThis!
+  
+export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
 
