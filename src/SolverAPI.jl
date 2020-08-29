@@ -11,6 +11,7 @@ Notes
 - Latest result always stored in `solvekey=:default`.
 - Experimental `storeOld::Bool=true` will duplicate the current result as supersolve `:default_k`.
   - Based on `solvable==1` assumption.
+- `limititercliqs` allows user to limit the number of iterations a specific CSM does.
 
 Example
 ```julia
@@ -22,16 +23,17 @@ Related
 
 solveCliq!, wipeBuildNewTree!
 """
-function solveTree!(dfgl::G,
+function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=emptyBayesTree();
                     storeOld::Bool=false,
                     verbose::Bool=false,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
+                    limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+                    variableConstraints::Vector{Symbol}=Symbol[]  )
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
@@ -89,10 +91,10 @@ function solveTree!(dfgl::G,
 
   @info "Do tree based init-inference on tree"
   if opt.async
-    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
     @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
     @info "Finished tree based init-inference"
   end
   
