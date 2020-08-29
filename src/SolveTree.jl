@@ -1273,7 +1273,7 @@ Related
 
 initInferTreeUp!
 """
-function asyncTreeInferUp!(dfg::G,
+function asyncTreeInferUp!(dfg::AbstractDFG,
                            treel::AbstractBayesTree;
                            oldtree::AbstractBayesTree=emptyBayesTree(),
                            verbose::Bool=false,
@@ -1282,9 +1282,10 @@ function asyncTreeInferUp!(dfg::G,
                            limititers::Int=-1,
                            downsolve::Bool=false,
                            incremental::Bool=false,
+                           limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                            skipcliqids::Vector{Symbol}=Symbol[],
                            delaycliqs::Vector{Symbol}=Symbol[],
-                           recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
+                           recordcliqs::Vector{Symbol}=Symbol[] )
   #
   resetTreeCliquesForUpSolve!(treel)
   if drawtree
@@ -1301,7 +1302,9 @@ function asyncTreeInferUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
+          limiter = 0<length(limthiscsm) ? limthiscsm[2] : limititers
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1321,7 +1324,7 @@ Related
 
 asyncTreeInferUp!
 """
-function initInferTreeUp!(dfg::G,
+function initInferTreeUp!(dfg::AbstractDFG,
                           treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
                           verbose::Bool=false,
@@ -1330,9 +1333,10 @@ function initInferTreeUp!(dfg::G,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
+                          limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
-                          delaycliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+                          delaycliqs::Vector{Symbol}=Symbol[] )
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -1350,7 +1354,9 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
+          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
+          limiter = 0<length(limthiscsm) ? limthiscsm[2] : limititers
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync
