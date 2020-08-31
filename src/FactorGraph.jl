@@ -817,9 +817,9 @@ function doautoinit!(dfg::T,
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label)
         # Update the data in the event that it's not local
-        updateVariableSolverData!(dfg, xi, :default, true)    # TODO perhaps usecopy=false
+        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    # TODO perhaps usecopy=false
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[], false)
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]; warn_if_absent=false)
         didinit = true
       end
     end
@@ -933,7 +933,7 @@ function resetInitialValues!(dest::AbstractDFG,
   for vs in varList
     vnd = getSolverData(getVariable(src, vs), initKey)
     # guess we definitely want to use copy to preserve the initKey memory
-    updateVariableSolverData!(dest,vs,vnd,solveKey,true)
+    updateVariableSolverData!(dest,vs,vnd,solveKey,true; warn_if_absent=false)
   end
   return dest
 end
