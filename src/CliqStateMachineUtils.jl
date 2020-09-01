@@ -359,7 +359,8 @@ function csmAnimate(tree::BayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
-                    rmfirst::Bool=true  ) where T <: AbstractVector
+                    rmfirst::Bool=true,
+                    folderpath::AbstractString="/tmp/caesar/csmCompound/"  ) where T <: AbstractVector
   #
 
   hists = Dict{Symbol, T}()
@@ -390,8 +391,8 @@ function csmAnimate(tree::BayesTree,
 
   # export all figures
   if rmfirst
-    @warn "Removing /tmp/caesar/csmCompound/ in preparation for new frames."
-    Base.rm("/tmp/caesar/csmCompound/", recursive=true, force=true)
+    @warn "Removing $folderpath in preparation for new frames."
+    Base.rm("$folderpath", recursive=true, force=true)
   end
 
   function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
@@ -400,7 +401,7 @@ function csmAnimate(tree::BayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, folderpath="/tmp/caesar/csmCompound", interval=interval, draw_more_cb=csmTreeAni )
+  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni )
 end
 
 """
