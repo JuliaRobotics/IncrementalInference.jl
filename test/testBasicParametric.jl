@@ -115,7 +115,7 @@ foreach(println, d)
 
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-#force message passing with maunaul variable order
+#force message passing with manual variable order
 tree = wipeBuildNewTree!(fg, variableOrder=[:x0, :x2, :x1])#
 
 IIF.initTreeMessageChannels!(tree)
@@ -132,14 +132,9 @@ tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
-#TODO tests needs covariance to pass
-if false
 @test isapprox(getVariable(fg,:x0).solverDataDict[:parametric].val[1], -0.01, atol=1e-4)
 @test isapprox(getVariable(fg,:x1).solverDataDict[:parametric].val[1], 0.0, atol=1e-4)
 @test isapprox(getVariable(fg,:x2).solverDataDict[:parametric].val[1], 0.01, atol=1e-4)
-else
-@error "SKIPPING TESTS: FIX Covariance (up/down msgs following 459)"
-end
 
 ################################################################################
 ## multiple sections

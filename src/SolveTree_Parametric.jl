@@ -29,17 +29,16 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   if !isTreeSolved(treel, skipinitialized=true)
     @sync begin
+      monitortask = monitorCSMs(treel, alltasks)
       # duplicate int i into async (important for concurrency)
       for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          # TODO WIP for Multithreaded, if compat is 1.3
-          alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
-          # if multithread
-          #   alltasks[i] = Threads.@spawn tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
-          # else
-          #   alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
-          # end
+          if multithread
+            alltasks[i] = Threads.@spawn tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+          else
+            alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+          end
         end # if
       end # for
     end # sync
@@ -51,6 +50,58 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   return alltasks, cliqHistories
 end
 
+function monitorCSMs(tree, alltasks)
+  task = @async begin
+    while true
+      all(istaskdone.(alltasks)) && break
+      for (i,t) in enumerate(alltasks)
+        if istaskfailed(t)
+          @error "Task $i failed, sending error to all cliques"
+          bruteForcePushErrorCSM(tree)
+          # for tree.messages
+          @info "All cliques should have exited"
+        end
+      end
+      sleep(1)
+    end
+  end
+  return task
+end
+
+
+function bruteForcePushErrorCSM(tree)
+    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
+    for (i, ch) in tree.messages
+
+        if isready(ch.upMsg)
+            take!(ch.upMsg)
+        else
+            @info("Up edge $i", ch.upMsg)
+            @async put!(ch.upMsg, errMsg)
+        end
+        if isready(ch.downMsg)
+            take!(ch.downMsg)
+        else
+            @info("Down edge $i", ch.downMsg)
+            @async put!(ch.downMsg, errMsg)
+        end
+
+    end
+
+    for (i, ch) in tree.messages
+
+        while isready(ch.upMsg)
+            @info "cleanup take on $i up"
+            take!(ch.upMsg)
+        end
+        while isready(ch.downMsg)
+            @info "cleanup take on $i down"
+            take!(ch.downMsg)
+        end
+
+    end
+
+end
 
 function tryCliqStateMachineSolveParametric!(dfg::G,
                                              treel::AbstractBayesTree,
