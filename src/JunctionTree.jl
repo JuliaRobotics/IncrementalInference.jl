@@ -355,6 +355,7 @@ Notes
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/caesar/random/bt.pdf",
+                  dpi::Int=200,
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
@@ -379,7 +380,11 @@ function drawTree(treel::AbstractBayesTree;
     fid = open("$(fpwoext).dot","w+")
     write(fid,to_dot(btc.bt))
     close(fid)
-    run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+    if string(fext) == "png"
+      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(filepath)`)
+    else
+      run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+    end
   catch ex
     @warn ex
     @show stacktrace()

@@ -355,13 +355,18 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function csmAnimate(fg::G,
-                    tree::AbstractBayesTree,
-                    cliqsyms::Vector{Symbol};
+function csmAnimate(tree::BayesTree,
+                    autohist::Dict{Int, T};
                     frames::Int=100,
-                    rmfirst::Bool=true  ) where G <: AbstractDFG
+                    interval::Int=2,
+                    rmfirst::Bool=true  ) where T <: AbstractVector
   #
-  hists = getTreeCliqsSolverHistories(fg,tree)
+
+  hists = Dict{Symbol, T}()
+  for (id, hist) in autohist
+    frtl = getFrontals(tree.cliques[id])
+    hists[frtl[1]] = hist
+  end
 
   startT = Dates.now()
   stopT = Dates.now()
@@ -388,7 +393,14 @@ function csmAnimate(fg::G,
     @warn "Removing /tmp/caesar/csmCompound/ in preparation for new frames."
     Base.rm("/tmp/caesar/csmCompound/", recursive=true, force=true)
   end
-  animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
+
+  function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
+    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"))
+    nothing
+  end
+
+  # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
+  animateStateMachineHistoryIntervalCompound(hists, folderpath="/tmp/caesar/csmCompound", interval=interval, draw_more_cb=csmTreeAni )
 end
 
 """
