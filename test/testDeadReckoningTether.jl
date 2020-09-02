@@ -91,7 +91,7 @@ vo = getEliminationOrder(fg)
 tree = buildTreeFromOrdering!(fg,vo)
 
 
-tree2, smt, hist = solveTree!(fg, recordcliqs=ls(fg));
+tree2, smt, hists = solveTree!(fg);
 
 @test !isInitialized(fg, :deadreckon_x0)
 
