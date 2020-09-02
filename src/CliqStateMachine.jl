@@ -1050,6 +1050,16 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
     updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
         # setCliqueStatus!(csmc.cliq, :uprecycled)
         # replacing similar functionality from CSM 1.
+    if getSolverParams(csmc.cliqSubFg).dbg
+      tmnow = now()
+      tmpst = getCliqueStatus(csmc.cliq)
+      @async begin
+        mkpath(joinLogPath(csmc.cliqSubFg,"logs","cliq$(csmc.cliq.index)"))
+        open(joinLogPath(csmc.cliqSubFg,"logs","cliq$(csmc.cliq.index)","incremental.log"), "w") do f
+          println(f, tmnow, ", marginalized from previous status ", tmpst)
+        end
+      end
+    end
     prepPutCliqueStatusMsgUp!(csmc, :uprecycled, dfg=csmc.dfg)
     setCliqDrawColor(csmc.cliq, "orange")
     #go to 10
@@ -1109,6 +1119,16 @@ function testCliqCanRecycled_StateMachine(csmc::CliqStateMachineContainer)
   if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
 
     # no work required other than assembling upward message
+    if getSolverParams(csmc.cliqSubFg).dbg
+      tmnow = now()
+      tmpst = getCliqueStatus(csmc.cliq)
+      @async begin
+        mkpath(joinLogPath(csmc.cliqSubFg,"logs","cliq$(csmc.cliq.index)"))
+        open(joinLogPath(csmc.cliqSubFg,"logs","cliq$(csmc.cliq.index)","marginalization.log"), "w") do f
+          println(f, tmnow, ", marginalized from previous status ", tmpst)
+        end
+      end
+    end
     prepPutCliqueStatusMsgUp!(csmc, :marginalized, dfg=csmc.dfg)
 
     # set marginalized color

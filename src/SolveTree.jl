@@ -1050,40 +1050,6 @@ function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
   return true
 end
 
-"""
-    $SIGNATURES
-
-Set the marginalized status of a clique.
-"""
-function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
-  if status
-    setCliqueStatus!(cliq, :marginalized)
-  else
-    if getCliqueData(cliq).initialized == :marginalized
-      @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      setCliqueStatus!(cliq, :downsolved)
-    else
-      error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
-    end
-  end
-end
-
-"""
-    $SIGNATURES
-
-Run through entire tree and set cliques as marginalized if all clique variables are marginalized.
-
-Notes:
-- TODO can be made fully parallel, consider converting for use with `@threads` `for`.
-"""
-function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::AbstractBayesTree)::Nothing
-  for (clid, cliq) in getCliques(tree)
-    if isCliqMarginalizedFromVars(fgl, cliq)
-      setCliqAsMarginalized!(cliq, true)
-    end
-  end
-  nothing
-end
 
 """
     $SIGNATURES
