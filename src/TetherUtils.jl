@@ -74,7 +74,9 @@ function rebaseFactorVariable!(dfg::AbstractDFG,
   fct = getFactor(dfg, fctsym)
   fcttype = getFactorType(fct)
   mh = getMultihypoDistribution(fct)
-
+ 
+  mh = isnothing(mh) ? Float64[] : mh 
+ 
   # get old vars
   oldvars = getVariableOrder(fct)
 
@@ -108,11 +110,11 @@ Related
 accumulateFactorMeans, solveBinaryFactorParameteric
 """
 function getFactorMean(fct::FunctorInferenceType)
-  fctt = typeof(getFactorType(fct))
+  fctt = typeof(fct)
   error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
 end
 
-getFactorMean(fct::Normal) = fct.μ
+getFactorMean(fct::Normal) = [fct.μ]
 getFactorMean(fct::MvNormal) = fct.μ
 getFactorMean(fct::BallTreeDensity) = getKDEMean(fct)
 getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
