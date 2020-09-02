@@ -360,7 +360,9 @@ function csmAnimate(tree::BayesTree,
                     frames::Int=100,
                     interval::Int=2,
                     rmfirst::Bool=true,
-                    folderpath::AbstractString="/tmp/caesar/csmCompound/"  ) where T <: AbstractVector
+                    folderpath::AbstractString="/tmp/caesar/csmCompound/", 
+                    fsmColors::Dict{Symbol,String}=Dict{Symbol,String}(),
+                    defaultColor::AbstractString="red"  ) where T <: AbstractVector
   #
 
   hists = Dict{Symbol, T}()
@@ -401,7 +403,7 @@ function csmAnimate(tree::BayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni )
+  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor )
 end
 
 """
