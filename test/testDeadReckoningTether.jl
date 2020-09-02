@@ -36,11 +36,14 @@ nothing
 end
 
 
-IIF.getFactorMean(fct::MutableLinearConditional) = getFactorMean(fct.Z)
-##
-
 
 @testset "testing dead reckoning tether" begin
+
+# test error message and then define method for MutableLinearConditional
+@test_throws ErrorException getFactorMean(MutableLinearConditional(Normal(0.0,0.1)))
+
+IIF.getFactorMean(fct::MutableLinearConditional) = getFactorMean(fct.Z)
+##
 
 # start with an empty factor graph object
 fg = initfg()
@@ -100,5 +103,9 @@ val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
 @test norm(val - calcVariablePPE(fg, :x0).suggested) < 1e-8
 
+#TODO improve test
+rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])
+@test issetequal(ls2(fg, :x0), [:x1, :l1])
+@test issetequal(ls2(fg, :x1), [:x0, :deadreckon_x0, :x2])
 
 end

@@ -74,7 +74,9 @@ function rebaseFactorVariable!(dfg::AbstractDFG,
   fct = getFactor(dfg, fctsym)
   fcttype = getFactorType(fct)
   mh = getMultihypoDistribution(fct)
-
+ 
+  mh = isnothing(mh) ? Float64[] : mh 
+ 
   # get old vars
   oldvars = getVariableOrder(fct)
 
