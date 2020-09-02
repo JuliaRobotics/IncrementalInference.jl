@@ -450,7 +450,7 @@ end
 
 Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
 """
-function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Float64, 2}
+function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
   @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
   len = length(vA)
   vals = Array{Array{Float64,2},1}()
@@ -472,7 +472,7 @@ function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)::Array{Flo
       val[:,(cols[i]+1):cols[i+1]] = vals[i]
   end
   val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
-  return val
+  return val::Array{Float64, 2}
 end
 
 
@@ -491,7 +491,8 @@ Note for initialization, solveFor = Nothing.
 function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
                              Xi::Vector{<:DFGVariable},
                              solvefor::Union{Nothing, Symbol},
-                             N::Int=0  )
+                             N::Int=0;
+                             solveKey::Symbol=:default  )
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -499,7 +500,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   sfidx = 0
 
   for xi in Xi
-    push!(ARR, getVal(xi))
+    push!(ARR, getVal(xi, solveKey=solveKey))
     len = size(ARR[end], 2)
     push!(LEN, len)
     if len > maxlen
@@ -513,7 +514,7 @@ function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
   SAMP=LEN.<maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getKDE(Xi[i]), maxlen)[1]
+      ARR[i] = KDE.sample(getKDE(Xi[i], solveKey), maxlen)[1]
     end
   end
 
@@ -607,6 +608,7 @@ function prepgenericconvolution(
   return ccw
 end
 
+# TODO perhaps consolidate with constructor?
 """
 $SIGNATURES
 
@@ -618,8 +620,11 @@ function getDefaultFactorData(
       usrfnc::T;
       multihypo::Vector{<:Real}=Float64[],
       nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded ) where
-        {T <: FunctorInferenceType}
+      threadmodel=SingleThreaded,
+      eliminated::Bool = false,
+      potentialused::Bool = false,
+      edgeIDs = Int[],
+      solveInProgress = 0) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -630,8 +635,8 @@ function getDefaultFactorData(
   ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
 
   # and the factor data itself
-  data_ccw = FunctionNodeData{CommonConvWrapper{T}}(false, false, Int[], ccw, multihypo, ccw.certainhypo, nullhypo, 0)
-  return data_ccw
+  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress)
+
 end
 
 """
@@ -812,9 +817,9 @@ function doautoinit!(dfg::T,
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label)
         # Update the data in the event that it's not local
-        updateVariableSolverData!(dfg, xi, :default, true)    # TODO perhaps usecopy=false
+        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    # TODO perhaps usecopy=false
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[], false)
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]; warn_if_absent=false)
         didinit = true
       end
     end
@@ -928,7 +933,7 @@ function resetInitialValues!(dest::AbstractDFG,
   for vs in varList
     vnd = getSolverData(getVariable(src, vs), initKey)
     # guess we definitely want to use copy to preserve the initKey memory
-    updateVariableSolverData!(dest,vs,vnd,solveKey,true)
+    updateVariableSolverData!(dest,vs,vnd,solveKey,true; warn_if_absent=false)
   end
   return dest
 end
@@ -1206,22 +1211,22 @@ function rmVarFromMarg(dfg::AbstractDFG,
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
-  @info " - Removing $(fromvert.label)"
+  @debug " - Removing $(fromvert.label)"
   for m in gm
-    @info "Looking at $(m.label)"
+    @debug "Looking at $(m.label)"
     for n in DFG.getNeighbors(dfg, m) #x1, x2
       if n == fromvert.label # n.label ==? x1
-        @info "   - Breaking link $(m.label)->$(fromvert.label)..."
-        @info "     - Original links: $(DFG.ls(dfg, m))"
+        @debug "   - Breaking link $(m.label)->$(fromvert.label)..."
+        @debug "     - Original links: $(DFG.ls(dfg, m))"
         remvars = setdiff(DFG.ls(dfg, m), [fromvert.label])
-        @info "     - New links: $remvars"
+        @debug "     - New links: $remvars"
 
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
-          @info "$(m.label) still has links to other variables, readding it back..."
+          @debug "$(m.label) still has links to other variables, readding it back..."
           addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
         else
-          @info "$(m.label) doesn't have any other links, not adding it back..."
+          @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
       end
     end
@@ -1241,10 +1246,10 @@ function buildBayesNet!(dfg::AbstractDFG,
   #
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
-    @info ""
-    @info "Eliminating $(v)"
-    @info "==============="
-    @info ""
+    @debug """ 
+                 Eliminating $(v)
+                 ===============
+          """
     # which variable are we eliminating
 
     # all factors adjacent to this variable

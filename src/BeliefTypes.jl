@@ -38,9 +38,9 @@ struct TreeBelief{T <: InferenceVariable}
   val::Array{Float64,2}
   bw::Array{Float64,2}
   inferdim::Float64
-  softtype::T
+  softtype::T # rename to VariableType, DFG #603 
   # TODO -- DEPRECATE
-  manifolds::Tuple{Vararg{Symbol}}# NOTE added during #459 effort
+  manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
 end
 TreeBelief(p::BallTreeDensity,
            inferdim::Real=0.0,
@@ -125,11 +125,7 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
-# FIXME, better standardize intermediate types
-# used during nonparametric CK preparation, when information from multiple siblings must be shared together
-const IntermediateSiblingMessages = Vector{Tuple{BallTreeDensity,Float64}}
-const IntermediateMultiSiblingMessages = Dict{Symbol, IntermediateSiblingMessages}
-
+# figure out how to deprecate (not critical at the moment)
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 

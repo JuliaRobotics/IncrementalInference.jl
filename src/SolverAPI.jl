@@ -11,6 +11,7 @@ Notes
 - Latest result always stored in `solvekey=:default`.
 - Experimental `storeOld::Bool=true` will duplicate the current result as supersolve `:default_k`.
   - Based on `solvable==1` assumption.
+- `limititercliqs` allows user to limit the number of iterations a specific CSM does.
 
 Example
 ```julia
@@ -22,16 +23,17 @@ Related
 
 solveCliq!, wipeBuildNewTree!
 """
-function solveTree!(dfgl::G,
+function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=emptyBayesTree();
                     storeOld::Bool=false,
                     verbose::Bool=false,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
+                    limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableConstraints::Vector{Symbol}=Symbol[]  ) where G <: DFG.AbstractDFG
+                    variableConstraints::Vector{Symbol}=Symbol[]  )
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
@@ -69,7 +71,7 @@ function solveTree!(dfgl::G,
   if storeOld || opt.dbg
     ss = listSupersolves(dfgl) .|> string
     ss_ = ss[occursin.(r"default_",ss)] .|> x->x[9:end]
-    filter!(x->occursin(r"^\d$",x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
+    filter!(x->occursin(r"^\d+$",x), ss_)  # ss_ = ss_[occursin.(r"^\d$",ss_)]
     allk = parse.(Int,ss_)
     nextk = length(allk) == 0 ? 0 : maximum(allk)+1
     newKey = Symbol(:default_, nextk)
@@ -89,12 +91,13 @@ function solveTree!(dfgl::G,
 
   @info "Do tree based init-inference on tree"
   if opt.async
-    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
+    @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
+    @info "Finished tree based init-inference"
   end
-  @info "Finished tree based init-inference"
-
+  
   # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
@@ -193,7 +196,8 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
                               delaycliqs::Vector{Symbol}=Symbol[],
                               recordcliqs::Vector{Symbol}=Symbol[],
                               skipcliqids::Vector{Symbol}=Symbol[],
-                              maxparallel::Union{Nothing, Int}=nothing  )
+                              maxparallel::Union{Nothing, Int}=nothing,
+                              multithread=false  )
   #
   @error "Under development, do not use, see #539"
   @info "Solving over the Bayes (Junction) tree."
@@ -221,7 +225,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
 
   @info "Do tree based init-inference"
   # if opt.async
-  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs )
+  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
 
   if opt.async && opt.drawtree
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"

@@ -292,6 +292,7 @@ function proposalbeliefs!(dfg::G,
                           # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}};
+                          solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false)::Vector{Float64} where {G <: AbstractDFG, F <: DFGFactor}
   #
@@ -300,7 +301,7 @@ function proposalbeliefs!(dfg::G,
   for fct in factors
     count += 1
     data = getSolverData(fct)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg, solveKey=solveKey)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -388,11 +389,12 @@ Using factor graph object `dfg`, project belief through connected factors
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
-function localProduct(dfg::G,
+function localProduct(dfg::AbstractDFG,
                       sym::Symbol;
+                      solveKey::Symbol=:default,
                       N::Int=100,
                       dbg::Bool=false,
-                      logger=ConsoleLogger() ) where G <: AbstractDFG
+                      logger=ConsoleLogger() )
   #
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
@@ -411,7 +413,7 @@ function localProduct(dfg::G,
   # inferdim = Vector{Float64}(undef, length(fcts))
 
   # get proposal beliefs
-  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, N=N, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, solveKey=solveKey, N=N, dbg=dbg)
 
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
@@ -420,7 +422,7 @@ function localProduct(dfg::G,
 
   return pp, dens, partials, lb, sum(inferdim)
 end
-localProduct(dfg::G, lbl::T; N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), N=N, dbg=dbg)
+localProduct(dfg::G, lbl::T; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) where {G <: AbstractDFG, T <: AbstractString} = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
 
 
 """
@@ -1047,40 +1049,6 @@ function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
   return true
 end
 
-"""
-    $SIGNATURES
-
-Set the marginalized status of a clique.
-"""
-function setCliqAsMarginalized!(cliq::TreeClique, status::Bool)
-  if status
-    setCliqueStatus!(cliq, :marginalized)
-  else
-    if getCliqueData(cliq).initialized == :marginalized
-      @info "Reverting clique $(cliq.index) to assumed :downsolved status"
-      setCliqueStatus!(cliq, :downsolved)
-    else
-      error("Unknown clique de-marginalization requist for clique $(cliq.index), current status: $(cliq.initialized)")
-    end
-  end
-end
-
-"""
-    $SIGNATURES
-
-Run through entire tree and set cliques as marginalized if all clique variables are marginalized.
-
-Notes:
-- TODO can be made fully parallel, consider converting for use with `@threads` `for`.
-"""
-function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::AbstractBayesTree)::Nothing
-  for (clid, cliq) in getCliques(tree)
-    if isCliqMarginalizedFromVars(fgl, cliq)
-      setCliqAsMarginalized!(cliq, true)
-    end
-  end
-  nothing
-end
 
 """
     $SIGNATURES
@@ -1270,7 +1238,7 @@ Related
 
 initInferTreeUp!
 """
-function asyncTreeInferUp!(dfg::G,
+function asyncTreeInferUp!(dfg::AbstractDFG,
                            treel::AbstractBayesTree;
                            oldtree::AbstractBayesTree=emptyBayesTree(),
                            verbose::Bool=false,
@@ -1279,9 +1247,10 @@ function asyncTreeInferUp!(dfg::G,
                            limititers::Int=-1,
                            downsolve::Bool=false,
                            incremental::Bool=false,
+                           limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                            skipcliqids::Vector{Symbol}=Symbol[],
                            delaycliqs::Vector{Symbol}=Symbol[],
-                           recordcliqs::Vector{Symbol}=Symbol[] ) where G <: AbstractDFG
+                           recordcliqs::Vector{Symbol}=Symbol[] )
   #
   resetTreeCliquesForUpSolve!(treel)
   if drawtree
@@ -1298,7 +1267,9 @@ function asyncTreeInferUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
+          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
+          limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, delaycliqs=delaycliqs, recordcliqs=recordcliqs, incremental=incremental, N=N)
         end # if
       end # for
     # end # sync
@@ -1318,7 +1289,7 @@ Related
 
 asyncTreeInferUp!
 """
-function initInferTreeUp!(dfg::G,
+function initInferTreeUp!(dfg::AbstractDFG,
                           treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
                           verbose::Bool=false,
@@ -1327,9 +1298,10 @@ function initInferTreeUp!(dfg::G,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
+                          limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
-                          delaycliqs::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+                          delaycliqs::Vector{Symbol}=Symbol[] )
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -1347,7 +1319,9 @@ function initInferTreeUp!(dfg::G,
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
-          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
+          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
+          limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
+          alltasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs,  N=N)
         end # if
       end # for
     end # sync

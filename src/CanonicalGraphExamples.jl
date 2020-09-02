@@ -154,7 +154,7 @@ function generateCanonicalFG_lineStep(lineLength::Int;
         if landmarkEvery != 0 && mod(i,landmarkEvery) == 0
             push!(lm, i)
             addVariable!(fg, Symbol("lm",i), vtype) #, autoinit = graphinit)
-            (i in landmarkPriorsAt) && addFactor!(fg, [Symbol("lm",i)], Prior(xNoise(i, σ_lm_prior)))
+            (i in landmarkPriorsAt) && addFactor!(fg, [Symbol("lm",i)], Prior(xNoise(i, σ_lm_prior)), graphinit=graphinit)
         end
     end
 

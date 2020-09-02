@@ -317,7 +317,7 @@ function buildTree!(tree::AbstractBayesTree, dfg::AbstractDFG, elimorder::Array{
   revorder = reverse(elimorder,dims=1) # flipdim(p, 1), fixing #499
   # prevVar = 0
   for var in revorder
-    @info "Adding $var to tree..."
+    @debug "Adding $var to tree..."
     newPotential(tree, dfg, var, elimorder)
     prevVar = var
   end
@@ -355,6 +355,7 @@ Notes
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   filepath::String="/tmp/caesar/random/bt.pdf",
+                  dpi::Int=200,
                   viewerapp::String="evince",
                   imgs::Bool=false )
   #
@@ -379,7 +380,11 @@ function drawTree(treel::AbstractBayesTree;
     fid = open("$(fpwoext).dot","w+")
     write(fid,to_dot(btc.bt))
     close(fid)
-    run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+    if string(fext) == "png"
+      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(filepath)`)
+    else
+      run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+    end
   catch ex
     @warn ex
     @show stacktrace()
@@ -541,7 +546,7 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
     close(fid)
   end
 
-  println("Find potential functions for each clique")
+  @debug "Find potential functions for each clique"
   for cliqIds in getCliqueIds(tree)
     if isRoot(tree, cliqIds)
       cliq = getClique(tree, cliqIds) # start at the root
@@ -575,7 +580,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   #
   println()
 
-  @info "Copying to a local DFG"
+  @debug "Copying to a local DFG"
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
     #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
   DFG.deepcopyGraph!(fge, dfg)
@@ -649,7 +654,7 @@ function prepBatchTree!(dfg::AbstractDFG;
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
   #Michael reference 3sig -- x2l1x4x3    x1|x2
-  println("Bayes Tree")
+  @info "Bayes Tree Complete"
   if drawpdf
     drawTree(tree, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs)
   end
@@ -756,6 +761,16 @@ function initTreeMessageChannels!(tree::MetaBayesTree)
   return nothing
 end
 
+function refTreeMessageChannelsFromBTND!(tree::BayesTree)
+  for inci in tree.bt.inclist
+    for e in inci
+        downMsg = e.target.data.dwnMsgChannel
+        upMsg = e.target.data.upMsgChannel
+        push!(tree.messages, e.index=>(upMsg=upMsg,downMsg=downMsg))
+    end
+  end
+  return nothing
+end
 
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
@@ -852,7 +867,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                     union!(usefcts, Symbol[Symbol(fct.label);])
                     getSolverData(fct).potentialused = true
                     if !insep
-                        @info "cliq=$(cliq.index) adding factor that is not in separator, $sep"
+                        @debug "cliq=$(cliq.index) adding factor that is not in separator, $sep"
                     end
                 end
             end
@@ -886,7 +901,7 @@ function setCliqPotentials!(dfg::G,
   #
   varlist = getCliqVarIdsAll(cliq)
 
-  @info "using all factors connected to frontals and attached to separator"
+  @debug "using all factors connected to frontals and attached to separator"
   fctsyms = getFactorsAmongVariablesOnly(dfg, varlist, unused=true )
   # filter only factors connected to frontals (for upward)
   frtfcts = union(map(x->ls(dfg, x), getCliqFrontalVarIds(cliq))...)
@@ -900,7 +915,7 @@ function setCliqPotentials!(dfg::G,
     getSolverData(fct).potentialused = true
   end
 
-  @info "finding all frontals for down WIP"
+  @debug "finding all frontals for down WIP"
   ffctsyms = getCliqFactorsFromFrontals(dfg, cliq, Symbol[], inseparator=false, unused=false, solvable=solvable)
   # fnsyms = getCliqVarsWithFrontalNeighbors(csmc.dfg, csmc.cliq)
   getCliqueData(cliq).dwnPotentials = ffctsyms
@@ -1252,8 +1267,9 @@ function directAssignmentIDs(cliq::TreeClique)
 end
 
 function mcmcIterationIDs(cliq::TreeClique)
-  @show cliq.index, getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq)
-  @show mat = getCliqMat(cliq)
+  @debug "mcmcIterationIDs\n" cliq.index getCliqFrontalVarIds(cliq) getCliqSeparatorVarIds(cliq)
+  mat = getCliqMat(cliq)
+  @debug "getCliqMat" mat
   # assocMat = getCliqueData(cliq).cliqAssocMat
   # msgMat = getCliqueData(cliq).cliqMsgMat
   # mat = [assocMat;msgMat];
@@ -1367,7 +1383,7 @@ function buildCliquePotentials(dfg::G, bt::AbstractBayesTree, cliq::TreeClique; 
     for child in childCliqs(bt, cliq)#tree
         buildCliquePotentials(dfg, bt, child)
     end
-    @info "Get potentials $(getLabel(cliq))"
+    @debug "Get potentials $(getLabel(cliq))"
     setCliqPotentials!(dfg, bt, cliq, solvable=solvable)
 
     compCliqAssocMatrices!(dfg, bt, cliq)

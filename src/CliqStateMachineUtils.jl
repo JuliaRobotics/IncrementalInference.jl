@@ -355,13 +355,21 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function csmAnimate(fg::G,
-                    tree::AbstractBayesTree,
-                    cliqsyms::Vector{Symbol};
+function csmAnimate(tree::BayesTree,
+                    autohist::Dict{Int, T};
                     frames::Int=100,
-                    rmfirst::Bool=true  ) where G <: AbstractDFG
+                    interval::Int=2,
+                    rmfirst::Bool=true,
+                    folderpath::AbstractString="/tmp/caesar/csmCompound/", 
+                    fsmColors::Dict{Symbol,String}=Dict{Symbol,String}(),
+                    defaultColor::AbstractString="red"  ) where T <: AbstractVector
   #
-  hists = getTreeCliqsSolverHistories(fg,tree)
+
+  hists = Dict{Symbol, T}()
+  for (id, hist) in autohist
+    frtl = getFrontals(tree.cliques[id])
+    hists[frtl[1]] = hist
+  end
 
   startT = Dates.now()
   stopT = Dates.now()
@@ -385,10 +393,17 @@ function csmAnimate(fg::G,
 
   # export all figures
   if rmfirst
-    @warn "Removing /tmp/caesar/csmCompound/ in preparation for new frames."
-    Base.rm("/tmp/caesar/csmCompound/", recursive=true, force=true)
+    @warn "Removing $folderpath in preparation for new frames."
+    Base.rm("$folderpath", recursive=true, force=true)
   end
-  animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
+
+  function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
+    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"))
+    nothing
+  end
+
+  # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
+  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor )
 end
 
 """
@@ -441,10 +456,10 @@ Dev Notes
 - should precompute `allinters`.
 """
 function getSiblingsDelayOrder(tree::AbstractBayesTree,
-                               cliq::TreeClique,
-                               prnt,
-                               dwinmsgs::LikelihoodMessage;
-                               logger=ConsoleLogger())
+                                cliq::TreeClique,
+                                #  prnt,
+                                dwnkeys::Vector{Symbol}; # dwinmsgs::LikelihoodMessage;
+                                logger=ConsoleLogger())
   # when is a cliq upsolved
   solvedstats = Symbol[:upsolved; :marginalized; :uprecycled]
 
@@ -467,7 +482,6 @@ function getSiblingsDelayOrder(tree::AbstractBayesTree,
   # get intersect matrix of siblings (should be exactly the same across siblings' csm)
   allinters = Array{Int,2}(undef, len, len)
   dwninters = Vector{Int}(undef, len)
-  dwnkeys = collect(keys(dwinmsgs.belief))
   with_logger(logger) do
     @info "getSiblingsDelayOrder -- number siblings=$(len), sibidx=$sibidx"
   end
@@ -594,10 +608,11 @@ Determine clique truely isn't able to proceed any further:
   - combination of status, while partials belief siblings are not :mustinitdown
 """
 function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
-                                     cliq::TreeClique,
-                                     prnt,
-                                     dwinmsgs::LikelihoodMessage;
-                                     logger=ConsoleLogger())
+                                      cliq::TreeClique,
+                                      #  prnt,
+                                      dwinmsgs::LikelihoodMessage;
+                                      logger=ConsoleLogger())
+  #
   # which incoming messages are partials
   hasPartials = Dict{Symbol, Int}()
   for (sym, tmsg) in dwinmsgs.belief
@@ -610,11 +625,11 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
     end
   end
   partialKeys = collect(keys(hasPartials))
-
+  
   ## determine who might be able to help init this cliq
   # check sibling separator sets against this clique's separator
   sibs = getCliqSiblings(tree, cliq)
-
+  
   with_logger(logger) do
     @info "getCliqSiblingsPartialNeeds -- CHECK PARTIAL"
   end
@@ -638,7 +653,6 @@ function getCliqSiblingsPartialNeeds(tree::AbstractBayesTree,
   end
   # determine if those cliques will / or will not be able to provide more info
   # when does clique change to :mustinitdown
-
   # default
   return false
 end
@@ -932,7 +946,9 @@ function getSetDownMessagesComplete!(subfg::G,
   with_logger(logger) do
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
-  putMsgDwnThis!(cliq, newDwnMsgs)
+
+  #JT 459 putMsgDwnThis!(cliq, newDwnMsgs)
+  putCliqueMsgDown!(cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
 
   return nothing
 end

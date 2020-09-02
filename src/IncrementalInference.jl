@@ -83,7 +83,12 @@ export AbstractDFG,
   listDataEntries,
   FolderStore,
   addBlobStore!,
-  getData
+  getData,
+  DFGVariable,
+  DFGVariableSummary, 
+  DFGFactor,
+  DFGFactorSummary,
+  deleteVariableSolverData!
   # listDataBlobs  # ERROR: LightDFG{} doesn't override 'listDataBlobs'.
 
 # Inference types
@@ -132,7 +137,7 @@ export *,
   unlockUpStatus!,
   lockDwnStatus!,
   unlockDwnStatus!,
-  getSiblingsDelayOrder,
+  # getSiblingsDelayOrder,
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
@@ -165,7 +170,6 @@ export *,
   sortDFG,
   # getVariableIds,
   getVariableOrder,
-  calcVariablePPE,
   getPPE,
   getPPEDict,
   getVariablePPE,
@@ -269,7 +273,7 @@ export *,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   prepCliqInitMsgsUp,
-  prepCliqInitMsgsDown!,
+  # prepCliqInitMsgsDown!, # obsolete
   getOutNeighbors,
   BayesTree,
   TreeBelief,
@@ -354,7 +358,7 @@ export *,
   CommonConvWrapper,
 
   getCliqVarInitOrderUp,
-  getCliqInitVarOrderDown,
+  # getCliqInitVarOrderDown,
   blockCliqUntilChildrenHaveUpStatus,
   blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
@@ -413,12 +417,11 @@ export *,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
-  getCliqSiblingsPartialNeeds,
+  # getCliqSiblingsPartialNeeds,
 
   # some utils
   compare,
   compareAllSpecial,
-  getIdx,
   getMeasurements,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
@@ -463,6 +466,7 @@ include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("TreeMessageUtils.jl")
+include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
 # solving graphs

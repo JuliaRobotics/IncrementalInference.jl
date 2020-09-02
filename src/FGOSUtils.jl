@@ -4,9 +4,10 @@
 
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 
-
+export calcPPE, calcVariablePPE
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
+export fetchDataJSON
 
 
 # export setSolvable!
@@ -121,13 +122,13 @@ Related
 
 getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
 """
-function calcVariablePPE(var::DFGVariable,
-                         softt::InferenceVariable;
-                         solveKey::Symbol=:default,
-                         method::Type{MeanMaxPPE}=MeanMaxPPE  )
+function calcPPE(var::DFGVariable,
+                  varType::InferenceVariable;
+                  solveKey::Symbol=:default,
+                  method::Type{MeanMaxPPE}=MeanMaxPPE  )
   #
-  P = getKDE(var, solveKey)
-  manis = getManifolds(softt) # getManifolds(vnd)
+  P = getBelief(var, solveKey)
+  manis = getManifolds(varType) # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
   Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
@@ -141,59 +142,25 @@ function calcVariablePPE(var::DFGVariable,
     elseif mani == :Circular
       suggested[i] = Pma[i]
     else
-      error("Unknown manifold to find PPE, $softt, $mani")
+      error("Unknown manifold to find PPE, $varType, $mani")
     end
   end
   MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
 end
 
 
-calcVariablePPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
 
-function calcVariablePPE(dfg::AbstractDFG,
-                         sym::Symbol;
-                         method::Type{<:AbstractPointParametricEst}=MeanMaxPPE,
-                         solveKey::Symbol=:default )
+function calcPPE(dfg::AbstractDFG,
+                  sym::Symbol;
+                  method::Type{<:AbstractPointParametricEst}=MeanMaxPPE,
+                  solveKey::Symbol=:default )
   #
   var = getVariable(dfg, sym)
-  calcVariablePPE(var, getSofttype(var), method=method, solveKey=solveKey)
+  calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
 
-
-"""
-    $SIGNATURES
-
-Return interger index of desired variable element.
-
-Example
--------
-```julia
-pp = RoME.Point2()
-getIdx(pp, :posY) # = 2
-```
-
-Internal Notes
---------------
-- uses number i < 100 for index number, and
-- uses +100 offsets to track the minibatch number of the requested dimension
-"""
-function getIdx(pp::Tuple,
-                sym::Symbol,
-                i::Int=0)
-  #
-  i-=100
-  for p in pp
-    i,j = getIdx(p, sym, i)
-    if i > 0
-      return i, j
-    end
-  end
-  return i,-1
-end
-getIdx(pp::Symbol, sym::Symbol, i::Int=0) = pp==sym ? (abs(i)%100+1, div(abs(i)-100,100)) : (i-1, div(abs(i)-100,100))
-function getIdx(pp::InferenceVariable, sym::Symbol, i::Int=0)
-  return getIdx(pp.dimtype, sym)
-end
+const calcVariablePPE = calcPPE
 
 
 
@@ -263,6 +230,13 @@ dontMarginalizeVariablesAll!
 function unfreezeVariablesAll!(fgl::AbstractDFG)
   dontMarginalizeVariablesAll!(fgl)
 end
+
+# WIP
+# function resetSolvableAllExcept!(dfg::AbstractDFG,
+#                                   fltr::NothingUnion{Regex}=nothing)
+#   #
+#   unfreezeVariablesAll!(dfg)
+# end
 
 """
     $SIGNATURES
@@ -363,6 +337,22 @@ loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
 
 # FIXME, much consolidation required here
 convert(::Type{<:AMP.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
+
+
+
+"""
+    $SIGNATURES
+Fetch and unpack JSON dictionary stored as a data blob.
+"""
+function fetchDataJSON(dfg::AbstractDFG, varsym::Symbol, lbl::Symbol)
+  gde,rawData = getData(dfg, varsym, lbl)
+  if gde.mimeType == "application/json/octet-stream"
+    JSON2.read(IOBuffer(rawData))
+  else
+    error("Unknown JSON Blob format $(gde.mimeType)")
+  end
+end
+
 
 
 #
