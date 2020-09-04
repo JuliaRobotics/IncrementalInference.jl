@@ -402,8 +402,13 @@ function csmAnimate(tree::BayesTree,
     nothing
   end
 
+  function autocolor_cb(hi::Tuple, csym::Symbol, aniT::DateTime)
+    retc = getCliqueDrawColor(hi[4].cliq)
+    return (retc === nothing ? "gray" : retc)
+  end
+
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor )
+  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor, autocolor_cb=autocolor_cb )
 end
 
 """

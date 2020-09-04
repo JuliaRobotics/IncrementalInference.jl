@@ -854,6 +854,10 @@ function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
   nothing
 end
 
+function getCliqueDrawColor(cliq::TreeClique)
+  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
+end
+
 """
     $(SIGNATURES)
 
