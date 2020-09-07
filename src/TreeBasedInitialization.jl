@@ -294,14 +294,15 @@ Notes
 - exit strategy is parent becomes status `:initialized`.
 """
 function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
-                                          cliq::TreeClique; 
+                                          cliq::TreeClique,
+                                          prnt_::TreeClique; 
                                           logger=ConsoleLogger())
   #
 
-  function doTheThing(prnt_, prstat)
+  function doTheThing(prstat)
     with_logger(logger) do
       tt = split(string(now()), 'T')[end]
-      @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt[1].index)) :needdownmsg."
+      @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt_.index)) :needdownmsg."
     end
     flush(logger.stream)
     # do actual fetch
@@ -321,12 +322,12 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
   end
 
 
-  prnt = getParent(tree, cliq)
+  
   allneeddwn = true
-  if length(prnt) > 0
-    prstat = getCliqueStatus(prnt[1])
+  # if length(prnt) > 0
+    prstat = getCliqueStatus(prnt_)
     if prstat == :needdownmsg
-      for ch in getChildren(tree, prnt[1])
+      for ch in getChildren(tree, prnt_)
         chst = getCliqueStatus(ch)
         if chst != :needdownmsg
           allneeddwn = false
@@ -335,10 +336,10 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
       end
 
       if allneeddwn
-        doTheThing(prnt[1], prstat)
+        doTheThing(prstat)
       end
     end
-  end
+  # end
   return false
 end
 
