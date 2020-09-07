@@ -617,6 +617,39 @@ function attemptDownInit_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## ============================================================================================
 # start of things downinit
 ## ============================================================================================
@@ -691,43 +724,6 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
 
   # go to 8e.ii.
   return attemptDownInit_StateMachine
-end
-
-
-
-"""
-$SIGNATURES
-
-Notes
-- StateMachine function nr. 8d
-- TODO figure out if this function is duplication of other needdwnmsg functionality?
-"""
-function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
-  #
-  infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
-  
-  children = getChildren(csmc.tree, csmc.cliq)
-  if doAnyChildrenNeedDwnMsg(children)
-    # set messages if children :needdownmsg
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
-    # construct init's up msg to place in parent from initialized separator variables
-    
-    # consolidated up messaging (#459)
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
-    prepPutCliqueStatusMsgUp!(csmc)
-    
-    # also send a down message -- seem weird while doing #459 but okay
-    cliqst = getCliqueStatus(csmc.cliq)
-    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-    
-    # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
-    setCliqDrawColor(csmc.cliq, "sienna")
-    
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
-  end
-  
-  # go to 8b
-  return attemptCliqInitUp_StateMachine
 end
 
 
@@ -809,6 +805,22 @@ function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContaine
   # go to 8j.
   return dwnInitSiblingWaitOrder_StateMachine
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## ============================================================================================
@@ -979,6 +991,42 @@ end
 
 
 """
+$SIGNATURES
+
+Notes
+- StateMachine function nr. 8d
+- TODO figure out if this function is duplication of other needdwnmsg functionality?
+"""
+function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
+  #
+  infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
+  
+  children = getChildren(csmc.tree, csmc.cliq)
+  if doAnyChildrenNeedDwnMsg(children)
+    # set messages if children :needdownmsg
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
+    # construct init's up msg to place in parent from initialized separator variables
+    
+    # consolidated up messaging (#459)
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
+    prepPutCliqueStatusMsgUp!(csmc)
+    
+    # also send a down message -- seem weird while doing #459 but okay
+    cliqst = getCliqueStatus(csmc.cliq)
+    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+    
+    # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
+    setCliqDrawColor(csmc.cliq, "sienna")
+    
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
+  end
+  
+  # go to 8b
+  return attemptCliqInitUp_StateMachine
+end
+
+
+"""
     $SIGNATURES
 
 Determine if any one of the children :needdownmsg.
@@ -1030,6 +1078,46 @@ end
 ## ============================================================================================
 # End of dwnmsg consolidation bonanza
 ## ============================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 """
