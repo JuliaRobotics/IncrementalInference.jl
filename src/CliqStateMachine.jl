@@ -1,7 +1,7 @@
 # clique state machine for tree based initialization and inference
 
 # newer exports
-export getBetterName7b_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
+export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
 export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
 export rmUpLikeliSaveSubFg_StateMachine
 
@@ -41,7 +41,8 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   opts = getSolverParams(csmc.dfg)
 
-  # get down msg from parent (assing root clique CSM wont make it here)
+  # get down msg from parent (assuming root clique CSM wont make it here)
+  # this looks like a pull model #674
   prnt = getParent(csmc.tree, csmc.cliq)
   dwnmsgs = fetchMsgDwnThis(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
@@ -68,17 +69,32 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # compute new down messages
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- going to set new down msgs.")
-  getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
-  # setDwnMsg!(cliq, drt.keepdwnmsgs)
+  newDwnMsgs = getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
+  
+    #JT 459 putMsgDwnThis!(cliq, newDwnMsgs), DF still looks like a pull model here #674
+    putCliqueMsgDown!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
 
-      # update clique subgraph with new status
-      setCliqDrawColor(csmc.cliq, "lightblue")
+    # update clique subgraph with new status
+    setCliqDrawColor(csmc.cliq, "lightblue")
 
   csmc.dodownsolve = false
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
+  # go to 11b.
+  return cleanupAfterDownSolve_StateMachine
+end
 
-  # FIXME split bottom part into new CSM (using #760 solution for deleteMsgFactors)
+"""
+    $SIGNATURES
+
+One of the last steps in CSM to clean up after a down solve.
+
+Notes
+- CSM function 11b.
+"""
+function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  # RECENT split from 11 (using #760 solution for deleteMsgFactors)
+  opts = getSolverParams(csmc.cliqSubFg)
 
   # set PPE and solved for all frontals
   for sym in getCliqFrontalVarIds(csmc.cliq)
@@ -105,8 +121,8 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(msgfcts))")
   rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(rmFcts))")
   deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
@@ -146,6 +162,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   if length(prnt) > 0
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, going to block on parent.")
     # TODO -- some cleanup
+    # this portion looks like a pull model #674
     blockCliqUntilParentDownSolved(prnt[1], logger=csmc.logger)
     prntst = getCliqueStatus(prnt[1])
     infocsm(csmc, "10, determineCliqIfDownSolve_StateMachine, parent status=$prntst.")
@@ -161,26 +178,26 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
     setCliqDrawColor(csmc.cliq, "lightblue")
 
-    # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)    # setDwnMsg!(csmc.cliq, dwnmsgs) #
+    # this part looks like a pull model
+    # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
     putCliqueMsgDown!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!)
-
     setCliqueStatus!(csmc.cliq, :downsolved)
-	csmc.dodownsolve = false
+	  csmc.dodownsolve = false
 
-	# Update estimates and transfer back to the graph
-	frsyms = getCliqFrontalVarIds(csmc.cliq)
+	  # Update estimates and transfer back to the graph
+	  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  
+	  # set PPE and solved for all frontals
+	  for sym in frsyms
+	    # set PPE in cliqSubFg
+	    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+	    # set solved flag
+	    vari = getVariable(csmc.cliqSubFg, sym)
+	    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+	  end
 
-	# set PPE and solved for all frontals
-	for sym in frsyms
-	  # set PPE in cliqSubFg
-	  setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-	  # set solved flag
-	  vari = getVariable(csmc.cliqSubFg, sym)
-	  setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
-	end
-
-	# Transfer to parent graph
-	transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
+	  # Transfer to parent graph
+	  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
     notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 
@@ -472,9 +489,10 @@ Notes
 - TODO: Make multi-core
 
 DevNotes
-- FIXME majore refactor of this function required.
+- FIXME major refactor of this function required.
+- FIXME this function actually occur during the parent CSM, therefore not all pull model #674
 """
-function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
+function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContainer)
   #
   # TODO consider exit early for root clique rather than avoiding this function
   infocsm(csmc, "8a, needs down message -- attempt down init")
@@ -486,7 +504,9 @@ function attemptCliqInitDown_StateMachine(csmc::CliqStateMachineContainer)
   opt = getSolverParams(csmc.dfg)
   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
 
-  # take atomic lock when waiting for down ward information
+  # FIXME, offload this work to the parent's CSM
+
+  # take atomic lock OF PARENT ??? when waiting for downward information
   lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
   infocsm(csmc, "8a, after up lock")
 
@@ -577,25 +597,25 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   # follow example from issue #344
   mustwait = false
   if length(intersect(dwnkeys_, getCliqSeparatorVarIds(csmc.cliq))) == 0
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, no can do, must wait for siblings to update parent first.")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys_, logger=csmc.logger)
-    infocsm(csmc, "8a, attemptCliqInitD., prioritize")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, prioritize")
     mustwait = true
   elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
-    infocsm(csmc, "8a, attemptCliqInitD., partialneedsmore")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, partialneedsmore")
     mustwait = true
   end
 
   solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
+  infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    infocsm(csmc, "8a, attemptCliqInitDown_StateMachine, must wait on change.")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, must wait on change.")
     # remove all message factors
     fctstorm = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
-    infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+    infocsm(csmc, "8j, collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
     rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
     # remove msg factors previously added
     deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
@@ -605,7 +625,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # go to 8e.ii.
-  return attemptDownSolve_StateMachine
+  return attemptDownInit_StateMachine
 end
 
 """
@@ -620,7 +640,7 @@ Notes
 - Pretty major repeat of functionality, FIXME
 - TODO: Make multi-core
 """
-function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+function attemptDownInit_StateMachine(csmc::CliqStateMachineContainer)
   ## FIXME split CSM here if possible (back to 8e.ii.)
   setCliqDrawColor(csmc.cliq, "green")
   opt = getSolverParams(csmc.cliqSubFg)
@@ -631,13 +651,11 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
+  infocsm(csmc, "8e.ii, attemptDownInit_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
-  with_logger(csmc.logger) do
-    @info "cliq $(csmc.cliq.index), doCliqInitDown! -- 4, initorder=$(initorder))"
-  end
+  infocsm(csmc, "8e.ii, attemptDownInit_StateMachine,  initorder=$(initorder)")
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
   
@@ -651,9 +669,9 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # remove all message factors
   # remove msg factors previously added
   fctstorm = ls(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
-  infocsm(csmc, "8e, attemptCliqInitDown_StateMachine, removing factors $fctstorm")
+  infocsm(csmc, "8e.ii., collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
   rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
-  deleteMsgFactors!(csmc.cliqSubFg, rmfcts ) # msgfcts)
+  deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
 
   # go to 8d
   return downInitRequirement_StateMachine!
@@ -668,6 +686,7 @@ Delay loop if waiting on upsolves to complete.
 
 Notes
 - State machine 7b
+- Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
 """
 function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -675,6 +694,7 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
   cliqst = getCliqueStatus(csmc.cliq)
   if cliqst == :needdownmsg
     infocsm(csmc, "7b, shortcut on cliq is a needdownmsg status.")
+    # go to 4
     return isCliqNull_StateMachine
   end
   childs = getChildren(csmc.tree, csmc.cliq)
@@ -682,7 +702,11 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
   @inbounds for i in 1:len
     if !(getCliqueStatus(childs[i]) in [:upsolved;:uprecycled;:marginalized])
       infocsm(csmc, "7b, wait condition on upsolve, i=$i, ch_lbl=$(getCliqFrontalVarIds(childs[i])[1]).")
+      # wait for child clique status/msg to be updated
       wait(getSolveCondition(childs[i]))
+
+      # # TOO BLOCKING to come back here to 7b
+      # return slowCliqIfChildrenNotUpsolved_StateMachine
       break
     end
   end
@@ -697,19 +721,23 @@ end
 New function from refactoring.
 
 Notes
-- State machine function nr. 7b
+- State machine function nr. 7c
 """
-function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
+function towardUpOrDwnSolve_StateMachine(csmc::CliqStateMachineContainer)
   # TODO, remove csmc.forceproceed
   csmc.forceproceed = false
   sleep(0.1) # FIXME remove after #459 resolved
   # return doCliqInferAttempt_StateMachine
   cliqst = getCliqueStatus(csmc.cliq)
-  infocsm(csmc, "7b, status=$(cliqst), before attemptCliqInitDown_StateMachine")
+  infocsm(csmc, "7c, status=$(cliqst), before picking direction")
   # d1,d2,cliqst = doCliqInitUpOrDown!(csmc.cliqSubFg, csmc.tree, csmc.cliq, isprntnddw)
   if cliqst == :needdownmsg && !isCliqParentNeedDownMsg(csmc.tree, csmc.cliq, csmc.logger)
+      # FIXME, end 459, was collectDwnInitMsgFromParent_StateMachine but 674 requires pull model
+      # go to 8c
+      # notifyCSMCondition(csmc.cliq)
+      # return waitChangeOnParentCondition_StateMachine
     # go to 8a
-    return attemptCliqInitDown_StateMachine
+    return collectDwnInitMsgFromParent_StateMachine
   # HALF DUPLICATED IN STEP 4
   elseif cliqst == :marginalized
     # go to 1
@@ -718,38 +746,6 @@ function getBetterName7b_StateMachine(csmc::CliqStateMachineContainer)
 
   # go to 8b
   return attemptCliqInitUp_StateMachine
-end
-
-"""
-    $SIGNATURES
-
-Notes
-- State machine function nr. 7
-"""
-function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
-
-  infocsm(csmc, "7, start, forceproceed=$(csmc.forceproceed)")
-
-  # fetch children status
-  stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
-
-  # hard assumption here on upsolve from leaves to root
-  proceed = true
-  # fetch status from children (should already be available -- i.e. should not block)
-  for (clid, clst) in stdict
-    infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
-    # :needdownmsg # 'send' downward init msg direction
-    !(clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? (proceed = false) : nothing
-  end
-  infocsm(csmc, "7, proceed=$(proceed)")
-
-  if proceed || csmc.forceproceed
-    # go to 7b
-    return getBetterName7b_StateMachine
-  else
-    # go to 7b
-    return slowCliqIfChildrenNotUpsolved_StateMachine
-  end
 end
 
 """
@@ -771,6 +767,8 @@ end
 """
     $SIGNATURES
 
+Blocking until all children of the clique's parent (i.e. siblings) have a valid status.
+
 Notes
 - State machine function nr. 5
 """
@@ -783,7 +781,8 @@ function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
   prnt = getParent(csmc.tree, csmc.cliq)
   if length(prnt) > 0
     infocsm(csmc, "5, has parent clique=$(prnt[1].index)")
-    blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1], csmc.logger)
+    ret = blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1], csmc.logger)
+    infocsm(csmc,"prnt $(prnt[1].index), fetched all, keys=$(keys(ret)).")
   end
 
   infocsm(csmc, "5, finishing")
@@ -811,6 +810,7 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
 
   #must happen before if :null
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
+  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
   csmc.forceproceed = false
 
   # if clique is marginalized, then no reason to continue here
@@ -822,10 +822,56 @@ function isCliqNull_StateMachine(csmc::CliqStateMachineContainer)
     return checkChildrenAllUpRecycled_StateMachine
   end
 
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if 0 == length(prnt)
+    # go to 7
+    return determineCliqNeedDownMsg_StateMachine
+  end
+
   # go to 4b
   return doesCliqNeeddownmsg_StateMachine
 end
 
+
+
+
+"""
+    $SIGNATURES
+
+Try decide whether this `csmc.cliq` needs a downward initialization message.
+
+Notes
+- State machine function nr. 7
+
+DevNotes
+- Consolidate with 4b?
+"""
+function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
+
+  infocsm(csmc, "7, start, forceproceed=$(csmc.forceproceed)")
+
+  # fetch children status
+  stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
+  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
+
+  # hard assumption here on upsolve from leaves to root
+  proceed = true
+  # fetch status from children (should already be available -- i.e. should not block)
+  for (clid, clst) in stdict
+    infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
+    # :needdownmsg # 'send' downward init msg direction
+    (clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
+  end
+  infocsm(csmc, "7, proceed=$(proceed)")
+
+  if proceed || csmc.forceproceed
+    # go to 7c
+    return towardUpOrDwnSolve_StateMachine
+  else
+    # go to 7b
+    return slowCliqIfChildrenNotUpsolved_StateMachine
+  end
+end
 
 """
     $SIGNATURES
@@ -834,15 +880,13 @@ Determine if any down messages are required.
 
 Notes
 - State machine function nr.4b
+
+DevNotes
+- Consolidate with 7?
 """
 function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
 
-  # parent wont get a down message
-  prnt = getParent(csmc.tree, csmc.cliq)
-  if 0 == length(prnt)
-	# go to 7
-	return determineCliqNeedDownMsg_StateMachine
-  end
+  # FIXME parent wont ever get a down message??
 
   cliqst = getCliqueStatus(csmc.cliq)
   infocsm(csmc, "4b, doesCliqNeeddownmsg_StateMachine, cliqst=$cliqst")
@@ -872,6 +916,7 @@ Notes
 function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
   # fetch (should not block)
   stdict = blockCliqUntilChildrenHaveUpStatus(csmc.tree, csmc.cliq, csmc.logger)
+  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
   chstatus = collect(values(stdict))
   len = length(chstatus)
 
@@ -1071,7 +1116,7 @@ function testCliqCanIncremtUpdate_StateMachine!(csmc::CliqStateMachineContainer)
         # yes need subgraph and need more checks, so go to 2
         return buildCliqSubgraph_StateMachine
       else
-         # one or two checks say yes, so go to 4
+        # one or two checks say yes, so go to 4
         return isCliqNull_StateMachine
       end
     end

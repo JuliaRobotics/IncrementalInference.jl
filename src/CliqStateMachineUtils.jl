@@ -932,10 +932,10 @@ end
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function getSetDownMessagesComplete!(subfg::G,
+function getSetDownMessagesComplete!(subfg::AbstractDFG,
                                      cliq::TreeClique,
                                      prntDwnMsgs::LikelihoodMessage,
-                                     logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
+                                     logger=ConsoleLogger()  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
@@ -960,10 +960,7 @@ function getSetDownMessagesComplete!(subfg::G,
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
 
-  #JT 459 putMsgDwnThis!(cliq, newDwnMsgs)
-  putCliqueMsgDown!(cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
-
-  return nothing
+  return newDwnMsgs
 end
 
 

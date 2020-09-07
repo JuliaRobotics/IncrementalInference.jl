@@ -461,6 +461,7 @@ include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
+include("NeedsResolution.jl")
 
 # tree and init related functions
 include("SubGraphFunctions.jl")
