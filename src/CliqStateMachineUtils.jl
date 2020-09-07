@@ -364,6 +364,7 @@ function csmAnimate(tree::BayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
+                    dpi::Int=100,
                     rmfirst::Bool=true,
                     folderpath::AbstractString="/tmp/caesar/csmCompound/", 
                     fsmColors::Dict{Symbol,String}=Dict{Symbol,String}(),
@@ -405,7 +406,7 @@ function csmAnimate(tree::BayesTree,
   end
 
   function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
-    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"))
+    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"), dpi=dpi)
     nothing
   end
 
@@ -415,7 +416,13 @@ function csmAnimate(tree::BayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, easyNames=easyNames, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor, autocolor_cb=autocolor_cb )
+  animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
+                                              folderpath=folderpath, 
+                                              interval=interval, dpi=dpi, 
+                                              draw_more_cb=csmTreeAni, 
+                                              fsmColors=fsmColors, 
+                                              defaultColor=defaultColor, 
+                                              autocolor_cb=autocolor_cb )
 end
 
 """
