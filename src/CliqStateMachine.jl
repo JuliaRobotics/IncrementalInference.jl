@@ -625,7 +625,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # go to 8e.ii.
-  return attemptDownSolve_StateMachine
+  return attemptDownInit_StateMachine
 end
 
 """
@@ -640,7 +640,7 @@ Notes
 - Pretty major repeat of functionality, FIXME
 - TODO: Make multi-core
 """
-function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+function attemptDownInit_StateMachine(csmc::CliqStateMachineContainer)
   ## FIXME split CSM here if possible (back to 8e.ii.)
   setCliqDrawColor(csmc.cliq, "green")
   opt = getSolverParams(csmc.cliqSubFg)
@@ -651,11 +651,11 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # find intersect between downinitmsgs and local clique variables
   # if only partials available, then
 
-  infocsm(csmc, "8e.ii, attemptDownSolve_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
+  infocsm(csmc, "8e.ii, attemptDownInit_StateMachine, do cliq init down dwinmsgs=$(dwnkeys_)")
 
   # get down variable initialization order
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
-  infocsm(csmc, "8e.ii, attemptDownSolve_StateMachine,  initorder=$(initorder)")
+  infocsm(csmc, "8e.ii, attemptDownInit_StateMachine,  initorder=$(initorder)")
 
   cliqst = doCliqInitDown!(csmc.cliqSubFg, csmc.cliq, initorder, dbg=opt.dbg, logger=csmc.logger, logpath=opt.logpath )
   
@@ -669,7 +669,7 @@ function attemptDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # remove all message factors
   # remove msg factors previously added
   fctstorm = ls(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
-  infocsm(csmc, "8e, collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
+  infocsm(csmc, "8e.ii., collectDwnInitMsgFromParent_StateMachine, removing factors $fctstorm")
   rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
   deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
 
