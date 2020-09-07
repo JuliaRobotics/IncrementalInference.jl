@@ -137,6 +137,7 @@ Related:
 printHistoryLine, printCliqHistory
 """
 function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    whichstep::NothingUnion{Tuple{Int,Int}}=nothing,
                                     fid=stdout)
   # vectorize all histories in single Array
   allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
@@ -156,7 +157,11 @@ function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, 
 
   # print each line of the sorted array with correct cliqid marker
   for idx in 1:length(alltimes)
-    printHistoryLine(fid,allhists_[idx],string(allcliqids_[idx]))
+    hiln = allhists_[idx]
+    # show only one line if whichstep is not nothing
+    if whichstep === nothing || (whichstep[1] == allcliqids_[idx] && whichstep[2] == hiln[2])
+      printHistoryLine(fid,hiln,string(allcliqids_[idx]))
+    end
   end
   nothing
 end
@@ -365,10 +370,12 @@ function csmAnimate(tree::BayesTree,
                     defaultColor::AbstractString="red"  ) where T <: AbstractVector
   #
 
+  easyNames = Dict{Symbol, Int}()
   hists = Dict{Symbol, T}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
     hists[frtl[1]] = hist
+    easyNames[frtl[1]] = id
   end
 
   startT = Dates.now()
@@ -408,7 +415,7 @@ function csmAnimate(tree::BayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor, autocolor_cb=autocolor_cb )
+  animateStateMachineHistoryIntervalCompound(hists, easyNames=easyNames, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor, autocolor_cb=autocolor_cb )
 end
 
 """
@@ -667,7 +674,8 @@ end
 
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
-notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCondition(getClique(tree, frsym)))
+notifyCSMCondition(cliq::TreeClique) = notify(getSolveCondition(cliq))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(getClique(tree, frsym))
 
 
 """
@@ -675,9 +683,9 @@ notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCond
 
 Store/cache a clique's solvable dimensions.
 """
-function updateCliqSolvableDims!(cliq::TreeClique,
-                                 sdims::Dict{Symbol, Float64},
-                                 logger=ConsoleLogger() )::Nothing
+function updateCliqSolvableDims!( cliq::TreeClique,
+                                  sdims::Dict{Symbol, Float64},
+                                  logger=ConsoleLogger() )::Nothing
   #
   cliqd = getCliqueData(cliq)
   if isready(cliqd.solvableDims)

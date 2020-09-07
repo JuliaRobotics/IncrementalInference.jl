@@ -1165,8 +1165,10 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
 
+  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
+
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
-  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb); end
   statemachine.history
 end
 
