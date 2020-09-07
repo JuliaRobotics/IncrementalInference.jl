@@ -1,4 +1,6 @@
 
+# start moving exports here and not all in IIF.jl
+export blockCliqSiblingsParentNeedDown
 
 
 function isCliqInitialized(cliq::TreeClique)::Bool
@@ -298,48 +300,26 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
                                           prnt_::TreeClique; 
                                           logger=ConsoleLogger())
   #
-
-  function doTheThing(prstat)
-    with_logger(logger) do
-      tt = split(string(now()), 'T')[end]
-      @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt_.index)) :needdownmsg."
-    end
-    flush(logger.stream)
-    # do actual fetch
-    prtmsg = fetchMsgDwnInit(prnt_).status
-    with_logger(logger) do
-        tt = split(string(now()), 'T')[end]
-      @info "$tt | $(current_task()) clique $(prnt_.index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
-    end
-    if prtmsg == :initialized
-      return true
-    else
-        with_logger(logger) do
-            tt = split(string(now()), 'T')[end]
-            @warn "$tt | $(current_task()) Clique $(prnt_.index), maybe clear down init message $prtmsg"
-        end
-    end
-  end
-
-
   
   allneeddwn = true
-  # if length(prnt) > 0
-    prstat = getCliqueStatus(prnt_)
-    if prstat == :needdownmsg
-      for ch in getChildren(tree, prnt_)
-        chst = getCliqueStatus(ch)
-        if chst != :needdownmsg
-          allneeddwn = false
-          break;
-        end
-      end
-
-      if allneeddwn
-        doTheThing(prstat)
+  prstat = getCliqueStatus(prnt_)
+  if prstat == :needdownmsg
+    for ch in getChildren(tree, prnt_)
+      chst = getCliqueStatus(ch)
+      if chst != :needdownmsg
+        allneeddwn = false
+        break;
       end
     end
-  # end
+
+    if allneeddwn
+      # do actual fetch
+      prtmsg = fetchMsgDwnInit(prnt_).status
+      if prtmsg == :initialized
+        return true
+      end
+    end
+  end
   return false
 end
 
@@ -410,9 +390,9 @@ Dev Notes
 - Streamline add/delete msg priors from calling function and csm.
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
-function getCliqInitVarOrderDown(dfg::AbstractDFG,
-                                 cliq::TreeClique,
-                                 dwnkeys::Vector{Symbol} )   # downmsgs
+function getCliqInitVarOrderDown( dfg::AbstractDFG,
+                                  cliq::TreeClique,
+                                  dwnkeys::Vector{Symbol} )   # downmsgs
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
@@ -506,12 +486,12 @@ Algorithm:
 DevNotes
 - TODO Lots of cleanup required, especially from calling function.
 """
-function doCliqInitDown!(subfg::AbstractDFG,
-                         cliq::TreeClique,
-                         initorder;
-                         dbg::Bool=false,
-                         logpath::String="/tmp/caesar/",
-                         logger=ConsoleLogger() )
+function doCliqInitDown!( subfg::AbstractDFG,
+                          cliq::TreeClique,
+                          initorder;
+                          dbg::Bool=false,
+                          logpath::String="/tmp/caesar/",
+                          logger=ConsoleLogger() )
   #
 
   # store the cliqSubFg for later debugging

@@ -361,7 +361,6 @@ export *,
   getCliqVarInitOrderUp,
   # getCliqInitVarOrderDown,
   blockCliqUntilChildrenHaveUpStatus,
-  blockCliqSiblingsParentNeedDown,
   getCliqNumAssocFactorsPerVar,
 
   # introduced for approximate convolution operations

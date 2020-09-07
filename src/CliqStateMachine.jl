@@ -718,6 +718,42 @@ end
 
 
 """
+$SIGNATURES
+
+Notes
+- StateMachine function nr. 8d
+- TODO figure out if this function is duplication of other needdwnmsg functionality?
+"""
+function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
+  #
+  infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
+  
+  children = getChildren(csmc.tree, csmc.cliq)
+  if areCliqChildrenNeedDownMsg(children)
+    # set messages if children :needdownmsg
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
+    # construct init's up msg to place in parent from initialized separator variables
+    
+    # consolidated up messaging (#459)
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
+    prepPutCliqueStatusMsgUp!(csmc)
+    
+    # also send a down message -- seem weird while doing #459 but okay
+    cliqst = getCliqueStatus(csmc.cliq)
+    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+    
+    # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
+    setCliqDrawColor(csmc.cliq, "sienna")
+    
+    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
+  end
+  
+  # go to 8b
+  return attemptCliqInitUp_StateMachine
+end
+
+
+"""
     $SIGNATURES
 
 Do down initialization calculations, loosely translates to solving Chapman-Kolmogorov
@@ -797,47 +833,55 @@ function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContaine
 end
 
 
-"""
-$SIGNATURES
-
-Notes
-- StateMachine function nr. 8d
-- TODO figure out if this function is duplication of other needdwnmsg functionality?
-"""
-function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
-  #
-  infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
-  
-  children = getChildren(csmc.tree, csmc.cliq)
-  if areCliqChildrenNeedDownMsg(children)
-    # set messages if children :needdownmsg
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
-    # construct init's up msg to place in parent from initialized separator variables
-    
-    # consolidated up messaging (#459)
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
-    prepPutCliqueStatusMsgUp!(csmc)
-    
-    # also send a down message -- seem weird while doing #459 but okay
-    cliqst = getCliqueStatus(csmc.cliq)
-    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-    
-    # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
-    setCliqDrawColor(csmc.cliq, "sienna")
-    
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
-  end
-  
-  # go to 8b
-  return attemptCliqInitUp_StateMachine
-end
-
-
-
-
 ## ============================================================================================
 # START of dwnmsg consolidation bonanza
 ## ============================================================================================
+
+
+"""
+    $SIGNATURES
+
+Blocking case when all siblings and parent :needdownmsg.
+
+Notes
+- State machine function nr. 6c
+- used for regulating long need down message chains.
+- exit strategy is parent becomes status `:initialized`.
+"""
+function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
+
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if length(prnt) > 0
+    prnt_ = prnt[1]
+    # blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, prnt[1], logger=csmc.logger)
+
+    allneeddwn = true # TODO, UNUSED DUMMY VARIABLE, consolidate into actionable CSM decisions
+    prstat = getCliqueStatus(prnt_)
+    if prstat == :needdownmsg
+      for ch in getChildren(csmc.tree, prnt_)
+        chst = getCliqueStatus(ch)
+        if chst != :needdownmsg
+          allneeddwn = false
+          break;
+        end
+      end
+
+      # FIXME, understand why is there another status event from parent msg here... How to consolidate this with CSM 8a
+      if allneeddwn
+        # do actual fetch
+        prtmsg = fetchMsgDwnInit(prnt_).status
+        if prtmsg == :initialized
+          allneeddwn = true
+        end
+      end
+    end
+    allneeddwn = false
+  end
+
+  # go to 7
+  return determineCliqNeedDownMsg_StateMachine
+end
 
 
 """
@@ -873,28 +917,6 @@ function checkIfCliqNullBlock_StateMachine(csmc::CliqStateMachineContainer)
 
   # go to 6c
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
-end
-
-"""
-    $SIGNATURES
-
-Blocking case when all siblings and parent :needdownmsg.
-
-Notes
-- State machine function nr. 6c
-- used for regulating long need down message chains.
-- exit strategy is parent becomes status `:initialized`.
-"""
-function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
-
-  prnt = getParent(csmc.tree, csmc.cliq)
-  if length(prnt) > 0
-    blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, prnt[1], logger=csmc.logger)
-  end
-
-  # go to 7
-  return determineCliqNeedDownMsg_StateMachine
 end
 
 
@@ -1003,7 +1025,6 @@ end
 ## ============================================================================================
 # End of dwnmsg consolidation bonanza
 ## ============================================================================================
-
 
 
 """
