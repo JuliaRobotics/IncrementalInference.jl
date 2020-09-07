@@ -527,7 +527,7 @@ end
 
 Return `true` if any of the children cliques have status `:needdownmsg`.
 """
-function areCliqChildrenNeedDownMsg(children::Vector{TreeClique})::Bool
+function doAnyChildrenNeedDwnMsg(children::Vector{TreeClique})::Bool
   for ch in children
     if getCliqueStatus(ch) == :needdownmsg
       return true
@@ -536,8 +536,8 @@ function areCliqChildrenNeedDownMsg(children::Vector{TreeClique})::Bool
   return false
 end
 
-function areCliqChildrenNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
-  areCliqChildrenNeedDownMsg( getChildren(tree, cliq) )
+function doAnyChildrenNeedDwnMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
+  doAnyChildrenNeedDwnMsg( getChildren(tree, cliq) )
 end
 
 
