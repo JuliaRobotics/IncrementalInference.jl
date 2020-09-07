@@ -430,70 +430,6 @@ end
 """
     $SIGNATURES
 
-Blocking until all children of the clique's parent (i.e. siblings) have a valid status.
-
-Notes
-- State machine function nr. 5
-"""
-function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
-  setCliqDrawColor(csmc.cliq, "blueviolet")
-
-  cliqst = getCliqueStatus(csmc.cliq)
-  infocsm(csmc, "5, block on siblings")
-  prnt = getParent(csmc.tree, csmc.cliq)
-  if length(prnt) > 0
-    infocsm(csmc, "5, has parent clique=$(prnt[1].index)")
-    ret = blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1], csmc.logger)
-    infocsm(csmc,"prnt $(prnt[1].index), fetched all, keys=$(keys(ret)).")
-  end
-
-  infocsm(csmc, "5, finishing")
-  # go to 6c
-  return blockCliqSiblingsParentChildrenNeedDown_StateMachine
-end
-
-
-"""
-    $SIGNATURES
-
-Delay loop if waiting on upsolves to complete.
-
-Notes
-- State machine 7b
-- Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
-"""
-function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
-
-  # special case short cut
-  cliqst = getCliqueStatus(csmc.cliq)
-  if cliqst == :needdownmsg
-    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
-    # go to 4
-    return isCliqNull_StateMachine
-  end
-  childs = getChildren(csmc.tree, csmc.cliq)
-  len = length(childs)
-  @inbounds for i in 1:len
-    if !(getCliqueStatus(childs[i]) in [:upsolved;:uprecycled;:marginalized])
-      infocsm(csmc, "7b, wait condition on upsolve, i=$i, ch_lbl=$(getCliqFrontalVarIds(childs[i])[1]).")
-      # wait for child clique status/msg to be updated
-      wait(getSolveCondition(childs[i]))
-
-      # # TOO BLOCKING to come back here to 7b
-      # return slowCliqIfChildrenNotUpsolved_StateMachine
-      break
-    end
-  end
-
-  # go to 4
-  return isCliqNull_StateMachine
-end
-
-
-"""
-    $SIGNATURES
-
 Decide whether to pursue and upward or downward solve with present state.
 
 Notes
@@ -617,7 +553,68 @@ function attemptDownInit_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
+"""
+    $SIGNATURES
 
+Delay loop if waiting on upsolves to complete.
+
+Notes
+- State machine 7b
+- Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
+"""
+function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
+
+  # special case short cut
+  cliqst = getCliqueStatus(csmc.cliq)
+  if cliqst == :needdownmsg
+    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
+    # go to 4
+    return isCliqNull_StateMachine
+  end
+  childs = getChildren(csmc.tree, csmc.cliq)
+  len = length(childs)
+  @inbounds for i in 1:len
+    if !(getCliqueStatus(childs[i]) in [:upsolved;:uprecycled;:marginalized])
+      infocsm(csmc, "7b, wait condition on upsolve, i=$i, ch_lbl=$(getCliqFrontalVarIds(childs[i])[1]).")
+      # wait for child clique status/msg to be updated
+      wait(getSolveCondition(childs[i]))
+
+      # # TOO BLOCKING to come back here to 7b
+      # return slowCliqIfChildrenNotUpsolved_StateMachine
+      break
+    end
+  end
+
+  # go to 4
+  return isCliqNull_StateMachine
+end
+
+
+"""
+    $SIGNATURES
+
+Blocking until all children of the clique's parent (i.e. siblings) have a valid status.
+
+Notes
+- State machine function nr. 5
+"""
+function blockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
+  infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
+  setCliqDrawColor(csmc.cliq, "blueviolet")
+
+  cliqst = getCliqueStatus(csmc.cliq)
+  infocsm(csmc, "5, block on siblings")
+  prnt = getParent(csmc.tree, csmc.cliq)
+  if length(prnt) > 0
+    infocsm(csmc, "5, has parent clique=$(prnt[1].index)")
+    ret = blockCliqUntilChildrenHaveUpStatus(csmc.tree, prnt[1], csmc.logger)
+    infocsm(csmc,"prnt $(prnt[1].index), fetched all, keys=$(keys(ret)).")
+  end
+
+  infocsm(csmc, "5, finishing")
+  # go to 6c
+  return blockCliqSiblingsParentChildrenNeedDown_StateMachine
+end
 
 
 
@@ -846,9 +843,9 @@ function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMac
     prnt_ = prnt[1]
     # blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, prnt[1], logger=csmc.logger)
 
-    allneeddwn = true # TODO, UNUSED DUMMY VARIABLE, consolidate into actionable CSM decisions
     prstat = getCliqueStatus(prnt_)
     if prstat == :needdownmsg
+      allneeddwn = true
       for ch in getChildren(csmc.tree, prnt_)
         chst = getCliqueStatus(ch)
         if chst != :needdownmsg
@@ -862,11 +859,12 @@ function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMac
         # do actual fetch
         prtmsg = fetchMsgDwnInit(prnt_).status
         if prtmsg == :initialized
+          # FIXME what does this mean???
           allneeddwn = true
         end
       end
     end
-    allneeddwn = false
+    # allneeddwn = false
   end
 
   # go to 7
@@ -877,7 +875,7 @@ end
 """
 $SIGNATURES
 
-Block when all children needdwnmsgs and parent status not needed yet.
+Block on siblings when all children needdwnmsgs (parent status not used here).
 
 Notes
 - State machine function nr.4d
@@ -925,8 +923,6 @@ DevNotes
 - Consolidate with 7?
 """
 function doesCliqNeeddownmsg_StateMachine(csmc::CliqStateMachineContainer)
-
-  # FIXME parent wont ever get a down message??
 
   cliqst = getCliqueStatus(csmc.cliq)
   infocsm(csmc, "4b, doesCliqNeeddownmsg_StateMachine, cliqst=$cliqst")
@@ -1053,6 +1049,12 @@ function untilDownMsgChildren_StateMachine(csmc::CliqStateMachineContainer)
   return blockCliqSiblingsParentChildrenNeedDown_StateMachine
 end
 
+
+## ============================================================================================
+# End of dwnmsg consolidation bonanza
+## ============================================================================================
+
+
 """
     $SIGNATURES
 
@@ -1074,12 +1076,6 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   # go to 9
   return finishCliqSolveCheck_StateMachine
 end
-
-## ============================================================================================
-# End of dwnmsg consolidation bonanza
-## ============================================================================================
-
-
 
 
 
