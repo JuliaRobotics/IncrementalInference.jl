@@ -293,14 +293,34 @@ Notes
 - used for regulating long need down message chains.
 - exit strategy is parent becomes status `:initialized`.
 """
-function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
-                                         cliq::TreeClique; logger=ConsoleLogger())
+function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
+                                          cliq::TreeClique; 
+                                          logger=ConsoleLogger())
   #
-  with_logger(logger) do
-    @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
+
+  function doTheThing(prnt_, prstat)
+    with_logger(logger) do
+      tt = split(string(now()), 'T')[end]
+      @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt[1].index)) :needdownmsg."
+    end
+    flush(logger.stream)
+    # do actual fetch
+    prtmsg = fetchMsgDwnInit(prnt_).status
+    with_logger(logger) do
+        tt = split(string(now()), 'T')[end]
+      @info "$tt | $(current_task()) clique $(prnt_.index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
+    end
+    if prtmsg == :initialized
+      return true
+    else
+        with_logger(logger) do
+            tt = split(string(now()), 'T')[end]
+            @warn "$tt | $(current_task()) Clique $(prnt_.index), maybe clear down init message $prtmsg"
+        end
+    end
   end
-  # ret = Dict{Int, Symbol}()
-  # flush(logger.stream)
+
+
   prnt = getParent(tree, cliq)
   allneeddwn = true
   if length(prnt) > 0
@@ -315,25 +335,7 @@ function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
       end
 
       if allneeddwn
-        with_logger(logger) do
-          tt = split(string(now()), 'T')[end]
-          @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt[1].index)) :needdownmsg."
-        end
-        flush(logger.stream)
-        # do actual fetch
-        prtmsg = fetchMsgDwnInit(prnt[1]).status
-        with_logger(logger) do
-            tt = split(string(now()), 'T')[end]
-          @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
-        end
-        if prtmsg == :initialized
-          return true
-        else
-            with_logger(logger) do
-                tt = split(string(now()), 'T')[end]
-                @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
-            end
-        end
+        doTheThing(prnt[1], prstat)
       end
     end
   end
