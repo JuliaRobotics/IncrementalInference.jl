@@ -351,10 +351,13 @@ Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
 Notes
 - Uses system install of graphviz.org.
 - Can also use Linux tool `xdot`.
+- `xlabels` is optional `cliqid=>xlabel`.
 """
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
-                  filepath::String="/tmp/caesar/random/bt.pdf",
+                  suffix::AbstractString="_"*(split(string(uuid1()),'-')[1]),
+                  filepath::String="/tmp/caesar/random/bt$(suffix).pdf",
+                  xlabels::Dict{Int,String}=Dict{Int,String}(),
                   dpi::Int=200,
                   viewerapp::String="evince",
                   imgs::Bool=false )
@@ -362,17 +365,22 @@ function drawTree(treel::AbstractBayesTree;
   fext = filepath[(end-2):end] #split(filepath, '.')[end]
   fpwoext = filepath[1:(end-4)]# split(filepath, '.')[end-1]
   mkpath(dirname(fpwoext))
-
+  
   # modify a deepcopy
   btc = deepcopy(treel)
   for (cid, cliq) in getCliques(btc)
     if imgs
       firstlabel = split(getLabel(cliq),',')[1]
-      spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/$firstlabel.png")
-      cliq.attributes["image"] = "/tmp/$firstlabel.png"
+      spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/caesar/random/$firstlabel$suffix.png")
+      cliq.attributes["image"] = "/tmp/caesar/random/$firstlabel$suffix.png"
       setLabel!(cliq, "")
     end
     delete!(cliq.attributes, "data")
+  end
+  
+  # add any xlabel info
+  for (cliqid, xlabel) in xlabels
+    btc.bt.vertices[cliqid].attributes["xlabel"] = xlabel
   end
 
   fid = IOStream("")
@@ -413,15 +421,17 @@ Related
 
 drawTree, drawGraph
 """
-function drawTreeAsyncLoop(tree::BayesTree,
-                           opt::SolverParams;
-                           filepath=joinLogPath(opt,"bt.pdf"),
-                           dotreedraw = Int[1;]  )
+function drawTreeAsyncLoop( tree::BayesTree,
+                            opt::SolverParams;
+                            filepath=joinLogPath(opt,"bt.pdf"),
+                            dotreedraw = Int[1;]  )
   #
   # single drawtreerate
   treetask = if opt.drawtree
     @async begin
+      xlabels = Dict{Int,String}()
       while dotreedraw[1] == 1 && 0 < opt.drawtreerate
+        # actually draw the tree
         drawTree(tree,show=false,filepath=filepath)
         sleep(1/opt.drawtreerate)
       end
@@ -445,69 +455,70 @@ Related:
 
 drawTree
 """
-function generateTexTree(treel::AbstractBayesTree;
-                         filepath::String="/tmp/caesar/bayes/bt")
-    btc = deepcopy(treel)
-    for (cid, cliq) in getCliques(btc)
-        label = getLabel(cliq)
+function generateTexTree( treel::AbstractBayesTree;
+                          filepath::String="/tmp/caesar/bayes/bt")
+  #
+  btc = deepcopy(treel)
+  for (cid, cliq) in getCliques(btc)
+    label = getLabel(cliq)
 
-        # Get frontals and separator, and split into elements.
-        frt, sep = split(label,':')
-        efrt = split(frt,',')
-        esep = split(sep,',')
+    # Get frontals and separator, and split into elements.
+    frt, sep = split(label,':')
+    efrt = split(frt,',')
+    esep = split(sep,',')
 
-        # Transform frontals into latex.
-        newfrontals = ""
-        for l in efrt
-            # Split into symbol and subindex (letter and number).
-            parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
-            if size(parts)[1] == 2
-                newfrontals = string(newfrontals, "\\bm{", parts[1], "}_{", parts[2], "}, ")
-            elseif size(parts)[1] == 3
-                newfrontals = string(newfrontals, "\\bm{", parts[2], "}_{", parts[3], "}, ")
-            end
-        end
-        # Remove the trailing comma.
-        newfrontals = newfrontals[1:end-2]
-
-        # Transform separator into latex.
-        newseparator = ""
-        if length(sep) > 1
-            for l in esep
-                # Split into symbol and subindex.
-                parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
-                if size(parts)[1] == 2
-                    newseparator = string(newseparator, "\\bm{", parts[1], "}_{", parts[2], "}, ")
-                elseif size(parts)[1] == 3
-                    newseparator = string(newseparator, "\\bm{", parts[2], "}_{", parts[3], "}, ")
-                end
-            end
-        end
-        # Remove the trailing comma.
-        newseparator = newseparator[1:end-2]
-        # Create full label and replace the old one.
-        newlabel = string(newfrontals, ":", newseparator)
-        setLabel!(cliq, newlabel)
+    # Transform frontals into latex.
+    newfrontals = ""
+    for l in efrt
+      # Split into symbol and subindex (letter and number).
+      parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
+      if size(parts)[1] == 2
+        newfrontals = string(newfrontals, "\\bm{", parts[1], "}_{", parts[2], "}, ")
+      elseif size(parts)[1] == 3
+        newfrontals = string(newfrontals, "\\bm{", parts[2], "}_{", parts[3], "}, ")
+      end
     end
+    # Remove the trailing comma.
+    newfrontals = newfrontals[1:end-2]
 
-    # Use new labels to produce `.dot` and `.tex` files.
-    fid = IOStream("")
-    try
-        mkpath(joinpath((split(filepath,'/')[1:(end-1)])...) )
-        fid = open("$(filepath).dot","w+")
-        write(fid, to_dot(btc.bt))
-        close(fid)
-        # All in one command.
-        run(`dot2tex -tmath --preproc $(filepath).dot -o $(filepath)proc.dot`)
-        run(`dot2tex $(filepath)proc.dot -o $(filepath).tex`)
-    catch ex
-        @warn ex
-        @show stacktrace()
-    finally
-        close(fid)
+    # Transform separator into latex.
+    newseparator = ""
+    if length(sep) > 1
+      for l in esep
+        # Split into symbol and subindex.
+        parts = split(l, r"[^a-z0-9]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])")
+        if size(parts)[1] == 2
+          newseparator = string(newseparator, "\\bm{", parts[1], "}_{", parts[2], "}, ")
+        elseif size(parts)[1] == 3
+          newseparator = string(newseparator, "\\bm{", parts[2], "}_{", parts[3], "}, ")
+        end
+      end
     end
+    # Remove the trailing comma.
+    newseparator = newseparator[1:end-2]
+    # Create full label and replace the old one.
+    newlabel = string(newfrontals, ":", newseparator)
+    setLabel!(cliq, newlabel)
+  end
 
-    return btc
+  # Use new labels to produce `.dot` and `.tex` files.
+  fid = IOStream("")
+  try
+    mkpath(joinpath((split(filepath,'/')[1:(end-1)])...) )
+    fid = open("$(filepath).dot","w+")
+    write(fid, to_dot(btc.bt))
+    close(fid)
+    # All in one command.
+    run(`dot2tex -tmath --preproc $(filepath).dot -o $(filepath)proc.dot`)
+    run(`dot2tex $(filepath)proc.dot -o $(filepath).tex`)
+  catch ex
+    @warn ex
+    @show stacktrace()
+  finally
+    close(fid)
+  end
+
+  return btc
 end
 
 """

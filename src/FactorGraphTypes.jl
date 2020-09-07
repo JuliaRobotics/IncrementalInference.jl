@@ -28,6 +28,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   upsolve::Bool
   downsolve::Bool
   drawtree::Bool
+  drawCSMIters::Bool
   showtree::Bool
   drawtreerate::Float64
   dbg::Bool
@@ -54,6 +55,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 upsolve::Bool=true,
                 downsolve::Bool=true,
                 drawtree::Bool=false,
+                drawCSMIters::Bool=true,
                 showtree::Bool=false,
                 drawtreerate::Float64=0.5,
                 dbg::Bool=false,
@@ -80,6 +82,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       upsolve,
                       downsolve,
                       drawtree,
+                      drawCSMIters,
                       showtree,
                       drawtreerate,
                       dbg,

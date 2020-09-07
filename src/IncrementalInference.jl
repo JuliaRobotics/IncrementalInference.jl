@@ -29,7 +29,8 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   JSON2,
-  Combinatorics
+  Combinatorics,
+  UUIDs
 
 # experimental for replacing BayesTree on Graphs.jl
 using MetaGraphs
