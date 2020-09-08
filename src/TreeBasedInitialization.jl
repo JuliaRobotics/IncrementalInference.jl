@@ -1,4 +1,6 @@
 
+# start moving exports here and not all in IIF.jl
+export blockCliqSiblingsParentNeedDown
 
 
 function isCliqInitialized(cliq::TreeClique)::Bool
@@ -293,47 +295,28 @@ Notes
 - used for regulating long need down message chains.
 - exit strategy is parent becomes status `:initialized`.
 """
-function blockCliqSiblingsParentNeedDown(tree::AbstractBayesTree,
-                                         cliq::TreeClique; logger=ConsoleLogger())
+function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
+                                          cliq::TreeClique,
+                                          prnt_::TreeClique; 
+                                          logger=ConsoleLogger())
   #
-  with_logger(logger) do
-    @info "cliq $(cliq.index), blockCliqSiblingsParentNeedDown -- start of function"
-  end
-  # ret = Dict{Int, Symbol}()
-  # flush(logger.stream)
-  prnt = getParent(tree, cliq)
+  
   allneeddwn = true
-  if length(prnt) > 0
-    prstat = getCliqueStatus(prnt[1])
-    if prstat == :needdownmsg
-      for ch in getChildren(tree, prnt[1])
-        chst = getCliqueStatus(ch)
-        if chst != :needdownmsg
-          allneeddwn = false
-          break;
-        end
+  prstat = getCliqueStatus(prnt_)
+  if prstat == :needdownmsg
+    for ch in getChildren(tree, prnt_)
+      chst = getCliqueStatus(ch)
+      if chst != :needdownmsg
+        allneeddwn = false
+        break;
       end
+    end
 
-      if allneeddwn
-        with_logger(logger) do
-          tt = split(string(now()), 'T')[end]
-          @warn "$(tt) | $(current_task()), cliq $(cliq.index), block since all siblings/parent($(prnt[1].index)) :needdownmsg."
-        end
-        flush(logger.stream)
-        # do actual fetch
-        prtmsg = fetchMsgDwnInit(prnt[1]).status
-        with_logger(logger) do
-            tt = split(string(now()), 'T')[end]
-          @info "$tt | $(current_task()) clique $(prnt[1].index), blockCliqSiblingsParentNeedDown -- after fetch $prstat, $prtmsg"
-        end
-        if prtmsg == :initialized
-          return true
-        else
-            with_logger(logger) do
-                tt = split(string(now()), 'T')[end]
-                @warn "$tt | $(current_task()) Clique $(prnt[1].index), maybe clear down init message $prtmsg"
-            end
-        end
+    if allneeddwn
+      # do actual fetch
+      prtmsg = fetchMsgDwnInit(prnt_).status
+      if prtmsg == :initialized
+        return true
       end
     end
   end
@@ -407,9 +390,9 @@ Dev Notes
 - Streamline add/delete msg priors from calling function and csm.
 - TODO replace with nested 'minimum degree' type variable ordering.
 """
-function getCliqInitVarOrderDown(dfg::AbstractDFG,
-                                 cliq::TreeClique,
-                                 dwnkeys::Vector{Symbol} )   # downmsgs
+function getCliqInitVarOrderDown( dfg::AbstractDFG,
+                                  cliq::TreeClique,
+                                  dwnkeys::Vector{Symbol} )   # downmsgs
   #
   allsyms = getCliqAllVarIds(cliq)
   # convert input downmsg var symbols to integers (also assumed as prior beliefs)
@@ -503,12 +486,12 @@ Algorithm:
 DevNotes
 - TODO Lots of cleanup required, especially from calling function.
 """
-function doCliqInitDown!(subfg::AbstractDFG,
-                         cliq::TreeClique,
-                         initorder;
-                         dbg::Bool=false,
-                         logpath::String="/tmp/caesar/",
-                         logger=ConsoleLogger() )
+function doCliqInitDown!( subfg::AbstractDFG,
+                          cliq::TreeClique,
+                          initorder;
+                          dbg::Bool=false,
+                          logpath::String="/tmp/caesar/",
+                          logger=ConsoleLogger() )
   #
 
   # store the cliqSubFg for later debugging
@@ -544,7 +527,7 @@ end
 
 Return `true` if any of the children cliques have status `:needdownmsg`.
 """
-function areCliqChildrenNeedDownMsg(children::Vector{TreeClique})::Bool
+function doAnyChildrenNeedDwnMsg(children::Vector{TreeClique})::Bool
   for ch in children
     if getCliqueStatus(ch) == :needdownmsg
       return true
@@ -553,8 +536,8 @@ function areCliqChildrenNeedDownMsg(children::Vector{TreeClique})::Bool
   return false
 end
 
-function areCliqChildrenNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
-  areCliqChildrenNeedDownMsg( getChildren(tree, cliq) )
+function doAnyChildrenNeedDwnMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
+  doAnyChildrenNeedDwnMsg( getChildren(tree, cliq) )
 end
 
 
