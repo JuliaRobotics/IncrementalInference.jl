@@ -210,7 +210,7 @@ end
 """
     $SIGNATURES
 
-Is this called after up, not sure if called after down yet?
+Need description for this???
 
 Notes
 - State machine function nr.9
@@ -248,9 +248,12 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     # return canCliqMargSkipUpSolve_StateMachine
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine # whileCliqNotSolved_StateMachine
+  # go to 4b (redirected here during #459 dwnMsg effort)
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine # whileCliqNotSolved_StateMachine
 end
+
 
 """
     $SIGNATURES
@@ -280,8 +283,10 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
     @warn "no parent!"
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine
+  # go to 4b 
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 """
@@ -473,7 +478,8 @@ function canCliqMargSkipUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqueStatus(csmc.oldcliqdata)
   infocsm(csmc, "4, canCliqMargSkipUpSolve_StateMachine, $cliqst, csmc.incremental=$(csmc.incremental)")
 
-    # if clique is out-marginalized, then no reason to continue with upsolve
+  # if clique is out-marginalized, then no reason to continue with upsolve
+  # marginalized state is set in `testCliqCanRecycled_StateMachine`
   if cliqst == :marginalized
     # go to 10 -- Add case for IIF issue #474
     return determineCliqIfDownSolve_StateMachine
@@ -482,25 +488,6 @@ function canCliqMargSkipUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # go to 4e
   return blockUntilChildrenHaveStatus_StateMachine
 end
-
-"""
-    $SIGNATURES
-
-Block until all children have a csm status, using `fetch---Condition` model. 
-
-Notes
-- State machine function nr.4e
-"""
-function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContainer)
-  #must happen before if :null
-  stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
-  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
-  csmc.forceproceed = false # only used in 7
-
-  # go to 4b
-  return trafficRedirectConsolidate459_StateMachine
-end
-
 
 
 """
@@ -561,6 +548,7 @@ Delay loop if waiting on upsolves to complete.
 Notes
 - State machine 7b
 - Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
+- Differs from 4e in that here children must be "upsolved" or equivalent to continue.
 """
 function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -585,8 +573,10 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
     end
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine
+  # go to 4b
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 
@@ -642,8 +632,23 @@ end
 
 
 
+"""
+    $SIGNATURES
 
+Block until all children have a csm status, using `fetch---Condition` model. 
 
+Notes
+- State machine function nr.4e
+"""
+function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContainer)
+  #must happen before if :null
+  stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
+  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
+  csmc.forceproceed = false # only used in 7
+
+  # go to 4b
+  return trafficRedirectConsolidate459_StateMachine
+end
 
 
 
