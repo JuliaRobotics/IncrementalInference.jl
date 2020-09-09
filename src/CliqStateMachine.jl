@@ -1,7 +1,7 @@
 # clique state machine for tree based initialization and inference
 
 # newer exports
-export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, untilDownMsgChildren_StateMachine
+export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, doAnyChildrenNeedDwn_StateMachine
 export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
 export rmUpLikeliSaveSubFg_StateMachine
 
@@ -966,7 +966,7 @@ function trafficRedirectConsolidate459_StateMachine(csmc::CliqStateMachineContai
     return checkIfCliqNullBlock_StateMachine
   elseif cliqst == :needdownmsg  # && cliqst != :null
     # got to 4c (seems like only needdownmsg case gets here)
-    return untilDownMsgChildren_StateMachine
+    return doAnyChildrenNeedDwn_StateMachine
   else
     # go to 6c
     return doesParentNeedDwn_StateMachine
@@ -988,7 +988,7 @@ end
 # doAllSiblingsNeedDwn_StateMachine   # Trying to figure out when to block on siblings for cascade down init. 
 # checkIfCliqNullBlock_StateMachine         # If all children (then also escalate to) :needdwnmsgs and block until sibling status.
 # determineCliqNeedDownMsg_StateMachine     # Try decide whether this `csmc.cliq` needs a downward initialization message.
-# untilDownMsgChildren_StateMachine         # Determine if any one of the children :needdownmsg.
+# doAnyChildrenNeedDwn_StateMachine         # Determine if any one of the children :needdownmsg.
 # downInitRequirement_StateMachine          # Place fake up msg and notify down init status if any children :needdownmsg
 
 
@@ -1169,25 +1169,25 @@ DevNotes
 - TODO remove csmc.forceproceed entirely from CSM
   - Try force parent to initialize ?? FIXME DEPRECATE
 """
-function untilDownMsgChildren_StateMachine(csmc::CliqStateMachineContainer)
+function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
   # areChildDown = doAnyChildrenNeedDwnMsg(csmc.tree, csmc.cliq)
-  areChildDown = false
+  # areChildDown = false
   for ch in getChildren(csmc.tree, csmc.cliq)
     if getCliqueStatus(ch) == :needdownmsg
-      areChildDown = true
-      infocsm(csmc, "4c, untilDownMsgChildren_StateMachine, must deal with child :needdownmsg")
+      # areChildDown = true
+      infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
       csmc.forceproceed = true
 
       break
     end
   end
 
-  infocsm(csmc, "4c, untilDownMsgChildren_StateMachine(csmc.tree, csmc.cliq)=$(areChildDown)")
-  if areChildDown
-    infocsm(csmc, "4c, untilDownMsgChildren_StateMachine, must deal with child :needdownmsg")
-    csmc.forceproceed = true
+  infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine(csmc.tree, csmc.cliq)=$(csmc.forceproceed)")
+  if !csmc.forceproceed # areChildDown
+    # csmc.forceproceed = true
     # this force later step `towardUpOrDwnSolve_StateMachine`
-  else
+    # else
+    infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
     # go to 5
     return blockUntilSiblingsStatus_StateMachine
   end
