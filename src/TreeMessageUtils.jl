@@ -406,15 +406,15 @@ Convert tree up messages dictionary to a new dictionary relative to variables sp
 Notes
 - Return data in `TempUpMsgPlotting` format:
     Dict{Symbol,   -- is for variable label
-     Vector{       -- multiple msgs for the same variable
-      Symbol,      -- Clique index
-      Int,         -- Depth in tree
-      BTD          -- Belief estimate
-      inferredDim  -- Information count
-     }
+      Vector{       -- multiple msgs for the same variable
+        Symbol,      -- Clique index
+        Int,         -- Depth in tree
+        BTD          -- Belief estimate
+        inferredDim  -- Information count
+      }
 """
-function stackCliqUpMsgsByVariable(tree::AbstractBayesTree,
-                                   tmpmsgs::Dict{Int, LikelihoodMessage}  )
+function stackCliqUpMsgsByVariable( tree::AbstractBayesTree,
+                                    tmpmsgs::Dict{Int, LikelihoodMessage}  )
   #
   # start of the return data structure
   stack = TempUpMsgPlotting()

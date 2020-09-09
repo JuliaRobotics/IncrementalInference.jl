@@ -252,7 +252,7 @@ export *,
   finishCliqSolveCheck_StateMachine,
   determineCliqNeedDownMsg_StateMachine,
   blockUntilSiblingsStatus_StateMachine,
-  doesCliqNeeddownmsg_StateMachine,
+  trafficRedirectConsolidate459_StateMachine,
   slowCliqIfChildrenNotUpsolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
@@ -360,7 +360,7 @@ export *,
 
   getCliqVarInitOrderUp,
   # getCliqInitVarOrderDown,
-  blockCliqUntilChildrenHaveUpStatus,
+  fetchChildrenStatusUp,
   getCliqNumAssocFactorsPerVar,
 
   # introduced for approximate convolution operations
