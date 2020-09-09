@@ -102,9 +102,9 @@ Related:
 
 getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
-function printCliqHistorySummary(fid,
-                                 hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
-                                 cliqid::AbstractString="")
+function printCliqHistorySummary( fid,
+                                  hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                  cliqid::AbstractString="")
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
   end
@@ -114,30 +114,58 @@ function printCliqHistorySummary(fid,
   nothing
 end
 
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
-                                 cliqid::AbstractString="")
+function printCliqHistorySummary( hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                  cliqid::AbstractString="")
+  #
   printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
-                                 tree::AbstractBayesTree,
-                                 sym::Symbol  )
+function printCliqHistorySummary( hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                  tree::AbstractBayesTree,
+                                  sym::Symbol  )
   #
   hist = hists[getClique(tree, sym).index]
   printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).index))
 end
+
+# TODO maybe Base. already has something like this Union{UnitRange, AbstractVector, etc.}
+const CSMRangesT{T} = Union{T,UnitRange{T},<:AbstractVector{T} }
+const CSMRanges = CSMRangesT{Int}
+# old
+# const CSMTupleRangesT{T} = Union{Tuple{T,T},Tuple{T,UnitRange{T}},Tuple{T,AbstractVector{T}},Tuple{UnitRange{T},T},Tuple{UnitRange{T},UnitRange{T}},Tuple{AbstractVector{T},T},Tuple{AbstractVector{T},AbstractVector{T}},Tuple{AbstractVector{T},UnitRange{T}} }
 
 """
     $SIGNATURES
 
 Print a sequential summary lines of clique state machine histories in hists::Dict.
 
+Notes
+- Slices are allowed, see examples.
+
+Example
+```julia
+printCliqHistorySequential(hists, 2=>46)
+printCliqHistorySequential(hists, 1=>11:15)
+printCliqHistorySequential(hists, [1,4,6]=>11:15)
+```
+
+DevNotes
+- TODO upgrade to default `whichstep = :=>:` -- i.e. 
+  - add dispatch for `(:) |> typeof == Colon`, 
+  - `5:6=>:`.
+- TODO make Vector of Pair version, e.g.
+  - `[5=>5:8, 8=>20:25, 2:3=>[1;3]]`,
+  - Maybe also `Dict(5=>5:8, 8=>20:25)`, or `Dict(2:5=>[1;3], 10=>1:5)`.
+- TODO also add a elements between `Tuple{<:CSMRanges, Pair}` option
+  - ([1;3], 1=>5:7) which will print all steps from CSM 1 and 3, which occur between 1=>5 and 1=>7.
+- TODO perhaps move some of this functionality upstream to FSM
+
 Related:
 
 printHistoryLine, printCliqHistory
 """
 function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
-                                    whichstep::NothingUnion{Tuple{Int,Int}}=nothing,
+                                    whichstep::Union{Nothing,Pair{<:CSMRanges,<:CSMRanges}}=nothing,
                                     fid=stdout)
   # vectorize all histories in single Array
   allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
@@ -159,7 +187,7 @@ function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, 
   for idx in 1:length(alltimes)
     hiln = allhists_[idx]
     # show only one line if whichstep is not nothing
-    if whichstep === nothing || (whichstep[1] == allcliqids_[idx] && whichstep[2] == hiln[2])
+    if whichstep === nothing || (allcliqids_[idx] in whichstep[1] && hiln[2] in whichstep[2])
       printHistoryLine(fid,hiln,string(allcliqids_[idx]))
     end
   end
