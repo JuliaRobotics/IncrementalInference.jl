@@ -27,6 +27,55 @@ end
 ##==============================================================================
 
 
+# """
+#    $SIGNATURES
+#
+# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
+# """
+# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
+#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
+#
+#   # check that all child cliques have also completed full up inference.
+#   for chl in getChildren(tree, cliq)
+#     isallinit &= isUpInferenceComplete(chl)
+#   end
+#   return isallinit
+# end
+
+# """
+#     $SIGNATURES
+#
+# Perform cliq initalization calculation based on current state of the tree and factor graph,
+# using upward message passing logic.
+#
+# Notes
+# - adds msg priors added to clique subgraph
+# - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
+# - must use factors in cliq only, ensured by using subgraph -- TODO general case.
+#
+# DevNotes
+# - FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
+# """
+# function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
+#                                 tree::AbstractBayesTree,
+#                                 cliq::TreeClique;
+#                                 up_solve_if_able::Bool=true,
+#                                 multiproc::Bool=true,
+#                                 logger=ConsoleLogger() )
+#   #
+#
+#   # attempt initialize if necessary
+#   if !areCliqVariablesAllInitialized(subfg, cliq)
+#     # structure for all up message densities computed during this initialization procedure.
+#     varorder = getCliqVarInitOrderUp(tree, cliq)
+#     # do physical inits, ignore cycle return value
+#     cycleInitByVarOrder!(subfg, varorder, logger=logger)
+#   end
+#
+#   return nothing
+# end
+
+
 """
     $SIGNATURES
 

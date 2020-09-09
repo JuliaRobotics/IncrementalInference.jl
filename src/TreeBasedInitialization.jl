@@ -257,28 +257,27 @@ end
 """
     $SIGNATURES
 
-Block the thread until child cliques of `prnt::TreeClique` have finished
-attempting upward initialization -- i.e. have status result.
-Return `::Dict{Symbol}` indicating whether next action that should be taken
-for each child clique.
+Fetch (block) caller until child cliques of `cliq::TreeClique` have valid csm status.
 
 Notes:
+- Return `::Dict{Symbol}` indicating whether next action that should be taken for each child clique.
 - See status options at `getCliqueStatus(..)`.
 - Can be called multiple times
 """
-function blockCliqUntilChildrenHaveUpStatus(tree::AbstractBayesTree,
-                                            prnt::TreeClique,
+function fetchChildrenStatusUp(tree::AbstractBayesTree,
+                                            cliq::TreeClique,
                                             logger=ConsoleLogger() )
   #
   ret = Dict{Int, Symbol}()
-  chlr = getChildren(tree, prnt)
+  chlr = getChildren(tree, cliq)
   for ch in chlr
-    # either wait to fetch new result, or report or result
-    chst = getCliqueStatus(ch)
+      # # FIXME, why are there two steps getting cliq status????
+      # chst = getCliqueStatus(ch)  # TODO, remove this
     with_logger(logger) do
-      @info "cliq $(prnt.index), child $(ch.index) status is $(chst), isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
+      @info "cliq $(cliq.index), child $(ch.index) isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
     end
     flush(logger.stream)
+    # either wait to fetch new result, or report or result
     ret[ch.index] = (fetch(getMsgUpChannel(ch))).status
   end
 
@@ -324,39 +323,6 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
 end
 
 
-
-# """
-#     $SIGNATURES
-#
-# Perform cliq initalization calculation based on current state of the tree and factor graph,
-# using upward message passing logic.
-#
-# Notes
-# - adds msg priors added to clique subgraph
-# - Return either of (:initialized, :upsolved, :needdownmsg, :badinit)
-# - must use factors in cliq only, ensured by using subgraph -- TODO general case.
-#
-# DevNotes
-# - FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
-# """
-# function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
-#                                 tree::AbstractBayesTree,
-#                                 cliq::TreeClique;
-#                                 up_solve_if_able::Bool=true,
-#                                 multiproc::Bool=true,
-#                                 logger=ConsoleLogger() )
-#   #
-#
-#   # attempt initialize if necessary
-#   if !areCliqVariablesAllInitialized(subfg, cliq)
-#     # structure for all up message densities computed during this initialization procedure.
-#     varorder = getCliqVarInitOrderUp(tree, cliq)
-#     # do physical inits, ignore cycle return value
-#     cycleInitByVarOrder!(subfg, varorder, logger=logger)
-#   end
-#
-#   return nothing
-# end
 
 function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
   varids = getCliqAllVarIds(cliq)
@@ -485,6 +451,7 @@ Algorithm:
 
 DevNotes
 - TODO Lots of cleanup required, especially from calling function.
+- TODO move directly into a CSM state function
 """
 function doCliqInitDown!( subfg::AbstractDFG,
                           cliq::TreeClique,
@@ -559,17 +526,6 @@ function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logg
 end
 
 
-# """
-#    $SIGNATURES
+
+
 #
-# Determine if this `cliq` has been fully initialized and child cliques have completed their full upward inference.
-# """
-# function isCliqReadyInferenceUp(fgl::FactorGraph, tree::AbstractBayesTree, cliq::TreeClique)
-#   isallinit = areCliqVariablesAllInitialized(fgl, cliq)
-#
-#   # check that all child cliques have also completed full up inference.
-#   for chl in getChildren(tree, cliq)
-#     isallinit &= isUpInferenceComplete(chl)
-#   end
-#   return isallinit
-# end
