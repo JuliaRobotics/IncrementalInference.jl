@@ -1170,7 +1170,18 @@ DevNotes
   - Try force parent to initialize ?? FIXME DEPRECATE
 """
 function untilDownMsgChildren_StateMachine(csmc::CliqStateMachineContainer)
-  areChildDown = doAnyChildrenNeedDwnMsg(csmc.tree, csmc.cliq)
+  # areChildDown = doAnyChildrenNeedDwnMsg(csmc.tree, csmc.cliq)
+  areChildDown = false
+  for ch in getChildren(csmc.tree, csmc.cliq)
+    if getCliqueStatus(ch) == :needdownmsg
+      areChildDown = true
+      infocsm(csmc, "4c, untilDownMsgChildren_StateMachine, must deal with child :needdownmsg")
+      csmc.forceproceed = true
+
+      break
+    end
+  end
+
   infocsm(csmc, "4c, untilDownMsgChildren_StateMachine(csmc.tree, csmc.cliq)=$(areChildDown)")
   if areChildDown
     infocsm(csmc, "4c, untilDownMsgChildren_StateMachine, must deal with child :needdownmsg")
