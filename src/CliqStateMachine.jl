@@ -550,15 +550,8 @@ Notes
 - Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
 - Differs from 4e in that here children must be "upsolved" or equivalent to continue.
 """
-function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
+function childCliqsMustBeUpsolved_StateMachine(csmc::CliqStateMachineContainer)
 
-  # special case short cut
-  cliqst = getCliqueStatus(csmc.cliq)
-  if cliqst == :needdownmsg
-    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
-    # go to 4
-    return canCliqMargSkipUpSolve_StateMachine
-  end
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
   @inbounds for i in 1:len
@@ -568,7 +561,7 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
       wait(getSolveCondition(childs[i]))
 
       # # TOO BLOCKING to come back here to 7b
-      # return slowCliqIfChildrenNotUpsolved_StateMachine
+      # return childCliqsMustBeUpsolved_StateMachine
       break
     end
   end
@@ -1017,8 +1010,8 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   # fetch status from children (should already be available -- i.e. should not block)
   for (clid, clst) in stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
-    # :needdownmsg # 'send' downward init msg direction
-    (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
+    ## :needdownmsg # 'send' downward init msg direction
+    # (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
     (clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (resolveinit = false)
   end
   infocsm(csmc, "7, proceed=$(proceed)")
@@ -1026,13 +1019,20 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   if csmc.forceproceed || resolveinit # proceed
     # go to 7c
     return towardUpOrDwnSolve_StateMachine
-  # elseif resolveinit
-  #   # go to 
-  #   return ???
-  else
-    # go to 7b
-    return slowCliqIfChildrenNotUpsolved_StateMachine
   end
+
+  # special case short cut
+  cliqst = getCliqueStatus(csmc.cliq)
+  if cliqst == :needdownmsg
+    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
+    # go to 4b
+    return trafficRedirectConsolidate459_StateMachine
+      # # go to 4
+      # return canCliqMargSkipUpSolve_StateMachine
+  end
+
+  # go to 7b
+  return childCliqsMustBeUpsolved_StateMachine
 end
 
 
