@@ -72,7 +72,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   newDwnMsgs = getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
   
     #JT 459 putMsgDwnThis!(cliq, newDwnMsgs), DF still looks like a pull model here #674
-    putCliqueMsgDown!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
+    putMsgDwnThis!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!) # putCliqueMsgDown!
 
     # update clique subgraph with new status
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -180,7 +180,7 @@ function determineCliqIfDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
     # this part looks like a pull model
     # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
-    putCliqueMsgDown!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!)
+    putMsgDwnThis!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!) # putCliqueMsgDown!
     setCliqueStatus!(csmc.cliq, :downsolved)
     csmc.dodownsolve = false
 
@@ -210,7 +210,7 @@ end
 """
     $SIGNATURES
 
-Is this called after up, not sure if called after down yet?
+Need description for this???
 
 Notes
 - State machine function nr.9
@@ -248,9 +248,12 @@ function finishCliqSolveCheck_StateMachine(csmc::CliqStateMachineContainer)
     # return canCliqMargSkipUpSolve_StateMachine
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine # whileCliqNotSolved_StateMachine
+  # go to 4b (redirected here during #459 dwnMsg effort)
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine # whileCliqNotSolved_StateMachine
 end
+
 
 """
     $SIGNATURES
@@ -280,8 +283,10 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
     @warn "no parent!"
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine
+  # go to 4b 
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 """
@@ -473,7 +478,8 @@ function canCliqMargSkipUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = getCliqueStatus(csmc.oldcliqdata)
   infocsm(csmc, "4, canCliqMargSkipUpSolve_StateMachine, $cliqst, csmc.incremental=$(csmc.incremental)")
 
-    # if clique is out-marginalized, then no reason to continue with upsolve
+  # if clique is out-marginalized, then no reason to continue with upsolve
+  # marginalized state is set in `testCliqCanRecycled_StateMachine`
   if cliqst == :marginalized
     # go to 10 -- Add case for IIF issue #474
     return determineCliqIfDownSolve_StateMachine
@@ -482,25 +488,6 @@ function canCliqMargSkipUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # go to 4e
   return blockUntilChildrenHaveStatus_StateMachine
 end
-
-"""
-    $SIGNATURES
-
-Block until all children have a csm status, using `fetch---Condition` model. 
-
-Notes
-- State machine function nr.4e
-"""
-function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContainer)
-  #must happen before if :null
-  stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
-  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
-  csmc.forceproceed = false # only used in 7
-
-  # go to 4b
-  return trafficRedirectConsolidate459_StateMachine
-end
-
 
 
 """
@@ -561,16 +548,10 @@ Delay loop if waiting on upsolves to complete.
 Notes
 - State machine 7b
 - Also has "recursion", to come back to this function to make sure that child clique updates are in fact upsolved.
+- Differs from 4e in that here children must be "upsolved" or equivalent to continue.
 """
-function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContainer)
+function childCliqsMustBeUpsolved_StateMachine(csmc::CliqStateMachineContainer)
 
-  # special case short cut
-  cliqst = getCliqueStatus(csmc.cliq)
-  if cliqst == :needdownmsg
-    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
-    # go to 4
-    return canCliqMargSkipUpSolve_StateMachine
-  end
   childs = getChildren(csmc.tree, csmc.cliq)
   len = length(childs)
   @inbounds for i in 1:len
@@ -580,13 +561,15 @@ function slowCliqIfChildrenNotUpsolved_StateMachine(csmc::CliqStateMachineContai
       wait(getSolveCondition(childs[i]))
 
       # # TOO BLOCKING to come back here to 7b
-      # return slowCliqIfChildrenNotUpsolved_StateMachine
+      # return childCliqsMustBeUpsolved_StateMachine
       break
     end
   end
 
-  # go to 4
-  return canCliqMargSkipUpSolve_StateMachine
+  # go to 4b
+  return trafficRedirectConsolidate459_StateMachine
+    # # go to 4
+    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 
@@ -642,8 +625,23 @@ end
 
 
 
+"""
+    $SIGNATURES
 
+Block until all children have a csm status, using `fetch---Condition` model. 
 
+Notes
+- State machine function nr.4e
+"""
+function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContainer)
+  #must happen before if :null
+  stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
+  infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
+  csmc.forceproceed = false # only used in 7
+
+  # go to 4b
+  return trafficRedirectConsolidate459_StateMachine
+end
 
 
 
@@ -908,40 +906,69 @@ Blocking case when all siblings and parent :needdownmsg.
 
 Notes
 - State machine function nr. 6c
-- used for regulating long need down message chains.
-- exit strategy is parent becomes status `:initialized`.
+
+DevNotes
+- FIXME if statements can be slightly simplified before further consolidation.
+- FIXME understand if this should be consolidated with 4b. `trafficRedirectConsolidate459_StateMachine`?
 """
 function blockCliqSiblingsParentChildrenNeedDown_StateMachine(csmc::CliqStateMachineContainer)
+
   infocsm(csmc, "6c, check/block sibl&prnt :needdownmsg")
-
   prnt = getParent(csmc.tree, csmc.cliq)
-  if length(prnt) > 0
-    prnt_ = prnt[1]
-    # blockCliqSiblingsParentNeedDown(csmc.tree, csmc.cliq, prnt[1], logger=csmc.logger)
+  if 0 == length(prnt)
+    # go to 7
+    return determineCliqNeedDownMsg_StateMachine
+  elseif getCliqueStatus(prnt[1]) == :needdownmsg
+    # go to 6d
+    return actualBlockUntilSiblingsStatus_StateMachine
+  end
+  
+  # go to 7
+  return determineCliqNeedDownMsg_StateMachine
+end
 
-    prstat = getCliqueStatus(prnt_)
-    if prstat == :needdownmsg
-      allneeddwn = true
-      for ch in getChildren(csmc.tree, prnt_)
-        chst = getCliqueStatus(ch)
-        if chst != :needdownmsg
-          allneeddwn = false
-          break;
-        end
-      end
+"""
+$SIGNATURES
 
-      # FIXME, understand why is there another status event from parent msg here... How to consolidate this with CSM 8a
-      if allneeddwn
-        # do actual fetch
-        prtmsg = fetchMsgDwnInit(prnt_).status
-        if prtmsg == :initialized
-          # FIXME what does this mean???
-          allneeddwn = true
-        end
+Trying to figure out when to block on siblings for cascade down init.
+
+Notes
+- State machine function nr.6d
+- Part of #459 dwnMsg consolidation work.
+- used for regulating long need down message chains.
+- exit strategy is parent becomes status `:initialized`.
+
+DevNotes
+- Lots of work to do here!
+- FIXME: unexploited if-statments resulting in dummy `allneeddwn`
+"""
+function actualBlockUntilSiblingsStatus_StateMachine(csmc::CliqStateMachineContainer)
+    
+  prnt = getParent(csmc.tree, csmc.cliq)
+  prnt_ = prnt[1]
+  
+  # prstat = getCliqueStatus(prnt_)
+  # if prstat == :needdownmsg
+    allneeddwn = true
+    for ch in getChildren(csmc.tree, prnt_)
+      chst = getCliqueStatus(ch)
+      if chst != :needdownmsg
+        allneeddwn = false
+        break;
       end
     end
-    # allneeddwn = false
-  end
+
+    # FIXME, understand why is there another status event from parent msg here... How to consolidate this with CSM 8a
+    if allneeddwn
+      # do actual fetch
+      prtmsg = fetchMsgDwnInit(prnt_).status
+      if prtmsg == :initialized
+        # FIXME what does this mean???
+        allneeddwn = true
+      end
+    end
+  # end
+  # allneeddwn = false
 
   # go to 7
   return determineCliqNeedDownMsg_StateMachine
@@ -1012,8 +1039,8 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   # fetch status from children (should already be available -- i.e. should not block)
   for (clid, clst) in stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
-    # :needdownmsg # 'send' downward init msg direction
-    (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
+    ## :needdownmsg # 'send' downward init msg direction
+    # (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
     (clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (resolveinit = false)
   end
   infocsm(csmc, "7, proceed=$(proceed)")
@@ -1021,13 +1048,20 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   if csmc.forceproceed || resolveinit # proceed
     # go to 7c
     return towardUpOrDwnSolve_StateMachine
-  # elseif resolveinit
-  #   # go to 
-  #   return ???
-  else
-    # go to 7b
-    return slowCliqIfChildrenNotUpsolved_StateMachine
   end
+
+  # special case short cut
+  cliqst = getCliqueStatus(csmc.cliq)
+  if cliqst == :needdownmsg
+    infocsm(csmc, "7b, shortcut since this cliq :needdownmsg.")
+    # go to 4b
+    return trafficRedirectConsolidate459_StateMachine
+      # # go to 4
+      # return canCliqMargSkipUpSolve_StateMachine
+  end
+
+  # go to 7b
+  return childCliqsMustBeUpsolved_StateMachine
 end
 
 
