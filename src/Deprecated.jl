@@ -27,6 +27,97 @@ end
 ##==============================================================================
 
 
+"""
+    $SIGNATURES
+
+Initialization requires down message passing of more specialized down init msgs.
+This function performs any possible initialization of variables and retriggers
+children cliques that have not yet initialized.
+
+Notes:
+- Assumed this function is only called after status from child clique up inits completed.
+- Assumes cliq has parent.
+  - will fetch message from parent
+- Will perform down initialization if status == `:needdownmsg`.
+- might be necessary to pass furhter down messges to child cliques that also `:needdownmsg`.
+- Will not complete cliq solve unless all children are `:upsolved` (upward is priority).
+- `dwinmsgs` assumed to come from parent initialization process.
+- assume `subfg` as a subgraph that can be modified by this function (add message factors)
+  - should remove message prior factors from subgraph before returning.
+- May modify `cliq` values.
+  - `putMsgUpInit!(cliq, msg)`
+  - `setCliqueStatus!(cliq, status)`
+  - `setCliqDrawColor(cliq, "sienna")`
+  - `notifyCliqDownInitStatus!(cliq, status)`
+
+Algorithm:
+- determine which downward messages influence initialization order
+- initialize from singletons to most connected non-singletons
+- revert back to needdownmsg if cycleInit does nothing
+- can only ever return :initialized or :needdownmsg status
+
+DevNotes
+- TODO Lots of cleanup required, especially from calling function.
+- TODO move directly into a CSM state function
+"""
+function doCliqInitDown!( subfg::AbstractDFG,
+                          cliq::TreeClique,
+                          initorder;
+                          dbg::Bool=false,
+                          logpath::String="/tmp/caesar/",
+                          logger=ConsoleLogger() )
+  #
+
+  # store the cliqSubFg for later debugging
+  if dbg
+    DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_beforedowninit"))
+  end
+
+  # cycle through vars and attempt init
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 5, cycle through vars and attempt init"
+  end
+
+  status = :needdownmsg
+  if cycleInitByVarOrder!(subfg, initorder)
+    status = :initialized
+  end
+
+  with_logger(logger) do
+    @info "cliq $(cliq.index), doCliqInitDown! -- 6, current status: $status"
+  end
+
+  # store the cliqSubFg for later debugging
+  if dbg
+      DFG.saveDFG(subfg, joinpath(logpath,"logs/cliq$(cliq.index)/fg_afterdowninit"))
+  end
+
+  return status
+end
+
+
+function blockCliqUntilParentDownSolved(prnt::TreeClique; logger=ConsoleLogger())::Nothing
+  @error("blockCliqUntilParentDownSolved is deprecated, use CSM directly")
+
+  lbl = getLabel(prnt)
+
+  with_logger(logger) do
+    @info "blockCliqUntilParentDownSolved, prntcliq=$(prnt.index) | $lbl | going to fetch initdownchannel..."
+  end
+  flush(logger.stream)
+  blockMsgDwnUntilStatus(prnt, :downsolved)
+
+  return nothing
+end
+
+function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
+  @error("blockMsgDwnUntilStatus is deprecated, use CSM directly")
+  while fetchMsgDwnInit(cliq).status != status
+    wait(getSolveCondition(cliq))
+  end
+  nothing
+end
+
 # """
 #    $SIGNATURES
 #
