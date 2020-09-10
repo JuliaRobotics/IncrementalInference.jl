@@ -183,12 +183,11 @@ TODO
 - remove proceed
 - more direct clique access (cliq, parent, children), for multi-process solves
 """
-mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMemoryDFGTypes, BT <: AbstractBayesTree}
-  dfg::T
+mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMemoryDFGTypes, BT <: AbstractBayesTree}
+  dfg::G
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  cliqKey::Int
   parentCliq::Vector{TreeClique}
   childCliqs::Vector{TreeClique}
   forceproceed::Bool # TODO: bad flag that must be removed by refactoring sm
@@ -200,6 +199,7 @@ mutable struct CliqStateMachineContainer{BTND, T <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
+  cliqKey::Int
   #TODO towards consolidated messages
   # Decision is pull/fetch-model #674 -- i.e. CSM only works inside its own csmc and fetchs messages from neighbors
   # NOTE, DF going for Dict over Vector
@@ -210,25 +210,40 @@ end
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 
 
-function CliqStateMachineContainer(x1::G,
-                                   x2::InMemoryDFGTypes,
-                                   x3::AbstractBayesTree,
-                                   x4::TreeClique,
-                                   x5::Vector{TreeClique},
-                                   x6::Vector{TreeClique},
-                                   x7::Bool,
-                                   x8::Bool,
-                                   x9::Bool,
-                                   x10::Bool,
-                                   x10aa::Bool,
-                                   x10aaa::SolverParams,
-                                   x10b::Dict{Symbol,String}=Dict{Symbol,String}(),
-                                   x11::BTND=BayesTreeNodeData(),
-                                   x13::SimpleLogger=SimpleLogger(Base.stdout);
-                                   x4i::Int = x4.index) where {BTND, G <: AbstractDFG}
+function CliqStateMachineContainer( dfg::G,
+                                    cliqSubFg::M,
+                                    tree::T,
+                                    cliq::TreeClique,
+                                    parentCliq::Vector{TreeClique},
+                                    childCliqs::Vector{TreeClique},
+                                    forceproceed::Bool,
+                                    incremental::Bool,
+                                    drawtree::Bool,
+                                    dodownsolve::Bool,
+                                    delay::Bool,
+                                    opts::SolverParams,
+                                    refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
+                                    oldcliqdata::BTND=BayesTreeNodeData(),
+                                    logger::SimpleLogger=SimpleLogger(Base.stdout);
+                                    cliqKey::Int = cliq.index) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
-  CliqStateMachineContainer{BTND, G, typeof(x2), typeof(x3)}(x1,x2,x3,x4,x4i,x5,x6,x7,x8,x9,x10,x10aa,x10aaa,x10b,x11,x13 )
-              # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
+  CliqStateMachineContainer{BTND, G, M, T}( dfg,
+                                            cliqSubFg,
+                                            tree,
+                                            cliq,
+                                            parentCliq,
+                                            childCliqs,
+                                            forceproceed,
+                                            incremental,
+                                            drawtree,
+                                            dodownsolve,
+                                            delay,
+                                            opts,
+                                            refactoring,
+                                            oldcliqdata,
+                                            logger,
+                                            cliqKey )
+  #
 end
 
 

@@ -500,12 +500,7 @@ function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
 end
 
 
-function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
-  while fetchMsgDwnInit(cliq).status != status
-    wait(getSolveCondition(cliq))
-  end
-  nothing
-end
+
 
 
 

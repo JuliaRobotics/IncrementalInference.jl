@@ -8,7 +8,7 @@ EXPERIMENTAL: Init and start state machine for parametric solve.
 function initStartCliqStateMachineParametric!(dfg::G,
                                               tree::AbstractBayesTree,
                                               cliq::TreeClique,
-                                              cliqKey::Int;
+                                              cliqKey::Int; # moved to end during #459
                                               oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                               verbose::Bool=false,
                                               drawtree::Bool=false,
@@ -27,14 +27,12 @@ function initStartCliqStateMachineParametric!(dfg::G,
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
 
-  #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
-                                    tree, cliq,
-                                    cliqKey, prnt, children,
+                                    tree, cliq, prnt, children,
                                     false, incremental, drawtree, downsolve, delay,
-                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger) #,
-                                    # Dict{Int,LikelihoodMessage}(), LikelihoodMessage())
-
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
+                                    cliqKey )
+  #
   # nxt = upsolve ? testCliqCanRecycled_ParametricStateMachine : (downsolve ? testCliqCanRecycled_ParametricStateMachine : error("must attempt either up or down solve"))
   nxt = buildCliqSubgraph_ParametricStateMachine
 
