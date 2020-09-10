@@ -903,26 +903,24 @@ function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContaine
 
   # initialize clique in downward direction
   # not if parent also needs downward init message
-  prnt = getParent(csmc.tree, csmc.cliq)[1]
+  # prnt = getParent(csmc.tree, csmc.cliq)[1]
   opt = getSolverParams(csmc.dfg)
   @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
 
-  # FIXME, offload this work to the parent's CSM
-
   # take atomic lock OF PARENT ??? when waiting for downward information
-  lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
-  infocsm(csmc, "8a, after up lock")
+  # lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
+  # infocsm(csmc, "8a, after up lock")
 
   # get down message from the parent
   # check if any msgs should be multiplied together for the same variable
   # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
   # FIXME, post #459 calls?
   # this guy is getting any sibling up messages by calling on the parent
-  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, prnt, TreeBelief, skip=[csmc.cliq.index;])         
+  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip=[csmc.cliq.index;])         
   
   # reference to default dict location
-  dwinmsgs = getfetchCliqueInitMsgDown(prnt.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
-  infocsm(csmc, "prnt $(prnt.index), getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
+  dwinmsgs = getfetchCliqueInitMsgDown(csmc.cliq.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
+  infocsm(csmc, "getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
   
   # stack all parent incoming upward messages into dict of vector msgs
   prntBelDictVec::Dict{Symbol, Vector{TreeBelief}} = convertLikelihoodToVector(prntmsgs, logger=csmc.logger)
@@ -945,18 +943,20 @@ function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContaine
     delete!(dwinmsgs.belief, pr)
   end
 
-  infocsm(csmc, "prnt $(prnt.index), prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
+  infocsm(csmc, "prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
 
   # now put the newly computed message in the appropriate container
   # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
   # FIXME must be consolidated as part of #459
-  putCliqueInitMsgDown!(getCliqueData(prnt), dwinmsgs)
+  putCliqueInitMsgDown!(getCliqueData(csmc.cliq), dwinmsgs)
   # unlock
-  unlockUpStatus!(prnt) # TODO XY ????, maybe can remove after pull model #674?
+  # unlockUpStatus!(prnt) # TODO XY ????, maybe can remove after pull model #674?
   infocsm(csmc, "8a, attemptCliqInitD., unlocked")
 
-  # go to 8j.
-  return dwnInitSiblingWaitOrder_StateMachine
+  # go to 7b (maybe, and part of dwnMsg #459 WIP 9)
+  return slowIfChildrenNotUpSolved_StateMachine
+    # # go to 8j.
+    # return dwnInitSiblingWaitOrder_StateMachine
 end
 
 
@@ -1003,7 +1003,7 @@ function trafficRedirectConsolidate459_StateMachine(csmc::CliqStateMachineContai
   end
 
   prnt = getParent(csmc.tree, csmc.cliq)
-  if 0 == length(prnt)
+  if 0 == length(prnt) || cliqst == :needdownmsg
     # go to 7
     return determineCliqNeedDownMsg_StateMachine
   end
@@ -1012,9 +1012,9 @@ function trafficRedirectConsolidate459_StateMachine(csmc::CliqStateMachineContai
   if cliqst == :null
     # go to 4d
     return checkIfCliqNullBlock_StateMachine
-  elseif cliqst == :needdownmsg  # && cliqst != :null
-    # got to 4c (seems like only needdownmsg case gets here)
-    return doAnyChildrenNeedDwn_StateMachine
+  # elseif cliqst == :needdownmsg  # && cliqst != :null
+  #   # got to 4c (seems like only needdownmsg case gets here)
+  #   return doAnyChildrenNeedDwn_StateMachine
   else
     # go to 6c
     return doesParentNeedDwn_StateMachine
@@ -1135,7 +1135,31 @@ DevNotes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
+  function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+    for ch in getChildren(csmc.tree, csmc.cliq)
+      if getCliqueStatus(ch) == :needdownmsg
+        infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
+        csmc.forceproceed = true
+        break
+      end
+    end
   
+    if !csmc.forceproceed
+      infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
+      # go to 5
+      return blockUntilSiblingsStatus_StateMachine
+    end
+    infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
+  
+    # go to 6c
+    return doesParentNeedDwn_StateMachine
+  end
+
+  # FIXME add path to 8a
+  # return collectDwnInitMsgFromParent_StateMachine
+
+
+
   # fetch children status
   stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
   infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
@@ -1157,8 +1181,10 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     # TODO, remove csmc.forceproceed, only used in 7
     csmc.forceproceed = false
     
-      # go to 7c
-    return towardUpOrDwnSolve_StateMachine
+    # go to 8j (dwnMsg #459 WIP 9)
+    return dwnInitSiblingWaitOrder_StateMachine
+      # # go to 7c
+      # return towardUpOrDwnSolve_StateMachine
   end
 
   # special case short cut
@@ -1191,7 +1217,6 @@ DevNotes
   - Try force parent to initialize ?? FIXME DEPRECATE
 """
 function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-
   for ch in getChildren(csmc.tree, csmc.cliq)
     if getCliqueStatus(ch) == :needdownmsg
       infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
