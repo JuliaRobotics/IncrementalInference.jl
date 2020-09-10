@@ -1200,7 +1200,7 @@ end
 """
 $SIGNATURES
 
-Place fake up msg and notify down init status if any children :needdownmsg
+Place fake up msg and notify down init status if any children :needdownmsg.
 
 Notes
 - StateMachine function nr. 8d
@@ -1210,31 +1210,54 @@ function downInitRequirement_StateMachine!(csmc::CliqStateMachineContainer)
   #
   infocsm(csmc, "8d, downInitRequirement_StateMachine., start")
   
-  children = getChildren(csmc.tree, csmc.cliq)
-  if doAnyChildrenNeedDwnMsg(children)
-    # set messages if children :needdownmsg
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
-    # construct init's up msg to place in parent from initialized separator variables
-    
-    # consolidated up messaging (#459)
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
-    prepPutCliqueStatusMsgUp!(csmc)
-    
-    # also send a down message -- seem weird while doing #459 but okay
-    cliqst = getCliqueStatus(csmc.cliq)
-    notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
-    
-    # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
-    setCliqDrawColor(csmc.cliq, "sienna")
-    
-    infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
+  # children = getChildren(csmc.tree, csmc.cliq)
+  # if doAnyChildrenNeedDwnMsg(children)
+  areChildDown = false
+  for ch in getChildren(csmc.tree, csmc.cliq)
+    if getCliqueStatus(ch) == :needdownmsg
+      areChildDown = true
+      break
+    end
+  end
+
+  if areChildDown
+    # go to 8k
+    return putFakeMsgNeedDwnInit_StateMachine
   end
   
   # go to 8b
   return attemptCliqInitUp_StateMachine
 end
 
+"""
+    $SIGNATURES
 
+Placeholder function part of #459 dwnMsg consolidation where fake up message is placed as part of needdwnmsg cascading.
+
+Notes
+- State machine function nr. 8k
+"""
+function putFakeMsgNeedDwnInit_StateMachine(csmc::CliqStateMachineContainer)
+  # set messages if children :needdownmsg
+  infocsm(csmc, "8d, downInitRequirement_StateMachine! -- must set messages for future down init")
+  # construct init's up msg to place in parent from initialized separator variables
+
+  # consolidated up messaging (#459)
+  infocsm(csmc, "8d, downInitRequirement_StateMachine! -- putting fake upinitmsg in this cliq")
+  prepPutCliqueStatusMsgUp!(csmc)
+
+  # also send a down message -- seem weird while doing #459 but okay
+  cliqst = getCliqueStatus(csmc.cliq)
+  notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+
+  # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
+  setCliqDrawColor(csmc.cliq, "sienna")
+
+  infocsm(csmc, "8d, downInitRequirement_StateMachine! -- near-end down init attempt, $cliqst.")
+
+  # go to 8b
+  return attemptCliqInitUp_StateMachine
+end
 
 ## ============================================================================================
 # End of dwnmsg consolidation bonanza
