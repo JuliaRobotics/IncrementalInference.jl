@@ -826,7 +826,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   opt = getSolverParams(csmc.cliqSubFg) # csmc.dfg
   
   # now get the newly computed message from the appropriate container
-  # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
+  # make sure this is a pull model #674 (pull msg from source/prnt)
   # FIXME must be consolidated as part of #459
   dwinmsgs = getfetchCliqueInitMsgDown(getCliqueData(prnt), from=:dwnInitSiblingWaitOrder_StateMachine)
 
@@ -1183,7 +1183,8 @@ Notes
 - State machine function nr.4c
 
 DevNotes
-- Consolidate with 8d???
+- Consolidate into 7 
+  - Consolidate with 8d???
 - FIXME, likely location to divert to wait on parent completion of combo dwninitmsg.
   - in place of `forceproceed`
 - TODO remove csmc.forceproceed entirely from CSM
@@ -1219,6 +1220,7 @@ Place up msg and notify down init status if any children :needdownmsg.
 Notes
 - StateMachine function nr. 8d
 - TODO figure out if this function is duplication of other needdwnmsg functionality?
+  - Consolidate with 7???
   - Consolidate with 4c???
 """
 function decideUpMsgOrInit_StateMachine(csmc::CliqStateMachineContainer)
