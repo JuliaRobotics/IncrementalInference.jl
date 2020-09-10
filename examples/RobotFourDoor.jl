@@ -1,15 +1,16 @@
-
+## To enable multiprocess use
+using Distributed
 addprocs(3) # Remove addprocs if you want to use a single process only
-using IncrementalInference
-using KernelDensityEstimate, Gadfly # for vstack
-using Cairo, Fontconfig # for drawing PNG/PDF
+@everywhere using IncrementalInference
+##
 
+using IncrementalInference
 
 gt = Dict{Symbol, Array{Float64,2}}()
 # HMM computed ground truth for first 3 poses only
-gt[:x1]=[[-100.0; 1.96]';[0.0; 1.96]']'
-gt[:x2]=[[-50.0; 3.1]';[50.0; 3.1]']'
-gt[:x3]=[[100.0; 3.05]';[0.0; 3.05]']'
+gt[:x1]=[-100.0 0.0; 1.96 1.96]
+gt[:x2]=[-50.0 50; 3.1 3.1]
+gt[:x3]=[100.0 0.0; 3.05 3.05]
 
 fg = initfg()
 
@@ -88,19 +89,12 @@ tree = wipeBuildNewTree!(fg, drawpdf=true, show=true);
 solveTree!(fg, tree)
 
 # draw all beliefs
-# TODO -- Update this part of the example
 using RoMEPlotting
 
-xx = ls(fg)
-msgPlots = RoMEPlotting.plotHorBeliefsList(fg, xx, gt=gt,nhor=2);
-evalstr = ""
-for i in 1:length(msgPlots)
-    global evalstr
-    evalstr = string(evalstr, ",msgPlots[$(i)]")
-end
-pl = eval(Meta.parse(string("vstack(",evalstr[2:end],")")));
-Gadfly.draw(PNG("4doors.png",15cm,20cm),pl) # can also do PNG
+pl = plotKDE(fg, xx)
 
+#save plot to file
+pl |> PNG("4doors.png")
 
 
 # if false
