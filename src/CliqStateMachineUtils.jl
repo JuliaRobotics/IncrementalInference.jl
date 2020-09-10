@@ -102,9 +102,9 @@ Related:
 
 getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
-function printCliqHistorySummary(fid,
-                                 hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
-                                 cliqid::AbstractString="")
+function printCliqHistorySummary( fid,
+                                  hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                  cliqid::AbstractString="")
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
   end
@@ -114,30 +114,59 @@ function printCliqHistorySummary(fid,
   nothing
 end
 
-function printCliqHistorySummary(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
-                                 cliqid::AbstractString="")
+function printCliqHistorySummary( hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                  cliqid::AbstractString="")
+  #
   printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
-                                 tree::AbstractBayesTree,
-                                 sym::Symbol  )
+function printCliqHistorySummary( hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                  tree::AbstractBayesTree,
+                                  sym::Symbol  )
   #
   hist = hists[getClique(tree, sym).index]
   printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).index))
 end
+
+# TODO maybe Base. already has something like this Union{UnitRange, AbstractVector, etc.}
+const CSMRangesT{T} = Union{T,UnitRange{T},<:AbstractVector{T} }
+const CSMRanges = CSMRangesT{Int}
+# old
+# const CSMTupleRangesT{T} = Union{Tuple{T,T},Tuple{T,UnitRange{T}},Tuple{T,AbstractVector{T}},Tuple{UnitRange{T},T},Tuple{UnitRange{T},UnitRange{T}},Tuple{AbstractVector{T},T},Tuple{AbstractVector{T},AbstractVector{T}},Tuple{AbstractVector{T},UnitRange{T}} }
 
 """
     $SIGNATURES
 
 Print a sequential summary lines of clique state machine histories in hists::Dict.
 
+Notes
+- Slices are allowed, see examples.
+
+Example
+```julia
+printCliqHistorySequential(hists)
+printCliqHistorySequential(hists, 2=>46)
+printCliqHistorySequential(hists, 1=>11:15)
+printCliqHistorySequential(hists, [1,4,6]=>11:15)
+printCliqHistorySequential(hists, [2=>45:52; 1=>10:15])
+```
+
+DevNotes
+- TODO perhaps move some of this functionality upstream to FSM
+- TODO upgrade to default `whichstep = :=>:` -- i.e. 
+  - add dispatch for `(:) |> typeof == Colon`, 
+  - `5:6=>:`.
+- TODO also add a elements between `Tuple{<:CSMRanges, Pair{<:CSMRanges,<:CSMRanges}}` option
+  - ([1;3], 1=>5:7) which will print all steps from CSM 1 and 3, which occur between 1=>5 and 1=>7.
+- TODO maybe also `Dict(5=>5:8, 8=>20:25)`, or `Dict(2:5=>[1;3], 10=>1:5)`.
+
 Related:
 
 printHistoryLine, printCliqHistory
 """
 function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
-                                    fid=stdout)
+                                    whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
+                                    fid=stdout )
   # vectorize all histories in single Array
   allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
   alltimes = Vector{DateTime}()
@@ -156,9 +185,27 @@ function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, 
 
   # print each line of the sorted array with correct cliqid marker
   for idx in 1:length(alltimes)
-    printHistoryLine(fid,allhists_[idx],string(allcliqids_[idx]))
+    hiln = allhists_[idx]
+    # show only one line if whichstep is not nothing
+    inSliceList = whichsteps === nothing
+    if !inSliceList
+      for whichstep in whichsteps
+        inSliceList && break
+        inSliceList = inSliceList || (allcliqids_[idx] in whichstep[1] && hiln[2] in whichstep[2])
+      end
+    end
+    if inSliceList
+      printHistoryLine(fid,hiln,string(allcliqids_[idx]))
+    end
   end
   nothing
+end
+
+function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                    whichstep::Pair{<:CSMRanges,<:CSMRanges},
+                                    fid=stdout)
+  #
+  printCliqHistorySequential(hists,[whichstep;], fid)
 end
 
 function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
@@ -359,16 +406,19 @@ function csmAnimate(tree::BayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
+                    dpi::Int=100,
                     rmfirst::Bool=true,
                     folderpath::AbstractString="/tmp/caesar/csmCompound/", 
                     fsmColors::Dict{Symbol,String}=Dict{Symbol,String}(),
                     defaultColor::AbstractString="red"  ) where T <: AbstractVector
   #
 
+  easyNames = Dict{Symbol, Int}()
   hists = Dict{Symbol, T}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
     hists[frtl[1]] = hist
+    easyNames[frtl[1]] = id
   end
 
   startT = Dates.now()
@@ -398,12 +448,23 @@ function csmAnimate(tree::BayesTree,
   end
 
   function csmTreeAni(hl::Tuple, frame::Int, folderpath::AbstractString)
-    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"))
+    drawTree(hl[4].tree, show=false, filepath=joinpath(folderpath, "tree_$frame.png"), dpi=dpi)
     nothing
   end
 
+  function autocolor_cb(hi::Tuple, csym::Symbol, aniT::DateTime)
+    retc = getCliqueDrawColor(hi[4].cliq)
+    return (retc === nothing ? "gray" : retc)
+  end
+
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound(hists, folderpath=folderpath, interval=interval, draw_more_cb=csmTreeAni, fsmColors=fsmColors, defaultColor=defaultColor )
+  animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
+                                              folderpath=folderpath, 
+                                              interval=interval, dpi=dpi, 
+                                              draw_more_cb=csmTreeAni, 
+                                              fsmColors=fsmColors, 
+                                              defaultColor=defaultColor, 
+                                              autocolor_cb=autocolor_cb )
 end
 
 """
@@ -662,7 +723,8 @@ end
 
 Bump a clique state machine solver condition in case a task might be waiting on it.
 """
-notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCondition(getClique(tree, frsym)))
+notifyCSMCondition(cliq::TreeClique) = notify(getSolveCondition(cliq))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(getClique(tree, frsym))
 
 
 """
@@ -670,9 +732,9 @@ notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notify(getSolveCond
 
 Store/cache a clique's solvable dimensions.
 """
-function updateCliqSolvableDims!(cliq::TreeClique,
-                                 sdims::Dict{Symbol, Float64},
-                                 logger=ConsoleLogger() )::Nothing
+function updateCliqSolvableDims!( cliq::TreeClique,
+                                  sdims::Dict{Symbol, Float64},
+                                  logger=ConsoleLogger() )::Nothing
   #
   cliqd = getCliqueData(cliq)
   if isready(cliqd.solvableDims)
@@ -919,10 +981,10 @@ end
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function getSetDownMessagesComplete!(subfg::G,
+function getSetDownMessagesComplete!(subfg::AbstractDFG,
                                      cliq::TreeClique,
                                      prntDwnMsgs::LikelihoodMessage,
-                                     logger=ConsoleLogger()  )::Nothing where G <: AbstractDFG
+                                     logger=ConsoleLogger()  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
@@ -947,10 +1009,7 @@ function getSetDownMessagesComplete!(subfg::G,
     @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
   end
 
-  #JT 459 putMsgDwnThis!(cliq, newDwnMsgs)
-  putCliqueMsgDown!(cliq.data, newDwnMsgs, from=:putMsgDwnThis!)
-
-  return nothing
+  return newDwnMsgs
 end
 
 

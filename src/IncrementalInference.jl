@@ -29,7 +29,8 @@ using
   DocStringExtensions,
   FunctionalStateMachine,
   JSON2,
-  Combinatorics
+  Combinatorics,
+  UUIDs
 
 # experimental for replacing BayesTree on Graphs.jl
 using MetaGraphs
@@ -251,8 +252,8 @@ export *,
   finishCliqSolveCheck_StateMachine,
   determineCliqNeedDownMsg_StateMachine,
   blockUntilSiblingsStatus_StateMachine,
-  doesCliqNeeddownmsg_StateMachine,
-  slowCliqIfChildrenNotUpsolved_StateMachine,
+  trafficRedirectConsolidate459_StateMachine,
+  slowIfChildrenNotUpSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
   testCliqCanRecycled_StateMachine,
@@ -266,7 +267,7 @@ export *,
   isCliqInitialized,
   isCliqUpSolved,
   areCliqVariablesAllInitialized,
-  areCliqChildrenNeedDownMsg,
+  doAnyChildrenNeedDwnMsg,
   areCliqChildrenAllUpSolved,
   ensureSolvable!,
   ensureAllInitialized!,
@@ -359,8 +360,7 @@ export *,
 
   getCliqVarInitOrderUp,
   # getCliqInitVarOrderDown,
-  blockCliqUntilChildrenHaveUpStatus,
-  blockCliqSiblingsParentNeedDown,
+  fetchChildrenStatusUp,
   getCliqNumAssocFactorsPerVar,
 
   # introduced for approximate convolution operations
@@ -460,6 +460,7 @@ include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
+include("NeedsResolution.jl")
 
 # tree and init related functions
 include("SubGraphFunctions.jl")

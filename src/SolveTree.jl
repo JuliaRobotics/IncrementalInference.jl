@@ -854,6 +854,10 @@ function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
   nothing
 end
 
+function getCliqueDrawColor(cliq::TreeClique)
+  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
+end
+
 """
     $(SIGNATURES)
 
@@ -958,11 +962,12 @@ function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
 
   if multiproc
     cliqc = deepcopy(cliq)
-    cliqcd = getCliqueData(cliqc)
+    btnd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
-    cliqcd.upMsgChannel = Channel{LikelihoodMessage}(1)
-    cliqcd.initDownChannel = Channel{LikelihoodMessage}(1)
-    cliqcd.solveCondition = Condition()
+    btnd.upMsgChannel = Channel{LikelihoodMessage}(1)
+    # btnd.initDownChannel = Channel{LikelihoodMessage}(1) # TODO deprecate
+    btnd.dwnMsgChannel = Channel{LikelihoodMessage}(1)
+    btnd.solveCondition = Condition()
     ett.cliq = cliqc
     # TODO create new dedicate file for separate process to log with
     try
