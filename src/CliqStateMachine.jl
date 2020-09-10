@@ -794,6 +794,7 @@ function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContain
   #must happen before if :null
   stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
   infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
+  # make sure forceproceed is false, not strictly needed if csmc starts false
   csmc.forceproceed = false # only used in 7
 
   # go to 4b
@@ -1616,7 +1617,6 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
 
-  #csmc = CliqStateMachineContainer(dfg, initfg(destType), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), oldcliqdata, logger)
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   nxt = upsolve ? testCliqCanRecycled_StateMachine : (downsolve ? testCliqCanRecycled_StateMachine : error("must attempt either up or down solve"))
