@@ -78,15 +78,17 @@ if true
     gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 end
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true);
-
+# tree = wipeBuildNewTree!(fg, drawpdf=true, show=true);
 # spyCliqMat(tree.cliques[1])
 
 # list vertices in fg
 @show xx = ls(fg)
 
 # do belief propagation inference over tree once
-solveTree!(fg, tree)
+tree, smt, hists = solveTree!(fg)
+
+# see the tree
+drawTree(tree, show=true) # using Graphviz and Linux evince for pdf
 
 # draw all beliefs
 using RoMEPlotting
