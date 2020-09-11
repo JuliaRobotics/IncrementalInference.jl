@@ -1176,25 +1176,26 @@ DevNotes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
-  function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-    for ch in getChildren(csmc.tree, csmc.cliq)
-      if getCliqueStatus(ch) == :needdownmsg
-        infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
-        csmc.forceproceed = true
-        break
-      end
-    end
+  # # # old 4c
+  # # function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+  #   for ch in getChildren(csmc.tree, csmc.cliq)
+  #     if getCliqueStatus(ch) == :needdownmsg
+  #       infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
+  #       csmc.forceproceed = true
+  #       break
+  #     end
+  #   end
   
-    if !csmc.forceproceed
-      infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
-      # go to 5
-      return blockUntilSiblingsStatus_StateMachine
-    end
-    infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
+  #   if !csmc.forceproceed
+  #     infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
+  #     # go to 5
+  #     return blockUntilSiblingsStatus_StateMachine
+  #   end
+  #   infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
   
-    # go to 6c
-    return doesParentNeedDwn_StateMachine
-  end
+  #   # go to 6c
+  #   return doesParentNeedDwn_StateMachine
+  # # end
 
   # FIXME add path to 8a
   # return collectDwnInitMsgFromParent_StateMachine
@@ -1206,18 +1207,24 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
   
   # hard assumption here on upsolve from leaves to root
-  proceed = true
+  hasinit = false
   resolveinit = true
   # fetch status from children (should already be available -- i.e. should not block)
   for (clid, clst) in stdict
     infocsm(csmc, "7, check stdict children: clid=$(clid), clst=$(clst)")
     ## :needdownmsg # 'send' downward init msg direction
-    # (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (proceed = false)
-    (clst in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (resolveinit = false)
+    (clst in [:upsolved;:marginalized;:downsolved;:uprecycled]) ? nothing : (resolveinit = false)
+    hasinit = clst == :needdownmsg ? true : hasinit
   end
   infocsm(csmc, "7, resolveinit=$(resolveinit)")
   infocsm(csmc, "7, start, forceproceed=$(csmc.forceproceed)")
   
+  # merged in from 4c here into 7, part of dwnMsg #459
+  if hasinit
+    # go to 5
+    return blockUntilSiblingsStatus_StateMachine
+  end
+
   if csmc.forceproceed || resolveinit # proceed
     # TODO, remove csmc.forceproceed, only used in 7
     csmc.forceproceed = false
@@ -1241,41 +1248,41 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-Direct traffic if any one of the children :needdownmsg.
+# Direct traffic if any one of the children :needdownmsg.
 
-Notes
-- State machine function nr.4c
+# Notes
+# - State machine function nr.4c
 
-DevNotes
-- Consolidate into 7 
-  - Consolidate with 8d???
-- FIXME, likely location to divert to wait on parent completion of combo dwninitmsg.
-  - in place of `forceproceed`
-- TODO remove csmc.forceproceed entirely from CSM
-  - Try force parent to initialize ?? FIXME DEPRECATE
-"""
-function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-  for ch in getChildren(csmc.tree, csmc.cliq)
-    if getCliqueStatus(ch) == :needdownmsg
-      infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
-      csmc.forceproceed = true
-      break
-    end
-  end
+# DevNotes
+# - Consolidate into 7 
+#   - Consolidate with 8d???
+# - FIXME, likely location to divert to wait on parent completion of combo dwninitmsg.
+#   - in place of `forceproceed`
+# - TODO remove csmc.forceproceed entirely from CSM
+#   - Try force parent to initialize ?? FIXME DEPRECATE
+# """
+# function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+#   for ch in getChildren(csmc.tree, csmc.cliq)
+#     if getCliqueStatus(ch) == :needdownmsg
+#       infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
+#       csmc.forceproceed = true
+#       break
+#     end
+#   end
 
-  if !csmc.forceproceed
-    infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
-    # go to 5
-    return blockUntilSiblingsStatus_StateMachine
-  end
-  infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
+#   if !csmc.forceproceed
+#     infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
+#     # go to 5
+#     return blockUntilSiblingsStatus_StateMachine
+#   end
+#   infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
 
-  # go to 6c
-  return doesParentNeedDwn_StateMachine
-end
+#   # go to 6c
+#   return doesParentNeedDwn_StateMachine
+# end
 
 
 """
