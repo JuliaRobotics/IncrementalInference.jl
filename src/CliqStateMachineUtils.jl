@@ -248,7 +248,7 @@ printCliqHistoryLogical, printCliqHistoryLine
 function printHistoryLane(fid,
                           linecounter::Union{Int,String},
                           hiVec::Vector{<:Tuple},
-                          hackCounter::NothingUnion{Base.RefValue{Int}}=nothing )
+                          seqLookup::NothingUnion{Dict{Pair{Int,Int},Int}}=nothing )
   #
 
   ## build a string
@@ -262,12 +262,7 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = if hackCounter !== nothing
-      hackCounter[] += 1
-      hackCounter[]
-    else
-      hi[2]
-    end
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.index=>hi[2])] : ""
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
@@ -334,6 +329,14 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
   alltimes_ = alltimes[pm]
   allcliqids_ = allcliqids[pm]
   
+    # first get the global sequence (invert order dict as bridge table)
+    seqLookup = Dict{Pair{Int,Int},Int}()
+    for idx in 1:length(alltimes)
+      hiln = allhists_[idx]
+      seqLookup[(hiln[4].cliq.index => hiln[2])] = idx
+    end
+
+  
   # print the column titles
   titles = Vector{Tuple{String, Int, String, String}}()
   for ord in order
@@ -348,9 +351,10 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
   end
   println(fid,"")
 
-  globalCounter = Ref{Int}(0)
+  glbSeqCt = 0 # Ref{Int}(0)
   ## repeat for the maximum number of "lines" (i.e. CSM steps)
   for idx in printLines[1]:maxLines[1]
+
     ## build each line as vector of "lanes" (i.e. individual cliques)
     allLanes = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(undef, numLanes)
 
@@ -365,9 +369,9 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
       end
     end
 
-    # show only one line if whichstep is not nothing
-    # if whichstep === nothing || (whichstep[1] == allcliqids_[idx] && whichstep[2] == hiln[2])
-      printHistoryLane(fid, idx, allLanes, globalCounter)
+    #$cliqid.$(string(hi[2]))
+    # glbSeqCt += 1
+    printHistoryLane(fid, idx, allLanes, seqLookup)
   end
 end
 # print each line of the sorted array with correct cliqid marker
