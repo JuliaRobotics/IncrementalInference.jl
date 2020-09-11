@@ -257,7 +257,7 @@ function printHistoryLane(fid,
     # lane marker
     line *= "| "
     if !isassigned(hiVec, counter)
-      line *= clampBufferString("", 17)
+      line *= clampBufferString("", 19)
       continue
     end
     hi = hiVec[counter]
@@ -271,7 +271,7 @@ function printHistoryLane(fid,
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
-    line *= clampBufferString(nextfn, 8, 7)
+    line *= clampBufferString(nextfn, 10, 9)
     # clique status
     st = hi[4] isa String ? hi[4] : string(getCliqueStatus(hi[4].cliq))
     line *= clampBufferString(st, 5, 4)
@@ -287,12 +287,25 @@ end
 
 Print history in swimming lanes, side by side with global sequence counter.
 
+Examples
+
+```julia
+printCSMHistoryLogical(hist)
+printCSMHistoryLogical(hists, order=[4;3], printLines=2:5)
+
+# or to a IOStream, file, network, etc
+fid = open(joinLogPath(fg, "CSMHistCustom.txt"),"w")
+printCSMHistoryLogical(hist, fid)
+close(fid)
+```
+
 DevNotes
 - `order` should be flexible like `Sequential` and `<:CSMRanges`.
 """
 function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                fid=stdout;
                                 order::AbstractVector{Int}=sort(collect(keys(hists))),
-                                fid=stdout )
+                                printLines=1:99999999 )
   #
 
   # vectorize all histories in single Array
@@ -313,6 +326,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
       push!(allcliqids, cid)
     end
   end
+  maxLines[1] = minimum([maxLines[1];printLines[end]])
   
   # sort array by timestamp element
   pm = sortperm(alltimes)
@@ -325,18 +339,18 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
   for ord in order
     csym = 0 < length(hists[ord]) ? getFrontals(hists[ord][1][4].cliq)[1] |> string : ""
     csym = clampBufferString(csym, 9) 
-    push!(titles, ("",ord,csym,clampBufferString("", 5)) )
+    push!(titles, ("",ord,csym,clampBufferString("", 10)) )
   end
   printHistoryLane(fid, "", titles)
   print(fid,"----")
   for i in 1:numLanes
-    print(fid,"+------------------")
+    print(fid,"+--------------------")
   end
   println(fid,"")
 
   globalCounter = Ref{Int}(0)
   ## repeat for the maximum number of "lines" (i.e. CSM steps)
-  for idx in 1:maxLines[1]
+  for idx in printLines[1]:maxLines[1]
     ## build each line as vector of "lanes" (i.e. individual cliques)
     allLanes = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(undef, numLanes)
 
