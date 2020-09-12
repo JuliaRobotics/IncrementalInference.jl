@@ -4,6 +4,7 @@
 export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, doAnyChildrenNeedDwn_StateMachine
 export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
 export rmUpLikeliSaveSubFg_StateMachine
+export blockCliqSiblingsParentChildrenNeedDown_StateMachine
 
 
 """
@@ -1609,6 +1610,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         downsolve::Bool=true,
                                         recordhistory::Bool=false,
                                         delay::Bool=false,
+                                        injectDelayBefore::Union{Nothing,Pair{<:Function, <:Real}}=nothing,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
@@ -1624,7 +1626,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
-  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb); end
+  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb, injectDelayBefore=injectDelayBefore); end
   statemachine.history
 end
 
