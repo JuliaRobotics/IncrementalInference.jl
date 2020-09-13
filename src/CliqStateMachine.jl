@@ -1,10 +1,47 @@
 # clique state machine for tree based initialization and inference
 
 # newer exports
-export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, doAnyChildrenNeedDwn_StateMachine
-export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
-export rmUpLikeliSaveSubFg_StateMachine
-export blockCliqSiblingsParentChildrenNeedDown_StateMachine
+# export towardUpOrDwnSolve_StateMachine, checkIfCliqNullBlock_StateMachine, doAnyChildrenNeedDwn_StateMachine
+# export mustInitUpCliq_StateMachine, doCliqUpSolveInitialized_StateMachine
+# export rmUpLikeliSaveSubFg_StateMachine
+# export blockCliqSiblingsParentChildrenNeedDown_StateMachine
+
+export  doCliqDownSolve_StateMachine,
+        cleanupAfterDownSolve_StateMachine,
+        specialCaseRootDownSolve_StateMachine,
+        canCliqDownSolve_StateMachine,
+        finishCliqSolveCheck_StateMachine,
+        mustInitUpCliq_StateMachine,
+        doCliqUpSolveInitialized_StateMachine,
+        rmUpLikeliSaveSubFg_StateMachine,
+        somebodyLovesMe_StateMachine,
+        waitChangeOnParentCondition_StateMachine,
+        slowOnPrntAsChildrNeedDwn_StateMachine,
+        towardUpOrDwnSolve_StateMachine,
+        canCliqMargSkipUpSolve_StateMachine,
+        attemptDownInit_StateMachine,
+        rmMsgLikelihoodsAfterDwn_StateMachine,
+        blockUntilSiblingsStatus_StateMachine,
+        slowIfChildrenNotUpSolved_StateMachine,
+        blockUntilChildrenHaveStatus_StateMachine,
+        dwnInitSiblingWaitOrder_StateMachine,
+        collectDwnInitMsgFromParent_StateMachine,
+        trafficRedirectConsolidate459_StateMachine,
+        doAllSiblingsNeedDwn_StateMachine,
+        checkIfCliqNullBlock_StateMachine,
+        determineCliqNeedDownMsg_StateMachine,
+        doAnyChildrenNeedDwn_StateMachine,
+        decideUpMsgOrInit_StateMachine,
+        doesParentNeedDwn_StateMachine,
+        attemptCliqInitUp_StateMachine,
+        sendCurrentUpMsg_StateMachine,
+        buildCliqSubgraph_StateMachine,
+        buildCliqSubgraphForDown_StateMachine,
+        isCliqUpSolved_StateMachine,
+        checkChildrenAllUpRecycled_StateMachine,
+        testCliqCanIncremtUpdate_StateMachine!,
+        testCliqCanRecycled_StateMachine
+
 
 
 """
@@ -1598,9 +1635,11 @@ Notes:
 """
 function cliqInitSolveUpByStateMachine!(dfg::G,
                                         tree::AbstractBayesTree,
-                                        cliq::TreeClique;
+                                        cliq::TreeClique,
+                                        timeout::Union{Nothing, <:Real}=nothing;
                                         N::Int=100,
                                         verbose::Bool=false,
+                                        verbosefid=stdout,
                                         oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                         drawtree::Bool=false,
                                         show::Bool=false,
@@ -1626,7 +1665,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
-  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb, injectDelayBefore=injectDelayBefore); end
+  while statemachine(csmc, timeout, verbose=verbose, verbosefid=verbosefid, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb, injectDelayBefore=injectDelayBefore); end
   statemachine.history
 end
 
