@@ -262,7 +262,7 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.index=>hi[2])] : ""
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.index=>hi[2])] : hi[2]
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
@@ -300,7 +300,7 @@ DevNotes
 function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
                                 fid=stdout;
                                 order::AbstractVector{Int}=sort(collect(keys(hists))),
-                                printLines=1:99999999 )
+                                printLines=1:99999999  )
   #
 
   # vectorize all histories in single Array
