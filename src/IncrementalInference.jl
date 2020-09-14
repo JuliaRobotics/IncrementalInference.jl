@@ -113,9 +113,9 @@ export *,
   filterHistAllToArray,
   cliqHistFilterTransitions,
   printCliqSummary,
-  printHistoryLine,
+  printHistoryLine, printHistoryLane,
   printCliqHistorySummary,
-  printCliqHistorySequential,
+  printCliqHistorySequential, printCSMHistoryLogical,
   printGraphSummary,
   printSummary,
   print,
@@ -480,6 +480,7 @@ include("SolveTree.jl")
 include("TetherUtils.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
+include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
 include("SolveTree_Parametric.jl")

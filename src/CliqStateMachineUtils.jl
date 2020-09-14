@@ -29,10 +29,22 @@ function dbgSaveDFG(dfg::AbstractDFG,
   folder*filename
 end
 
+clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
+
+function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
+  @assert 0 <= max "max must be greater or equal to zero"
+  st = clampStringLength(st, len)
+  for i in len:max-1  st *= " "; end
+  return st
+end
+
 """
     $SIGNATURES
 
 Print one specific line of a clique state machine history.
+
+DevNotes
+- TODO refactor to use `clampBufferString` -- see e.g. `printHistoryLane`
 
 Related:
 
@@ -217,6 +229,154 @@ function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, 
   close(file)
   nothing
 end
+
+
+"""
+    $SIGNATURES
+
+Print one line of lanes summarizing all clique state machine histories.
+
+Notes
+- hiVec is vector of all cliques (i.e. lanes) to print as one LINE into `fid` 
+  - contains `::Tuple{Int,..}` with global counter (not the default CSM counter)
+- Vector of `Tuple{DateTime, Int, Function, CliqStateMachineContainer}`
+
+Related:
+
+printCliqHistoryLogical, printCliqHistoryLine
+"""
+function printHistoryLane(fid,
+                          linecounter::Union{Int,String},
+                          hiVec::Vector{<:Tuple},
+                          seqLookup::NothingUnion{Dict{Pair{Int,Int},Int}}=nothing )
+  #
+
+  ## build a string
+  line = clampBufferString("$linecounter",4)
+  for counter in 1:length(hiVec)
+    # lane marker
+    line *= "| "
+    if !isassigned(hiVec, counter)
+      line *= clampBufferString("", 19)
+      continue
+    end
+    hi = hiVec[counter]
+    # global counter
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.index=>hi[2])] : hi[2]
+    line *= clampBufferString("$(useCount)",4)
+    # next function
+    nextfn = split(string(hi[3]),'.')[end]
+    line *= clampBufferString(nextfn, 10, 9)
+    # clique status
+    st = hi[4] isa String ? hi[4] : string(getCliqueStatus(hi[4].cliq))
+    line *= clampBufferString(st, 5, 4)
+  end
+  ## print the string
+  println(fid, line)
+end
+
+
+
+"""
+    $SIGNATURES
+
+Print history in swimming lanes, side by side with global sequence counter.
+
+Examples
+
+```julia
+printCSMHistoryLogical(hist)
+printCSMHistoryLogical(hists, order=[4;3], printLines=2:5)
+
+# or to a IOStream, file, network, etc
+fid = open(joinLogPath(fg, "CSMHistCustom.txt"),"w")
+printCSMHistoryLogical(hist, fid)
+close(fid)
+```
+
+DevNotes
+- `order` should be flexible like `Sequential` and `<:CSMRanges`.
+"""
+function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+                                fid=stdout;
+                                order::AbstractVector{Int}=sort(collect(keys(hists))),
+                                printLines=1:99999999  )
+  #
+
+  # vectorize all histories in single Array
+  allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  alltimes = Vector{DateTime}()
+  allcliqids = Vector{Int}()
+  # "lanes" (i.e. individual cliques)
+  numLanes = length(order)
+  # "lines" (i.e. CSM steps)
+  maxLines = [0;0]
+  for (cid,hist) in hists 
+    # find max number of lines to print later
+    maxLines[2] = length(hist)
+    maxLines[1] = maximum(maxLines)
+    for hi in hist
+      push!(allhists, hi)
+      push!(alltimes, hi[1])
+      push!(allcliqids, cid)
+    end
+  end
+  maxLines[1] = minimum([maxLines[1];printLines[end]])
+  
+  # sort array by timestamp element
+  pm = sortperm(alltimes)
+  allhists_ = allhists[pm]
+  alltimes_ = alltimes[pm]
+  allcliqids_ = allcliqids[pm]
+  
+    # first get the global sequence (invert order dict as bridge table)
+    seqLookup = Dict{Pair{Int,Int},Int}()
+    for idx in 1:length(alltimes)
+      hiln = allhists_[idx]
+      seqLookup[(hiln[4].cliq.index => hiln[2])] = idx
+    end
+
+  
+  # print the column titles
+  titles = Vector{Tuple{String, Int, String, String}}()
+  for ord in order
+    csym = 0 < length(hists[ord]) ? getFrontals(hists[ord][1][4].cliq)[1] |> string : ""
+    csym = clampBufferString("($ord) $csym", 9) 
+    push!(titles, ("",ord,csym,clampBufferString("", 10)) )
+  end
+  printHistoryLane(fid, "", titles)
+  print(fid,"----")
+  for i in 1:numLanes
+    print(fid,"+--------------------")
+  end
+  println(fid,"")
+
+  glbSeqCt = 0 # Ref{Int}(0)
+  ## repeat for the maximum number of "lines" (i.e. CSM steps)
+  for idx in printLines[1]:maxLines[1]
+
+    ## build each line as vector of "lanes" (i.e. individual cliques)
+    allLanes = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(undef, numLanes)
+
+    laIdx = 0
+    for laId in order
+      laIdx += 1
+      # if history data exists for this line (idx) and lane (laId), then build a new lane Tuple
+      if idx <= length(hists[laId])
+        # FIXME, swat first element with global counter (not local as stored in hists)
+        # @show hists[laId][idx][3]
+        allLanes[laIdx] = hists[laId][idx]
+      end
+    end
+
+    #$cliqid.$(string(hi[2]))
+    # glbSeqCt += 1
+    printHistoryLane(fid, idx, allLanes, seqLookup)
+  end
+end
+# print each line of the sorted array with correct cliqid marker
+
+
 
 """
   $SIGNATURES
