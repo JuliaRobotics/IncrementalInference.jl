@@ -219,6 +219,10 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
     # put!(cdc_, upmsg)
 
   notify(getSolveCondition(csmc.cliq))
+  # took ~40 hours to figure out that a double notification fixes the problem with hex init
+  # TODO, better overall fix after #459 consolidation is complete.
+  sleep(0.1)
+  notify(getSolveCondition(csmc.cliq))
 
   infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
 
