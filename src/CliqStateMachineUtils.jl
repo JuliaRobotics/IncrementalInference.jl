@@ -341,7 +341,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
   titles = Vector{Tuple{String, Int, String, String}}()
   for ord in order
     csym = 0 < length(hists[ord]) ? getFrontals(hists[ord][1][4].cliq)[1] |> string : ""
-    csym = clampBufferString("($ord) $csym", 9) 
+    csym = clampBufferString("$csym", 9) 
     push!(titles, ("",ord,csym,clampBufferString("", 10)) )
   end
   printHistoryLane(fid, "", titles)

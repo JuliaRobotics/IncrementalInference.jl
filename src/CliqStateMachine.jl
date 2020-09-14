@@ -758,8 +758,11 @@ function slowIfChildrenNotUpSolved_StateMachine(csmc::CliqStateMachineContainer)
     chst = getCliqueStatus(chld)
     if !(chst in [:upsolved;:uprecycled;:marginalized])
       infocsm(csmc, "7b, slowIfChildrenNotUpSolved_StateMachine, wait condition on upsolve, cliq=$(chld.index), ch_lbl=$(getCliqFrontalVarIds(chld)[1]).")
+      
       # wait for child clique status/msg to be updated
       wait(getSolveCondition(chld))
+      # tsk = @async 
+      # timedwait(()->tsk.state==:done, 10)
 
       # check again and reroute if :needdownmsg
       # chst = getCliqueStatus(chld)
