@@ -12,6 +12,7 @@ Notes
 - Experimental `storeOld::Bool=true` will duplicate the current result as supersolve `:default_k`.
   - Based on `solvable==1` assumption.
 - `limititercliqs` allows user to limit the number of iterations a specific CSM does.
+- keywords `verbose` and `verbosefid::IOStream` can be used together to to send output to file or default `stdout`.
 
 Example
 ```julia
@@ -25,11 +26,14 @@ solveCliq!, wipeBuildNewTree!
 """
 function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=emptyBayesTree();
+                    timeout::Union{Nothing, <:Real}=nothing,
                     storeOld::Bool=false,
                     verbose::Bool=false,
+                    verbosefid=stdout,
                     delaycliqs::Vector{Symbol}=Symbol[],
                     recordcliqs::Vector{Symbol}=Symbol[],
                     limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
+                    injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
@@ -41,19 +45,19 @@ function solveTree!(dfgl::AbstractDFG,
 
   # depcrecation
   if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
+    @warn "`maxparallel` keyword is deprecated, use `getSolverParams(fg).maxincidence` instead."
     opt.maxincidence = maxparallel
   end
 
   # update worker pool incase there are more or less
   setWorkerPool!()
   if opt.multiproc && nprocs() == 1
-    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
+    @info "Setting `.multiproc=false` since `Distributed.nprocs() == 1`"
     opt.multiproc = false
   end
 
   if opt.graphinit
-    @info "ensure all initialized (using graphinit)"
+    @info "Ensure variables are all initialized (graphinit)"
     ensureAllInitialized!(dfgl)
   end
 
@@ -91,10 +95,10 @@ function solveTree!(dfgl::AbstractDFG,
 
   @info "Do tree based init-inference on tree"
   if opt.async
-    smtasks = asyncTreeInferUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
+    smtasks = asyncTreeInferUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
     @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs )
+    smtasks, hist = initInferTreeUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
     @info "Finished tree based init-inference"
   end
   
@@ -125,7 +129,7 @@ end
 
 """
 $SIGNATURES
-See solveTree!.
+See `solveTree!`.
 """
 const solveGraph! = solveTree!
 

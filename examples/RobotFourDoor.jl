@@ -1,47 +1,47 @@
-
+## To enable multiprocess use
+using Distributed
 addprocs(3) # Remove addprocs if you want to use a single process only
-using IncrementalInference
-using KernelDensityEstimate, Gadfly # for vstack
-using Cairo, Fontconfig # for drawing PNG/PDF
+@everywhere using IncrementalInference
+##
 
+using IncrementalInference
 
 gt = Dict{Symbol, Array{Float64,2}}()
 # HMM computed ground truth for first 3 poses only
-gt[:x1]=[[-100.0; 1.96]';[0.0; 1.96]']'
-gt[:x2]=[[-50.0; 3.1]';[50.0; 3.1]']'
-gt[:x3]=[[100.0; 3.05]';[0.0; 3.05]']'
+gt[:x1]=[-100.0 0.0; 1.96 1.96]
+gt[:x2]=[-50.0 50; 3.1 3.1]
+gt[:x3]=[100.0 0.0; 3.05 3.05]
 
 fg = initfg()
 
 N=100
 
-doors = reshape([-100.0;0.0;100.0;300.0],1,4)
-cov = 3.0*ones(1,1)
-# pd = kde!(doors,cov)
-# pd = resample(pd,N);
-# bws = getBW(pd)[:,1]
-# doors2 = getPoints(pd);
-
+doors = [-100.0 0.0 100.0 300.0]
+cov = [3.0]
+pd = kde!(doors,cov)
+pd = resample(pd,N);
+bws = getBW(pd)[:,1]
+doors2 = getPoints(pd);
 
 v1 = addVariable!(fg,:x1,ContinuousScalar,N=N)
-f1  = addFactor!(fg,[v1], Obsv2(doors, cov, [1.0]))
+f1  = addFactor!(fg,[v1], Prior(pd))
 
-tem = 2.0*randn(1,N)+getVal(v1)+50.0
+# tem = 2.0*randn(1,N) .+ getVal(v1) .+ 50.0
 v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg,[v1;v2],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
+addFactor!(fg,[v1;v2],LinearConditional(Normal(50.0,2.0)))
 
 # monocular sighting would look something like
 #addFactor!(fg, Mono, [:x3,:l1], [14.0], [1.0], [1.0])
 #addFactor!(fg, Mono, [:x4,:l1], [11.0], [1.0], [1.0])
 
 v3=addVariable!(fg,:x3,ContinuousScalar, N=N)
-addFactor!(fg,[v2;v3],Odo(50.0*ones(1,1),4.0*ones(1,1),[1.0]))
-f2 = addFactor!(fg,[v3], Obsv2(doors, cov', [1.0]))
+addFactor!(fg,[v2;v3], LinearConditional( Normal(50.0,4.0)))
+f2 = addFactor!(fg,[v3], Prior(pd))
 
 if true
 
     v4=addVariable!(fg,:x4,ContinuousScalar, N=N)
-    addFactor!(fg,[v3;v4],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
+    addFactor!(fg,[v3;v4], LinearConditional( Normal(50.0,2.0)))
 
     if true
         l1=addVariable!(fg, :l1, ContinuousScalar, N=N)
@@ -51,21 +51,23 @@ if true
 
 
     v5=addVariable!(fg,:x5,ContinuousScalar, N=N)
-    addFactor!(fg,[v4;v5],Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0]))
+    addFactor!(fg,[v4;v5], LinearConditional( Normal(50.0,2.0)))
 
 
     v6=addVariable!(fg,:x6,ContinuousScalar, N=N)
-    addFactor!(fg,[v5;v6],Odo(40.0*ones(1,1),1.25*ones(1,1),[1.0]))
+    addFactor!(fg,[v5;v6], LinearConditional( Normal(40.0,1.20)))
 
 
     v7=addVariable!(fg,:x7,ContinuousScalar, N=N)
-    addFactor!(fg,[v6;v7],Odo(60.0*ones(1,1),2.0*ones(1,1),[1.0]))
+    addFactor!(fg,[v6;v7], LinearConditional( Normal(60.0,2.0)))
 
-    f3 = addFactor!(fg,[v7], Obsv2(doors, cov, [1.0]))
+
+    mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))
+    f3 = addFactor!(fg,[v7], mlc)
 
 
     # HMM computed ground truth, extended for 7 poses with landmark
-    gt = Dict{String, Array{Float64,2}}()
+    gt = Dict{Symbol, Array{Float64,2}}()
     gt[:x1]=reshape(Float64[0.0;1.97304 ],2,1) # -0.0342366
     gt[:x2]=reshape(Float64[50.0; 2.83153 ],2,1) # 49.8797
     gt[:x3]=reshape(Float64[100.0; 1.65557 ],2,1) # 99.8351
@@ -76,38 +78,25 @@ if true
     gt[:l1]=reshape(Float64[165.0; 1.17284 ],2,1) # 164.102
 end
 
-# writeGraphPdf(fg);
-tree = prepBatchTree!(fg,drawpdf=true);
-
+# tree = wipeBuildNewTree!(fg, drawpdf=true, show=true);
 # spyCliqMat(tree.cliques[1])
 
 # list vertices in fg
-@show xx,ll = ls(fg)
-
-# from = fg.v[fg.IDs[:l1]]
-# to = fg.v[fg.IDs[:x7]]
-# fgs = subgraphShortestPath(fg, from=from, to=to)
-
-# using Graphs
-# el = shortest_path(fg.g, ones(19),from, to)
+@show xx = ls(fg)
 
 # do belief propagation inference over tree once
-[inferOverTree!(fg, tree, N=100) for i in 1:1];
+tree, smt, hists = solveTree!(fg)
+
+# see the tree
+drawTree(tree, show=true) # using Graphviz and Linux evince for pdf
 
 # draw all beliefs
-# TODO -- Update this part of the example
 using RoMEPlotting
 
-DOYTICKS = false
-xx,ll = ls(fg)
-msgPlots = drawHorBeliefsList(fg, xx, gt=gt,nhor=2);
-evalstr = ""
-for i in 1:length(msgPlots)
-    evalstr = string(evalstr, ",msgPlots[$(i)]")
-end
-pl = eval(parse(string("vstack(",evalstr[2:end],")")));
-Gadfly.draw(PNG("4doors.png",15cm,20cm),pl) # can also do PNG
+pl = plotKDE(fg, xx)
 
+#save plot to file
+pl |> PNG("4doors.png")
 
 
 # if false
