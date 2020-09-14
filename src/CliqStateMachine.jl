@@ -1176,28 +1176,28 @@ DevNotes
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
-  # # # old 4c
-  # # function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-  #   for ch in getChildren(csmc.tree, csmc.cliq)
-  #     if getCliqueStatus(ch) == :needdownmsg
-  #       infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
-  #       csmc.forceproceed = true
-  #       break
-  #     end
-  #   end
+  # # old 4c
+  # function doAnyChildrenNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+    for ch in getChildren(csmc.tree, csmc.cliq)
+      if getCliqueStatus(ch) == :needdownmsg
+        infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, must deal with child :needdownmsg")
+        csmc.forceproceed = true
+        break
+      end
+    end
   
-  #   if !csmc.forceproceed
-  #     infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
-  #     # go to 5
-  #     return blockUntilSiblingsStatus_StateMachine
-  #   end
-  #   infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
+    if !csmc.forceproceed
+      infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, no children :needdownmsg")
+      # go to 5
+      return blockUntilSiblingsStatus_StateMachine
+    end
+    infocsm(csmc, "4c, doAnyChildrenNeedDwn_StateMachine, yes some children do :needdownmsg")
   
-  #   # go to 6c
-  #   return doesParentNeedDwn_StateMachine
-  # # end
+    # # go to 6c
+    # return doesParentNeedDwn_StateMachine
+  # end
 
-  # FIXME add path to 8a
+  # # FIXME add path to 8a
   # return collectDwnInitMsgFromParent_StateMachine
 
 
