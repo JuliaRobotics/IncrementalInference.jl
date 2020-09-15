@@ -52,13 +52,35 @@ sudo apt-get install graphviz  # optional
 
 Install the package from inside Julia
 ```julia
-(v1.3) pkg> add IncrementalInference
+(v1.5) pkg> add IncrementalInference
 ```
 
 Examples
 ========
 
-This library is built as solver back-end which can be easily modified and extended. Specific emphasis is placed on allowing outside user defined constraint definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate.
+This library is built as a back-end solver which is closer to the mathetical operations can be easily modified and extended for a variety of uses. Specific emphasis is placed on allowing outside user defined variables and factor definitions to be used. The current major use case is through [RoME.jl](http://github.com/JuliaRobotics/RoME.jl) and [Caesar.jl](http:///www.github.com/JuliaRobotics/Caesar.jl) which introduces various sensor measurement and motion manifold functions for use in Robot Motion Estimate (a.k.a SLAM).  See these and related packages for documentation and examples.
+
+Contributors
+============
+
+We are grateful for many, many contributions within the Julia package ecosystem -- see the [`Project.toml`](https://github.com/JuliaRobotics/Caesar.jl/blob/master/Project.toml) files for a far reaching list of upstream packages and contributions.
+
+Consider citing our work:
+
+```
+@misc{caesarjl,
+  author = "Contributors and Dependencies",
+  title =  "Caesar.jl",
+  year =   2020,
+  url =    "https://github.com/JuliaRobotics/Caesar.jl"
+}
+```
+
+Get Involved, and Code of Conduct
+=================================
+
+This project adheres to the [JuliaRobotics code of conduct](https://github.com/JuliaRobotics/administration/blob/master/code_of_conduct.md), and we invite contributions or comments from the community.  Use the slack channel, Julia Discourse, or Github issues to get in touch.
+
 
 References
 ==========
