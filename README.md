@@ -4,8 +4,28 @@
 
 Stable v0.14 | Stable v0.15 | Dev | Coverage | Documentation
 --------------|-------------|-------------|-----|---------
-[![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.14)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.15)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) | [![Build Status](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master)](https://travis-ci.org/JuliaRobotics/IncrementalInference.jl) <br> [![Average time to resolve an issue](https://isitmaintained.com/badge/resolution/JuliaRobotics/IncrementalInference.jl.svg)](https://github.com/JuliaRobotics/IncrementalInference.jl/issues) <br> [![GitHub commit activity](https://img.shields.io/github/commit-activity/y/JuliaRobotics/IncrementalInference.jl.svg?color=dark-green)](https://github.com/JuliaRobotics/IncrementalInference.jl/graphs/contributors) | [![codecov.io](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master)](https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master) <br> [![Percentage of issues still open](https://isitmaintained.com/badge/open/JuliaRobotics/IncrementalInference.jl.svg)](https://github.com/JuliaRobotics/IncrementalInference.jl/issues) | [![docs](https://img.shields.io/badge/CaesarDocs-latest-blue.svg)](http://juliarobotics.github.io/Caesar.jl/latest/)
+[![build-0-14]][travis-url] | [![build-0-15]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
 
+[travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
+[build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
+[build-0-14]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.14
+[build-0-15]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.15
+
+[codecov-io]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master
+[codecov-url]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master
+[commits-url]: https://img.shields.io/github/commit-activity/y/JuliaRobotics/IncrementalInference.jl.svg?color=dark-green
+[contributors-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/graphs/contributors
+[issues-time]: https://isitmaintained.com/badge/resolution/JuliaRobotics/IncrementalInference.jl.svg
+[issues-open]: https://isitmaintained.com/badge/open/JuliaRobotics/IncrementalInference.jl.svg
+[issues-url]: https://github.com/JuliaRobotics/IncrementalInference.jl/issues
+
+[caesar-docs]: https://img.shields.io/badge/CaesarDocs-latest-blue.svg
+[cjl-docs-url]: http://juliarobotics.github.io/Caesar.jl/latest/
+[dfg-docs]: https://img.shields.io/badge/DFGDocs-latest-blue.svg
+[dfg-docs-url]: https://juliarobotics.org/DistributedFactorGraphs.jl/latest/
+
+[cjl-slack-badge]: https://img.shields.io/badge/Caesarjl-Slack-green.svg?style=popout
+[cjl-slack]: https://caesarjl.slack.com
 
 Optimization routines for incremental non-parametric and parametric solutions based on factor graphs and the Bayes (Junction) tree implemented in the [Julia language](http://www.julialang.org/) (and [JuliaPro](http://www.juliacomputing.com)).
 
