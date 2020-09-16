@@ -115,7 +115,7 @@ getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge,
 
 Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
 """
-function takeBeliefMessageDown!(tree::BayesTree, edge)
+function takeBeliefMessageDown!(tree::AbstractBayesTree, edge)
   # Blocks until data is available.
   beliefMsg = take!(getMsgDwnChannel(tree, edge))
   return beliefMsg
@@ -139,7 +139,7 @@ end
 
 Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+function putBeliefMessageDown!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(getMsgDwnChannel(tree, edge), beliefMsg)
   return beliefMsg
@@ -150,7 +150,7 @@ end
 
 Put a belief message on the up tree message channel `edge`. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+function putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(getMsgUpChannel(tree, edge), beliefMsg)
   return beliefMsg

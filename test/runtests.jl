@@ -97,7 +97,7 @@ include("testMultiprocess.jl")
 
 include("testDeadReckoningTether.jl")
 
-
+include("testCSMMonitor.jl")
 
 
 

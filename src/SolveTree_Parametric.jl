@@ -50,16 +50,22 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   return alltasks, cliqHistories
 end
 
-function monitorCSMs(tree, alltasks)
+function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
   task = @async begin
     while true
-      all(istaskdone.(alltasks)) && break
+      all(istaskdone.(alltasks)) && (@info "monitorCSMs: all tasks done"; break)
       for (i,t) in enumerate(alltasks)
         if istaskfailed(t)
-          @error "Task $i failed, sending error to all cliques"
-          bruteForcePushErrorCSM(tree)
-          # for tree.messages
-          @info "All cliques should have exited"
+          if forceIntExc
+            @error "Task $i failed, sending InterruptExceptions to all running CSM tasks"
+            throwIntExcToAllTasks(alltasks)
+            @debug "done with throwIntExcToAllTasks"
+          else
+            @error "Task $i failed, sending error to all cliques"
+            bruteForcePushErrorCSM(tree)
+            # for tree.messages
+            @info "All cliques should have exited"
+          end
         end
       end
       sleep(1)
@@ -68,6 +74,16 @@ function monitorCSMs(tree, alltasks)
   return task
 end
 
+function throwIntExcToAllTasks(alltasks)
+  for (i,t) in enumerate(alltasks)
+    if !istaskdone(alltasks[i])
+      @debug "Sending InterruptExceptions to CSM task $i"
+      schedule(alltasks[i], InterruptException(), error=true)
+      @debug "InterruptExceptions CSM task $i"
+    end
+  end 
+  return nothing
+end
 
 function bruteForcePushErrorCSM(tree)
     errMsg = LikelihoodMessage(status=:ERROR_STATUS)

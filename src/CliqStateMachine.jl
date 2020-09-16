@@ -1653,6 +1653,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         recordhistory::Bool=false,
                                         delay::Bool=false,
                                         injectDelayBefore::Union{Nothing,Pair{<:Function, <:Real}}=nothing,
+                                        store_in_task::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
@@ -1668,6 +1669,13 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
+  
+  # store statemachine and csmc in task
+  if store_in_task
+    task_local_storage(:statemachine, statemachine)
+    task_local_storage(:csmc, csmc)
+  end
+  
   while statemachine(csmc, timeout, verbose=verbose, verbosefid=verbosefid, iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb, injectDelayBefore=injectDelayBefore); end
   statemachine.history
 end

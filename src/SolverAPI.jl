@@ -37,7 +37,10 @@ function solveTree!(dfgl::AbstractDFG,
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableConstraints::Vector{Symbol}=Symbol[]  )
+                    variableConstraints::Vector{Symbol}=Symbol[],
+                    smtasks::Vector{Task}=Task[],
+                    dotreedraw = Int[1;],
+                    runtaskmonitor::Bool=true)
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
@@ -63,7 +66,7 @@ function solveTree!(dfgl::AbstractDFG,
 
   # construct tree
   @info "Solving over the Bayes (Junction) tree."
-  smtasks=Vector{Task}()
+  
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
 
   if opt.isfixedlag
@@ -91,14 +94,16 @@ function solveTree!(dfgl::AbstractDFG,
   # setAllSolveFlags!(tree, false)
 
   # if desired, drawtree in a loop
-  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
+  treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
   @info "Do tree based init-inference on tree"
   if opt.async
     smtasks = asyncTreeInferUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
     @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
   else
-    smtasks, hist = initInferTreeUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
+
+    smtasks, hist = initInferTreeUp!(dfgl, tree, timeout; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
+
     @info "Finished tree based init-inference"
   end
   
