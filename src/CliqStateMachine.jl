@@ -386,7 +386,7 @@ function tryInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8m, tryInitCliq_StateMachine -- someInit=$someInit, chldneed=$chldneed, allchld=$allchld")
   
   # redirect if any children needdownmsg
-  if someInit && chldneed
+  if someInit || chldneed
     # prep down init message
     prepPutCliqueStatusMsgDwn!(csmc, :initialized)
     # # go to 7b
@@ -934,7 +934,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    if dwinmsgs.status == :initialized
+    if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdowninit
       # go to 7e
       return slowWhileInit_StateMachine
     end
