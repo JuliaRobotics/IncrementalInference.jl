@@ -195,10 +195,10 @@ DevNotes
 - FIXME require consolidation
   - Perhaps deprecate putMsgUpInitStatus! as separate function?
 """
-function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol=getCliqueStatus(csmc.cliq);
-                                   dfg::AbstractDFG=csmc.cliqSubFg,
-                                   upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
+function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
+                                    status::Symbol=getCliqueStatus(csmc.cliq);
+                                    dfg::AbstractDFG=csmc.cliqSubFg,
+                                    upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
   #
   # TODO replace with msg channels only
 
@@ -223,11 +223,37 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   sleep(0.1)
   notify(getSolveCondition(csmc.cliq))
 
+  # also notify parent as part of upinit (PUSH NOTIFY PARENT), received at `slowWhileInit_StateMachine`
+  prnt = getParent(csmc.tree, csmc.cliq)
+  0 < length(prnt) ? notify(getSolveCondition(prnt[1])) : nothing
 
-  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
+  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$(upmsg.status) with msg keys $(collect(keys(upmsg.belief)))")
 
   # return new up messages in case the user wants to see
   return upmsg
+end
+
+
+function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
+                                    status::Symbol=getCliqueStatus(csmc.cliq);
+                                    dfg::AbstractDFG=csmc.cliqSubFg,
+                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
+  #
+  cd = getCliqueData(csmc.cliq)
+
+  setCliqueStatus!(csmc.cliq, status)
+
+  # NOTE consolidate with upMsgChannel #459
+  putDwnMsgConsolidated!(cd, dwnmsg)
+
+  notify(getSolveCondition(csmc.cliq))
+  # took ~40 hours to figure out that a double norification fixes the problem with hex init
+  sleep(0.1)
+  notify(getSolveCondition(csmc.cliq))
+
+  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
+
+  status
 end
 
 
@@ -248,9 +274,9 @@ Notes
 DevNotes
 - Consolidate two versions getMsgsUpChildren
 """
-function getMsgsUpChildren(treel::AbstractBayesTree,
-                           cliq::TreeClique,
-                           ::Type{TreeBelief} )
+function getMsgsUpChildren( treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{TreeBelief} )
   #
   chld = getChildren(treel, cliq)
   retmsgs = Vector{LikelihoodMessage}(undef, length(chld))

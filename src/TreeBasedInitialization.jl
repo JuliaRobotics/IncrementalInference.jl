@@ -265,6 +265,9 @@ function fetchChildrenStatusUp(tree::AbstractBayesTree,
     flush(logger.stream)
     # either wait to fetch new result, or report or result
     ret[ch.index] = (fetch(getMsgUpChannel(ch))).status
+    with_logger(logger) do
+      @info "ret[$(ch.index)]=$(ret[ch.index])."
+    end
   end
 
   return ret

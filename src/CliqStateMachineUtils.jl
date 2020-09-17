@@ -507,7 +507,7 @@ function solveCliqWithStateMachine!(dfg::G,
                                     downsolve::Bool=true,
                                     recordhistory::Bool=false,
                                     verbose::Bool=false,
-                                    nextfnc::Function=testCliqCanRecycled_StateMachine,
+                                    nextfnc::Function=canCliqMargRecycle_StateMachine,
                                     prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
   #
   cliq = getClique(tree, frontal)
@@ -1141,16 +1141,17 @@ end
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function getSetDownMessagesComplete!(subfg::AbstractDFG,
-                                     cliq::TreeClique,
-                                     prntDwnMsgs::LikelihoodMessage,
-                                     logger=ConsoleLogger()  )
+function getSetDownMessagesComplete!( subfg::AbstractDFG,
+                                      cliq::TreeClique,
+                                      prntDwnMsgs::LikelihoodMessage,
+                                      logger=ConsoleLogger();
+                                      status::CliqStatus=getCliqueStatus(cliq)  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
   passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
   remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = LikelihoodMessage()
+  newDwnMsgs = LikelihoodMessage(status=status)
 
   # some msgs are just pass through from parent
   for pk in passkeys
@@ -1160,13 +1161,14 @@ function getSetDownMessagesComplete!(subfg::AbstractDFG,
   # other messages must be extracted from subfg
   for mk in remainkeys
     setVari = getVariable(subfg, mk)
-    newDwnMsgs.belief[mk] = TreeBelief(getVariable(subfg, mk))
-    # newDwnMsgs.belief[mk] = (getKDE(subfg, mk), getVariableInferredDim(subfg,mk))
+    if isInitialized(setVari)
+      newDwnMsgs.belief[mk] = TreeBelief(setVari)
+    end
   end
 
   # set the downward keys
   with_logger(logger) do
-    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys)"
+    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
   end
 
   return newDwnMsgs
@@ -1232,11 +1234,11 @@ Dev Notes
 - TODO incorporate variation possible due to cross frontal factors.
 - cleanup and updates required, and @spawn jl 1.3
 """
-function solveCliqDownFrontalProducts!(subfg::G,
-                                       cliq::TreeClique,
-                                       opts::SolverParams,
-                                       logger=ConsoleLogger();
-                                       MCIters::Int=3 )::Nothing where G <: AbstractDFG
+function solveCliqDownFrontalProducts!( subfg::G,
+                                        cliq::TreeClique,
+                                        opts::SolverParams,
+                                        logger=ConsoleLogger();
+                                        MCIters::Int=3 )::Nothing where G <: AbstractDFG
   #
   # get frontal variables for this clique
   frsyms = getCliqFrontalVarIds(cliq)

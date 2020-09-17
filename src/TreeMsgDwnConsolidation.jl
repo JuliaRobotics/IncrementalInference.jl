@@ -117,4 +117,44 @@ putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMs
 
 
 
+
+
+## =============================================================================
+## Atomic messaging during init -- might be deprecated TODO
+## =============================================================================
+
+
+
+
+function notifyCliqDownInitStatus!( cliq::TreeClique,
+  status::Symbol;
+  logger=ConsoleLogger() )
+#
+cdat = getCliqueData(cliq)
+with_logger(logger) do
+@info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
+end
+
+# take lock for atomic transaction
+lockDwnStatus!(cdat, cliq.index, logger=logger)
+
+setCliqueStatus!(cdat, status)
+
+putMsgDwnInitStatus!(cliq, status, logger)
+
+# unlock for others to proceed
+unlockDwnStatus!(cdat)
+with_logger(logger) do
+@info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
+end
+
+# flush(logger.stream)
+
+nothing
+end
+
+
+
+
+
 ## =============================================================

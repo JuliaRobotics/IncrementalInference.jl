@@ -145,7 +145,7 @@ end
 # - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 #
 # DevNotes
-# - FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
+# - FIXME, integrate with `8f. prepInitUp_StateMachine`
 # """
 # function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
 #                                 tree::AbstractBayesTree,

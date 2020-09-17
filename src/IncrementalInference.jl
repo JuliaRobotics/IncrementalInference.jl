@@ -249,14 +249,14 @@ export *,
   cliqInitSolveUpByStateMachine!,
 
   # state machine functions
-  finishCliqSolveCheck_StateMachine,
+  checkUpsolveFinished_StateMachine,
   determineCliqNeedDownMsg_StateMachine,
-  blockUntilSiblingsStatus_StateMachine,
+  blockSiblingStatus_StateMachine,
   trafficRedirectConsolidate459_StateMachine,
   slowIfChildrenNotUpSolved_StateMachine,
   buildCliqSubgraph_StateMachine,
   isCliqUpSolved_StateMachine,
-  testCliqCanRecycled_StateMachine,
+  canCliqMargRecycle_StateMachine,
   buildCliqSubgraphForDown_StateMachine,
 
   #
