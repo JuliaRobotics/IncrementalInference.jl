@@ -1136,43 +1136,6 @@ function localProductAndUpdate!(dfg::AbstractDFG,
   return pp, infdim, lbl
 end
 
-"""
-    $SIGNATURES
-
-Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
-"""
-function getSetDownMessagesComplete!( subfg::AbstractDFG,
-                                      cliq::TreeClique,
-                                      prntDwnMsgs::LikelihoodMessage,
-                                      logger=ConsoleLogger();
-                                      status::CliqStatus=getCliqueStatus(cliq)  )
-  #
-  allvars = getCliqVarIdsAll(cliq)
-  allprntkeys = collect(keys(prntDwnMsgs.belief))
-  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
-  remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = LikelihoodMessage(status=status)
-
-  # some msgs are just pass through from parent
-  for pk in passkeys
-    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
-  end
-
-  # other messages must be extracted from subfg
-  for mk in remainkeys
-    setVari = getVariable(subfg, mk)
-    if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari)
-    end
-  end
-
-  # set the downward keys
-  with_logger(logger) do
-    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
-  end
-
-  return newDwnMsgs
-end
 
 
 """

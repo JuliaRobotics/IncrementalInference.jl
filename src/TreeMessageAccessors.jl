@@ -234,28 +234,6 @@ function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
 end
 
 
-function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
-                                    status::Symbol=getCliqueStatus(csmc.cliq);
-                                    dfg::AbstractDFG=csmc.cliqSubFg,
-                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
-  #
-  cd = getCliqueData(csmc.cliq)
-
-  setCliqueStatus!(csmc.cliq, status)
-
-  # NOTE consolidate with upMsgChannel #459
-  putDwnMsgConsolidated!(cd, dwnmsg)
-
-  notify(getSolveCondition(csmc.cliq))
-  # took ~40 hours to figure out that a double norification fixes the problem with hex init
-  sleep(0.1)
-  notify(getSolveCondition(csmc.cliq))
-
-  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
-
-  status
-end
-
 
 ## =============================================================================
 ## Family message getters and setters

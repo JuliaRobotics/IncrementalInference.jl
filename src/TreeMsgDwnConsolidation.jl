@@ -116,6 +116,70 @@ putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMs
 
 
 
+"""
+    $SIGNATURES
+
+Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
+"""
+function getSetDownMessagesComplete!( subfg::AbstractDFG,
+                                      cliq::TreeClique,
+                                      prntDwnMsgs::LikelihoodMessage,
+                                      logger=ConsoleLogger();
+                                      status::CliqStatus=getCliqueStatus(cliq)  )
+  #
+  allvars = getCliqVarIdsAll(cliq)
+  allprntkeys = collect(keys(prntDwnMsgs.belief))
+  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
+  remainkeys = setdiff(allvars, passkeys)
+  newDwnMsgs = LikelihoodMessage(status=status)
+
+  # some msgs are just pass through from parent
+  for pk in passkeys
+    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
+  end
+
+  # other messages must be extracted from subfg
+  for mk in remainkeys
+    setVari = getVariable(subfg, mk)
+    if isInitialized(setVari)
+      newDwnMsgs.belief[mk] = TreeBelief(setVari)
+    end
+  end
+
+  # set the downward keys
+  with_logger(logger) do
+    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
+  end
+
+  return newDwnMsgs
+end
+
+"""
+    $SIGNATURES
+
+THIS IS ONE OF THE FAVORITES FOR POST CONSOLIDATED DOWNWARD MESSAGES.
+"""
+function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
+                                    status::Symbol=getCliqueStatus(csmc.cliq);
+                                    dfg::AbstractDFG=csmc.cliqSubFg,
+                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
+  #
+  cd = getCliqueData(csmc.cliq)
+
+  setCliqueStatus!(csmc.cliq, status)
+
+  # NOTE consolidate with upMsgChannel #459
+  putDwnMsgConsolidated!(cd, dwnmsg)
+
+  notify(getSolveCondition(csmc.cliq))
+  # took ~40 hours to figure out that a double norification fixes the problem with hex init
+  sleep(0.1)
+  notify(getSolveCondition(csmc.cliq))
+
+  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
+
+  status
+end
 
 
 
@@ -127,30 +191,30 @@ putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMs
 
 
 function notifyCliqDownInitStatus!( cliq::TreeClique,
-  status::Symbol;
-  logger=ConsoleLogger() )
-#
-cdat = getCliqueData(cliq)
-with_logger(logger) do
-@info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
-end
+                                    status::Symbol;
+                                    logger=ConsoleLogger() )
+  #
+  cdat = getCliqueData(cliq)
+    with_logger(logger) do
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
+  end
 
-# take lock for atomic transaction
-lockDwnStatus!(cdat, cliq.index, logger=logger)
+  # take lock for atomic transaction
+  lockDwnStatus!(cdat, cliq.index, logger=logger)
 
-setCliqueStatus!(cdat, status)
+  setCliqueStatus!(cdat, status)
 
-putMsgDwnInitStatus!(cliq, status, logger)
+  putMsgDwnInitStatus!(cliq, status, logger)
 
-# unlock for others to proceed
-unlockDwnStatus!(cdat)
-with_logger(logger) do
-@info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
-end
+  # unlock for others to proceed
+  unlockDwnStatus!(cdat)
+    with_logger(logger) do
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
+  end
 
-# flush(logger.stream)
+  # flush(logger.stream)
 
-nothing
+  nothing
 end
 
 

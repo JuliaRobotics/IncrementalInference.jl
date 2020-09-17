@@ -111,8 +111,9 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- going to set new down msgs.")
   newDwnMsgs = getSetDownMessagesComplete!(csmc.cliqSubFg, csmc.cliq, dwnmsgs, csmc.logger)
   
+    prepPutCliqueStatusMsgDwn!(csmc, :downsolved)
     #JT 459 putMsgDwnThis!(cliq, newDwnMsgs), DF still looks like a pull model here #674
-    putMsgDwnThis!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!) # putCliqueMsgDown!
+    # putMsgDwnThis!(csmc.cliq.data, newDwnMsgs, from=:putMsgDwnThis!) # putCliqueMsgDown!
 
     # update clique subgraph with new status
     setCliqDrawColor(csmc.cliq, "lightblue")
@@ -1414,6 +1415,8 @@ function decideUpMsgOrInit_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   if someChildrenNeedDwn
+    # send a down init message
+    prepPutCliqueStatusMsgDwn!(csmc)
     # go to 8k
     return sendCurrentUpMsg_StateMachine
   end
@@ -1439,6 +1442,11 @@ function attemptCliqInitUp_StateMachine(csmc::CliqStateMachineContainer)
   if getCliqueStatus(csmc.cliq) in [:initialized; :null; :needdownmsg] && notChildNeedDwn
     # go to 8f.
     return prepInitUp_StateMachine
+  end
+
+  if !notChildNeedDwn
+    # go to 8m 
+    return tryInitCliq_StateMachine
   end
 
   # go to 9
