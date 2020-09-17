@@ -98,6 +98,9 @@ include("testMultiprocess.jl")
 include("testDeadReckoningTether.jl")
 
 
+include("testMixtureLinearConditional.jl")
+
+
 
 
 
