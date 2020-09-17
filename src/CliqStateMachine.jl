@@ -208,7 +208,8 @@ function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # Transfer to parent graph
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
 
-  notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
+  prepPutCliqueStatusMsgDwn!(csmc, :downsolved)
+  # notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
 
   # bye
   return IncrementalInference.exitStateMachine
@@ -398,10 +399,10 @@ function tryInitCliq_StateMachine(csmc::CliqStateMachineContainer)
 
     # (short cut) check again if all cliq vars have been initialized so that full inference can occur on clique
   elseif allchld
+    infocsm(csmc, "8m, tryInitCliq_StateMachine -- all initialized")
     # TODO should this set status=:initialized? and notify???
     setCliqueStatus!(csmc.cliq, :initialized)
-    
-    infocsm(csmc, "8m, tryInitCliq_StateMachine -- all initialized")
+
     # go to 8g.
     return doCliqUpSolveInitialized_StateMachine
   end
@@ -409,11 +410,6 @@ function tryInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8m, tryInitCliq_StateMachine -- not able to init all")
   # TODO Simplify this
   status = getCliqueStatus(csmc.cliq)
-  
-  # if status == :initialized && doAnyChildrenNeedDwnMsg(csmc.tree, csmc.cliq)
-  #   # go to 7e
-  #   return slowWhileInit_StateMachine
-  # end
 
   if !(status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0)
     # notify of results (big part of #459 consolidation effort)
@@ -428,7 +424,7 @@ end
 """
     $SIGNATURES
 
-Find upward Chapman-Kolmogorov transit integral solution (approximation).
+Calculate the full upward Chapman-Kolmogorov transit integral solution approximation (i.e. upsolve).
 
 Notes
 - State machine function nr. 8g

@@ -250,9 +250,9 @@ Notes:
 - See status options at `getCliqueStatus(..)`.
 - Can be called multiple times
 """
-function fetchChildrenStatusUp(tree::AbstractBayesTree,
-                                            cliq::TreeClique,
-                                            logger=ConsoleLogger() )
+function fetchChildrenStatusUp( tree::AbstractBayesTree,
+                                cliq::TreeClique,
+                                logger=ConsoleLogger() )
   #
   ret = Dict{Int, Symbol}()
   chlr = getChildren(tree, cliq)
