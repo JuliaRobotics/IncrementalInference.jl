@@ -1,10 +1,7 @@
 # load requried packages
-using RoME
-using Test
-
+using IncrementalInference
 
 ## parameters
-
 lm_prior_noise = 0.01
 meas_noise = 0.25
 odom_noise = 0.1
@@ -25,10 +22,10 @@ x3 = 40.0
 fg = initfg()
 
 # Place strong prior on locations of three "doors"
-addVariable!(fg, Symbol("l0"), ContinuousScalar, N=n_samples)
+addVariable!(fg, :l0, ContinuousScalar, N=n_samples)
 addFactor!(fg, [:l0], Prior(Normal(l0, lm_prior_noise)))
 
-addVariable!(fg, Symbol("l1"), ContinuousScalar, N=n_samples)
+addVariable!(fg, :l1, ContinuousScalar, N=n_samples)
 addFactor!(fg, [:l1], Prior(Normal(l1, lm_prior_noise)))
 
 
@@ -72,16 +69,14 @@ ensureAllInitialized!(fg)
 
 ##
 
-writeGraphPdf(fg, show=true)
+drawGraph(fg, show=true)
 
 tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
 
 ## Solve graph
-tree = batchSolve!(fg)
+tree, smt, hist = solveTree!(fg)
 
 # tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
-
-
 
 ## Plotting functions below
 
@@ -100,13 +95,13 @@ spyCliqMat(tree, :l0)
 spyCliqMat(tree, :x2)
 
 
-
 ## specialized debugging
 
+#FIXME Maybe related to #459 `treeProductUp` "UndefVarError: getUpMsgs not defined"
+#FIXME stuff = treeProductUp(fg, tree, :l0, :x0)
+#FIXME plotKDE(manikde!(stuff[1], (:Euclid,)) )
 
-stuff = treeProductUp(fg, tree, :l0, :x0)
-plotKDE(manikde!(stuff[1], (:Euclid,)) )
-
+# plotTreeProductUp(fg, tree, :x1)
 
 ## Do one clique inference only
 
@@ -118,10 +113,11 @@ plotKDE([upmsgs[:x0]; upmsgs[:l1]; upmsgs[:x1]], c=["red";"green";"blue"])
 
 
 ## swap iteration order
+#TODO guess order from bellow
+# getCliqueData(tree.cliques[2]).itervarIDs = [5;7;3;1]
+getCliqueData(tree.cliques[2]).itervarIDs = [:x0, :x1, :l0, :l1]
 
-getCliqueData(tree.cliques[2]).itervarIDs = [5;7;3;1]
-
-inferOverTree!(fg, tree)
+solveTree!(fg, tree)
 
 ## manually build the iteration scheme for second clique
 
