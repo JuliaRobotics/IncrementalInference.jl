@@ -5,14 +5,14 @@ export Sphere1Sphere1, PriorSphere1, PackedSphere1Sphere1, PackedPriorSphere1
 """
 $(TYPEDEF)
 """
-mutable struct Sphere1Sphere1{T} <: AbstractRelativeFactor where {T <: SamplableBelief}
+mutable struct Sphere1Sphere1{T<: SamplableBelief} <: AbstractRelativeFactor
   Z::T
   Sphere1Sphere1{T}() where {T <: SamplableBelief} = new{T}()
   Sphere1Sphere1{T}(z1::T) where {T <: SamplableBelief} = new{T}(z1)
 end
 Sphere1Sphere1(z::T) where {T <: SamplableBelief} = Sphere1Sphere1{T}(z)
 
-getSample(s::Sphere1Sphere1{<: SamplableBelief}, N::Int=1) = (rand(s.Z, N), )
+getSample(s::Sphere1Sphere1{<: SamplableBelief}, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 function (s::Sphere1Sphere1{<: SamplableBelief})(res::AbstractVector{<:Real},
                                                  userdata::FactorMetadata,
@@ -38,7 +38,7 @@ Example:
 PriorSphere1( MvNormal([10; 10; pi/6.0], Matrix(Diagonal([0.1;0.1;0.05].^2))) )
 ```
 """
-mutable struct PriorSphere1{T} <: AbstractRelativeFactor  where {T <: IncrementalInference.SamplableBelief}
+mutable struct PriorSphere1{T<: SamplableBelief} <: AbstractPrior
     Z::T
     PriorSphere1{T}() where T = new{T}()
     PriorSphere1{T}(x::T) where {T <: IncrementalInference.SamplableBelief}  = new{T}(x)
@@ -49,7 +49,7 @@ function PriorSphere1(mu::Array{Float64}, cov::Array{Float64,2}, W::Vector{Float
   PriorSphere1(MvNormal(mu[:], cov))
 end
 function getSample(p2::PriorSphere1, N::Int=1)
-  return (rand(p2.Z,N), )
+  return (reshape(rand(p2.Z,N),:,N), )
 end
 
 
@@ -96,7 +96,7 @@ function convert(::Type{Sphere1Sphere1}, d::PackedSphere1Sphere1)
   return Sphere1Sphere1(extractdistribution(d.datastr))
 end
 function convert(::Type{PackedSphere1Sphere1}, d::Sphere1Sphere1)
-  return PackedSphere1Sphere1(string(d.z))
+  return PackedSphere1Sphere1(string(d.Z))
 end
 
 
