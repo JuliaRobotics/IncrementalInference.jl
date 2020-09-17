@@ -1,19 +1,15 @@
+## Include needed packages
+using IncrementalInference
+using RoMEPlotting
 
-
-using IncrementalInference, KernelDensityEstimate, Distributions
-using Gadfly # for draw PDF
-using Test
-
+# import getSample to be extended for user factor MultiModalConditional 
 import IncrementalInference: getSample
 
-# switch off y ticks
-toggleYTicks()
-
-
+## create a new facor type MultiModalConditional
 mutable struct MultiModalConditional <: AbstractRelativeFactor
   x::Vector{Distribution}
   hypo::Categorical
-  MultiModalConditional{D <: Distribution}(x::Vector{D}, p::Categorical) = new(x, p)
+  MultiModalConditional(x::Vector{<:Distribution}, p::Categorical) = new(x, p)
 end
 function getSample(dpl::MultiModalConditional, N::Int=1)
   d = length(dpl.hypo.p)
@@ -26,6 +22,7 @@ function getSample(dpl::MultiModalConditional, N::Int=1)
 end
 
 function (dp::MultiModalConditional)(res::AbstractVector{<:Real},
+                                    userdata::FactorMetadata,
                                     idx::Int,
                                     meas::Tuple{<:AbstractArray{<:Real,2},<:AbstractVector{Int64}},
                                     x1::AbstractArray{<:Real},
@@ -36,42 +33,32 @@ function (dp::MultiModalConditional)(res::AbstractVector{<:Real},
 end
 
 
-
-
-
+## build factor graph and populate
 fg = initfg()
 
 N=100
 
-doors = [-20.0, 0.0, 20.0]'
+doors = [-20.0 0.0 20.0]
 pd = kde!(doors,[2.0])
 pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
-v1 = addVariable!(fg,:x1,doors,N=N)
-f1  = addFactor!(fg,[v1],Obsv2( doors2, bws', [1.0])) #, samplefnc=getSample
-
+v1 = addVariable!(fg,:x1,ContinuousScalar,N=N)
+f1 = addFactor!(fg,[v1],Prior(pd)) #, samplefnc=getSample
 
 # not initialized
-v2 = addVariable!(fg,:x2, N=N)
+v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
 
 mmc = MultiModalConditional([Normal(-5,0.5),Normal(5,0.5)],Categorical([0.5,0.5]))
 f2 = addFactor!(fg, [:x1; :x2], mmc )
 
-
-# Graphs.plot(fg.g)
-
-
 pts = approxConv(fg, :x1x2f1, :x2)
 
-
+## do some plotting
 q2 = kde!(getSample(mmc,2000)[1])
 h1 = plotKDE([getBelief(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")
 
 
-
 draw(PDF("approxconv.pdf",14cm,10cm),vstack(h1,h2))
 # @async run(`evince approxconv.pdf`)
-
-#
