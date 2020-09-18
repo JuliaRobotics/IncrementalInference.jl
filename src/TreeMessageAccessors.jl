@@ -102,24 +102,15 @@ unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 ## Consolidating INIT up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 
-
-getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  # FIXME convert to Channel only
-getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
-
+# FIXME DEPRECATE to use only MsgUpThis register
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
-getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
+
+# Consolidate to only use this
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 
-"""
-    $SIGNATURES
-
-Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageDown!(tree::BayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(getMsgDwnChannel(tree, edge))
-  return beliefMsg
-end
 
 
 """
@@ -134,16 +125,8 @@ function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
 end
 
 
-"""
-    $SIGNATURES
 
-Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
-"""
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
-  # Blocks until data is available.
-  put!(getMsgDwnChannel(tree, edge), beliefMsg)
-  return beliefMsg
-end
+
 
 """
     $SIGNATURES
@@ -155,11 +138,6 @@ function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage
   put!(getMsgUpChannel(tree, edge), beliefMsg)
   return beliefMsg
 end
-
-
-getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
-getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
-
 
 
 function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)

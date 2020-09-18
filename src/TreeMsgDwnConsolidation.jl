@@ -32,6 +32,70 @@ putDwnMsgConsolidated!(cliq::TreeClique, msg::LikelihoodMessage) = putDwnMsgCons
 
 
 
+"""
+    $SIGNATURES
+
+THIS IS ONE OF THE FAVORITES FOR POST CONSOLIDATED DOWNWARD MESSAGES.
+"""
+function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
+                                    status::Symbol=getCliqueStatus(csmc.cliq);
+                                    dfg::AbstractDFG=csmc.cliqSubFg,
+                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
+  #
+  cd = getCliqueData(csmc.cliq)
+
+  setCliqueStatus!(csmc.cliq, status)
+
+  # NOTE consolidate with upMsgChannel #459
+  putDwnMsgConsolidated!(cd, dwnmsg)
+
+  notify(getSolveCondition(csmc.cliq))
+  # took ~40 hours to figure out that a double norification fixes the problem with hex init
+  sleep(0.1)
+  notify(getSolveCondition(csmc.cliq))
+
+  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
+
+  status
+end
+
+
+
+## ============================================================================
+## and more channels for some reason
+## ============================================================================
+
+
+# FIXME DEPRECATE TO RATHER USE getDwnMsgConsolidated
+getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
+getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
+
+"""
+    $SIGNATURES
+
+Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
+"""
+function takeBeliefMessageDown!(tree::BayesTree, edge)
+  # Blocks until data is available.
+  beliefMsg = take!(getMsgDwnChannel(tree, edge))
+  return beliefMsg
+end
+
+
+
+## ============================================================================
+## .initDownChannel
+## ============================================================================
+
+
+@deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
+@deprecate getMsgDwnInitChannel_(btnd::BayesTreeNodeData) getDwnMsgConsolidated(btnd)
+# getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
+
+getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
+fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
+
+
 
 # FIXME OLD must be consolidated as part of 459
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
@@ -51,20 +115,6 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Conso
 
   nothing
 end
-
-## ============================================================================
-## .initDownChannel
-## ============================================================================
-
-
-@deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
-@deprecate getMsgDwnInitChannel_(btnd::BayesTreeNodeData) getDwnMsgConsolidated(btnd)
-# getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
-
-getMsgDwnInitChannel_(cliq::TreeClique) = getMsgDwnInitChannel_(getCliqueData(cliq))
-fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
-
-
 
 ## ============================================================================
 ## .downInitMsg
@@ -115,6 +165,17 @@ putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMs
   
 
 
+"""
+    $SIGNATURES
+
+Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
+"""
+function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+  # Blocks until data is available.
+  put!(getMsgDwnChannel(tree, edge), beliefMsg)
+  return beliefMsg
+end
+
 
 """
     $SIGNATURES
@@ -152,33 +213,6 @@ function getSetDownMessagesComplete!( subfg::AbstractDFG,
   end
 
   return newDwnMsgs
-end
-
-"""
-    $SIGNATURES
-
-THIS IS ONE OF THE FAVORITES FOR POST CONSOLIDATED DOWNWARD MESSAGES.
-"""
-function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
-                                    status::Symbol=getCliqueStatus(csmc.cliq);
-                                    dfg::AbstractDFG=csmc.cliqSubFg,
-                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
-  #
-  cd = getCliqueData(csmc.cliq)
-
-  setCliqueStatus!(csmc.cliq, status)
-
-  # NOTE consolidate with upMsgChannel #459
-  putDwnMsgConsolidated!(cd, dwnmsg)
-
-  notify(getSolveCondition(csmc.cliq))
-  # took ~40 hours to figure out that a double norification fixes the problem with hex init
-  sleep(0.1)
-  notify(getSolveCondition(csmc.cliq))
-
-  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
-
-  status
 end
 
 
