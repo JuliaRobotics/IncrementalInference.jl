@@ -98,7 +98,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
 end
 
 
-LikelihoodMessage(;status::CliqStatus=:NULL,
+LikelihoodMessage(;status::CliqStatus=:null,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    variableOrder::Vector{Symbol}=Symbol[],
                    cliqueLikelihood=nothing,
