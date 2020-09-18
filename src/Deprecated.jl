@@ -23,6 +23,19 @@ end
 
 
 ##==============================================================================
+## Delete when tree message consolidation is complete
+##==============================================================================
+
+
+function messages(btnd::BayesTreeNodeData)
+  @warn("btnd.messages will be deprecated")
+  btnd.messages
+end
+
+messages(clique::TreeClique) = getCliqueData(clique).messages
+
+
+##==============================================================================
 ## Delete at end v0.16.x
 ##==============================================================================
 

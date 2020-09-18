@@ -287,11 +287,11 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
 end
 
 
+## === DF THIS MUST BE DELETED
 # JT Using this to fix parametric tree again 
 # include additional Tx buffers for later use
 # fech vs take! #855
 # paremetric needs take! to work
-
 mutable struct MessageStore
   upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
   downRx::Union{Nothing, LikelihoodMessage} # down receive message buffer (one parent)
@@ -299,6 +299,10 @@ mutable struct MessageStore
   downTx::Union{Nothing, LikelihoodMessage} # RESERVED down outgoing message buffer (multiple children but one message)
 end
 MessageStore() = MessageStore(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
+
+## ^^^ DELETE
+
+
 
 """
 $(TYPEDEF)
@@ -352,55 +356,9 @@ mutable struct BayesTreeNodeData
   # fingal down channel container at conclusion of 459
   dwnMsgChannel::Channel{LikelihoodMessage}
 
+  ## DF THIS MUST BE DELETED AND ONLY USE BTND.up[/dwn]MsgChannel 
   # JT Local messages saved for cache and debuging 
   messages::MessageStore
-end
-
-messages(btnd::BayesTreeNodeData) = btnd.messages
-messages(clique::TreeClique) = getCliqueData(clique).messages
-
-
-function iifdepwarn(msg, funcsym; maxlog=nothing)
-  @logmsg(
-      Base.CoreLogging.Warn,
-      msg,
-      _module=begin
-          bt = backtrace()
-          frame, caller = Base.firstcaller(bt, funcsym)
-          # TODO: Is it reasonable to attribute callers without linfo to Core?
-          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
-      end,
-      _file=String(caller.file),
-      _line=caller.line,
-      _id=(frame,funcsym),
-      _group=:iifdepwarn,
-      caller=caller,
-      short_stacktrace=stacktrace(bt)[7:9],
-      maxlog=maxlog
-  )
-  nothing
-end
-
-function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 get dwnMsg", :getproperty)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 get downInitMsg", :getproperty)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 get initDownChannel", :getproperty)
-  end
-  return getfield(obj, sym)
-end
-
-function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 set dwnMsg", :setproperty!)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 set downInitMsg", :setproperty!)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 set initDownChannel", :setproperty!)
-  end
-  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
 end
 
 function BayesTreeNodeData(;frontalIDs=Symbol[],

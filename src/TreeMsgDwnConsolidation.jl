@@ -10,7 +10,7 @@ export
 
 
 ## ============================================================================
-## NEW consolidated dwn message container
+## Consolidated dwn message container
 ## ============================================================================
 
 getDwnMsgConsolidated(btnd::BayesTreeNodeData) = btnd.dwnMsgChannel
@@ -62,7 +62,7 @@ end
 
 
 ## ============================================================================
-## and more channels for some reason
+## more channels, MUST BE REMOVED
 ## ============================================================================
 
 
@@ -84,7 +84,7 @@ end
 
 
 ## ============================================================================
-## .initDownChannel
+## .initDownChannel, MUST BE REMOVED
 ## ============================================================================
 
 
@@ -117,7 +117,7 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Conso
 end
 
 ## ============================================================================
-## .downInitMsg
+## .downInitMsg, MUST BE REMOVED
 ## ============================================================================
 
 
@@ -135,7 +135,7 @@ end
 
 
 ## ============================================================================
-## .dwnMsg
+## .dwnMsg, MUST BE REMOVED
 ## ============================================================================
 
 """
@@ -217,8 +217,55 @@ end
 
 
 
+function iifdepwarn(msg, funcsym; maxlog=nothing)
+  @logmsg(
+      Base.CoreLogging.Warn,
+      msg,
+      _module=begin
+          bt = backtrace()
+          frame, caller = Base.firstcaller(bt, funcsym)
+          # TODO: Is it reasonable to attribute callers without linfo to Core?
+          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+      end,
+      _file=String(caller.file),
+      _line=caller.line,
+      _id=(frame,funcsym),
+      _group=:iifdepwarn,
+      caller=caller,
+      short_stacktrace=stacktrace(bt)[7:9],
+      maxlog=maxlog
+  )
+  nothing
+end
+
+function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 get dwnMsg", :getproperty)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 get downInitMsg", :getproperty)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 get initDownChannel", :getproperty)
+  end
+  return getfield(obj, sym)
+end
+
+function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 set dwnMsg", :setproperty!)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 set downInitMsg", :setproperty!)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 set initDownChannel", :setproperty!)
+  end
+  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
+end
+
+
+
+
+
 ## =============================================================================
-## Atomic messaging during init -- might be deprecated TODO
+## Atomic messaging during init -- TODO deprecated
 ## =============================================================================
 
 
