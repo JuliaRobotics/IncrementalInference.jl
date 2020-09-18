@@ -8,7 +8,17 @@ using IncrementalInference
 
 fg = generateCanonicalFG_CaesarRing1D()
 
-tree, smt, hists = solveTree!(fg) 
+# # TEMPORARY MUST COMMENT ON TRAVIS
+# getSolverParams(fg).drawtree = true
+
+mkpath(getLogPath(fg))
+verbosefid = open(joinLogPath(fg, "csmVerbose.log"),"w")
+tree, smt, hists = solveTree!(fg, timeout=40, verbose=true, verbosefid=verbosefid) 
+flush(verbosefid)
+close(verbosefid)
+open(joinLogPath(fg, "csmLogicalReconstructMax.log"),"w") do io
+  IIF.reconstructCSMHistoryLogical(getLogPath(fg), fid=io)
+end
 
 msg = getMsgUpThis(tree.cliques[2])
 

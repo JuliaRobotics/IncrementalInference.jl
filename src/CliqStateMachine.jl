@@ -807,14 +807,32 @@ Notes
 function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContainer)
   #must happen before if :null
 
-  for chld in getChildren(csmc.tree, csmc.cliq)
-    chst = getCliqueStatus(chld)
-    if chst in [:null;]
-      infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, wait $(chst), cliq=$(chld.index), ch_lbl=$(getCliqFrontalVarIds(chld)[1]).")
-      # wait for child clique status/msg to be updated
-      wait(getSolveCondition(chld))
+  notsolved = true
+
+  while notsolved
+    notsolved = false
+    infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, get new status msgs.")
+    
+    stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
+    for (cid, st) in stdict
+      infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, maybe wait cliq=$(cid), child status=$(st).")
+      
+      if st in [:null;]
+        infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, waiting cliq=$(cid), child status=$(st).")
+        wait(getSolveCondition(csmc.tree.cliques[cid]))
+        notsolved = true
+        break
+      end
     end
   end
+  # for chld in getChildren(csmc.tree, csmc.cliq)
+  #   chst = getCliqueStatus(chld)
+  #   if chst in [:null;]
+  #     infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, wait $(chst), cliq=$(chld.index), ch_lbl=$(getCliqFrontalVarIds(chld)[1]).")
+  #     # wait for child clique status/msg to be updated
+  #     wait(getSolveCondition(chld))
+  #   end
+  # end
 
   # stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
   # infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
@@ -1251,11 +1269,12 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   chldupandinit = sum(childst .|> x-> (x in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled])) == length(childst)
   allneeddwn = (filter(x-> x == :needdownmsg, childst) |> length) == length(childst) && 0 < length(childst)
   chldneeddwn = :needdownmsg in childst
+  chldnull = :null in childst
 
   cliqst = getCliqueStatus(csmc.cliq)
 
   infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine, childst=$childst")
-  infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine, cliqst=$cliqst, resolveinit=$resolveinit, allneeddwn=$allneeddwn, chldneeddwn=$chldneeddwn, chldupandinit=$chldupandinit")
+  infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine, cliqst=$cliqst, resolveinit=$resolveinit, allneeddwn=$allneeddwn, chldneeddwn=$chldneeddwn, chldupandinit=$chldupandinit, chldnull=$chldnull")
   
   
   # merged in from 4c here into 7, part of dwnMsg #459
@@ -1285,7 +1304,7 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     return towardUpOrDwnSolve_StateMachine
   end
 
-  if cliqst == :null && !chldupandinit
+  if chldnull || cliqst == :null && !chldupandinit
     # go to 4e
     return blockUntilChildrenHaveStatus_StateMachine
   elseif chldneeddwn || chldupandinit
