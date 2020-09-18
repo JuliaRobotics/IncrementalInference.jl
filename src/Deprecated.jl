@@ -40,6 +40,51 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 ##==============================================================================
 
 
+
+function iifdepwarn(msg, funcsym; maxlog=nothing)
+  @logmsg(
+      Base.CoreLogging.Warn,
+      msg,
+      _module=begin
+          bt = backtrace()
+          frame, caller = Base.firstcaller(bt, funcsym)
+          # TODO: Is it reasonable to attribute callers without linfo to Core?
+          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+      end,
+      _file=String(caller.file),
+      _line=caller.line,
+      _id=(frame,funcsym),
+      _group=:iifdepwarn,
+      caller=caller,
+      short_stacktrace=stacktrace(bt)[7:9],
+      maxlog=maxlog
+  )
+  nothing
+end
+
+function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 get dwnMsg", :getproperty)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 get downInitMsg", :getproperty)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 get initDownChannel", :getproperty)
+  end
+  return getfield(obj, sym)
+end
+
+function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 set dwnMsg", :setproperty!)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 set downInitMsg", :setproperty!)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 set initDownChannel", :setproperty!)
+  end
+  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
+end
+
+
 ## ============================================================================
 ## .initDownChannel, MUST BE REMOVED
 ## ============================================================================
@@ -54,7 +99,7 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 # getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
 
 function getMsgDwnInitChannel_(cliq::TreeClique)
-  @error("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.")
+  @warn("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.")
   getMsgDwnInitChannel_(getCliqueData(cliq))
 end
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
@@ -62,9 +107,10 @@ fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
 # FIXME OLD must be consolidated as part of 459
 function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger(), msg=LikelihoodMessage(status=status))
-  @error("putMsgDwnInitStatus! is deprecated, use putDwnMsgConsolidated instead")
+  @warn("putMsgDwnInitStatus! is deprecated, use putDwnMsgConsolidated! instead")
   cdat = getCliqueData(cliq)
-  cdc = getMsgDwnInitChannel_(cdat)
+  cdc = getDwnMsgConsolidated(cdat)
+  # cdc = getMsgDwnInitChannel_(cdat)
     if isready(cdc)
       content = take!(cdc)
       with_logger(logger) do
@@ -87,7 +133,7 @@ end
 # getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq)) # WHAT ???
 
 function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
-  @error("putCliqueInitMsgDown! is deprecated, use putDwnMsgConsolidated instead")
+  @warn("putCliqueInitMsgDown! is deprecated, use putDwnMsgConsolidated instead")
   cdata.downInitMsg = initmsg
   nothing
 end

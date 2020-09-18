@@ -336,24 +336,18 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   isCliqReused::Bool             # holdover
 
-  # FIXME remove and only use upMsgChannel / dwnMsgChannel
-  # FIXME Deprecate separate init message locations -- only use up and dwn
-  # FIXME ensure dwn init is pull model #674
-  # dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
-  # downInitMsg::LikelihoodMessage
-  # initDownChannel::Channel{LikelihoodMessage}
-
   # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
+
+  # FIXME evaluate if the locks are still necessary -- likely not.
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
-  # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
+
+  # FIXME consolidate Dict with LikelihoodMessage, (pull model #674)
   solvableDims::Channel{Dict{Symbol, Float64}}
 
   # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
-
-  # fingal down channel container at conclusion of 459
   dwnMsgChannel::Channel{LikelihoodMessage}
 
   ## DF THIS MUST BE DELETED AND ONLY USE BTND.up[/dwn]MsgChannel 
@@ -383,9 +377,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
-                            # dwnMsg=LikelihoodMessage(),                     # DEPRECATE
-                            # downInitMsg=LikelihoodMessage(),                # DEPRECATE
-                            # initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
@@ -416,9 +407,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        # dwnMsg,
-                        # downInitMsg,
-                        # initDownChannel,
                         solveCondition,
                         lockUpStatus,
                         lockDwnStatus,
@@ -462,10 +450,6 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
-  # TP = TP && c1.dwnMsg == c2.dwnMsg
-  # TP = TP && c1.upInitMsgs == c2.upInitMsgs
-  # TP = TP && c1.downInitMsg == c2.downInitMsg
-  # TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
