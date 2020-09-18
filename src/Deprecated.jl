@@ -61,7 +61,7 @@ fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
 
 # FIXME OLD must be consolidated as part of 459
-function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger())
+function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger(), msg=LikelihoodMessage(status=status))
   @error("putMsgDwnInitStatus! is deprecated, use putDwnMsgConsolidated instead")
   cdat = getCliqueData(cliq)
   cdc = getMsgDwnInitChannel_(cdat)
@@ -71,7 +71,7 @@ function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=Conso
         @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
       end
     end
-  put!(cdc, LikelihoodMessage(status=status))
+  put!(cdc, msg)
   notify(getSolveCondition(cliq))
     # FIXME hack to mitigate old race condition
     sleep(0.1)
@@ -93,33 +93,38 @@ function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMess
 end
 
 
+@deprecate fetchMsgDwnThis(cliq::TreeClique) fetchDwnMsgConsolidated(cliq)
+
 """
     $(SIGNATURES)
 
 Return the last down message stored in `cliq` of Bayes (Junction) tree.
 """
-function fetchMsgDwnThis(cliql::TreeClique)
-  @error("fetchMsgDwnThis is deprecated, use getDwnMsgConsolidated instead")
-  getCliqueData(cliql).dwnMsg
-end
 fetchMsgDwnThis(csmc::CliqStateMachineContainer) = fetchMsgDwnThis(csmc.cliq)
 fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = fetchMsgDwnThis(getClique(btl, sym))
+# function fetchMsgDwnThis(cliql::TreeClique)
+#   @error("fetchMsgDwnThis is deprecated, use getDwnMsgConsolidated instead")
+#  # fetchDwnMsgConsolidated(cliql)
+  # getCliqueData(cliql).dwnMsg
+# end
 
+
+@deprecate putMsgDwnThis!(x...; kw...) putDwnMsgConsolidated!(x...; kw...)
 
 """
 $(SIGNATURES)
 
 Set the downward passing message for Bayes (Junction) tree clique `cliql`.
 """  
-function putMsgDwnThis!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing)
-  @error("putMsgDwnThis! is deprecated, use putDwnMsgConsolidated instead")
-  @debug "putMsgDwnThis! from=$(from)"
-  cdata.dwnMsg = msg
-end  
-function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
-  getCliqueData(cliql).dwnMsg = msgs
-end  
 putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
+# function putMsgDwnThis!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing)
+#   @error("putMsgDwnThis! is deprecated, use putDwnMsgConsolidated instead")
+#   @debug "putMsgDwnThis! from=$(from)"
+#   cdata.dwnMsg = msg
+# end  
+# function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+#   getCliqueData(cliql).dwnMsg = msgs
+# end  
   
 
 

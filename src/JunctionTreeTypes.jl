@@ -339,8 +339,8 @@ mutable struct BayesTreeNodeData
   # FIXME remove and only use upMsgChannel / dwnMsgChannel
   # FIXME Deprecate separate init message locations -- only use up and dwn
   # FIXME ensure dwn init is pull model #674
-  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
-  downInitMsg::LikelihoodMessage
+  # dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
+  # downInitMsg::LikelihoodMessage
   # initDownChannel::Channel{LikelihoodMessage}
 
   # keep the Condition and Channel{Int}'s for now
@@ -383,8 +383,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
-                            dwnMsg=LikelihoodMessage(),                     # DEPRECATE
-                            downInitMsg=LikelihoodMessage(),                # DEPRECATE
+                            # dwnMsg=LikelihoodMessage(),                     # DEPRECATE
+                            # downInitMsg=LikelihoodMessage(),                # DEPRECATE
                             # initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
@@ -416,8 +416,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        dwnMsg,
-                        downInitMsg,
+                        # dwnMsg,
+                        # downInitMsg,
                         # initDownChannel,
                         solveCondition,
                         lockUpStatus,

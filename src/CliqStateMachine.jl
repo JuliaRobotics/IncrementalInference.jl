@@ -189,7 +189,7 @@ function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # this part looks like a pull model
   # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
-  putMsgDwnThis!(csmc.cliq.data, dwnmsgs, from=:putMsgDwnThis!) # putCliqueMsgDown!
+  putMsgDwnThis!(csmc.cliq.data, dwnmsgs) # , from=:putMsgDwnThis!  putCliqueMsgDown!
   setCliqueStatus!(csmc.cliq, :downsolved)
   csmc.dodownsolve = false
 

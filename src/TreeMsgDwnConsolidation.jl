@@ -205,7 +205,9 @@ function notifyCliqDownInitStatus!( cliq::TreeClique,
 
   setCliqueStatus!(cdat, status)
 
-  putMsgDwnInitStatus!(cliq, status, logger)
+  msg = LikelihoodMessage(status=status)
+  putMsgDwnInitStatus!(cliq, status, logger, msg)
+  
 
   # unlock for others to proceed
   unlockDwnStatus!(cdat)
