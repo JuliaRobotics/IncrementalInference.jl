@@ -8,7 +8,7 @@ using IncrementalInference
 
 fg = generateCanonicalFG_CaesarRing1D()
 
-tree, smt, hist = solveTree!(fg)
+tree, smt, hists = solveTree!(fg) 
 
 msg = getMsgUpThis(tree.cliques[2])
 

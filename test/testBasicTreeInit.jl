@@ -22,13 +22,22 @@ getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 @show getLogPath(fg)
 
-# temporary
+
+# # debug only
 # getSolverParams(fg).drawtree = true
+# getSolverParams(fg).showtree = true
 # getSolverParams(fg).dbg = true
 
-# do all init on tree as part of solve
-# getSolverParams(fg).drawtree = true
-tree, smt, hist = solveTree!(fg, verbose=true)
+# mkpath(getLogPath(fg))
+# verbosefid = open(joinLogPath(fg, "csmVerbose.log"),"w")
+
+tree, smt, hist = solveTree!(fg, timeout=100 ) # , verbose=true, verbosefid=verbosefid, timeout=50)
+
+# flush(verbosefid)
+# close(verbosefid)
+# open(joinLogPath(fg, "csmLogicalReconstructMax.log"),"w") do io
+#   IIF.reconstructCSMHistoryLogical(getLogPath(fg), fid=io)
+# end
 
 
 end

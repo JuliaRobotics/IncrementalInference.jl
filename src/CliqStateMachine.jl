@@ -1236,6 +1236,7 @@ Notes
 
 DevNotes
 - Consolidate with 4b?
+- found by trail and error, TODO review and consolidate with rest of CSM after major #459 and PCSM consolidation work is done.
 """
 function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -1247,13 +1248,15 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
   childst = collect(values(stdict))
   # are child cliques sufficiently solved
   resolveinit = (filter(x-> x in [:upsolved;:marginalized;:downsolved;:uprecycled], childst) |> length) == length(childst)
+  chldupandinit = sum(childst .|> x-> (x in [:initialized;:upsolved;:marginalized;:downsolved;:uprecycled])) == length(childst)
   allneeddwn = (filter(x-> x == :needdownmsg, childst) |> length) == length(childst) && 0 < length(childst)
   chldneeddwn = :needdownmsg in childst
 
-  infocsm(csmc, "7, resolveinit=$resolveinit, allneeddwn=$allneeddwn, chldneeddwn=$chldneeddwn")
-  
-  #?
   cliqst = getCliqueStatus(csmc.cliq)
+
+  infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine, childst=$childst")
+  infocsm(csmc, "7, determineCliqNeedDownMsg_StateMachine, cliqst=$cliqst, resolveinit=$resolveinit, allneeddwn=$allneeddwn, chldneeddwn=$chldneeddwn, chldupandinit=$chldupandinit")
+  
   
   # merged in from 4c here into 7, part of dwnMsg #459
   if cliqst == :needdownmsg
@@ -1282,10 +1285,10 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
     return towardUpOrDwnSolve_StateMachine
   end
 
-  if cliqst == :null 
+  if cliqst == :null && !chldupandinit
     # go to 4e
     return blockUntilChildrenHaveStatus_StateMachine
-  elseif chldneeddwn
+  elseif chldneeddwn || chldupandinit
     # go to 7b
     return slowIfChildrenNotUpSolved_StateMachine
   end
