@@ -2,8 +2,8 @@
 export CSMOccuranceType
 export parseCSMVerboseLog, calcCSMOccurancesFolders, calcCSMOccuranceMax, printCSMOccuranceMax, reconstructCSMHistoryLogical
 
-# [cliqId][fsmIterNumber][fsmFunctionName] => (nr. call occurances, list global call sequence position)
-const CSMOccuranceType = Dict{Int, Dict{Int, Dict{Symbol, Tuple{Int, Vector{Int}}}}}
+# [cliqId][fsmIterNumber][fsmFunctionName] => (nr. call occurances, list global call sequence position, list of status)
+const CSMOccuranceType = Dict{Int, Dict{Int, Dict{Symbol, Tuple{Int, Vector{Int}, Vector{String}}}}}
 
 function parseCSMVerboseLog(resultsDir::AbstractString;verboseName::AbstractString="csmVerbose.log")
   #
@@ -15,9 +15,10 @@ function parseCSMVerboseLog(resultsDir::AbstractString;verboseName::AbstractStri
   sfsmL = split.(fsmLines, r" -- ")
   cids = split.(sfsmL .|> x->match(r"cliq\d+", x[1]).match, r"cliq") .|> x->parse(Int,x[end])
   iters = split.(sfsmL .|> x->match(r"iter=\d+", x[1]).match, r"iter=") .|> x->parse(Int,x[end])
-  smfnc = sfsmL .|> x->x[2] .|> Symbol
+  smfnc = sfsmL .|> x->split(x[2], ',')[1] .|> Symbol
+  statu = sfsmL .|> x->split(x[2], ',')[2] .|> x->lstrip(rstrip(x))
 
-  return cids, iters, smfnc
+  return cids, iters, smfnc, statu
 end
 
 
@@ -35,7 +36,7 @@ function calcCSMOccurancesFolders(folderList::Vector{<:AbstractString};
 
   for rDir in folderList
     ## load the sequence from each file
-    cids, iters, smfnc = parseCSMVerboseLog(rDir, verboseName=verboseName)
+    cids, iters, smfnc, statu = parseCSMVerboseLog(rDir, verboseName=verboseName)
 
     # populate histogram
     for (idx,smfi) in enumerate(smfnc)
@@ -44,16 +45,18 @@ function calcCSMOccurancesFolders(folderList::Vector{<:AbstractString};
       end
       if !haskey(csmCounter[cids[idx]], iters[idx])
         # Tuple{Int,Int[]} == (nr. occurances of call, list global call sequence position)
-        csmCounter[cids[idx]][iters[idx]] = Dict{Symbol, Tuple{Int,Vector{Int}}}()
+        csmCounter[cids[idx]][iters[idx]] = Dict{Symbol, Tuple{Int,Vector{Int}, Vector{String}}}()
       end
       easyRef = csmCounter[cids[idx]][iters[idx]]
       if !haskey(easyRef,smfi)
-        easyRef[smfi] = (0,Int[])
+        easyRef[smfi] = (0,Int[],String[])
       end
       # add position in call sequence (global per solve)
       globalSeqIdx = easyRef[smfi][2]
       push!(globalSeqIdx, idx)
-      easyRef[smfi] = (easyRef[smfi][1]+1, globalSeqIdx)
+      statSeq = easyRef[smfi][3]
+      push!(statSeq, statu[idx])
+      easyRef[smfi] = (easyRef[smfi][1]+1, globalSeqIdx, statSeq)
 
       ## also track the transitions
       if haskey(prevFnc, cids[idx])
@@ -95,7 +98,7 @@ function calcCSMOccuranceMax( csmCounter::CSMOccuranceType;
   # max steps
   for i in 1:ncsm
     # sequence of functions that occur most often
-    maxOccuran[i] = Vector{Pair{Symbol, String}}() 
+    maxOccuran[i] = Vector{Tuple{Symbol, String, String}}() 
   end
 
   # pick out the max for each CSM iter
@@ -110,12 +113,20 @@ function calcCSMOccuranceMax( csmCounter::CSMOccuranceType;
         maxFnc = fnc
       end
     end
+    # occurance count
     perc = if percentage
       "$(round(Int,(maxCount/totalCount)*100))"
     else
+      # get medial position (proxy to most frequent)
       "$(round(Int,Statistics.median(csmCounter[csmID][stp][maxFnc][2])))"
     end
-    push!(maxOccuran[csmID], maxFnc=>perc) # position in vector == stp
+    # get status
+      allst = csmCounter[csmID][stp][maxFnc][3]
+      qst = unique(allst)
+      mqst = qst .|> y->count(x->x==y, allst)
+      midx = findfirst(x->x==maximum(mqst),mqst)
+    maxStatus = qst[midx]
+    push!(maxOccuran[csmID], (maxFnc, perc, maxStatus) ) # position in vector == stp
   end
   maxOccuran
 end
@@ -143,13 +154,13 @@ function printCSMOccuranceMax(maxOcc;
   # print titles
   titles = Tuple[]
   for cid in 1:ncsm
-    tpl = ("","","$cid                   ","")
+    tpl = ("","","$cid                   ","    ")
     push!(titles, tpl)
   end
   IIF.printHistoryLane(fid, "", titles)
   print(fid,"----")
   for i in 1:ncsm
-    print(fid,"+----------------")
+    print(fid,"+--------------------")
   end
   println(fid,"")
 
@@ -162,13 +173,14 @@ function printCSMOccuranceMax(maxOcc;
   for stp in 1:maxsteps
     TPL = Tuple[]
     for cid in 1:ncsm
-      tpl = ("","","                     ","")
+      tpl = ("","","                     ","    ")
       if stp <= length(maxOcc[cid])
         fncName = maxOcc[cid][stp][1]
         # either show percentage or sequence index
         percOrSeq = "$(maxOcc[cid][stp][2])"
         percOrSeq *= percentage ? "%" : "m"
-        tpl = ("",percOrSeq,fncName,"")
+        # get status
+        tpl = ("",percOrSeq,fncName,maxOcc[cid][stp][3])
       end
       push!(TPL, tpl)
     end

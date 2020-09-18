@@ -187,17 +187,17 @@ function getFactorSolvableDimFraction(dfg::G,
   getFactorSolvableDimFraction(dfg,fct.label,varid,saturate)
 end
 
-function getFactorSolvableDim(dfg::G,
+function getFactorSolvableDim(dfg::AbstractDFG,
                               idfct::Symbol,
                               varid::Symbol,
-                              saturate::Bool=false  )::Float64 where G <: AbstractDFG
+                              saturate::Bool=false  )::Float64
   #
   return getFactorSolvableDimFraction(dfg,idfct,varid,saturate)*getFactorDim(dfg, idfct)
 end
-function getFactorSolvableDim(dfg::G,
+function getFactorSolvableDim(dfg::AbstractDFG,
                               fct::DFGFactor,
                               varid::Symbol,
-                              saturate::Bool=false  )::Float64 where G <: AbstractDFG
+                              saturate::Bool=false  )::Float64
   #
   return getFactorSolvableDimFraction(dfg,fct,varid,saturate)*getFactorDim(fct)
 end
@@ -210,7 +210,9 @@ Return the total solvable dimension for each variable in the factor graph `dfg`.
 Notes
 - "Project" the solved dimension from other variables through connected factors onto each variable.
 """
-function getVariableSolvableDim(dfg::G, varid::Symbol, fcts::Vector{Symbol}=ls(dfg, varid)) where G <: AbstractDFG
+function getVariableSolvableDim(dfg::AbstractDFG, 
+                                varid::Symbol, 
+                                fcts::Vector{Symbol}=ls(dfg, varid) )
 
   sd = 0.0
   for fc in fcts
@@ -227,10 +229,10 @@ end
 
 Return the current dimensionality of solve for each variable in a clique.
 """
-function getCliqVariableInferDims(dfg::G,
+function getCliqVariableInferDims(dfg::AbstractDFG,
                                   cliq::TreeClique,
                                   saturate::Bool=true,
-                                  fraction::Bool=true  )::Dict{Symbol,Float64} where G <: AbstractDFG
+                                  fraction::Bool=true  )::Dict{Symbol,Float64}
   #
   # which variables
   varids = getCliqAllVarIds(cliq)
@@ -320,8 +322,8 @@ Related
 
 getCliqVariableInferredPercent
 """
-function getCliqVariableMoreInitDims(dfg::G,
-                                     cliq::TreeClique  ) where G <: AbstractDFG
+function getCliqVariableMoreInitDims( dfg::AbstractDFG,
+                                      cliq::TreeClique  )
   #
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -350,8 +352,8 @@ Related
 
 getVariableInferredDimFraction, getVariableDim, getVariableInferredDim, getVariablePossibleDim
 """
-function isCliqFullDim(fg::G,
-                       cliq::TreeClique )::Bool where G <: AbstractDFG
+function isCliqFullDim( fg::AbstractDFG,
+                        cliq::TreeClique )::Bool
   #
   # get various variable percentages
   red = getCliqVariableInferredPercent(fg, cliq)
