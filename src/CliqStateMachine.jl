@@ -25,7 +25,6 @@ export  doCliqDownSolve_StateMachine,
         slowIfChildrenNotUpSolved_StateMachine,
         blockUntilChildrenHaveStatus_StateMachine,
         dwnInitSiblingWaitOrder_StateMachine,
-        collectDwnInitMsgFromParent_StateMachine,
         trafficRedirectConsolidate459_StateMachine,
         doAllSiblingsNeedDwn_StateMachine,
         maybeNeedDwnMsg_StateMachine,
@@ -34,7 +33,6 @@ export  doCliqDownSolve_StateMachine,
         slowWhileInit_StateMachine,
         doAnyChildrenNeedDwn_StateMachine,
         decideUpMsgOrInit_StateMachine,
-        # doesParentNeedDwn_StateMachine,
         attemptCliqInitUp_StateMachine,
         sendCurrentUpMsg_StateMachine,
         buildCliqSubgraph_StateMachine,
@@ -969,87 +967,6 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   # go to 8e.ii.
   return attemptDownInit_StateMachine
 end
-
-
-"""
-    $SIGNATURES
-
-Do down initialization calculations, loosely translates to solving Chapman-Kolmogorov
-transit integral in downward direction.
-
-Notes
-- State machine function nr. 8a
-- Includes initialization routines.
-- TODO: Make multi-core
-
-DevNotes
-- FIXME major refactor of this function required.
-- FIXME this function actually occur during the parent CSM, therefore not all pull model #674
-"""
-function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContainer)
-  #
-  # TODO consider exit early for root clique rather than avoiding this function
-  infocsm(csmc, "8a, needs down message -- attempt down init")
-  setCliqDrawColor(csmc.cliq, "gold")
-
-  # initialize clique in downward direction
-  # not if parent also needs downward init message
-  # prnt = getParent(csmc.tree, csmc.cliq)[1]
-  opt = getSolverParams(csmc.dfg)
-  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
-
-  # take atomic lock OF PARENT ??? when waiting for downward information
-  # lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
-  # infocsm(csmc, "8a, after up lock")
-
-  # get down message from the parent
-  # check if any msgs should be multiplied together for the same variable
-  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
-  # FIXME, post #459 calls?
-  # this guy is getting any sibling up messages by calling on the parent
-  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip=[csmc.cliq.index;])         
-  
-  # reference to default dict location
-  dwinmsgs = getfetchCliqueInitMsgDown(csmc.cliq.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
-  infocsm(csmc, "getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
-  
-  # stack all parent incoming upward messages into dict of vector msgs
-  prntBelDictVec::Dict{Symbol, Vector{TreeBelief}} = convertLikelihoodToVector(prntmsgs, logger=csmc.logger)
-  ## TODO use parent factors too
-  # intersect with the asking clique's separator variables
-  # this function populates `dwinmsgs` with the appropriate products described in `prntBelDictVec`
-  # FIXME, should not be using full .dfg ???
-  condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, prntBelDictVec, prnt, csmc.cliq, csmc.logger)
-
-  # remove msgs that have no data
-  rmlist = Symbol[]
-  for (prsym,belmsg) in dwinmsgs.belief
-    if belmsg.inferdim < 1e-10
-      # no information so remove
-      push!(rmlist, prsym)
-    end
-  end
-  infocsm(csmc, "prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)")
-  for pr in rmlist
-    delete!(dwinmsgs.belief, pr)
-  end
-
-  infocsm(csmc, "prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
-
-  # now put the newly computed message in the appropriate container
-  # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
-  # FIXME must be consolidated as part of #459
-  putCliqueInitMsgDown!(getCliqueData(csmc.cliq), dwinmsgs)
-  # unlock
-  # unlockUpStatus!(prnt) # TODO XY ????, maybe can remove after pull model #674?
-  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
-
-  # go to 7b (maybe, and part of dwnMsg #459 WIP 9)
-  return slowIfChildrenNotUpSolved_StateMachine
-    # # go to 8j.
-    # return dwnInitSiblingWaitOrder_StateMachine
-end
-
 
 
 
