@@ -23,8 +23,331 @@ end
 
 
 ##==============================================================================
+## Delete when tree message consolidation is complete
+##==============================================================================
+
+
+function messages(btnd::BayesTreeNodeData)
+  @warn("btnd.messages will be deprecated")
+  btnd.messages
+end
+
+messages(clique::TreeClique) = getCliqueData(clique).messages
+
+
+##==============================================================================
 ## Delete at end v0.16.x
 ##==============================================================================
+
+
+
+function iifdepwarn(msg, funcsym; maxlog=nothing)
+  @logmsg(
+      Base.CoreLogging.Warn,
+      msg,
+      _module=begin
+          bt = backtrace()
+          frame, caller = Base.firstcaller(bt, funcsym)
+          # TODO: Is it reasonable to attribute callers without linfo to Core?
+          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+      end,
+      _file=String(caller.file),
+      _line=caller.line,
+      _id=(frame,funcsym),
+      _group=:iifdepwarn,
+      caller=caller,
+      short_stacktrace=stacktrace(bt)[7:9],
+      maxlog=maxlog
+  )
+  nothing
+end
+
+function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 get dwnMsg", :getproperty)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 get downInitMsg", :getproperty)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 get initDownChannel", :getproperty)
+  end
+  return getfield(obj, sym)
+end
+
+function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
+  if sym == :dwnMsg
+    # iifdepwarn("#459 set dwnMsg", :setproperty!)
+  elseif sym == :downInitMsg
+    # iifdepwarn("#459 set downInitMsg", :setproperty!)
+  elseif sym == :initDownChannel
+    # iifdepwarn("#459 set initDownChannel", :setproperty!)
+  end
+  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
+end
+
+
+## ============================================================================
+## .initDownChannel, MUST BE REMOVED
+## ============================================================================
+
+## ============================================================================
+## .downInitMsg, MUST BE REMOVED
+## ============================================================================
+
+
+@deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
+@deprecate getMsgDwnInitChannel_(btnd::BayesTreeNodeData) getDwnMsgConsolidated(btnd)
+# getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
+
+function getMsgDwnInitChannel_(cliq::TreeClique)
+  @warn("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.")
+  getMsgDwnInitChannel_(getCliqueData(cliq))
+end
+fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
+
+
+# FIXME OLD must be consolidated as part of 459
+function putMsgDwnInitStatus!(cliq::TreeClique, status::CliqStatus, logger=ConsoleLogger(), msg=LikelihoodMessage(status=status))
+  @warn("putMsgDwnInitStatus! is deprecated, use putDwnMsgConsolidated! instead")
+  cdat = getCliqueData(cliq)
+  cdc = getDwnMsgConsolidated(cdat)
+  # cdc = getMsgDwnInitChannel_(cdat)
+    if isready(cdc)
+      content = take!(cdc)
+      with_logger(logger) do
+        @info "dumping stale cliq=$(cliq.index) status message $(content), replacing with $(status)"
+      end
+    end
+  put!(cdc, msg)
+  notify(getSolveCondition(cliq))
+    # FIXME hack to mitigate old race condition
+    sleep(0.1)
+    notify(getSolveCondition(cliq))
+
+  nothing
+end
+
+function getfetchCliqueInitMsgDown(cdata::BayesTreeNodeData; from::Symbol=:nothing)
+  @debug "getfetchCliqueInitMsgDown from=$(from)"
+  return cdata.downInitMsg
+end
+# getMsgDwnThisInit(cliq::TreeClique) = getMsgDwnThisInit(getCliqueData(cliq)) # WHAT ???
+
+function putCliqueInitMsgDown!(cdata::BayesTreeNodeData, initmsg::LikelihoodMessage)
+  @warn("putCliqueInitMsgDown! is deprecated, use putDwnMsgConsolidated instead")
+  cdata.downInitMsg = initmsg
+  nothing
+end
+
+
+@deprecate fetchMsgDwnThis(cliq::TreeClique) fetchDwnMsgConsolidated(cliq)
+
+"""
+    $(SIGNATURES)
+
+Return the last down message stored in `cliq` of Bayes (Junction) tree.
+"""
+fetchMsgDwnThis(csmc::CliqStateMachineContainer) = fetchMsgDwnThis(csmc.cliq)
+fetchMsgDwnThis(btl::AbstractBayesTree, sym::Symbol) = fetchMsgDwnThis(getClique(btl, sym))
+# function fetchMsgDwnThis(cliql::TreeClique)
+#   @error("fetchMsgDwnThis is deprecated, use getDwnMsgConsolidated instead")
+#  # fetchDwnMsgConsolidated(cliql)
+  # getCliqueData(cliql).dwnMsg
+# end
+
+
+@deprecate putMsgDwnThis!(x...; kw...) putDwnMsgConsolidated!(x...; kw...)
+
+"""
+$(SIGNATURES)
+
+Set the downward passing message for Bayes (Junction) tree clique `cliql`.
+"""  
+putMsgDwnThis!(csmc::CliqStateMachineContainer, msgs::LikelihoodMessage) = putMsgDwnThis!(csmc.cliq, msgs)  # NOTE, old, csmc.msgsDown = msgs
+# function putMsgDwnThis!(cdata::BayesTreeNodeData, msg::LikelihoodMessage; from::Symbol=:nothing)
+#   @error("putMsgDwnThis! is deprecated, use putDwnMsgConsolidated instead")
+#   @debug "putMsgDwnThis! from=$(from)"
+#   cdata.dwnMsg = msg
+# end  
+# function putMsgDwnThis!(cliql::TreeClique, msgs::LikelihoodMessage)
+#   getCliqueData(cliql).dwnMsg = msgs
+# end  
+  
+
+
+
+
+"""
+    $SIGNATURES
+
+Do down initialization calculations, loosely translates to solving Chapman-Kolmogorov
+transit integral in downward direction.
+
+Notes
+- State machine function nr. 8a
+- Includes initialization routines.
+- TODO: Make multi-core
+
+DevNotes
+- FIXME major refactor of this function required.
+- FIXME this function actually occur during the parent CSM, therefore not all pull model #674
+"""
+function collectDwnInitMsgFromParent_StateMachine(csmc::CliqStateMachineContainer)
+  #
+  # TODO consider exit early for root clique rather than avoiding this function
+  infocsm(csmc, "8a, needs down message -- attempt down init")
+  setCliqDrawColor(csmc.cliq, "gold")
+
+  # initialize clique in downward direction
+  # not if parent also needs downward init message
+  # prnt = getParent(csmc.tree, csmc.cliq)[1]
+  opt = getSolverParams(csmc.dfg)
+  @assert !haskey(opt.devParams,:dontUseParentFactorsInitDown) "dbgnew is old school, 459 dwninit consolidation has removed the option for :dontUseParentFactorsInitDown"
+
+  # take atomic lock OF PARENT ??? when waiting for downward information
+  # lockUpStatus!(prnt, prnt.index, true, csmc.logger, true, "cliq$(csmc.cliq.index)") # TODO XY ????
+  # infocsm(csmc, "8a, after up lock")
+
+  # get down message from the parent
+  # check if any msgs should be multiplied together for the same variable
+  # get the current messages ~~stored in~~ [going to] the parent (pull model #674)
+  # FIXME, post #459 calls?
+  # this guy is getting any sibling up messages by calling on the parent
+  prntmsgs::Dict{Int, LikelihoodMessage} = getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip=[csmc.cliq.index;])         
+  
+  # reference to default dict location
+  dwinmsgs = getfetchCliqueInitMsgDown(csmc.cliq.data, from=:getMsgDwnThisInit) |> deepcopy  #JT 459 products = getMsgDwnThisInit(prnt)
+  infocsm(csmc, "getMsgInitDwnParent -- msg ids::Int=$(collect(keys(prntmsgs)))")
+  
+  # stack all parent incoming upward messages into dict of vector msgs
+  prntBelDictVec::Dict{Symbol, Vector{TreeBelief}} = convertLikelihoodToVector(prntmsgs, logger=csmc.logger)
+  ## TODO use parent factors too
+  # intersect with the asking clique's separator variables
+  # this function populates `dwinmsgs` with the appropriate products described in `prntBelDictVec`
+  # FIXME, should not be using full .dfg ???
+  condenseDownMsgsProductPrntFactors!(csmc.dfg, dwinmsgs, prntBelDictVec, prnt, csmc.cliq, csmc.logger)
+
+  # remove msgs that have no data
+  rmlist = Symbol[]
+  for (prsym,belmsg) in dwinmsgs.belief
+    if belmsg.inferdim < 1e-10
+      # no information so remove
+      push!(rmlist, prsym)
+    end
+  end
+  infocsm(csmc, "prepCliqInitMsgsDown! -- rmlist, no inferdim, keys=$(rmlist)")
+  for pr in rmlist
+    delete!(dwinmsgs.belief, pr)
+  end
+
+  infocsm(csmc, "prepCliqInitMsgsDown! -- product keys=$(collect(keys(dwinmsgs.belief)))")
+
+  # now put the newly computed message in the appropriate container
+  # FIXME THIS IS A PUSH MODEL, see #674 -- must make pull model first
+  # FIXME must be consolidated as part of #459
+  putCliqueInitMsgDown!(getCliqueData(csmc.cliq), dwinmsgs)
+  # unlock
+  # unlockUpStatus!(prnt) # TODO XY ????, maybe can remove after pull model #674?
+  infocsm(csmc, "8a, attemptCliqInitD., unlocked")
+
+  # go to 7b (maybe, and part of dwnMsg #459 WIP 9)
+  return slowIfChildrenNotUpSolved_StateMachine
+    # # go to 8j.
+    # return dwnInitSiblingWaitOrder_StateMachine
+end
+
+
+# currently for internal use only
+# initialize variables based on best current achievable ordering
+# OBVIOUSLY a lot of refactoring and consolidation needed with cliqGibbs / approxCliqMarginalUp
+function initSolveSubFg!( subfg::AbstractDFG,
+                          logger=ConsoleLogger() )
+  #
+  error("initSolveSubFg! is deprecated, do not use.  Follow post #459 CSM")
+  varorder = getSubFgPriorityInitOrder(subfg, logger)
+  with_logger(logger) do
+    @info "initSolveSubFg! -- varorder=$varorder"
+  end
+  cycleInitByVarOrder!(subfg, varorder, logger=logger)
+  nothing
+end
+
+
+
+
+# Helper function for prepCliqInitMsgsDown!
+# future, be used in a cached system with parent in one location only for all siblings
+# this function rebuilds a local subgraph from dfg and performs the calculations of the parent here and does not wait on the CSM to perform anything.
+# 4-stroke compute may render this whole function obsolete.
+function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
+  products::LikelihoodMessage,
+  msgspervar::Dict{Symbol, <:AbstractVector},
+  prnt::TreeClique,
+  cliq::TreeClique,
+  logger=ConsoleLogger() )
+#
+error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
+
+# determine the variables of interest
+reqMsgIds = collect(keys(msgspervar))
+# unique frontals per cliq
+prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
+lvarids = union(prntvars, reqMsgIds)
+# determine allowable factors, if any (only from parent cliq)
+awfcts = getCliqFactorIdsAll(prnt)
+
+# build required subgraph for parent/sibling down msgs
+lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
+
+tempfcts = lsf(lsfg)
+dellist = setdiff(awfcts, tempfcts)
+for delf in dellist
+# TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
+if exists(lsfg, delf)
+deleteFactor!(lsfg,delf)
+end
+end
+
+# add message priors
+addMsgFactors!(lsfg, msgspervar) # , DownwardPass
+
+# perform initialization/inference
+# FIXME, better consolidate with CSM ....uhhh TODO
+initSolveSubFg!(lsfg, logger)
+
+# extract complete downward marginal msg priors
+for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
+vari = getVariable(lsfg, id)
+products.belief[id] = TreeBelief(vari)
+end
+
+nothing
+end
+# # QUICK DBG CODE
+# with_logger(logger) do
+#     @info "condenseDownMsgsProductPrntFactors! -- reqMsgIds=$(reqMsgIds),"
+#     @info "condenseDownMsgsProductPrntFactors! -- vars=$(lvarids),"
+#     @info "condenseDownMsgsProductPrntFactors! -- allow factors $awfcts"
+# end
+# with_logger(logger) do
+#     @info "condenseDownMsgsProductPrntFactors! -- lsfg fcts=$(lsf(lsfg)),"
+#     @info "condenseDownMsgsProductPrntFactors! -- excess factors $dellist"
+# end
+# vars = ls(lsfg)
+# len = length(vars)
+# tdims = Vector{Float64}(undef, len)
+# isinit = Vector{Bool}(undef, len)
+# for idx in 1:len
+#   tdims[idx] = getVariableSolvableDim(lsfg, vars[idx])
+#   isinit[idx] = isInitialized(lsfg, vars[idx])
+# end
+# with_logger(logger) do
+#     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: vars=$vars"
+#     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: tdims=$tdims"
+#     @info "condenseDownMsgsProductPrntFactors! -- after cycle init: isinit=$isinit"
+# end
+# # QUICK DBG CODE
+
+
 
 
 """
@@ -145,7 +468,7 @@ end
 # - must use factors in cliq only, ensured by using subgraph -- TODO general case.
 #
 # DevNotes
-# - FIXME, integrate with `8f. mustInitUpCliq_StateMachine`
+# - FIXME, integrate with `8f. prepInitUp_StateMachine`
 # """
 # function doCliqAutoInitUpPart1!(subfg::AbstractDFG,
 #                                 tree::AbstractBayesTree,

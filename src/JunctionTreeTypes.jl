@@ -287,11 +287,11 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
 end
 
 
+## === DF THIS MUST BE DELETED
 # JT Using this to fix parametric tree again 
 # include additional Tx buffers for later use
 # fech vs take! #855
 # paremetric needs take! to work
-
 mutable struct MessageStore
   upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
   downRx::Union{Nothing, LikelihoodMessage} # down receive message buffer (one parent)
@@ -299,6 +299,10 @@ mutable struct MessageStore
   downTx::Union{Nothing, LikelihoodMessage} # RESERVED down outgoing message buffer (multiple children but one message)
 end
 MessageStore() = MessageStore(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
+
+## ^^^ DELETE
+
+
 
 """
 $(TYPEDEF)
@@ -332,75 +336,23 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   isCliqReused::Bool             # holdover
 
-  # FIXME remove and only use upMsgChannel / dwnMsgChannel
-  # FIXME Deprecate separate init message locations -- only use up and dwn
-  # FIXME ensure dwn init is pull model #674
-  dwnMsg::LikelihoodMessage      # DEPRECATE for dwnMsgChannel only
-  downInitMsg::LikelihoodMessage
-  # initDownChannel::Channel{LikelihoodMessage}
-
   # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
+
+  # FIXME evaluate if the locks are still necessary -- likely not.
   lockUpStatus::Channel{Int}
   lockDwnStatus::Channel{Int}
-  # FIXME consolidate Dict with LikelihoodMessage, first ensure pull model #674
+
+  # FIXME consolidate Dict with LikelihoodMessage, (pull model #674)
   solvableDims::Channel{Dict{Symbol, Float64}}
 
   # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
-
-  # fingal down channel container at conclusion of 459
   dwnMsgChannel::Channel{LikelihoodMessage}
 
+  ## DF THIS MUST BE DELETED AND ONLY USE BTND.up[/dwn]MsgChannel 
   # JT Local messages saved for cache and debuging 
   messages::MessageStore
-end
-
-messages(btnd::BayesTreeNodeData) = btnd.messages
-messages(clique::TreeClique) = getCliqueData(clique).messages
-
-
-function iifdepwarn(msg, funcsym; maxlog=nothing)
-  @logmsg(
-      Base.CoreLogging.Warn,
-      msg,
-      _module=begin
-          bt = backtrace()
-          frame, caller = Base.firstcaller(bt, funcsym)
-          # TODO: Is it reasonable to attribute callers without linfo to Core?
-          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
-      end,
-      _file=String(caller.file),
-      _line=caller.line,
-      _id=(frame,funcsym),
-      _group=:iifdepwarn,
-      caller=caller,
-      short_stacktrace=stacktrace(bt)[7:9],
-      maxlog=maxlog
-  )
-  nothing
-end
-
-function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 get dwnMsg", :getproperty)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 get downInitMsg", :getproperty)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 get initDownChannel", :getproperty)
-  end
-  return getfield(obj, sym)
-end
-
-function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 set dwnMsg", :setproperty!)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 set downInitMsg", :setproperty!)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 set initDownChannel", :setproperty!)
-  end
-  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
 end
 
 function BayesTreeNodeData(;frontalIDs=Symbol[],
@@ -425,9 +377,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
-                            dwnMsg=LikelihoodMessage(),                     # DEPRECATE
-                            downInitMsg=LikelihoodMessage(),                # DEPRECATE
-                            # initDownChannel=Channel{LikelihoodMessage}(1),  # DEPRECATE
                             solveCondition=Condition(),
                             lockUpStatus=Channel{Int}(1),
                             lockDwnStatus=Channel{Int}(1),
@@ -458,9 +407,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        dwnMsg,
-                        downInitMsg,
-                        # initDownChannel,
                         solveCondition,
                         lockUpStatus,
                         lockDwnStatus,
@@ -504,10 +450,6 @@ function compare(c1::BayesTreeNodeData,
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
-  # TP = TP && c1.dwnMsg == c2.dwnMsg
-  # TP = TP && c1.upInitMsgs == c2.upInitMsgs
-  # TP = TP && c1.downInitMsg == c2.downInitMsg
-  # TP = TP && c1.initDownChannel == c2.initDownChannel
   # TP = TP && c1.solveCondition == c2.solveCondition
   TP = TP && c1.lockUpStatus == c2.lockUpStatus
   TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
