@@ -134,11 +134,6 @@ export *,
   animateCliqStateMachines,
   csmAnimate,
   makeCsmMovie,
-  lockUpStatus!,
-  unlockUpStatus!,
-  lockDwnStatus!,
-  unlockDwnStatus!,
-  # getSiblingsDelayOrder,
   areSiblingsRemaingNeedDownOnly,
 
   # general types for softtyping of variable nodes
@@ -169,14 +164,12 @@ export *,
   listFactors,
   exists,
   sortDFG,
-  # getVariableIds,
   getVariableOrder,
   getPPE,
   getPPEDict,
   getVariablePPE,
   isVariable,
   isFactor,
-  # from dfg
   getFactorType,
   getSofttype,
   getVariableType,
@@ -274,7 +267,6 @@ export *,
   doCliqInitDown!,
   cycleInitByVarOrder!,
   prepCliqInitMsgsUp,
-  # prepCliqInitMsgsDown!, # obsolete
   getOutNeighbors,
   BayesTree,
   TreeBelief,
@@ -326,7 +318,6 @@ export *,
   drawCliqSubgraphUpMocking,
   drawTree,
   drawTreeAsyncLoop,
-  # printgraphmax,
 
   # Bayes (Junction) Tree
   evalFactor2,
@@ -359,7 +350,6 @@ export *,
   CommonConvWrapper,
 
   getCliqVarInitOrderUp,
-  # getCliqInitVarOrderDown,
   fetchChildrenStatusUp,
   getCliqNumAssocFactorsPerVar,
 
@@ -417,7 +407,6 @@ export *,
 
   #internal dev functions for recycling cliques on tree
   attemptTreeSimilarClique,
-  # getCliqSiblingsPartialNeeds,
 
   # some utils
   compare,

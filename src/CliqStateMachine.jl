@@ -278,13 +278,13 @@ function checkUpsolveFinished_StateMachine(csmc::CliqStateMachineContainer)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
-    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
+    # lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
     sdims = Dict{Symbol,Float64}()
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
     end
     updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
-    unlockUpStatus!(csmc.cliq)
+    # unlockUpStatus!(csmc.cliq)
 
     # go to 10
     return canCliqDownSolve_StateMachine # IncrementalInference.exitStateMachine

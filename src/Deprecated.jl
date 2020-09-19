@@ -47,45 +47,11 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 
 @deprecate lockUpStatus!(x...) ()->nothing
 
-# # lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = put!(cdat.lockUpStatus, idx)
-# # lockUpStatus!(cliq::TreeClique, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), idx, verbose, logger, flushLogger, msg)
-# function lockUpStatus!( cdat::BayesTreeNodeData,
-#                         owner::Int=1,
-#                         idx::Int=1,
-#                         verbose::Bool=false,
-#                         logger=SimpleLogger(stdout),
-#                         flushLogger::Bool=false,
-#                         msg::AbstractString="")
-# #
-#   with_logger(logger) do
-#     tt = now()
-#     verbose ? @info("$(tt) -- Lock $owner, UP from $idx | $msg") : nothing
-#     verbose && isready(cdat.lockUpStatus) ? @info("$(tt) -- Lock $owner, UP from $idx blocked by $(fetch(cdat.lockUpStatus))") : nothing
-#   end
-#   flushLogger ? (flush(logger.stream); sleep(0.01)) : nothing
-#   put!(cdat.lockUpStatus, idx)
-# end
-# lockUpStatus!(cliq::TreeClique, idx::Int=cliq.index, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), cliq.index, idx, verbose, logger, flushLogger, msg)
-
 @deprecate unlockUpStatus!(cdat::BayesTreeNodeData) ()->nothing
-# unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
-# function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
-#   with_logger(logger) do
-#     @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-#   end
-#   flush(logger.stream)
-#   stf =  put!(cdat.lockDwnStatus, idx)
-#   with_logger(logger) do
-#     @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-#   end
-#   flush(logger.stream)
-#   stf
-# end
 @deprecate lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger()) ()->nothing
 
-# unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 @deprecate unlockDwnStatus!(cdat::BayesTreeNodeData) ()->nothing
 
 
