@@ -108,6 +108,7 @@ function MetaBayesTree(tree::BayesTree)
     set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
   end
 
+  ##  FIXME: Use common location for channels #675 (DF, asking for BTND)
   ##  TODO: placeholder for edge stored Channels
   ## set message passing properties,
   # for e in MetaGraphs.edges(mtree.bt)

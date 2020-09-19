@@ -79,29 +79,29 @@ Notes
 """
 function generateCanonicalFG_CaesarRing1D(;graphinit::Bool=false)
 
-  fg = initfg()
+    fg = initfg()
 
-  addVariable!(fg, :x0, ContinuousScalar)
-  addVariable!(fg, :x1, ContinuousScalar)
-  addVariable!(fg, :x2, ContinuousScalar)
-  addVariable!(fg, :x3, ContinuousScalar)
-  addVariable!(fg, :x4, ContinuousScalar)
-  addVariable!(fg, :x5, ContinuousScalar)
-  addVariable!(fg, :x6, ContinuousScalar)
+    addVariable!(fg, :x0, ContinuousScalar)
+    addVariable!(fg, :x1, ContinuousScalar)
+    addVariable!(fg, :x2, ContinuousScalar)
+    addVariable!(fg, :x3, ContinuousScalar)
+    addVariable!(fg, :x4, ContinuousScalar)
+    addVariable!(fg, :x5, ContinuousScalar)
+    addVariable!(fg, :x6, ContinuousScalar)
 
-  addFactor!(fg, [:x0], Prior(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x0;:x1], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x5;:x6], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x0], Prior(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x0;:x1], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x1;:x2], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x2;:x3], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x3;:x4], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x4;:x5], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x5;:x6], LinearConditional(Normal()), graphinit=graphinit)
 
-  addVariable!(fg, :l1, ContinuousScalar)
-  addFactor!(fg, [:x0;:l1], LinearConditional(Normal()), graphinit=graphinit)
-  addFactor!(fg, [:x6;:l1], LinearConditional(Normal()), graphinit=graphinit)
+    addVariable!(fg, :l1, ContinuousScalar)
+    addFactor!(fg, [:x0;:l1], LinearConditional(Normal()), graphinit=graphinit)
+    addFactor!(fg, [:x6;:l1], LinearConditional(Normal()), graphinit=graphinit)
 
-  return fg
+    return fg
 end
 
 
@@ -111,21 +111,21 @@ end
 Continuous, linear scalar and multivariate test graph generation. Follows a line
 with the pose id equal to the ground truth.
 """
-function generateCanonicalFG_lineStep(lineLength::Int;
-                    poseEvery::Int=2,
-                    landmarkEvery::Int=4,
-                    posePriorsAt = Int[0],
-                    landmarkPriorsAt = Int[],
-                    sightDistance::Int=4,
-                    vardims = 1,
-                    noisy = false,
-                    graphinit = false,
-                    σ_pose_prior = 0.1,
-                    σ_lm_prior = 0.1,
-                    σ_pose_pose = 0.1,
-                    σ_pose_lm = 0.1,
-                    solverParams=SolverParams())
-                    # solverParams=SolverParams(algorithms=[:default, :parametric]))
+function generateCanonicalFG_lineStep(  lineLength::Int;
+                                        poseEvery::Int=2,
+                                        landmarkEvery::Int=4,
+                                        posePriorsAt = Int[0],
+                                        landmarkPriorsAt = Int[],
+                                        sightDistance::Int=4,
+                                        vardims = 1,
+                                        noisy = false,
+                                        graphinit = false,
+                                        σ_pose_prior = 0.1,
+                                        σ_lm_prior = 0.1,
+                                        σ_pose_pose = 0.1,
+                                        σ_pose_lm = 0.1,
+                                        solverParams=SolverParams())
+                                        # solverParams=SolverParams(algorithms=[:default, :parametric]))
 
     vtype = (vardims == 1) ? ContinuousScalar() : ContinuousEuclid(vardims)
 
