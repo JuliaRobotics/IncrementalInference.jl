@@ -10,7 +10,7 @@ export
   getMsgsUpChildren,
   fetchMsgDwnInit
   # putMsgUpThis!
-  
+
 export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
@@ -53,48 +53,6 @@ setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueD
 
 
 ## =============================================================================
-## Clique condition locks
-## =============================================================================
-
-# lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = put!(cdat.lockUpStatus, idx)
-# lockUpStatus!(cliq::TreeClique, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), idx, verbose, logger, flushLogger, msg)
-function lockUpStatus!(cdat::BayesTreeNodeData,
-                       owner::Int=1,
-                       idx::Int=1,
-                       verbose::Bool=false,
-                       logger=SimpleLogger(stdout),
-                       flushLogger::Bool=false,
-                       msg::AbstractString="")
-  #
-  with_logger(logger) do
-    tt = now()
-    verbose ? @info("$(tt) -- Lock $owner, UP from $idx | $msg") : nothing
-    verbose && isready(cdat.lockUpStatus) ? @info("$(tt) -- Lock $owner, UP from $idx blocked by $(fetch(cdat.lockUpStatus))") : nothing
-  end
-  flushLogger ? (flush(logger.stream); sleep(0.01)) : nothing
-  put!(cdat.lockUpStatus, idx)
-end
-lockUpStatus!(cliq::TreeClique, idx::Int=cliq.index, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), cliq.index, idx, verbose, logger, flushLogger, msg)
-unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
-unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
-
-function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
-  with_logger(logger) do
-    @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-  end
-  flush(logger.stream)
-  stf =  put!(cdat.lockDwnStatus, idx)
-  with_logger(logger) do
-    @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-  end
-  flush(logger.stream)
-  stf
-end
-unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
-
-
-
-## =============================================================================
 ## Regular up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 
@@ -102,24 +60,15 @@ unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 ## Consolidating INIT up and down Message Registers/Channels, getters and setters
 ## =============================================================================
 
-
-getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  # FIXME convert to Channel only
-getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
-
+# FIXME DEPRECATE to use only MsgUpThis register
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
-getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
+
+# Consolidate to only use this
+getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
+getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 
-"""
-    $SIGNATURES
-
-Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageDown!(tree::AbstractBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(getMsgDwnChannel(tree, edge))
-  return beliefMsg
-end
 
 
 """
@@ -134,16 +83,8 @@ function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
 end
 
 
-"""
-    $SIGNATURES
 
-Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
-"""
-function putBeliefMessageDown!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage)
-  # Blocks until data is available.
-  put!(getMsgDwnChannel(tree, edge), beliefMsg)
-  return beliefMsg
-end
+
 
 """
     $SIGNATURES
@@ -155,11 +96,6 @@ function putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::Likelihoo
   put!(getMsgUpChannel(tree, edge), beliefMsg)
   return beliefMsg
 end
-
-
-getMsgUpChannel(cdat::BayesTreeNodeData) = cdat.upMsgChannel
-getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
-
 
 
 function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
@@ -195,10 +131,10 @@ DevNotes
 - FIXME require consolidation
   - Perhaps deprecate putMsgUpInitStatus! as separate function?
 """
-function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
-                                   status::Symbol=getCliqueStatus(csmc.cliq);
-                                   dfg::AbstractDFG=csmc.cliqSubFg,
-                                   upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
+function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
+                                    status::Symbol=getCliqueStatus(csmc.cliq);
+                                    dfg::AbstractDFG=csmc.cliqSubFg,
+                                    upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
   #
   # TODO replace with msg channels only
 
@@ -223,12 +159,16 @@ function prepPutCliqueStatusMsgUp!(csmc::CliqStateMachineContainer,
   sleep(0.1)
   notify(getSolveCondition(csmc.cliq))
 
+  # also notify parent as part of upinit (PUSH NOTIFY PARENT), received at `slowWhileInit_StateMachine`
+  prnt = getParent(csmc.tree, csmc.cliq)
+  0 < length(prnt) ? notify(getSolveCondition(prnt[1])) : nothing
 
-  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$status with msg keys $(collect(keys(upmsg.belief)))")
+  infocsm(csmc, "prepPutCliqueStatusMsgUp! -- notified status=$(upmsg.status) with msg keys $(collect(keys(upmsg.belief)))")
 
   # return new up messages in case the user wants to see
   return upmsg
 end
+
 
 
 ## =============================================================================
@@ -248,9 +188,9 @@ Notes
 DevNotes
 - Consolidate two versions getMsgsUpChildren
 """
-function getMsgsUpChildren(treel::AbstractBayesTree,
-                           cliq::TreeClique,
-                           ::Type{TreeBelief} )
+function getMsgsUpChildren( treel::AbstractBayesTree,
+                            cliq::TreeClique,
+                            ::Type{TreeBelief} )
   #
   chld = getChildren(treel, cliq)
   retmsgs = Vector{LikelihoodMessage}(undef, length(chld))

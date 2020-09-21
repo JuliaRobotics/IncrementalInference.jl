@@ -1,3 +1,12 @@
+# NOTICE Gadfly#master
+
+Note current installation requires the latest Gadfly to overcome a Type Piracy problem that occurred in ImageCore.jl.  The following installation will fix the recent (but transient) Pkg compat problems:
+```julia
+julia> ] # to activate package manager
+(@v1.5) pkg> add Gadfly#master
+(@v1.5) pkg> add IncrementalInference RoME Caesar
+```
+
 # IncrementalInference.jl
 
 > Click on badges to follow links:
