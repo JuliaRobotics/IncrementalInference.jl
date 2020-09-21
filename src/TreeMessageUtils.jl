@@ -89,7 +89,7 @@ function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
     MsgPrior(Normal(belief_.val[1], sqrt(belief_.bw[1])), belief_.inferdim)
   elseif size(belief_.val, 2) == 1 && 1 != size(belief_.val, 1)
     mvnorm = createMvNormal(belief_.val[:,1], belief_.bw)
-    mvnorm != nothing ? nothing : (return DFGFactor[])
+    mvnorm !== nothing ? nothing : (return DFGFactor[])
     MsgPrior(mvnorm, belief_.inferdim)
   end
   return msgPrior

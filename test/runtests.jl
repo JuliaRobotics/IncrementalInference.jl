@@ -97,11 +97,11 @@ include("testMultiprocess.jl")
 
 include("testDeadReckoningTether.jl")
 
+include("testCSMMonitor.jl")
+
 include("testMixtureLinearConditional.jl")
 
 include("testSphere1.jl")
-
-
 
 
 

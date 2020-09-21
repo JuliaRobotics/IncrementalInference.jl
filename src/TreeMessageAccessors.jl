@@ -10,7 +10,7 @@ export
   getMsgsUpChildren,
   fetchMsgDwnInit
   # putMsgUpThis!
-  
+
 export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
@@ -61,7 +61,7 @@ setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueD
 ## =============================================================================
 
 # FIXME DEPRECATE to use only MsgUpThis register
-getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg  
+getMsgUpChannel(tree::BayesTree, edge) = tree.messages[edge.index].upMsg
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
 
 # Consolidate to only use this
@@ -91,7 +91,7 @@ end
 
 Put a belief message on the up tree message channel `edge`. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageUp!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+function putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(getMsgUpChannel(tree, edge), beliefMsg)
   return beliefMsg

@@ -1322,7 +1322,9 @@ function initInferTreeUp!(dfg::AbstractDFG,
                           injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function,<:Real}}}}=nothing,
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
-                          delaycliqs::Vector{Symbol}=Symbol[] )
+                          delaycliqs::Vector{Symbol}=Symbol[],
+                          alltasks::Vector{Task}=Task[],
+                          runtaskmonitor::Bool=true)
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -1332,10 +1334,11 @@ function initInferTreeUp!(dfg::AbstractDFG,
   end
 
   # queue all the tasks
-  alltasks = Vector{Task}(undef, length(getCliques(treel)))
+  resize!(alltasks,length(getCliques(treel)))
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   if !isTreeSolved(treel, skipinitialized=true)
     @sync begin
+      runtaskmonitor ? (global monitortask = monitorCSMs(treel, alltasks; forceIntExc = true)) : nothing
       # duplicate int i into async (important for concurrency)
       for i in 1:length(getCliques(treel))
         scsym = getCliqFrontalVarIds(getClique(treel, i))
