@@ -97,9 +97,8 @@ spyCliqMat(tree, :x2)
 
 ## specialized debugging
 
-#FIXME Maybe related to #459 `treeProductUp` "UndefVarError: getUpMsgs not defined"
-#FIXME stuff = treeProductUp(fg, tree, :l0, :x0)
-#FIXME plotKDE(manikde!(stuff[1], (:Euclid,)) )
+stuff = treeProductUp(fg, tree, :l0, :x0)
+plotKDE(manikde!(stuff[1], (:Euclid,)) )
 
 # plotTreeProductUp(fg, tree, :x1)
 
