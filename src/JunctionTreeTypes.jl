@@ -108,6 +108,7 @@ function MetaBayesTree(tree::BayesTree)
     set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
   end
 
+  ##  FIXME: Use common location for channels #675 (DF, asking for BTND)
   ##  TODO: placeholder for edge stored Channels
   ## set message passing properties,
   # for e in MetaGraphs.edges(mtree.bt)
@@ -339,10 +340,6 @@ mutable struct BayesTreeNodeData
   # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
 
-  # FIXME evaluate if the locks are still necessary -- likely not.
-  # lockUpStatus::Channel{Int}
-  # lockDwnStatus::Channel{Int}
-
   # FIXME consolidate Dict with LikelihoodMessage, (pull model #674)
   solvableDims::Channel{Dict{Symbol, Float64}}
 
@@ -378,8 +375,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             downsolved=false,
                             isCliqReused=false,
                             solveCondition=Condition(),
-                            # lockUpStatus=Channel{Int}(1),
-                            # lockDwnStatus=Channel{Int}(1),
                             solvableDims=Channel{Dict{Symbol,Float64}}(1),
                             upMsgChannel=Channel{LikelihoodMessage}(1),
                             dwnMsgChannel=Channel{LikelihoodMessage}(1),
@@ -408,8 +403,6 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                         downsolved,
                         isCliqReused,
                         solveCondition,
-                        # lockUpStatus,
-                        # lockDwnStatus,
                         solvableDims,
                         upMsgChannel,
                         dwnMsgChannel,
@@ -451,8 +444,6 @@ function compare( c1::BayesTreeNodeData,
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   # TP = TP && c1.solveCondition == c2.solveCondition
-  # TP = TP && c1.lockUpStatus == c2.lockUpStatus
-  # TP = TP && c1.lockDwnStatus == c2.lockDwnStatus
   TP = TP && c1.solvableDims == c2.solvableDims
   TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
   TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
@@ -546,11 +537,11 @@ const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
 const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
 
 
-function ExploreTreeType(fgl::G,
-                         btl::AbstractBayesTree,
-                         vertl::TreeClique,
-                         prt::T,
-                         msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+function ExploreTreeType( fgl::G,
+                          btl::AbstractBayesTree,
+                          vertl::TreeClique,
+                          prt::T,
+                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
   #
   ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
 end

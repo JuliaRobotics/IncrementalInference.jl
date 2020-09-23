@@ -154,7 +154,7 @@ function notifyCliqDownInitStatus!( cliq::TreeClique,
   end
 
   # take lock for atomic transaction
-  lockDwnStatus!(cdat, cliq.index, logger=logger)
+  # lockDwnStatus!(cdat, cliq.index, logger=logger)
 
   setCliqueStatus!(cdat, status)
 
@@ -165,8 +165,8 @@ function notifyCliqDownInitStatus!( cliq::TreeClique,
   
 
   # unlock for others to proceed
-  unlockDwnStatus!(cdat)
-    with_logger(logger) do
+  # unlockDwnStatus!(cdat)
+  with_logger(logger) do
     @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
   end
 
