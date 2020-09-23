@@ -1,12 +1,13 @@
 
 
+_defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
 
 """
 $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable (updated version).
 """
-struct MixturePrior{S, T <: Tuple} <: AbstractPrior
+struct MixturePrior{N, S <:NTuple{N,Symbol}, T <: Tuple} <: AbstractPrior
   components::NamedTuple{S, T}
   diversity::Distributions.Categorical
   #derived values
@@ -21,11 +22,12 @@ end
 Construction helper functions for any `MixturePrior`.
 """
 MixturePrior( z::NamedTuple{S,T}, 
-              c::Distributions.DiscreteNonParametric ) where {S, T} = MixturePrior{S,T}(z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+              c::Distributions.DiscreteNonParametric,
+              N::Int=length(z) ) where {S, T} = MixturePrior{N,S,T}(z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 #
 MixturePrior(z::NamedTuple, c::AbstractVector{<:Real} ) = MixturePrior(z, Distributions.Categorical(c))
 MixturePrior(z::NamedTuple, c::NTuple{N, <:Real} ) where N = MixturePrior(z, [c...])
-MixturePrior(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where N = MixturePrior(NamedTuple{((Symbol[Symbol("c$i") for i in 1:N])...,)}((z...,)), c)
+MixturePrior(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where N = MixturePrior(NamedTuple{_defaultNamesMixtures(N)}((z...,)), c)
 MixturePrior(z::AbstractVector{<:SamplableBelief},c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, NTuple{N,<:Real}} ) where N = MixturePrior((z...,), c)
 
 

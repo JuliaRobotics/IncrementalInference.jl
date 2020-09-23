@@ -1,5 +1,8 @@
 # default node types in IIF
 
+export ContinuousEuclid
+
+
 SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
 
 #Supported types for parametric
@@ -41,7 +44,6 @@ function ContinuousMultivariate(x::Int;
 end
 
 
-export ContinuousEuclid
 """
     ContinuousEuclid{N}
 Continuous Euclidean variable of dimension `N`.
@@ -108,7 +110,7 @@ end
 getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
-                       userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
 
   if isa(s.Z, Normal)
     meas = s.Z.μ
@@ -237,31 +239,6 @@ function (s::LinearConditional{N,<:ParametricTypes})(
 end
 
 
-"""
-$(TYPEDEF)
-
-Define a categorical mixture of (relative) likelihood beliefs between any two variables.
-"""
-struct MixtureLinearConditional{T} <: AbstractRelativeFactor
-  Z::Vector{T}
-  C::Distributions.Categorical
-  MixtureLinearConditional{T}() where T  = new{T}()
-  MixtureLinearConditional{T}(z::Vector{T}, c::Distributions.Categorical) where {T <: SamplableBelief} = new{T}(z, c)
-  MixtureLinearConditional{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = MixtureLinearConditional{T}(z, Distributions.Categorical(p))
-end
-MixtureLinearConditional(z::Vector{T}, c::Union{Distributions.Categorical, Vector{Float64}}) where {T <: SamplableBelief} = MixtureLinearConditional{T}(z, c)
-
-getSample(s::MixtureLinearConditional, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
-function (s::MixtureLinearConditional)(res::AbstractArray{<:Real},
-                               userdata::FactorMetadata,
-                               idx::Int,
-                               meas::Tuple,
-                               X1::AbstractArray{<:Real,2},
-                               X2::AbstractArray{<:Real,2}  )
-  #
-  res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
-  nothing
-end
 
 
 
@@ -321,24 +298,6 @@ function convert(::Type{LinearConditional}, d::PackedLinearConditional)
   LinearConditional(extractdistribution(d.Z))
 end
 
-
-"""
-$(TYPEDEF)
-
-Serialization type for `MixtureLinearConditional`.
-"""
-mutable struct PackedMixtureLinearConditional <: PackedInferenceType
-  strs::Vector{String}
-  cat::String
-  PackedMixtureLinearConditional() = new()
-  PackedMixtureLinearConditional(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
-end
-function convert(::Type{PackedMixtureLinearConditional}, d::MixtureLinearConditional)
-  PackedMixtureLinearConditional(string.(d.Z), string(d.C))
-end
-function convert(::Type{MixtureLinearConditional}, d::PackedMixtureLinearConditional)
-  MixtureLinearConditional(extractdistribution.(d.strs), extractdistribution(d.cat))
-end
 
 
 
