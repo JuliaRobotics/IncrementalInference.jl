@@ -480,6 +480,8 @@ include("ParametricUtils.jl")
 include("GraphConstraintTypes.jl")
 include("Variables/Sphere1D.jl")
 include("Factors/Sphere1D.jl")
+include("Factors/MixturePrior.jl")
+
 include("CanonicalGraphExamples.jl")
 
 include("AdditionalUtils.jl")

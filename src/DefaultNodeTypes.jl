@@ -240,40 +240,6 @@ end
 """
 $(TYPEDEF)
 
-Define a categorical mixture of prior beliefs on a variable.
-"""
-mutable struct MixturePrior{T <: SamplableBelief} <: AbstractPrior
-  Z::Vector{T}
-  C::Distributions.Categorical
-  #derived values
-  labels::Vector{Int}
-  dims::Ref{Int}
-  smpls::Array{Float64,2}
-  MixturePrior{T}() where T  = new{T}()
-  MixturePrior{T}(z::Vector{T}, c::DiscreteNonParametric) where {T <: SamplableBelief} = new{T}(z, c, zeros(Int,0),0,zeros(1,0))
-  MixturePrior{T}(z::Vector{T}, p::Vector{Float64}) where {T <: SamplableBelief} = new{T}(z, Distributions.Categorical(p), zeros(Int,0),0,zeros(1,0))
-end
-
-function MixturePrior(z::Vector{T}, c::Union{<:Distributions.DiscreteNonParametric, Vector{Float64}})::MixturePrior{T} where {T <: SamplableBelief}
-  MixturePrior{T}(z, c)
-end
-
-function getSample(s::MixturePrior, N::Int=1)
-  #out memory should be right size first
-  (length(s.labels) != N) && resize!(s.labels, N)
-  (s.dims[] != size(s.smpls,1)) && ( s.dims[] = size( rand(s.Z[1],1), 1) )
-  (size(s.smpls,2) != N) && ( s.smpls = Array{Float64,2}(undef,s.dims[],N) )
-  s.labels .= rand(s.C, N)
-  for i in 1:N
-    s.smpls[:,i] .= rand(s.Z[s.labels[i]],1)
-  end
-  (s.smpls, s.labels)
-end
-
-
-"""
-$(TYPEDEF)
-
 Define a categorical mixture of (relative) likelihood beliefs between any two variables.
 """
 struct MixtureLinearConditional{T} <: AbstractRelativeFactor
@@ -376,20 +342,3 @@ end
 
 
 
-"""
-$(TYPEDEF)
-
-Serialization type for `MixedPrior`.
-"""
-mutable struct PackedMixturePrior <: PackedInferenceType
-  strs::Vector{String}
-  cat::String
-  PackedMixturePrior() = new()
-  PackedMixturePrior(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
-end
-function convert(::Type{PackedMixturePrior}, d::MixturePrior)
-  PackedMixturePrior(string.(d.Z), string(d.C))
-end
-function convert(::Type{MixturePrior}, d::PackedMixturePrior)
-  MixturePrior(extractdistribution.(d.strs), extractdistribution(d.cat))
-end
