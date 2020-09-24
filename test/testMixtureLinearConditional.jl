@@ -9,14 +9,18 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
-addFactor!(fg, [:x0,:x1], MixtureLinearConditional([Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5])))
+
+mlr = MixtureRelative(LinearRelative(I), [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = MixtureLinearConditional([Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+
+addFactor!(fg, [:x0,:x1], mlr)
 
 # To look at your factor graph
-if false
-using GraphPlot
-using DistributedFactorGraphs
-dfgplot(fg)
-end
+# if false
+# using GraphPlot
+# using DistributedFactorGraphs
+# dfgplot(fg)
+# end
 
 tree, smt, hist = solveTree!(fg)
 
@@ -39,9 +43,9 @@ nfit_n = fit(Normal, pts_n)
 @test isapprox(std(nfit_n), 0.14; atol=0.05) #TODO confirm the correct value and tolerance
 
 # To look at your results
-if false
-using RoMEPlotting
-plotKDE(fg, ls(fg))
-end
+# if false
+#   using RoMEPlotting
+#   plotKDE(fg, ls(fg))
+# end
 
 end

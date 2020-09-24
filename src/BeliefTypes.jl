@@ -23,6 +23,14 @@ abstract type MessageType end
 struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
+
+
+const SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
+
+#Supported types for parametric
+const ParametricTypes = Union{Normal, MvNormal}
+
+
 """
     $TYPEDEF
 
@@ -42,16 +50,16 @@ struct TreeBelief{T <: InferenceVariable}
   # TODO -- DEPRECATE
   manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
 end
-TreeBelief(p::BallTreeDensity,
-           inferdim::Real=0.0,
-           softtype::T=ContinuousScalar(),
-           manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, manifolds)
+TreeBelief( p::BallTreeDensity,
+            inferdim::Real=0.0,
+            softtype::T=ContinuousScalar(),
+            manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, manifolds)
 
-TreeBelief(val::Array{Float64,2},
-           bw::Array{Float64,2},
-           inferdim::Real=0.0,
-           softtype::T=ContinuousScalar(),
-           manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, manifolds)
+TreeBelief( val::Array{Float64,2},
+            bw::Array{Float64,2},
+            inferdim::Real=0.0,
+            softtype::T=ContinuousScalar(),
+            manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, manifolds)
 
 function TreeBelief(vnd::VariableNodeData)
   TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd) )

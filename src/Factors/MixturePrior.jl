@@ -1,4 +1,6 @@
 
+export MixturePrior, PackedMixturePrior
+
 
 _defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
 
@@ -7,7 +9,7 @@ $(TYPEDEF)
 
 Define a categorical mixture of prior beliefs on a variable (updated version).
 """
-struct MixturePrior{N, S <:NTuple{N,Symbol}, T <: Tuple} <: AbstractPrior
+struct MixturePrior{N, S, T} <: AbstractPrior
   components::NamedTuple{S, T}
   diversity::Distributions.Categorical
   #derived values
@@ -29,29 +31,6 @@ MixturePrior(z::NamedTuple, c::AbstractVector{<:Real} ) = MixturePrior(z, Distri
 MixturePrior(z::NamedTuple, c::NTuple{N, <:Real} ) where N = MixturePrior(z, [c...])
 MixturePrior(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where N = MixturePrior(NamedTuple{_defaultNamesMixtures(N)}((z...,)), c)
 MixturePrior(z::AbstractVector{<:SamplableBelief},c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, NTuple{N,<:Real}} ) where N = MixturePrior((z...,), c)
-
-
-
-function Base.resize!(mp::MixturePrior, s::Int)
-  resize!(mp.labels, s)
-end
-
-# TODO make in-place memory version
-function getSample(s::MixturePrior, N::Int=1)
-  #out memory should be right size first
-  (length(s.labels) != N) && resize!(s, N)
-  s.labels .= rand(s.diversity, N)
-  smpls = Array{Float64,2}(undef,s.dims,N)
-  for i in 1:N
-    mixComponent = s.components[s.labels[i]]
-    smpls[:,i] .= rand(mixComponent,1)
-  end
-  (smpls, s.labels)
-end
-
-
-
-MixturePrior{T}(x...) where T = @error("`MixturePrior{$T}` is deprecated, use the new `NamedTuple`-based `MixturePrior{S,T}` instead.")
 
 
 # convert(PackedInferenceType, MixedPrior())

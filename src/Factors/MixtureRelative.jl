@@ -1,42 +1,70 @@
 
+export MixtureRelative
+export MixtureLinearConditional, PackedMixtureLinearConditional
+
 
 """
 $(TYPEDEF)
 
 Define a categorical mixture of (relative) likelihood beliefs between any two variables.
 """
-struct MixtureRelative{N, S, T<:Tuple} <: AbstractRelativeFactor
+struct MixtureRelative{N, F<:FunctorInferenceType, S, T<:Tuple} <: AbstractRelative
+  mechanics::F
   components::NamedTuple{S,T}
   diversity::Distributions.Categorical
   dims::Int
   labels::Vector{Int}
 end
 
+
 # NamedTuple{_defaultNamesMixtures(N)}((z...,)), c
 
-MixtureRelative(z::NamedTuple{S,T}, 
-                c::Distributions.DiscreteNonParametric ) where {S, T} = MixtureRelative{length(z),S,T}(z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+MixtureRelative(f::Type{F},
+                z::NamedTuple{S,T}, 
+                c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = MixtureRelative{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
 #
-MixtureRelative(z::NamedTuple{S,T}, c::AbstractVector{<:Real}) where {S,T} = MixtureRelative(z, Categorical([c...]) )
-MixtureRelative(z::NamedTuple{S,T}, c::NTuple{N,<:Real}) where {N,S,T} = MixtureRelative(z, [c...] )
-MixtureRelative(z::AbstractVector{<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where N = MixtureRelative(NamedTuple{_defaultNamesMixtures(length(z))}((z...,)), c)
-MixtureRelative(z::Tuple, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where N = MixtureRelative(NamedTuple{_defaultNamesMixtures(length(z))}(z), c)
+MixtureRelative(f::F,
+                z::NamedTuple{S,T}, 
+                c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = MixtureRelative{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
+#
+MixtureRelative(f::Union{F,Type{F}},z::NamedTuple{S,T}, c::AbstractVector{<:Real}) where {F<:FunctorInferenceType,S,T} = MixtureRelative(f, z, Categorical([c...]) )
+MixtureRelative(f::Union{F,Type{F}},z::NamedTuple{S,T}, c::NTuple{N,<:Real}) where {N,F<:FunctorInferenceType,S,T} = MixtureRelative(f, z, [c...] )
+MixtureRelative(f::Union{F,Type{F}},z::AbstractVector{<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: FunctorInferenceType, N} = MixtureRelative(f,NamedTuple{_defaultNamesMixtures(length(z))}((z...,)), c)
+MixtureRelative(f::Union{F,Type{F}},z::Tuple, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:FunctorInferenceType, N} = MixtureRelative(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c)
 
 
-# getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+function Base.resize!(mp::Union{MixturePrior, MixtureRelative}, s::Int)
+  resize!(mp.labels, s)
+end
+
+# TODO make in-place memory version
+function getSample(s::Union{MixturePrior, MixtureRelative}, N::Int=1)
+  #out memory should be right size first
+  (length(s.labels) != N) && resize!(s, N)
+  s.labels .= rand(s.diversity, N)
+  smpls = Array{Float64,2}(undef,s.dims,N)
+  for i in 1:N
+    mixComponent = s.components[s.labels[i]]
+    smpls[:,i] .= rand(mixComponent,1)
+  end
+  (smpls, s.labels)
+end
 
 
-# function (s::MixtureLinearConditional)( res::AbstractArray{<:Real},
-#                                         userdata::FactorMetadata,
-#                                         idx::Int,
-#                                         meas::Tuple,
-#                                         X1::AbstractArray{<:Real,2},
-#                                         X2::AbstractArray{<:Real,2}  )
-#   #
-#   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
-#   nothing
-# end
 
+(s::MixtureRelative)( res::AbstractArray{<:Real},
+                      userdata::FactorMetadata,
+                      idx::Int,
+                      meas::Tuple,
+                      X... ) = s.mechanics(res, userdata, idx, meas, X...)
+#
+
+
+
+function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
+  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
+  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
+end
 
 
 # """
