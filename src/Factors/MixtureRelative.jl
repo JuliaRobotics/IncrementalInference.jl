@@ -1,5 +1,5 @@
 
-export MixtureRelative
+export MixtureRelative, PackedMixtureRelative
 export MixtureLinearConditional, PackedMixtureLinearConditional
 
 
@@ -67,31 +67,35 @@ function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric
 end
 
 
-# """
-# $(TYPEDEF)
 
-# Serialization type for `MixtureLinearConditional`.
-# """
-# mutable struct PackedMixtureLinearConditional <: PackedInferenceType
-#   strs::Vector{String}
-#   cat::String
-#   PackedMixtureLinearConditional() = new()
-#   PackedMixtureLinearConditional(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
-# end
-# function convert(::Type{PackedMixtureLinearConditional}, d::MixtureLinearConditional)
-#   PackedMixtureLinearConditional(string.(d.Z), string(d.C))
-# end
-# function convert(::Type{MixtureLinearConditional}, d::PackedMixtureLinearConditional)
-#   MixtureLinearConditional(extractdistribution.(d.strs), extractdistribution(d.cat))
-# end
+"""
+$(TYPEDEF)
+
+Serialization type for `MixtureLinearConditional`.
+"""
+mutable struct PackedMixtureRelative{T} <: PackedInferenceType
+  mechanics::T
+  components::Vector{String}
+  diversity::String
+end
+# PackedMixtureRelative() = new()
+# PackedMixtureRelative(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
+
+function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative)
+  allcomp = String[]
+  for val in obj.components
+    push!(allcomp, string(val))
+  end
+  PackedMixtureRelative(DFG.convertPackedType(obj.mechanics), allcomp, string(obj.diversity))
+end
+function convert(::Type{MixtureRelative}, obj::PackedMixtureRelative)
+  MixtureRelative(DFG.convertStructType(obj.mechanics), extractdistribution.(obj.components), extractdistribution(obj.diversity))
+end
 
 
 
 
 
-
-
-# struct MixtureLinearConditional{T} <: AbstractRelativeFactor
 
 
 

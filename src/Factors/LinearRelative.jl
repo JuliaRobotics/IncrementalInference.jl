@@ -89,23 +89,6 @@ function convert(::Type{LinearRelative}, d::PackedLinearRelative)
 end
 
 
-# """
-# $(TYPEDEF)
-# Serialization type for `MixtureLinearConditional`.
-# """
-# mutable struct PackedMixtureLinearConditional <: PackedInferenceType
-#   strs::Vector{String}
-#   cat::String
-#   PackedMixtureLinearConditional() = new()
-#   PackedMixtureLinearConditional(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
-# end
-# function convert(::Type{PackedMixtureLinearConditional}, d::MixtureLinearConditional)
-#   PackedMixtureLinearConditional(string.(d.Z), string(d.C))
-# end
-# function convert(::Type{MixtureLinearConditional}, d::PackedMixtureLinearConditional)
-#   MixtureLinearConditional(extractdistribution.(d.strs), extractdistribution(d.cat))
-# end
-
 
 
 #

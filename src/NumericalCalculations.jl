@@ -107,9 +107,6 @@ function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeRoots},
   nothing
 end
 
-# struct _DummyRelativeMinimize <: AbstractRelativeMinimize end
-# struct _DummyRelativeRoots <: AbstractRelativeRoots end
-
 
 """
     $(SIGNATURES)
@@ -128,9 +125,7 @@ function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{MixtureRelativ
                                           testshuffle::Bool=false ) where 
                                               {N,F<:AbstractRelative,S,T <: Tuple}
   #
-  # @show N, F, S, T
   _numericSolutionCCW!(F, ccwl,perturb=perturb, testshuffle=testshuffle)
-  nothing
 end
 
 
@@ -140,17 +135,7 @@ function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{T};
                                               {T <: AbstractRelative}
   #
   _numericSolutionCCW!(T, ccwl, perturb=perturb, testshuffle=testshuffle)
-  nothing
 end
-
-
-# function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{T};
-#                                           perturb::Float64=1e-10,
-#                                           testshuffle::Bool=false ) where {T <: AbstractRelativeRoots}
-#   #
-#   _numericSolutionCCW!(T, ccwl, perturb=perturb, testshuffle=testshuffle)
-#   nothing
-# end
 
 
 
