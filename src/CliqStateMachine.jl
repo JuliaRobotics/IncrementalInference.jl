@@ -1073,6 +1073,11 @@ function trafficRedirectConsolidate459_StateMachine(csmc::CliqStateMachineContai
 
   # Some traffic direction
   if cliqst == :null
+    if doAnyChildrenNeedDwnMsg(csmc.tree, csmc.cliq)
+      # go to 7e (#754)
+      return slowWhileInit_StateMachine
+    end
+
     # go to 4d
     return maybeNeedDwnMsg_StateMachine
   end
