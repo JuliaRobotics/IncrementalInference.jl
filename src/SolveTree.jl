@@ -54,6 +54,11 @@ function getWorkerPool()
   return WORKERPOOL
 end
 
+"""
+    $SIGNATURES
+
+FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
+"""
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
                                     vsym::Symbol,
@@ -222,13 +227,13 @@ Future
 ------
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
-function productbelief(dfg::G,
-                       vertlabel::Symbol,
-                       dens::Vector{BallTreeDensity},
-                       partials::Dict{Int, Vector{BallTreeDensity}},
-                       N::Int;
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where {G <: AbstractDFG}
+function productbelief( dfg::G,
+                        vertlabel::Symbol,
+                        dens::Vector{BallTreeDensity},
+                        partials::Dict{Int, Vector{BallTreeDensity}},
+                        N::Int;
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) where {G <: AbstractDFG}
   #
   vert = DFG.getVariable(dfg, vertlabel)
   manis = getSofttype(vert) |> getManifolds

@@ -95,6 +95,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   variableOrder::Vector{Symbol}
   cliqueLikelihood::Union{Nothing,SamplableBelief}
   msgType::T
+  hasPriors::Bool
 end
 
 
@@ -102,8 +103,9 @@ LikelihoodMessage(;status::CliqStatus=:null,
                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                    variableOrder::Vector{Symbol}=Symbol[],
                    cliqueLikelihood=nothing,
-                   msgType::T=NonparametricMessage() ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType)
+                   msgType::T=NonparametricMessage(),
+                   hasPriors::Bool=true ) where {T <: MessageType} =
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors)
 #
 
 
