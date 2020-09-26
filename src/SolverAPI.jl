@@ -22,7 +22,7 @@ tree, smt, hist = solveTree!(fg [,tree])
 
 Related
 
-solveCliq!, wipeBuildNewTree!
+solveCliq!, resetBuildTree!
 """
 function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=emptyBayesTree();
@@ -90,7 +90,7 @@ function solveTree!(dfgl::AbstractDFG,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = wipeBuildNewTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
 
   # if desired, drawtree in a loop
@@ -145,13 +145,13 @@ Perform inference over one clique in the Bayes tree according to `opt::SolverPar
 
 Example
 ```julia
-tree = wipeBuildNewTree!(fg)
+tree = resetBuildTree!(fg)
 smt, hist = solveCliq!(fg, tree, :x1 [,cliqHistories=hist] )
 ```
 
 Related
 
-solveTree!, wipeBuildNewTree!
+solveTree!, resetBuildTree!
 """
 function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,

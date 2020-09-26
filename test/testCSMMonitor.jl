@@ -37,8 +37,8 @@ fg = generateCanonicalFG_lineStep(10;
                             
 ensureAllInitialized!(fg)
 
-# tree= wipeBuildNewTree!(fg, drawpdf=true, show=true)
-tree= wipeBuildNewTree!(fg)
+# tree= resetBuildTree!(fg, drawpdf=true, show=true)
+tree= resetBuildTree!(fg)
 IIF.initTreeMessageChannels!(tree)
 
 #TODO test FSM watchdog

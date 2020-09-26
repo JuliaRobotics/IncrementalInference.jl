@@ -286,7 +286,7 @@ global f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 global odo = Pose1Pose1Test(Normal(100.0,1.0))
 global f2 = addFactor!(fg, [v1;v2], odo)
 
-global tree = wipeBuildNewTree!(fg)
+global tree = resetBuildTree!(fg)
 
 global pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0

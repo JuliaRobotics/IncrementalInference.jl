@@ -38,7 +38,7 @@ addFactor!(fg, [v5,l3], Ranged([16.0],[0.5],[1.0]))
 
 # writeGraphPdf(fg);
 
-global tree = wipeBuildNewTree!(fg, drawpdf=true);
+global tree = resetBuildTree!(fg, drawpdf=true);
 # global tree = prepBatchTree!(fg,drawpdf=true);
 
 # run(`evince bt.pdf`)

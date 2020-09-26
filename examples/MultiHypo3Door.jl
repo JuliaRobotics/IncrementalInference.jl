@@ -71,7 +71,7 @@ ensureAllInitialized!(fg)
 
 writeGraphPdf(fg, show=true)
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 
 ## Solve graph
@@ -243,7 +243,7 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)),graphini
 
 writeGraphPdf(fg, show=true)
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 spyCliqMat(tree, :l0)
 spyCliqMat(tree, :x2)
@@ -304,7 +304,7 @@ stuff = treeProductUp(fg, tree, :x2, :x2)
 ensureAllInitialized!(fg)
 
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 cliqorder = getCliqOrderUpSolve(tree)
 
 

@@ -279,7 +279,7 @@ export *,
   buildTreeFromOrdering!,
   resetBuildTreeFromOrder!,
   prepBatchTree!,
-  wipeBuildNewTree!,
+  resetBuildTree!,
   buildCliquePotentials,
 
   getCliqDepth,
