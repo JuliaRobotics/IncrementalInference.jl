@@ -10,6 +10,18 @@ export loadDFG
 export fetchDataJSON
 
 
+
+clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
+
+function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
+  @assert 0 <= max "max must be greater or equal to zero"
+  st = clampStringLength(st, len)
+  for i in len:max-1  st *= " "; end
+  return st
+end
+
+
+
 # export setSolvable!
 
 manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
@@ -330,6 +342,79 @@ end
 Convenience wrapper to `DFG.loadDFG!` taking only one argument, the file name, to load a DFG object in standard format.
 """
 loadDFG(filename::AbstractString) = loadDFG!(initfg(), filename)
+
+
+
+"""
+    $SIGNATURES
+
+Find all factors that go `from` variable to any other complete variable set within `between`.
+
+Notes
+- Developed for downsolve in CSM, expanding the cliqSubFg to include all frontal factors.
+"""
+function findFactorsBetweenFrom(dfg::G,
+                                between::Vector{Symbol},
+                                from::Symbol ) where {G <: AbstractDFG}
+  # get all associated factors
+  allfcts = ls(dfg, from)
+
+  # remove candidates with neighbors outside between with mask
+  mask = ones(Bool, length(allfcts))
+  i = 0
+  for fct in allfcts
+    i += 1
+    # check if immediate neighbors are all in the `between` list
+    immnei = ls(dfg, fct)
+    if length(immnei) != length(intersect(immnei, between))
+      mask[i] = false
+    end
+  end
+
+  # return only masked factors
+  return allfcts[mask]
+end
+
+
+"""
+    $SIGNATURES
+
+Calculate new and then set PPE estimates for variable from some distributed factor graph.
+
+DevNotes
+- TODO solve key might be needed if one only wants to update one
+- TODO consider a more fiting name.
+- guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
+
+Related
+
+calcVariablePPE, getVariablePPE, (setVariablePPE!/setPPE!/updatePPE! ?)
+"""
+function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
+                                        solveKey::Symbol=:default)::DFG.DFGVariable
+
+  vnd = getSolverData(var, solveKey)
+
+  #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
+  var.ppeDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
+
+  return var
+end
+
+function setVariablePosteriorEstimates!(subfg::AbstractDFG,
+                                        sym::Symbol )::DFG.DFGVariable
+  var = setVariablePosteriorEstimates!(getVariable(subfg, sym))
+  # JT - TODO if subfg is in the cloud or from another fg it has to be updated
+  # it feels like a waste to update the whole vairable for one field.
+  # currently i could find mergeUpdateVariableSolverData()
+  # might be handy to use a setter such as updatePointParametricEst(dfg, variable, solverkey)
+  # This might also not be the correct place, if it is uncomment:
+  # if (subfg <: InMemoryDFGTypes)
+  #   updateVariable!(subfg, var)
+  # end
+end
+
+
 
 ## ============================================================================
 # Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first

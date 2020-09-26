@@ -67,6 +67,38 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 end
 
 
+"""
+    $SIGNATURES
+
+Standalone state machine solution for a single clique.
+
+Related:
+
+initInferTreeUp!
+"""
+function solveCliqWithStateMachine!(dfg::G,
+                                    tree::AbstractBayesTree,
+                                    frontal::Symbol;
+                                    iters::Int=200,
+                                    downsolve::Bool=true,
+                                    recordhistory::Bool=false,
+                                    verbose::Bool=false,
+                                    nextfnc::Function=canCliqMargRecycle_StateMachine,
+                                    prevcsmc::Union{Nothing,CliqStateMachineContainer}=nothing) where G <: AbstractDFG
+  #
+  cliq = getClique(tree, frontal)
+
+  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
+
+  prnt = getParent(tree, cliq)
+
+  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
+
+  csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc, name="cliq$(cliq.index)")
+  while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
+  statemachine, csmc
+end
 
 
 ## ==============================================================================================

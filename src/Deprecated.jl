@@ -25,6 +25,26 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+export initVariable!
+
+"""
+    $(SIGNATURES)
+
+Initialize the belief of a variable node in the factor graph struct.
+"""
+function initVariable!(fgl::AbstractDFG,
+                        sym::Symbol;
+                        N::Int=100  )
+  #
+  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
+
+  vert = getVariable(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
+  setValKDE!(vert, belief)
+
+  nothing
+end
+
 
 #global pidx
 global pidx = 1

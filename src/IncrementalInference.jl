@@ -199,7 +199,6 @@ export *,
   doautoinit!,
   initManual!,
   initVariableManual!,
-  initVariable!,
   resetInitialValues!,
   resetInitValues!,
   asyncTreeInferUp!,
@@ -471,9 +470,11 @@ include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
+include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
+include("CSMCommon_Consolidate.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("CSMOccuranceUtils.jl")

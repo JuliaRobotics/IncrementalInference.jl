@@ -1463,7 +1463,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, csmc.cliq)
 
   # if dfg, store the cliqSubFg for later debugging
-  dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
+  _dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
 
   # go to 4
   return canCliqMargSkipUpSolve_StateMachine
