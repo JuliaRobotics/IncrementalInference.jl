@@ -606,17 +606,18 @@ function treeProductUp(fg::AbstractDFG,
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
-  upmsgssym = LikelihoodMessage[]
-  for cl in childCliqs(tree, cliq)
-    msgdict = getUpMsgs(cl)
-    dict = Dict{Symbol, TreeBelief}()
-    for (dsy, btd) in msgdict.belief
-      vari = getVariable(fg, dsy)
-      # manis = getSofttype(vari).manifolds
-      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
-    end
-    push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
-  end
+  # upmsgssym = LikelihoodMessage[]
+  # for cl in childCliqs(tree, cliq)
+  #   msgdict = getUpMsgs(cl)
+  #   dict = Dict{Symbol, TreeBelief}()
+  #   for (dsy, btd) in msgdict.belief
+  #     vari = getVariable(fg, dsy)
+  #     # manis = getSofttype(vari).manifolds
+  #     dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
+  #   end
+  #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
+  # end
+  upmsgssym = getMsgsUpChildren(tree, cliq, TreeBelief)
 
   # perform the actual computation
   manis = getSofttype(getVariable(fg, sym)) |> getManifolds
