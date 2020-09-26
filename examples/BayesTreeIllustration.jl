@@ -4,7 +4,7 @@
 
 # the multimodal iSAM library
 using IncrementalInference
-
+using RoMEPlotting
 # build some factor graph
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
@@ -17,37 +17,39 @@ addFactor!(fg, [:x1, :x2], mmo)
 
 
 # show the factor graph
-writeGraphPdf(fg, show=true)
+drawGraph(fg, show=true)
 # show the tree
 tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
 
 
 # solve the factor graph and show solving progress on tree in src/JunctionTree.jl
-tree = batchSolve!(fg, drawpdf=true, show=true)
+fg.solverParams.showtree = true
+fg.solverParams.drawtree = true
+tree, smt, hist = solveTree!(fg)
 
 
 ## building a new tree -- as per IIF.prepBatchTree(...)
 
-IIF.resetFactorGraphNewTree!(fg)
+resetFactorGraphNewTree!(fg)
 
 # Look at variable ordering used to build the Bayes net/tree
-p = IIF.getEliminationOrder(fg, ordering=:qr)
+p = getEliminationOrder(fg, ordering=:qr)
 
 
 fge = deepcopy(fg)
 
 # Building Bayes net.
-IIF.buildBayesNet!(fge, p)
+buildBayesNet!(fge, p)
 
 # prep and build tree
 tree = emptyBayesTree()
-IIF.buildTree!(tree, fge, p)
+buildTree!(tree, fge, p)
 
 # Find potential functions for each clique
 cliq = tree.cliques[1] # start at the root
-IIF.buildCliquePotentials(fg, tree, cliq);
+buildCliquePotentials(fg, tree, cliq);
 
-IIF.drawTree(tree, show=true)
+drawTree(tree, show=true)
 
 # println("Bayes Net")
 # sleep(0.1)
@@ -60,6 +62,6 @@ IIF.drawTree(tree, show=true)
 
 cliq = tree.cliques[1]
 cliq = getClique(tree, :x0) # where is :x0 a frontal variable
-spyCliqMat()
+spyCliqMat(cliq)
 
 tree = drawTree(tree, show=true, imgs=true)
