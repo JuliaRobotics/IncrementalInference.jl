@@ -163,4 +163,94 @@ function accumulateFactorChain( dfg::AbstractDFG,
   return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
 end
 
+
+"""
+    $SIGNATURES
+
+Set the color of a cliq in the Bayes (Junction) tree.
+"""
+function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
+  cliq.attributes["fillcolor"] = fillcolor
+  cliq.attributes["style"] = "filled"
+  nothing
+end
+
+function getCliqueDrawColor(cliq::TreeClique)
+  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
+end
+
+
+"""
+    $(SIGNATURES)
+
+Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
+"""
+function updateFGBT!( fg::AbstractDFG,
+                      cliq::TreeClique,
+                      IDvals::Dict{Symbol, TreeBelief};
+                      dbg::Bool=false,
+                      fillcolor::String="",
+                      logger=ConsoleLogger()  )
+  #
+  # if dbg
+  #   # TODO find better location for the debug information (this is old code)
+  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+  # end
+  if fillcolor != ""
+    setCliqDrawColor(cliq, fillcolor)
+  end
+  for (id,dat) in IDvals
+    with_logger(logger) do
+      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
+    end
+    updvert = DFG.getVariable(fg, id)
+    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
+  end
+  with_logger(logger) do
+    @info "updateFGBT! up -- updated $(getLabel(cliq))"
+  end
+  nothing
+end
+
+
+
+"""
+    $(SIGNATURES)
+
+Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
+"""
+function updateFGBT!( fg::AbstractDFG,
+                      bt::AbstractBayesTree,
+                      cliqID::Int,
+                      drt::DownReturnBPType;
+                      dbg::Bool=false,
+                      fillcolor::String="",
+                      logger=ConsoleLogger()  )
+    #
+    cliq = getClique(bt, cliqID)
+    # if dbg
+    #   cliq.attributes["debugDwn"] = deepcopy(drt.dbgDwn)
+    # end
+    setDwnMsg!(cliq, drt.keepdwnmsgs)
+    # TODO move to drawTree
+    if fillcolor != ""
+      setCliqDrawColor(cliq, fillcolor)
+    end
+    with_logger(logger) do
+      for (sym, emsg) in drt.IDvals
+        #TODO -- should become an update call
+        updvert = DFG.getVariable(fg, sym)
+        # TODO -- not sure if deepcopy is required , updatePPE=true)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
+        setValKDE!(updvert, deepcopy(emsg) )
+        updvert = DFG.getVariable(fg, sym)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
+      end
+    end
+    nothing
+end
+
+
+
+
 #

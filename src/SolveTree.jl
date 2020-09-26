@@ -57,7 +57,11 @@ end
 """
     $SIGNATURES
 
-FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
+Previous generation function converting LikelihoodMessage into densities before inference product.
+
+DevNotes
+- #913 and consolidation with CSM and `csmc.cliqSubFg`
+- FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
 """
 function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
                                     wfac::Vector{Symbol},
@@ -170,11 +174,11 @@ end
 
 Multiply various full and partial dimension constraints.
 """
-function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
-                                   partials::Dict{Int, Vector{BallTreeDensity}},
-                                   Ndims::Int,
-                                   N::Int,
-                                   manis::T ) where {T <: Tuple}
+function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
+                                  partials::Dict{Int, Vector{BallTreeDensity}},
+                                  Ndims::Int,
+                                  N::Int,
+                                  manis::T ) where {T <: Tuple}
   #
   # TODO -- reuse memory rather than rand here
   pq = AMP.manifoldProduct(dens, manis, Niter=5)
@@ -332,12 +336,12 @@ Calculate the proposals and products on `destvert` using `factors` in factor gra
 Notes
 - Returns tuple of product and whether full dimensional (=true) or partial (=false).
 """
-function predictbelief(dfg::AbstractDFG,
-                       destvert::DFGVariable,
-                       factors::Vector{<:DFGFactor};
-                       N::Int=0,
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()  ) # where {G <: , F <: }
+function predictbelief( dfg::AbstractDFG,
+                        destvert::DFGVariable,
+                        factors::Vector{<:DFGFactor};
+                        N::Int=0,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) # where {G <: , F <: }
   #
   destvertlabel = destvert.label
   dens = Array{BallTreeDensity,1}()
@@ -358,12 +362,12 @@ function predictbelief(dfg::AbstractDFG,
   return pGM, sum(inferdim)
 end
 
-function predictbelief(dfg::G,
-                       destvertsym::Symbol,
-                       factorsyms::Vector{Symbol};
-                       N::Int=0,
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where G <: AbstractDFG
+function predictbelief( dfg::G,
+                        destvertsym::Symbol,
+                        factorsyms::Vector{Symbol};
+                        N::Int=0,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
 
@@ -376,12 +380,12 @@ function predictbelief(dfg::G,
   predictbelief(dfg, vert, factors, N=nn, dbg=dbg, logger=logger)
 end
 
-function predictbelief(dfg::G,
-                       destvertsym::Symbol,
-                       factorsyms::Colon;
-                       N::Int=0,
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()) where G <: AbstractDFG
+function predictbelief( dfg::G,
+                        destvertsym::Symbol,
+                        factorsyms::Colon;
+                        N::Int=0,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
 end
@@ -435,9 +439,9 @@ localProduct(dfg::G, lbl::T; solveKey::Symbol=:default, N::Int=100, dbg::Bool=fa
 
 Initialize the belief of a variable node in the factor graph struct.
 """
-function initVariable!(fgl::G,
-                       sym::Symbol;
-                       N::Int=100 ) where G <: AbstractDFG
+function initVariable!(fgl::AbstractDFG,
+                        sym::Symbol;
+                        N::Int=100  )
   #
   @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
 
@@ -456,14 +460,14 @@ Perform one step of the minibatch clique Gibbs operation for solving the Chapman
 trasit integral -- here involving separate approximate functional convolution and
 product operations.
 """
-function cliqGibbs(fg::G,
-                   cliq::TreeClique,
-                   vsym::Symbol,
-                   inmsgs::Array{LikelihoodMessage,1},
-                   N::Int,
-                   dbg::Bool,
-                   manis::T,
-                   logger=ConsoleLogger()  ) where {G <: AbstractDFG, T <: Tuple}
+function cliqGibbs( dfg::G,
+                    cliq::TreeClique,
+                    vsym::Symbol,
+                    inmsgs::Array{LikelihoodMessage,1},
+                    N::Int,
+                    dbg::Bool,
+                    manis::T,
+                    logger=ConsoleLogger()  ) where {G <: AbstractDFG, T <: Tuple}
   #
   # several optimizations can be performed in this function TODO
 
@@ -474,17 +478,14 @@ function cliqGibbs(fg::G,
 
   inferdim = 0.0
   inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-  inferdim += packFromLocalPotentials!(fg, dens, wfac, cliq, vsym, N)
-  packFromLocalPartials!(fg, partials, cliq, vsym, N, dbg)
+  inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vsym, getVal(fg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
       # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
-  pGM = productbelief(fg, vsym, dens, partials, N, dbg=dbg, logger=logger )
+  pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
   if dbg  potprod.product = pGM  end
 
-  # with_logger(logger) do
-  #   @info "cliqGibbs -- end $vsym, inferdim=$inferdim, ls(fg)=$(ls(fg, vsym))"
-  # end
 
   # @info " "
   return pGM, potprod, inferdim
@@ -596,81 +597,6 @@ end
 """
     $(SIGNATURES)
 
-Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
-"""
-function treeProductUp(fg::AbstractDFG,
-                       tree::AbstractBayesTree,
-                       cliq::Symbol,
-                       sym::Symbol;
-                       N::Int=100,
-                       dbg::Bool=false  )
-  #
-  cliq = getClique(tree, cliq)
-  cliqdata = getCliqueData(cliq)
-
-  # get all the incoming (upward) messages from the tree cliques
-  # convert incoming messages to Int indexed format (semi-legacy format)
-  upmsgssym = LikelihoodMessage[]
-  for cl in childCliqs(tree, cliq)
-    msgdict = getUpMsgs(cl)
-    dict = Dict{Symbol, TreeBelief}()
-    for (dsy, btd) in msgdict.belief
-      vari = getVariable(fg, dsy)
-      # manis = getSofttype(vari).manifolds
-      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
-    end
-    push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
-  end
-
-  # perform the actual computation
-  manis = getSofttype(getVariable(fg, sym)) |> getManifolds
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
-
-  return pGM, potprod
-end
-
-
-"""
-    $(SIGNATURES)
-
-Calculate a fresh---single step---approximation to the variable `sym` in clique `cliq` as though during the downward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variable based on the structure of variables, factors, and incoming messages to this clique.
-Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
-"""
-function treeProductDwn(fg::G,
-                        tree::AbstractBayesTree,
-                        cliq::Symbol,
-                        sym::Symbol;
-                        N::Int=100,
-                        dbg::Bool=false  ) where G <: AbstractDFG
-  #
-  @warn "treeProductDwn might not be working properly at this time. (post DFG v0.6 upgrade maintenance required)"
-  cliq = getClique(tree, cliq)
-  cliqdata = getCliqueData(cliq)
-
-  # get the local variable id::Int identifier
-  # vertid = fg.labelDict[sym]
-
-  # get all the incoming (upward) messages from the tree cliques
-  # convert incoming messages to Int indexed format (semi-legacy format)
-  cl = parentCliq(tree, cliq)
-  msgdict = getDwnMsgs(cl[1])
-  dict = Dict{Int, TreeBelief}()
-  for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(getVariable(fg,sym)) )
-  end
-  dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
-
-  # perform the actual computation
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, dwnmsgssym, N, dbg ) #vertid
-
-  return pGM, potprod, sym, dwnmsgssym
-end
-
-
-"""
-    $(SIGNATURES)
-
 Perform computations required for the upward message passing during belief propation on the Bayes (Junction) tree.
 This function is usually called as via remote_call for multiprocess dispatch.
 
@@ -738,31 +664,6 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 end
 
 
-
-function dwnPrepOutMsg(fg::AbstractDFG,
-                       cliq::TreeClique,
-                       dwnMsgs::Array{LikelihoodMessage,1},
-                       d::Dict{Symbol, T},
-                       logger=ConsoleLogger()) where T
-  # pack all downcoming conditionals in a dictionary too.
-  with_logger(logger) do
-    if cliq.index != 1 #TODO there may be more than one root
-      @info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
-      @info "fg vars $(ls(fg))"
-    end # ignore root, now incoming dwn msg
-  end
-  m = LikelihoodMessage()
-  i = 0
-  for vid in getCliqueData(cliq).frontalIDs
-    m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-  end
-  for cvid in getCliqueData(cliq).separatorIDs
-    i+=1
-    # TODO -- convert to points only since kde replace by rkhs in future
-    m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
-  end
-  return m
-end
 
 """
     $SIGNATURES
@@ -837,8 +738,8 @@ function downGibbsCliqueDensity(fg::G,
   ind = Dict{Symbol, TreeBelief}()
   sflbls = listVariables(fg)
   for (lbl, bel) in dwnMsgs.belief
-	  if lbl in sflbls
-	    ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
+    if lbl in sflbls
+      ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
     end
   end
   ndms = LikelihoodMessage[LikelihoodMessage(ind);]
@@ -847,91 +748,6 @@ function downGibbsCliqueDensity(fg::G,
   end
   downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
 end
-
-"""
-    $SIGNATURES
-
-Set the color of a cliq in the Bayes (Junction) tree.
-"""
-function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
-  cliq.attributes["fillcolor"] = fillcolor
-  cliq.attributes["style"] = "filled"
-  nothing
-end
-
-function getCliqueDrawColor(cliq::TreeClique)
-  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
-"""
-function updateFGBT!(fg::AbstractDFG,
-                     bt::AbstractBayesTree,
-                     cliqID::Int,
-                     drt::DownReturnBPType;
-                     dbg::Bool=false,
-                     fillcolor::String="",
-                     logger=ConsoleLogger()  )
-    #
-    cliq = getClique(bt, cliqID)
-    # if dbg
-    #   cliq.attributes["debugDwn"] = deepcopy(drt.dbgDwn)
-    # end
-    setDwnMsg!(cliq, drt.keepdwnmsgs)
-    # TODO move to drawTree
-    if fillcolor != ""
-      setCliqDrawColor(cliq, fillcolor)
-    end
-    with_logger(logger) do
-      for (sym, emsg) in drt.IDvals
-        #TODO -- should become an update call
-        updvert = DFG.getVariable(fg, sym)
-        # TODO -- not sure if deepcopy is required , updatePPE=true)
-        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
-        setValKDE!(updvert, deepcopy(emsg) )
-        updvert = DFG.getVariable(fg, sym)
-        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
-      end
-    end
-    nothing
-end
-
-"""
-    $(SIGNATURES)
-
-Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
-"""
-function updateFGBT!(fg::AbstractDFG,
-                     cliq::TreeClique,
-                     IDvals::Dict{Symbol, TreeBelief};
-                     dbg::Bool=false,
-                     fillcolor::String="",
-                     logger=ConsoleLogger()  )
-  #
-  # if dbg
-  #   # TODO find better location for the debug information (this is old code)
-  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
-  # end
-  if fillcolor != ""
-    setCliqDrawColor(cliq, fillcolor)
-  end
-  for (id,dat) in IDvals
-    with_logger(logger) do
-      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
-    end
-    updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
-  end
-  with_logger(logger) do
-    @info "updateFGBT! up -- updated $(getLabel(cliq))"
-  end
-  nothing
-end
-
-
 
 
 """
@@ -945,14 +761,14 @@ Notes
 Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
-function approxCliqMarginalUp!(csmc::CliqStateMachineContainer,
-                               childmsgs=getMsgsUpChildren(csmc, TreeBelief);
-                               N::Int=getSolverParams(csmc.cliqSubFg).N,
-                               dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
-                               multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
-                               logger=ConsoleLogger(),
-                               iters::Int=3,
-                               drawpdf::Bool=false  )
+function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
+                                childmsgs=getMsgsUpChildren(csmc, TreeBelief);
+                                N::Int=getSolverParams(csmc.cliqSubFg).N,
+                                dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
+                                multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,
+                                logger=ConsoleLogger(),
+                                iters::Int=3,
+                                drawpdf::Bool=false  )
   #
   fg_ = csmc.cliqSubFg
   tree_ = csmc.tree
@@ -1165,10 +981,10 @@ function tryCliqStateMachineSolve!( dfg::AbstractDFG,
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
     history = cliqInitSolveUpByStateMachine!(dfg, treel, cliq, timeout, N=N,
-                                             verbose=verbose, verbosefid=verbosefid, drawtree=drawtree,
-                                             oldcliqdata=oldcliqdata,
-                                             injectDelayBefore=injectDelayBefore,
-                                             limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
+                                              verbose=verbose, verbosefid=verbosefid, drawtree=drawtree,
+                                              oldcliqdata=oldcliqdata,
+                                              injectDelayBefore=injectDelayBefore,
+                                              limititers=limititers, downsolve=downsolve, recordhistory=recordthiscliq, incremental=incremental, delay=delaythiscliq, logger=logger )
     #
     if getSolverParams(dfg).dbg || length(history) >= limititers && limititers != -1
       @info "writing logs/cliq$i/csm.txt"
@@ -1252,22 +1068,22 @@ Related
 
 initInferTreeUp!
 """
-function asyncTreeInferUp!(dfg::AbstractDFG,
-                           treel::AbstractBayesTree,
-                           timeout::Union{Nothing, <:Real}=nothing;
-                           oldtree::AbstractBayesTree=emptyBayesTree(),
-                           verbose::Bool=false,
-                           verbosefid=stdout,
-                           drawtree::Bool=false,
-                           N::Int=100,
-                           limititers::Int=-1,
-                           downsolve::Bool=false,
-                           incremental::Bool=false,
-                           limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
-                           injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function,<:Real}}}}=nothing,
-                           skipcliqids::Vector{Symbol}=Symbol[],
-                           delaycliqs::Vector{Symbol}=Symbol[],
-                           recordcliqs::Vector{Symbol}=Symbol[] )
+function asyncTreeInferUp!( dfg::AbstractDFG,
+                            treel::AbstractBayesTree,
+                            timeout::Union{Nothing, <:Real}=nothing;
+                            oldtree::AbstractBayesTree=emptyBayesTree(),
+                            verbose::Bool=false,
+                            verbosefid=stdout,
+                            drawtree::Bool=false,
+                            N::Int=100,
+                            limititers::Int=-1,
+                            downsolve::Bool=false,
+                            incremental::Bool=false,
+                            limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
+                            injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function,<:Real}}}}=nothing,
+                            skipcliqids::Vector{Symbol}=Symbol[],
+                            delaycliqs::Vector{Symbol}=Symbol[],
+                            recordcliqs::Vector{Symbol}=Symbol[] )
   #
   resetTreeCliquesForUpSolve!(treel)
   if drawtree
