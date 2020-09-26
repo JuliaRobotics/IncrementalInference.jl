@@ -38,6 +38,7 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 ## Delete at end v0.16.x
 ##==============================================================================
 
+@deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
 
 # getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
 

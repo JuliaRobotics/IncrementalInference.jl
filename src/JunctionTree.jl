@@ -728,17 +728,17 @@ Related:
 
 buildTreeFromOrdering!
 """
-function wipeBuildNewTree!(dfg::G;
-                           ordering::Symbol=:qr,
-                           drawpdf::Bool=false,
-                           show::Bool=false,
-                           filepath::String="/tmp/caesar/bt.pdf",
-                           viewerapp::String="evince",
-                           imgs::Bool=false,
-                           maxparallel::Union{Nothing, Int}=nothing,
-                           ensureSolvable::Bool=true,
-                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                           variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: AbstractDFG
+function resetBuildTree!( dfg::AbstractDFG;
+                          ordering::Symbol=:qr,
+                          drawpdf::Bool=false,
+                          show::Bool=false,
+                          filepath::String="/tmp/caesar/bt.pdf",
+                          viewerapp::String="evince",
+                          imgs::Bool=false,
+                          maxparallel::Union{Nothing, Int}=nothing,
+                          ensureSolvable::Bool=true,
+                          variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                          variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: 
   #
   if ensureSolvable
     ensureSolvable!(dfg)
@@ -752,6 +752,7 @@ function wipeBuildNewTree!(dfg::G;
   resetFactorGraphNewTree!(dfg);
   return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, variableConstraints=variableConstraints);
 end
+
 
 """
     $(SIGNATURES)
