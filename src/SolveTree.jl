@@ -437,25 +437,6 @@ localProduct(dfg::G, lbl::T; solveKey::Symbol=:default, N::Int=100, dbg::Bool=fa
 """
     $(SIGNATURES)
 
-Initialize the belief of a variable node in the factor graph struct.
-"""
-function initVariable!(fgl::AbstractDFG,
-                        sym::Symbol;
-                        N::Int=100  )
-  #
-  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
-
-  vert = getVariable(fgl, sym)
-  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
-  setValKDE!(vert, belief)
-
-  nothing
-end
-
-
-"""
-    $(SIGNATURES)
-
 Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov
 trasit integral -- here involving separate approximate functional convolution and
 product operations.
@@ -819,82 +800,24 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
 end
 
 
-
 """
-    $SIGNATURES
+    $(SIGNATURES)
 
-Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
+Initialize the belief of a variable node in the factor graph struct.
 """
-function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
-  for (id, cliq) in getCliques(treel)
-    cliqdata = getCliqueData(cliq)
-    setCliqueStatus!(cliqdata, :null)
-    cliqdata.upsolved = to
-    cliqdata.downsolved = to
-  end
+function initVariable!(fgl::AbstractDFG,
+                        sym::Symbol;
+                        N::Int=100  )
+  #
+  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
+
+  vert = getVariable(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
+  setValKDE!(vert, belief)
+
   nothing
 end
 
-"""
-    $SIGNATURES
-
-Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
-"""
-function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)
-  acclist = Symbol[:upsolved; :downsolved; :marginalized]
-  skipinitialized ? nothing : push!(acclist, :initialized)
-  for (clid, cliq) in getCliques(treel)
-    if !(getCliqueStatus(cliq) in acclist)
-      return false
-    end
-  end
-  return true
-end
-
-function isTreeSolvedUp(treel::AbstractBayesTree)
-  for (clid, cliq) in getCliques(treel)
-    if getCliqueStatus(cliq) != :upsolved
-      return false
-    end
-  end
-  return true
-end
-
-
-"""
-    $SIGNATURES
-
-Return `::Bool` on whether all variables in this `cliq` are marginalzed.
-"""
-function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
-  for vert in getCliqVars(subfg, cliq)
-    if !isMarginalized(vert)
-      return false
-    end
-  end
-  return true
-end
-
-
-"""
-    $SIGNATURES
-
-Reset the Bayes (Junction) tree so that a new upsolve can be performed.
-
-Notes
-- Will change previous clique status from `:downsolved` to `:initialized` only.
-- Sets the color of tree clique to `lightgreen`.
-"""
-function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
-  acclist = Symbol[:downsolved;]
-  for (clid, cliq) in getCliques(treel)
-    if getCliqueStatus(cliq) in acclist
-      setCliqueStatus!(cliq, :initialized)
-      setCliqDrawColor(cliq, "sienna")
-    end
-  end
-  nothing
-end
 
 """
     $SIGNATURES
