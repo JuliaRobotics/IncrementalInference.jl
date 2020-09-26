@@ -1,5 +1,4 @@
 
-
 ##==============================================================================
 ## LEGACY SUPPORT FOR ZMQ IN CAESAR
 ##==============================================================================
@@ -38,6 +37,22 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 ##==============================================================================
 ## Delete at end v0.16.x
 ##==============================================================================
+
+
+# getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+
+@deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
+
+@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
+# @deprecate LinearConditional(x::SamplableBelief) LinearRelative(x)
+@deprecate LinearConditional(x...) LinearRelative(x...)
+
+# function LinearConditional{N, T}(x...) where {N,T}
+#   @warn("LinearConditional{N, T} is deprecated, use LinearRelative instead")
+#   LinearRelative{N,T}(x...)
+# end
+
+@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
 
 
 
@@ -294,49 +309,49 @@ end
 # future, be used in a cached system with parent in one location only for all siblings
 # this function rebuilds a local subgraph from dfg and performs the calculations of the parent here and does not wait on the CSM to perform anything.
 # 4-stroke compute may render this whole function obsolete.
-function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
-  products::LikelihoodMessage,
-  msgspervar::Dict{Symbol, <:AbstractVector},
-  prnt::TreeClique,
-  cliq::TreeClique,
-  logger=ConsoleLogger() )
-#
-error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
+function condenseDownMsgsProductPrntFactors!( fgl::AbstractDFG,
+                                              products::LikelihoodMessage,
+                                              msgspervar::Dict{Symbol, <:AbstractVector},
+                                              prnt::TreeClique,
+                                              cliq::TreeClique,
+                                              logger=ConsoleLogger() )
+  #
+  error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
 
-# determine the variables of interest
-reqMsgIds = collect(keys(msgspervar))
-# unique frontals per cliq
-prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
-lvarids = union(prntvars, reqMsgIds)
-# determine allowable factors, if any (only from parent cliq)
-awfcts = getCliqFactorIdsAll(prnt)
+  # determine the variables of interest
+  reqMsgIds = collect(keys(msgspervar))
+  # unique frontals per cliq
+  prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
+  lvarids = union(prntvars, reqMsgIds)
+  # determine allowable factors, if any (only from parent cliq)
+  awfcts = getCliqFactorIdsAll(prnt)
 
-# build required subgraph for parent/sibling down msgs
-lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
+  # build required subgraph for parent/sibling down msgs
+  lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
 
-tempfcts = lsf(lsfg)
-dellist = setdiff(awfcts, tempfcts)
-for delf in dellist
-# TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-if exists(lsfg, delf)
-deleteFactor!(lsfg,delf)
-end
-end
+  tempfcts = lsf(lsfg)
+  dellist = setdiff(awfcts, tempfcts)
+  for delf in dellist
+    # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
+    if exists(lsfg, delf)
+      deleteFactor!(lsfg,delf)
+    end
+  end
 
-# add message priors
-addMsgFactors!(lsfg, msgspervar) # , DownwardPass
+  # add message priors
+  addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
-# perform initialization/inference
-# FIXME, better consolidate with CSM ....uhhh TODO
-initSolveSubFg!(lsfg, logger)
+  # perform initialization/inference
+  # FIXME, better consolidate with CSM ....uhhh TODO
+  initSolveSubFg!(lsfg, logger)
 
-# extract complete downward marginal msg priors
-for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
-vari = getVariable(lsfg, id)
-products.belief[id] = TreeBelief(vari)
-end
+  # extract complete downward marginal msg priors
+  for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
+    vari = getVariable(lsfg, id)
+    products.belief[id] = TreeBelief(vari)
+  end
 
-nothing
+  nothing
 end
 # # QUICK DBG CODE
 # with_logger(logger) do

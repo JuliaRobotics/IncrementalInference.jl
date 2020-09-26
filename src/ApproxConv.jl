@@ -11,8 +11,9 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+function approxConvOnElements!( ccwl::CommonConvWrapper{T},
+                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: AbstractRelative}
+  #
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -35,8 +36,8 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+function approxConvOnElements!( ccwl::CommonConvWrapper{T},
+                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: AbstractRelative}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -59,8 +60,8 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!(ccwl::CommonConvWrapper{T},
-                               elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+function approxConvOnElements!( ccwl::CommonConvWrapper{T},
+                                elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: AbstractRelative}
   #
   approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
 end
@@ -72,11 +73,11 @@ end
 
 Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
 """
-function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
-                                   Xi::Vector{DFGVariable},
-                                   solvefor::Symbol,
-                                   N::Int;
-                                   solveKey::Symbol=:default  ) where {T <: FunctorInferenceType}
+function prepareCommonConvWrapper!( ccwl::CommonConvWrapper{T},
+                                    Xi::Vector{DFGVariable},
+                                    solvefor::Symbol,
+                                    N::Int;
+                                    solveKey::Symbol=:default  ) where {T <: AbstractRelative}
   #
   ARR = Array{Array{Float64,2},1}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
@@ -111,9 +112,9 @@ function prepareCommonConvWrapper!(ccwl::CommonConvWrapper{T},
   return sfidx, maxlen, manis
 end
 
-function generateNullhypoEntropy(val::AbstractMatrix{<:Real},
-                                 maxlen::Int,
-                                 spreadfactor::Real=10  )
+function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
+                                  maxlen::Int,
+                                  spreadfactor::Real=10  )
   #
   # covD = sqrt.(vec(Statistics.var(val,dims=2))) .+ 1e-3
   # cVar = diagm((spreadfactor*covD).^2)
@@ -199,7 +200,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
                                   sfidx::Int,
                                   maxlen::Int,
                                   maniAddOps::Tuple;
-                                  spreadNH::Float64=3.0  ) where {T <:Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+                                  spreadNH::Float64=3.0  ) where {T <:AbstractRelative}
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -258,7 +259,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
-                                dbg::Bool=false  ) where {T <: Union{AbstractRelativeFactor, AbstractRelativeFactorMinimize}}
+                                dbg::Bool=false  ) where {T <: AbstractRelative}
   #
 
   # Prep computation variables
