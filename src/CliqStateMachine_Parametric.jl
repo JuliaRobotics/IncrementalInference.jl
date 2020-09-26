@@ -29,7 +29,7 @@ function initStartCliqStateMachineParametric!(dfg::G,
 
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
                                     tree, cliq, prnt, children,
-                                    false, incremental, drawtree, downsolve, delay,
+                                    incremental, drawtree, downsolve, delay,
                                     getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger,
                                     cliqKey )
   #
