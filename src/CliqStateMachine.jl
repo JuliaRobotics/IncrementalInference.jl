@@ -278,13 +278,13 @@ function checkUpsolveFinished_StateMachine(csmc::CliqStateMachineContainer)
 
     # remove any solvable upward cached data -- TODO will have to be changed for long down partial chains
     # assuming maximally complte up solved cliq at this point
-    lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
+    # lockUpStatus!(csmc.cliq, csmc.cliq.index, true, csmc.logger, true, "9.finishCliqSolveCheck")
     sdims = Dict{Symbol,Float64}()
     for varid in getCliqAllVarIds(csmc.cliq)
       sdims[varid] = 0.0
     end
     updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
-    unlockUpStatus!(csmc.cliq)
+    # unlockUpStatus!(csmc.cliq)
 
     # go to 10
     return canCliqDownSolve_StateMachine # IncrementalInference.exitStateMachine
@@ -823,20 +823,7 @@ function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContain
       end
     end
   end
-  # for chld in getChildren(csmc.tree, csmc.cliq)
-  #   chst = getCliqueStatus(chld)
-  #   if chst in [:null;]
-  #     infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, wait $(chst), cliq=$(chld.index), ch_lbl=$(getCliqFrontalVarIds(chld)[1]).")
-  #     # wait for child clique status/msg to be updated
-  #     wait(getSolveCondition(chld))
-  #   end
-  # end
-
-  # stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
-  # infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
-  # # # make sure forceproceed is false, not strictly needed if csmc starts false
-  # # csmc.forceproceed = false # only used in 7
-
+  
   # go to 4b
   return trafficRedirectConsolidate459_StateMachine
 end
@@ -1214,7 +1201,6 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # includes case of no children
   if resolveinit && !chldneeddwn
-    # || csmc.forceproceed
     # go to 8j (dwnMsg #459 WIP 9)
     # return dwnInitSiblingWaitOrder_StateMachine
     # go to 7c
@@ -1710,7 +1696,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
 
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
 
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
 
   nxt = upsolve ? canCliqMargRecycle_StateMachine : (downsolve ? canCliqMargRecycle_StateMachine : error("must attempt either up or down solve"))
 

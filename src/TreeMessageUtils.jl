@@ -221,7 +221,10 @@ function addMsgFactors!(subfg::AbstractDFG,
     if 0 < msgs.belief |> length
       # currently only works for nonparametric
       addLikelihoodsDifferential!(subfg, msgs)          # :UPWARD_DIFFERENTIAL
-      prFcts = addLikelihoodPriorCommon!(subfg, msgs)   # :UPWARD_COMMON
+      ## FIXME, only do this if there are priors below
+      if msgs.hasPriors
+        prFcts = addLikelihoodPriorCommon!(subfg, msgs)   # :UPWARD_COMMON
+      end
     end
   else
     svars = DFG.listVariables(subfg)
@@ -302,7 +305,7 @@ Notes
 - Also see #579 regarding elimited likelihoods and priors.
 
 DevNotes
-- Consolidation in progress, part of #459
+- set `msgs.hasPriors=true` only if a prior occurred here or lower down in tree branch. 
 """
 function prepCliqInitMsgsUp(subfg::AbstractDFG,
                             cliq::TreeClique,
@@ -313,7 +316,8 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   # get the current clique status
 
   # construct init's up msg to place in parent from initialized separator variables
-  msg = LikelihoodMessage(status=status)
+  hasPriors = 0 < (lsfPriors(subfg) |> length)
+  msg = LikelihoodMessage(status=status, hasPriors=hasPriors)
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
     @info "prepCliqInitMsgsUp, seps=$seps"

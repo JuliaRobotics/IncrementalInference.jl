@@ -41,7 +41,7 @@ v1 = addVariable!(fg,:x1, ContinuousScalar,N=N)
 f1  = addFactor!(fg,[:x1], Prior(kde!(doors2, bws2[:])))
 
 v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
-lc = LinearConditional(  Normal(50.0, 2.0) )
+lc = LinearRelative(  Normal(50.0, 2.0) )
 f2 = addFactor!(fg, [:x1; :x2], lc)
 
 
@@ -54,8 +54,8 @@ upd = convert(FunctionNodeData{CommonConvWrapper{Prior}}, dd)
 @test compare(topack, upd)
 
 topack = getSolverData(f2)
-dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedLinearConditional},topack)
-upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearConditional}}, dd)
+dd =  convert(IncrementalInference.PackedFunctionNodeData{PackedLinearRelative},topack)
+upd = convert(IncrementalInference.FunctionNodeData{CommonConvWrapper{LinearRelative}}, dd)
 
 @test compare(topack, upd)
 

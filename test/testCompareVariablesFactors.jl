@@ -4,6 +4,13 @@ using DistributedFactorGraphs
 using IncrementalInference
 using Test
 
+@testset "deprecation of old api" begin
+
+LinearConditional(Normal(2.0, 0.1))
+
+end
+
+
 @testset "testing compare functions for variables and factors..." begin
 
 fg = initfg()

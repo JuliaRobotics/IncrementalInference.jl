@@ -1,5 +1,4 @@
 
-
 ##==============================================================================
 ## LEGACY SUPPORT FOR ZMQ IN CAESAR
 ##==============================================================================
@@ -40,6 +39,22 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 ##==============================================================================
 
 
+# getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+
+@deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
+
+@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
+# @deprecate LinearConditional(x::SamplableBelief) LinearRelative(x)
+@deprecate LinearConditional(x...) LinearRelative(x...)
+
+# function LinearConditional{N, T}(x...) where {N,T}
+#   @warn("LinearConditional{N, T} is deprecated, use LinearRelative instead")
+#   LinearRelative{N,T}(x...)
+# end
+
+@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
+
+
 
 ## =============================================================================
 ## Clique condition locks
@@ -47,45 +62,11 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 
 @deprecate lockUpStatus!(x...) ()->nothing
 
-# # lockUpStatus!(cdat::BayesTreeNodeData, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = put!(cdat.lockUpStatus, idx)
-# # lockUpStatus!(cliq::TreeClique, idx::Int=1, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), idx, verbose, logger, flushLogger, msg)
-# function lockUpStatus!( cdat::BayesTreeNodeData,
-#                         owner::Int=1,
-#                         idx::Int=1,
-#                         verbose::Bool=false,
-#                         logger=SimpleLogger(stdout),
-#                         flushLogger::Bool=false,
-#                         msg::AbstractString="")
-# #
-#   with_logger(logger) do
-#     tt = now()
-#     verbose ? @info("$(tt) -- Lock $owner, UP from $idx | $msg") : nothing
-#     verbose && isready(cdat.lockUpStatus) ? @info("$(tt) -- Lock $owner, UP from $idx blocked by $(fetch(cdat.lockUpStatus))") : nothing
-#   end
-#   flushLogger ? (flush(logger.stream); sleep(0.01)) : nothing
-#   put!(cdat.lockUpStatus, idx)
-# end
-# lockUpStatus!(cliq::TreeClique, idx::Int=cliq.index, verbose::Bool=false, logger=SimpleLogger(stdout), flushLogger::Bool=false, msg::AbstractString="") = lockUpStatus!(getCliqueData(cliq), cliq.index, idx, verbose, logger, flushLogger, msg)
-
 @deprecate unlockUpStatus!(cdat::BayesTreeNodeData) ()->nothing
-# unlockUpStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockUpStatus)
 unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
-# function lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger())
-#   with_logger(logger) do
-#     @info "lockDwnStatus! isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-#   end
-#   flush(logger.stream)
-#   stf =  put!(cdat.lockDwnStatus, idx)
-#   with_logger(logger) do
-#     @info "lockDwnStatus! DONE: isready=$(isready(cdat.lockDwnStatus)) with data $(cdat.lockDwnStatus.data)"
-#   end
-#   flush(logger.stream)
-#   stf
-# end
 @deprecate lockDwnStatus!(cdat::BayesTreeNodeData, idx::Int=1; logger=ConsoleLogger()) ()->nothing
 
-# unlockDwnStatus!(cdat::BayesTreeNodeData) = take!(cdat.lockDwnStatus)
 @deprecate unlockDwnStatus!(cdat::BayesTreeNodeData) ()->nothing
 
 
@@ -328,49 +309,49 @@ end
 # future, be used in a cached system with parent in one location only for all siblings
 # this function rebuilds a local subgraph from dfg and performs the calculations of the parent here and does not wait on the CSM to perform anything.
 # 4-stroke compute may render this whole function obsolete.
-function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
-  products::LikelihoodMessage,
-  msgspervar::Dict{Symbol, <:AbstractVector},
-  prnt::TreeClique,
-  cliq::TreeClique,
-  logger=ConsoleLogger() )
-#
-error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
+function condenseDownMsgsProductPrntFactors!( fgl::AbstractDFG,
+                                              products::LikelihoodMessage,
+                                              msgspervar::Dict{Symbol, <:AbstractVector},
+                                              prnt::TreeClique,
+                                              cliq::TreeClique,
+                                              logger=ConsoleLogger() )
+  #
+  error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
 
-# determine the variables of interest
-reqMsgIds = collect(keys(msgspervar))
-# unique frontals per cliq
-prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
-lvarids = union(prntvars, reqMsgIds)
-# determine allowable factors, if any (only from parent cliq)
-awfcts = getCliqFactorIdsAll(prnt)
+  # determine the variables of interest
+  reqMsgIds = collect(keys(msgspervar))
+  # unique frontals per cliq
+  prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
+  lvarids = union(prntvars, reqMsgIds)
+  # determine allowable factors, if any (only from parent cliq)
+  awfcts = getCliqFactorIdsAll(prnt)
 
-# build required subgraph for parent/sibling down msgs
-lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
+  # build required subgraph for parent/sibling down msgs
+  lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
 
-tempfcts = lsf(lsfg)
-dellist = setdiff(awfcts, tempfcts)
-for delf in dellist
-# TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-if exists(lsfg, delf)
-deleteFactor!(lsfg,delf)
-end
-end
+  tempfcts = lsf(lsfg)
+  dellist = setdiff(awfcts, tempfcts)
+  for delf in dellist
+    # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
+    if exists(lsfg, delf)
+      deleteFactor!(lsfg,delf)
+    end
+  end
 
-# add message priors
-addMsgFactors!(lsfg, msgspervar) # , DownwardPass
+  # add message priors
+  addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
-# perform initialization/inference
-# FIXME, better consolidate with CSM ....uhhh TODO
-initSolveSubFg!(lsfg, logger)
+  # perform initialization/inference
+  # FIXME, better consolidate with CSM ....uhhh TODO
+  initSolveSubFg!(lsfg, logger)
 
-# extract complete downward marginal msg priors
-for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
-vari = getVariable(lsfg, id)
-products.belief[id] = TreeBelief(vari)
-end
+  # extract complete downward marginal msg priors
+  for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
+    vari = getVariable(lsfg, id)
+    products.belief[id] = TreeBelief(vari)
+  end
 
-nothing
+  nothing
 end
 # # QUICK DBG CODE
 # with_logger(logger) do

@@ -39,7 +39,7 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [compat]
 ApproxManifoldProducts = "0.1, 0.2"
 Combinatorics = "1.0"
-DistributedFactorGraphs = "0.10.2"
+DistributedFactorGraphs = "0.10.5"
 Distributions = "0.20, 0.21, 0.22, 0.23"
 DocStringExtensions = "0.8, 0.9, 0.10, 1"
 FileIO = "1.0.2, 1.1, 1.2"
