@@ -28,7 +28,7 @@ addFactor!(fg, [:x0], prpo)
 fg.solverParams.useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = solveTree!(fg; smtasks, verbose=true, timeout=30);
+tree, smt, hists = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=30);
 # tree, smt, hists = solveTree!(fg; smtasks, verbose=true, timeout=20, recordcliqs=ls(fg));
 
 
