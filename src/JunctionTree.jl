@@ -712,6 +712,10 @@ end
     $SIGNATURES
 
 Reset factor graph and build a new tree from the provided variable ordering `p`.
+
+Related
+
+resetBuildTree!
 """
 function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})::AbstractBayesTree
   resetFactorGraphNewTree!(fgl)
@@ -726,7 +730,7 @@ temporary state in fg from a possibly pre-existing tree.
 
 Related:
 
-buildTreeFromOrdering!
+buildTreeFromOrdering!, resetBuildTreeFromOrder!
 """
 function resetBuildTree!( dfg::AbstractDFG;
                           ordering::Symbol=:qr,
@@ -738,7 +742,7 @@ function resetBuildTree!( dfg::AbstractDFG;
                           maxparallel::Union{Nothing, Int}=nothing,
                           ensureSolvable::Bool=true,
                           variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                          variableConstraints::Vector{Symbol}=Symbol[]  )::AbstractBayesTree where G <: 
+                          variableConstraints::Vector{Symbol}=Symbol[]  )
   #
   if ensureSolvable
     ensureSolvable!(dfg)
