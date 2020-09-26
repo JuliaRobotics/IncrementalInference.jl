@@ -1163,11 +1163,11 @@ Special function to add a few variables and factors to the clique sub graph requ
 Dev Notes
 - There is still some disparity on whether up and down solves of tree should use exactly the same subgraph...  'between for up and frontal connected for down'
 """
-function addDownVariableFactors!(dfg::G1,
-                                 subfg::G2,
-                                 cliq::TreeClique,
-                                 logger=ConsoleLogger();
-                                 solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
+function addDownVariableFactors!( dfg::G1,
+                                  subfg::G2,
+                                  cliq::TreeClique,
+                                  logger=ConsoleLogger();
+                                  solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
   #
   # determine which variables and factors needs to be added
   currsyms = ls(subfg)

@@ -513,6 +513,22 @@ end
 
 
 
+
+##==============================================================================
+## Must consolideate tree message
+##==============================================================================
+
+
+function messages(btnd::BayesTreeNodeData)
+  @warn("btnd.messages will be deprecated")
+  btnd.messages
+end
+
+messages(clique::TreeClique) = getCliqueData(clique).messages
+
+
+
+
 ## ===========================================================================================
 ## MUST DEPRECATE BELOW
 ## ===========================================================================================
