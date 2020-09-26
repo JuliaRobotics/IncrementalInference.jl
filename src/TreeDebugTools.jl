@@ -7,7 +7,7 @@
 Calculate a fresh (single step) approximation to the variable `sym` in clique `cliq` as though during the upward message passing.  The full inference algorithm may repeatedly calculate successive apprimxations to the variables based on the structure of the clique, factors, and incoming messages.
 Which clique to be used is defined by frontal variable symbols (`cliq` in this case) -- see `getClique(...)` for more details.  The `sym` symbol indicates which symbol of this clique to be calculated.  **Note** that the `sym` variable must appear in the clique where `cliq` is a frontal variable.
 """
-function treeProductUp( fg::AbstractDFG,
+function treeProductUp(fg::AbstractDFG,
                         tree::AbstractBayesTree,
                         cliq::Symbol,
                         sym::Symbol;
@@ -19,17 +19,18 @@ function treeProductUp( fg::AbstractDFG,
 
   # get all the incoming (upward) messages from the tree cliques
   # convert incoming messages to Int indexed format (semi-legacy format)
-  upmsgssym = LikelihoodMessage[]
-  for cl in childCliqs(tree, cliq)
-    msgdict = getUpMsgs(cl)
-    dict = Dict{Symbol, TreeBelief}()
-    for (dsy, btd) in msgdict.belief
-      vari = getVariable(fg, dsy)
-      # manis = getSofttype(vari).manifolds
-      dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
-    end
-    push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
-  end
+  # upmsgssym = LikelihoodMessage[]
+  # for cl in childCliqs(tree, cliq)
+  #   msgdict = getUpMsgs(cl)
+  #   dict = Dict{Symbol, TreeBelief}()
+  #   for (dsy, btd) in msgdict.belief
+  #     vari = getVariable(fg, dsy)
+  #     # manis = getSofttype(vari).manifolds
+  #     dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
+  #   end
+  #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
+  # end
+  upmsgssym = getMsgsUpChildren(tree, cliq, TreeBelief)
 
   # perform the actual computation
   manis = getSofttype(getVariable(fg, sym)) |> getManifolds
