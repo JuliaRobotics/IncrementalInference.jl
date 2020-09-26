@@ -19,7 +19,7 @@ addFactor!(fg, [:x1, :x2], mmo)
 # show the factor graph
 drawGraph(fg, show=true)
 # show the tree
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 
 # solve the factor graph and show solving progress on tree in src/JunctionTree.jl

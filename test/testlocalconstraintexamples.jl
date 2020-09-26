@@ -34,7 +34,7 @@ pts = approxConv(fg, :x1x2f1, :x2)
 
 tree, smt, hist = solveTree!(fg)
 # ensureAllInitialized!(fg)
-# tree = wipeBuildNewTree!(fg, drawpdf=false)
+# tree = resetBuildTree!(fg, drawpdf=false)
 # inferOverTree!(fg, tree)
 
 @test norm(Statistics.mean(getVal(fg, :x2),dims=2)-[50.0]) < 15.0

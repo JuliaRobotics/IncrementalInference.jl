@@ -54,7 +54,7 @@ end
 #initialize the fg for tree to solve.
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-tree = wipeBuildNewTree!(fg)#
+tree = resetBuildTree!(fg)#
 
 IIF.initTreeMessageChannels!(tree)
 
@@ -116,7 +116,7 @@ foreach(println, d)
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
 #force message passing with manual variable order
-tree = wipeBuildNewTree!(fg, variableOrder=[:x0, :x2, :x1])#
+tree = resetBuildTree!(fg, variableOrder=[:x0, :x2, :x1])#
 
 IIF.initTreeMessageChannels!(tree)
 
@@ -160,7 +160,7 @@ end
 
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-tree = wipeBuildNewTree!(fg)#
+tree = resetBuildTree!(fg)#
 
 IIF.initTreeMessageChannels!(tree)
 
@@ -192,7 +192,7 @@ fg = generateCanonicalFG_lineStep(20, vardims=2, poseEvery=1, landmarkEvery=3, p
 
 #do not initialize to force failure
 
-tree = wipeBuildNewTree!(fg)#
+tree = resetBuildTree!(fg)#
 IIF.initTreeMessageChannels!(tree)
 
 # fg.solverParams.showtree = true

@@ -6,7 +6,7 @@ using IncrementalInference
 @testset "Test loading and saving of Bayes (Junction) tree" begin
 
     fg = generateCanonicalFG_Kaess(graphinit=false)
-    tree = wipeBuildNewTree!(fg)
+    tree = resetBuildTree!(fg)
 
     # save and load tree
     saveTree(tree)
@@ -31,7 +31,7 @@ end
 @testset "Test loading and saving of Bayes (Junction) tree" begin
 
     fg = generateCanonicalFG_Kaess(graphinit=false)
-    tree = wipeBuildNewTree!(fg)
+    tree = resetBuildTree!(fg)
 
     # save and load tree as array
     filepath = saveTree([tree;deepcopy(tree)])

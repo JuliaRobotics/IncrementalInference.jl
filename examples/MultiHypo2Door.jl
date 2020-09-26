@@ -71,12 +71,12 @@ ensureAllInitialized!(fg)
 
 drawGraph(fg, show=true)
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 ## Solve graph
 tree, smt, hist = solveTree!(fg)
 
-# tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+# tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 ## Plotting functions below
 
@@ -104,7 +104,7 @@ plotKDE(manikde!(stuff[1], (:Euclid,)) )
 
 ## Do one clique inference only
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 urt = doCliqInferenceUp!(fg, tree, :l0, false, iters=1, drawpdf=true)
 upmsgs = urt.keepupmsgs
 
@@ -213,7 +213,7 @@ plotLocalProduct(fg, :l1)
 ensureAllInitialized!(fg)
 
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 cliqorder = getCliqOrderUpSolve(tree)
 
 
