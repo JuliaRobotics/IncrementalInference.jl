@@ -286,3 +286,29 @@ function localProduct(dfg::AbstractDFG,
   return pp, dens, partials, lb, sum(inferdim)
 end
 localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
+
+
+
+
+"""
+    $SIGNATURES
+
+Basic wrapper to take local product and then set the value of `sym` in `dfg`.
+
+DevNotes:
+- Unknown issue first occurred here near IIF v0.8.4 tag, recorded case at 2020-01-17T15:26:17.673
+"""
+function localProductAndUpdate!(dfg::AbstractDFG,
+                                sym::Symbol,
+                                setkde::Bool=true,
+                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}}
+  #
+  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
+  setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
+
+  return pp, infdim, lbl
+end
+
+
+
+#

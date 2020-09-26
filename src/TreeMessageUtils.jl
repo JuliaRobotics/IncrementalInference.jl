@@ -28,6 +28,20 @@ end
 manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
 
 
+
+## =============================================================================
+# Fetch model uses Conditions as part of its synchronization
+## =============================================================================
+
+"""
+    $SIGNATURES
+
+Bump a clique state machine solver condition in case a task might be waiting on it.
+"""
+notifyCSMCondition(cliq::TreeClique) = notify(getSolveCondition(cliq))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(getClique(tree, frsym))
+
+
 ## =============================================================================
 # helper functions for tree message channels
 ## =============================================================================
@@ -44,10 +58,10 @@ Dev Notes
 - TODO not all kde manifolds will initialize to zero.
 - FIXME channels need to be consolidated
 """
-function resetCliqSolve!(dfg::AbstractDFG,
-                         treel::AbstractBayesTree,
-                         cliq::TreeClique;
-                         solveKey::Symbol=:default)
+function resetCliqSolve!( dfg::AbstractDFG,
+                          treel::AbstractBayesTree,
+                          cliq::TreeClique;
+                          solveKey::Symbol=:default)
   #
   cda = getCliqueData(cliq)
   vars = getCliqVarIdsAll(cliq)
@@ -65,10 +79,10 @@ function resetCliqSolve!(dfg::AbstractDFG,
   return nothing
 end
 
-function resetCliqSolve!(dfg::AbstractDFG,
-                         treel::AbstractBayesTree,
-                         frt::Symbol;
-                         solveKey::Symbol=:default  )
+function resetCliqSolve!( dfg::AbstractDFG,
+                          treel::AbstractBayesTree,
+                          frt::Symbol;
+                          solveKey::Symbol=:default  )
   #
   resetCliqSolve!(dfg, treel, getClique(treel, frt), solveKey=solveKey)
 end
@@ -78,6 +92,27 @@ end
 ## =============================================================================
 # helper functions to add tree messages to subgraphs
 ## =============================================================================
+
+
+
+function updateSubFgFromDownMsgs!(sfg::G,
+                                  dwnmsgs::LikelihoodMessage,
+                                  seps::Vector{Symbol} ) where G <: AbstractDFG
+  #
+  # sanity check basic Bayes (Junction) tree property
+  # length(setdiff(keys(dwnmsgs), seps)) == 0 ? nothing : error("updateSubFgFromDownMsgs! -- separators and dwnmsgs not consistent")
+
+  # update specific variables in sfg from msgs
+  for (key,beldim) in dwnmsgs.belief
+    if key in seps
+      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.softtype)), false, beldim.inferdim)
+    end
+  end
+
+  nothing
+end
+
+
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
   kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
@@ -153,9 +188,9 @@ addLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = addLike
     $SIGNATURES
 Place a single message likelihood prior on the highest dimension variable with highest connectivity in existing subfg.
 """
-function addLikelihoodPriorCommon!(subfg::AbstractDFG, 
-                                   msgs::LikelihoodMessage;
-                                   tags::Vector{Symbol}=Symbol[])
+function addLikelihoodPriorCommon!( subfg::AbstractDFG, 
+                                    msgs::LikelihoodMessage;
+                                    tags::Vector{Symbol}=Symbol[])
   #
   # find max dimension variable, which also has highest biadjacency
 
@@ -186,6 +221,44 @@ function addLikelihoodPriorCommon!(subfg::AbstractDFG,
   tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
   # finally add the single AbstractPrior from LikelihoodMessage
   addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
+end
+
+
+"""
+    $SIGNATURES
+
+Special function to add a few variables and factors to the clique sub graph required for downward solve in CSM.
+
+Dev Notes
+- There is still some disparity on whether up and down solves of tree should use exactly the same subgraph...  'between for up and frontal connected for down'
+"""
+function addDownVariableFactors!( dfg::AbstractDFG,
+                                  subfg::InMemoryDFGTypes,
+                                  cliq::TreeClique,
+                                  logger=ConsoleLogger();
+                                  solvable::Int=1  )
+  #
+  # determine which variables and factors needs to be added
+  currsyms = ls(subfg)
+  allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq, solvable=solvable)
+  newsyms = setdiff(allclsyms, currsyms)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newsyms=$newsyms"
+  end
+  frtls = getCliqFrontalVarIds(cliq)
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), frtls=$frtls"
+  end
+  allnewfcts = union(map(x->findFactorsBetweenFrom(dfg,union(currsyms, newsyms),x), frtls)...)
+  newfcts = setdiff(allnewfcts, lsf(subfg))
+  with_logger(logger) do
+    @info "addDownVariableFactors!, cliq=$(cliq.index), newfcts=$newfcts, allnewfcts=$allnewfcts"
+  end
+
+  #TODO solvable?
+  DFG.mergeGraph!(subfg, dfg, newsyms, newfcts)
+
+  return newsyms, newfcts
 end
 
 
