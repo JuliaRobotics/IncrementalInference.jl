@@ -199,7 +199,6 @@ export *,
   doautoinit!,
   initManual!,
   initVariableManual!,
-  initVariable!,
   resetInitialValues!,
   resetInitValues!,
   asyncTreeInferUp!,
@@ -471,6 +470,7 @@ include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
+include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
