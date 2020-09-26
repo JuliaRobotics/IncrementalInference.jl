@@ -67,7 +67,7 @@ function printHistoryLine(fid,
   first = first*nextfn
   for i in length(first):38  first = first*" "; end
   # force proceed
-  first = first*string(Int(hi[4].forceproceed))
+  # first = first*string(Int(hi[4].forceproceed))
   for i in length(first):39  first = first*" "; end
   # this clique status
   first *= " | "

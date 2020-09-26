@@ -823,20 +823,7 @@ function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContain
       end
     end
   end
-  # for chld in getChildren(csmc.tree, csmc.cliq)
-  #   chst = getCliqueStatus(chld)
-  #   if chst in [:null;]
-  #     infocsm(csmc, "4e, blockUntilChildrenHaveStatus_StateMachine, wait $(chst), cliq=$(chld.index), ch_lbl=$(getCliqFrontalVarIds(chld)[1]).")
-  #     # wait for child clique status/msg to be updated
-  #     wait(getSolveCondition(chld))
-  #   end
-  # end
-
-  # stdict = fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
-  # infocsm(csmc,"fetched all, keys=$(keys(stdict)).")
-  # # # make sure forceproceed is false, not strictly needed if csmc starts false
-  # # csmc.forceproceed = false # only used in 7
-
+  
   # go to 4b
   return trafficRedirectConsolidate459_StateMachine
 end
@@ -1214,7 +1201,6 @@ function determineCliqNeedDownMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # includes case of no children
   if resolveinit && !chldneeddwn
-    # || csmc.forceproceed
     # go to 8j (dwnMsg #459 WIP 9)
     # return dwnInitSiblingWaitOrder_StateMachine
     # go to 7c
