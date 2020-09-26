@@ -324,92 +324,6 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 end
 
 
-
-"""
-    $SIGNATURES
-
-Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
-
-Notes
-- Only update frontal variables of the clique.
-"""
-function downGibbsCliqueDensity(fg::AbstractDFG,
-                                cliq::TreeClique,
-                                dwnMsgs::Array{LikelihoodMessage,1},
-                                N::Int=100,
-                                MCMCIter::Int=3,
-                                dbg::Bool=false,
-                                usemsgpriors::Bool=false,
-                                logger=ConsoleLogger() )
-  #
-  # TODO standardize function call to have similar stride to upGibbsCliqueDensity
-  # @info "down"
-  with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc"
-  end
-  fmmsgs = usemsgpriors ? Array{LikelihoodMessage,1}() : dwnMsgs
-  frtls = getFrontals(cliq)
-
-  # TODO, do better check if there is structure between multiple frontals
-  niters = length(frtls) == 1 ? 1 : MCMCIter
-  # TODO standize with upsolve and variable solver order
-  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
-  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
-
-  outmsglbl = Dict{Symbol, Int}()
-  if dbg
-    for (ke, va) in m.belief
-      outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
-    end
-  end
-
-  with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert to BallTreeDensities."
-  end
-
-  # Always keep dwn messages in cliq data
-  dwnkeepmsgs = LikelihoodMessage()
-  for (msgsym, val) in m.belief
-    dwnkeepmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
-  end
-  setDwnMsg!(cliq, dwnkeepmsgs)
-
-  # down solving complete, set flag
-  getCliqueData(cliq).downsolved = true
-
-  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
-  with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- finished."
-  end
-  return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
-end
-function downGibbsCliqueDensity(fg::AbstractDFG,
-                                cliq::TreeClique,
-                                dwnMsgs::LikelihoodMessage,
-                                N::Int=100,
-                                MCMCIter::Int=3,
-                                dbg::Bool=false,
-                                usemsgpriors::Bool=false,
-                                logger=ConsoleLogger() )
-  #
-  with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to LikelihoodMessage."
-  end
-  ind = Dict{Symbol, TreeBelief}()
-  sflbls = listVariables(fg)
-  for (lbl, bel) in dwnMsgs.belief
-    if lbl in sflbls
-      ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
-    end
-  end
-  ndms = LikelihoodMessage[LikelihoodMessage(ind);]
-  with_logger(logger) do
-    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- call with LikelihoodMessage."
-  end
-  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
-end
-
-
 """
     $SIGNATURES
 
@@ -480,59 +394,93 @@ end
 
 
 
+
 """
     $SIGNATURES
 
-Special internal function to try return the clique data if succesfully identified in `othertree::AbstractBayesTree`,
-based on contents of `seeksSimilar::BayesTreeNodeData`.
+Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
 
 Notes
-- Used to identify and skip similar cliques (i.e. recycle computations)
+- Only update frontal variables of the clique.
 """
-function attemptTreeSimilarClique(othertree::AbstractBayesTree, 
-                                  seeksSimilar::BayesTreeNodeData  )
+function downGibbsCliqueDensity(fg::AbstractDFG,
+                                cliq::TreeClique,
+                                dwnMsgs::Array{LikelihoodMessage,1},
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false,
+                                usemsgpriors::Bool=false,
+                                logger=ConsoleLogger() )
   #
-  # inner convenience function for returning empty clique
-  function EMPTYCLIQ()
-    clq = TreeClique(-1,"null")
-    setLabel!(clq, "")
-    setCliqueData!(clq, BayesTreeNodeData())
-    return clq
+  # TODO standardize function call to have similar stride to upGibbsCliqueDensity
+  # @info "down"
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc"
+  end
+  fmmsgs = usemsgpriors ? Array{LikelihoodMessage,1}() : dwnMsgs
+  frtls = getFrontals(cliq)
+
+  # TODO, do better check if there is structure between multiple frontals
+  niters = length(frtls) == 1 ? 1 : MCMCIter
+  # TODO standize with upsolve and variable solver order
+  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
+
+  outmsglbl = Dict{Symbol, Int}()
+  if dbg
+    for (ke, va) in m.belief
+      outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
+    end
   end
 
-  # does the other clique even exist?
-  seekFrontals = getCliqFrontalVarIds(seeksSimilar)
-  if !hasClique(othertree, seekFrontals[1])
-    return EMPTYCLIQ()
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert to BallTreeDensities."
   end
 
-  # do the cliques share the same frontals?
-  otherCliq = getClique(othertree, seekFrontals[1])
-  otherFrontals = getCliqFrontalVarIds(otherCliq)
-  commonFrontals = intersect(seekFrontals, otherFrontals)
-  if length(commonFrontals) != length(seekFrontals) || length(commonFrontals) != length(otherFrontals)
-    return EMPTYCLIQ()
+  # Always keep dwn messages in cliq data
+  dwnkeepmsgs = LikelihoodMessage()
+  for (msgsym, val) in m.belief
+    dwnkeepmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
   end
+  setDwnMsg!(cliq, dwnkeepmsgs)
 
-  # do the cliques share the same separator variables?
-  seekSeparator = getCliqSeparatorVarIds(seeksSimilar)
-  otherSeparator = getCliqSeparatorVarIds(otherCliq)
-  commonSep = intersect(seekSeparator, otherSeparator)
-  if length(commonSep) != length(seekSeparator) || length(commonSep) != length(otherSeparator)
-    return EMPTYCLIQ()
+  # down solving complete, set flag
+  getCliqueData(cliq).downsolved = true
+
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- finished."
   end
-
-  # do the cliques use the same factors (potentials)
-  seekPotentials = getCliqFactorIds(seeksSimilar)
-  otherFactors = getCliqFactorIds(otherCliq)
-  commonFactors = intersect(seekPotentials, otherFactors)
-  if length(commonFactors) != length(seekPotentials) || length(commonFactors) != length(otherFactors)
-    return EMPTYCLIQ()
-  end
-
-  # lets assume they are the same
-  return otherCliq::TreeClique
+  return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
 end
+
+
+function downGibbsCliqueDensity(fg::AbstractDFG,
+                                cliq::TreeClique,
+                                dwnMsgs::LikelihoodMessage,
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false,
+                                usemsgpriors::Bool=false,
+                                logger=ConsoleLogger() )
+  #
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to LikelihoodMessage."
+  end
+  ind = Dict{Symbol, TreeBelief}()
+  sflbls = listVariables(fg)
+  for (lbl, bel) in dwnMsgs.belief
+    if lbl in sflbls
+      ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
+    end
+  end
+  ndms = LikelihoodMessage[LikelihoodMessage(ind);]
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- call with LikelihoodMessage."
+  end
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
+end
+
 
 
 
