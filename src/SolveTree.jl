@@ -174,11 +174,11 @@ end
 
 Multiply various full and partial dimension constraints.
 """
-function prodmultiplefullpartials( dens::Vector{BallTreeDensity},
-                                   partials::Dict{Int, Vector{BallTreeDensity}},
-                                   Ndims::Int,
-                                   N::Int,
-                                   manis::T ) where {T <: Tuple}
+function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
+                                  partials::Dict{Int, Vector{BallTreeDensity}},
+                                  Ndims::Int,
+                                  N::Int,
+                                  manis::T ) where {T <: Tuple}
   #
   # TODO -- reuse memory rather than rand here
   pq = AMP.manifoldProduct(dens, manis, Niter=5)
@@ -362,12 +362,12 @@ function predictbelief( dfg::AbstractDFG,
   return pGM, sum(inferdim)
 end
 
-function predictbelief(dfg::G,
-                       destvertsym::Symbol,
-                       factorsyms::Vector{Symbol};
-                       N::Int=0,
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()  ) where G <: AbstractDFG
+function predictbelief( dfg::G,
+                        destvertsym::Symbol,
+                        factorsyms::Vector{Symbol};
+                        N::Int=0,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger()  ) where G <: AbstractDFG
   #
   factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
 
@@ -380,12 +380,12 @@ function predictbelief(dfg::G,
   predictbelief(dfg, vert, factors, N=nn, dbg=dbg, logger=logger)
 end
 
-function predictbelief(dfg::G,
-                       destvertsym::Symbol,
-                       factorsyms::Colon;
-                       N::Int=0,
-                       dbg::Bool=false,
-                       logger=ConsoleLogger()) where G <: AbstractDFG
+function predictbelief( dfg::G,
+                        destvertsym::Symbol,
+                        factorsyms::Colon;
+                        N::Int=0,
+                        dbg::Bool=false,
+                        logger=ConsoleLogger() ) where G <: AbstractDFG
   #
   predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
 end
@@ -439,9 +439,9 @@ localProduct(dfg::G, lbl::T; solveKey::Symbol=:default, N::Int=100, dbg::Bool=fa
 
 Initialize the belief of a variable node in the factor graph struct.
 """
-function initVariable!(fgl::G,
-                       sym::Symbol;
-                       N::Int=100 ) where G <: AbstractDFG
+function initVariable!(fgl::AbstractDFG,
+                        sym::Symbol;
+                        N::Int=100  )
   #
   @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
 
@@ -740,31 +740,6 @@ end
 
 
 
-function dwnPrepOutMsg( fg::AbstractDFG,
-                        cliq::TreeClique,
-                        dwnMsgs::Array{LikelihoodMessage,1},
-                        d::Dict{Symbol, T},
-                        logger=ConsoleLogger()) where T
-  # pack all downcoming conditionals in a dictionary too.
-  with_logger(logger) do
-    if cliq.index != 1 #TODO there may be more than one root
-      @info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
-      @info "fg vars $(ls(fg))"
-    end # ignore root, now incoming dwn msg
-  end
-  m = LikelihoodMessage()
-  i = 0
-  for vid in getCliqueData(cliq).frontalIDs
-    m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
-  end
-  for cvid in getCliqueData(cliq).separatorIDs
-    i+=1
-    # TODO -- convert to points only since kde replace by rkhs in future
-    m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
-  end
-  return m
-end
-
 """
     $SIGNATURES
 
@@ -899,39 +874,6 @@ function updateFGBT!( fg::AbstractDFG,
     end
     nothing
 end
-
-"""
-    $(SIGNATURES)
-
-Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
-"""
-function updateFGBT!( fg::AbstractDFG,
-                      cliq::TreeClique,
-                      IDvals::Dict{Symbol, TreeBelief};
-                      dbg::Bool=false,
-                      fillcolor::String="",
-                      logger=ConsoleLogger()  )
-  #
-  # if dbg
-  #   # TODO find better location for the debug information (this is old code)
-  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
-  # end
-  if fillcolor != ""
-    setCliqDrawColor(cliq, fillcolor)
-  end
-  for (id,dat) in IDvals
-    with_logger(logger) do
-      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
-    end
-    updvert = DFG.getVariable(fg, id)
-    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
-  end
-  with_logger(logger) do
-    @info "updateFGBT! up -- updated $(getLabel(cliq))"
-  end
-  nothing
-end
-
 
 
 

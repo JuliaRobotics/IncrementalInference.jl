@@ -163,4 +163,45 @@ function accumulateFactorChain( dfg::AbstractDFG,
   return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
 end
 
+
+
+"""
+    $(SIGNATURES)
+
+Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
+"""
+function updateFGBT!( fg::AbstractDFG,
+                      cliq::TreeClique,
+                      IDvals::Dict{Symbol, TreeBelief};
+                      dbg::Bool=false,
+                      fillcolor::String="",
+                      logger=ConsoleLogger()  )
+  #
+  # if dbg
+  #   # TODO find better location for the debug information (this is old code)
+  #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
+  # end
+  if fillcolor != ""
+    setCliqDrawColor(cliq, fillcolor)
+  end
+  for (id,dat) in IDvals
+    with_logger(logger) do
+      @info "updateFGBT! up -- update $id, inferdim=$(dat.inferdim)"
+    end
+    updvert = DFG.getVariable(fg, id)
+    setValKDE!(updvert, deepcopy(dat), true) ## TODO -- not sure if deepcopy is required
+  end
+  with_logger(logger) do
+    @info "updateFGBT! up -- updated $(getLabel(cliq))"
+  end
+  nothing
+end
+
+
+
+
+
+
+
+
 #
