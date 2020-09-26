@@ -81,15 +81,18 @@ end
 # PackedMixtureRelative() = new()
 # PackedMixtureRelative(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
 
-function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative)
+function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative{N,F,T,S}) where {N,F,S,T}
   allcomp = String[]
   for val in obj.components
     push!(allcomp, string(val))
   end
-  PackedMixtureRelative(DFG.convertPackedType(obj.mechanics), allcomp, string(obj.diversity))
+  # pm = DFG.convertPackedType(obj.mechanics)
+  @show pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
+  PackedMixtureRelative(pm, allcomp, string(obj.diversity))
 end
 function convert(::Type{MixtureRelative}, obj::PackedMixtureRelative)
-  MixtureRelative(DFG.convertStructType(obj.mechanics), extractdistribution.(obj.components), extractdistribution(obj.diversity))
+  @show typeof(obj.mechanics)
+  MixtureRelative(DFG.convertStructType(typeof(obj.mechanics))(LinearAlgebra.I), extractdistribution.(obj.components), extractdistribution(obj.diversity))
 end
 
 
