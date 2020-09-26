@@ -293,8 +293,7 @@ export *,
   getNumCliqs,
   getBelief, getKDE,
   CliqStateMachineContainer,
-  solveTree!,
-  solveGraph!,
+
   solveCliq!,
   fifoFreeze!,
 

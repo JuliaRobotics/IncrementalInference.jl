@@ -2,6 +2,86 @@
 export setVariablePosteriorEstimates!
 export attachCSM!
 
+
+
+
+"""
+    $SIGNATURES
+
+Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
+"""
+function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
+  for (id, cliq) in getCliques(treel)
+    cliqdata = getCliqueData(cliq)
+    setCliqueStatus!(cliqdata, :null)
+    cliqdata.upsolved = to
+    cliqdata.downsolved = to
+  end
+  nothing
+end
+
+"""
+    $SIGNATURES
+
+Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
+"""
+function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)
+  acclist = Symbol[:upsolved; :downsolved; :marginalized]
+  skipinitialized ? nothing : push!(acclist, :initialized)
+  for (clid, cliq) in getCliques(treel)
+    if !(getCliqueStatus(cliq) in acclist)
+      return false
+    end
+  end
+  return true
+end
+
+function isTreeSolvedUp(treel::AbstractBayesTree)
+  for (clid, cliq) in getCliques(treel)
+    if getCliqueStatus(cliq) != :upsolved
+      return false
+    end
+  end
+  return true
+end
+
+
+"""
+    $SIGNATURES
+
+Return `::Bool` on whether all variables in this `cliq` are marginalzed.
+"""
+function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
+  for vert in getCliqVars(subfg, cliq)
+    if !isMarginalized(vert)
+      return false
+    end
+  end
+  return true
+end
+
+
+"""
+    $SIGNATURES
+
+Reset the Bayes (Junction) tree so that a new upsolve can be performed.
+
+Notes
+- Will change previous clique status from `:downsolved` to `:initialized` only.
+- Sets the color of tree clique to `lightgreen`.
+"""
+function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
+  acclist = Symbol[:downsolved;]
+  for (clid, cliq) in getCliques(treel)
+    if getCliqueStatus(cliq) in acclist
+      setCliqueStatus!(cliq, :initialized)
+      setCliqDrawColor(cliq, "sienna")
+    end
+  end
+  nothing
+end
+
+
 """
     $SIGNATURES
 
@@ -1083,11 +1163,11 @@ Special function to add a few variables and factors to the clique sub graph requ
 Dev Notes
 - There is still some disparity on whether up and down solves of tree should use exactly the same subgraph...  'between for up and frontal connected for down'
 """
-function addDownVariableFactors!(dfg::G1,
-                                 subfg::G2,
-                                 cliq::TreeClique,
-                                 logger=ConsoleLogger();
-                                 solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
+function addDownVariableFactors!( dfg::G1,
+                                  subfg::G2,
+                                  cliq::TreeClique,
+                                  logger=ConsoleLogger();
+                                  solvable::Int=1  ) where {G1 <: AbstractDFG, G2 <: InMemoryDFGTypes}
   #
   # determine which variables and factors needs to be added
   currsyms = ls(subfg)

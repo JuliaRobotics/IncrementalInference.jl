@@ -1654,65 +1654,6 @@ end
 
 
 
-## ==============================================================================================
-# Launch the FSM
-## ==============================================================================================
-
-"""
-    $SIGNATURES
-
-Perform upward inference using a state machine solution approach.
-
-Notes:
-- will call on values from children or parent cliques
-- can be called multiple times
-- Assumes all cliques in tree are being solved simultaneously and in similar manner.
-- State machine rev.1 -- copied from first TreeBasedInitialization.jl.
-- Doesn't do partial initialized state properly yet.
-"""
-function cliqInitSolveUpByStateMachine!(dfg::G,
-                                        tree::AbstractBayesTree,
-                                        cliq::TreeClique,
-                                        timeout::Union{Nothing, <:Real}=nothing;
-                                        N::Int=100,
-                                        verbose::Bool=false,
-                                        verbosefid=stdout,
-                                        oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
-                                        drawtree::Bool=false,
-                                        show::Bool=false,
-                                        incremental::Bool=true,
-                                        limititers::Int=-1,
-                                        upsolve::Bool=true,
-                                        downsolve::Bool=true,
-                                        recordhistory::Bool=false,
-                                        delay::Bool=false,
-                                        injectDelayBefore::Union{Nothing,Pair{<:Function, <:Real}}=nothing,
-                                        store_in_task::Bool=false,
-                                        logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
-  #
-  children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
-
-  prnt = getParent(tree, cliq)
-
-  destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
-
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, incremental, drawtree, downsolve, delay, getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger)
-
-  nxt = upsolve ? canCliqMargRecycle_StateMachine : (downsolve ? canCliqMargRecycle_StateMachine : error("must attempt either up or down solve"))
-
-  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
-
-  statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
-
-  # store statemachine and csmc in task
-  if store_in_task
-    task_local_storage(:statemachine, statemachine)
-    task_local_storage(:csmc, csmc)
-  end
-
-  while statemachine(csmc, timeout, verbose=verbose, verbosefid=verbosefid, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb, injectDelayBefore=injectDelayBefore); end
-  statemachine.history
-end
 
 
 

@@ -22,21 +22,49 @@ end
 
 
 ##==============================================================================
-## Delete when tree message consolidation is complete
-##==============================================================================
-
-
-function messages(btnd::BayesTreeNodeData)
-  @warn("btnd.messages will be deprecated")
-  btnd.messages
-end
-
-messages(clique::TreeClique) = getCliqueData(clique).messages
-
-
-##==============================================================================
 ## Delete at end v0.16.x
 ##==============================================================================
+
+
+#global pidx
+global pidx = 1
+global pidl = 1
+global pidA = 1
+global thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
+
+# upploc to control processes done local to this machine and separated from other
+# highly loaded processes. upploc() should be used for dispatching short and burst
+# of high bottle neck computations. Use upp2() for general multiple dispatch.
+function upploc()
+    @warn "upploc is deprecated, use WorkerPool instead"
+    global pidl, thxl
+    N = nprocs()
+    pidl = (thxl > 1 ? ((pidl < thxl && pidl != 0 && thxl > 2) ? (pidl+1)%(thxl+1) : 2) : (N == 1 ? 1 : 2))
+    return pidl
+end
+
+# upp2() may refer to processes on a different machine. Do not associate upploc()
+# with processes on a separate computer -- this will be become more complicated when
+# remote processes desire their own short fast 'local' burst computations. We
+# don't want all the data traveling back and forth for shorter jobs
+function upp2()
+  @warn "upploc is deprecated, use WorkerPool instead"
+  global pidx, thxl
+  N = nprocs()
+  pidx = (N > 1 ? ((pidx < N && pidx != 0) ? (pidx+1)%(N+1) : thxl+1) : 1) #2 -- thxl+1
+  return pidx
+end
+
+function uppA()
+  @warn "upploc is deprecated, use WorkerPool instead"
+  global pidA
+  N = nprocs()
+  pidA = (N > 1 ? ((pidA < N && pidA != 0) ? (pidA+1)%(N+1) : 2) : 1) #2 -- thxl+1
+  return pidA
+end
+
+
+
 
 @deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
 
@@ -57,9 +85,8 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 
 
 
-## =============================================================================
-## Clique condition locks
-## =============================================================================
+# =============================================================================
+# Clique condition locks
 
 @deprecate lockUpStatus!(x...) ()->nothing
 
@@ -117,13 +144,11 @@ function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
 end
 
 
-## ============================================================================
-## .initDownChannel, MUST BE REMOVED
-## ============================================================================
+# ============================================================================
+# .initDownChannel, MUST BE REMOVED
 
-## ============================================================================
-## .downInitMsg, MUST BE REMOVED
-## ============================================================================
+# ============================================================================
+# .downInitMsg, MUST BE REMOVED
 
 
 @deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
@@ -558,6 +583,8 @@ function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::Abstra
   end
   nothing
 end
+
+
 
 
 ##==============================================================================
