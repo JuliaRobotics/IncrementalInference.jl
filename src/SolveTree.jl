@@ -173,29 +173,22 @@ function cliqGibbs( dfg::AbstractDFG,
                     logger=ConsoleLogger()  )
   #
   # several optimizations can be performed in this function TODO
-
   
   inferdim = 0.0
-  potprod = nothing
-  if true
-    pGM, inferdim = predictbelief(dfg, vsym, :, N=N, dbg=dbg, logger=logger)
-  else
-    # consolidate NBPMessages and potentials
-    dens = Array{BallTreeDensity,1}()
-    partials = Dict{Int, Vector{BallTreeDensity}}()
-    wfac = Vector{Symbol}()
-    # figure out which densities to use
-    inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-    inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
-    packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
+  # consolidate NBPMessages and potentials
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
+  wfac = Vector{Symbol}()
+  # figure out which densities to use
+  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
 
-    potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
-        # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
-    pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+  pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
 
-    if dbg  potprod.product = pGM  end
-  end
-
+  if dbg  potprod.product = pGM  end
 
   # @info " "
   return pGM, potprod, inferdim
@@ -243,23 +236,21 @@ function doFMCIteration(fgl::AbstractDFG,
                         dbg::Bool,
                         logger=ConsoleLogger()  )
   #
-# global countsolve
+  # global countsolve
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
-    # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-    densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert) |> getManifolds, logger)
-
-      # countsolve += 1
-      # saveDFG(fgl, "/tmp/fix/$(vsym)_$(countsolve)")
+    if true
+      potprod = nothing
+      densPts, inferdim = predictbelief(fgl, vsym, :, N=N, dbg=dbg, logger=logger)
+    else
+      # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
+      densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert) |> getManifolds, logger)
+    end
 
     if size(densPts,1)>0
       updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
       setValKDE!(updvert, densPts, true, inferdim)
-      # FIXME Restore debugging inside mm solve
-      # if dbg
-      #   push!(dbgvals.prods, potprod)
-      #   push!(dbgvals.lbls, Symbol(updvert.label))
-      # end
+      # TODO perhpas more debugging inside `predictbelief`?
     end
   end
   nothing
