@@ -529,31 +529,4 @@ messages(clique::TreeClique) = getCliqueData(clique).messages
 
 
 
-## ===========================================================================================
-## MUST DEPRECATE BELOW
-## ===========================================================================================
-
-
-"""
-$(TYPEDEF)
-"""
-mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
-  fg::T3
-  bt::T2
-  cliq::TreeClique
-  prnt::T
-  sendmsgs::Vector{LikelihoodMessage}
-end
-
-const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
-const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
-
-
-function ExploreTreeType( fgl::G,
-                          btl::AbstractBayesTree,
-                          vertl::TreeClique,
-                          prt::T,
-                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
-  #
-  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
-end
+#

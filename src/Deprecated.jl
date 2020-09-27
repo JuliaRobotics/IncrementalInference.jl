@@ -25,6 +25,224 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+
+export findRelatedFromPotential
+
+"""
+    $(SIGNATURES)
+
+Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
+Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
+The remaining dimensions will keep pre-existing variable values.
+
+Notes
+- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
+"""
+function findRelatedFromPotential(dfg::AbstractDFG,
+                                  fct::DFGFactor,
+                                  varid::Symbol,
+                                  N::Int,
+                                  dbg::Bool=false;
+                                  solveKey::Symbol=:default )
+  #
+  @warn("findRelatedFromPotential is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  # assuming it is properly initialized TODO
+  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
+  # determine if evaluation is "dimension-deficient"
+
+  # solvable dimension
+  inferdim = getFactorSolvableDim(dfg, fct, varid)
+  # zdim = getFactorDim(fct)
+  # vdim = getVariableDim(DFG.getVariable(dfg, varid))
+
+  # TODO -- better to upsample before the projection
+  Ndim = size(ptsbw,1)
+  Npoints = size(ptsbw,2)
+  # Assume we only have large particle population sizes, thanks to addNode!
+  manis = getManifolds(dfg, varid)
+  # manis = getSofttype(DFG.getVariable(dfg, varid)).manifolds # older
+  p = AMP.manikde!(ptsbw, manis)
+  if Npoints != N # this is where we control the overall particle set size
+      p = resample(p,N)
+  end
+  return (p, inferdim)
+end
+
+
+
+"""
+    $(SIGNATURES)
+
+Add all potentials associated with this variable in `cliq` to `dens`.
+"""
+function packFromLocalPotentials!(dfg::AbstractDFG,
+                                  dens::Vector{BallTreeDensity},
+                                  wfac::Vector{Symbol},
+                                  cliq::TreeClique,
+                                  vsym::Symbol,
+                                  N::Int,
+                                  dbg::Bool=false )
+  #
+  @warn("packFromLocalPotentials! is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  inferdim = 0.0
+  for idfct in getCliqueData(cliq).potentials
+    !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
+    fct = DFG.getFactor(dfg, idfct)
+    data = getSolverData(fct)
+    # skip partials here, will be caught in packFromLocalPartials!
+    if length( findall(getVariableOrder(fct) .== vsym) ) >= 1 && !data.fnc.partial
+    # if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+      p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
+      push!(dens, p)
+      push!(wfac, fct.label)
+      inferdim += isinferdim
+    end
+  end
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return inferdim::Float64
+end
+
+
+function packFromLocalPartials!(fgl::AbstractDFG,
+                                partials::Dict{Int, Vector{BallTreeDensity}},
+                                cliq::TreeClique,
+                                vsym::Symbol,
+                                N::Int,
+                                dbg::Bool=false  )
+  #
+  @warn("packFromLocalPartials! is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  for idfct in getCliqueData(cliq).potentials
+    !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
+    vert = DFG.getFactor(fgl, idfct)
+    data = getSolverData(vert)
+    if length( findall(getVariableOrder(vert) .== vsym) ) >= 1 && data.fnc.partial
+      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
+      pardims = data.fnc.usrfnc!.partial
+      for dimnum in pardims
+        if haskey(partials, dimnum)
+          push!(partials[dimnum], marginal(p,[dimnum]))
+        else
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+        end
+      end
+    end
+  end
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Previous generation function converting LikelihoodMessage into Vector of densities before inference product.
+
+DevNotes
+- #913 and consolidation with CSM and `csmc.cliqSubFg`
+- FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
+"""
+function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
+                                    wfac::Vector{Symbol},
+                                    vsym::Symbol,
+                                    inmsgs::Array{LikelihoodMessage,1},
+                                    manis::T )::Float64 where {T <: Tuple}
+  #
+  @warn("packFromIncomingDensities! is obsolete, use `productbelief(fg, variableSym, :)`")
+  inferdim = 0.0
+  for m in inmsgs
+    for psym in keys(m.belief)
+      if psym == vsym
+        pdi = m.belief[vsym]
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
+        push!(wfac, :msg)
+        inferdim += pdi.inferdim
+      end
+      # TODO -- we can inprove speed of search for inner loop
+    end
+  end
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return inferdim
+end
+
+
+"""
+    $(SIGNATURES)
+
+Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov
+trasit integral -- here involving separate approximate functional convolution and
+product operations.
+"""
+function cliqGibbs( dfg::AbstractDFG,
+                    cliq::TreeClique,
+                    vsym::Symbol,
+                    inmsgs::Array{LikelihoodMessage,1},
+                    N::Int,
+                    dbg::Bool,
+                    manis::Tuple,
+                    logger=ConsoleLogger()  )
+  #
+  @warn("cliqGibbs is deprecated, use productbelief(fg, variableSym, :) instead")
+  # several optimizations can be performed in this function TODO
+  
+  inferdim = 0.0
+  # consolidate NBPMessages and potentials
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
+  wfac = Vector{Symbol}()
+  # figure out which densities to use
+  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
+
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+  pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
+
+  if dbg  potprod.product = pGM  end
+
+  # @info " "
+  return pGM, potprod, inferdim
+end
+
+
+
+export FullExploreTreeType, ExploreTreeType
+
+"""
+$(TYPEDEF)
+"""
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
+  bt::T2
+  cliq::TreeClique
+  prnt::T
+  sendmsgs::Vector{LikelihoodMessage}
+end
+
+const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
+const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+
+
+function ExploreTreeType( fgl::G,
+                          btl::AbstractBayesTree,
+                          vertl::TreeClique,
+                          prt::T,
+                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+  #
+  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
+end
+
+@deprecate upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
+                                N::Int=100,
+                                dbg::Bool=false,
+                                iters::Int=3,
+                                logger=ConsoleLogger()  ) where {T, T2} upGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, dbg, iters, logger)
+
+
 export initVariable!
 
 """

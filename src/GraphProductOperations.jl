@@ -80,9 +80,6 @@ Notes
 -----
 - `d` dimensional product approximation
 - `partials` are treated as one dimensional
-
-Future
-------
 - Incorporate ApproxManifoldProducts to process variables in individual batches.
 """
 function productbelief( dfg::AbstractDFG,
