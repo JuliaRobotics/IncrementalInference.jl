@@ -174,20 +174,27 @@ function cliqGibbs( dfg::AbstractDFG,
   #
   # several optimizations can be performed in this function TODO
 
-  # consolidate NBPMessages and potentials
-  dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
-  wfac = Vector{Symbol}()
-
+  
   inferdim = 0.0
-  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
-  inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
-  packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
+  potprod = nothing
+  if true
+    pGM, inferdim = predictbelief(dfg, vsym, :, N=N, dbg=dbg, logger=logger)
+  else
+    # consolidate NBPMessages and potentials
+    dens = Array{BallTreeDensity,1}()
+    partials = Dict{Int, Vector{BallTreeDensity}}()
+    wfac = Vector{Symbol}()
+    # figure out which densities to use
+    inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+    inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
+    packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
 
-  potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
-      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
-  pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
-  if dbg  potprod.product = pGM  end
+    potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+        # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+    pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
+
+    if dbg  potprod.product = pGM  end
+  end
 
 
   # @info " "
