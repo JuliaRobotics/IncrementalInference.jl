@@ -414,11 +414,10 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
                                 iters::Int=3,
                                 drawpdf::Bool=false  )
   #
+  # use subgraph copy of factor graph for operations and transfer variables results later only
   fg_ = csmc.cliqSubFg
   tree_ = csmc.tree
   cliq = csmc.cliq
-
-  # ?? TODO use subgraph copy of factor graph for operations and transfer frontal variables only
 
   with_logger(logger) do
     @info "=== start Clique $(getLabel(cliq)) ======================"
