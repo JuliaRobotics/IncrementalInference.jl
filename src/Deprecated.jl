@@ -25,6 +25,39 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+export FullExploreTreeType, ExploreTreeType
+
+"""
+$(TYPEDEF)
+"""
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
+  bt::T2
+  cliq::TreeClique
+  prnt::T
+  sendmsgs::Vector{LikelihoodMessage}
+end
+
+const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
+const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+
+
+function ExploreTreeType( fgl::G,
+                          btl::AbstractBayesTree,
+                          vertl::TreeClique,
+                          prt::T,
+                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+  #
+  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
+end
+
+@deprecate upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
+                                N::Int=100,
+                                dbg::Bool=false,
+                                iters::Int=3,
+                                logger=ConsoleLogger()  ) where {T, T2} upGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, dbg, iters, logger)
+
+
 export initVariable!
 
 """

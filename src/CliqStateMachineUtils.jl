@@ -423,20 +423,18 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
   with_logger(logger) do
     @info "=== start Clique $(getLabel(cliq)) ======================"
   end
-  ett = FullExploreTreeType(fg_, nothing, cliq, nothing, childmsgs)
 
   if multiproc
     cliqc = deepcopy(cliq)
     btnd = getCliqueData(cliqc)
     # redirect to new unused so that CAN be serialized
     btnd.upMsgChannel = Channel{LikelihoodMessage}(1)
-    # btnd.initDownChannel = Channel{LikelihoodMessage}(1) # TODO deprecate
     btnd.dwnMsgChannel = Channel{LikelihoodMessage}(1)
     btnd.solveCondition = Condition()
-    ett.cliq = cliqc
-    # TODO create new dedicate file for separate process to log with
+    # ett.cliq = cliqc
+    # TODO create new dedicated file for separate process to log with
     try
-      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), ett, N, dbg, iters)
+      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), fg_, cliqc, childmsgs, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
@@ -452,7 +450,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.index)"
     end
-    retdict = upGibbsCliqueDensity(ett, N, dbg, iters, logger)
+    retdict = upGibbsCliqueDensity(fg_, cliq, childmsgs, N, dbg, iters, logger)
   end
 
   with_logger(logger) do
