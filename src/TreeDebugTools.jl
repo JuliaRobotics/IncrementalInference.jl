@@ -70,8 +70,10 @@ function treeProductUp(fg::AbstractDFG,
   upmsgssym = getMsgsUpChildren(tree, cliq, TreeBelief)
 
   # perform the actual computation
-  manis = getSofttype(getVariable(fg, sym)) |> getManifolds
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
+  potprod = nothing
+  pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg )
+  # manis = getSofttype(getVariable(fg, sym)) |> getManifolds
+  # pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
 end
@@ -109,7 +111,9 @@ function treeProductDwn(fg::G,
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 
   # perform the actual computation
-  pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, dwnmsgssym, N, dbg ) #vertid
+  potprod = nothing
+  pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg)
+  # pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, dwnmsgssym, N, dbg ) #vertid
 
   return pGM, potprod, sym, dwnmsgssym
 end
