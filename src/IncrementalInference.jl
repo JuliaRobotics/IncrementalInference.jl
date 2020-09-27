@@ -351,7 +351,6 @@ export *,
   MultiThreaded,
 
   # Solving utils
-  findRelatedFromPotential,
   shuffleXAltD!,
   numericRoot,
   numericRootGenericRandomizedFnc!,

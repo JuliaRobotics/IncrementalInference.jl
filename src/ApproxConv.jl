@@ -443,44 +443,6 @@ end
 
 
 
-"""
-    $(SIGNATURES)
-
-Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
-Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
-The remaining dimensions will keep pre-existing variable values.
-
-Notes
-- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
-"""
-function findRelatedFromPotential(dfg::AbstractDFG,
-                                  fct::DFGFactor,
-                                  varid::Symbol,
-                                  N::Int,
-                                  dbg::Bool=false;
-                                  solveKey::Symbol=:default )
-  # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
-  # determine if evaluation is "dimension-deficient"
-
-  # solvable dimension
-  inferdim = getFactorSolvableDim(dfg, fct, varid)
-  # zdim = getFactorDim(fct)
-  # vdim = getVariableDim(DFG.getVariable(dfg, varid))
-
-  # TODO -- better to upsample before the projection
-  Ndim = size(ptsbw,1)
-  Npoints = size(ptsbw,2)
-  # Assume we only have large particle population sizes, thanks to addNode!
-  manis = getManifolds(dfg, varid)
-  # manis = getSofttype(DFG.getVariable(dfg, varid)).manifolds # older
-  p = AMP.manikde!(ptsbw, manis)
-  if Npoints != N # this is where we control the overall particle set size
-      p = resample(p,N)
-  end
-  return (p, inferdim)::Tuple{BallTreeDensity,Float64}
-end
-
 
 
 

@@ -1,5 +1,6 @@
 
 # starting to add exports here
+export findRelatedFromPotential
 
 
 global WORKERPOOL = WorkerPool()
@@ -19,37 +20,47 @@ function getWorkerPool()
   return WORKERPOOL
 end
 
-"""
-    $SIGNATURES
 
-Previous generation function converting LikelihoodMessage into densities before inference product.
-
-DevNotes
-- #913 and consolidation with CSM and `csmc.cliqSubFg`
-- FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
 """
-function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
-                                    wfac::Vector{Symbol},
-                                    vsym::Symbol,
-                                    inmsgs::Array{LikelihoodMessage,1},
-                                    manis::T )::Float64 where {T <: Tuple}
+    $(SIGNATURES)
+
+Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
+Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
+The remaining dimensions will keep pre-existing variable values.
+
+Notes
+- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
+"""
+function findRelatedFromPotential(dfg::AbstractDFG,
+                                  fct::DFGFactor,
+                                  varid::Symbol,
+                                  N::Int,
+                                  dbg::Bool=false;
+                                  solveKey::Symbol=:default )
   #
-  inferdim = 0.0
-  for m in inmsgs
-    for psym in keys(m.belief)
-      if psym == vsym
-        pdi = m.belief[vsym]
-        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
-        push!(wfac, :msg)
-        inferdim += pdi.inferdim
-      end
-      # TODO -- we can inprove speed of search for inner loop
-    end
-  end
+  # assuming it is properly initialized TODO
+  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
+  # determine if evaluation is "dimension-deficient"
 
-  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
-  return inferdim
+  # solvable dimension
+  inferdim = getFactorSolvableDim(dfg, fct, varid)
+  # zdim = getFactorDim(fct)
+  # vdim = getVariableDim(DFG.getVariable(dfg, varid))
+
+  # TODO -- better to upsample before the projection
+  Ndim = size(ptsbw,1)
+  Npoints = size(ptsbw,2)
+  # Assume we only have large particle population sizes, thanks to addNode!
+  manis = getManifolds(dfg, varid)
+  # manis = getSofttype(DFG.getVariable(dfg, varid)).manifolds # older
+  p = AMP.manikde!(ptsbw, manis)
+  if Npoints != N # this is where we control the overall particle set size
+      p = resample(p,N)
+  end
+  return (p, inferdim)
 end
+
+
 
 """
     $(SIGNATURES)
@@ -112,6 +123,38 @@ function packFromLocalPartials!(fgl::AbstractDFG,
 end
 
 
+"""
+    $SIGNATURES
+
+Previous generation function converting LikelihoodMessage into densities before inference product.
+
+DevNotes
+- #913 and consolidation with CSM and `csmc.cliqSubFg`
+- FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
+"""
+function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
+                                    wfac::Vector{Symbol},
+                                    vsym::Symbol,
+                                    inmsgs::Array{LikelihoodMessage,1},
+                                    manis::T )::Float64 where {T <: Tuple}
+  #
+  inferdim = 0.0
+  for m in inmsgs
+    for psym in keys(m.belief)
+      if psym == vsym
+        pdi = m.belief[vsym]
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
+        push!(wfac, :msg)
+        inferdim += pdi.inferdim
+      end
+      # TODO -- we can inprove speed of search for inner loop
+    end
+  end
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return inferdim
+end
+
 
 """
     $(SIGNATURES)
@@ -151,6 +194,13 @@ function cliqGibbs( dfg::AbstractDFG,
   return pGM, potprod, inferdim
 end
 
+
+
+## =============================================================================================
+# Iterate over variables in clique
+## =============================================================================================
+
+
 """
     $SIGNATURES
 
@@ -176,7 +226,7 @@ function compileFMCMessages(fgl::AbstractDFG,
   return d
 end
 
-# global countsolve = 0
+
 
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
@@ -254,6 +304,13 @@ function fmcmc!(fgl::AbstractDFG,
 end
 
 
+
+## =============================================================================================
+# Up solve
+## =============================================================================================
+
+
+
 """
     $(SIGNATURES)
 
@@ -324,6 +381,10 @@ function upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
 end
 
 
+
+## =============================================================================================
+# Down solve
+## =============================================================================================
 
 
 """
