@@ -1,6 +1,5 @@
 
 # starting to add exports here
-export findRelatedFromPotential
 
 
 global WORKERPOOL = WorkerPool()
