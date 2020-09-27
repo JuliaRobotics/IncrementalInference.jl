@@ -22,7 +22,8 @@ end
 
 msg = getMsgUpThis(tree.cliques[2])
 
-tfg = addLikelihoodsDifferential!(msg)
+tfg = buildCliqSubgraph(fg, tree.cliques[2])
+addLikelihoodsDifferential!(tfg, msg)
 
 # drawGraph(tfg, show=true)
 

@@ -144,15 +144,16 @@ DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
 function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
-                                            tfg::AbstractDFG=initfg() )
+                                     tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   listVarByDim = Symbol[]
   for (label, val) in msgs.belief
     push!(listVarByDim, label)
     if !exists(tfg, label)
       addVariable!(tfg, label, val.softtype)
-      initManual!(tfg, label, manikde!(val))
+      @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
     end
+    initManual!(tfg, label, manikde!(val))
   end
 
   # list all variables in order of dimension size
