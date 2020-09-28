@@ -39,7 +39,6 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
                                         recordhistory::Bool=false,
                                         delay::Bool=false,
                                         injectDelayBefore::Union{Nothing,Pair{<:Function, <:Real}}=nothing,
-                                        store_in_task::Bool=false,
                                         logger::SimpleLogger=SimpleLogger(Base.stdout)) where {G <: AbstractDFG, AL <: AbstractLogger}
   #
   children = getChildren(tree, cliq)#Graphs.out_neighbors(cliq, tree.bt)
@@ -57,7 +56,7 @@ function cliqInitSolveUpByStateMachine!(dfg::G,
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
 
   # store statemachine and csmc in task
-  if store_in_task
+  if dfg.solverParams.dbg || recordhistory
     task_local_storage(:statemachine, statemachine)
     task_local_storage(:csmc, csmc)
   end
@@ -207,6 +206,8 @@ function fetchCliqHistoryAll!(smt::Vector{Task},
     if sm.state == :done
       haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
+    elseif haskey(sm.storage, :statemachine)
+      hist[i] = sm.storage[:statemachine].history
     end
   end
   hist
