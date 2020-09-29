@@ -206,7 +206,7 @@ function fetchCliqHistoryAll!(smt::Vector{Task},
     if sm.state == :done
       haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
-    elseif haskey(sm.storage, :statemachine)
+    elseif !isnothing(sm.storage) && haskey(sm.storage, :statemachine)
       hist[i] = sm.storage[:statemachine].history
     end
   end
