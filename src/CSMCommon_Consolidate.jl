@@ -1,6 +1,7 @@
 
 
 
+
 """
     $SIGNATURES
 
@@ -24,6 +25,103 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
 end
 
 
+## ==================================================================================================================='
+# Common nonparametric and parametric CSM functions
+## ==================================================================================================================='
+
+
+
+"""
+    $SIGNATURES
+
+One of the last steps in CSM to clean up after a down solve.
+
+Notes
+- CSM function 11b.
+"""
+function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  # RECENT split from 11 (using #760 solution for deleteMsgFactors)
+  opts = getSolverParams(csmc.cliqSubFg)
+
+  # set PPE and solved for all frontals
+  for sym in getCliqFrontalVarIds(csmc.cliq)
+    # set PPE in cliqSubFg
+    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+    # set solved flag
+    vari = getVariable(csmc.cliqSubFg, sym)
+    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+  end
+
+  # store the cliqSubFg for later debugging
+  if opts.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve.pdf"))
+  end
+
+  # transfer results to main factor graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
+
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
+  notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
+
+  # remove msg factors that were added to the subfg
+  rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(rmFcts))")
+  deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
+
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
+  # and finished
+  return IncrementalInference.exitStateMachine
+end
+
+
+
+"""
+$SIGNATURES
+
+Root clique upsolve and downsolve are equivalent, so skip a repeat downsolve, just set messages and just exit directly.
+
+Notes
+- State machine function nr. 10b
+- Separate out during #459 dwnMsg consolidation.
+
+DevNotes
+- TODO should this consolidate some work with 11b?
+"""
+function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  # this is the root clique, so assume already downsolved -- only special case
+  dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
+  setCliqDrawColor(csmc.cliq, "lightblue")
+
+  # this part looks like a pull model
+  # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
+  putMsgDwnThis!(csmc.cliq.data, dwnmsgs) # , from=:putMsgDwnThis!  putCliqueMsgDown!
+  setCliqueStatus!(csmc.cliq, :downsolved)
+  csmc.dodownsolve = false
+
+  # Update estimates and transfer back to the graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  # set PPE and solved for all frontals
+  for sym in frsyms
+    # set PPE in cliqSubFg
+    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+    # set solved flag
+    vari = getVariable(csmc.cliqSubFg, sym)
+    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+  end
+  # Transfer to parent graph
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, updatePPE=true)
+
+  prepPutCliqueStatusMsgDwn!(csmc, :downsolved)
+  # notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
+
+  # bye
+  return IncrementalInference.exitStateMachine
+end
+
 
 """
 $SIGNATURES
@@ -35,18 +133,18 @@ Notes
 """
 function canCliqMargSkipUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
-cliqst = getCliqueStatus(csmc.oldcliqdata)
-infocsm(csmc, "4, canCliqMargSkipUpSolve_StateMachine, $cliqst, csmc.incremental=$(csmc.incremental)")
+  cliqst = getCliqueStatus(csmc.oldcliqdata)
+  infocsm(csmc, "4, canCliqMargSkipUpSolve_StateMachine, $cliqst, csmc.incremental=$(csmc.incremental)")
 
-# if clique is out-marginalized, then no reason to continue with upsolve
-# marginalized state is set in `canCliqMargRecycle_StateMachine`
-if cliqst == :marginalized
-# go to 10 -- Add case for IIF issue #474
-return canCliqDownSolve_StateMachine
-end
+  # if clique is out-marginalized, then no reason to continue with upsolve
+  # marginalized state is set in `canCliqMargRecycle_StateMachine`
+  if cliqst == :marginalized
+    # go to 10 -- Add case for IIF issue #474
+    return canCliqDownSolve_StateMachine
+  end
 
-# go to 4e
-return blockUntilChildrenHaveStatus_StateMachine
+  # go to 4e
+  return blockUntilChildrenHaveStatus_StateMachine
 end
 
 
