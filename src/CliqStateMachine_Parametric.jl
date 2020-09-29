@@ -81,15 +81,14 @@ end
 
 Notes
 - Parametric state machine function nr. 2
+- `take!` model #855
 """
 function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-2, wait for up messages of needed")
 
   setCliqDrawColor(csmc.cliq, "purple") #TODO don't know if this is correct color
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-  childrenOk = true
   # JT empty upRx buffer to save messages, TODO It may be ok not to empty 
   beliefMessages = empty!(messages(csmc.cliq).upRx)
 
@@ -98,50 +97,50 @@ function waitForUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @async begin
       thisEdge = isa(e,Graphs.Edge) ? e.index : e
       @info "$(csmc.cliq.index): take! on edge $thisEdge"
-      # Blocks until data is available. -- pull model #674
+      # Blocks until data is available. -- take! model
       beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
       beliefMessages[thisEdge] = beliefMsg
       @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
     end
   end
 
-  # FIXME lets consolidate messages to just one Channel location on edges/clique?
-  # JT see #855
-  for (idx,beliefMsg) in beliefMessages
-    #save up message (and add priors to cliqSubFg)
-    #choose csmc for dbg messages, it's a vector, one per clique
-    if beliefMsg.status == :UPSOLVED
-      # nothing to do here, copied directly into buffer
-      # TODO Consider adding message factors here 
+  # get all statuses from messages
+  all_child_status = map(msg -> msg.status, values(beliefMessages))
 
-      # prepPutCliqueStatusMsgUp!( csmc, beliefMsg.status, upmsg=beliefMsg )
-      # putMsgUpThis!(csmc.cliq, beliefMsg) # NOTE replaced #459
-    else
+  # Main Branching happens here - all up messages received
 
-      setCliqDrawColor(csmc.cliq, "red")
+  # If one up error is received propagate ERROR_STATUS 
+  if :ERROR_STATUS in all_child_status
 
-      for e in getEdgesParent(csmc.tree, csmc.cliq)
-        @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-      end
-      #if its a root, propagate error down
-      #FIXME rather check if no parents with function (hasParents or isRoot)
-      if length(getParent(csmc.tree, csmc.cliq)) == 0
-        @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-          @info "Par-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-          @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-        end
-        @error "Par-2 $(csmc.cliq.index): Exit with error state"
-        return IncrementalInference.exitStateMachine
-      end
-      childrenOk = false
+    setCliqDrawColor(csmc.cliq, "red")
+
+    for e in getEdgesParent(csmc.tree, csmc.cliq)
+      @info "Par-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+      putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
     end
-  end
-  # if errored
-  !childrenOk && (return waitForDown_ParametricStateMachine)
+    #if its a root, propagate error down
+    #FIXME rather check if no parents with function (hasParents or isRoot)
+    if length(getParent(csmc.tree, csmc.cliq)) == 0
+      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+        @info "Par-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
+        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+      end
+      @error "Par-2 $(csmc.cliq.index): Exit with error state"
+      return IncrementalInference.exitStateMachine
+    end
+    return waitForDown_X_StateMachine
 
-  # continue to solve
-  return solveUp_ParametricStateMachine
+  # just guessing some other states here as an example
+  # elseif :UP_INITIALIZED in all_child_status
+  #   return ...
+  
+  elseif all(all_child_status .== :UPSOLVED)
+    return solveUp_ParametricStateMachine
+
+  else
+    error("waitForUp State Error: Unknown transision.")
+  end
+  
 end
 
 # Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
@@ -275,10 +274,8 @@ Notes
 """
 function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
-  infocsm(csmc, "Par-4, wait for down messages of needed")
-
+  infocsm(csmc, "Par-4, wait for down messages if needed")
   setCliqDrawColor(csmc.cliq, "turquoise")
-  # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     @info "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)"
@@ -286,17 +283,16 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messages[e.index].downMsg)
     @info "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"
 
-    # save DOWNSOLVED incoming message for use and debugging
+    # logCSM(csmc, "Par-4 down msg"; beliefMsg)
+    @debug "Par-4 down msg" beliefMsg
+    # save down incoming message for use and debugging
     messages(csmc.cliq).downRx = beliefMsg
+  
+    # Down branching on message happens here
+    
+    # ERROR_STATUS
+    if beliefMsg.status == :ERROR_STATUS
 
-    #save down messages in msgsDown
-    if beliefMsg.status == :DOWNSOLVED
-      # nothing to do here
-
-      # putMsgDwnThis!(csmc, beliefMsg)
-      # csmc.msgsDown = beliefMsg
-      # push!(csmc.msgsDown, beliefMsg)
-    else
       setCliqDrawColor(csmc.cliq, "red")
       # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
@@ -306,10 +302,18 @@ function waitForDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       end
       @error "Par-4, $(csmc.cliq.index): Exit with error state"
       return IncrementalInference.exitStateMachine
+    
+    elseif beliefMsg.status == :DOWNSOLVED 
+      return solveDown_ParametricStateMachine
+    else
+      error("waitForDown State Error: Unknown/unimplemented transision.")
     end
   end
 
+  # The clique is a root
+  # root clique down branching happens here
   return solveDown_ParametricStateMachine
+
 end
 
 
