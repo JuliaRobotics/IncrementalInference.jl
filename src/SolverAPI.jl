@@ -561,11 +561,12 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
                               recordcliqs::Vector{Symbol}=Symbol[],
                               skipcliqids::Vector{Symbol}=Symbol[],
                               maxparallel::Union{Nothing, Int}=nothing,
-                              multithread=false  )
+                              multithread=false,
+                              smtasks=Vector{Task}()  )
   #
   @error "Under development, do not use, see #539"
   @info "Solving over the Bayes (Junction) tree."
-  smtasks=Vector{Task}()
+  
   hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   opt = DFG.getSolverParams(dfgl)
 
@@ -589,7 +590,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
 
   @info "Do tree based init-inference"
   # if opt.async
-  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
+  alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
 
   if opt.async && opt.drawtree
     @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
@@ -600,7 +601,7 @@ function solveTreeParametric!(dfgl::DFG.AbstractDFG,
 
   @info "Finished tree based Parametric inference"
 
-  return tree, smtasks, hist
+  return tree, alltasks, hist
 end
 
 
