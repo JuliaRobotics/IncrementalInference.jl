@@ -1,6 +1,5 @@
 
 export MixtureRelative, PackedMixtureRelative
-export MixtureLinearConditional, PackedMixtureLinearConditional
 
 
 """
@@ -61,29 +60,22 @@ end
 
 
 
-function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
-  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
-  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
-end
 
 
 
 """
 $(TYPEDEF)
 
-Serialization type for `MixtureLinearConditional`.
+Serialization type for `MixtureRelative`.
 """
 mutable struct PackedMixtureRelative <: PackedInferenceType
   N::Int
-  F_::String # store the packed type for later unpacking
+  # store the packed type for later unpacking
+  F_::String 
   S::Vector{String}
-  # T::String
-  # mechanics::T
   components::Vector{String}
   diversity::String
 end
-# PackedMixtureRelative() = new()
-# PackedMixtureRelative(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
 
 function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative{N,F,S,T}) where {N,F,S,T}
   allcomp = String[]

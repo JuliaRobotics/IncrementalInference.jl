@@ -35,7 +35,7 @@ end
 
 
 #
-@testset "test simple MixtureLinearConditional" begin
+@testset "test simple MixtureRelative" begin
 
 fg = initfg()
 
@@ -53,7 +53,7 @@ umlr = convert(MixtureRelative, pmlr)
 @test mlr.components == umlr.components
 @test mlr.diversity == umlr.diversity
 
-mlr = MixtureLinearConditional([Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = MixtureRelative(LinearRelative, [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 addFactor!(fg, [:x0,:x1], mlr)
 

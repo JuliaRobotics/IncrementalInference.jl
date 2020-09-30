@@ -21,10 +21,10 @@ function _evalType(pt::String)::Type
 end
 
 
-##==============================================================================
-## Delete at end v0.16.x
-##==============================================================================
 
+##==============================================================================
+## Cannot delete until GraphProductOperations usage of this function updated
+##==============================================================================
 
 export findRelatedFromPotential
 
@@ -69,6 +69,18 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   return (p, inferdim)
 end
 
+
+
+##==============================================================================
+## Delete at end v0.16.x
+##==============================================================================
+
+export MixtureLinearConditional
+
+function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
+  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
+  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
+end
 
 
 """
