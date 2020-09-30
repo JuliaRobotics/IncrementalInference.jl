@@ -191,7 +191,6 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliq::TreeClique
   parentCliq::Vector{TreeClique}
   childCliqs::Vector{TreeClique}
-  forceproceed::Bool # TODO: bad flag that must be removed by refactoring sm
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
@@ -217,7 +216,6 @@ function CliqStateMachineContainer( dfg::G,
                                     cliq::TreeClique,
                                     parentCliq::Vector{TreeClique},
                                     childCliqs::Vector{TreeClique},
-                                    forceproceed::Bool,
                                     incremental::Bool,
                                     drawtree::Bool,
                                     dodownsolve::Bool,
@@ -234,7 +232,6 @@ function CliqStateMachineContainer( dfg::G,
                                             cliq,
                                             parentCliq,
                                             childCliqs,
-                                            forceproceed,
                                             incremental,
                                             drawtree,
                                             dodownsolve,
@@ -273,7 +270,6 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
   for i in 1:length(cs1.childCliqs)
     TP = TP && compare(cs1.childCliqs[i],  cs2.childCliqs[i])
   end
-  TP = TP && compare(cs1.forceproceed,  cs2.forceproceed)
   TP = TP && compare(cs1.incremental,  cs2.incremental)
   TP = TP && compare(cs1.drawtree,  cs2.drawtree)
   TP = TP && compare(cs1.dodownsolve,  cs2.dodownsolve)
@@ -517,31 +513,20 @@ end
 
 
 
-## ===========================================================================================
-## MUST DEPRECATE BELOW
-## ===========================================================================================
+
+##==============================================================================
+## Must consolideate tree message
+##==============================================================================
 
 
-"""
-$(TYPEDEF)
-"""
-mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
-  fg::T3
-  bt::T2
-  cliq::TreeClique
-  prnt::T
-  sendmsgs::Vector{LikelihoodMessage}
+function messages(btnd::BayesTreeNodeData)
+  @warn("btnd.messages will be deprecated")
+  btnd.messages
 end
 
-const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
-const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+messages(clique::TreeClique) = getCliqueData(clique).messages
 
 
-function ExploreTreeType( fgl::G,
-                          btl::AbstractBayesTree,
-                          vertl::TreeClique,
-                          prt::T,
-                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
-  #
-  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
-end
+
+
+#

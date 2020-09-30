@@ -58,7 +58,7 @@ amd_tree_cost02 = getTreeCost_02(amd_tree)
 
 # Get CCOLAMD variable ordering. First bring in CCOLAMD.
 include(normpath(Base.find_package("IncrementalInference"), "..", "ccolamd.jl"))
-A, varsym, fctsym = getAdjacencyMatrixSparse(fg)
+A, varsym, fctsym = getBiadjacencyMatrix(fg)
 colamd_ordering = varsym[Ccolamd.ccolamd(A)]
 colamd_tree = resetBuildTreeFromOrder!(deepcopy(fg), colamd_ordering)
 colamd_tree_nnz = nnzTree(colamd_tree)

@@ -86,7 +86,7 @@ vo = getEliminationOrder(fg)
 tree1 = resetBuildTreeFromOrder!(fg, vo)
 # drawTree(tree1, show=true)
 
-tree2 = wipeBuildNewTree!(fg)
+tree2 = resetBuildTree!(fg)
 # drawTree(tree2, show=true)
 
 @test getEliminationOrder(tree1) == getEliminationOrder(tree1)

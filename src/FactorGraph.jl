@@ -880,7 +880,7 @@ function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothin
 end
 function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
   @info "initManual! $sym"
-  pts = predictbelief(dfg, sym, usefcts)
+  pts = predictbelief(dfg, sym, usefcts)[1]
   vert = getVariable(dfg, sym)
   Xpre = AMP.manikde!(pts, getSofttype(vert) |> getManifolds )
   setValKDE!(vert, Xpre, true)

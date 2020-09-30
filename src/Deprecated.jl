@@ -1,5 +1,4 @@
 
-
 ##==============================================================================
 ## LEGACY SUPPORT FOR ZMQ IN CAESAR
 ##==============================================================================
@@ -22,28 +21,322 @@ function _evalType(pt::String)::Type
 end
 
 
+
 ##==============================================================================
-## Delete when tree message consolidation is complete
+## Cannot delete until GraphProductOperations usage of this function updated
 ##==============================================================================
 
+export findRelatedFromPotential
 
-function messages(btnd::BayesTreeNodeData)
-  @warn("btnd.messages will be deprecated")
-  btnd.messages
+"""
+    $(SIGNATURES)
+
+Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
+Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
+The remaining dimensions will keep pre-existing variable values.
+
+Notes
+- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
+"""
+function findRelatedFromPotential(dfg::AbstractDFG,
+                                  fct::DFGFactor,
+                                  varid::Symbol,
+                                  N::Int,
+                                  dbg::Bool=false;
+                                  solveKey::Symbol=:default )
+  #
+  @warn("findRelatedFromPotential is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  # assuming it is properly initialized TODO
+  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
+  # determine if evaluation is "dimension-deficient"
+
+  # solvable dimension
+  inferdim = getFactorSolvableDim(dfg, fct, varid)
+  # zdim = getFactorDim(fct)
+  # vdim = getVariableDim(DFG.getVariable(dfg, varid))
+
+  # TODO -- better to upsample before the projection
+  Ndim = size(ptsbw,1)
+  Npoints = size(ptsbw,2)
+  # Assume we only have large particle population sizes, thanks to addNode!
+  manis = getManifolds(dfg, varid)
+  # manis = getSofttype(DFG.getVariable(dfg, varid)).manifolds # older
+  p = AMP.manikde!(ptsbw, manis)
+  if Npoints != N # this is where we control the overall particle set size
+      p = resample(p,N)
+  end
+  return (p, inferdim)
 end
 
-messages(clique::TreeClique) = getCliqueData(clique).messages
 
 
 ##==============================================================================
 ## Delete at end v0.16.x
 ##==============================================================================
 
+export MixtureLinearConditional
+
+function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
+  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
+  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
+end
 
 
-## =============================================================================
-## Clique condition locks
-## =============================================================================
+"""
+    $(SIGNATURES)
+
+Add all potentials associated with this variable in `cliq` to `dens`.
+"""
+function packFromLocalPotentials!(dfg::AbstractDFG,
+                                  dens::Vector{BallTreeDensity},
+                                  wfac::Vector{Symbol},
+                                  cliq::TreeClique,
+                                  vsym::Symbol,
+                                  N::Int,
+                                  dbg::Bool=false )
+  #
+  @warn("packFromLocalPotentials! is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  inferdim = 0.0
+  for idfct in getCliqueData(cliq).potentials
+    !(exists(dfg, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
+    fct = DFG.getFactor(dfg, idfct)
+    data = getSolverData(fct)
+    # skip partials here, will be caught in packFromLocalPartials!
+    if length( findall(getVariableOrder(fct) .== vsym) ) >= 1 && !data.fnc.partial
+    # if length( findall(data.fncargvID .== vsym) ) >= 1 && !data.fnc.partial
+      p, isinferdim = findRelatedFromPotential(dfg, fct, vsym, N, dbg )
+      push!(dens, p)
+      push!(wfac, fct.label)
+      inferdim += isinferdim
+    end
+  end
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return inferdim::Float64
+end
+
+
+function packFromLocalPartials!(fgl::AbstractDFG,
+                                partials::Dict{Int, Vector{BallTreeDensity}},
+                                cliq::TreeClique,
+                                vsym::Symbol,
+                                N::Int,
+                                dbg::Bool=false  )
+  #
+  @warn("packFromLocalPartials! is obsolete, use `productbelief(fg, variableSym, :)`")
+
+  for idfct in getCliqueData(cliq).potentials
+    !(exists(fgl, idfct)) && (@warn "$idfct not in clique $(cliq.index)" continue)
+    vert = DFG.getFactor(fgl, idfct)
+    data = getSolverData(vert)
+    if length( findall(getVariableOrder(vert) .== vsym) ) >= 1 && data.fnc.partial
+      p, = findRelatedFromPotential(fgl, vert, vsym, N, dbg)
+      pardims = data.fnc.usrfnc!.partial
+      for dimnum in pardims
+        if haskey(partials, dimnum)
+          push!(partials[dimnum], marginal(p,[dimnum]))
+        else
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+        end
+      end
+    end
+  end
+  nothing
+end
+
+
+"""
+    $SIGNATURES
+
+Previous generation function converting LikelihoodMessage into Vector of densities before inference product.
+
+DevNotes
+- #913 and consolidation with CSM and `csmc.cliqSubFg`
+- FIXME FIXME make sure this is using the proper densities/potentials/likelihoods/factors stored in `csmc.cliqSubFg`.
+"""
+function packFromIncomingDensities!(dens::Vector{BallTreeDensity},
+                                    wfac::Vector{Symbol},
+                                    vsym::Symbol,
+                                    inmsgs::Array{LikelihoodMessage,1},
+                                    manis::T )::Float64 where {T <: Tuple}
+  #
+  @warn("packFromIncomingDensities! is obsolete, use `productbelief(fg, variableSym, :)`")
+  inferdim = 0.0
+  for m in inmsgs
+    for psym in keys(m.belief)
+      if psym == vsym
+        pdi = m.belief[vsym]
+        push!(dens, manikde!(pdi.val, pdi.bw[:,1], getManifolds(pdi)) )
+        push!(wfac, :msg)
+        inferdim += pdi.inferdim
+      end
+      # TODO -- we can inprove speed of search for inner loop
+    end
+  end
+
+  # return true if at least one of the densities was full dimensional (used for tree based initialization logic)
+  return inferdim
+end
+
+
+"""
+    $(SIGNATURES)
+
+Perform one step of the minibatch clique Gibbs operation for solving the Chapman-Kolmogov
+trasit integral -- here involving separate approximate functional convolution and
+product operations.
+"""
+function cliqGibbs( dfg::AbstractDFG,
+                    cliq::TreeClique,
+                    vsym::Symbol,
+                    inmsgs::Array{LikelihoodMessage,1},
+                    N::Int,
+                    dbg::Bool,
+                    manis::Tuple,
+                    logger=ConsoleLogger()  )
+  #
+  @warn("cliqGibbs is deprecated, use productbelief(fg, variableSym, :) instead")
+  # several optimizations can be performed in this function TODO
+  
+  inferdim = 0.0
+  # consolidate NBPMessages and potentials
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
+  wfac = Vector{Symbol}()
+  # figure out which densities to use
+  inferdim += packFromIncomingDensities!(dens, wfac, vsym, inmsgs, manis)
+  inferdim += packFromLocalPotentials!(dfg, dens, wfac, cliq, vsym, N)
+  packFromLocalPartials!(dfg, partials, cliq, vsym, N, dbg)
+
+  potprod = !dbg ? nothing : PotProd(vsym, getVal(dfg,vsym), Array{Float64,2}(undef, 0,0), dens, wfac)
+      # pts,inferdim = predictbelief(dfg, vsym, useinitfct)  # for reference only
+  pGM = productbelief(dfg, vsym, dens, partials, N, dbg=dbg, logger=logger )
+
+  if dbg  potprod.product = pGM  end
+
+  # @info " "
+  return pGM, potprod, inferdim
+end
+
+
+
+export FullExploreTreeType, ExploreTreeType
+
+"""
+$(TYPEDEF)
+"""
+mutable struct FullExploreTreeType{T, T2, T3 <:InMemoryDFGTypes}
+  fg::T3
+  bt::T2
+  cliq::TreeClique
+  prnt::T
+  sendmsgs::Vector{LikelihoodMessage}
+end
+
+const ExploreTreeType{T} = FullExploreTreeType{T, BayesTree}
+const ExploreTreeTypeLight{T} = FullExploreTreeType{T, Nothing}
+
+
+function ExploreTreeType( fgl::G,
+                          btl::AbstractBayesTree,
+                          vertl::TreeClique,
+                          prt::T,
+                          msgs::Array{LikelihoodMessage,1} ) where {G <: AbstractDFG, T}
+  #
+  ExploreTreeType{T}(fgl, btl, vertl, prt, msgs)
+end
+
+@deprecate upGibbsCliqueDensity(inp::FullExploreTreeType{T,T2},
+                                N::Int=100,
+                                dbg::Bool=false,
+                                iters::Int=3,
+                                logger=ConsoleLogger()  ) where {T, T2} upGibbsCliqueDensity(inp.fg, inp.cliq, inp.sendmsgs, N, dbg, iters, logger)
+
+
+export initVariable!
+
+"""
+    $(SIGNATURES)
+
+Initialize the belief of a variable node in the factor graph struct.
+"""
+function initVariable!(fgl::AbstractDFG,
+                        sym::Symbol;
+                        N::Int=100  )
+  #
+  @warn "initVariable! has been displaced by doautoinit! or initManual! -- might be revived in the future"
+
+  vert = getVariable(fgl, sym)
+  belief,b,c,d,infdim  = localProduct(fgl, sym, N=N)
+  setValKDE!(vert, belief)
+
+  nothing
+end
+
+
+#global pidx
+global pidx = 1
+global pidl = 1
+global pidA = 1
+global thxl = nprocs() > 4 ? floor(Int,nprocs()*0.333333333) : 1
+
+# upploc to control processes done local to this machine and separated from other
+# highly loaded processes. upploc() should be used for dispatching short and burst
+# of high bottle neck computations. Use upp2() for general multiple dispatch.
+function upploc()
+    @warn "upploc is deprecated, use WorkerPool instead"
+    global pidl, thxl
+    N = nprocs()
+    pidl = (thxl > 1 ? ((pidl < thxl && pidl != 0 && thxl > 2) ? (pidl+1)%(thxl+1) : 2) : (N == 1 ? 1 : 2))
+    return pidl
+end
+
+# upp2() may refer to processes on a different machine. Do not associate upploc()
+# with processes on a separate computer -- this will be become more complicated when
+# remote processes desire their own short fast 'local' burst computations. We
+# don't want all the data traveling back and forth for shorter jobs
+function upp2()
+  @warn "upploc is deprecated, use WorkerPool instead"
+  global pidx, thxl
+  N = nprocs()
+  pidx = (N > 1 ? ((pidx < N && pidx != 0) ? (pidx+1)%(N+1) : thxl+1) : 1) #2 -- thxl+1
+  return pidx
+end
+
+function uppA()
+  @warn "upploc is deprecated, use WorkerPool instead"
+  global pidA
+  N = nprocs()
+  pidA = (N > 1 ? ((pidA < N && pidA != 0) ? (pidA+1)%(N+1) : 2) : 1) #2 -- thxl+1
+  return pidA
+end
+
+
+
+
+@deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
+
+# getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
+
+@deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
+
+@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
+# @deprecate LinearConditional(x::SamplableBelief) LinearRelative(x)
+@deprecate LinearConditional(x...) LinearRelative(x...)
+
+# function LinearConditional{N, T}(x...) where {N,T}
+#   @warn("LinearConditional{N, T} is deprecated, use LinearRelative instead")
+#   LinearRelative{N,T}(x...)
+# end
+
+@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
+
+
+
+# =============================================================================
+# Clique condition locks
 
 @deprecate lockUpStatus!(x...) ()->nothing
 
@@ -101,13 +394,11 @@ function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
 end
 
 
-## ============================================================================
-## .initDownChannel, MUST BE REMOVED
-## ============================================================================
+# ============================================================================
+# .initDownChannel, MUST BE REMOVED
 
-## ============================================================================
-## .downInitMsg, MUST BE REMOVED
-## ============================================================================
+# ============================================================================
+# .downInitMsg, MUST BE REMOVED
 
 
 @deprecate putMsgDwnInitChannel!(btnd::BayesTreeNodeData, msg::LikelihoodMessage) putDwnMsgConsolidated!(btnd, msg)
@@ -294,49 +585,49 @@ end
 # future, be used in a cached system with parent in one location only for all siblings
 # this function rebuilds a local subgraph from dfg and performs the calculations of the parent here and does not wait on the CSM to perform anything.
 # 4-stroke compute may render this whole function obsolete.
-function condenseDownMsgsProductPrntFactors!(fgl::AbstractDFG,
-  products::LikelihoodMessage,
-  msgspervar::Dict{Symbol, <:AbstractVector},
-  prnt::TreeClique,
-  cliq::TreeClique,
-  logger=ConsoleLogger() )
-#
-error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
+function condenseDownMsgsProductPrntFactors!( fgl::AbstractDFG,
+                                              products::LikelihoodMessage,
+                                              msgspervar::Dict{Symbol, <:AbstractVector},
+                                              prnt::TreeClique,
+                                              cliq::TreeClique,
+                                              logger=ConsoleLogger() )
+  #
+  error("condenseDownMsgsProductPrntFactors! is deprecated, follow post #459 instead")
 
-# determine the variables of interest
-reqMsgIds = collect(keys(msgspervar))
-# unique frontals per cliq
-prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
-lvarids = union(prntvars, reqMsgIds)
-# determine allowable factors, if any (only from parent cliq)
-awfcts = getCliqFactorIdsAll(prnt)
+  # determine the variables of interest
+  reqMsgIds = collect(keys(msgspervar))
+  # unique frontals per cliq
+  prntvars = intersect(getCliqSeparatorVarIds(cliq), getCliqAllVarIds(prnt))
+  lvarids = union(prntvars, reqMsgIds)
+  # determine allowable factors, if any (only from parent cliq)
+  awfcts = getCliqFactorIdsAll(prnt)
 
-# build required subgraph for parent/sibling down msgs
-lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
+  # build required subgraph for parent/sibling down msgs
+  lsfg = buildSubgraph(fgl, lvarids, 1; verbose=false)
 
-tempfcts = lsf(lsfg)
-dellist = setdiff(awfcts, tempfcts)
-for delf in dellist
-# TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
-if exists(lsfg, delf)
-deleteFactor!(lsfg,delf)
-end
-end
+  tempfcts = lsf(lsfg)
+  dellist = setdiff(awfcts, tempfcts)
+  for delf in dellist
+    # TODO -- double check this deletefactor method is leaving the right parent sharing factor graph behind
+    if exists(lsfg, delf)
+      deleteFactor!(lsfg,delf)
+    end
+  end
 
-# add message priors
-addMsgFactors!(lsfg, msgspervar) # , DownwardPass
+  # add message priors
+  addMsgFactors!(lsfg, msgspervar) # , DownwardPass
 
-# perform initialization/inference
-# FIXME, better consolidate with CSM ....uhhh TODO
-initSolveSubFg!(lsfg, logger)
+  # perform initialization/inference
+  # FIXME, better consolidate with CSM ....uhhh TODO
+  initSolveSubFg!(lsfg, logger)
 
-# extract complete downward marginal msg priors
-for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
-vari = getVariable(lsfg, id)
-products.belief[id] = TreeBelief(vari)
-end
+  # extract complete downward marginal msg priors
+  for id in intersect(getCliqSeparatorVarIds(cliq), lvarids)
+    vari = getVariable(lsfg, id)
+    products.belief[id] = TreeBelief(vari)
+  end
 
-nothing
+  nothing
 end
 # # QUICK DBG CODE
 # with_logger(logger) do
@@ -542,6 +833,8 @@ function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::Abstra
   end
   nothing
 end
+
+
 
 
 ##==============================================================================

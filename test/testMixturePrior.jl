@@ -17,7 +17,12 @@ fg.solverParams.N = N;
 addVariable!(fg, :x0, ContinuousScalar)
 
 # add bi-modal mixture prior
-Prior0 = MixturePrior([Normal(-5.0,1.0); Normal(0.0,1.0)], Categorical([0.5;0.5]))
+Prior0 = MixturePrior((a= Normal(-5.0,1.0), b=Uniform(0.0,1.0)), (0.5,0.5))
+Prior0 = MixturePrior((Normal(-5.0,1.0), Normal(0.0,1.0)), (0.5,0.5))
+Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], (0.5,0.5))
+Prior0 = MixturePrior((Normal(-5.0,1.0), Normal(0.0,1.0)), [0.5;0.5])
+Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], [0.5;0.5])
+Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], Categorical([0.5;0.5]))
 addFactor!(fg, [:x0], Prior0)
 
 smpls, lb = getSample(Prior0, N)
@@ -29,7 +34,7 @@ smpls, lb = getSample(Prior0, N)
 # solve
 solveTree!(fg)
 
-marginalPts = getKDE(fg, :x0) |> getPoints
+marginalPts = getBelief(fg, :x0) |> getPoints
 
 # check solver solution consistent too
 @test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.25*N

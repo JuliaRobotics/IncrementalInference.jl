@@ -178,5 +178,32 @@ end
 
 
 
+function dwnPrepOutMsg( fg::AbstractDFG,
+                        cliq::TreeClique,
+                        dwnMsgs::Array{LikelihoodMessage,1},
+                        d::Dict{Symbol, T},
+                        logger=ConsoleLogger()) where T
+  # pack all downcoming conditionals in a dictionary too.
+  with_logger(logger) do
+    if cliq.index != 1 #TODO there may be more than one root
+      @info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
+      @info "fg vars $(ls(fg))"
+    end # ignore root, now incoming dwn msg
+  end
+  m = LikelihoodMessage()
+  i = 0
+  for vid in getCliqueData(cliq).frontalIDs
+    m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+  end
+  for cvid in getCliqueData(cliq).separatorIDs
+    i+=1
+    # TODO -- convert to points only since kde replace by rkhs in future
+    m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
+  end
+  return m
+end
+
+
+
 
 ## =============================================================

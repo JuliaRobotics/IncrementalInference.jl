@@ -148,12 +148,6 @@ export *,
   PackedMsgPrior,
   PartialPrior,
   PackedPartialPrior,
-  LinearConditional,
-  PackedLinearConditional,
-  MixturePrior,
-  PackedMixturePrior,
-  MixtureLinearConditional,
-  PackedMixtureLinearConditional,
 
   ls2,
   # lsRear,
@@ -205,7 +199,6 @@ export *,
   doautoinit!,
   initManual!,
   initVariableManual!,
-  initVariable!,
   resetInitialValues!,
   resetInitValues!,
   asyncTreeInferUp!,
@@ -271,8 +264,6 @@ export *,
   BayesTree,
   TreeBelief,
   LikelihoodMessage,
-  FullExploreTreeType,
-  ExploreTreeType,
   initfg,
   buildSubgraph,
   buildCliqSubgraph!,
@@ -285,7 +276,7 @@ export *,
   buildTreeFromOrdering!,
   resetBuildTreeFromOrder!,
   prepBatchTree!,
-  wipeBuildNewTree!,
+  resetBuildTree!,
   buildCliquePotentials,
 
   getCliqDepth,
@@ -299,8 +290,7 @@ export *,
   getNumCliqs,
   getBelief, getKDE,
   CliqStateMachineContainer,
-  solveTree!,
-  solveGraph!,
+
   solveCliq!,
   fifoFreeze!,
 
@@ -359,7 +349,6 @@ export *,
   MultiThreaded,
 
   # Solving utils
-  findRelatedFromPotential,
   shuffleXAltD!,
   numericRoot,
   numericRootGenericRandomizedFnc!,
@@ -440,13 +429,15 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 
 include("AliasScalarSampling.jl")
-include("DefaultNodeTypes.jl")
 include("CliqueTypes.jl")
 include("BeliefTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
 include("DispatchPackedConversions.jl")
+
+include("Variables/DefaultVariables.jl")
+
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 include("NeedsResolution.jl")
@@ -459,14 +450,28 @@ include("TreeMessageUtils.jl")
 include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
+# special variables and factors, see RoME.jl for more examples
+include("GraphConstraintTypes.jl")
+include("Factors/MixturePrior.jl")
+include("Factors/MixtureRelative.jl")
+include("Factors/DefaultPrior.jl")
+include("Factors/LinearRelative.jl")
+include("Factors/Sphere1D.jl")
+include("Variables/Sphere1D.jl")
+include("DefaultNodeTypes.jl") # older file
+
 # solving graphs
 include("SolverUtilities.jl")
+include("NumericalCalculations.jl")
 include("DeconvUtils.jl")
 include("ExplicitDiscreteMarginalizations.jl")
 include("InferDimensionUtils.jl")
 include("ApproxConv.jl")
+include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
+include("TreeDebugTools.jl")
+include("CSMCommon_Consolidate.jl")
 include("CliqStateMachine.jl")
 include("CliqStateMachineUtils.jl")
 include("CSMOccuranceUtils.jl")
@@ -476,10 +481,6 @@ include("SolveTree_Parametric.jl")
 include("CliqStateMachine_Parametric.jl")
 include("ParametricUtils.jl")
 
-# special variables and factors, see RoME.jl for more examples
-include("GraphConstraintTypes.jl")
-include("Variables/Sphere1D.jl")
-include("Factors/Sphere1D.jl")
 include("CanonicalGraphExamples.jl")
 
 include("AdditionalUtils.jl")

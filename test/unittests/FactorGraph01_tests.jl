@@ -64,7 +64,7 @@ end
 
 ## End-to-end
 @info "Time to build the Bayes Tree..."
-tree = wipeBuildNewTree!(dfg, drawpdf=true, show=false)
+tree = resetBuildTree!(dfg, drawpdf=true, show=false)
 drawTree(tree, show=true)
 
 

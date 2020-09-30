@@ -14,7 +14,8 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
                           multithread::Bool=false,
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
-                          delaycliqs::Vector{Symbol}=Symbol[])
+                          delaycliqs::Vector{Symbol}=Symbol[],
+                          smtasks=Task[])
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   #TODO JT die ene lyk reg
@@ -25,19 +26,19 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
   # queue all the tasks/threads
-  alltasks = Vector{Task}(undef, getNumCliqs(treel))
+  resize!(smtasks, getNumCliqs(treel))
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   if !isTreeSolved(treel, skipinitialized=true)
     @sync begin
-      monitortask = monitorCSMs(treel, alltasks)
+      monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
       for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           if multithread
-            alltasks[i] = Threads.@spawn tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+            smtasks[i] = Threads.@spawn tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
           else
-            alltasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
+            smtasks[i] = @async tryCliqStateMachineSolveParametric!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs)
           end
         end # if
       end # for
@@ -45,9 +46,9 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   end # if
 
   # if record cliques is in use, else skip computational delay
-  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
 
-  return alltasks, cliqHistories
+  return smtasks, cliqHistories
 end
 
 function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)

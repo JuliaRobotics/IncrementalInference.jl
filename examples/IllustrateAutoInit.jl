@@ -2,36 +2,6 @@
 
 using IncrementalInference
 
-import IncrementalInference: getSample
-
-## MARKER START is a required block of code, but can be reviewed at the end of the tutorial,
-# Run this but skip past these user defined functions for a quicker introduction======================
-
-
-# and a bi-modal conditional function
-
-## TODO: NEW STANDARD FEATURE USE addFactor!(fg, .., multihypo=[...]),   or  MixtureLinearConditional
-# struct MixtureConditional <: AbstractRelativeFactor
-#   z::Vector{Distribution}
-#   c::Categorical
-# end
-# getSample(s::MixtureConditional, N::Int=1) = (rand.(s.z, N)..., rand(s.c, N))
-# function (s::MixtureConditional)(res::Array{<:Real},
-#       userdata::FactorMetadata,
-#       idx::Int,
-#       meas::Tuple,
-#       X1::Array{<:Real,2},
-#       X2::Array{<:Real,2}
-#   )
-#   res[1] = meas[meas[end][idx]][idx] - (X2[1,idx] - X1[1,idx])
-#   nothing
-# end
-
-## Define a model with these user defined functions ===============================================
-## MARKER END
-
-
-
 # Start with an empty graph
 fg = initfg()
 
@@ -87,7 +57,7 @@ plotKDE(fg, [:x0, :x1])
 # add another node, but introduce more general beliefs
 addVariable!(fg, :x2, ContinuousScalar)
 
-mmo = MixtureConditional([Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
+mmo = MixtureRelative(LinearRelative, [Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
 addFactor!(fg, [:x1, :x2], mmo)
 
 # Graphs.plot(fg.g)
@@ -123,9 +93,7 @@ plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 # Find global best likelihood solution (posterior belief)
 # After defining the problem, we can find the 'minimum free energy' solution
-tree = wipeBuildNewTree!(fg)
-inferOverTree!(fg, tree)
-
+tree, smt, hist = solveTree!(fg)
 
 # and look at the posterior belief, and notice which consensus modes stand out in the posterior
 plotKDE(fg, [:x0, :x1, :x2, :x3])

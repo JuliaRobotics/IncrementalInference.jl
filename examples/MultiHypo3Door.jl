@@ -1,5 +1,5 @@
 # load requried packages
-using RoME
+using IncrementalInference
 using Test
 
 
@@ -69,15 +69,13 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)))
 
 ensureAllInitialized!(fg)
 
-writeGraphPdf(fg, show=true)
+drawGraph(fg, show=true)
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 
 ## Solve graph
-tree = batchSolve!(fg)
-
-
+tree, smt, hist = solveTree!(fg)
 
 ## Plotting functions below
 
@@ -105,12 +103,11 @@ spyCliqMat(tree, :x2)
 
 ## swap iteration order
 
-getCliqueData(tree.cliques[2]).itervarIDs = [9;7;1;3;5]
+#TODO
+# getCliqueData(tree.cliques[2]).itervarIDs = [9;7;1;3;5]
+getCliqueData(tree.cliques[1]).itervarIDs = [:x1, :x0, :l2, :l1, :l0]
 
-inferOverTree!(fg, tree)
-
-
-
+solveTree!(fg, tree)
 
 
 ## Reconstruct individual steps for broader clique factor selection
@@ -241,9 +238,9 @@ addFactor!(fg, [:x1; :x2], LinearConditional(Normal(x2-x1, odom_noise)),graphini
 
 
 
-writeGraphPdf(fg, show=true)
+drawGraph(fg, show=true)
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
 
 spyCliqMat(tree, :l0)
 spyCliqMat(tree, :x2)
@@ -304,11 +301,11 @@ stuff = treeProductUp(fg, tree, :x2, :x2)
 ensureAllInitialized!(fg)
 
 
-tree = wipeBuildNewTree!(fg, drawpdf=true, show=true)
-cliqorder = getCliqOrderUpSolve(tree)
+tree = resetBuildTree!(fg, drawpdf=true, show=true)
+cliqorder = getEliminationOrder(tree)
 
 
-spyCliqMat(cliqorder[end])
+#FIXME spyCliqMat(cliqorder[end])
 
 
 
