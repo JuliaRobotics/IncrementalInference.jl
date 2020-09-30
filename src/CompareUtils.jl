@@ -19,3 +19,22 @@ function compareAllSpecial(A::T1, B::T2;
   T1 != T2 && return false
   return compareAll(A, B, skip=skip, show=show)
 end
+
+
+
+function compare(c1::TreeClique,
+  c2::TreeClique )
+#
+TP = true
+TP = TP && c1.index == c2.index
+TP = TP && c1.label == c2.label
+# data
+@warn "skipping ::TreeClique compare of data"
+# TP = TP && compare(c1.data, c2.data)
+
+# attributes
+@warn "only comparing keys of TreeClique attributes"
+TP = TP && collect(keys(c1.attributes)) == collect(keys(c2.attributes))
+
+return TP
+end
