@@ -1,6 +1,5 @@
 
 export MixtureRelative, PackedMixtureRelative
-export MixtureLinearConditional, PackedMixtureLinearConditional
 
 
 """
@@ -45,7 +44,7 @@ function getSample(s::Union{MixturePrior, MixtureRelative}, N::Int=1)
   smpls = Array{Float64,2}(undef,s.dims,N)
   for i in 1:N
     mixComponent = s.components[s.labels[i]]
-    smpls[:,i] .= rand(mixComponent,1)
+    smpls[:,i] = rand(mixComponent,1)
   end
   (smpls, s.labels)
 end
@@ -61,38 +60,46 @@ end
 
 
 
-function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
-  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
-  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
-end
 
 
 
 """
 $(TYPEDEF)
 
-Serialization type for `MixtureLinearConditional`.
+Serialization type for `MixtureRelative`.
 """
-mutable struct PackedMixtureRelative{T} <: PackedInferenceType
-  mechanics::T
+mutable struct PackedMixtureRelative <: PackedInferenceType
+  N::Int
+  # store the packed type for later unpacking
+  F_::String 
+  S::Vector{String}
   components::Vector{String}
   diversity::String
 end
-# PackedMixtureRelative() = new()
-# PackedMixtureRelative(z::Vector{<:AbstractString}, cstr::AS) where {AS <: AbstractString} = new(z, cstr)
 
-function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative{N,F,T,S}) where {N,F,S,T}
+function convert(::Type{PackedMixtureRelative}, obj::MixtureRelative{N,F,S,T}) where {N,F,S,T}
   allcomp = String[]
   for val in obj.components
     push!(allcomp, string(val))
   end
   # pm = DFG.convertPackedType(obj.mechanics)
-  @show pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
-  PackedMixtureRelative(pm, allcomp, string(obj.diversity))
+  pm = convert(DFG.convertPackedType(obj.mechanics), obj.mechanics)
+  sT = string(typeof(pm))
+  PackedMixtureRelative(N, sT, string.(collect(S)), allcomp, string(obj.diversity))
 end
 function convert(::Type{MixtureRelative}, obj::PackedMixtureRelative)
-  @show typeof(obj.mechanics)
-  MixtureRelative(DFG.convertStructType(typeof(obj.mechanics))(LinearAlgebra.I), extractdistribution.(obj.components), extractdistribution(obj.diversity))
+  N = obj.N
+  F1 = getfield(Main, Symbol(obj.F_))
+  S = (Symbol.(obj.S)...,)
+  F2 = DFG.convertStructType(F1) # typeof(obj.mechanics))
+  # T = (extractdistribution.(obj.components)...,) |> typeof
+  # mechanics = F2(LinearAlgebra.I)
+  components = extractdistribution.(obj.components)
+  diversity = extractdistribution(obj.diversity)
+  # MixtureRelative{N,F2,S,T}(mechanics, components, diversity)
+  tupcomp = (components...,)
+  ntup = NamedTuple{S,typeof(tupcomp)}(tupcomp)
+  MixtureRelative(F2, ntup, diversity)
 end
 
 

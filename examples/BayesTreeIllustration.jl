@@ -10,9 +10,9 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0,1)))
 addVariable!(fg, :x1, ContinuousScalar)
-addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)))
+addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)))
 addVariable!(fg, :x2, ContinuousScalar)
-mmo = MixtureLinearConditional([Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
+mmo = MixtureRelative(LinearRelative, [Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
 addFactor!(fg, [:x1, :x2], mmo)
 
 
