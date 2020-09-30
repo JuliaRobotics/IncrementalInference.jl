@@ -1,4 +1,32 @@
-
+"""
+    $SIGNATURES
+Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.index
+"""
+function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, maxlog=nothing, kwargs...)
+  #Debug = -1000
+  #Info = 0
+  #Warn = 1000
+  #Error = 2000
+  @logmsg(loglevel,
+          msg,
+          _module=begin
+            bt = backtrace()
+            funcsym=(:logCSM, Symbol("logCSM##kw")) #always use the calling function of logCSM
+            frame, caller = Base.firstcaller(bt, funcsym)
+            # TODO: Is it reasonable to attribute callers without linfo to Core?
+            caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+          end,
+          _file=String(caller.file),
+          _line=caller.line,
+          _id=(frame,funcsym),
+          # caller=caller, 
+          # st4 = stacktrace()[4],
+          _group = Symbol("csm_$(csmc.cliq.index)"),
+          maxlog=maxlog,
+          kwargs...)
+  
+  return nothing
+end
 
 """
     $SIGNATURES
