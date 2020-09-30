@@ -426,6 +426,15 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     @info "$(csmc.cliq.index): down message $fi : $beliefMsg"
   end
 
+  # pass through the frontal variables that were sent from above
+  if !isnothing(downmsg)
+    pass_through_separators = intersect(svars, keys(downmsg.belief))
+    for si in pass_through_separators
+      beliefMsg.belief[si] = downmsg.belief[si]
+      logCSM(csmc, "adding parent message"; sym=si, msg=downmsg.belief[si])
+    end
+  end
+
   #TODO sendBeliefMessageParametric(csmc, beliefMsg)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
