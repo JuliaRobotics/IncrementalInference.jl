@@ -14,6 +14,27 @@ tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 end
 
 
+
+@testset "test endless cycle case, issue #754" begin
+
+
+fg = generateCanonicalFG_lineStep(5; 
+                                  poseEvery=1, 
+                                  landmarkEvery=5, 
+                                  posePriorsAt=[0,2], 
+                                  sightDistance=4,
+                                  solverParams=SolverParams(algorithms=[:default, :parametric]))
+                                  
+getSolverParams(fg).graphinit = false
+getSolverParams(fg).treeinit = true
+getSolverParams(fg).limititers = 50
+smtasks = Task[]
+tree, smt, hist = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
+
+end
+
+
+
 @testset "basic test for tree initialization functionality" begin
 
 # small canonical factor graph, without graphinit
@@ -41,6 +62,7 @@ tree, smt, hist = solveTree!(fg, timeout=100 ) # , verbose=true, verbosefid=verb
 
 
 end
+
 
 
 #

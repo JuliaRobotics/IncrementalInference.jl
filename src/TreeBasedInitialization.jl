@@ -68,11 +68,77 @@ end
 """
     $SIGNATURES
 
+Special function to do initialization in downward direction, assuming that not all
+variables can be initialized.  Relies on outside down messages.
+
+Notes:
+- assumed this `cliq` is being initialized from a previous `:needdownmsg` status.
+- will use all possible local factors of cliquq in initilization process
+- similar to upward initialization, but uses different message structure
+  - first draft assumes upward messages will not be used,
+  - full up solve still required which explicitly depends on upward messages.
+
+Dev Notes
+- Streamline add/delete msg priors from calling function and csm.
+- TODO replace with nested 'minimum degree' type variable ordering.
+"""
+function getCliqInitVarOrderDown( dfg::AbstractDFG,
+                                  cliq::TreeClique,
+                                  dwnkeys::Vector{Symbol} )   # downmsgs
+  #
+  allsyms = getCliqAllVarIds(cliq)
+  # convert input downmsg var symbols to integers (also assumed as prior beliefs)
+  # make sure ids are in the clique set, since parent may have more variables.
+  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg))
+  dwnvarids = intersect(allsyms, dwnmsgsym)
+
+  # find any other prior factors (might have partials)
+  prvarids = getCliqVarIdsPriors(cliq, allsyms, true)
+  hassinglids = union(dwnvarids, prvarids)
+
+  # Get all other variable factor counts
+  nfcts = getCliqNumAssocFactorsPerVar(cliq)
+  # add msg marginal prior (singletons) to number of factors
+  for msid in dwnmsgsym
+    nfcts[msid .== allsyms] .+= 1
+  end
+
+  # sort permutation order for increasing number of factor association
+  nfctsp = sortperm(nfcts)
+  sortedids = allsyms[nfctsp]
+
+  # all singleton variables
+  singids = union(prvarids, dwnvarids)
+
+  # organize the prior variables separately with asceding factor count
+  initorder = Symbol[] #zeros(Int, 0)
+  for id in sortedids
+    if id in singids
+      push!(initorder, id)
+    end
+  end
+  # sort remaining variables for increasing associated factors
+  for id in sortedids
+    if !(id in initorder)
+      push!(initorder, id)
+    end
+  end
+
+  # return variable order
+  return initorder::Vector{Symbol}
+end
+
+
+"""
+    $SIGNATURES
+
 Return true if clique has completed the local upward direction inference procedure.
 """
 isUpInferenceComplete(cliq::TreeClique) = getCliqueData(cliq).upsolved
 
-function areCliqVariablesAllInitialized(dfg::G, cliq::TreeClique) where {G <: AbstractDFG}
+function areCliqVariablesAllInitialized(dfg::AbstractDFG, 
+                                        cliq::TreeClique  )
+  #
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
@@ -101,53 +167,58 @@ function areCliqVariablesAllMarginalized( subfg::AbstractDFG,
 end
 
 
+"""
+    $SIGNATURES
+
+Return true or false depending on whether child cliques are all up solved.
+"""
+function areCliqChildrenAllUpSolved(treel::AbstractBayesTree,
+                                    prnt::TreeClique)::Bool
+  #
+  for ch in getChildren(treel, prnt)
+    if !isCliqUpSolved(ch)
+      return false
+    end
+  end
+  return true
+end
 
 
 """
     $SIGNATURES
 
-Cycle through var order and initialize variables as possible in `subfg::AbstractDFG`.
-Return true if something was updated.
-
-Notes:
-- assumed `subfg` is a subgraph containing only the factors that can be used.
-  - including the required up or down messages
-- intended for both up and down initialization operations.
-
-Dev Notes
-- Should monitor updates based on the number of inferred & solvable dimensions
+Return `true` if any of the children cliques have status `:needdownmsg`.
 """
-function cycleInitByVarOrder!(subfg::AbstractDFG,
-                              varorder::Vector{Symbol};
-                              logger=ConsoleLogger()  )::Bool
-  #
-  with_logger(logger) do
-    @info "cycleInitByVarOrder! -- varorder=$(varorder)"
-  end
-  retval = false
-  count = 1
-  while count > 0
-    count = 0
-    for vsym in varorder
-      var = DFG.getVariable(subfg, vsym)
-      isinit = isInitialized(var)
-      with_logger(logger) do
-        @info "var.label=$(var.label) is initialized=$(isinit)"
-      end
-      doautoinit!(subfg, [var;], logger=logger)
-      if isinit != isInitialized(var)
-        count += 1
-        retval = true
-      end
+function doAnyChildrenNeedDwnMsg(children::Vector{TreeClique})::Bool
+  for ch in children
+    if getCliqueStatus(ch) == :needdownmsg
+      return true
     end
   end
-  with_logger(logger) do
-    @info "cycleInitByVarOrder!, retval=$(retval)"
-  end
-  flush(logger.stream)
-  return retval
+  return false
 end
 
+function doAnyChildrenNeedDwnMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
+  doAnyChildrenNeedDwnMsg( getChildren(tree, cliq) )
+end
+
+
+"""
+    $SIGNATURES
+
+Return true if has parent with status `:needdownmsg`.
+"""
+function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logger=ConsoleLogger())
+  prnt = getParent(tree, cliq)
+  if length(prnt) == 0
+    return false
+  end
+  prstat = getCliqueStatus(prnt[1])
+  with_logger(logger) do
+    @info "$(current_task()) Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
+  end
+  return prstat == :needdownmsg
+end
 
 
 """
@@ -235,124 +306,6 @@ function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
     tt = split(string(now()),'T')[end]
     @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
   end
-end
-
-
-"""
-    $SIGNATURES
-
-Special function to do initialization in downward direction, assuming that not all
-variables can be initialized.  Relies on outside down messages.
-
-Notes:
-- assumed this `cliq` is being initialized from a previous `:needdownmsg` status.
-- will use all possible local factors of cliquq in initilization process
-- similar to upward initialization, but uses different message structure
-  - first draft assumes upward messages will not be used,
-  - full up solve still required which explicitly depends on upward messages.
-
-Dev Notes
-- Streamline add/delete msg priors from calling function and csm.
-- TODO replace with nested 'minimum degree' type variable ordering.
-"""
-function getCliqInitVarOrderDown( dfg::AbstractDFG,
-                                  cliq::TreeClique,
-                                  dwnkeys::Vector{Symbol} )   # downmsgs
-  #
-  allsyms = getCliqAllVarIds(cliq)
-  # convert input downmsg var symbols to integers (also assumed as prior beliefs)
-  # make sure ids are in the clique set, since parent may have more variables.
-  dwnmsgsym = intersect(dwnkeys, DFG.listVariables(dfg))
-  dwnvarids = intersect(allsyms, dwnmsgsym)
-
-  # find any other prior factors (might have partials)
-  prvarids = getCliqVarIdsPriors(cliq, allsyms, true)
-  hassinglids = union(dwnvarids, prvarids)
-
-  # Get all other variable factor counts
-  nfcts = getCliqNumAssocFactorsPerVar(cliq)
-  # add msg marginal prior (singletons) to number of factors
-  for msid in dwnmsgsym
-    nfcts[msid .== allsyms] .+= 1
-  end
-
-  # sort permutation order for increasing number of factor association
-  nfctsp = sortperm(nfcts)
-  sortedids = allsyms[nfctsp]
-
-  # all singleton variables
-  singids = union(prvarids, dwnvarids)
-
-  # organize the prior variables separately with asceding factor count
-  initorder = Symbol[] #zeros(Int, 0)
-  for id in sortedids
-    if id in singids
-      push!(initorder, id)
-    end
-  end
-  # sort remaining variables for increasing associated factors
-  for id in sortedids
-    if !(id in initorder)
-      push!(initorder, id)
-    end
-  end
-
-  # return variable order
-  return initorder::Vector{Symbol}
-end
-
-
-"""
-    $SIGNATURES
-
-Return true or false depending on whether child cliques are all up solved.
-"""
-function areCliqChildrenAllUpSolved(treel::AbstractBayesTree,
-                                    prnt::TreeClique)::Bool
-  #
-  for ch in getChildren(treel, prnt)
-    if !isCliqUpSolved(ch)
-      return false
-    end
-  end
-  return true
-end
-
-
-"""
-    $SIGNATURES
-
-Return `true` if any of the children cliques have status `:needdownmsg`.
-"""
-function doAnyChildrenNeedDwnMsg(children::Vector{TreeClique})::Bool
-  for ch in children
-    if getCliqueStatus(ch) == :needdownmsg
-      return true
-    end
-  end
-  return false
-end
-
-function doAnyChildrenNeedDwnMsg(tree::AbstractBayesTree, cliq::TreeClique)::Bool
-  doAnyChildrenNeedDwnMsg( getChildren(tree, cliq) )
-end
-
-
-"""
-    $SIGNATURES
-
-Return true if has parent with status `:needdownmsg`.
-"""
-function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logger=ConsoleLogger())
-  prnt = getParent(tree, cliq)
-  if length(prnt) == 0
-    return false
-  end
-  prstat = getCliqueStatus(prnt[1])
-  with_logger(logger) do
-    @info "$(current_task()) Clique $(cliq.index), isCliqParentNeedDownMsg -- parent status: $(prstat)"
-  end
-  return prstat == :needdownmsg
 end
 
 
