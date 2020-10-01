@@ -1,6 +1,7 @@
 
-
-
+## ===================================================================================================================
+##  CSM logging functions
+## ===================================================================================================================
 
 """
     $SIGNATURES
@@ -22,6 +23,117 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   end
   flush(csmc.logger.stream)
   nothing
+end
+
+"""
+    $SIGNATURES
+Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.index
+Notes:
+- Related to infocsm.
+- Different approach to logging that uses the build in logging functionality to provide more flexibility.
+- Can be used with LoggingExtras.jl 
+"""
+function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, maxlog=nothing, kwargs...)
+  #Debug = -1000
+  #Info = 0
+  #Warn = 1000
+  #Error = 2000
+  @logmsg(loglevel,
+          msg,
+          _module=begin
+            bt = backtrace()
+            funcsym=(:logCSM, Symbol("logCSM##kw")) #always use the calling function of logCSM
+            frame, caller = Base.firstcaller(bt, funcsym)
+            # TODO: Is it reasonable to attribute callers without linfo to Core?
+            caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+          end,
+          _file=String(caller.file),
+          _line=caller.line,
+          _id=(frame,funcsym),
+          # caller=caller, 
+          # st4 = stacktrace()[4],
+          _group = Symbol("csm_$(csmc.cliq.index)"),
+          maxlog=maxlog,
+          kwargs...)
+  
+  return nothing
+end
+
+## ===================================================================================================================
+## CSM Monitor functions
+## ===================================================================================================================
+
+"""
+    $SIGNATURES
+Monitor CSM tasks for failures and propagate error to the other CMSs to cleanly exit. 
+"""
+function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
+  task = @async begin
+    while true
+      all(istaskdone.(alltasks)) && (@info "monitorCSMs: all tasks done"; break)
+      for (i,t) in enumerate(alltasks)
+        if istaskfailed(t)
+          if forceIntExc
+            @error "Task $i failed, sending InterruptExceptions to all running CSM tasks"
+            throwIntExcToAllTasks(alltasks)
+            @debug "done with throwIntExcToAllTasks"
+          else
+            @error "Task $i failed, sending error to all cliques"
+            bruteForcePushErrorCSM(tree)
+            # for tree.messages
+            @info "All cliques should have exited"
+          end
+        end
+      end
+      sleep(1)
+    end
+  end
+  return task
+end
+
+function throwIntExcToAllTasks(alltasks)
+  for (i,t) in enumerate(alltasks)
+    if !istaskdone(alltasks[i])
+      @debug "Sending InterruptExceptions to CSM task $i"
+      schedule(alltasks[i], InterruptException(), error=true)
+      @debug "InterruptExceptions CSM task $i"
+    end
+  end 
+  return nothing
+end
+
+function bruteForcePushErrorCSM(tree)
+    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
+    for (i, ch) in tree.messages
+
+        if isready(ch.upMsg)
+            take!(ch.upMsg)
+        else
+            @info("Up edge $i", ch.upMsg)
+            @async put!(ch.upMsg, errMsg)
+        end
+        if isready(ch.downMsg)
+            take!(ch.downMsg)
+        else
+            @info("Down edge $i", ch.downMsg)
+            @async put!(ch.downMsg, errMsg)
+        end
+
+    end
+
+    for (i, ch) in tree.messages
+
+        while isready(ch.upMsg)
+            @info "cleanup take on $i up"
+            take!(ch.upMsg)
+        end
+        while isready(ch.downMsg)
+            @info "cleanup take on $i down"
+            take!(ch.downMsg)
+        end
+
+    end
+
 end
 
 

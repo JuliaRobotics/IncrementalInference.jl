@@ -1,35 +1,5 @@
 """
     $SIGNATURES
-Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.index
-"""
-function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, maxlog=nothing, kwargs...)
-  #Debug = -1000
-  #Info = 0
-  #Warn = 1000
-  #Error = 2000
-  @logmsg(loglevel,
-          msg,
-          _module=begin
-            bt = backtrace()
-            funcsym=(:logCSM, Symbol("logCSM##kw")) #always use the calling function of logCSM
-            frame, caller = Base.firstcaller(bt, funcsym)
-            # TODO: Is it reasonable to attribute callers without linfo to Core?
-            caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
-          end,
-          _file=String(caller.file),
-          _line=caller.line,
-          _id=(frame,funcsym),
-          # caller=caller, 
-          # st4 = stacktrace()[4],
-          _group = Symbol("csm_$(csmc.cliq.index)"),
-          maxlog=maxlog,
-          kwargs...)
-  
-  return nothing
-end
-
-"""
-    $SIGNATURES
 
 EXPERIMENTAL: Init and start state machine for parametric solve.
 """
@@ -456,7 +426,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     #TODO update frontal variables here directly
     frontsyms = getFrontals(csmc.cliq)
     transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
-    # transferUpdateSubGraphParametric!(csmc.dfg, csmc.cliqSubFg, frontsyms)
+
     #solve finished change color
     setCliqDrawColor(csmc.cliq, "lightblue")
     # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
@@ -486,33 +456,3 @@ function updateRemote_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
 end
 
-
-# """
-#     $SIGNATURES
-
-# Transfer contents of `src::AbstractDFG` variables `syms::Vector{Symbol}` to `dest::AbstractDFG`.
-
-# Notes
-# - Reads, `dest` := `src`, for all `syms`
-# """
-# function transferUpdateSubGraphParametric!(dest::InMemoryDFGTypes,
-#                                            src::InMemoryDFGTypes,
-#                                            syms::Vector{Symbol},
-#                                            solveKey::Symbol=:parametric,
-#                                            logger=ConsoleLogger()  )
-#   #
-#   with_logger(logger) do
-#     @info "transferUpdateSubGraph! -- syms=$syms"
-#   end
-#   for v in getVariables(src)
-#     println("\n ", v.label,": ",  getSolverData(v, :parametric).val[1])
-#   end
-
-#   # #TEMP force the solver data
-#   # for v in syms
-#   #   getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
-#   #   getSolverData(getVariable(dest,v),:parametric).bw .= getSolverData(getVariable(src, v),:parametric).bw
-#   # end
-#   DFG.updateVariableSolverData!(dest, getVariable.(src, syms), :parametric)
-#   nothing
-# end
