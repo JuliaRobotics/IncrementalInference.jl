@@ -391,7 +391,9 @@ function solveTree!(dfgl::AbstractDFG,
                     variableConstraints::Vector{Symbol}=Symbol[],
                     smtasks::Vector{Task}=Task[],
                     dotreedraw = Int[1;],
-                    runtaskmonitor::Bool=true)
+                    runtaskmonitor::Bool=true,
+                    algorithm::Symbol=:default,
+                    multithread=false)
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
@@ -413,8 +415,11 @@ function solveTree!(dfgl::AbstractDFG,
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
     ensureAllInitialized!(dfgl)
+    if algorithm==:parametric
+      @warn "Parametric is using default graphinit"
+      initParametricFrom(dfgl)
+    end
   end
-
   # construct tree
   @info "Solving over the Bayes (Junction) tree."
   
@@ -448,15 +453,26 @@ function solveTree!(dfgl::AbstractDFG,
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
   @info "Do tree based init-inference on tree"
-  if opt.async
-    smtasks = asyncTreeInferUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
-    @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
-  else
+  
+  # choose algorithm 
+  if algorithm == :parametric
+    @error "Under development, do not use, see #539"
+    storeOld && @error("parametric storeOld keyword not wired up yet.") 
+    initTreeMessageChannels!(tree)
+    alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
+    @info "Finished tree based Parametric inference"
+  else #fall back is :default 
+    if opt.async
+      smtasks = asyncTreeInferUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
+      @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
+    else
 
-    smtasks, hist = initInferTreeUp!(dfgl, tree, timeout; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
+      smtasks, hist = initInferTreeUp!(dfgl, tree, timeout; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
 
-    @info "Finished tree based init-inference"
+      @info "Finished tree based init-inference"
+    end
   end
+
   
   # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
@@ -535,75 +551,3 @@ function solveCliq!(dfgl::AbstractDFG,
   # cliqHistories
   return cliqtask
 end
-
-
-
-## ==============================================================================================
-# Experimental Parametric, TODO consolidate with `solveTree!` -- DEPRECATE BELOW
-## ==============================================================================================
-
-
-"""
-    $SIGNATURES
-
-Perform parametric inference over the Bayes tree according to `opt::SolverParams`.
-
-Example
-```julia
-tree, smt, hist = solveTree!(fg ,tree)
-```
-"""
-function solveTreeParametric!(dfgl::DFG.AbstractDFG,
-                              tree::AbstractBayesTree;
-                              storeOld::Bool=false,
-                              verbose::Bool=false,
-                              delaycliqs::Vector{Symbol}=Symbol[],
-                              recordcliqs::Vector{Symbol}=Symbol[],
-                              skipcliqids::Vector{Symbol}=Symbol[],
-                              maxparallel::Union{Nothing, Int}=nothing,
-                              multithread=false  )
-  #
-  @error "Under development, do not use, see #539"
-  @info "Solving over the Bayes (Junction) tree."
-  smtasks=Vector{Task}()
-  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
-  opt = DFG.getSolverParams(dfgl)
-
-  # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    opt.maxincidence = maxparallel
-  end
-
-  storeOld ? @error("parametric storeOld keyword not wired up yet.") : nothing
-
-  # update worker pool incase there are more or less
-  setWorkerPool!()
-  if getSolverParams(dfgl).multiproc && nprocs() == 1
-    @warn "Cannot use multiproc with only one process, setting `.multiproc=false`."
-    getSolverParams(dfgl).multiproc = false
-  end
-
-  # if desired, drawtree in a loop
-  treetask, dotreedraw = drawTreeAsyncLoop(tree, opt )
-
-  @info "Do tree based init-inference"
-  # if opt.async
-  smtasks, hist = taskSolveTreeParametric!(dfgl, tree, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
-
-  if opt.async && opt.drawtree
-    @warn "due to async=true, only keeping task pointer, not stopping the drawtreerate task!  Consider not using .async together with .drawtreerate != 0"
-    push!(smtasks, treetask)
-  else
-    dotreedraw[1] = 0
-  end
-
-  @info "Finished tree based Parametric inference"
-
-  return tree, smtasks, hist
-end
-
-
-
-
-#

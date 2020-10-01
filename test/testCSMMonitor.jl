@@ -37,10 +37,6 @@ fg = generateCanonicalFG_lineStep(10;
                             
 ensureAllInitialized!(fg)
 
-# tree= resetBuildTree!(fg, drawpdf=true, show=true)
-tree= resetBuildTree!(fg)
-IIF.initTreeMessageChannels!(tree)
-
 #TODO test FSM watchdog
 # add a broken factor - mid
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
@@ -50,18 +46,18 @@ sleep(0.1)
 
 # Test parametric solve also
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x9lm10f2)
 # add a broken factor - leave
 addFactor!(fg, [:x10, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x10lm10f2)
 # add a broken factor - root
 addFactor!(fg, [:x7, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
 
 end

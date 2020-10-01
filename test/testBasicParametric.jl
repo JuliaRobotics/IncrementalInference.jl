@@ -54,16 +54,13 @@ end
 #initialize the fg for tree to solve.
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-tree = resetBuildTree!(fg)#
-
-IIF.initTreeMessageChannels!(tree)
-
 
 # getSolverParams(fg).dbg=true
 # getSolverParams(fg).drawtree=true
 # getSolverParams(fg).async = true
+getSolverParams(fg).graphinit = false
 
-tree2, smt, hist = IIF.solveTreeParametric!(fg, tree) #, recordcliqs=ls(fg))
+tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
 
 
 
@@ -84,7 +81,7 @@ end
 
 
 ###################################################################
-fg = LightDFG{SolverParams}( solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LightDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
 # fg = LightDFG{SolverParams}( solverParams=SolverParams())
 N = 100
 fg.solverParams.N = N
@@ -115,20 +112,16 @@ foreach(println, d)
 
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-#force message passing with manual variable order
-tree = resetBuildTree!(fg, variableOrder=[:x0, :x2, :x1])#
-
-IIF.initTreeMessageChannels!(tree)
-
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = true
 
 # task = @async begin
-#   global tree2
-#   global smt
-#   global hist
-tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+  #   global tree2
+  #   global smt
+  #   global hist
+#force message passing with manual variable order
+tree2, smt, hist = IIF.solveTree!(fg; algorithm=:parametric, variableOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 
@@ -160,15 +153,11 @@ end
 
 foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.val, pairs(d))
 
-tree = resetBuildTree!(fg)#
-
-IIF.initTreeMessageChannels!(tree)
-
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = false
-
-tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
+getSolverParams(fg).graphinit = false
+tree2, smt, hist = IIF.solveTree!(fg; algorithm=:parametric)
 
 # print results
 if false
@@ -183,25 +172,6 @@ for i in 0:10
   @test isapprox(val[1], i, atol=1e-6)
 end
 
-
-###############################################################################
-#Test error prop if not converged.
-#TODO Update test, it now converges
-
-fg = generateCanonicalFG_lineStep(20, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
-
-#do not initialize to force failure
-
-tree = resetBuildTree!(fg)#
-IIF.initTreeMessageChannels!(tree)
-
-# fg.solverParams.showtree = true
-# fg.solverParams.drawtree = true
-# fg.solverParams.dbg = true
-
-tree2, smt, hist = IIF.solveTreeParametric!(fg, tree)
-
-# the answers will not be correct but the tree should exit cleanly and not block
 
 
 end

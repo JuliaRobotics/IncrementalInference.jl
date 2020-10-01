@@ -116,6 +116,18 @@ LikelihoodMessage(;status::CliqStatus=:null,
         LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors)
 #
 
+function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
+  t = typeof(msg)
+  fields = fieldnames(t)
+  nf = nfields(msg)
+
+  for f in fields
+    printstyled(io, f,": ", color=:blue)
+    show(io, getproperty(msg, f))
+    println(io)
+  end
+
+end
 
 function compare(l1::LikelihoodMessage,
                  l2::LikelihoodMessage;

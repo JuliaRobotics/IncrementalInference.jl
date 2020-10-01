@@ -147,7 +147,7 @@ function generateCanonicalFG_lineStep(  lineLength::Int;
             addVariable!(fg, Symbol("x",i), vtype) #, autoinit = graphinit)
             (i in posePriorsAt) && addFactor!(fg, [Symbol("x",i)], Prior(xNoise(i, σ_pose_prior)))
             # "odo" type
-            (i > 0) && addFactor!(fg, [Symbol("x",i-poseEvery); Symbol("x",i)], LinearConditional(xNoise(poseEvery, σ_pose_pose)), graphinit=graphinit)
+            (i > 0) && addFactor!(fg, [Symbol("x",i-poseEvery); Symbol("x",i)], LinearRelative(xNoise(poseEvery, σ_pose_pose)), graphinit=graphinit)
         end
 
 
@@ -163,7 +163,7 @@ function generateCanonicalFG_lineStep(  lineLength::Int;
         dist = lmi - xi
         if abs(dist) < sightDistance
             # @info "adding landmark lm$lmi to x$xi with dist $dist"
-            addFactor!(fg, [Symbol("x",xi); Symbol("lm",lmi)], LinearConditional(xNoise(dist, σ_pose_lm)), graphinit=graphinit)
+            addFactor!(fg, [Symbol("x",xi); Symbol("lm",lmi)], LinearRelative(xNoise(dist, σ_pose_lm)), graphinit=graphinit)
         end
     end
 

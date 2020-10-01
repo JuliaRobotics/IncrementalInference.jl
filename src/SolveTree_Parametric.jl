@@ -51,75 +51,6 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
   return smtasks, cliqHistories
 end
 
-function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
-  task = @async begin
-    while true
-      all(istaskdone.(alltasks)) && (@info "monitorCSMs: all tasks done"; break)
-      for (i,t) in enumerate(alltasks)
-        if istaskfailed(t)
-          if forceIntExc
-            @error "Task $i failed, sending InterruptExceptions to all running CSM tasks"
-            throwIntExcToAllTasks(alltasks)
-            @debug "done with throwIntExcToAllTasks"
-          else
-            @error "Task $i failed, sending error to all cliques"
-            bruteForcePushErrorCSM(tree)
-            # for tree.messages
-            @info "All cliques should have exited"
-          end
-        end
-      end
-      sleep(1)
-    end
-  end
-  return task
-end
-
-function throwIntExcToAllTasks(alltasks)
-  for (i,t) in enumerate(alltasks)
-    if !istaskdone(alltasks[i])
-      @debug "Sending InterruptExceptions to CSM task $i"
-      schedule(alltasks[i], InterruptException(), error=true)
-      @debug "InterruptExceptions CSM task $i"
-    end
-  end 
-  return nothing
-end
-
-function bruteForcePushErrorCSM(tree)
-    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
-    for (i, ch) in tree.messages
-
-        if isready(ch.upMsg)
-            take!(ch.upMsg)
-        else
-            @info("Up edge $i", ch.upMsg)
-            @async put!(ch.upMsg, errMsg)
-        end
-        if isready(ch.downMsg)
-            take!(ch.downMsg)
-        else
-            @info("Down edge $i", ch.downMsg)
-            @async put!(ch.downMsg, errMsg)
-        end
-
-    end
-
-    for (i, ch) in tree.messages
-
-        while isready(ch.upMsg)
-            @info "cleanup take on $i up"
-            take!(ch.upMsg)
-        end
-        while isready(ch.downMsg)
-            @info "cleanup take on $i down"
-            take!(ch.downMsg)
-        end
-
-    end
-
-end
-
 function tryCliqStateMachineSolveParametric!(dfg::G,
                                              treel::AbstractBayesTree,
                                              cliqKey::Int;
@@ -185,7 +116,7 @@ function tryCliqStateMachineSolveParametric!(dfg::G,
     close(fid)
     flush(logger.stream)
     close(logger.stream)
-    error(err)
+    rethrow()
   end
   # if !(clst in [:upsolved; :downsolved; :marginalized])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
