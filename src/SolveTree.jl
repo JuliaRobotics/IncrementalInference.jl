@@ -286,6 +286,58 @@ end
 
 
 
+## ============================================================================
+# Initialization is slightly different and likely to be consolidated
+## ============================================================================
+
+
+
+"""
+    $SIGNATURES
+
+Cycle through var order and initialize variables as possible in `subfg::AbstractDFG`.
+Return true if something was updated.
+
+Notes:
+- assumed `subfg` is a subgraph containing only the factors that can be used.
+  - including the required up or down messages
+- intended for both up and down initialization operations.
+
+Dev Notes
+- Should monitor updates based on the number of inferred & solvable dimensions
+"""
+function cycleInitByVarOrder!(subfg::AbstractDFG,
+                              varorder::Vector{Symbol};
+                              logger=ConsoleLogger()  )::Bool
+  #
+  with_logger(logger) do
+    @info "cycleInitByVarOrder! -- varorder=$(varorder)"
+  end
+  retval = false
+  count = 1
+  while count > 0
+    count = 0
+    for vsym in varorder
+      var = DFG.getVariable(subfg, vsym)
+      isinit = isInitialized(var)
+      with_logger(logger) do
+        @info "var.label=$(var.label) is initialized=$(isinit)"
+      end
+      doautoinit!(subfg, [var;], logger=logger)
+      if isinit != isInitialized(var)
+        count += 1
+        retval = true
+      end
+    end
+  end
+  with_logger(logger) do
+    @info "cycleInitByVarOrder!, retval=$(retval)"
+  end
+  flush(logger.stream)
+  return retval
+end
+
+
 
 
 #
