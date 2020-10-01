@@ -176,7 +176,7 @@ function checkUpsolveFinished_StateMachine(csmc::CliqStateMachineContainer)
     # go to 10
     return canCliqDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
-    setCliqDrawColor(csmc.cliq, "sienna")
+    # setCliqDrawColor(csmc.cliq, "sienna")
 
     # go to 7
     return determineCliqNeedDownMsg_StateMachine
@@ -496,21 +496,15 @@ function attemptDownInit_StateMachine(csmc::CliqStateMachineContainer)
 
   # cycle through vars and attempt init
   infocsm(csmc, "8e.ii, attemptDownInit_StateMachine, cycle through vars and attempt init")
-  cliqst = :needdownmsg
+  # cliqst = :needdownmsg
   if cycleInitByVarOrder!(csmc.cliqSubFg, initorder)
-    cliqst = :initialized
+    # cliqst = :initialized
+    # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
+    # # TODO: is status of notify required here? either up or down msg??
+    setCliqDrawColor(csmc.cliq, "sienna")
+    setCliqueStatus!(csmc.cliq, :initialized)
   end
-
-  infocsm(csmc, "8e.ii, attemptDownInit_StateMachine, current status: $cliqst")
-  # store the cliqSubFg for later debugging
-  if opt.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opt.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdowninit"))
-  end
-
-  # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
-  # # TODO: is status of notify required here? either up or down msg??
-  setCliqueStatus!(csmc.cliq, cliqst)
-
+  
   # go to 8l
   return rmMsgLikelihoodsAfterDwn_StateMachine
 end
@@ -530,6 +524,7 @@ DevNotes
 """
 function tryInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # attempt initialize if necessary
+  setCliqDrawColor(csmc.cliq, "green")
   someInit = false
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     # structure for all up message densities computed during this initialization procedure.
@@ -548,6 +543,7 @@ function tryInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # redirect if any children needdownmsg
   if someInit || chldneed
     # prep down init message
+    setCliqDrawColor(csmc.cliq, "sienna")
     prepPutCliqueStatusMsgDwn!(csmc, :initialized)
     # # go to 7b
     # return slowIfChildrenNotUpSolved_StateMachine
@@ -594,6 +590,14 @@ Notes
 function rmMsgLikelihoodsAfterDwn_StateMachine(csmc::CliqStateMachineContainer)
   ## TODO only remove :DOWNWARD_COMMON messages here
   #
+
+  opt = getSolverParams(csmc.cliqSubFg)
+  # store the cliqSubFg for later debugging
+  if opt.dbg
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(opt.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdowninit"))
+  end
+
+
   ## FIXME move this to separate state in CSM.
   # remove all message factors
   # remove msg factors previously added

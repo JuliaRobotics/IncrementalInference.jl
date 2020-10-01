@@ -287,7 +287,7 @@ end
 
 
 ## ============================================================================
-# Initialization is slightly difference and likely to be consolidated
+# Initialization is slightly different and likely to be consolidated
 ## ============================================================================
 
 
