@@ -286,7 +286,7 @@ function DefaultNodeDataParametric(dodims::Int,
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     return VariableNodeData(zeros(dims, 1),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin)
+                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
 
 end

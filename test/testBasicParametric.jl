@@ -58,6 +58,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.va
 # getSolverParams(fg).dbg=true
 # getSolverParams(fg).drawtree=true
 # getSolverParams(fg).async = true
+getSolverParams(fg).graphinit = false
 
 tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric) #, recordcliqs=ls(fg))
 
@@ -80,7 +81,7 @@ end
 
 
 ###################################################################
-fg = LightDFG{SolverParams}( solverParams=SolverParams(algorithms=[:default, :parametric]))
+fg = LightDFG( solverParams=SolverParams(algorithms=[:default, :parametric]))
 # fg = LightDFG{SolverParams}( solverParams=SolverParams())
 N = 100
 fg.solverParams.N = N
@@ -155,7 +156,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.va
 # fg.solverParams.showtree = true
 # fg.solverParams.drawtree = true
 # fg.solverParams.dbg = false
-
+getSolverParams(fg).graphinit = false
 tree2, smt, hist = IIF.solveTree!(fg; algorithm=:parametric)
 
 # print results

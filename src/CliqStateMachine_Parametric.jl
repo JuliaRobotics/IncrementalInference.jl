@@ -65,6 +65,14 @@ function initStartCliqStateMachineParametric!(dfg::G,
   nxt = buildCliqSubgraph_ParametricStateMachine
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt)
+
+
+  # store statemachine and csmc in task
+  if dfg.solverParams.dbg || recordhistory
+    task_local_storage(:statemachine, statemachine)
+    task_local_storage(:csmc, csmc)
+  end
+
   while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory); end
   statemachine.history
 end
@@ -447,7 +455,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   if isa(csmc.dfg, DFG.InMemoryDFGTypes)
     #TODO update frontal variables here directly
     frontsyms = getFrontals(csmc.cliq)
-    transferUpdateSubGraphParametric!(csmc.dfg, csmc.cliqSubFg, frontsyms)
+    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
+    # transferUpdateSubGraphParametric!(csmc.dfg, csmc.cliqSubFg, frontsyms)
     #solve finished change color
     setCliqDrawColor(csmc.cliq, "lightblue")
     # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
@@ -478,33 +487,32 @@ function updateRemote_ParametricStateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-Transfer contents of `src::AbstractDFG` variables `syms::Vector{Symbol}` to `dest::AbstractDFG`.
+# Transfer contents of `src::AbstractDFG` variables `syms::Vector{Symbol}` to `dest::AbstractDFG`.
 
-Notes
-- Reads, `dest` := `src`, for all `syms`
-"""
-function transferUpdateSubGraphParametric!(dest::InMemoryDFGTypes,
-                                           src::InMemoryDFGTypes,
-                                           syms::Vector{Symbol},
-                                           solveKey::Symbol=:parametric,
-                                           logger=ConsoleLogger()  )
-  #
-  with_logger(logger) do
-    @info "transferUpdateSubGraph! -- syms=$syms"
-  end
-  for v in getVariables(src)
-    println("\n ", v.label,": ",  getSolverData(v, :parametric).val[1])
-  end
+# Notes
+# - Reads, `dest` := `src`, for all `syms`
+# """
+# function transferUpdateSubGraphParametric!(dest::InMemoryDFGTypes,
+#                                            src::InMemoryDFGTypes,
+#                                            syms::Vector{Symbol},
+#                                            solveKey::Symbol=:parametric,
+#                                            logger=ConsoleLogger()  )
+#   #
+#   with_logger(logger) do
+#     @info "transferUpdateSubGraph! -- syms=$syms"
+#   end
+#   for v in getVariables(src)
+#     println("\n ", v.label,": ",  getSolverData(v, :parametric).val[1])
+#   end
 
-  # #TEMP force the solver data
-  # for v in syms
-  #   getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
-  # end
-  DFG.updateVariableSolverData!(dest, [getVariable(src, vIdx) for vIdx in syms], :parametric)
-  #TODO this does not work
-  # DFG.mergeUpdateGraphSolverData!(dest, src, syms)
-  nothing
-end
+#   # #TEMP force the solver data
+#   # for v in syms
+#   #   getSolverData(getVariable(dest,v),:parametric).val .= getSolverData(getVariable(src, v),:parametric).val
+#   #   getSolverData(getVariable(dest,v),:parametric).bw .= getSolverData(getVariable(src, v),:parametric).bw
+#   # end
+#   DFG.updateVariableSolverData!(dest, getVariable.(src, syms), :parametric)
+#   nothing
+# end
