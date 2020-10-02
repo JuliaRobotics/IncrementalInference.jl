@@ -379,6 +379,7 @@ fetchCliqSolvableDims, getCliqVariableMoreInitDims, getSubFgPriorityInitOrder
 """
 function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
                                           prnt::TreeClique,
+                                          dwninitmsgs,
                                           logger=ConsoleLogger() )::Vector{Int}
   #
   sibs = getChildren(tree, prnt)
@@ -387,15 +388,16 @@ function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
   sidx = Vector{Int}(undef, len)
   for idx in 1:len
     cliqd = getCliqueData(sibs[idx])
+    csd = getSolvableDims(cliqd)
     with_logger(logger) do
-      @info "getCliqSiblingsPriorityInitOrder, idx=$idx of $len, $(cliqd.frontalIDs[1]) length solvableDims=$(length(cliqd.solvableDims.data))"
+      @info "getCliqSiblingsPriorityInitOrder, idx=$idx of $len, $(cliqd.frontalIDs[1]) length solvableDims=$(length(csd.data))"
     end
     flush(logger.stream)
     sidims = fetchCliqSolvableDims(sibs[idx])
     sidx[idx] = sibs[idx].index
     tdims[idx] = sum(collect(values(sidims)))
     with_logger(logger) do
-      @info "getCliqSiblingsPriorityInitOrder, finished idx=$idx of $len, length solvableDims=$(length(cliqd.solvableDims.data))"
+      @info "getCliqSiblingsPriorityInitOrder, finished idx=$idx of $len, length solvableDims=$(length(csd.data))"
     end
     flush(logger.stream)
   end

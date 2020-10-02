@@ -75,6 +75,12 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+
+@deprecate prepCliqInitMsgsUp(x...;kw...) prepCliqueMsgUpConsolidated(x...;kw...)
+@deprecate getSetDownMessagesComplete!(x...;kw...) prepSetCliqueMsgDownConsolidated!(x...;kw...)
+
+@deprecate getMsgDwnChannel(tree::AbstractBayesTree, edge) getDwnMsgConsolidated(tree, edge)
+
 export MixtureLinearConditional
 
 function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief

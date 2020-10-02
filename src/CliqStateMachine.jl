@@ -810,7 +810,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
     mustwait = true
   end
 
-  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, csmc.logger )
+  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, dwinmsgs, csmc.logger )
   noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
   infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 

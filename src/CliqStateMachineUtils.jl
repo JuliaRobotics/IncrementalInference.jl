@@ -1,6 +1,6 @@
 
 export setVariablePosteriorEstimates!
-
+export updateCliqSolvableDims!, fetchCliqSolvableDims
 
 
 """
@@ -336,13 +336,14 @@ function updateCliqSolvableDims!( cliq::TreeClique,
                                   logger=ConsoleLogger() )::Nothing
   #
   cliqd = getCliqueData(cliq)
-  if isready(cliqd.solvableDims)
-    take!(cliqd.solvableDims)
+  csd = getSolvableDims(cliqd)
+  if isready(csd)
+    take!(csd)
     with_logger(logger) do
       @info "cliq $(cliq.index), updateCliqSolvableDims! -- cleared solvableDims"
     end
   end
-  put!(cliqd.solvableDims, sdims)
+  put!(csd, sdims)
   with_logger(logger) do
       @info "cliq $(cliq.index), updateCliqSolvableDims! -- updated"
   end
@@ -357,12 +358,11 @@ Retrieve a clique's cached solvable dimensions (since last update).
 """
 function fetchCliqSolvableDims(cliq::TreeClique)::Dict{Symbol,Float64}
   cliqd = getCliqueData(cliq)
-  if isready(cliqd.solvableDims)
-    return cliqd.solvableDims.data[1]
+  csd = getSolvableDims(cliqd)
+  if isready(csd)
+    return csd.data[1]
   end
-  return fetch(cliqd.solvableDims)
-  # if isready(cliqd.solvableDims)
-  # end
+  return fetch(csd)
 end
 
 

@@ -104,16 +104,18 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   cliqueLikelihood::Union{Nothing,SamplableBelief}
   msgType::T
   hasPriors::Bool
+  solvableDims::Dict{Symbol, Float64}
 end
 
 
-LikelihoodMessage(;status::CliqStatus=:null,
-                   beliefDict::Dict=Dict{Symbol, TreeBelief}(),
-                   variableOrder::Vector{Symbol}=Symbol[],
-                   cliqueLikelihood=nothing,
-                   msgType::T=NonparametricMessage(),
-                   hasPriors::Bool=true ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors)
+LikelihoodMessage(; status::CliqStatus=:null,
+                    beliefDict::Dict=Dict{Symbol, TreeBelief}(),
+                    variableOrder::Vector{Symbol}=Symbol[],
+                    cliqueLikelihood=nothing,
+                    msgType::T=NonparametricMessage(),
+                    hasPriors::Bool=true,
+                    solvableDims::Dict{Symbol, Float64}=Dict{Symbol, Float64}() ) where {T <: MessageType} =
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, solvableDims)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
@@ -129,9 +131,9 @@ function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
 
 end
 
-function compare(l1::LikelihoodMessage,
-                 l2::LikelihoodMessage;
-                 skip::Vector{Symbol}=[] )
+function compare( l1::LikelihoodMessage,
+                  l2::LikelihoodMessage;
+                  skip::Vector{Symbol}=[] )
   #
   TP = true
   TP = TP && l1.status == l2.status
