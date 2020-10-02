@@ -4,8 +4,7 @@
 
 abstract type AbstractBayesTree end
 
-#TODO - see #540 related to indexing and ids
-
+# TODO - see #540 related to indexing and ids
 # BayesTree declarations
 const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
 
@@ -32,10 +31,7 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                         Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}(),
                         Symbol[],
                         0.0  )
-
-#NOTE select type for development
-# emptyBayesTree() = BayesTree()
-# emptyBayesTree() = MetaBayesTree()
+#
 
 #TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
 global UseMetaBayesTree = false
@@ -120,69 +116,14 @@ function MetaBayesTree(tree::BayesTree)
 
 end
 
-# A replacement for to_dot that saves only plotting attributes
-function savedot_attributes(io::IO, g::MetaDiGraph)
-    write(io, "digraph G {\n")
-    for p in props(g)
-        write(io, "$(p[1])=$(p[2]);\n")
-    end
-
-    for v in MetaGraphs.vertices(g)
-        write(io, "$v")
-        if length(props(g, v)) > 0
-            write(io, " [ ")
-        end
-        for p in props(g, v)
-            # key = p[1]
-            # write(io, "$key=\"$(p[2])\",")
-            for (k,v) in p[2]
-              write(io, "\"$k\"=\"$v\",")
-            end
-        end
-        if length(props(g, v)) > 0
-            write(io, "];")
-        end
-        write(io, "\n")
-    end
-
-    for e in MetaGraphs.edges(g)
-        write(io, "$(MetaGraphs.src(e)) -> $(MetaGraphs.dst(e)) [ ")
-        if MetaGraphs.has_prop(g, e, :downMsg) && MetaGraphs.has_prop(g, e, :upMsg)
-          if isready(MetaGraphs.get_prop(g, e, :downMsg))
-            write(io, "color=red")
-          elseif isready(MetaGraphs.get_prop(g, e, :upMsg))
-            write(io, "color=orange")
-          else
-            write(io, "color=black")
-          end
-        end
-        write(io, "]\n")
-    end
-    write(io, "}\n")
-end
-
-function Graphs.to_dot(mdigraph::MetaDiGraph)
-  g = deepcopy(mdigraph)
-  for (i,val) in g.vprops
-    push!(g.vprops[i],:attributes=>val[:clique].attributes)
-    delete!(g.vprops[i],:clique)
-    delete!(g.vprops[i],:index)
-  end
-  m = PipeBuffer()
-  savedot_attributes(m, g)
-  data = take!(m)
-  close(m)
-  return String(data)
-end
 
 """
     $TYPEDEF
 
 Container for upward tree solve / initialization.
 
-TODO
-- remove proceed
-- more direct clique access (cliq, parent, children), for multi-process solves
+DevNotes
+- TODO more direct clique access (cliq, parent, children), for multi-process solves
 """
 mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMemoryDFGTypes, BT <: AbstractBayesTree}
   dfg::G
@@ -200,11 +141,6 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   oldcliqdata::BTND
   logger::SimpleLogger
   cliqKey::Int
-  #TODO towards consolidated messages
-  # Decision is pull/fetch-model #674 -- i.e. CSM only works inside its own csmc and fetchs messages from neighbors
-  # NOTE, DF going for Dict over Vector
-  # msgsUp::Dict{Int, LikelihoodMessage} # Vector{LikelihoodMessage}
-  # msgsDown::LikelihoodMessage # Vector{LikelihoodMessage}
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -284,10 +220,10 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
 end
 
 
-## === DF THIS MUST BE DELETED
+## === DF THIS MUST CONSOLIDATED
 # JT Using this to fix parametric tree again 
 # include additional Tx buffers for later use
-# fech vs take! #855
+# fetch vs take! #855
 # paremetric needs take! to work
 mutable struct MessageStore
   upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
