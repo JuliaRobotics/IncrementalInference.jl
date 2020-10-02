@@ -175,9 +175,10 @@ function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before notifyCliqDownInitStatus!")
-  notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
-  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- before prepPutCliqueStatusMsgDwn!")
+  # notifyCliqDownInitStatus!(csmc.cliq, :downsolved, logger=csmc.logger)
+  cliqst = prepPutCliqueStatusMsgDwn!(csmc, :downsolved)
+  infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified prepPutCliqueStatusMsgDwn!")
 
   # remove msg factors that were added to the subfg
   rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
@@ -280,8 +281,11 @@ function sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer)
   prepPutCliqueStatusMsgUp!(csmc, upmsg=upmsg)
 
   # also send a down message -- seem weird while doing #459 but okay
-  cliqst = getCliqueStatus(csmc.cliq)
-  notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+  #XXX #TODO Change NOT Covered in IIF or RoME tests!
+  # cliqst = getCliqueStatus(csmc.cliq)
+  # notifyCliqDownInitStatus!(csmc.cliq, cliqst, logger=csmc.logger)
+  cliqst = prepPutCliqueStatusMsgDwn!(csmc)
+  @warn("XXX Checking notifyCliqDownInitStatus! coverage", c=csmc.cliqKey, cliqst=cliqst)
 
   # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
   setCliqDrawColor(csmc.cliq, "sienna")

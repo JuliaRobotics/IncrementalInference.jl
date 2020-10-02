@@ -425,6 +425,9 @@ end
     $SIGNATURES
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
+Dev Note:
+- JT : This is basically just a LikelihoodMessage constructor, nothing is actually set.
+- #TODO Perhaps rename to something like `buildDownLikelihoodMessage` `buildCliqueDownMessage` 
 """
 function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
                                             cliq::TreeClique,

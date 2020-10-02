@@ -1225,6 +1225,8 @@ function decideUpMsgOrInit_StateMachine(csmc::CliqStateMachineContainer)
 
   if someChildrenNeedDwn
     # send a down init message
+    # TODO something is not right here, firstly its not covered in IIF and RoME tests,
+    # secondly down message is sent more than once
     prepPutCliqueStatusMsgDwn!(csmc)
     # go to 8k
     return sendCurrentUpMsg_StateMachine
