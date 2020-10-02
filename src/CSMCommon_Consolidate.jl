@@ -211,7 +211,7 @@ function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # this part looks like a pull model
   # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
-  putMsgDwnThis!(csmc.cliq.data, dwnmsgs) # , from=:putMsgDwnThis!  putCliqueMsgDown!
+  putDwnMsgConsolidated!(csmc.cliq.data, dwnmsgs) # , from=:putMsgDwnThis!  putCliqueMsgDown!
   setCliqueStatus!(csmc.cliq, :downsolved)
   csmc.dodownsolve = false
 
@@ -277,7 +277,7 @@ function sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # consolidated up messaging (#459)
   infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- putting fake upinitmsg in this cliq")
-  upmsg = prepCliqInitMsgsUp(csmc.cliqSubFg, csmc.cliq, getCliqueStatus(csmc.cliq))
+  upmsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, getCliqueStatus(csmc.cliq))
   prepPutCliqueStatusMsgUp!(csmc, upmsg=upmsg)
 
   # also send a down message -- seem weird while doing #459 but okay
