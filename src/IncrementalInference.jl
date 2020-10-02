@@ -470,13 +470,13 @@ include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
 include("CSMCommon_Consolidate.jl")
-include("CliqStateMachine.jl")
+include("CliqueStateMachine_fetch.jl")
 include("CliqStateMachineUtils.jl")
 include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
 include("SolveTree_Parametric.jl")
-include("CliqStateMachine_Parametric.jl")
+include("CliqueStateMachine_take.jl")
 include("ParametricUtils.jl")
 
 include("CanonicalGraphExamples.jl")
