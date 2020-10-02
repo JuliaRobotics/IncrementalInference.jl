@@ -75,6 +75,9 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+#NOTE select type for development
+# emptyBayesTree() = BayesTree()
+# emptyBayesTree() = MetaBayesTree()
 
 @deprecate prepCliqInitMsgsUp(x...;kw...) prepCliqueMsgUpConsolidated(x...;kw...)
 @deprecate getSetDownMessagesComplete!(x...;kw...) prepSetCliqueMsgDownConsolidated!(x...;kw...)
