@@ -426,7 +426,6 @@ function drawTreeAsyncLoop( tree::BayesTree,
                             filepath=joinLogPath(opt,"bt.pdf"),
                             dotreedraw = Int[1;]  )
   
-  global global_dotreedraw = dotreedraw
   # single drawtreerate
   treetask = if opt.drawtree
     @async begin
