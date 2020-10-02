@@ -212,45 +212,4 @@ function updateFGBT!( fg::AbstractDFG,
   nothing
 end
 
-
-
-"""
-    $(SIGNATURES)
-
-Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
-"""
-function updateFGBT!( fg::AbstractDFG,
-                      bt::AbstractBayesTree,
-                      cliqID::Int,
-                      drt::DownReturnBPType;
-                      dbg::Bool=false,
-                      fillcolor::String="",
-                      logger=ConsoleLogger()  )
-    #
-    cliq = getClique(bt, cliqID)
-    # if dbg
-    #   cliq.attributes["debugDwn"] = deepcopy(drt.dbgDwn)
-    # end
-    setDwnMsg!(cliq, drt.keepdwnmsgs)
-    # TODO move to drawTree
-    if fillcolor != ""
-      setCliqDrawColor(cliq, fillcolor)
-    end
-    with_logger(logger) do
-      for (sym, emsg) in drt.IDvals
-        #TODO -- should become an update call
-        updvert = DFG.getVariable(fg, sym)
-        # TODO -- not sure if deepcopy is required , updatePPE=true)
-        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
-        setValKDE!(updvert, deepcopy(emsg) )
-        updvert = DFG.getVariable(fg, sym)
-        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
-      end
-    end
-    nothing
-end
-
-
-
-
 #
