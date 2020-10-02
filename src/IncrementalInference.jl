@@ -101,8 +101,6 @@ export *,
   CSMHistory,
   # getTreeCliqsSolverHistories,
 
-  updateCliqSolvableDims!,
-  fetchCliqSolvableDims,
   AbstractBayesTree,
   BayesTreeNodeData,
   PackedBayesTreeNodeData,

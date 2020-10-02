@@ -1,26 +1,62 @@
 
-# these functions and their use in the code need to be consolidated to conclude #459
-
-# TODO consolidate
-export
-  fetchDwnMsgsThis,
-  getMsgDwnThisInit,
-  getMsgDownParent
+# these functions need to be consolidated to single get and set API
 
 
 ## ============================================================================
-## Consolidated dwn message container
+## Consolidated dwn message GETS -- where msgs are stored
 ## ============================================================================
 
 getDwnMsgConsolidated(btnd::BayesTreeNodeData) = btnd.dwnMsgChannel
 getDwnMsgConsolidated(cliq::TreeClique) = getDwnMsgConsolidated(getCliqueData(cliq))
+
+# FIXME CONSOLIDATE TO SINGLE CHANNEL STORAGE LOCATION
+getDwnMsgConsolidated(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
+getDwnMsgConsolidated(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
+
+
+## ============================================================================
+## Dwn message FETCH / TAKE  -- TODO consolidate to single function
+## ============================================================================
+
 
 function fetchDwnMsgConsolidated(btnd::BayesTreeNodeData)
   fetch(getDwnMsgConsolidated(btnd))
 end
 fetchDwnMsgConsolidated(cliq::TreeClique) = fetchDwnMsgConsolidated(getCliqueData(cliq))
 
+
+"""
+    $SIGNATURES
+
+Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
+"""
+function takeBeliefMessageDown!(tree::BayesTree, edge)
+  # Blocks until data is available.
+  beliefMsg = take!(getDwnMsgConsolidated(tree, edge))
+  return beliefMsg
+end
+
+
+
+## =============================================================================
+## Down message SETS / PUTS -- TODO consolidate to a single function (#855)
+## =============================================================================
+
+
+"""
+    $SIGNATURES
+
+Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
+"""
+function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+  # Blocks until data is available.
+  put!(getDwnMsgConsolidated(tree, edge), beliefMsg)
+  return beliefMsg
+end
+
+
 function putDwnMsgConsolidated!(btnd::BayesTreeNodeData, msg::LikelihoodMessage)
+  # need to get the current solvableDims
   dmc = getDwnMsgConsolidated(btnd)
   if isready(dmc)
     take!(dmc)
@@ -28,7 +64,6 @@ function putDwnMsgConsolidated!(btnd::BayesTreeNodeData, msg::LikelihoodMessage)
   put!(dmc, msg)
 end
 putDwnMsgConsolidated!(cliq::TreeClique, msg::LikelihoodMessage) = putDwnMsgConsolidated!(getCliqueData(cliq), msg)
-
 
 
 """
@@ -39,7 +74,7 @@ THIS IS ONE OF THE FAVORITES FOR POST CONSOLIDATED DOWNWARD MESSAGES.
 function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
                                     dfg::AbstractDFG=csmc.cliqSubFg,
-                                    dwnmsg=getSetDownMessagesComplete!(dfg, csmc.cliq, LikelihoodMessage(), csmc.logger, status=status )  )
+                                    dwnmsg=prepSetCliqueMsgDownConsolidated!(dfg, csmc.cliq, LikelihoodMessage(status=status), csmc.logger, status=status )  )
   #
   cd = getCliqueData(csmc.cliq)
 
@@ -49,7 +84,7 @@ function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
   putDwnMsgConsolidated!(cd, dwnmsg)
 
   notify(getSolveCondition(csmc.cliq))
-  # took ~40 hours to figure out that a double norification fixes the problem with hex init
+  # double notification fixes the problem with hex init (likely due to old lock or something, remove with care)
   sleep(0.1)
   notify(getSolveCondition(csmc.cliq))
 
@@ -60,90 +95,8 @@ end
 
 
 
-## ============================================================================
-## more channels, MUST BE REMOVED
-## ============================================================================
 
-
-# FIXME DEPRECATE TO RATHER USE getDwnMsgConsolidated
-getMsgDwnChannel(tree::BayesTree, edge) = tree.messages[edge.index].downMsg
-getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
-
-"""
-    $SIGNATURES
-
-Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageDown!(tree::BayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(getMsgDwnChannel(tree, edge))
-  return beliefMsg
-end
-
-
-"""
-    $SIGNATURES
-
-Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
-"""
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
-  # Blocks until data is available.
-  put!(getMsgDwnChannel(tree, edge), beliefMsg)
-  return beliefMsg
-end
-
-
-
-
-
-"""
-    $SIGNATURES
-
-Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
-"""
-function getSetDownMessagesComplete!( subfg::AbstractDFG,
-                                      cliq::TreeClique,
-                                      prntDwnMsgs::LikelihoodMessage,
-                                      logger=ConsoleLogger();
-                                      status::CliqStatus=getCliqueStatus(cliq)  )
-  #
-  allvars = getCliqVarIdsAll(cliq)
-  allprntkeys = collect(keys(prntDwnMsgs.belief))
-  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
-  remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = LikelihoodMessage(status=status)
-
-  # some msgs are just pass through from parent
-  for pk in passkeys
-    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
-  end
-
-  # other messages must be extracted from subfg
-  for mk in remainkeys
-    setVari = getVariable(subfg, mk)
-    if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari)
-    end
-  end
-
-  # set the downward keys
-  with_logger(logger) do
-    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
-  end
-
-  return newDwnMsgs
-end
-
-
-
-
-## =============================================================================
-## Atomic messaging during init -- TODO deprecated
-## =============================================================================
-
-
-
-
+# FIXME, consolidate into single down msg event API
 function notifyCliqDownInitStatus!( cliq::TreeClique,
                                     status::Symbol;
                                     logger=ConsoleLogger() )
@@ -176,8 +129,7 @@ function notifyCliqDownInitStatus!( cliq::TreeClique,
 end
 
 
-
-
+# FIXME figure out if this can be consolidated and deprecated
 function dwnPrepOutMsg( fg::AbstractDFG,
                         cliq::TreeClique,
                         dwnMsgs::Array{LikelihoodMessage,1},

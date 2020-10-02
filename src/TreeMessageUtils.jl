@@ -46,6 +46,14 @@ notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(
 # helper functions for tree message channels
 ## =============================================================================
 
+
+
+# TODO deprecate solvableDims #910
+getSolvableDims(cliqd::BayesTreeNodeData) = cliqd.solvableDims
+getSolvableDims(cliq::TreeClique) = getSolvableDims(getSolverData(cliq))
+
+
+
 """
     $SIGNATURES
 
@@ -369,6 +377,12 @@ end
 
 
 
+## =============================================================================
+## Prepare Clique Up or Down Msgs
+## =============================================================================
+
+
+
 """
     $SIGNATURES
 
@@ -381,11 +395,11 @@ Notes
 DevNotes
 - set `msgs.hasPriors=true` only if a prior occurred here or lower down in tree branch. 
 """
-function prepCliqInitMsgsUp(subfg::AbstractDFG,
-                            cliq::TreeClique,
-                            status::Symbol=getCliqueStatus(cliq);
-                            logger=ConsoleLogger(),
-                            duplicate::Bool=true )
+function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
+                                      cliq::TreeClique,
+                                      status::Symbol=getCliqueStatus(cliq);
+                                      logger=ConsoleLogger(),
+                                      duplicate::Bool=true )
   #
   # get the current clique status
 
@@ -406,6 +420,45 @@ function prepCliqInitMsgsUp(subfg::AbstractDFG,
   return msg
 end
 
+
+"""
+    $SIGNATURES
+
+Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
+"""
+function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
+                                            cliq::TreeClique,
+                                            prntDwnMsgs::LikelihoodMessage,
+                                            logger=ConsoleLogger();
+                                            status::CliqStatus=getCliqueStatus(cliq)  )
+  #
+  allvars = getCliqVarIdsAll(cliq)
+  allprntkeys = collect(keys(prntDwnMsgs.belief))
+  passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
+  remainkeys = setdiff(allvars, passkeys)
+  # csd = getSolvableDims(cliq)
+  newDwnMsgs = LikelihoodMessage(status=status)
+
+  # some msgs are just pass through from parent
+  for pk in passkeys
+    newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
+  end
+
+  # other messages must be extracted from subfg
+  for mk in remainkeys
+    setVari = getVariable(subfg, mk)
+    if isInitialized(setVari)
+      newDwnMsgs.belief[mk] = TreeBelief(setVari)
+    end
+  end
+
+  # set the downward keys
+  with_logger(logger) do
+    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
+  end
+
+  return newDwnMsgs
+end
 
 
 

@@ -336,14 +336,14 @@ mutable struct BayesTreeNodeData
   # keep the Condition and Channel{Int}'s for now
   solveCondition::Condition
 
-  # FIXME consolidate Dict with LikelihoodMessage, (pull model #674)
+  # FIXME consolidate Dict with LikelihoodMessage (#910), and pull model (#674)
   solvableDims::Channel{Dict{Symbol, Float64}}
 
   # Consolidation for #459 complete!
   upMsgChannel::Channel{LikelihoodMessage}
   dwnMsgChannel::Channel{LikelihoodMessage}
 
-  ## DF THIS MUST BE DELETED AND ONLY USE BTND.up[/dwn]MsgChannel 
+  ## DF THIS MUST BE consolidated with BTND.up[/dwn]MsgChannel -- ONLY A SINGLE LOCATION CAN REMAIN
   # JT Local messages saved for cache and debuging 
   messages::MessageStore
 end
@@ -440,7 +440,7 @@ function compare( c1::BayesTreeNodeData,
   TP = TP && c1.isCliqReused == c2.isCliqReused
   TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
   # TP = TP && c1.solveCondition == c2.solveCondition
-  TP = TP && c1.solvableDims == c2.solvableDims
+  # TP = TP && c1.solvableDims == c2.solvableDims  TBD deprecated #910
   TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
   TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
 
