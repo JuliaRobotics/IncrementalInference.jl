@@ -103,7 +103,6 @@ function notifyCliqDownInitStatus!( cliq::TreeClique,
                                     status::Symbol;
                                     logger=ConsoleLogger() )
   #
-  @error("JT-Should not be called, directly replaced with `prepPutCliqueStatusMsgDwn`")
   cdat = getCliqueData(cliq)
     with_logger(logger) do
     @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
