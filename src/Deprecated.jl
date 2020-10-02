@@ -45,7 +45,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   dbg::Bool=false;
                                   solveKey::Symbol=:default )
   #
-  @warn("findRelatedFromPotential is obsolete, use `productbelief(fg, variableSym, :)`")
+  @warn("findRelatedFromPotential is obsolete, use `productbelief(fg, variableSym, :)`", maxlog=1)
 
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
@@ -412,7 +412,7 @@ end
 # getMsgDwnInitChannel_(btnd::BayesTreeNodeData) = btnd.initDownChannel
 
 function getMsgDwnInitChannel_(cliq::TreeClique)
-  @warn("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.")
+  @warn("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.", maxlog=1)
   getMsgDwnInitChannel_(getCliqueData(cliq))
 end
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
@@ -1061,3 +1061,169 @@ function addMsgFactors!(subfg::AbstractDFG,
   end
   return msgfcts
 end
+
+
+
+##==============================================================================
+## TODO IS THIS DEPRECATED #TODO
+##------------------------------------------------------------------------------
+
+## TODO IS THIS DEPRECATED - only called in other code that looks to be deprecated
+
+# FIXME figure out if this can be consolidated and deprecated
+function dwnPrepOutMsg( fg::AbstractDFG,
+  cliq::TreeClique,
+  dwnMsgs::Array{LikelihoodMessage,1},
+  d::Dict{Symbol, T},
+  logger=ConsoleLogger()) where T
+# pack all downcoming conditionals in a dictionary too.
+with_logger(logger) do
+if cliq.index != 1 #TODO there may be more than one root
+@info "Dwn msg keys $(keys(dwnMsgs[1].belief))"
+@info "fg vars $(ls(fg))"
+end # ignore root, now incoming dwn msg
+end
+m = LikelihoodMessage()
+i = 0
+for vid in getCliqueData(cliq).frontalIDs
+m.belief[vid] = deepcopy(d[vid]) # TODO -- not sure if deepcopy is required
+end
+for cvid in getCliqueData(cliq).separatorIDs
+i+=1
+# TODO -- convert to points only since kde replace by rkhs in future
+m.belief[cvid] = deepcopy(dwnMsgs[1].belief[cvid]) # TODO -- maybe this can just be a union(,)
+end
+return m
+end
+
+
+
+"""
+    $SIGNATURES
+
+Perform Chapman-Kolmogorov transit integral approximation for `cliq` in downward pass direction.
+
+Notes
+- Only update frontal variables of the clique.
+"""
+function downGibbsCliqueDensity(fg::AbstractDFG,
+                                cliq::TreeClique,
+                                dwnMsgs::Array{LikelihoodMessage,1},
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false,
+                                usemsgpriors::Bool=false,
+                                logger=ConsoleLogger() )
+  #
+  # TODO standardize function call to have similar stride to upGibbsCliqueDensity
+  # @info "down"
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- going for down fmcmc"
+  end
+  fmmsgs = usemsgpriors ? Array{LikelihoodMessage,1}() : dwnMsgs
+  frtls = getFrontals(cliq)
+
+  # TODO, do better check if there is structure between multiple frontals
+  niters = length(frtls) == 1 ? 1 : MCMCIter
+  # TODO standize with upsolve and variable solver order
+  mcmcdbg, d = fmcmc!(fg, cliq, fmmsgs, frtls, N, niters, dbg)
+  m = dwnPrepOutMsg(fg, cliq, dwnMsgs, d, logger)
+
+  outmsglbl = Dict{Symbol, Int}()
+  if dbg
+    for (ke, va) in m.belief
+      outmsglbl[Symbol(fg.g.vertices[ke].label)] = ke
+    end
+  end
+
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert to BallTreeDensities."
+  end
+
+  # Always keep dwn messages in cliq data
+  dwnkeepmsgs = LikelihoodMessage()
+  for (msgsym, val) in m.belief
+    dwnkeepmsgs.belief[msgsym] = convert(Tuple{BallTreeDensity,Float64}, val)
+  end
+  #FIXME #FIXME #FIXME #FIXME this does not exist so looks like this function is never called!
+  setDwnMsg!(cliq, dwnkeepmsgs)
+
+  # down solving complete, set flag
+  getCliqueData(cliq).downsolved = true
+
+  mdbg = !dbg ? DebugCliqMCMC() : DebugCliqMCMC(mcmcdbg, m, outmsglbl, CliqGibbsMC[])
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- finished."
+  end
+  return DownReturnBPType(m, mdbg, d, dwnkeepmsgs)
+end
+
+
+function downGibbsCliqueDensity(fg::AbstractDFG,
+                                cliq::TreeClique,
+                                dwnMsgs::LikelihoodMessage,
+                                N::Int=100,
+                                MCMCIter::Int=3,
+                                dbg::Bool=false,
+                                usemsgpriors::Bool=false,
+                                logger=ConsoleLogger() )
+  #
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to LikelihoodMessage."
+  end
+  ind = Dict{Symbol, TreeBelief}()
+  sflbls = listVariables(fg)
+  for (lbl, bel) in dwnMsgs.belief
+    if lbl in sflbls
+      ind[lbl] = TreeBelief(bel[1], bel[2], getSofttype(getVariable(fg, lbl)))
+    end
+  end
+  ndms = LikelihoodMessage[LikelihoodMessage(ind);]
+  with_logger(logger) do
+    @info "cliq=$(cliq.index), downGibbsCliqueDensity -- call with LikelihoodMessage."
+  end
+  downGibbsCliqueDensity(fg, cliq, ndms, N, MCMCIter, dbg, usemsgpriors, logger)
+end
+
+
+## TODO IS THIS DEPRECATED - never called 
+"""
+    $(SIGNATURES)
+
+Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `ddt` -- intended use is to update main clique after a downward belief propagation computation has been completed per clique.
+"""
+function updateFGBT!( fg::AbstractDFG,
+                      bt::AbstractBayesTree,
+                      cliqID::Int,
+                      drt::DownReturnBPType;
+                      dbg::Bool=false,
+                      fillcolor::String="",
+                      logger=ConsoleLogger()  )
+    #
+    cliq = getClique(bt, cliqID)
+    # if dbg
+    #   cliq.attributes["debugDwn"] = deepcopy(drt.dbgDwn)
+    # end
+    #FIXME #FIXME #FIXME #FIXME this does not exist so looks like this function is never called!
+    setDwnMsg!(cliq, drt.keepdwnmsgs)
+    # TODO move to drawTree
+    if fillcolor != ""
+      setCliqDrawColor(cliq, fillcolor)
+    end
+    with_logger(logger) do
+      for (sym, emsg) in drt.IDvals
+        #TODO -- should become an update call
+        updvert = DFG.getVariable(fg, sym)
+        # TODO -- not sure if deepcopy is required , updatePPE=true)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, current inferdim val=$(getVariableInferredDim(updvert))"
+        setValKDE!(updvert, deepcopy(emsg) )
+        updvert = DFG.getVariable(fg, sym)
+        @info "updateFGBT, DownReturnBPType, sym=$sym, inferdim=$(emsg.inferdim), newval=$(getVariableInferredDim(updvert))"
+      end
+    end
+    nothing
+end
+
+
+## END #TODO IS THIS DEPRECATED
+##==============================================================================
