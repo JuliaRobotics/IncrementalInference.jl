@@ -7,8 +7,7 @@ export
 # Reguler accessors
 export
   getMsgUpThis,
-  getMsgsUpChildren,
-  fetchMsgDwnInit
+  getMsgsUpChildren
   # putMsgUpThis!
 
 export
@@ -134,7 +133,7 @@ DevNotes
 function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
                                     dfg::AbstractDFG=csmc.cliqSubFg,
-                                    upmsg=prepCliqInitMsgsUp(dfg, csmc.cliq, status)  )
+                                    upmsg=prepCliqueMsgUpConsolidated(dfg, csmc.cliq, status)  )
   #
   # TODO replace with msg channels only
 

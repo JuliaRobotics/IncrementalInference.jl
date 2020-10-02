@@ -283,7 +283,7 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
 
     if allneeddwn
       # do actual fetch
-      prtmsg = fetchMsgDwnInit(prnt_).status
+      prtmsg = fetchDwnMsgConsolidated(prnt_).status
       if prtmsg == :initialized
         return true
       end

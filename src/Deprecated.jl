@@ -415,6 +415,7 @@ function getMsgDwnInitChannel_(cliq::TreeClique)
   @warn("getMsgDwnInitChannel_ is deprecated, use getDwnMsgConsolidated instead.", maxlog=1)
   getMsgDwnInitChannel_(getCliqueData(cliq))
 end
+export fetchMsgDwnInit
 fetchMsgDwnInit(cliq::TreeClique) = fetch(getMsgDwnInitChannel_(cliq))
 
 
@@ -748,7 +749,7 @@ end
 
 function blockMsgDwnUntilStatus(cliq::TreeClique, status::CliqStatus)
   @error("blockMsgDwnUntilStatus is deprecated, use CSM directly")
-  while fetchMsgDwnInit(cliq).status != status
+  while fetchDwnMsgConsolidated(cliq).status != status
     wait(getSolveCondition(cliq))
   end
   nothing

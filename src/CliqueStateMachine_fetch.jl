@@ -60,7 +60,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # get down msg from parent (assuming root clique CSM wont make it here)
   # this looks like a pull model #674
   prnt = getParent(csmc.tree, csmc.cliq)
-  dwnmsgs = fetchMsgDwnThis(prnt[1])
+  dwnmsgs = fetchDwnMsgConsolidated(prnt[1])
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
 
   # maybe cycle through separators (or better yet, just use values directly -- see next line)
@@ -340,7 +340,7 @@ function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
   # block here until parent is downsolved
   setCliqDrawColor(csmc.cliq, "turquoise")
   # this part is a pull model #674
-  while fetchMsgDwnInit(prnt[1]).status != :downsolved
+  while fetchDwnMsgConsolidated(prnt[1]).status != :downsolved
     wait(getSolveCondition(prnt[1]))
   end
   # blockMsgDwnUntilStatus(prnt[1], :downsolved)
@@ -414,7 +414,7 @@ DevNotes
 """
 function slowOnPrntAsChildrNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
   # do actual fetch
-  prtmsg = fetchMsgDwnInit(getParent(csmc.tree, csmc.cliq)[1]).status
+  prtmsg = fetchDwnMsgConsolidated(getParent(csmc.tree, csmc.cliq)[1]).status
   if prtmsg == :initialized
     # FIXME what does this mean???
     # probably that downward init should commence (not complete final solve)
