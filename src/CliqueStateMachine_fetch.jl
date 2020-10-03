@@ -323,14 +323,12 @@ end
 """
     $SIGNATURES
 
-Need description for this???
+When this clique needs information from parent to continue but parent is still busy.  
+Reasons are either downsolve or need down init message information (which are similar).
 
 Notes
 - State machine function nr. 8c
 - bad idea to injectDelayBefore this function, because it will delay waiting on the parent past the event.
-
-DevNotes
-- FIXME Consolidate with 10a (post #459)?
 """
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
   #
