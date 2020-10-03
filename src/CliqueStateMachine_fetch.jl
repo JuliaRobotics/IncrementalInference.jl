@@ -331,7 +331,7 @@ Notes
 - State machine function nr. 10a
 
 DevNotes
-- FIXME, resolve/consolidate whatever is going on here
+- FIXME, resolve/consolidate with 8c?
 """
 function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "10a, canCliqDownSolve_StateMachine, going to block on parent.")
@@ -340,14 +340,16 @@ function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
   # block here until parent is downsolved
   setCliqDrawColor(csmc.cliq, "turquoise")
   # this part is a pull model #674
-  while fetchDwnMsgConsolidated(prnt[1]).status != :downsolved
+  # while 
+  prntst = fetchDwnMsgConsolidated(prnt[1]).status
+  if prntst != :downsolved
     wait(getSolveCondition(prnt[1]))
   end
   # blockMsgDwnUntilStatus(prnt[1], :downsolved)
   # blockCliqUntilParentDownSolved(, logger=csmc.logger)
 
   # yes, continue with downsolve
-  prntst = getCliqueStatus(prnt[1])
+  # prntst = getCliqueStatus(prnt[1])
   infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, parent status=$prntst.")
   if prntst != :downsolved
     infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going around again.")
@@ -367,9 +369,10 @@ Need description for this???
 
 Notes
 - State machine function nr. 8c
+- bad idea to injectDelayBefore this function, because it will delay waiting on the parent past the event.
 
 DevNotes
-- Must consolidate as part of #459
+- FIXME Consolidate with 10a (post #459)?
 """
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
   #
@@ -378,14 +381,12 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
   prnt = getParent(csmc.tree, csmc.cliq)
   if 0 < length(prnt)
     infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent=$(prnt[1].index) for condition notify.")
-    # @sync begin
-    #   @async begin
-    #     sleep(1)
-    #     notify(getSolveCondition(prnt[1]))
-    #   end
-      # wait but don't clear what is in the Condition (guess)
+    
+    if fetchDwnMsgConsolidated(prnt[1]).status != :downsolved
       wait(getSolveCondition(prnt[1]))
-    # end
+    end
+
+    # wait(getSolveCondition(prnt[1]))
   else
     infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
     @warn "no parent!"
@@ -393,8 +394,6 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
 
   # go to 4b
   return trafficRedirectConsolidate459_StateMachine
-    # # go to 4
-    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 
@@ -815,10 +814,11 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdowninit
-      # go to 7e
-      return slowWhileInit_StateMachine
-    end
+    # TODO, is this needed? fails hex if included with correction :needdowninit --> :needdownmsg
+    # if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdownmsg  # used to be :needdowninit
+    #   # go to 7e
+    #   return slowWhileInit_StateMachine
+    # end
 
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, must wait on change.")
     # remove all message factors
@@ -1115,7 +1115,7 @@ Notes
 - State machine function nr. 5
 
 DevNotes
-- FIXME refactor this for when prnt==:null, cliq==:needdowninit
+- FIXME refactor this for when prnt==:null, cliq==:needdownmsg/init
 """
 function blockSiblingStatus_StateMachine(csmc::CliqStateMachineContainer)
     # infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
@@ -1217,7 +1217,7 @@ function decideUpMsgOrInit_StateMachine(csmc::CliqStateMachineContainer)
   # for ch in getChildren(csmc.tree, csmc.cliq)
   for (clid, chst) in fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
     # if getCliqueStatus(ch) == :needdownmsg
-    if chst == :needdowninit
+    if chst == :needdownmsg # NOTE was :needdowninit
       someChildrenNeedDwn = true
       break
     end
