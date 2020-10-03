@@ -75,6 +75,21 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+
+
+"""
+$(TYPEDEF)
+
+TO BE DEPRECATED AND CONSOLIDATED
+"""
+mutable struct DownReturnBPType
+  dwnMsg::LikelihoodMessage
+  dbgDwn::DebugCliqMCMC
+  IDvals::Dict{Symbol,TreeBelief}
+  keepdwnmsgs::LikelihoodMessage
+end
+
+
 #NOTE select type for development
 # emptyBayesTree() = BayesTree()
 # emptyBayesTree() = MetaBayesTree()
@@ -178,6 +193,7 @@ function downGibbsCliqueDensity(fg::AbstractDFG,
                                 usemsgpriors::Bool=false,
                                 logger=ConsoleLogger() )
   #
+  @warn("downGibbsCliqueDensity is deprecated")
   with_logger(logger) do
     @info "cliq=$(cliq.index), downGibbsCliqueDensity -- convert BallTreeDensities to LikelihoodMessage."
   end
