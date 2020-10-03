@@ -331,8 +331,8 @@ end
 Open view to see the graphviz exported Bayes tree, assuming default location and
 viewer app.  See keyword arguments for more details.
 """
-function showTree(;filepath::String="/tmp/caesar/bt.pdf",
-                   viewerapp::String="evince"  )
+function showTree(; filepath::String="/tmp/caesar/bt.pdf",
+                    viewerapp::String="evince"  )
   #
   try
     @async run(`$(viewerapp) $(filepath)`)
@@ -342,6 +342,63 @@ function showTree(;filepath::String="/tmp/caesar/bt.pdf",
     @show stacktrace()
   end
 end
+
+
+# A replacement for to_dot that saves only plotting attributes
+function savedot_attributes(io::IO, g::MetaDiGraph)
+    write(io, "digraph G {\n")
+    for p in props(g)
+        write(io, "$(p[1])=$(p[2]);\n")
+    end
+
+    for v in MetaGraphs.vertices(g)
+        write(io, "$v")
+        if length(props(g, v)) > 0
+            write(io, " [ ")
+        end
+        for p in props(g, v)
+            # key = p[1]
+            # write(io, "$key=\"$(p[2])\",")
+            for (k,v) in p[2]
+              write(io, "\"$k\"=\"$v\",")
+            end
+        end
+        if length(props(g, v)) > 0
+            write(io, "];")
+        end
+        write(io, "\n")
+    end
+
+    for e in MetaGraphs.edges(g)
+        write(io, "$(MetaGraphs.src(e)) -> $(MetaGraphs.dst(e)) [ ")
+        if MetaGraphs.has_prop(g, e, :downMsg) && MetaGraphs.has_prop(g, e, :upMsg)
+          if isready(MetaGraphs.get_prop(g, e, :downMsg))
+            write(io, "color=red")
+          elseif isready(MetaGraphs.get_prop(g, e, :upMsg))
+            write(io, "color=orange")
+          else
+            write(io, "color=black")
+          end
+        end
+        write(io, "]\n")
+    end
+    write(io, "}\n")
+end
+
+function Graphs.to_dot(mdigraph::MetaDiGraph)
+  g = deepcopy(mdigraph)
+  for (i,val) in g.vprops
+    push!(g.vprops[i],:attributes=>val[:clique].attributes)
+    delete!(g.vprops[i],:clique)
+    delete!(g.vprops[i],:index)
+  end
+  m = PipeBuffer()
+  savedot_attributes(m, g)
+  data = take!(m)
+  close(m)
+  return String(data)
+end
+
 
 """
     $SIGNATURES
@@ -795,49 +852,6 @@ function appendUseFcts!(usefcts,
   #
   union!(usefcts, Symbol(fct.label))
   nothing
-end
-
-"""
-    $SIGNATURES
-
-Return list of factors which depend only on variables in variable list in factor
-graph -- i.e. among variables.
-
-Notes
------
-* `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
-"""
-function getFactorsAmongVariablesOnly(dfg::G,
-                                      varlist::Vector{Symbol};
-                                      unused::Bool=true  ) where G <: AbstractDFG
-  # collect all factors attached to variables
-  prefcts = Symbol[]
-  for var in varlist
-    union!(prefcts, DFG.ls(dfg, var))
-  end
-
-  almostfcts = Symbol[]
-  if unused
-    # now check if those factors have already been added
-    for fct in prefcts
-      vert = DFG.getFactor(dfg, fct)
-      if !getSolverData(vert).potentialused
-        push!(almostfcts, fct)
-      end
-    end
-  else
-    almostfcts = prefcts
-  end
-
-  # Select factors that have all variables in this clique var list
-  usefcts = Symbol[]
-  for fct in almostfcts
-    if length(setdiff(DFG.getNeighbors(dfg, fct), varlist)) == 0
-      push!(usefcts, fct)
-    end
-  end
-
-  return usefcts
 end
 
 

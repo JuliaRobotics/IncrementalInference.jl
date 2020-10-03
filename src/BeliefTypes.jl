@@ -49,23 +49,26 @@ struct TreeBelief{T <: InferenceVariable}
   softtype::T # rename to VariableType, DFG #603 
   # TODO -- DEPRECATE
   manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
+  solvableDim::Float64 # dims to still be solved, #910
 end
 TreeBelief( p::BallTreeDensity,
-            inferdim::Real=0.0,
+            inferdim::Real=0,
             softtype::T=ContinuousScalar(),
-            manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, manifolds)
+            manifolds=getManifolds(softtype),
+            solvableDim::Real=0) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, softtype, manifolds, solvableDim)
 
 TreeBelief( val::Array{Float64,2},
             bw::Array{Float64,2},
-            inferdim::Real=0.0,
+            inferdim::Real=0,
             softtype::T=ContinuousScalar(),
-            manifolds=getManifolds(softtype)) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, manifolds)
+            manifolds=getManifolds(softtype),
+            solvableDim::Real=0) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, softtype, manifolds, solvableDim)
 
-function TreeBelief(vnd::VariableNodeData)
-  TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd) )
+function TreeBelief(vnd::VariableNodeData, solvDim::Real=0)
+  TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd), solvDim )
 end
 
-TreeBelief(vari::DFGVariable, solveKey=:default) = TreeBelief(getSolverData(vari, solveKey))
+TreeBelief(vari::DFGVariable, solveKey=:default; solvableDim::Real=0) = TreeBelief(getSolverData(vari, solveKey), solvableDim)
 
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 
@@ -75,6 +78,7 @@ function compare(t1::TreeBelief, t2::TreeBelief)
   TP = TP && norm(t1.bw - t2.bw) < 1e-5
   TP = TP && abs(t1.inferdim - t2.inferdim) < 1e-5
   TP = TP && t1.softtype == t2.softtype
+  TP = TP && abs(t1.solvableDim - t2.solvableDim) < 1e-5
   return TP
 end
 
@@ -104,7 +108,8 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   cliqueLikelihood::Union{Nothing,SamplableBelief}
   msgType::T
   hasPriors::Bool
-  solvableDims::Dict{Symbol, Float64}
+  # this is different from  belief[].inferdim as the available infer dims remaining
+  # solvableDims::Dict{Symbol, Float64} 
 end
 
 
@@ -114,8 +119,9 @@ LikelihoodMessage(; status::CliqStatus=:null,
                     cliqueLikelihood=nothing,
                     msgType::T=NonparametricMessage(),
                     hasPriors::Bool=true,
-                    solvableDims::Dict{Symbol, Float64}=Dict{Symbol, Float64}() ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, solvableDims)
+                    # solvableDims::Dict{Symbol, Float64}=Dict{Symbol, Float64}() 
+                    ) where {T <: MessageType} =
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
@@ -185,20 +191,6 @@ mutable struct DebugCliqMCMC
   DebugCliqMCMC() = new()
   DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
-
-
-"""
-$(TYPEDEF)
-
-TO BE DEPRECATED AND CONSOLIDATED
-"""
-mutable struct DownReturnBPType
-  dwnMsg::LikelihoodMessage
-  dbgDwn::DebugCliqMCMC
-  IDvals::Dict{Symbol,TreeBelief}
-  keepdwnmsgs::LikelihoodMessage
-end
-
 
 
 
