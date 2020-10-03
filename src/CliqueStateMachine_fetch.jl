@@ -1,7 +1,7 @@
 # clique state machine for tree based initialization and inference
 
 # newer exports
-# export towardUpOrDwnSolve_StateMachine, maybeNeedDwnMsg_StateMachine, doAnyChildrenNeedDwn_StateMachine
+# export towardUpOrDwnSolve_StateMachine, maybeNeedDwnMsg_StateMachine
 # export prepInitUp_StateMachine, doCliqUpSolveInitialized_StateMachine
 # export rmUpLikeliSaveSubFg_StateMachine
 # export blockCliqSiblingsParentChildrenNeedDown_StateMachine
@@ -14,7 +14,6 @@ export  doCliqDownSolve_StateMachine,
         prepInitUp_StateMachine,
         doCliqUpSolveInitialized_StateMachine,
         rmUpLikeliSaveSubFg_StateMachine,
-        wipRedirect459Dwn_StateMachine,
         waitChangeOnParentCondition_StateMachine,
         slowOnPrntAsChildrNeedDwn_StateMachine,
         towardUpOrDwnSolve_StateMachine,
@@ -31,7 +30,6 @@ export  doCliqDownSolve_StateMachine,
         determineCliqNeedDownMsg_StateMachine,
         tryUpInitCliq_StateMachine,
         slowWhileInit_StateMachine,
-        doAnyChildrenNeedDwn_StateMachine,
         decideUpMsgOrInit_StateMachine,
         attemptCliqInitUp_StateMachine,
         sendCurrentUpMsg_StateMachine,
@@ -137,9 +135,10 @@ function canCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     return specialCaseRootDownSolve_StateMachine
   end
 
-  # go to 10a
-  return wipRedirect459Dwn_StateMachine
-
+  # go to 8c
+  return waitChangeOnParentCondition_StateMachine
+  # # go to 10a
+  # return wipRedirect459Dwn_StateMachine
 end
 
 
@@ -321,33 +320,43 @@ function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-
 """
-$SIGNATURES
+    $SIGNATURES
 
-WIP to resolve 459 dwnMsg consolidation.  This is partly doing some kind of downsolve but seems out of place.
+When this clique needs information from parent to continue but parent is still busy.  
+Reasons are either downsolve or need down init message information (which are similar).
 
 Notes
-- State machine function nr. 10a
-
-DevNotes
-- FIXME, resolve/consolidate whatever is going on here
+- State machine function nr. 8c
+- bad idea to injectDelayBefore this function, because it will delay waiting on the parent past the event.
 """
-function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "10a, canCliqDownSolve_StateMachine, going to block on parent.")
+function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
+  #
+  # setCliqDrawColor(csmc.cliq, "coral")
+
   prnt = getParent(csmc.tree, csmc.cliq)
+  if 0 < length(prnt)
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent=$(prnt[1].index) for condition notify.")
+    
+    prntst = fetchDwnMsgConsolidated(prnt[1]).status
+    if prntst != :downsolved
+      wait(getSolveCondition(prnt[1]))
+    end
 
-  # block here until parent is downsolved
-  setCliqDrawColor(csmc.cliq, "turquoise")
-  # this part is a pull model #674
-  while fetchDwnMsgConsolidated(prnt[1]).status != :downsolved
-    wait(getSolveCondition(prnt[1]))
+    # wait(getSolveCondition(prnt[1]))
+  else
+    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
+    @warn "no parent!"
   end
-  # blockMsgDwnUntilStatus(prnt[1], :downsolved)
-  # blockCliqUntilParentDownSolved(, logger=csmc.logger)
 
+  # Listing most likely status values that might lead to 4b (TODO needs to be validated)
+  if getCliqueStatus(csmc.cliq) in [:needdownmsg; :initialized; :null]
+    # go to 4b
+    return trafficRedirectConsolidate459_StateMachine
+  end
+
+  ## consolidation from CSM 10a
   # yes, continue with downsolve
-  prntst = getCliqueStatus(prnt[1])
   infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, parent status=$prntst.")
   if prntst != :downsolved
     infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going around again.")
@@ -357,44 +366,6 @@ function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going for down solve.")
   # go to 11
   return doCliqDownSolve_StateMachine
-end
-
-
-"""
-    $SIGNATURES
-
-Need description for this???
-
-Notes
-- State machine function nr. 8c
-
-DevNotes
-- Must consolidate as part of #459
-"""
-function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
-  #
-  # setCliqDrawColor(csmc.cliq, "coral")
-
-  prnt = getParent(csmc.tree, csmc.cliq)
-  if 0 < length(prnt)
-    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent=$(prnt[1].index) for condition notify.")
-    # @sync begin
-    #   @async begin
-    #     sleep(1)
-    #     notify(getSolveCondition(prnt[1]))
-    #   end
-      # wait but don't clear what is in the Condition (guess)
-      wait(getSolveCondition(prnt[1]))
-    # end
-  else
-    infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, cannot wait on parent for condition notify.")
-    @warn "no parent!"
-  end
-
-  # go to 4b
-  return trafficRedirectConsolidate459_StateMachine
-    # # go to 4
-    # return canCliqMargSkipUpSolve_StateMachine
 end
 
 
@@ -815,10 +786,11 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
 
   if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdowninit
-      # go to 7e
-      return slowWhileInit_StateMachine
-    end
+    # TODO, is this needed? fails hex if included with correction :needdowninit --> :needdownmsg
+    # if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdownmsg  # used to be :needdowninit
+    #   # go to 7e
+    #   return slowWhileInit_StateMachine
+    # end
 
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, must wait on change.")
     # remove all message factors
@@ -1115,7 +1087,7 @@ Notes
 - State machine function nr. 5
 
 DevNotes
-- FIXME refactor this for when prnt==:null, cliq==:needdowninit
+- FIXME refactor this for when prnt==:null, cliq==:needdownmsg/init
 """
 function blockSiblingStatus_StateMachine(csmc::CliqStateMachineContainer)
     # infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
@@ -1217,7 +1189,7 @@ function decideUpMsgOrInit_StateMachine(csmc::CliqStateMachineContainer)
   # for ch in getChildren(csmc.tree, csmc.cliq)
   for (clid, chst) in fetchChildrenStatusUp(csmc.tree, csmc.cliq, csmc.logger)
     # if getCliqueStatus(ch) == :needdownmsg
-    if chst == :needdowninit
+    if chst == :needdownmsg # NOTE was :needdowninit
       someChildrenNeedDwn = true
       break
     end
