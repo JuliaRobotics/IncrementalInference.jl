@@ -447,11 +447,15 @@ function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
     newDwnMsgs.belief[pk] = prntDwnMsgs.belief[pk]
   end
 
+  # set solvable dimensions
+  sdims = getCliqVariableMoreInitDims(subfg, cliq)
+
   # other messages must be extracted from subfg
   for mk in remainkeys
     setVari = getVariable(subfg, mk)
     if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari)
+      newDwnMsgs.belief[mk] = TreeBelief(setVari, solvableDim=sdims[mk] )
+      # newDwnMsgs.belief[mk].solvableDim = sdims[mk]
     end
   end
 

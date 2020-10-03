@@ -379,6 +379,50 @@ end
 """
     $SIGNATURES
 
+Return list of factors which depend only on variables in variable list in factor
+graph -- i.e. among variables.
+
+Notes
+-----
+* `unused::Bool=true` will disregard factors already used -- i.e. disregard where `potentialused=true`
+"""
+function getFactorsAmongVariablesOnly(dfg::G,
+                                      varlist::Vector{Symbol};
+                                      unused::Bool=true  ) where G <: AbstractDFG
+  # collect all factors attached to variables
+  prefcts = Symbol[]
+  for var in varlist
+    union!(prefcts, DFG.ls(dfg, var))
+  end
+
+  almostfcts = Symbol[]
+  if unused
+    # now check if those factors have already been added
+    for fct in prefcts
+      vert = DFG.getFactor(dfg, fct)
+      if !getSolverData(vert).potentialused
+        push!(almostfcts, fct)
+      end
+    end
+  else
+    almostfcts = prefcts
+  end
+
+  # Select factors that have all variables in this clique var list
+  usefcts = Symbol[]
+  for fct in almostfcts
+    if length(setdiff(DFG.getNeighbors(dfg, fct), varlist)) == 0
+      push!(usefcts, fct)
+    end
+  end
+
+  return usefcts
+end
+
+
+"""
+    $SIGNATURES
+
 Calculate new and then set PPE estimates for variable from some distributed factor graph.
 
 DevNotes
