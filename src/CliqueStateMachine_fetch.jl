@@ -1,7 +1,7 @@
 # clique state machine for tree based initialization and inference
 
 # newer exports
-# export towardUpOrDwnSolve_StateMachine, maybeNeedDwnMsg_StateMachine, doAnyChildrenNeedDwn_StateMachine
+# export towardUpOrDwnSolve_StateMachine, maybeNeedDwnMsg_StateMachine
 # export prepInitUp_StateMachine, doCliqUpSolveInitialized_StateMachine
 # export rmUpLikeliSaveSubFg_StateMachine
 # export blockCliqSiblingsParentChildrenNeedDown_StateMachine
@@ -30,7 +30,6 @@ export  doCliqDownSolve_StateMachine,
         determineCliqNeedDownMsg_StateMachine,
         tryUpInitCliq_StateMachine,
         slowWhileInit_StateMachine,
-        doAnyChildrenNeedDwn_StateMachine,
         decideUpMsgOrInit_StateMachine,
         attemptCliqInitUp_StateMachine,
         sendCurrentUpMsg_StateMachine,
