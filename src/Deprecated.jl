@@ -76,6 +76,46 @@ end
 ##==============================================================================
 
 
+# """
+# $SIGNATURES
+
+# WIP to resolve 459 dwnMsg consolidation.  This is partly doing some kind of downsolve but seems out of place.
+
+# Notes
+# - State machine function nr. 10a
+
+# DevNotes
+# - FIXME, resolve/consolidate with 8c?
+# """
+# function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
+#   infocsm(csmc, "10a, canCliqDownSolve_StateMachine, going to block on parent.")
+#   prnt = getParent(csmc.tree, csmc.cliq)
+
+#   # block here until parent is downsolved
+#   setCliqDrawColor(csmc.cliq, "turquoise")
+#   # this part is a pull model #674
+#   # while 
+#   prntst = fetchDwnMsgConsolidated(prnt[1]).status
+#   if prntst != :downsolved
+#     wait(getSolveCondition(prnt[1]))
+#   end
+#   # blockMsgDwnUntilStatus(prnt[1], :downsolved)
+#   # blockCliqUntilParentDownSolved(, logger=csmc.logger)
+
+#   # yes, continue with downsolve
+#   # prntst = getCliqueStatus(prnt[1])
+#   infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, parent status=$prntst.")
+#   if prntst != :downsolved
+#     infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going around again.")
+#     return canCliqDownSolve_StateMachine
+#   end
+
+#   infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going for down solve.")
+#   # go to 11
+#   return doCliqDownSolve_StateMachine
+# end
+
+
 
 """
 $(TYPEDEF)

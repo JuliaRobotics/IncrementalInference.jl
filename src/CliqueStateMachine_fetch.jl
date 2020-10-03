@@ -14,7 +14,6 @@ export  doCliqDownSolve_StateMachine,
         prepInitUp_StateMachine,
         doCliqUpSolveInitialized_StateMachine,
         rmUpLikeliSaveSubFg_StateMachine,
-        wipRedirect459Dwn_StateMachine,
         waitChangeOnParentCondition_StateMachine,
         slowOnPrntAsChildrNeedDwn_StateMachine,
         towardUpOrDwnSolve_StateMachine,
@@ -137,9 +136,10 @@ function canCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     return specialCaseRootDownSolve_StateMachine
   end
 
-  # go to 10a
-  return wipRedirect459Dwn_StateMachine
-
+  # go to 8c
+  return waitChangeOnParentCondition_StateMachine
+  # # go to 10a
+  # return wipRedirect459Dwn_StateMachine
 end
 
 
@@ -321,47 +321,6 @@ function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-
-"""
-$SIGNATURES
-
-WIP to resolve 459 dwnMsg consolidation.  This is partly doing some kind of downsolve but seems out of place.
-
-Notes
-- State machine function nr. 10a
-
-DevNotes
-- FIXME, resolve/consolidate with 8c?
-"""
-function wipRedirect459Dwn_StateMachine(csmc::CliqStateMachineContainer)
-  infocsm(csmc, "10a, canCliqDownSolve_StateMachine, going to block on parent.")
-  prnt = getParent(csmc.tree, csmc.cliq)
-
-  # block here until parent is downsolved
-  setCliqDrawColor(csmc.cliq, "turquoise")
-  # this part is a pull model #674
-  # while 
-  prntst = fetchDwnMsgConsolidated(prnt[1]).status
-  if prntst != :downsolved
-    wait(getSolveCondition(prnt[1]))
-  end
-  # blockMsgDwnUntilStatus(prnt[1], :downsolved)
-  # blockCliqUntilParentDownSolved(, logger=csmc.logger)
-
-  # yes, continue with downsolve
-  # prntst = getCliqueStatus(prnt[1])
-  infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, parent status=$prntst.")
-  if prntst != :downsolved
-    infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going around again.")
-    return canCliqDownSolve_StateMachine
-  end
-
-  infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going for down solve.")
-  # go to 11
-  return doCliqDownSolve_StateMachine
-end
-
-
 """
     $SIGNATURES
 
@@ -382,7 +341,8 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
   if 0 < length(prnt)
     infocsm(csmc, "8c, waitChangeOnParentCondition_StateMachine, wait on parent=$(prnt[1].index) for condition notify.")
     
-    if fetchDwnMsgConsolidated(prnt[1]).status != :downsolved
+    prntst = fetchDwnMsgConsolidated(prnt[1]).status
+    if prntst != :downsolved
       wait(getSolveCondition(prnt[1]))
     end
 
@@ -392,8 +352,23 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
     @warn "no parent!"
   end
 
-  # go to 4b
-  return trafficRedirectConsolidate459_StateMachine
+  # Listing most likely status values that might lead to 4b (TODO needs to be validated)
+  if getCliqueStatus(csmc.cliq) in [:needdownmsg; :initialized; :null]
+    # go to 4b
+    return trafficRedirectConsolidate459_StateMachine
+  end
+
+  ## consolidation from CSM 10a
+  # yes, continue with downsolve
+  infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, parent status=$prntst.")
+  if prntst != :downsolved
+    infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going around again.")
+    return canCliqDownSolve_StateMachine
+  end
+
+  infocsm(csmc, "10a, wipRedirect459Dwn_StateMachine, going for down solve.")
+  # go to 11
+  return doCliqDownSolve_StateMachine
 end
 
 
