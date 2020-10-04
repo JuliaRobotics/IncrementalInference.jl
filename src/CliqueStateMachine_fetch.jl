@@ -15,7 +15,6 @@ export  doCliqDownSolve_StateMachine,
         doCliqUpSolveInitialized_StateMachine,
         rmUpLikeliSaveSubFg_StateMachine,
         waitChangeOnParentCondition_StateMachine,
-        slowOnPrntAsChildrNeedDwn_StateMachine,
         towardUpOrDwnSolve_StateMachine,
         canCliqMargSkipUpSolve_StateMachine,
         tryDwnInitCliq_StateMachine,
@@ -367,39 +366,6 @@ function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContaine
   # go to 11
   return doCliqDownSolve_StateMachine
 end
-
-
-"""
-    $SIGNATURES
-
-WIP #459 dwnMsg consolidation towards blocking cliq that `:needdwninit` to wait on parent `:initialized` dwn message.
-
-Notes
-- State machine function nr.6e
-
-DevNotes
-- Seems really unnecessary
-- Separated out during #459 dwnMsg consolidation
-- Should only happen in long downinit chains below parent that needed dwninit
-- TODO figure out whats different between this and 8c
-"""
-function slowOnPrntAsChildrNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-  # do actual fetch
-  prtmsg = fetchDwnMsgConsolidated(getParent(csmc.tree, csmc.cliq)[1]).status
-  if prtmsg == :initialized
-    # FIXME what does this mean???
-    # probably that downward init should commence (not complete final solve)
-      allneeddwn = true
-    # go to 8e.ii
-    # return tryDwnInitCliq_StateMachine
-  end
-
-  # FIXME WHY THIS???
-  # go to 7
-  return determineCliqNeedDownMsg_StateMachine
-end
-
-
 
 
 """
