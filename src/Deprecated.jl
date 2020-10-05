@@ -1058,7 +1058,36 @@ function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::Abstra
 end
 
 
+# NOTE I only saw this function after I replace all the functions with _dbgCSMSaveSubFG
+# I consolidated the 2 and think this one can therefore be deprecated. Unless you use it 
+# separate from a CSMC
+"""
+    $SIGNATURES
 
+Internal helper function to save a dfg object to LogPath during clique state machine operations.
+
+Notes
+- will only save dfg object if `opts.dbg=true`
+
+Related
+
+saveDFG, loadDFG!, loadDFG
+"""
+function _dbgSaveDFG(dfg::AbstractDFG,
+                    filename::AbstractString="fg_temp",
+                    opts::AbstractParams=getSolverParams(dfg)  )::String
+  #
+  Base.depwarn("`_dbgSaveDFG` is deprecated use `_dbgCSMSaveSubFG`", _dbgCSMSaveSubFG)
+  folder::String=joinpath(opts.logpath,"logs")
+  if opts.dbg
+    if !ispath(folder)
+      mkpath(folder)
+    end
+    DFG.saveDFG(dfg, joinpath(folder, "$filename"))
+    drawGraph(dfg, show=false, filepath=joinpath(folder, "$filename.pdf"))
+  end
+  folder*filename
+end
 
 ##==============================================================================
 ## Delete at end v0.15.x

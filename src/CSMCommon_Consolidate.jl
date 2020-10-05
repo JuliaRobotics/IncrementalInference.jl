@@ -165,10 +165,7 @@ function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
 
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
@@ -308,7 +305,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, csmc.cliq)
 
   # if dfg, store the cliqSubFg for later debugging
-  _dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
+  _dbgCSMSaveSubFG(csmc, "fg_build")
 
   # go to 4
   return canCliqMargSkipUpSolve_StateMachine
@@ -331,11 +328,7 @@ function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_build_down")
 
   # go to 10
   return canCliqDownSolve_StateMachine
