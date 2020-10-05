@@ -223,12 +223,11 @@ function prepInitUp_StateMachine(csmc::CliqStateMachineContainer)
   dellist .|> x->delete!(upmsgs, x)
 
   # remove all lingering upmessage likelihoods
-  oldTags = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
+  oldTags = deleteMsgFactors!(csmc.cliqSubFg)
   0 < length(oldTags) ? @warn("stale LIKELIHOODMESSAGE tags present in prepInitUp_StateMachine") : nothing
-  oldFcts = oldTags .|> x->getFactor(csmc.cliqSubFg, x)
+  
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, prepInitUp_StateMachine -- adding up message factors")
-  deleteMsgFactors!(csmc.cliqSubFg, oldFcts)
   # interally adds :LIKELIHOODMESSAGE, :UPWARD_DIFFERENTIAL, :UPWARD_COMMON to each of the factors
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs, UpwardPass)
 
@@ -294,12 +293,12 @@ DevNotes
 function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
   #
   status = getCliqueStatus(csmc.cliq)
+  opts = getSolverParams(csmc.dfg)
 
   # remove msg factors that were added to the subfg
-  tags__ = getSolverParams(csmc.cliqSubFg).useMsgLikelihoods ? [:UPWARD_COMMON;] : [:LIKELIHOODMESSAGE;]
-  msgfcts = lsf(csmc.cliqSubFg, tags=tags__) .|> x->getFactor(csmc.cliqSubFg, x)
+  tags__ = opts.useMsgLikelihoods ? [:UPWARD_COMMON;] : [:LIKELIHOODMESSAGE;]
+  msgfcts = deleteMsgFactors!(csmc.cliqSubFg, tags__)
   infocsm(csmc, "8g, doCliqUpsSolveInit.! -- status = $(status), removing $(tags__) factors, length=$(length(msgfcts))")
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
@@ -552,10 +551,8 @@ function rmMsgLikelihoodsAfterDwn_StateMachine(csmc::CliqStateMachineContainer)
   ## FIXME move this to separate state in CSM.
   # remove all message factors
   # remove msg factors previously added
-  fctstorm = ls(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;])
+  fctstorm = deleteMsgFactors!(csmc.cliqSubFg)
   infocsm(csmc, "8e.ii., tryDwnInitCliq_StateMachine, removing factors $fctstorm")
-  rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
-  deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
 
   # go to 8d
   return decideUpMsgOrInit_StateMachine
@@ -770,11 +767,9 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
 
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, must wait on change.")
     # remove all message factors
-    fctstorm = ls(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;])
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, removing factors $fctstorm")
-    rmfcts = fctstorm .|> x->getFactor(csmc.cliqSubFg, x)
     # remove msg factors previously added
-    deleteMsgFactors!(csmc.cliqSubFg, rmfcts )
+    fctstorm = deleteMsgFactors!(csmc.cliqSubFg, [:DOWNWARD_COMMON])
+    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, removing factors $fctstorm")
 
     # go to 8c
     return waitChangeOnParentCondition_StateMachine
