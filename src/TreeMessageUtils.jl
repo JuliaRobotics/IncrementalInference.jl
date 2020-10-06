@@ -410,7 +410,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
                                       duplicate::Bool=true )
   #
   # get the current clique status
-  # solvableDims=getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
+  sdims = getCliqVariableMoreInitDims(subfg, cliq)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
@@ -423,7 +423,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
     var = DFG.getVariable(subfg, vid)
     var = duplicate ? deepcopy(var) : var
     if isInitialized(var)
-      msg.belief[Symbol(var.label)] = TreeBelief(var)
+      msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
     end
   end
   return msg
@@ -511,6 +511,7 @@ end
 Convert tree up messages dictionary to a new dictionary relative to variables specific messages and their depth in the tree
 
 Notes
+- Used in RoMEPlotting
 - Return data in `TempUpMsgPlotting` format:
     Dict{Symbol,   -- is for variable label
       Vector{       -- multiple msgs for the same variable

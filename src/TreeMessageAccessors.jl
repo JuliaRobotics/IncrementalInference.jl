@@ -4,18 +4,11 @@ export
   setCliqueStatus!,
   getSolveCondition
 
-# Reguler accessors
-export
-  getMsgUpThis,
-  getMsgsUpChildren
-  # putMsgUpThis!
-
 export
   stackCliqUpMsgsByVariable,
   getCliqDownMsgsAfterDownSolve
 
 # likely to be deleted at some point
-export getMsgsUpInitChildren
 
 ## =============================================================================
 ## Clique status accessors
@@ -69,22 +62,6 @@ getMsgUpChannel(cliq::TreeClique) = getMsgUpChannel(getCliqueData(cliq))
 
 
 
-
-"""
-    $SIGNATURES
-
-Remove and return belief message from the up tree message channel edge. Blocks until data is available.
-"""
-function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
-  # Blocks until data is available.
-  beliefMsg = take!(getMsgUpChannel(tree, edge))
-  return beliefMsg
-end
-
-
-
-
-
 """
     $SIGNATURES
 
@@ -108,15 +85,6 @@ function putCliqueMsgUp!(cdat::BayesTreeNodeData, upmsg::LikelihoodMessage)
   # cdat.upMsg = msg
 end
 
-
-"""
-    $(SIGNATURES)
-
-Return the last up message stored in This `cliq` of the Bayes (Junction) tree.
-"""
-getMsgUpThis(cdat::BayesTreeNodeData) = fetch(getMsgUpChannel(cdat))  # cdat.upMsg    # TODO rename to fetchMsgUp
-getMsgUpThis(cliql::TreeClique) = getMsgUpThis(getCliqueData(cliql))
-getMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = getMsgUpThis(getClique(btl, frontal))
 
 
 
@@ -166,79 +134,6 @@ function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
 
   # return new up messages in case the user wants to see
   return upmsg
-end
-
-
-
-## =============================================================================
-## Family message getters and setters
-## =============================================================================
-
-
-"""
-    $SIGNATURES
-
-Get and return upward belief messages as stored in child cliques from `treel::AbstractBayesTree`.
-
-Notes
-- Use last parameter to select the return format.
-- Pull model #674
-
-DevNotes
-- Consolidate two versions getMsgsUpChildren
-"""
-function getMsgsUpChildren( treel::AbstractBayesTree,
-                            cliq::TreeClique,
-                            ::Type{TreeBelief} )
-  #
-  chld = getChildren(treel, cliq)
-  retmsgs = Vector{LikelihoodMessage}(undef, length(chld))
-  for i in 1:length(chld)
-    retmsgs[i] = getMsgUpThis(chld[i])
-  end
-  return retmsgs
-end
-
-
-function getMsgsUpChildren(csmc::CliqStateMachineContainer,
-                           ::Type{TreeBelief}=TreeBelief )
-  #
-  # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpChildren(csmc.tree, csmc.cliq, TreeBelief)
-end
-
-# FIXME TEMPORARY CONSOLIDATION FUNCTIONS
-# this method adds children and own up msg info to the returning Dict.
-# own information is added to capture information from cousins during down init.
-function getMsgsUpInitChildren(treel::AbstractBayesTree,
-                               cliq::TreeClique,
-                               ::Type{TreeBelief};
-                               skip::Vector{Int}=Int[])
-  #
-  chld = getChildren(treel, cliq)
-  retmsgs = Dict{Int, LikelihoodMessage}()
-  # add possible information that may have come via grandparents from elsewhere in the tree
-  if !(cliq.index in skip)
-    thismsg = getMsgUpThis(cliq)
-    retmsgs[cliq.index] = thismsg
-  end
-
-  # now add information from each of the child cliques (no longer all stored in prnt i.e. old push #674)
-  for ch in chld
-    chmsg = getMsgUpThis(ch)
-    if !(ch.index in skip)
-      retmsgs[ch.index] = chmsg
-    end
-  end
-  return retmsgs
-end
-
-function getMsgsUpInitChildren(csmc::CliqStateMachineContainer,
-                               ::Type{TreeBelief}=TreeBelief;
-                               skip::Vector{Int}=Int[] )
-  #
-  # TODO, replace with single channel stored in csmcs or cliques
-  getMsgsUpInitChildren(csmc.tree, csmc.cliq, TreeBelief, skip=skip)
 end
 
 

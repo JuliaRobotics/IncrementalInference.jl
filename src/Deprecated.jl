@@ -76,6 +76,10 @@ end
 ##==============================================================================
 
 
+@deprecate getMsgsUpChildren(x...;kw...) fetchMsgsUpChildren(x...;kw...)
+
+@deprecate getMsgUpThis(x...;kw...) fetchMsgUpThis(x...;kw...)
+
 @deprecate printCliqHistorySequential(x...;kw...) printCSMHistorySequential(x...;kw...)
 
 # """
