@@ -230,7 +230,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   # Done with solve delete factors
   #TODO confirm, maybe don't delete mesage factors on subgraph, maybe delete if its priors, but not conditionals
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+  deleteMsgFactors!(csmc.cliqSubFg)
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")

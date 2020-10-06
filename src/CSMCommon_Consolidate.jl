@@ -65,7 +65,7 @@ end
 
 """
     $SIGNATURES
-Monitor CSM tasks for failures and propagate error to the other CMSs to cleanly exit. 
+Monitor CSM tasks for failures and propagate error to the other CSMs to cleanly exit. 
 """
 function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
   task = @async begin
@@ -177,9 +177,8 @@ function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
-  rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
+  rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(rmFcts))")
-  deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
   # and finished
