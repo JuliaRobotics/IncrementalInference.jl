@@ -1,4 +1,3 @@
-using Serialization
 
 """
     $SIGNATURES
@@ -152,7 +151,7 @@ function doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
   retdict = approxCliqMarginalUp!(csmc; iters=4, logger=csmc.logger)
   # retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4)#, logger=csmc.logger)
 
-  logCSM(csmc, "aproxCliqMarginalUp!"; retdict)
+  logCSM(csmc, "aproxCliqMarginalUp!"; retdict=retdict)
 
   # set clique color accordingly, using local memory
   updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
@@ -291,7 +290,7 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
     beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messages[e.index].downMsg)
     logCSM(csmc, "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)")
 
-    logCSM(csmc, "X-4 down msg on $(keys(beliefMsg.belief))"; beliefMsg)
+    logCSM(csmc, "X-4 down msg on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
     # save DOWNSOLVED incoming message for use and debugging
     messages(csmc.cliq).downRx = beliefMsg
 
@@ -314,7 +313,7 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
     elseif beliefMsg.status == :INIT || beliefMsg.status == :NO_INIT
       return tryDownInit_X_StateMachine
     else
-      logCSM(csmc, "Unknown state"; beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
+      logCSM(csmc, "Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
       error("waitForDown State Error: Unknown/unimplemented transision.")
     end
   end
@@ -323,7 +322,7 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
 
   #TODO improve
   solveStatus = getCliqueStatus(csmc.cliq)
-  logCSM(csmc, "root case"; solveStatus, c=csmc.cliqKey)
+  logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
   if solveStatus in [:INIT, :NO_INIT]
     return tryDownInit_X_StateMachine
   elseif solveStatus == :UPSOLVED
@@ -374,7 +373,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
   #fill in belief
   beliefMsg = CliqDownMessage(csmc, solveStatus)
 
-  logCSM(csmc, "msg to send down"; beliefMsg)
+  logCSM(csmc, "msg to send down"; beliefMsg=beliefMsg)
   # pass through the frontal variables that were sent from above
   downmsg = messages(csmc.cliq).downRx
   svars = getCliqSeparatorVarIds(csmc.cliq)
@@ -505,7 +504,7 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
     logCSM(csmc, "Empty message on clique frontals"; loglevel=Logging.Error)
   end
 
-  logCSM(csmc, "msg to send down on $(keys(beliefMsg.belief))"; beliefMsg)
+  logCSM(csmc, "msg to send down on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
   # pass through the frontal variables that were sent from above
   downmsg = messages(csmc.cliq).downRx
   svars = getCliqSeparatorVarIds(csmc.cliq)
