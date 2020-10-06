@@ -145,7 +145,7 @@ function generateCanonicalFG_lineStep(  lineLength::Int;
         if mod(i,poseEvery) == 0
             push!(x, i)
             addVariable!(fg, Symbol("x",i), vtype) #, autoinit = graphinit)
-            (i in posePriorsAt) && addFactor!(fg, [Symbol("x",i)], Prior(xNoise(i, σ_pose_prior)))
+            (i in posePriorsAt) && addFactor!(fg, [Symbol("x",i)], Prior(xNoise(i, σ_pose_prior)), graphinit=graphinit)
             # "odo" type
             (i > 0) && addFactor!(fg, [Symbol("x",i-poseEvery); Symbol("x",i)], LinearRelative(xNoise(poseEvery, σ_pose_pose)), graphinit=graphinit)
         end

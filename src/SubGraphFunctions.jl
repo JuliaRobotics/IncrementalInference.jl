@@ -128,7 +128,7 @@ function transferUpdateSubGraph!(dest::AbstractDFG,
   # transfer specific fields into dest from src
   for var in (x->getVariable(src, x)).(syms)
     # copy not required since a broadcast is used internally
-    updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim; :solvedCount]; warn_if_absent=false)
+    updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim; :solvedCount; :initialized]; warn_if_absent=false)
     updatePPE && DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
   end
 
