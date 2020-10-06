@@ -352,13 +352,21 @@ Related
 `addMsgFactors!`
 """
 function deleteMsgFactors!( subfg::AbstractDFG,
-                            fcts::Vector )
+                            fcts::Vector{DFGFactor} )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
   end
 end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
+
+function deleteMsgFactors!(subfg::AbstractDFG, 
+                           tags::Vector{Symbol}=[:LIKELIHOODMESSAGE])
+  # remove msg factors that were added to the subfg
+  facs = lsf(subfg, tags=tags)
+  deleteFactor!.(subfg, facs)
+  return facs
+end
 
 #TODO JT can be removed, used as sanity check
 function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)

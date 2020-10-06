@@ -71,12 +71,7 @@ function buildCliqSubgraph_ParametricStateMachine(csmc::CliqStateMachineContaine
 
 
   # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_build")
 
   # go to 2 wait for up
   return waitForUp_ParametricStateMachine
@@ -190,11 +185,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "length mgsfcts=$(length(msgfcts))")
 
   # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
   vardict, result, varIds, Σ = solveFactorGraphParametric(csmc.cliqSubFg)
 
@@ -239,13 +230,10 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   # Done with solve delete factors
   #TODO confirm, maybe don't delete mesage factors on subgraph, maybe delete if its priors, but not conditionals
-  deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
+  deleteMsgFactors!(csmc.cliqSubFg)
 
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
 
   #fill in belief
   #TODO createBeliefMessageParametric(csmc.cliqSubFg, csmc.cliq, solvekey=opts.solvekey)
@@ -354,11 +342,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   # store the cliqSubFg for later debugging
   # NOTE ITS not changed for now but keep here for possible future use
-  # opts = getSolverParams(csmc.dfg)
-  # if opts.dbg
-  #   DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
-  #   drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
-  # end
+  # _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
 
   # DownSolve cliqSubFg
   #only down solve if its not a root

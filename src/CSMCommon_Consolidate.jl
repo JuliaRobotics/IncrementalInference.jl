@@ -65,7 +65,7 @@ end
 
 """
     $SIGNATURES
-Monitor CSM tasks for failures and propagate error to the other CMSs to cleanly exit. 
+Monitor CSM tasks for failures and propagate error to the other CSMs to cleanly exit. 
 """
 function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
   task = @async begin
@@ -165,10 +165,7 @@ function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdownsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
 
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
@@ -180,9 +177,8 @@ function cleanupAfterDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- just notified notifyCliqDownInitStatus!")
 
   # remove msg factors that were added to the subfg
-  rmFcts = lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE;]) .|> x -> getFactor(csmc.cliqSubFg, x)
+  rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- removing all up/dwn message factors, length=$(length(rmFcts))")
-  deleteMsgFactors!(csmc.cliqSubFg, rmFcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished, exiting CSM on clique=$(csmc.cliq.index)")
   # and finished
@@ -308,7 +304,7 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, csmc.cliq)
 
   # if dfg, store the cliqSubFg for later debugging
-  _dbgSaveDFG(csmc.cliqSubFg, "cliq$(csmc.cliq.index)/fg_build")
+  _dbgCSMSaveSubFG(csmc, "fg_build")
 
   # go to 4
   return canCliqMargSkipUpSolve_StateMachine
@@ -331,11 +327,7 @@ function buildCliqSubgraphForDown_StateMachine(csmc::CliqStateMachineContainer)
 
   opts = getSolverParams(csmc.dfg)
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    mkpath(joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)"))
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_build_down.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_build_down")
 
   # go to 10
   return canCliqDownSolve_StateMachine

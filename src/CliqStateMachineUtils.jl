@@ -15,21 +15,22 @@ Related
 
 saveDFG, loadDFG!, loadDFG
 """
-function _dbgSaveDFG(dfg::AbstractDFG,
-                    filename::AbstractString="fg_temp",
-                    opts::AbstractParams=getSolverParams(dfg)  )::String
-  #
-  folder::String=joinpath(opts.logpath,"logs")
-  if opts.dbg
+function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
+
+  opt = getSolverParams(csmc.cliqSubFg)
+  
+  if opt.dbg
+    folder::String=joinpath(opt.logpath,"logs","cliq$(csmc.cliq.index)")
     if !ispath(folder)
       mkpath(folder)
     end
-    DFG.saveDFG(dfg, joinpath(folder, "$filename"))
-    drawGraph(dfg, show=false, filepath=joinpath(folder, "$filename.pdf"))
+    DFG.saveDFG(csmc.cliqSubFg, joinpath(folder, filename))
+    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(folder, "$(filename).pdf"))
   end
-  folder*filename
-end
+  
+  opt.dbg
 
+end
 
 
 """
