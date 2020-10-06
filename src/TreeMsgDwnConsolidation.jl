@@ -78,7 +78,8 @@ Notes
 function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
                                     dfg::AbstractDFG=csmc.cliqSubFg,
-                                    dwnmsg=prepSetCliqueMsgDownConsolidated!(dfg, csmc.cliq, LikelihoodMessage(status=status), csmc.logger, status=status )  )
+                                    childSolvDims::Dict{Int,Float64} = Dict{Int,Float64}(),
+                                    dwnmsg=prepSetCliqueMsgDownConsolidated!(dfg, csmc.cliq, LikelihoodMessage(status=status, childSolvDims=childSolvDims), csmc.logger, status=status )  )
   #
   cd = getCliqueData(csmc.cliq)
 

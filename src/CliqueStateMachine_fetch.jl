@@ -468,12 +468,17 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # redirect if any children needdownmsg
   if someInit || chldneed
     # Calculate and share the children sum solvableDim information for priority initialization
-      # fetchChildrenStatusUp
-      # upmsgs = getMsgsUpChildren(csmc)
+    totSolDims = Dict{Int, Float64}()
+    for (clid, upmsg) in fetchMsgsUpChildrenDict(csmc)
+      totSolDims[clid] = 0
+      for (varsym, tbup) in upmsg.belief
+        totSolDims[clid] += tbup.solvableDim
+      end
+    end
 
     # prep and put down init message
     setCliqDrawColor(csmc.cliq, "sienna")
-    prepPutCliqueStatusMsgDwn!(csmc, :initialized)
+    prepPutCliqueStatusMsgDwn!(csmc, :initialized, childSolvDims=totSolDims)
 
     # go to 7e
     return slowWhileInit_StateMachine
