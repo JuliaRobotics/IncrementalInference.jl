@@ -72,10 +72,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   # store the cliqSubFg for later debugging
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforedownsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
 
   ## new way
   # calculate belief on each of the frontal variables and iterate if required
@@ -236,11 +233,7 @@ function prepInitUp_StateMachine(csmc::CliqStateMachineContainer)
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs, UpwardPass)
 
   # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_beforeupsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
   # go to 8m
   return tryUpInitCliq_StateMachine
@@ -309,11 +302,7 @@ function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
   deleteMsgFactors!(csmc.cliqSubFg, msgfcts)
 
   # store the cliqSubFg for later debugging
-  opts = getSolverParams(csmc.dfg)
-  if opts.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve"))
-    drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(opts.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterupsolve.pdf"))
-  end
+  _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
 
   # go to 9
   return checkUpsolveFinished_StateMachine
@@ -546,10 +535,6 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   return rmUpLikeliSaveSubFg_StateMachine
 end
 
-
-
-
-
 """
     $SIGNATURES
 
@@ -562,12 +547,7 @@ function rmMsgLikelihoodsAfterDwn_StateMachine(csmc::CliqStateMachineContainer)
   ## TODO only remove :DOWNWARD_COMMON messages here
   #
 
-  opt = getSolverParams(csmc.cliqSubFg)
-  # store the cliqSubFg for later debugging
-  if opt.dbg
-    DFG.saveDFG(csmc.cliqSubFg, joinpath(opt.logpath,"logs/cliq$(csmc.cliq.index)/fg_afterdowninit"))
-  end
-
+  _dbgCSMSaveSubFG(csmc, "fg_afterdowninit")
 
   ## FIXME move this to separate state in CSM.
   # remove all message factors
@@ -757,11 +737,7 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, sdims=$(sdims)")
   updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
 
-  if opt.dbg
-    saveDFG(joinLogPath(csmc.cliqSubFg, "logs", "cliq$(csmc.cliq.index)", "fg_DWNCMN_8j"), csmc.cliqSubFg)
-    drawGraph(csmc.cliqSubFg, show=false, filepath=(joinLogPath(csmc.cliqSubFg, "logs", "cliq$(csmc.cliq.index)", "fg_DWNCMN_8j.pdf")))
-  end
-
+  _dbgCSMSaveSubFG(csmc, "fg_DWNCMN_8j")
 
   # NOTE, only use separators, not all parent variables
   # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
