@@ -473,6 +473,10 @@ include("SolveTree_Parametric.jl")
 include("CliqueStateMachine_take.jl")
 include("ParametricUtils.jl")
 
+#EXPERIMENTAL X-stroke
+include("experimental/CliqStateMachine_X-stroke.jl")
+include("experimental/SolveTree_X.jl")
+
 include("CanonicalGraphExamples.jl")
 
 include("AdditionalUtils.jl")
