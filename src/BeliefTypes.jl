@@ -49,7 +49,8 @@ struct TreeBelief{T <: InferenceVariable}
   softtype::T # rename to VariableType, DFG #603 
   # TODO -- DEPRECATE
   manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
-  solvableDim::Float64 # dims to still be solved, #910
+  # only populated during up as solvableDims for each variable in clique, #910
+  solvableDim::Float64 
 end
 TreeBelief( p::BallTreeDensity,
             inferdim::Real=0,
@@ -68,7 +69,7 @@ function TreeBelief(vnd::VariableNodeData, solvDim::Real=0)
   TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getSofttype(vnd), getManifolds(vnd), solvDim )
 end
 
-TreeBelief(vari::DFGVariable, solveKey=:default; solvableDim::Real=0) = TreeBelief(getSolverData(vari, solveKey), solvableDim)
+TreeBelief(vari::DFGVariable, solveKey::Symbol=:default; solvableDim::Real=0) = TreeBelief( getSolverData(vari, solveKey) , solvableDim)
 
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.softtype)
 
@@ -108,8 +109,8 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   cliqueLikelihood::Union{Nothing,SamplableBelief}
   msgType::T
   hasPriors::Bool
-  # this is different from  belief[].inferdim as the available infer dims remaining
-  # solvableDims::Dict{Symbol, Float64} 
+  # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
+  childSolDims::Dict{Int, Float64} 
 end
 
 
@@ -119,9 +120,9 @@ LikelihoodMessage(; status::CliqStatus=:null,
                     cliqueLikelihood=nothing,
                     msgType::T=NonparametricMessage(),
                     hasPriors::Bool=true,
-                    # solvableDims::Dict{Symbol, Float64}=Dict{Symbol, Float64}() 
+                    childSolDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
                     ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors)
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolDims)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
@@ -155,12 +156,21 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
+
+## =========================================================================================
+## DEPRECATE BELOW AS ABLE
+## =========================================================================================
+
+
 # figure out how to deprecate (not critical at the moment)
+# used in RoMEPlotting
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 
 """
 $(TYPEDEF)
+
+TODO TO BE DEPRECATED
 """
 mutable struct PotProd
     Xi::Symbol # Int
@@ -169,8 +179,11 @@ mutable struct PotProd
     potentials::Array{BallTreeDensity,1}
     potentialfac::Vector{Symbol}
 end
+
 """
 $(TYPEDEF)
+
+TODO TO BE DEPRECATED
 """
 mutable struct CliqGibbsMC
     prods::Array{PotProd,1}
@@ -178,10 +191,11 @@ mutable struct CliqGibbsMC
     CliqGibbsMC() = new()
     CliqGibbsMC(a,b) = new(a,b)
 end
+
 """
 $(TYPEDEF)
 
-TO BE DEPRECATED
+TODO TO BE DEPRECATED
 """
 mutable struct DebugCliqMCMC
   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}

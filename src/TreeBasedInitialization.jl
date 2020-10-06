@@ -224,39 +224,6 @@ end
 """
     $SIGNATURES
 
-Fetch (block) caller until child cliques of `cliq::TreeClique` have valid csm status.
-
-Notes:
-- Return `::Dict{Symbol}` indicating whether next action that should be taken for each child clique.
-- See status options at `getCliqueStatus(..)`.
-- Can be called multiple times
-"""
-function fetchChildrenStatusUp( tree::AbstractBayesTree,
-                                cliq::TreeClique,
-                                logger=ConsoleLogger() )
-  #
-  ret = Dict{Int, Symbol}()
-  chlr = getChildren(tree, cliq)
-  for ch in chlr
-      # # FIXME, why are there two steps getting cliq status????
-      # chst = getCliqueStatus(ch)  # TODO, remove this
-    with_logger(logger) do
-      @info "cliq $(cliq.index), child $(ch.index) isready(initUpCh)=$(isready(getMsgUpChannel(ch)))."
-    end
-    flush(logger.stream)
-    # either wait to fetch new result, or report or result
-    ret[ch.index] = (fetch(getMsgUpChannel(ch))).status
-    with_logger(logger) do
-      @info "ret[$(ch.index)]=$(ret[ch.index])."
-    end
-  end
-
-  return ret
-end
-
-"""
-    $SIGNATURES
-
 Wait here if all siblings and the parent status are `:needdownmsg`.
 Return true when parent is `:initialized` after all were `:needdownmsg`
 

@@ -76,6 +76,36 @@ end
 ##==============================================================================
 
 
+@deprecate getMsgsUpChildren(x...;kw...) fetchMsgsUpChildren(x...;kw...)
+
+@deprecate getMsgUpThis(x...;kw...) fetchMsgUpThis(x...;kw...)
+
+@deprecate printCliqHistorySequential(x...;kw...) printCSMHistorySequential(x...;kw...)
+
+# """
+#     $SIGNATURES
+
+# WIP #459 dwnMsg consolidation towards blocking cliq that `:needdwninit` to wait on parent `:initialized` dwn message.
+
+# Notes
+# - State machine function nr.6e
+
+# DevNotes
+# - Seems really unnecessary
+# - Separated out during #459 dwnMsg consolidation
+# - Should only happen in long downinit chains below parent that needed dwninit
+# - TODO figure out whats different between this and 8c
+# """
+# function slowOnPrntAsChildrNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+#   # do actual fetch
+#   prtmsg = fetchDwnMsgConsolidated(getParent(csmc.tree, csmc.cliq)[1]).status
+
+#   # FIXME WHY THIS???
+#   # go to 7
+#   return determineCliqNeedDownMsg_StateMachine
+# end
+
+
 # """
 # $SIGNATURES
 

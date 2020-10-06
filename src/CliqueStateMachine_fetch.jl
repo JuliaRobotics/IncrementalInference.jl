@@ -15,7 +15,6 @@ export  doCliqDownSolve_StateMachine,
         doCliqUpSolveInitialized_StateMachine,
         rmUpLikeliSaveSubFg_StateMachine,
         waitChangeOnParentCondition_StateMachine,
-        slowOnPrntAsChildrNeedDwn_StateMachine,
         towardUpOrDwnSolve_StateMachine,
         canCliqMargSkipUpSolve_StateMachine,
         tryDwnInitCliq_StateMachine,
@@ -360,39 +359,6 @@ end
 """
     $SIGNATURES
 
-WIP #459 dwnMsg consolidation towards blocking cliq that `:needdwninit` to wait on parent `:initialized` dwn message.
-
-Notes
-- State machine function nr.6e
-
-DevNotes
-- Seems really unnecessary
-- Separated out during #459 dwnMsg consolidation
-- Should only happen in long downinit chains below parent that needed dwninit
-- TODO figure out whats different between this and 8c
-"""
-function slowOnPrntAsChildrNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
-  # do actual fetch
-  prtmsg = fetchDwnMsgConsolidated(getParent(csmc.tree, csmc.cliq)[1]).status
-  if prtmsg == :initialized
-    # FIXME what does this mean???
-    # probably that downward init should commence (not complete final solve)
-      allneeddwn = true
-    # go to 8e.ii
-    # return tryDwnInitCliq_StateMachine
-  end
-
-  # FIXME WHY THIS???
-  # go to 7
-  return determineCliqNeedDownMsg_StateMachine
-end
-
-
-
-
-"""
-    $SIGNATURES
-
 Do down solve calculations, loosely translates to solving Chapman-Kolmogorov
 transit integral in downward direction.
 
@@ -501,11 +467,13 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
 
   # redirect if any children needdownmsg
   if someInit || chldneed
-    # prep down init message
+    # Calculate and share the children sum solvableDim information for priority initialization
+      # fetchChildrenStatusUp
+      # upmsgs = getMsgsUpChildren(csmc)
+
+    # prep and put down init message
     setCliqDrawColor(csmc.cliq, "sienna")
     prepPutCliqueStatusMsgDwn!(csmc, :initialized)
-    # # go to 7b
-    # return slowIfChildrenNotUpSolved_StateMachine
 
     # go to 7e
     return slowWhileInit_StateMachine
@@ -513,7 +481,8 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
     # (short cut) check again if all cliq vars have been initialized so that full inference can occur on clique
   elseif allvarinit
     infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- all initialized")
-    # TODO should this set status=:initialized? and notify???
+    setCliqDrawColor(csmc.cliq, "sienna")
+    # don't send a message yet since the upsolve is about to occur too
     setCliqueStatus!(csmc.cliq, :initialized)
 
     # go to 8g.
