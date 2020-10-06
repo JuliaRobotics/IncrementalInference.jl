@@ -402,6 +402,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
                                       duplicate::Bool=true )
   #
   # get the current clique status
+  # solvableDims=getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)

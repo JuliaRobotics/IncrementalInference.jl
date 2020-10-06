@@ -2,6 +2,9 @@
 #
 
 export attachCSM!
+export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
+export printHistoryLine, printHistoryLane, printCliqHistorySummary
+export printCSMHistoryLogical, printCSMHistorySequential
 
 
 """
@@ -238,11 +241,11 @@ Notes
 
 Example
 ```julia
-printCliqHistorySequential(hists)
-printCliqHistorySequential(hists, 2=>46)
-printCliqHistorySequential(hists, 1=>11:15)
-printCliqHistorySequential(hists, [1,4,6]=>11:15)
-printCliqHistorySequential(hists, [2=>45:52; 1=>10:15])
+printCSMHistorySequential(hists)
+printCSMHistorySequential(hists, 2=>46)
+printCSMHistorySequential(hists, 1=>11:15)
+printCSMHistorySequential(hists, [1,4,6]=>11:15)
+printCSMHistorySequential(hists, [2=>45:52; 1=>10:15])
 ```
 
 DevNotes
@@ -258,7 +261,7 @@ Related:
 
 printHistoryLine, printCliqHistory
 """
-function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
                                     whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
                                     fid=stdout )
   # vectorize all histories in single Array
@@ -295,19 +298,19 @@ function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, 
   nothing
 end
 
-function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
                                     whichstep::Pair{<:CSMRanges,<:CSMRanges},
                                     fid=stdout)
   #
-  printCliqHistorySequential(hists,[whichstep;], fid)
+  printCSMHistorySequential(hists,[whichstep;], fid)
 end
 
-function printCliqHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
                                     fid::AbstractString)
   #
   @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
   file = open(fid, "w")
-  printCliqHistorySequential(hists, file)
+  printCSMHistorySequential(hists, file)
   close(file)
   nothing
 end

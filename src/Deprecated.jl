@@ -76,6 +76,7 @@ end
 ##==============================================================================
 
 
+@deprecate printCliqHistorySequential(x...;kw...) printCSMHistorySequential(x...;kw...)
 
 # """
 #     $SIGNATURES
