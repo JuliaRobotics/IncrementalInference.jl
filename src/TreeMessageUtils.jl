@@ -352,13 +352,21 @@ Related
 `addMsgFactors!`
 """
 function deleteMsgFactors!( subfg::AbstractDFG,
-                            fcts::Vector )
+                            fcts::Vector{DFGFactor} )
   #
   for fc in fcts
     deleteFactor!(subfg, fc.label)
   end
 end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
+
+function deleteMsgFactors!(subfg::AbstractDFG, 
+                           tags::Vector{Symbol}=[:LIKELIHOODMESSAGE])
+  # remove msg factors that were added to the subfg
+  facs = lsf(subfg, tags=tags)
+  deleteFactor!.(subfg, facs)
+  return facs
+end
 
 #TODO JT can be removed, used as sanity check
 function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
@@ -402,6 +410,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
                                       duplicate::Bool=true )
   #
   # get the current clique status
+  sdims = getCliqVariableMoreInitDims(subfg, cliq)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
@@ -414,7 +423,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
     var = DFG.getVariable(subfg, vid)
     var = duplicate ? deepcopy(var) : var
     if isInitialized(var)
-      msg.belief[Symbol(var.label)] = TreeBelief(var)
+      msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
     end
   end
   return msg
@@ -505,6 +514,7 @@ end
 Convert tree up messages dictionary to a new dictionary relative to variables specific messages and their depth in the tree
 
 Notes
+- Used in RoMEPlotting
 - Return data in `TempUpMsgPlotting` format:
     Dict{Symbol,   -- is for variable label
       Vector{       -- multiple msgs for the same variable

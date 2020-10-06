@@ -108,12 +108,6 @@ export *,
   # state machine methods
   StateMachine,
   exitStateMachine,
-  filterHistAllToArray,
-  cliqHistFilterTransitions,
-  printCliqSummary,
-  printHistoryLine, printHistoryLane,
-  printCliqHistorySummary,
-  printCliqHistorySequential, printCSMHistoryLogical,
   printGraphSummary,
   printSummary,
   print,
@@ -336,9 +330,8 @@ export *,
 
   # new wrapper (experimental)
   CommonConvWrapper,
-
+  
   getCliqVarInitOrderUp,
-  fetchChildrenStatusUp,
   getCliqNumAssocFactorsPerVar,
 
   # introduced for approximate convolution operations
@@ -444,6 +437,7 @@ include("NeedsResolution.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
+include("CSM_fetchvstake.jl") # to be deprecated as part of #855
 include("TreeMessageUtils.jl")
 include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")

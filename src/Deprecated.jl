@@ -76,6 +76,36 @@ end
 ##==============================================================================
 
 
+@deprecate getMsgsUpChildren(x...;kw...) fetchMsgsUpChildren(x...;kw...)
+
+@deprecate getMsgUpThis(x...;kw...) fetchMsgUpThis(x...;kw...)
+
+@deprecate printCliqHistorySequential(x...;kw...) printCSMHistorySequential(x...;kw...)
+
+# """
+#     $SIGNATURES
+
+# WIP #459 dwnMsg consolidation towards blocking cliq that `:needdwninit` to wait on parent `:initialized` dwn message.
+
+# Notes
+# - State machine function nr.6e
+
+# DevNotes
+# - Seems really unnecessary
+# - Separated out during #459 dwnMsg consolidation
+# - Should only happen in long downinit chains below parent that needed dwninit
+# - TODO figure out whats different between this and 8c
+# """
+# function slowOnPrntAsChildrNeedDwn_StateMachine(csmc::CliqStateMachineContainer)
+#   # do actual fetch
+#   prtmsg = fetchDwnMsgConsolidated(getParent(csmc.tree, csmc.cliq)[1]).status
+
+#   # FIXME WHY THIS???
+#   # go to 7
+#   return determineCliqNeedDownMsg_StateMachine
+# end
+
+
 # """
 # $SIGNATURES
 
@@ -1058,7 +1088,36 @@ function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::Abstra
 end
 
 
+# NOTE I only saw this function after I replace all the functions with _dbgCSMSaveSubFG
+# I consolidated the 2 and think this one can therefore be deprecated. Unless you use it 
+# separate from a CSMC
+"""
+    $SIGNATURES
 
+Internal helper function to save a dfg object to LogPath during clique state machine operations.
+
+Notes
+- will only save dfg object if `opts.dbg=true`
+
+Related
+
+saveDFG, loadDFG!, loadDFG
+"""
+function _dbgSaveDFG(dfg::AbstractDFG,
+                    filename::AbstractString="fg_temp",
+                    opts::AbstractParams=getSolverParams(dfg)  )::String
+  #
+  Base.depwarn("`_dbgSaveDFG` is deprecated use `_dbgCSMSaveSubFG`", _dbgCSMSaveSubFG)
+  folder::String=joinpath(opts.logpath,"logs")
+  if opts.dbg
+    if !ispath(folder)
+      mkpath(folder)
+    end
+    DFG.saveDFG(dfg, joinpath(folder, "$filename"))
+    drawGraph(dfg, show=false, filepath=joinpath(folder, "$filename.pdf"))
+  end
+  folder*filename
+end
 
 ##==============================================================================
 ## Delete at end v0.15.x

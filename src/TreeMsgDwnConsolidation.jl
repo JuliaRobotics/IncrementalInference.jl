@@ -70,7 +70,10 @@ putDwnMsgConsolidated!(cliq::TreeClique, msg::LikelihoodMessage) = putDwnMsgCons
 """
     $SIGNATURES
 
-THIS IS ONE OF THE FAVORITES FOR POST CONSOLIDATED DOWNWARD MESSAGES.
+Consolidated downward messages generator and Channel sender.
+
+Notes
+- Post #459
 """
 function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
@@ -96,9 +99,12 @@ end
 
 
 ##==============================================================================
-## DEPRECATED 
+## DEPRECATE
+##==============================================================================
 
-# FIXME, consolidate into single down msg event API
+
+
+# FIXME, deprecate in favor of prepPutCliqueStatusMsgDwn!
 function notifyCliqDownInitStatus!( cliq::TreeClique,
                                     status::Symbol;
                                     logger=ConsoleLogger() )
