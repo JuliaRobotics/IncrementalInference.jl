@@ -711,20 +711,43 @@ function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
 
   _dbgCSMSaveSubFG(csmc, "fg_DWNCMN_8j")
 
-  # NOTE, only use separators, not all parent variables
+  ## FIXME, if this new, and all sibling clique's solvableDim are 0, then go back to waitChangeOnParentCondition_StateMachine
+
+  # go to 8o.i
+  return testDirectDwnInit_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Can this clique initialize directly from available down message info?
+
+Notes
+- State machine function nr. 8o.i
+- Assume must have parent since this only occurs after 8j.
+"""
+function testDirectDwnInit_StateMachine(csmc::CliqStateMachineContainer)
+
+  prnt = getParent(csmc.tree, csmc.cliq)[1]
+  dwinmsgs = fetchDwnMsgConsolidated(prnt)
+  dwnkeys_ = collect(keys(dwinmsgs.belief))
+  # NOTE, only use separators, not all parent variables (DF ???)
   # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
-  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
+  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_, separators: $(getCliqSeparatorVarIds(csmc.cliq))"
 
   # priorize solve order for mustinitdown with lowest dependency first
   # follow example from issue #344
   mustwait = false
   if length(intersect(dwnkeys_, getCliqSeparatorVarIds(csmc.cliq))) == 0
+    # can directly use DOWNWARD_COMMON
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, no can do, must wait for siblings to update parent first.")
     mustwait = true
   elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys_, logger=csmc.logger)
+    # check sibling status and decide where next based on available dwn msgs
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, prioritize")
     mustwait = true
   elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
+    # if both requires and more down msg info is likely
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, partialneedsmore")
     mustwait = true
   end
