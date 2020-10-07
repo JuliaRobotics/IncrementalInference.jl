@@ -93,7 +93,7 @@ function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
   sleep(0.1)
   notify(getSolveCondition(csmc.cliq))
 
-  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
+  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status), msgs $(collect(keys(dwnmsg.belief))), childSolvDims=$childSolvDims")
 
   status
 end

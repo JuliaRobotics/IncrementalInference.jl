@@ -475,6 +475,7 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
         totSolDims[clid] += tbup.solvableDim
       end
     end
+    infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- totSolDims=$totSolDims")
 
     # prep and put down init message
     setCliqDrawColor(csmc.cliq, "sienna")
