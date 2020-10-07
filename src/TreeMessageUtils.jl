@@ -151,7 +151,7 @@ Notes
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
-function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
+function addLikelihoodsDifferential!(msgs::LikelihoodMessage, cliqSubFG::AbstractDFG,
                                      tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   listVarByDim = Symbol[]
@@ -184,14 +184,14 @@ function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
       # replace dummy factor with real deconv factor using manikde approx belief measurement
       fullFct = nfactype(newBel)
       deleteFactor!(tfg, afc.label)
-      addFactor!( tfg, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+      addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
     end
   end
 
   return tfg
 end
 # default verbNoun API spec (dest, src)
-addLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, tfg)
+addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, subfg)
 
 """
     $SIGNATURES
