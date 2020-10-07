@@ -15,7 +15,7 @@ sppes = map(var->getSuggestedPPE(getPPE(var))[1], sortDFG(getVariables(fg),by=ge
 
 gt = rem2pi.(collect(0:4), RoundNearest)
 
-@test all(isapprox.(sppes, gt, atol=0.3)) #TODO tolarance, test failed on 0.2
+@test all(isapprox.(sppes, gt, atol=0.35))
 
 # test packing converters also
 d = mktempdir()

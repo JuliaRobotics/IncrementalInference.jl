@@ -468,12 +468,18 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # redirect if any children needdownmsg
   if someInit || chldneed
     # Calculate and share the children sum solvableDim information for priority initialization
-      # fetchChildrenStatusUp
-      # upmsgs = getMsgsUpChildren(csmc)
+    totSolDims = Dict{Int, Float64}()
+    for (clid, upmsg) in fetchMsgsUpChildrenDict(csmc)
+      totSolDims[clid] = 0
+      for (varsym, tbup) in upmsg.belief
+        totSolDims[clid] += tbup.solvableDim
+      end
+    end
+    infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- totSolDims=$totSolDims")
 
     # prep and put down init message
     setCliqDrawColor(csmc.cliq, "sienna")
-    prepPutCliqueStatusMsgDwn!(csmc, :initialized)
+    prepPutCliqueStatusMsgDwn!(csmc, :initialized, childSolvDims=totSolDims)
 
     # go to 7e
     return slowWhileInit_StateMachine
@@ -625,139 +631,6 @@ function blockUntilChildrenHaveStatus_StateMachine(csmc::CliqStateMachineContain
   # go to 4b
   return trafficRedirectConsolidate459_StateMachine
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## ============================================================================================
-# start of things downinit
-## ============================================================================================
-
-
-"""
-$SIGNATURES
-
-Test waiting order between siblings for cascading downward tree initialization.
-
-Notes
-- State machine function 8j.
-
-DevNotes
-- FIXME, this guy is never called during WIP of 459 dwnMsg consolidation
-- FIXME, something wrong with CSM sequencing, https://github.com/JuliaRobotics/IncrementalInference.jl/issues/602#issuecomment-682114232
-- This might be replaced with 4-stroke tree-init.
-"""
-function dwnInitSiblingWaitOrder_StateMachine(csmc::CliqStateMachineContainer)
-
-  prnt_ = getParent(csmc.tree, csmc.cliq)
-  if 0 == length(prnt_)
-    # go to 7
-    return determineCliqNeedDownMsg_StateMachine
-  end
-  prnt = prnt_[1]
-
-  opt = getSolverParams(csmc.cliqSubFg) # csmc.dfg
-
-  # now get the newly computed message from the appropriate container
-  # make sure this is a pull model #674 (pull msg from source/prnt)
-  # FIXME must be consolidated as part of #459
-  # dwinmsgs = getfetchCliqueInitMsgDown(getCliqueData(prnt), from=:dwnInitSiblingWaitOrder_StateMachine)
-  dwinmsgs = fetchDwnMsgConsolidated(prnt)
-  dwnkeys_ = collect(keys(dwinmsgs.belief))
-  infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, dwinmsgs keys=$(dwnkeys_)")
-
-  # add downward belief prop msgs
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwinmsgs, DownwardPass)
-  ## update solveable dims with newly avaiable init information
-  # determine if more info is needed for partial
-  sdims = getCliqVariableMoreInitDims(csmc.cliqSubFg, csmc.cliq)
-  infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, sdims=$(sdims)")
-  updateCliqSolvableDims!(csmc.cliq, sdims, csmc.logger)
-
-  _dbgCSMSaveSubFG(csmc, "fg_DWNCMN_8j")
-
-  # NOTE, only use separators, not all parent variables
-  # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
-  # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_"
-
-  # priorize solve order for mustinitdown with lowest dependency first
-  # follow example from issue #344
-  mustwait = false
-  if length(intersect(dwnkeys_, getCliqSeparatorVarIds(csmc.cliq))) == 0
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, no can do, must wait for siblings to update parent first.")
-    mustwait = true
-  elseif getSiblingsDelayOrder(csmc.tree, csmc.cliq, dwnkeys_, logger=csmc.logger)
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, prioritize")
-    mustwait = true
-  elseif getCliqSiblingsPartialNeeds(csmc.tree, csmc.cliq, dwinmsgs, logger=csmc.logger)
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, partialneedsmore")
-    mustwait = true
-  end
-
-  solord = getCliqSiblingsPriorityInitOrder( csmc.tree, prnt, dwinmsgs, csmc.logger )
-  noOneElse = areSiblingsRemaingNeedDownOnly(csmc.tree, csmc.cliq)
-  infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, $(prnt.index), $mustwait, $noOneElse, solord = $solord")
-
-  if mustwait && csmc.cliq.index != solord[1] # && !noOneElse
-    # TODO, is this needed? fails hex if included with correction :needdowninit --> :needdownmsg
-    # if dwinmsgs.status == :initialized && getCliqueStatus(csmc.cliq) == :needdownmsg  # used to be :needdowninit
-    #   # go to 7e
-    #   return slowWhileInit_StateMachine
-    # end
-
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, must wait on change.")
-    # remove all message factors
-    # remove msg factors previously added
-    fctstorm = deleteMsgFactors!(csmc.cliqSubFg, [:DOWNWARD_COMMON])
-    infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, removing factors $fctstorm")
-
-    # go to 8c
-    return waitChangeOnParentCondition_StateMachine
-  end
-
-  # go to 8e.ii.
-  return tryDwnInitCliq_StateMachine
-end
-
-
-
-
-
-
-
-
-
-
-
 
 
 

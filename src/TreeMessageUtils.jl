@@ -417,7 +417,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   msg = LikelihoodMessage(status=status, hasPriors=hasPriors)
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
-    @info "prepCliqInitMsgsUp, seps=$seps"
+    @info "$(now()), prepCliqInitMsgsUp, seps=$seps, sdims=$sdims"
   end
   for vid in seps
     var = DFG.getVariable(subfg, vid)
@@ -454,14 +454,13 @@ function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
   end
 
   # set solvable dimensions
-  sdims = getCliqVariableMoreInitDims(subfg, cliq)
+  # sdims = getCliqVariableMoreInitDims(subfg, cliq)
 
   # other messages must be extracted from subfg
   for mk in remainkeys
     setVari = getVariable(subfg, mk)
     if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari, solvableDim=sdims[mk] )
-      # newDwnMsgs.belief[mk].solvableDim = sdims[mk]
+      newDwnMsgs.belief[mk] = TreeBelief(setVari)  #, solvableDim=sdims[mk] )
     end
   end
 
