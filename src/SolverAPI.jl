@@ -182,7 +182,8 @@ function tryCliqStateMachineSolve!( dfg::AbstractDFG,
     close(fid)
     flush(logger.stream)
     close(logger.stream)
-    error(err)
+    # error(err)
+    rethrow()
   end
   # if !(clst in [:upsolved; :downsolved; :marginalized])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")

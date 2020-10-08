@@ -75,6 +75,37 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+function notifyCliqDownInitStatus!( cliq::TreeClique,
+                                    status::Symbol;
+                                    logger=ConsoleLogger() )
+  #
+  @warn("Deprecated, replaced with `prepPutCliqueStatusMsgDwn`")
+  cdat = getCliqueData(cliq)
+    with_logger(logger) do
+    @info "$(now()) $(current_task()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- pre-lock, new $(cdat.initialized)-->$(status)"
+  end
+
+  # take lock for atomic transaction
+  # lockDwnStatus!(cdat, cliq.index, logger=logger)
+
+  setCliqueStatus!(cdat, status)
+
+  # TODO, should this not send the beliefs aswell??
+  msg = LikelihoodMessage(status=status)
+  putDwnMsgConsolidated!(cliq, msg)
+  # putMsgDwnInitStatus!(cliq, status, logger, msg)
+  
+
+  # unlock for others to proceed
+  # unlockDwnStatus!(cdat)
+  with_logger(logger) do
+    @info "$(now()), cliq=$(cliq.index), notifyCliqDownInitStatus! -- unlocked, $(getCliqueStatus(cliq))"
+  end
+
+  # flush(logger.stream)
+
+  nothing
+end
 
 
 # function prepareCommonConvWrapper!( ccwl::CommonConvWrapper{F},
