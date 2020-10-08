@@ -438,7 +438,7 @@ include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("CSM_fetchvstake.jl") # to be deprecated as part of #855
-include("CSM_fetch_fix910.jl")
+include("CSM_SiblDwnInit_fetch.jl")
 include("TreeMessageUtils.jl")
 include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
