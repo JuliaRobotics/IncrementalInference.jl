@@ -1,10 +1,10 @@
 
 
-function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeMinimize}, 
-                              ccwl::CommonConvWrapper;
+function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
-                              testshuffle::Bool=false  )
+                              testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
   #
+  # fnc::InstanceType{AbstractRelativeMinimize}, 
 
   # @show fnc
 
@@ -30,11 +30,21 @@ function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeMinimize},
 end
 
 
+"""
+    $(SIGNATURES)
 
-function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeRoots}, 
-                              ccwl::CommonConvWrapper;
+Solve free variable x by root finding residual function fgr.usrfnc(x, res)
+randomly shuffle x dimensions if underconstrained by measurement z dimensions
+small random perturbation used to prevent trivial solver cases, div by 0 etc.
+result stored in fgr.Y
+ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
+
+Notes
+- Assumes only `ccw.particleidx` will be solved for
+"""
+function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
-                              testshuffle::Bool=false  )
+                              testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
 
   ## TODO desperately needs cleaning up and refactoring
@@ -60,7 +70,7 @@ function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeRoots},
         ccwl.cpt[Threads.threadid()].p[2:end] = ccwl.cpt[Threads.threadid()].p[1:(end-1)]
         ccwl.cpt[Threads.threadid()].p[1] = temp
         if i == ccwl.xDim
-          error("numericRootGenericRandomizedFnc could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
+          error("numericSolutionCCW! could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
         end
       end
     end
@@ -107,35 +117,6 @@ function _numericSolutionCCW!(fnc::InstanceType{AbstractRelativeRoots},
   nothing
 end
 
-
-"""
-    $(SIGNATURES)
-
-Solve free variable x by root finding residual function fgr.usrfnc(x, res)
-randomly shuffle x dimensions if underconstrained by measurement z dimensions
-small random perturbation used to prevent trivial solver cases, div by 0 etc.
-result stored in fgr.Y
-ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
-
-Notes
-- Assumes only `ccw.particleidx` will be solved for
-"""
-function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{MixtureRelative{N,F,S,T}};
-                                          perturb::Float64=1e-10,
-                                          testshuffle::Bool=false ) where 
-                                              {N,F<:AbstractRelative,S,T <: Tuple}
-  #
-  _numericSolutionCCW!(F, ccwl,perturb=perturb, testshuffle=testshuffle)
-end
-
-
-function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{T};
-                                          perturb::Float64=1e-10,
-                                          testshuffle::Bool=false ) where 
-                                              {T <: AbstractRelative}
-  #
-  _numericSolutionCCW!(T, ccwl, perturb=perturb, testshuffle=testshuffle)
-end
 
 
 

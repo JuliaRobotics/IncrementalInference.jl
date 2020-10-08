@@ -45,7 +45,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   dbg::Bool=false;
                                   solveKey::Symbol=:default )
   #
-  @warn("findRelatedFromPotential is obsolete, use `productbelief(fg, variableSym, :)`", maxlog=1)
+  @warn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", maxlog=1)
 
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
@@ -75,6 +75,67 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+
+
+# function prepareCommonConvWrapper!( ccwl::CommonConvWrapper{F},
+#                                     Xi::Vector{DFGVariable},
+#                                     solvefor::Symbol,
+#                                     N::Int;
+#                                     solveKey::Symbol=:default  ) where {F <: AbstractRelative}
+#   #
+#   prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N, solveKey=solveKey)
+# end
+
+# function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+#                                   allelements,
+#                                   activehypo,
+#                                   certainidx::Vector{Int},
+#                                   sfidx::Int,
+#                                   maxlen::Int,
+#                                   maniAddOps::Tuple;
+#                                   spreadNH::Real=3.0  ) where {N_,F<:AbstractRelative,S,T}
+#   #
+#   computeAcrossHypothesis!(F,ccwl,allelements,activehypo,certainidx,sfidx, maxlen,maniAddOps,spreadNH=spreadNH)
+# end
+
+
+# function computeAcrossHypothesis!(ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
+#                                   allelements,
+#                                   activehypo,
+#                                   certainidx::Vector{Int},
+#                                   sfidx::Int,
+#                                   maxlen::Int,
+#                                   maniAddOps::Tuple;
+#                                   spreadNH::Real=3.0  ) where {N_,F<:AbstractRelative,S,T}
+#   #
+#   computeAcrossHypothesis!(F,ccwl,allelements,activehypo,certainidx,sfidx, maxlen,maniAddOps,spreadNH=spreadNH)
+# end
+
+
+@deprecate numericRootGenericRandomizedFnc!(w...;kw...) numericSolutionCCW!(w...;kw...)
+
+
+# function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{Mixture{N,F,S,T}};
+#                                           perturb::Float64=1e-10,
+#                                           testshuffle::Bool=false ) where 
+#                                               {N,F<:AbstractRelative,S,T <: Tuple}
+#   #
+#   _numericSolutionCCW!(F, ccwl,perturb=perturb, testshuffle=testshuffle)
+# end
+
+
+# function numericRootGenericRandomizedFnc!(ccwl::CommonConvWrapper{F};
+#                                           perturb::Float64=1e-10,
+#                                           testshuffle::Bool=false ) where 
+#                                               {F <: AbstractRelative}
+#   #
+#   _numericSolutionCCW!(F, ccwl, perturb=perturb, testshuffle=testshuffle)
+# end
+
+
+@deprecate MixtureRelative(w...; kw...) Mixture(w...; kw...)
+
+@deprecate MixturePrior(w...; kw...) Mixture(Prior, w...; kw...)
 
 
 # function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
@@ -564,12 +625,9 @@ end
 
 @deprecate getMsgDwnChannel(tree::AbstractBayesTree, edge) getDwnMsgConsolidated(tree, edge)
 
-export MixtureLinearConditional
+# export MixtureLinearConditional
 
-function MixtureLinearConditional(Z::AbstractVector{T}, C::DiscreteNonParametric) where T <: SamplableBelief
-  @warn("MixtureLinearConditional is deprecated, use `MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)` instead.")
-  MixtureRelative(LinearConditional(LinearAlgebra.I), Z, C)
-end
+@deprecate MixtureLinearConditional(Z::AbstractVector{<:SamplableBelief}, C::DiscreteNonParametric)  Mixture(LinearRelative, Z, C)
 
 
 """
@@ -809,7 +867,7 @@ end
 
 # getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
 
-@deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
+# @deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
 
 @deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
 # @deprecate LinearConditional(x::SamplableBelief) LinearRelative(x)

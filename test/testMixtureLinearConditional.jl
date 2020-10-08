@@ -1,23 +1,28 @@
 using IncrementalInference
 using Test
 
-@testset "test packing of MixtureRelative" begin
+@testset "test packing of Mixture" begin
 
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 
-mr = MixtureRelative(LinearRelative, (fancy=manikde!(randn(1,75), ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
+mp = Mixture(Prior, [Normal(); Normal(10,1)], [0.5;0.5])
+f0 = addFactor!(fg, [:x0;], mp)
+
+mr = Mixture(LinearRelative, (fancy=manikde!(randn(1,75), ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
-pf = DFG.packFactor(fg, f1)
+pf0 = DFG.packFactor(fg, f0)
+pf1 = DFG.packFactor(fg, f1)
 
 # now test unpacking
 fg_ = initfg();
 addVariable!(fg_, :x0, ContinuousScalar)
 addVariable!(fg_, :x1, ContinuousScalar)
 
-f1_ = DFG.unpackFactor(fg_, pf)
+f0_ = DFG.unpackFactor(fg_, pf0)
+f1_ = DFG.unpackFactor(fg_, pf1)
 
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
@@ -35,7 +40,7 @@ end
 
 
 #
-@testset "test simple MixtureRelative" begin
+@testset "test simple Mixture" begin
 
 fg = initfg()
 
@@ -43,17 +48,18 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
 
-mlr = MixtureRelative(LinearRelative(I), [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+# require default ::UnitScaling constructor from all factors
+mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 # test serialization while we are here
-pmlr = convert(PackedMixtureRelative, mlr)
-umlr = convert(MixtureRelative, pmlr)
+pmlr = convert(PackedMixture, mlr)
+umlr = convert(Mixture, pmlr)
 
 @test mlr.mechanics == umlr.mechanics
 @test mlr.components == umlr.components
 @test mlr.diversity == umlr.diversity
 
-mlr = MixtureRelative(LinearRelative, [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
+mlr = Mixture(LinearRelative, [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))
 
 addFactor!(fg, [:x0,:x1], mlr)
 

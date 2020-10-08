@@ -342,7 +342,7 @@ export *,
   # Solving utils
   shuffleXAltD!,
   numericRoot,
-  numericRootGenericRandomizedFnc!,
+  numericSolutionCCW!,
 
   # user functions
   predictbelief,
@@ -445,8 +445,7 @@ include("TreeBasedInitialization.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("GraphConstraintTypes.jl")
-include("Factors/MixturePrior.jl")
-include("Factors/MixtureRelative.jl")
+include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/Sphere1D.jl")

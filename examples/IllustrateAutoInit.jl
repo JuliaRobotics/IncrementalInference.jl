@@ -57,7 +57,7 @@ plotKDE(fg, [:x0, :x1])
 # add another node, but introduce more general beliefs
 addVariable!(fg, :x2, ContinuousScalar)
 
-mmo = MixtureRelative(LinearRelative, [Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
+mmo = Mixture(LinearRelative, [Rayleigh(3); Uniform(30,55)], Categorical([0.4; 0.6]))
 addFactor!(fg, [:x1, :x2], mmo)
 
 # Graphs.plot(fg.g)
