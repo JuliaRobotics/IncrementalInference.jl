@@ -49,10 +49,13 @@ getSolverParams(fg).treeinit = true
 # getSolverParams(fg).showtree = true
 # getSolverParams(fg).dbg = true
 
+# hack fix during #910 and #754
+idb = [6=>(determineCliqNeedDownMsg_StateMachine=>10);]
+
 # mkpath(getLogPath(fg))
 # verbosefid = open(joinLogPath(fg, "csmVerbose.log"),"w")
 
-tree, smt, hist = solveTree!(fg, timeout=100 ) # , verbose=true, verbosefid=verbosefid, timeout=50)
+tree, smt, hist = solveTree!(fg, timeout=70, injectDelayBefore=idb ) # , verbose=true, verbosefid=verbosefid)
 
 # flush(verbosefid)
 # close(verbosefid)

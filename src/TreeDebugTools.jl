@@ -70,7 +70,7 @@ function treeProductUp(fg::AbstractDFG,
   #   end
   #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
   # end
-  upmsgssym = getMsgsUpChildren(tree, cliq, TreeBelief)
+  upmsgssym = fetchMsgsUpChildren(tree, cliq, TreeBelief)
 
   # perform the actual computation
   potprod = nothing

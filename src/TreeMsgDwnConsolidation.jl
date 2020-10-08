@@ -78,7 +78,8 @@ Notes
 function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
                                     dfg::AbstractDFG=csmc.cliqSubFg,
-                                    dwnmsg=prepSetCliqueMsgDownConsolidated!(dfg, csmc.cliq, LikelihoodMessage(status=status), csmc.logger, status=status )  )
+                                    childSolvDims::Dict{Int,Float64} = Dict{Int,Float64}(),
+                                    dwnmsg=prepSetCliqueMsgDownConsolidated!(dfg, csmc.cliq, LikelihoodMessage(status=status, childSolvDims=childSolvDims), csmc.logger, status=status )  )
   #
   cd = getCliqueData(csmc.cliq)
 
@@ -92,7 +93,7 @@ function prepPutCliqueStatusMsgDwn!(csmc::CliqStateMachineContainer,
   sleep(0.1)
   notify(getSolveCondition(csmc.cliq))
 
-  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status) with msg keys $(collect(keys(dwnmsg.belief)))")
+  infocsm(csmc, "prepPutCliqueStatusMsgDwn! -- notified status=$(dwnmsg.status), msgs $(collect(keys(dwnmsg.belief))), childSolvDims=$childSolvDims")
 
   status
 end

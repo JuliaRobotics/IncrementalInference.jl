@@ -342,7 +342,7 @@ export *,
   # Solving utils
   shuffleXAltD!,
   numericRoot,
-  numericRootGenericRandomizedFnc!,
+  numericSolutionCCW!,
 
   # user functions
   predictbelief,
@@ -438,14 +438,14 @@ include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
 include("CSM_fetchvstake.jl") # to be deprecated as part of #855
+include("CSM_SiblDwnInit_fetch.jl")
 include("TreeMessageUtils.jl")
 include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
 # special variables and factors, see RoME.jl for more examples
 include("GraphConstraintTypes.jl")
-include("Factors/MixturePrior.jl")
-include("Factors/MixtureRelative.jl")
+include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/Sphere1D.jl")
@@ -472,6 +472,10 @@ include("CSMOccuranceUtils.jl")
 include("SolveTree_Parametric.jl")
 include("CliqueStateMachine_take.jl")
 include("ParametricUtils.jl")
+
+#EXPERIMENTAL X-stroke
+include("experimental/CliqStateMachine_X-stroke.jl")
+include("experimental/SolveTree_X.jl")
 
 include("CanonicalGraphExamples.jl")
 

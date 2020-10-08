@@ -390,25 +390,22 @@ function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
     cliqd = getCliqueData(sibs[idx])
     csd = getSolvableDims(cliqd)
     with_logger(logger) do
-      @info "getCliqSiblingsPriorityInitOrder, idx=$idx of $len, $(cliqd.frontalIDs[1]) length solvableDims=$(length(csd.data))"
+      @info "$(now()), getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, $(cliqd.frontalIDs[1]), dwninitmsgs.childSolvDims=$(dwninitmsgs.childSolvDims)"
     end
     flush(logger.stream)
     sidx[idx] = sibs[idx].index
     
         # NEW accumulate the solvableDims for each sibling (#910)
         # FIXME rather determine this using static tree structure and values from dwnmsg (#910)
-        accmSolDims = Float64[]
-        for sbsm in getCliqAllVarIds(sibs[idx])
-          yesIsVar = haskey(dwninitmsgs.belief, sbsm) ? dwninitmsgs.belief[sbsm].solvableDim : 0.0
-          push!(accmSolDims, yesIsVar)
-        end
-        @show idx, sum(accmSolDims)
+        @show sidx, dwninitmsgs.childSolvDims
+        # @show haskey(dwninitmsgs.childSolvDims,sidx) ? dwninitmsgs.childSolvDims[sidx] : 0
+
     # FIXME comment out as part of #910
     sidims = fetchCliqSolvableDims(sibs[idx])
     accmSolDims = collect(values(sidims))
     @show tdims[idx] = sum(accmSolDims)
     with_logger(logger) do
-      @info "getCliqSiblingsPriorityInitOrder, finished idx=$idx of $len, length solvableDims=$(length(csd.data))"
+      @info "$(now()), prnt=getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, tdims[idx]=$(tdims[idx])"
     end
     flush(logger.stream)
   end

@@ -4,6 +4,7 @@
 export
   fetchMsgUpThis,
   fetchMsgsUpChildren,
+  fetchMsgsUpChildrenDict,
   fetchChildrenStatusUp,
   getMsgsUpInitChildren
 
@@ -33,8 +34,20 @@ fetchMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = fetchMsgUpThis(getCliq
 
 
 ## =============================================================================
-## Family message getters and setters
+## Family message getters and setters    (MUST BE CONSOLIDED)
 ## =============================================================================
+
+function fetchMsgsUpChildrenDict( treel::AbstractBayesTree,
+                                  cliq::TreeClique )
+  #
+  msgs = Dict{Int, LikelihoodMessage}()
+  for chld in getChildren(treel, cliq)
+    msgs[chld.index] = fetchMsgUpThis(chld)
+  end
+
+  return msgs
+end
+fetchMsgsUpChildrenDict( csmc::CliqStateMachineContainer ) = fetchMsgsUpChildrenDict( csmc.tree, csmc.cliq )
 
 
 """
@@ -47,8 +60,12 @@ Notes
 - Pull model #674
 
 DevNotes
-- Consolidate two versions getMsgsUpChildren
+- Consolidate fetchChildrenStatusUp, getMsgsUpInitChildren
 - FIXME update refactor to fetch or take, #855
+
+Related
+
+fetchMsgsUpChildrenDict
 """
 function fetchMsgsUpChildren( treel::AbstractBayesTree,
                               cliq::TreeClique,
@@ -63,16 +80,16 @@ function fetchMsgsUpChildren( treel::AbstractBayesTree,
 end
 
 
-function fetchMsgsUpChildren(csmc::CliqStateMachineContainer,
-                            ::Type{TreeBelief}=TreeBelief )
+function fetchMsgsUpChildren( csmc::CliqStateMachineContainer,
+                              ::Type{TreeBelief}=TreeBelief )
   #
   # TODO, replace with single channel stored in csmcs or cliques
   fetchMsgsUpChildren(csmc.tree, csmc.cliq, TreeBelief)
 end
 
-## ====================================================================================
-## TODO Deprecate below
-## ====================================================================================
+
+
+## TODO Consolidate/Deprecate below
 
 
 """

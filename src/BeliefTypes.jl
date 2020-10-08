@@ -110,7 +110,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   msgType::T
   hasPriors::Bool
   # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
-  childSolDims::Dict{Int, Float64} 
+  childSolvDims::Dict{Int, Float64} 
 end
 
 
@@ -120,9 +120,9 @@ LikelihoodMessage(; status::CliqStatus=:null,
                     cliqueLikelihood=nothing,
                     msgType::T=NonparametricMessage(),
                     hasPriors::Bool=true,
-                    childSolDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
+                    childSolvDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
                     ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolDims)
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)

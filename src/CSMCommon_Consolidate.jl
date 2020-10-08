@@ -273,7 +273,7 @@ function sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer)
 
   # consolidated up messaging (#459)
   infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- putting fake upinitmsg in this cliq")
-  upmsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, getCliqueStatus(csmc.cliq))
+  upmsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, getCliqueStatus(csmc.cliq), logger=csmc.logger)
   prepPutCliqueStatusMsgUp!(csmc, upmsg=upmsg)
 
   # also send a down message -- seem weird while doing #459 but okay

@@ -10,6 +10,8 @@ not recommended when non-Euclidean dimensions are used in variables.
 struct Prior{T <: SamplableBelief} <: AbstractPrior 
   Z::T
 end
+Prior(::UniformScaling) = Prior(Normal())
+
 getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 

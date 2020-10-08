@@ -151,7 +151,7 @@ Notes
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
-function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
+function addLikelihoodsDifferential!(msgs::LikelihoodMessage, cliqSubFG::AbstractDFG,
                                      tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   listVarByDim = Symbol[]
@@ -184,14 +184,14 @@ function addLikelihoodsDifferential!(msgs::LikelihoodMessage,
       # replace dummy factor with real deconv factor using manikde approx belief measurement
       fullFct = nfactype(newBel)
       deleteFactor!(tfg, afc.label)
-      addFactor!( tfg, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+      addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
     end
   end
 
   return tfg
 end
 # default verbNoun API spec (dest, src)
-addLikelihoodsDifferential!(tfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, tfg)
+addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, subfg)
 
 """
     $SIGNATURES
@@ -417,7 +417,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   msg = LikelihoodMessage(status=status, hasPriors=hasPriors)
   seps = getCliqSeparatorVarIds(cliq)
   with_logger(logger) do
-    @info "prepCliqInitMsgsUp, seps=$seps"
+    @info "$(now()), prepCliqInitMsgsUp, seps=$seps, sdims=$sdims"
   end
   for vid in seps
     var = DFG.getVariable(subfg, vid)
@@ -457,14 +457,13 @@ function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
   end
 
   # set solvable dimensions
-  sdims = getCliqVariableMoreInitDims(subfg, cliq)
+  # sdims = getCliqVariableMoreInitDims(subfg, cliq)
 
   # other messages must be extracted from subfg
   for mk in remainkeys
     setVari = getVariable(subfg, mk)
     if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari, solvableDim=sdims[mk] )
-      # newDwnMsgs.belief[mk].solvableDim = sdims[mk]
+      newDwnMsgs.belief[mk] = TreeBelief(setVari)  #, solvableDim=sdims[mk] )
     end
   end
 

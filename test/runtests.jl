@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testExpXstroke.jl")
+
 include("TestModuleFunctions.jl")
 
 include("testStateMachine.jl")
