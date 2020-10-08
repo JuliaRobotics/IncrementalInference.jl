@@ -465,11 +465,14 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   allvarinit = areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
   infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- someInit=$someInit, chldneed=$chldneed, allvarinit=$allvarinit")
 
+  upmessages = fetchMsgsUpChildrenDict(csmc)
+  all_child_status = map(msg -> msg.status, values(upmessages))
+
   # redirect if any children needdownmsg
   if someInit || chldneed
     # Calculate and share the children sum solvableDim information for priority initialization
     totSolDims = Dict{Int, Float64}()
-    for (clid, upmsg) in fetchMsgsUpChildrenDict(csmc)
+    for (clid, upmsg) in upmessages
       totSolDims[clid] = 0
       for (varsym, tbup) in upmsg.belief
         totSolDims[clid] += tbup.solvableDim
@@ -485,7 +488,8 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
     return slowWhileInit_StateMachine
 
     # (short cut) check again if all cliq vars have been initialized so that full inference can occur on clique
-  elseif allvarinit
+  # clique should be initialized and all children upsolved, uprecycled, or marginalized
+  elseif allvarinit && all(in.(all_child_status, Ref([:upsolved; :uprecycled; :marginalized])))
     infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- all initialized")
     setCliqDrawColor(csmc.cliq, "sienna")
     # don't send a message yet since the upsolve is about to occur too
