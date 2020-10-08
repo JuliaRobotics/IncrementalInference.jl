@@ -34,7 +34,7 @@ fetchMsgUpThis(btl::AbstractBayesTree, frontal::Symbol) = fetchMsgUpThis(getCliq
 
 
 ## =============================================================================
-## Family message getters and setters
+## Family message getters and setters    (MUST BE CONSOLIDED)
 ## =============================================================================
 
 function fetchMsgsUpChildrenDict( treel::AbstractBayesTree,
@@ -60,7 +60,7 @@ Notes
 - Pull model #674
 
 DevNotes
-- Consolidate two versions getMsgsUpChildren
+- Consolidate fetchChildrenStatusUp, getMsgsUpInitChildren
 - FIXME update refactor to fetch or take, #855
 
 Related
@@ -89,9 +89,7 @@ end
 
 
 
-## ====================================================================================
-## TODO Deprecate below
-## ====================================================================================
+## TODO Consolidate/Deprecate below
 
 
 """

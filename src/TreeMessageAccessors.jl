@@ -101,7 +101,7 @@ DevNotes
 function prepPutCliqueStatusMsgUp!( csmc::CliqStateMachineContainer,
                                     status::Symbol=getCliqueStatus(csmc.cliq);
                                     dfg::AbstractDFG=csmc.cliqSubFg,
-                                    upmsg=prepCliqueMsgUpConsolidated(dfg, csmc.cliq, status)  )
+                                    upmsg=prepCliqueMsgUpConsolidated(dfg, csmc.cliq, status, logger=csmc.logger)  )
   #
   # TODO replace with msg channels only
 
