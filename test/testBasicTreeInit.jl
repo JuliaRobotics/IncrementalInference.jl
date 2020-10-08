@@ -31,6 +31,45 @@ getSolverParams(fg).limititers = 50
 smtasks = Task[]
 tree, smt, hist = solveTree!(fg; smtasks=smtasks, verbose=true, timeout=50, recordcliqs=ls(fg));
 
+for var in sortDFG(ls(fg))
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    println("Testing ", var,": ", sppe)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
+end
+
+# linear octo 
+N=8
+fg = generateCanonicalFG_lineStep(N; 
+                                  graphinit=false,
+                                  poseEvery=1, 
+                                  landmarkEvery=N+1, 
+                                  posePriorsAt=[0],
+                                  landmarkPriorsAt=[], 
+                                  sightDistance=N+1)
+
+deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
+
+getSolverParams(fg).graphinit = false
+getSolverParams(fg).treeinit = true
+getSolverParams(fg).limititers = 200
+
+smtasks = Task[]
+try 
+    tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks, timeout=10);
+    
+    for var in sortDFG(ls(fg))
+        sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+        println("Testing ", var,": ", sppe)
+        @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    end
+catch
+    @warn "Octo 754 tests failed"
+end
+@test_broken !any(istaskfailed.(smtasks))
+
+
+
+
 end
 
 
