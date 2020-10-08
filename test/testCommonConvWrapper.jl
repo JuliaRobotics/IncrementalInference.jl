@@ -219,7 +219,7 @@ freshSamples!(ccw, N, FactorMetadata(),)
 @time for n in 1:N
   # gwp(x, res)
   ccw.cpt[Threads.threadid()].particleidx = n
-  numericRootGenericRandomizedFnc!( ccw )
+  numericSolutionCCW!( ccw )
 end
 
 # @show gwp.params
@@ -242,7 +242,7 @@ freshSamples!(ccw, N, FactorMetadata(),)
 @time for n in 1:N
   # gwp(x, res)
   ccw.cpt[Threads.threadid()].particleidx = n
-  numericRootGenericRandomizedFnc!( ccw )
+  numericSolutionCCW!( ccw )
 end
 
 # @show gwp.params

@@ -42,7 +42,7 @@ end
 
 
 
-# TODO -- expand testing to include subcomponent tests from numericRootGenericRandomizedFnc
+# TODO -- expand testing to include subcomponent tests from numericSolutionCCW!
 lr1 = LineResidual(2.0, 3.0)
 ccw = assembleConvType(lr1, 1, 1, 2)
 
@@ -51,7 +51,7 @@ ccw(res, zeros(1))
 
 # gwp(x, res)
 ccw.cpt[1].particleidx = 1
-numericRootGenericRandomizedFnc!( ccw )
+numericSolutionCCW!( ccw )
 
 @test abs(ccw.cpt[1].Y[1] + 1.50) < 1e-5
 

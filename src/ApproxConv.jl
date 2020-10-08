@@ -18,7 +18,7 @@ function approxConvOnElements!( ccwl::CommonConvWrapper{T},
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-    numericRootGenericRandomizedFnc!( ccwl )
+    numericSolutionCCW!( ccwl )
   end
   nothing
 end
@@ -36,12 +36,12 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!( ccwl::CommonConvWrapper{T},
-                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {T <: AbstractRelative}
+function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
-    numericRootGenericRandomizedFnc!( ccwl )
+    numericSolutionCCW!( ccwl ) # numericRootGenericRandomizedFnc!
   end
   nothing
 end
@@ -60,8 +60,8 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!( ccwl::CommonConvWrapper{T},
-                                elements::Union{Vector{Int}, UnitRange{Int}} )  where {T <: AbstractRelative}
+function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, #CommonConvWrapper{T},
+                                elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
   #
   approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
 end
@@ -73,11 +73,12 @@ end
 
 Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
 """
-function prepareCommonConvWrapper!( ccwl::CommonConvWrapper{T},
+function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
+                                    ccwl::CommonConvWrapper{F},
                                     Xi::Vector{DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
-                                    solveKey::Symbol=:default  ) where {T <: AbstractRelative}
+                                    solveKey::Symbol=:default  ) where {F <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
@@ -110,6 +111,16 @@ function prepareCommonConvWrapper!( ccwl::CommonConvWrapper{T},
   end
 
   return sfidx, maxlen, manis
+end
+
+
+function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+                                    Xi::Vector{DFGVariable},
+                                    solvefor::Symbol,
+                                    N::Int;
+                                    solveKey::Symbol=:default  ) where {N_,F<:AbstractRelative,S,T}
+  #
+  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N, solveKey=solveKey)
 end
 
 function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
@@ -193,14 +204,15 @@ end
 
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
 """
-function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
+function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
                                   allelements,
                                   activehypo,
                                   certainidx::Vector{Int},
                                   sfidx::Int,
                                   maxlen::Int,
                                   maniAddOps::Tuple;
-                                  spreadNH::Float64=3.0  ) where {T <:AbstractRelative}
+                                  spreadNH::Real=3.0 ) where {N_,F<:AbstractRelative,S,T}
+  #
   count = 0
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
@@ -220,7 +232,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
-         # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
+        # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
@@ -245,6 +257,7 @@ function computeAcrossHypothesis!(ccwl::CommonConvWrapper{T},
 end
 
 
+
 """
     $(SIGNATURES)
 
@@ -255,11 +268,12 @@ Planned changes will fold null hypothesis in as a standard feature and no longer
 function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
+                                T_::Type{<:AbstractRelative},
                                 measurement::Tuple=(zeros(0,100),);
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
-                                dbg::Bool=false  ) where {T <: AbstractRelative}
+                                dbg::Bool=false  ) where {T <: FunctorInferenceType}
   #
 
   # Prep computation variables
@@ -290,11 +304,12 @@ end
 function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
+                                T_::Type{<:AbstractPrior},
                                 measurement::Tuple=(zeros(0,0),);
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
-                                spreadNH::Float64=3.0 ) where {T <: AbstractPrior}
+                                spreadNH::Real=3.0 ) where {T <: FunctorInferenceType}
   #
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
@@ -347,18 +362,60 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   return addEntr
 end
 
+
+function evalPotentialSpecific( Xi::Vector{DFGVariable},
+                                ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
+                                solvefor::Symbol,
+                                measurement::Tuple=(zeros(0,0),);
+                                solveKey::Symbol=:default,
+                                N::Int=size(measurement[1],2),
+                                dbg::Bool=false,
+                                spreadNH::Real=3.0 ) where {N_,F<:FunctorInferenceType,S,T}
+  #
+  evalPotentialSpecific(Xi,
+                        ccwl,
+                        solvefor,
+                        F,
+                        measurement;
+                        solveKey=solveKey,
+                        N=N,
+                        dbg=dbg,
+                        spreadNH=spreadNH )
+end
+
+
+function evalPotentialSpecific( Xi::Vector{DFGVariable},
+                                ccwl::CommonConvWrapper{F},
+                                solvefor::Symbol,
+                                measurement::Tuple=(zeros(0,0),);
+                                solveKey::Symbol=:default,
+                                N::Int=size(measurement[1],2),
+                                dbg::Bool=false,
+                                spreadNH::Real=3.0 ) where {F <: FunctorInferenceType}
+  #
+  evalPotentialSpecific(Xi,
+                        ccwl,
+                        solvefor,
+                        F,
+                        measurement;
+                        solveKey=solveKey,
+                        N=N,
+                        dbg=dbg,
+                        spreadNH=spreadNH )
+end
+
 """
     $(SIGNATURES)
 
 Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
 """
-function evalFactor2(dfg::AbstractDFG,
-                     fct::DFGFactor,
-                     solvefor::Symbol,
-                     measurement::Tuple=(zeros(0,100),);
-                     solveKey::Symbol=:default,
-                     N::Int=size(measurement[1],2),
-                     dbg::Bool=false  )
+function evalFactor2( dfg::AbstractDFG,
+                      fct::DFGFactor,
+                      solvefor::Symbol,
+                      measurement::Tuple=(zeros(0,100),);
+                      solveKey::Symbol=:default,
+                      N::Int=size(measurement[1],2),
+                      dbg::Bool=false  )
   #
 
   ccw = getSolverData(fct).fnc
@@ -436,7 +493,7 @@ function approxConvBinary(arr::Array{Float64,2},
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n
-    numericRootGenericRandomizedFnc!( ccw )
+    numericSolutionCCW!( ccw )
   end
   return pts
 end
