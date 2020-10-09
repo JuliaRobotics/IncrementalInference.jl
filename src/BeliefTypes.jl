@@ -14,6 +14,7 @@ const CliqStatus = Symbol
 # :null; :upsolved; :downsolved; :marginalized; :uprecycled,
 ## FIXME, consolidate at end of #459 work
 
+
 # Used for UPWARD_DIFFERENTIAL, UPWARD_COMMON, DOWNWARD_COMMON marginalized types
 abstract type MessagePassDirection end
 struct UpwardPass <: MessagePassDirection end
@@ -24,8 +25,9 @@ struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
 
-
 const SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler}
+
+abstract type PackedSamplableBelief end
 
 #Supported types for parametric
 const ParametricTypes = Union{Normal, MvNormal}

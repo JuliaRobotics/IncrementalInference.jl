@@ -75,6 +75,10 @@ end
 ## Delete at end v0.16.x
 ##==============================================================================
 
+
+@deprecate extractdistribution(str::AbstractString) convert(SamplableBelief, str)
+
+
 function notifyCliqDownInitStatus!( cliq::TreeClique,
                                     status::Symbol;
                                     logger=ConsoleLogger() )
