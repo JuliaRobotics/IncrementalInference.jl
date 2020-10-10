@@ -1,6 +1,6 @@
 
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
-function normalfromstring(str::AS) where {AS <: AbstractString}
+function normalfromstring(str::AbstractString)
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match
   mean = split(meanstr, '=')[2]
   sigmastr = match(r"σ=[+-]?([0-9]*[.])?[0-9]+", str).match
@@ -8,7 +8,7 @@ function normalfromstring(str::AS) where {AS <: AbstractString}
   Normal{Float64}(parse(Float64,mean), parse(Float64,sigma))
 end
 
-function mvnormalfromstring(str::AS) where {AS <: AbstractString}
+function mvnormalfromstring(str::AbstractString)
   means = split(split(split(str, 'μ')[2],']')[1],'[')[end]
   mean = Float64[]
   for ms in split(means, ',')
@@ -26,7 +26,7 @@ function mvnormalfromstring(str::AS) where {AS <: AbstractString}
   MvNormal(mean, sigm)
 end
 
-function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: AbstractString}
+function categoricalfromstring(str::AbstractString)
   # pstr = match(r"p=\[", str).match
   psubs = split(str, '=')[end]
   psubs = split(psubs, '[')[end]
@@ -36,11 +36,33 @@ function categoricalfromstring(str::AS)::Distributions.Categorical where {AS <: 
   return Categorical(p ./ sum(p))
 end
 
-function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS <: AbstractString}
+
+
+function extractdistributionJson(packedSamplable::Dict{Symbol,String})
+  # TODO improve use of multidispatch and packing of Distribution types
+  @show packedSamplable
+
+  error("Not implemented yet")
+end
+
+
+# NOTE part of new effort to overhaul the SamplableBelief serialization approach
+# maybe it all becomes a JSON struct sort of thing in the long run.
+StringThemSamplableBeliefs = Union{Normal, MvNormal, Categorical, DiscreteNonParametric, BallTreeDensity, AliasingScalarSampler}
+convert(::Type{<:PackedSamplableBelief}, obj::StringThemSamplableBeliefs) = string(obj)
+
+
+function convert(::Type{<:SamplableBelief}, str::Union{<:PackedSamplableBelief,<:AbstractString})
+  # extractdistribution(str::AS) where {AS <: AbstractString}
   # TODO improve use of multidispatch and packing of Distribution types
   # TODO use startswith
   if str == ""
     return nothing
+  elseif occursin(r"SamplableTypeJSON", str)
+    # TODO this is the new direction for serializing (pack/unpack) of <:Samplable objects
+    # NOTE uses intermediate consolidation keyword search pattern `SamplableTypeJSON`
+    props = JSON2.read(str, Dict{Symbol,String})
+    return extractdistributionJson(props)
   elseif startswith(str, "DiagNormal")
     # Diags are internally squared, so only option here is to sqrt on input.
     return mvnormalfromstring(str)
@@ -61,7 +83,12 @@ function extractdistribution(str::AS)::Union{Nothing, SamplableBelief} where {AS
   end
 end
 
-function extractdistributionJson(packedFactor::Dict{String, Any})::Union{Void, Distributions.Distribution}
-  # TODO improve use of multidispatch and packing of Distribution types
-  error("Not implemented yet")
+
+function convert(::Type{<:PackedSamplableBelief}, obj::SamplableBelief)
+  # FIXME must use string, because unpacking templated e.g. PackedType{T} has problems, see DFG #668
+  string(obj)
 end
+
+
+
+#
