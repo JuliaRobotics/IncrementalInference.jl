@@ -14,6 +14,6 @@ struct FluxModelsDistribution{ID,OD,P,D<:AbstractArray}
   shuffle::Base.RefValue{Bool}
   # false for default serialization with model info, set true for separate storage of models 
   serializeHollow::Base.RefValue{Bool}
-  # TODO remove requirement and standardize sampler API
-  specialSampler::Function
+    # # TODO remove requirement and standardize sampler API
+    # specialSampler::Function
 end

@@ -558,6 +558,15 @@ end
 
 # import IncrementalInference: prepgenericconvolution, convert
 
+"""
+    $SIGNATURES
+
+Function to calculate measurement dimension from factor sampling.
+
+Notes
+- Will not work in all situations, but good enough so far.
+  - # TODO standardize
+"""
 function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: FunctorInferenceType}
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal

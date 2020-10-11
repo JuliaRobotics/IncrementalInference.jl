@@ -88,6 +88,12 @@ include("testmultihypothesisapi.jl")
 
 include("fourdoortest.jl")
 
+include("testSphere1.jl")
+
+include("testMixtureLinearConditional.jl")
+
+include("testFluxModelsDistribution.jl")
+
 include("testAnalysisTools.jl")
 
 include("testBasicParametric.jl")
@@ -103,9 +109,6 @@ include("testDeadReckoningTether.jl")
 
 include("testCSMMonitor.jl")
 
-include("testMixtureLinearConditional.jl")
-
-include("testSphere1.jl")
 
 
 

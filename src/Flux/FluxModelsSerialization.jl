@@ -25,8 +25,8 @@ mutable struct PackedFluxModelsDistribution <: IIF.PackedSamplableBelief
   shuffle::Bool
   # false for default serialization with model info, set true for separate storage of models 
   serializeHollow::Bool
-  # TODO remove requirement and standardize sampler API
-  specialSampler::Symbol
+    # TODO remove requirement and standardize sampler API
+    # specialSampler::Symbol
   # field name usage to direct the IIF serialization towards JSON method
   PackedSamplableTypeJSON::String
 end
@@ -66,8 +66,8 @@ function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsD
                   obj::FluxModelsDistribution)
   #
 
-  # and the specialSampler function -- likely to be deprecated
-  specialSampler = Symbol(obj.specialSampler)
+    # and the specialSampler function -- likely to be deprecated
+    # specialSampler = Symbol(obj.specialSampler)
   # fields to persist
   inputDim = collect(obj.inputDim)
   outputDim = collect(obj.outputDim)
@@ -98,7 +98,7 @@ function convert( ::Union{Type{<:PackedSamplableBelief},Type{<:PackedFluxModelsD
                                         sdata, 
                                         obj.shuffle[], 
                                         obj.serializeHollow[], 
-                                        specialSampler,
+                                        # specialSampler,
                                         "IncrementalInference.PackedFluxModelsDistribution" )
   #
   return JSON2.write(packed)

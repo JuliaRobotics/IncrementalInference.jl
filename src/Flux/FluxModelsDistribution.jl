@@ -16,13 +16,12 @@ using Random, Statistics
 # using DistributedFactorGraphs
 
 # import Base: convert
-# import Random: rand
+import Random: rand
 
 
 
-function sampleFluxModelsDistribution(nfb::FluxModelsDistribution,
-                                      N::Int,
-                                      fmd::FactorMetadata  )
+function rand(nfb::FluxModelsDistribution,
+              N::Int=1 )
   #
 
   # number of predictors to choose from, and choose random subset
@@ -43,7 +42,7 @@ function sampleFluxModelsDistribution(nfb::FluxModelsDistribution,
     meas[:,i] = (nfb.models[allPreds[i]])(nfb.data)
   end
 
-  return (meas, allPreds)
+  return meas
 end
 
 
@@ -52,8 +51,7 @@ FluxModelsDistribution( inDim::NTuple{ID,Int},
                         models::Vector{P}, 
                         data::D,
                         shuffle::Bool=true,
-                        serializeHollow::Bool=false,
-                        specialSampler=sampleFluxModelsDistribution) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow), specialSampler)
+                        serializeHollow::Bool=false ) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow) )
 #
 
 
