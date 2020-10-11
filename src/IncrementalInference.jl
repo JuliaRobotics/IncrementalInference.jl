@@ -84,6 +84,7 @@ export AbstractDFG,
   listDataEntries,
   FolderStore,
   addBlobStore!,
+  addData!,
   getData,
   DFGVariable,
   DFGVariableSummary, 
@@ -95,6 +96,9 @@ export AbstractDFG,
 # Inference types
 export FunctorInferenceType, PackedInferenceType
 export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
+
+# not sure if this is necessary
+export convert
 
 export *,
   notifyCSMCondition,
@@ -367,10 +371,6 @@ export *,
   GenericMarginal,
   PackedGenericMarginal,
 
-  uppA,
-  convert,
-  extractdistribution,
-
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
@@ -422,6 +422,7 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 include("AliasScalarSampling.jl")
 include("CliqueTypes.jl")
+include("Flux/entities.jl")
 include("BeliefTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
@@ -492,9 +493,15 @@ include("Deprecated.jl")
 
 exportimg(pl) = error("Please do `using Gadfly` before IncrementalInference is used to allow image export.")
 function __init__()
-    @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
+  @require InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240" include("RequireInteractiveUtils.jl")
 
-    @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
+  @require Gadfly="c91e804a-d5a3-530f-b6f0-dfbca275c004" include("EmbeddedPlottingUtils.jl")
+
+  # combining neural networks natively into the non-Gaussian  factor graph object
+  @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
+    include("Flux/FluxModelsDistribution.jl")
+    @require BSON="fbb218c0-5317-5bc6-957e-2ee96dd4b1f0" include("Flux/FluxModelsSerialization.jl")
+  end
 end
 
 # Old code that might be used again
