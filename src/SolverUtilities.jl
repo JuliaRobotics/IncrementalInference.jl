@@ -23,7 +23,6 @@ DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 """
 function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
-  @show T, fieldnames(T)
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
