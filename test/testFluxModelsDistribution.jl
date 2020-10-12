@@ -58,7 +58,7 @@ saveDFG("/tmp/fg_test_flux", fg)
 
 fg_ = loadDFG("/tmp/fg_test_flux")
 
-ff1 = getFactorType(fg, :x0f1)
+ff1 = getFactorType(fg_, :x0f1)
 ff1.Z.shuffle[] = true
 
 solveTree!(fg_);
