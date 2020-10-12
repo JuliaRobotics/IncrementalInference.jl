@@ -52,10 +52,10 @@ mutable struct PackedPrior <: PackedInferenceType
   PackedPrior(z::AS) where {AS <: AbstractString} = new(z)
 end
 function convert(::Type{PackedPrior}, d::Prior)
-  PackedPrior(string(d.Z))
+  PackedPrior(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{Prior}, d::PackedPrior)
-  Prior(extractdistribution(d.Z))
+  Prior(convert(SamplableBelief, d.Z))
 end
 
 

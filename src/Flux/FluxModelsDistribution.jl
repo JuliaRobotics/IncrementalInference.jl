@@ -29,7 +29,8 @@ function rand(nfb::FluxModelsDistribution,
   allPreds = 1:numModels |> collect # 1:Npreds |> collect
   # TODO -- compensate when there arent enough prediction models
   if numModels < N
-    allPreds = repeat(allPreds, ceil(Int, (N-numModels)/N) + 1)
+    reps = (N ÷ numModels) + 1
+    allPreds = repeat(allPreds, reps  )
     resize!(allPreds, N)
   end
   # samples for the order in which to use models, dont shuffle if N models
