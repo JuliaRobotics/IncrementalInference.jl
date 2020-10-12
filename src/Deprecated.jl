@@ -858,6 +858,8 @@ function initVariable!(fgl::AbstractDFG,
 end
 
 
+export uppA
+
 #global pidx
 global pidx = 1
 global pidl = 1

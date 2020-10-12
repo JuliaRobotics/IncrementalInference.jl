@@ -53,10 +53,10 @@ end
 
 # should not be called in case of Prior
 (s::Mixture)( res::AbstractArray{<:Real},
-              userdata::FactorMetadata,
+              fmd::FactorMetadata,
               idx::Int,
               meas::Tuple,
-              X... ) = s.mechanics(res, userdata, idx, meas, X...)
+              X... ) = s.mechanics(res, fmd, idx, meas, X...)
 #
 
 
