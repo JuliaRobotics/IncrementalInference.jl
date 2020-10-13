@@ -2,6 +2,7 @@
 export setVariablePosteriorEstimates!
 export updateCliqSolvableDims!, fetchCliqSolvableDims
 
+# using Serialization
 
 """
     $SIGNATURES
@@ -24,6 +25,8 @@ function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
     if !ispath(folder)
       mkpath(folder)
     end
+    # NOTE there was a bug using saveDFG, so used serialize, left for future use  
+    # serialize(joinpath(folder, filename), csmc.cliqSubFg)
     DFG.saveDFG(csmc.cliqSubFg, joinpath(folder, filename))
     drawGraph(csmc.cliqSubFg, show=false, filepath=joinpath(folder, "$(filename).pdf"))
   end

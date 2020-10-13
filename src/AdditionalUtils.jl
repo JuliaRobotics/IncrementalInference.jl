@@ -58,7 +58,7 @@ function drawGraph(fgl::AbstractDFG;
   #
   mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )
 
-  @info "Writing factor graph file"
+  @debug "Writing factor graph file"
   fext = split(filepath, '.')[end]
   fpwoext = filepath[1:(end-length(fext)-1)] # split(filepath, '.')[end-1]
   dotfile = fpwoext*".dot"
