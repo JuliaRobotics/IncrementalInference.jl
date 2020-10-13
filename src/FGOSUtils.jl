@@ -111,6 +111,10 @@ function fifoFreeze!(dfg::AbstractDFG)
 
   # the fifo history
   tofreeze = DFG.getAddHistory(dfg)[1:(end-DFG.getSolverParams(dfg).qfl)]
+  
+  # check that the variable to freeze exists fix issue #966
+  filter!(v->exists(dfg,v), tofreeze)
+
   if length(tofreeze) == 0
       @info "[fifoFreeze] QFL - no nodes to freeze."
       return nothing

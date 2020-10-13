@@ -5,6 +5,8 @@ using Test
 
 include("testExpXstroke.jl")
 
+include("testBasicMargin.jl")
+
 include("TestModuleFunctions.jl")
 
 include("testStateMachine.jl")
