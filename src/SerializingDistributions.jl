@@ -13,7 +13,7 @@ function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
                   obj::Distributions.Uniform)
   #
   packed = PackedUniform(obj.a, obj.b, 
-                        "Distributions.PackedUniform")
+                        "IncrementalInference.PackedUniform")
   #
   return JSON2.write(packed)
 end
