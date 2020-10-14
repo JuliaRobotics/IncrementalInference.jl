@@ -1,4 +1,28 @@
 
+
+export PackedUniform
+
+
+mutable struct PackedUniform <: PackedSamplableBelief
+  a::Float64
+  b::Float64
+  PackedSamplableTypeJSON::String
+end
+
+function convert(::Union{Type{<:PackedSamplableBelief},Type{<:PackedUniform}},
+                  obj::Distributions.Uniform)
+  #
+  packed = PackedUniform(obj.a, obj.b, 
+                        "Distributions.PackedUniform")
+  #
+  return JSON2.write(packed)
+end
+
+
+convert(::Type{<:SamplableBelief}, obj::PackedUniform) = return Uniform(obj.a, obj.b)
+
+
+
 # TODO stop-gap string storage of Distrubtion types, should be upgraded to more efficient storage
 function normalfromstring(str::AbstractString)
   meanstr = match(r"μ=[+-]?([0-9]*[.])?[0-9]+", str).match

@@ -6,6 +6,21 @@ using DistributedFactorGraphs
 using Test
 
 
+@testset "Serialization of SamplableBelief types" begin
+
+td = Uniform()
+
+ptd = convert(PackedSamplableBelief, td)
+utd = convert(SamplableBelief, td)
+
+@test td.a - utd.a |> abs < 1e-10
+@test td.b - utd.b |> abs < 1e-10
+
+
+end
+
+
+
 dfg = initfg()
 
 @testset "hard-coded test of PackedPrior to Prior" begin

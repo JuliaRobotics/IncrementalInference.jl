@@ -11,8 +11,9 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!( ccwl::CommonConvWrapper{T},
-                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {T <: AbstractRelative}
+function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
+                                            CommonConvWrapper{Mixture{N_,F,S,T}}},
+                                elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {N_,F<:AbstractRelative,S,T}
   #
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
@@ -36,7 +37,8 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
+                                            CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
@@ -60,7 +62,8 @@ Future work:
 - improve handling of n and particleidx, especially considering future multithreading support
 
 """
-function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, #CommonConvWrapper{T},
+function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
+                                            CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
   #
   approxConvOnElements!(ccwl, elements, ccwl.threadmodel)
@@ -114,7 +117,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
 end
 
 
-function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
+                                                CommonConvWrapper{Mixture{N_,F,S,T}}},
                                     Xi::Vector{DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
@@ -204,7 +208,8 @@ end
 
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
 """
-function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}},
                                   allelements,
                                   activehypo,
                                   certainidx::Vector{Int},

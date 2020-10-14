@@ -22,15 +22,20 @@ end
 Mixture(f::Type{F},
         z::NamedTuple{S,T}, 
         c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
-#
 Mixture(f::F,
         z::NamedTuple{S,T}, 
         c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f, z, c, size( rand(z[1],1), 1), zeros(Int, 0))
-#
-Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, c::AbstractVector{<:Real}) where {F<:FunctorInferenceType,S,T} = Mixture(f, z, Categorical([c...]) )
-Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, c::NTuple{N,<:Real}) where {N,F<:FunctorInferenceType,S,T} = Mixture(f, z, [c...] )
-Mixture(f::Union{F,Type{F}},z::AbstractVector{<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: FunctorInferenceType, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}((z...,)), c)
-Mixture(f::Union{F,Type{F}},z::Tuple, c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:FunctorInferenceType, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c)
+Mixture(f::Union{F,Type{F}},z::NamedTuple{S,T}, 
+        c::AbstractVector{<:Real}) where {F<:FunctorInferenceType,S,T} = Mixture(f, z, Categorical([c...]) )
+Mixture(f::Union{F,Type{F}},
+        z::NamedTuple{S,T}, 
+        c::NTuple{N,<:Real}) where {N,F<:FunctorInferenceType,S,T} = Mixture(f, z, [c...] )
+Mixture(f::Union{F,Type{F}},
+        z::Tuple, 
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F<:FunctorInferenceType, N} = Mixture(f,NamedTuple{_defaultNamesMixtures(length(z))}(z), c )
+Mixture(f::Union{F,Type{F}},
+        z::AbstractVector{<:SamplableBelief}, 
+        c::Union{<:Distributions.DiscreteNonParametric, <:AbstractVector{<:Real}, <:NTuple{N,<:Real}} ) where {F <: FunctorInferenceType, N} = Mixture(f,(z...,), c )
 
 
 function Base.resize!(mp::Mixture, s::Int)
@@ -38,11 +43,20 @@ function Base.resize!(mp::Mixture, s::Int)
 end
 
 # TODO make in-place memory version
-function getSample(s::Mixture, N::Int=1)
+function getSample( s::Mixture{N_,F,S,T}, 
+                    N::Int=1,
+                    special...;
+                    kw...  ) where {N_,F<:FunctorInferenceType,S,T}
+  #
+  # TODO consolidate #927, case if mechanics has a special sampler
+  # TODO slight bit of waste in computation, but easiest way to ensure special tricks in s.mechanics::F are included
+  ## example case is old FluxModelsPose2Pose2 requiring velocity
+  smplLambda = hasfield(typeof(s.mechanics), :specialSampler) ? ()->s.specialSampler(s.mechanics, N, special...; kw...)[1] : ()->getSample(s.mechanics, N)[1]
+  smpls = smplLambda()
+    # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
   (length(s.labels) != N) && resize!(s, N)
   s.labels .= rand(s.diversity, N)
-  smpls = Array{Float64,2}(undef,s.dims,N)
   for i in 1:N
     mixComponent = s.components[s.labels[i]]
     smpls[:,i] = rand(mixComponent,1)
