@@ -407,6 +407,40 @@ export *,
   Ranged,
   PackedRanged
 
+# CSM Exports
+export  doCliqDownSolve_StateMachine,
+        cleanupAfterDownSolve_StateMachine,
+        specialCaseRootDownSolve_StateMachine,
+        canCliqDownSolve_StateMachine,
+        checkUpsolveFinished_StateMachine,
+        prepInitUp_StateMachine,
+        doCliqUpSolveInitialized_StateMachine,
+        rmUpLikeliSaveSubFg_StateMachine,
+        waitChangeOnParentCondition_StateMachine,
+        towardUpOrDwnSolve_StateMachine,
+        canCliqMargSkipUpSolve_StateMachine,
+        tryDwnInitCliq_StateMachine,
+        rmMsgLikelihoodsAfterDwn_StateMachine,
+        blockSiblingStatus_StateMachine,
+        slowIfChildrenNotUpSolved_StateMachine,
+        blockUntilChildrenHaveStatus_StateMachine,
+        dwnInitSiblingWaitOrder_StateMachine,
+        trafficRedirectConsolidate459_StateMachine,
+        doAllSiblingsNeedDwn_StateMachine,
+        maybeNeedDwnMsg_StateMachine,
+        determineCliqNeedDownMsg_StateMachine,
+        tryUpInitCliq_StateMachine,
+        slowWhileInit_StateMachine,
+        decideUpMsgOrInit_StateMachine,
+        attemptCliqInitUp_StateMachine,
+        sendCurrentUpMsg_StateMachine,
+        buildCliqSubgraph_StateMachine,
+        buildCliqSubgraphForDown_StateMachine,
+        isCliqUpSolved_StateMachine,
+        checkChildrenAllUpRecycled_StateMachine,
+        canCliqIncrRecycle_StateMachine,
+        canCliqMargRecycle_StateMachine
+
 
 const NothingUnion{T} = Union{Nothing, T}
 
