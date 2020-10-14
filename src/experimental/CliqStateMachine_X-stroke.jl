@@ -143,30 +143,6 @@ function waitForUp_X_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-#TODO consolidate -- this is copied from fetch doCliqUpSolveInitialized_StateMachine
-function doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
-
-  # check if all cliq vars have been initialized so that full inference can occur on clique
-  status = getCliqueStatus(csmc.cliq)
-  logCSM(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
-  setCliqDrawColor(csmc.cliq, "red")
-  # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
-  # retdict = approxCliqMarginalUp!(csmc; iters=4, logger=csmc.logger)
-  retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
-
-  logCSM(csmc, "aproxCliqMarginalUp!"; retdict=retdict)
-
-  # set clique color accordingly, using local memory
-  updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
-  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-
-  # notify of results (part of #459 consolidation effort)
-  getCliqueData(csmc.cliq).upsolved = true
-
-  # go to 8h
-  return nothing
-end
-
 
 """
     $SIGNATURES
@@ -200,7 +176,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
   if all(all_child_status .== :UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "X-3 doing upSolve -- all initialized")
 
-    doCliqUpSolveInitialized!(csmc)
+    __doCliqUpSolveInitialized!(csmc)
     
     solveStatus = :UPSOLVED
     
@@ -444,44 +420,6 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-function doCliqDownSolve!(csmc::CliqStateMachineContainer)
-  
-  opts = getSolverParams(csmc.dfg)
-
-  # get down msg from Rx buffer (saved in take!)
-  dwnmsgs = messages(csmc.cliq).downRx
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
-
-  # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-  # force separator variables in cliqSubFg to adopt down message values
-  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
-  
-
-  ## new way
-  # calculate belief on each of the frontal variables and iterate if required
-  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
-
-  csmc.dodownsolve = false
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
-
-  # update clique subgraph with new status
-  # setCliqDrawColor(csmc.cliq, "lightblue")
-
-  # remove msg factors that were added to the subfg
-  rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
-
-  return nothing
-
-end
-
 
 function CliqDownMessage(csmc::CliqStateMachineContainer, status=:DOWNSOLVED)
 
@@ -520,7 +458,26 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
     # TODO we can monitor the solve here to give it a timeout
     # add messages, do downsolve, remove messages
     logCSM(csmc, "11, doCliqDownSolve_StateMachine")
-    doCliqDownSolve!(csmc)
+    
+    #XXX
+    # get down msg from Rx buffer (saved in take!)
+    dwnmsgs = messages(csmc.cliq).downRx
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
+  
+    __doCliqDownSolve!(csmc, dwnmsgs)
+    
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
+
+    # update clique subgraph with new status
+    # setCliqDrawColor(csmc.cliq, "lightblue")
+
+    # remove msg factors that were added to the subfg
+    rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
+
+    # store the cliqSubFg for later debugging
+    _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
+    #XXX
 
     converged_and_happy = true
 
