@@ -394,11 +394,13 @@ function solveTree!(dfgl::AbstractDFG,
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
                     algorithm::Symbol=:default,
-                    multithread=false)
+                    multithread::Bool=false)
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
+
+  opt.useMsgLikelihoods == false && @warn("#TODO Check the working of useMsgLikelihoods=false")
 
   # depcrecation
   if maxparallel !== nothing
@@ -449,12 +451,14 @@ function solveTree!(dfgl::AbstractDFG,
   # current incremental solver builds a new tree and matches against old tree for recycling.
   tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
-
+  
+  initTreeMessageChannels!(tree)
+  
   # if desired, drawtree in a loop
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
   @info "Do tree based init-inference on tree"
-  
+
   # choose algorithm 
   if algorithm == :parametric
     @error "Under development, do not use, see #539"
@@ -462,7 +466,7 @@ function solveTree!(dfgl::AbstractDFG,
     initTreeMessageChannels!(tree)
     alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
     @info "Finished tree based Parametric inference"
-  else #fall back is :default 
+  elseif algorithm == :fetch
     if opt.async
       smtasks = asyncTreeInferUp!(dfgl, tree, timeout, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore )
       @info "Tree based init-inference progressing asynchronously, check all CSM clique tasks for completion."
@@ -472,9 +476,18 @@ function solveTree!(dfgl::AbstractDFG,
 
       @info "Finished tree based init-inference"
     end
+  else # fall back is :default with take CSM
+    if opt.async
+      error("not implemented yet")
+    else
+      # smtasks, hist = taskSolveTree!(dfgl, tree; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, runtaskmonitor=runtaskmonitor )
+      smtasks, hist = taskSolveTree!(dfgl, tree         ; multithread=multithread, alltasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+    # smtasks, hist = initInferTreeUp!(dfgl, tree, timeout;                          alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
+      @info "Finished tree based init-inference"
+    end
   end
 
-  
+
   # NOTE copy of data from new tree in to replace outisde oldtree
   oldtree.bt = tree.bt
   oldtree.btid = tree.btid
