@@ -122,12 +122,12 @@ function convert( ::Union{Type{<:SamplableBelief},Type{FluxModelsDistribution}},
   # @assert obj.mimeTypeData == "application/bson/octet-stream/base64"
   data = !obj.serializeHollow ? _deserializeFluxDataBase64.(obj.data) : zeros(0)
 
-  return FluxModelsDistribution((obj.inputDim...,), 
-                                (obj.outputDim...,), 
-                                models, 
+  return FluxModelsDistribution(models, 
+                                (obj.inputDim...,), 
                                 data, 
-                                obj.shuffle, 
-                                obj.serializeHollow  )
+                                (obj.outputDim...,), 
+                                shuffle=obj.shuffle, 
+                                serializeHollow=obj.serializeHollow  )
 end
 
 
