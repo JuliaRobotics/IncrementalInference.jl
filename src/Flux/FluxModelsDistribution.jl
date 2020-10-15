@@ -55,7 +55,15 @@ FluxModelsDistribution( inDim::NTuple{ID,Int},
                         serializeHollow::Bool=false ) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow) )
 #
 
-# @deprecate 
+FluxModelsDistribution( models::Vector{P}, 
+                        inDim::NTuple{ID,Int}, 
+                        data::D,
+                        outDim::NTuple{OD,Int};
+                        shuffle::Bool=true,
+                        serializeHollow::Bool=false ) where {ID,OD,P,D<:AbstractArray} = FluxModelsDistribution{ID,OD,P,D}(inDim, outDim, models, data, Ref(shuffle), Ref(serializeHollow) )
+#
+
+
 
 
 
@@ -110,13 +118,19 @@ function MixtureFluxModels( F_::FunctorInferenceType,
                             otherComp::_IIFListTypes,
                             diversity::Union{<:AbstractVector, <:NTuple, <:DiscreteNonParametric}; 
                             shuffle::Bool=true,
-                            serializeHollow::Bool=false ) where {P,ID,D,OD}
+                            serializeHollow::Bool=false ) where {P,ID,D<:AbstractArray,OD}
   #
   # must preserve order
   allComp = OrderedDict{Symbol, Any}()
   
   # always add the Flux model first
-  allComp[:fluxnn] = FluxModelsDistribution(inDim,outDim,nnModels,data,shuffle,serializeHollow)
+  allComp[:fluxnn] = FluxModelsDistribution(nnModels,
+                                            inDim,
+                                            data,
+                                            outDim,
+                                            shuffle=shuffle,
+                                            serializeHollow=serializeHollow)
+  #
   isNT = otherComp isa NamedTuple
   for idx in 1:length(otherComp)
     nm = isNT ? keys(otherComp)[idx] : Symbol("c$(idx+1)")
@@ -129,7 +143,9 @@ function MixtureFluxModels( F_::FunctorInferenceType,
   return Mixture(F_, ntup, diversity)
 end
 
-MixtureFluxModels(::Type{F}, w...;kw...) where F <: FunctorInferenceType = MixtureFluxModels(F(LinearAlgebra.I), w...;kw...)
+MixtureFluxModels(::Type{F}, 
+                  w...;
+                  kw...) where F <: FunctorInferenceType = MixtureFluxModels(F(LinearAlgebra.I),w...;kw...)
 
 
 
