@@ -138,4 +138,46 @@ end
 
 
 
+@testset "MixtureFluxModels testing" begin
+
+# some made up data
+data = randn(10)
+# Flux models
+models = [Flux.Chain(softmax, Dense(10,5,σ), Dense(5,1, tanh)) for i in 1:20]
+# mixture with user defined names (optional) -- could also just pass Vector or Tuple of components
+mix = MixtureFluxModels(PriorSphere1, models, (10,), data, (1,), 
+                        (naiveNorm=Normal(),naiveUnif=Uniform()),
+                        [0.7; 0.2; 0.1],
+                        shuffle=false )
+#
+
+# test by add to simple graph
+fg = initfg()
+addVariable!(fg, :testmix, Sphere1)
+addFactor!(fg, [:testmix;], mix)
+
+
+pts = approxConv(fg, :testmixf1, :testmix);
+
+# look at proposal distribution from the only factor on :testmix
+_,pts,__, = localProduct(fg, :testmix);
+
+saveDFG("/tmp/fg_mfx", fg)
+
+# 
+fg_ = loadDFG("/tmp/fg_mfx")
+
+
+Base.rm("/tmp/fg_mfx.tar.gz")
+
+solveTree!(fg_);
+
+@test 10 < getBelief(fg_, :testmix) |> getPoints |> length
+
+end
+
+
+
+
+
 #

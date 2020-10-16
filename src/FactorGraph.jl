@@ -567,17 +567,20 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize
 """
-function calcZDim(usrfnc::T, Xi::Vector{<:DFGVariable})::Int where {T <: FunctorInferenceType}
+function calcZDim(usrfnc::T, 
+                  Xi::Vector{<:DFGVariable}, 
+                  fmd::FactorMetadata=FactorMetadata()) where {T <: FunctorInferenceType}
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
-    smpls = freshSamples(usrfnc, 2, FactorMetadata(), vnds)[1]
+    smpls = freshSamples(usrfnc, 2, fmd, vnds)[1]
     size(smpls,1)
   else
     0
   end
   return zdim
 end
+
 
 function prepgenericconvolution(
             Xi::Vector{<:DFGVariable},
@@ -589,7 +592,9 @@ function prepgenericconvolution(
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
-  zdim = calcZDim(usrfnc, Xi)
+
+  fmd = _defaultFactorMetadata(Xi)
+  zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(

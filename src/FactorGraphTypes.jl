@@ -11,7 +11,8 @@ $(TYPEDEF)
 Solver parameters for the DistributedFactoGraph.
 
 Dev Notes
-- TODO remove NothingUnion
+- # TODO remove NothingUnion
+- # TODO Upgrade to common @kwargs struct approach
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
@@ -110,33 +111,36 @@ function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                     sessionname="NA",
                                     robotname="",
                                     username="",
-                                    cloudgraph=nothing)::T where T <: AbstractDFG
+                                    cloudgraph=nothing) where T <: AbstractDFG
   #
   return dfg
 end
 
 
 #init an empty fg with a provided type and SolverParams
-function initfg(::Type{T}; solverParams=SolverParams(),
-                           sessionname="NA",
-                           robotname="",
-                           username="",
-                           cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
+function initfg(::Type{T};solverParams=SolverParams(),
+                          sessionname="NA",
+                          robotname="",
+                          username="",
+                          cloudgraph=nothing) where T <: AbstractDFG
   return T(solverParams=solverParams)
 end
 
-function initfg(::Type{T}, solverParams::SolverParams;
-                           sessionname="NA",
-                           robotname="",
-                           username="",
-                           cloudgraph=nothing)::AbstractDFG where T <: AbstractDFG
+function initfg(::Type{T},solverParams::SolverParams;
+                          sessionname="NA",
+                          robotname="",
+                          username="",
+                          cloudgraph=nothing) where T <: AbstractDFG
   return T{SolverParams}(solverParams=solverParams)
 end
 
 """
 $(TYPEDEF)
 
-TODO remove Union types -- issue #383
+DevNotes
+- # TODO remove Union types -- issue #383
+- # TODO standardize -- #927
+- # FIXME standardize inner constructors
 """
 mutable struct FactorMetadata{T}
   factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
@@ -147,14 +151,20 @@ mutable struct FactorMetadata{T}
   dbg::Bool #
   cachedata::Union{Nothing,Vector{T}} # New. Maybe change to Vector{T}
   fullvariables::Vector{DFGVariable}# New. Vector{DFGVariable}
-
+  
+  # inner constructors (delete?)
   FactorMetadata{T}() where T = new{T}()
-  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T =
-      FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
 end
 FactorMetadata() = FactorMetadata{Any}()
 FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=DFGVariable[]) =
-               FactorMetadata(fud, vud, vsm, sf, vl, dbg, cd, fv)
+               FactorMetadata{Any}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+
+function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
+                                dbg::Bool=false)
+  # FIXME standardize fmd, see #927
+  FactorMetadata(nothing,[],[],nothing,map(x->x.label,Xi),dbg,nothing,copy(Xi))
+end
 
 """
 $(TYPEDEF)
@@ -188,15 +198,15 @@ mutable struct ConvPerThread
   ConvPerThread() = new()
 end
 
-function ConvPerThread(X::Array{Float64,2},
-                       zDim::Int;
-                       factormetadata::FactorMetadata=FactorMetadata(),
-                       particleidx::Int=1,
-                       activehypo= 1:length(params),
-                       p=collect(1:size(X,1)),
-                       perturb=zeros(zDim),
-                       Y=zeros(size(X,1)),
-                       res=zeros(zDim)  )
+function ConvPerThread( X::Array{Float64,2},
+                        zDim::Int;
+                        factormetadata::FactorMetadata=FactorMetadata(),
+                        particleidx::Int=1,
+                        activehypo= 1:length(params),
+                        p=collect(1:size(X,1)),
+                        perturb=zeros(zDim),
+                        Y=zeros(size(X,1)),
+                        res=zeros(zDim)  )
   #
   cpt = ConvPerThread()
   cpt.thrid_ = 0
@@ -239,26 +249,26 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
 end
 
 
-function CommonConvWrapper(fnc::T,
-                           X::Array{Float64,2},
-                           zDim::Int,
-                           params::Vector{Array{Float64,2}};
-                           factormetadata::FactorMetadata=FactorMetadata(),
-                           specialzDim::Bool=false,
-                           partial::Bool=false,
-                           hypotheses=nothing,
-                           certainhypo=nothing,
-                           activehypo= 1:length(params),
-                           nullhypo::Real=0,
-                           varidx::Int=1,
-                           measurement::Tuple=(zeros(0,1),),
-                           particleidx::Int=1,
-                           p=collect(1:size(X,1)),
-                           perturb=zeros(zDim),
-                           Y=zeros(size(X,1)),
-                           xDim=size(X,1),
-                           res=zeros(zDim),
-                           threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
+function CommonConvWrapper( fnc::T,
+                            X::Array{Float64,2},
+                            zDim::Int,
+                            params::Vector{Array{Float64,2}};
+                            factormetadata::FactorMetadata=FactorMetadata(),
+                            specialzDim::Bool=false,
+                            partial::Bool=false,
+                            hypotheses=nothing,
+                            certainhypo=nothing,
+                            activehypo= 1:length(params),
+                            nullhypo::Real=0,
+                            varidx::Int=1,
+                            measurement::Tuple=(zeros(0,1),),
+                            particleidx::Int=1,
+                            p=collect(1:size(X,1)),
+                            perturb=zeros(zDim),
+                            Y=zeros(size(X,1)),
+                            xDim=size(X,1),
+                            res=zeros(zDim),
+                            threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
   #
   ccw = CommonConvWrapper{T}()
 

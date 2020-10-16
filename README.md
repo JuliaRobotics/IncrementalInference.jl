@@ -1,23 +1,14 @@
-# NOTICE Gadfly#master
-
-Note current installation requires the latest Gadfly to overcome a Type Piracy problem that occurred in ImageCore.jl.  The following installation will fix the recent (but transient) Pkg compat problems:
-```julia
-julia> ] # to activate package manager
-(@v1.5) pkg> add Gadfly#master
-(@v1.5) pkg> add IncrementalInference RoME Caesar
-```
-
 # IncrementalInference.jl
 
 > Click on badges to follow links:
 
-Stable v0.14 | Stable v0.15 | Dev | Coverage | Documentation
+Stable v0.15 | Stable v0.16 | Dev | Coverage | Documentation
 --------------|-------------|-------------|-----|---------
-[![build-0-14]][travis-url] | [![build-0-15]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
+[![build-0-15]][travis-url] | [![build-0-16]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
 
 [travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
 [build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
-[build-0-14]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.14
+[build-0-16]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.16
 [build-0-15]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.15
 
 [codecov-io]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master

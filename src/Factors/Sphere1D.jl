@@ -40,14 +40,18 @@ PriorSphere1( MvNormal([10; 10; pi/6.0], Matrix(Diagonal([0.1;0.1;0.05].^2))) )
 """
 mutable struct PriorSphere1{T<: SamplableBelief} <: AbstractPrior
     Z::T
-    PriorSphere1{T}() where T = new{T}()
-    PriorSphere1{T}(x::T) where {T <: IncrementalInference.SamplableBelief}  = new{T}(x)
+    # PriorSphere1{T}() where T = new{T}()
+    # PriorSphere1{T}(x::T) where {T <: IncrementalInference.SamplableBelief}  = new{T}(x)
 end
-PriorSphere1(x::T) where {T <: IncrementalInference.SamplableBelief} = PriorSphere1{T}(x)
+
+
+# PriorSphere1(x::T) where {T <: IncrementalInference.SamplableBelief} = PriorSphere1{T}(x)
+PriorSphere1(::UniformScaling) = PriorSphere1(Normal())
 function PriorSphere1(mu::Array{Float64}, cov::Array{Float64,2}, W::Vector{Float64})
   @warn "PriorSphere1(mu,cov,W) is deprecated in favor of PriorSphere1(T(...)) -- use for example PriorSphere1(MvNormal(mu, cov))"
   PriorSphere1(MvNormal(mu[:], cov))
 end
+
 function getSample(p2::PriorSphere1, N::Int=1)
   return (reshape(rand(p2.Z,N),:,N), )
 end

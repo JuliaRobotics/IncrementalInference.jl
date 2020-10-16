@@ -11,20 +11,32 @@ using Test
 # init graph
 fg = initfg()
 N = 100
-fg.solverParams.N = N;
+getSolverParams(fg).N = N;
 
 # add first variable
 addVariable!(fg, :x0, ContinuousScalar)
 
-# add bi-modal mixture prior
-Prior0 = MixturePrior((a= Normal(-5.0,1.0), b=Uniform(0.0,1.0)), (0.5,0.5))
-Prior0 = MixturePrior((Normal(-5.0,1.0), Normal(0.0,1.0)), (0.5,0.5))
-Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], (0.5,0.5))
-Prior0 = MixturePrior((Normal(-5.0,1.0), Normal(0.0,1.0)), [0.5;0.5])
-Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], [0.5;0.5])
-Prior0 = MixturePrior([Normal(-5.0,1.0), Normal(0.0,1.0)], Categorical([0.5;0.5]))
-addFactor!(fg, [:x0], Prior0)
+# also test AliasingScalingSampler
+v = rand(50)
+v[20:29] .+= 5*rand(10)
+v ./= sum(v)
+bss = AliasingScalarSampler(collect(1:50), v)
 
+
+# add bi-modal mixture prior
+Prior0 = Mixture(Prior,(a=Normal(-5.0,1.0), b=Uniform(0.0,1.0)), (0.5,0.5))
+Prior0 = Mixture(Prior,(Normal(-5.0,1.0), Normal(0.0,1.0)), (0.5,0.5))
+Prior0 = Mixture(Prior,[Normal(-5.0,1.0), Normal(0.0,1.0)], (0.5,0.5))
+Prior0 = Mixture(Prior,(Normal(-5.0,1.0), Normal(0.0,1.0)), [0.5;0.5])
+Prior0 = Mixture(Prior,[Normal(-5.0,1.0), Normal(0.0,1.0)], [0.5;0.5])
+Prior0 = Mixture(Prior,(Normal(-5.0,1.0), bss), Categorical([0.5;0.5]))
+f1 = addFactor!(fg, [:x0], Prior0)
+
+# also test serialization of AliasingScalarSampler
+saveDFG("/tmp/test_fg_bss", fg)
+
+
+# check numerics
 smpls, lb = getSample(Prior0, N)
 
 # should be a balance of particles
@@ -32,19 +44,44 @@ smpls, lb = getSample(Prior0, N)
 @test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.3*N
 
 # solve
-solveTree!(fg)
+solveTree!(fg);
 
 marginalPts = getBelief(fg, :x0) |> getPoints
 
 # check solver solution consistent too
-@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.25*N
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
 
 
 end
 
 
+
+@testset "Serialization of Mixture(Prior,..) including a AliasingScalarSampler" begin
+
+
+fg_ = loadDFG("/tmp/test_fg_bss")
+
+N = getSolverParams(fg_).N
+
+
+solveTree!(fg_);
+
+
+marginalPts = getBelief(fg_, :x0) |> getPoints
+
+# check solver solution consistent too
+@test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
+
+
+# cleanup
+Base.rm("/tmp/test_fg_bss.tar.gz")
+
+end
+
+
 # using RoMEPlotting
-#
+# Gadfly.set_default_plot_size(35cm,20cm)
+
 # # plot the results
 # plotKDE(fg, :x0)
 

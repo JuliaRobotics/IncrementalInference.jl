@@ -1,10 +1,9 @@
 # Serialization functions for Flux models that depend on BSON
 
-@info "IncrementalInference is adding Flux/BSON serialization functionality."
+# @info "IncrementalInference is adding Flux/BSON serialization functionality."
 
 export PackedFluxModelsDistribution
 
-using .BSON
 using Base64
 
 import Base: convert
@@ -122,12 +121,12 @@ function convert( ::Union{Type{<:SamplableBelief},Type{FluxModelsDistribution}},
   # @assert obj.mimeTypeData == "application/bson/octet-stream/base64"
   data = !obj.serializeHollow ? _deserializeFluxDataBase64.(obj.data) : zeros(0)
 
-  return FluxModelsDistribution((obj.inputDim...,), 
-                                (obj.outputDim...,), 
-                                models, 
+  return FluxModelsDistribution(models, 
+                                (obj.inputDim...,), 
                                 data, 
-                                obj.shuffle, 
-                                obj.serializeHollow  )
+                                (obj.outputDim...,), 
+                                shuffle=obj.shuffle, 
+                                serializeHollow=obj.serializeHollow  )
 end
 
 
