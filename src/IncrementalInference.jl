@@ -24,6 +24,7 @@ using
   Optim,
   StatsBase,
   JLD2,
+  BSON,
   FileIO,
   ProgressMeter,
   DocStringExtensions,
@@ -500,7 +501,7 @@ function __init__()
   # combining neural networks natively into the non-Gaussian  factor graph object
   @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
     include("Flux/FluxModelsDistribution.jl")
-    @require BSON="fbb218c0-5317-5bc6-957e-2ee96dd4b1f0" include("Flux/FluxModelsSerialization.jl")
+    include("Flux/FluxModelsSerialization.jl") # uses BSON
   end
 end
 

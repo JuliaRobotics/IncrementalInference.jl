@@ -1,10 +1,9 @@
 # Serialization functions for Flux models that depend on BSON
 
-@info "IncrementalInference is adding Flux/BSON serialization functionality."
+# @info "IncrementalInference is adding Flux/BSON serialization functionality."
 
 export PackedFluxModelsDistribution
 
-using .BSON
 using Base64
 
 import Base: convert
