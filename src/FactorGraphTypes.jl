@@ -137,7 +137,10 @@ end
 """
 $(TYPEDEF)
 
-TODO remove Union types -- issue #383
+DevNotes
+- # TODO remove Union types -- issue #383
+- # TODO standardize -- #927
+- # FIXME standardize inner constructors
 """
 mutable struct FactorMetadata{T}
   factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
@@ -148,14 +151,20 @@ mutable struct FactorMetadata{T}
   dbg::Bool #
   cachedata::Union{Nothing,Vector{T}} # New. Maybe change to Vector{T}
   fullvariables::Vector{DFGVariable}# New. Vector{DFGVariable}
-
+  
+  # inner constructors (delete?)
   FactorMetadata{T}() where T = new{T}()
-  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T =
-      FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
 end
 FactorMetadata() = FactorMetadata{Any}()
 FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=DFGVariable[]) =
-               FactorMetadata(fud, vud, vsm, sf, vl, dbg, cd, fv)
+               FactorMetadata{Any}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+
+function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
+                                dbg::Bool=false)
+  # FIXME standardize fmd, see #927
+  FactorMetadata(nothing,[],[],nothing,map(x->x.label,Xi),dbg,nothing,copy(Xi))
+end
 
 """
 $(TYPEDEF)
