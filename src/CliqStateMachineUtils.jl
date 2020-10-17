@@ -176,6 +176,30 @@ function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, max
 end
 
 ## ===================================================================================================================
+## CSM Error functions
+## ===================================================================================================================
+
+function putErrorDown(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "red")
+  @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+  logCSM(csmc, "CSM clique $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+  end
+  logCSM(csmc, "CSM clique $(csmc.cliq.index): Exit with error state", loglevel=Logging.Error)
+  return nothing
+end
+
+function putErrorUp(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "red")
+  for e in getEdgesParent(csmc.tree, csmc.cliq)
+    logCSM(csmc, "CSM clique, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+  end
+  return nothing
+end
+
+
+## ===================================================================================================================
 ## CSM Monitor functions
 ## ===================================================================================================================
 
@@ -225,13 +249,13 @@ function bruteForcePushErrorCSM(tree)
         if isready(ch.upMsg)
             take!(ch.upMsg)
         else
-            @info("Up edge $i", ch.upMsg)
+            @debug("Up edge $i", ch.upMsg)
             @async put!(ch.upMsg, errMsg)
         end
         if isready(ch.downMsg)
             take!(ch.downMsg)
         else
-            @info("Down edge $i", ch.downMsg)
+            @debug("Down edge $i", ch.downMsg)
             @async put!(ch.downMsg, errMsg)
         end
 
@@ -240,11 +264,11 @@ function bruteForcePushErrorCSM(tree)
     for (i, ch) in tree.messages
 
         while isready(ch.upMsg)
-            @info "cleanup take on $i up"
+            @debug "cleanup take on $i up"
             take!(ch.upMsg)
         end
         while isready(ch.downMsg)
-            @info "cleanup take on $i down"
+            @debug "cleanup take on $i down"
             take!(ch.downMsg)
         end
 

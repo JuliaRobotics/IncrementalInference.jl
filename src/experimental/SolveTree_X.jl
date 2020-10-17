@@ -1,4 +1,8 @@
+"""
+    $SIGNATURES
 
+Start tasks (@async or Threads.@spawn threads if multithread=true) to solve (parametric) the factor graph on the tree.
+"""
 function taskSolveTree!(dfg::AbstractDFG,
                           treel::AbstractBayesTree;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
@@ -11,33 +15,33 @@ function taskSolveTree!(dfg::AbstractDFG,
                           skipcliqids::Vector{Symbol}=Symbol[],
                           recordcliqs::Vector{Symbol}=Symbol[],
                           delaycliqs::Vector{Symbol}=Symbol[],
-                          alltasks = Task[])
+                          smtasks=Task[],
+                          algorithm::Symbol=:default)
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
-  # queue all the tasks/threads
-
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
   
-  resize!(alltasks, getNumCliqs(treel))
-
+  resize!(smtasks, getNumCliqs(treel))
+  
   approx_iters = getNumCliqs(treel)*20
   solve_progressbar = ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
-
+  
+  # queue all the tasks/threads
   if !isTreeSolved(treel, skipinitialized=true)
     @sync begin
-      monitortask = IIF.monitorCSMs(treel, alltasks)
+      monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
       for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           if multithread
-            alltasks[i] = Threads.@spawn tryCliqStateMachineSolve_X!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve_X!(dfg, treel, i; algorithm=algorithm, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           else
-            alltasks[i] = @async tryCliqStateMachineSolve_X!(dfg, treel, i, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = @async tryCliqStateMachineSolve_X!(dfg, treel, i; algorithm=algorithm, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           end
         end # if
       end # for
@@ -45,11 +49,11 @@ function taskSolveTree!(dfg::AbstractDFG,
   end # if
 
   # if record cliques is in use, else skip computational delay
-  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(alltasks, cliqHistories)
+  0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
   
   finish!(solve_progressbar)
 
-  return alltasks, cliqHistories
+  return smtasks, cliqHistories
 end
 
 
@@ -64,7 +68,8 @@ function tryCliqStateMachineSolve_X!(dfg::G,
                                              incremental::Bool=false,
                                              delaycliqs::Vector{Symbol}=Symbol[],
                                              recordcliqs::Vector{Symbol}=Symbol[],
-                                             solve_progressbar=nothing) where G <: AbstractDFG
+                                             solve_progressbar=nothing,
+                                             algorithm::Symbol=:default) where G <: AbstractDFG
   #
   clst = :na
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
@@ -85,7 +90,8 @@ function tryCliqStateMachineSolve_X!(dfg::G,
                                                     drawtree=drawtree, verbose=verbose,
                                                     limititers=limititers, downsolve=downsolve,
                                                     recordhistory=recordthiscliq, incremental=incremental,
-                                                    delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar )
+                                                    delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
+                                                    algorithm=algorithm )
     #
     # cliqHistories[cliqKey] = history
     if length(history) >= limititers && limititers != -1

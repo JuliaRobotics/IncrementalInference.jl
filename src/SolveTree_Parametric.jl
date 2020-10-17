@@ -18,16 +18,18 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
                           smtasks=Task[])
   #
   # revert :downsolved status to :initialized in preparation for new upsolve
-  #TODO JT die ene lyk reg
   resetTreeCliquesForUpSolve!(treel)
-  #TODO JT needs to be updated
-  # setTreeCliquesMarginalized!(dfg, treel)
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
-  # queue all the tasks/threads
-  resize!(smtasks, getNumCliqs(treel))
   cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  
+  resize!(smtasks, getNumCliqs(treel))
+  
+  approx_iters = getNumCliqs(treel)*20
+  solve_progressbar = ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
+  
+  # queue all the tasks/threads
   if !isTreeSolved(treel, skipinitialized=true)
     @sync begin
       monitortask = monitorCSMs(treel, smtasks)
@@ -47,6 +49,8 @@ function taskSolveTreeParametric!(dfg::AbstractDFG,
 
   # if record cliques is in use, else skip computational delay
   0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
+  
+  finish!(solve_progressbar)
 
   return smtasks, cliqHistories
 end
