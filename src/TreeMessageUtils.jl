@@ -390,7 +390,7 @@ end
 ## =============================================================================
 
 
-
+#TODO rename to just prepCliqueMsgUp
 """
     $SIGNATURES
 
@@ -429,7 +429,7 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   return msg
 end
 
-
+#TODO rename to just prepCliqueMsgDown
 """
     $SIGNATURES
 
@@ -475,10 +475,12 @@ end
 
 
 ## =============================================================================
-## Multimessage assemblies from multiple cliques
+## Multimessage assemblies from multiple cliques 
 ## =============================================================================
+#TODO check as it looks outdated 
 
 
+#TODO function is currently broken as getUpMsgs does not exist, possibly deprecated?
 """
     $SIGNATURES
 

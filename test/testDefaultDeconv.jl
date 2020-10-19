@@ -21,7 +21,7 @@ open(joinLogPath(fg, "csmLogicalReconstructMax.log"),"w") do io
 end
 
 # msg = getMsgUpThis(tree.cliques[2])
-msg = IIF.messages(tree.cliques[2]).upRx
+msg = IIF.getMessageBuffer(tree.cliques[2]).upRx
 
 tfg = buildCliqSubgraph(fg, tree.cliques[2])
 addLikelihoodsDifferential!.(tfg, values(msg))
