@@ -453,7 +453,7 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   someInit = false
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
