@@ -193,7 +193,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
 
   if all(all_child_status .== :UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
-    varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
   end
 
@@ -233,7 +233,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
     logCSM(csmc, "X-3, Trying up init -- all not initialized"; c=csmc.cliqKey)
      
     # structure for all up message densities computed during this initialization procedure.
-    varorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique

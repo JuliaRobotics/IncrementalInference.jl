@@ -12,7 +12,6 @@ function isCliqUpSolved(cliq::TreeClique)::Bool
 end
 
 
-
 """
     $SIGNATURES
 
@@ -20,50 +19,30 @@ Return the most likely  ordering for initializing factor (assuming up solve
 sequence).
 
 Notes:
-- sorts id for increasing number of connected factors.
+- sorts id (label) for increasing number of connected factors using the clique subfg with messages already included.
 """
-function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
+function getCliqVarInitOrderUp(subfg::AbstractDFG)
   # rules to explore dimension from one to the other?
 
   # get all variable ids and number of associated factors
-  allids = getCliqAllVarIds(cliq)
-  nfcts = getCliqNumAssocFactorsPerVar(cliq)
+  B, varLabels, facLabels = getBiadjacencyMatrix(subfg)
+  nfcts = sum(B, dims=1)[:]
 
-  # get priors and singleton message variables (without partials)
-  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
-
-  # get current up msgs in the init process (now have all singletons)
-  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)                       # FIXME, post #459 calls?
-  upmsgids = collect(keys(upmsgs))
-
-  # all singleton variables
-  singids = union(prids, upmsgids)
-
-  # add msg marginal prior (singletons) to number of factors
-  for msid in upmsgids
-    nfcts[msid .== allids] .+= 1
-  end
+  # variables with priors
+  varswithpriors = getNeighbors.(subfg, lsfPriors(subfg))
+  singids = union(Symbol[], varswithpriors...)
 
   # sort permutation order for increasing number of factor association
   nfctsp = sortperm(nfcts)
-  sortedids = allids[nfctsp]
+  sortedids = varLabels[nfctsp]
 
   # organize the prior variables separately with asceding factor count
-  initorder = Symbol[]
-  for id in sortedids
-    if id in singids
-      push!(initorder, id)
-    end
-  end
+  initorder = intersect(sortedids, singids)
   # in ascending order of number of factors
-  for id in sortedids
-    if !(id in initorder)
-      push!(initorder, id)
-    end
-  end
+  union!(initorder, sortedids)
+
   return initorder
 end
-
 
 """
     $SIGNATURES

@@ -76,6 +76,58 @@ end
 ##==============================================================================
 
 
+"""
+    $SIGNATURES
+
+Return the most likely  ordering for initializing factor (assuming up solve
+sequence).
+
+Notes:
+- sorts id for increasing number of connected factors.
+"""
+function getCliqVarInitOrderUp(tree::BayesTree, cliq::TreeClique)
+  Base.depwarn("getCliqVarInitOrderUp(tree:, cliq) is deprecated, use getCliqVarInitOrderUp(subfg)", :getCliqVarInitOrderUp)
+  # rules to explore dimension from one to the other?
+
+  # get all variable ids and number of associated factors
+  allids = getCliqAllVarIds(cliq)
+  nfcts = getCliqNumAssocFactorsPerVar(cliq)
+
+  # get priors and singleton message variables (without partials)
+  prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), false)
+
+  # get current up msgs in the init process (now have all singletons)
+  upmsgs = getMsgsUpInitChildren(tree, cliq, TreeBelief)                       # FIXME, post #459 calls?
+  upmsgids = collect(keys(upmsgs))
+
+  # all singleton variables
+  singids = union(prids, upmsgids)
+
+  # add msg marginal prior (singletons) to number of factors
+  for msid in upmsgids
+    nfcts[msid .== allids] .+= 1
+  end
+
+  # sort permutation order for increasing number of factor association
+  nfctsp = sortperm(nfcts)
+  sortedids = allids[nfctsp]
+
+  # organize the prior variables separately with asceding factor count
+  initorder = Symbol[]
+  for id in sortedids
+    if id in singids
+      push!(initorder, id)
+    end
+  end
+  # in ascending order of number of factors
+  for id in sortedids
+    if !(id in initorder)
+      push!(initorder, id)
+    end
+  end
+  return initorder
+end
+
 @deprecate extractdistribution(str::AbstractString) convert(SamplableBelief, str)
 
 
