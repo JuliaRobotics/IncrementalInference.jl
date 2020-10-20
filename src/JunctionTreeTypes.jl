@@ -129,8 +129,8 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  parentCliq::Vector{TreeClique}
-  childCliqs::Vector{TreeClique}
+  parentCliq::Vector{TreeClique} #TODO deprecate
+  childCliqs::Vector{TreeClique} #TODO deprecate
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
@@ -244,6 +244,7 @@ $(TYPEDEF)
 Data structure for each clique in the Bayes (Junction) tree.
 """
 mutable struct BayesTreeNodeData
+  status::CliqStatus
   frontalIDs::Vector{Symbol}
   separatorIDs::Vector{Symbol}
   inmsgIDs::Vector{Symbol} # Int
@@ -285,7 +286,8 @@ mutable struct BayesTreeNodeData
   messages::MessageBuffer
 end
 
-function BayesTreeNodeData(;frontalIDs=Symbol[],
+function BayesTreeNodeData(;status::CliqStatus=NULL,
+                            frontalIDs=Symbol[],
                             separatorIDs=Symbol[],
                             inmsgIDs=Symbol[],
                             potIDs=Symbol[],
@@ -303,7 +305,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             debug=nothing,
                             debugDwn=nothing,
                             allmarginalized=false,
-                            initialized=:null,
+                            initialized=:NULL,
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
@@ -313,7 +315,8 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             dwnMsgChannel=Channel{LikelihoodMessage}(1),
                             messages = MessageBuffer()
                           )
-  btnd = BayesTreeNodeData(frontalIDs,
+  btnd = BayesTreeNodeData(status,
+                        frontalIDs,
                         separatorIDs,
                         inmsgIDs,
                         potIDs,

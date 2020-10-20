@@ -13,7 +13,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 
 addFactor!(fg, [:x0;], Prior(Normal()))
-addFactor!(fg, [:x0;:x1], LinearConditional(Normal(10,1)))
+addFactor!(fg, [:x0;:x1], LinearRelative(Normal(10,1)))
 
 solveTree!(fg)
 
@@ -48,7 +48,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 
 addFactor!(fg, [:x0;], Prior(Normal()))
-addFactor!(fg, [:x0;:x1], LinearConditional(Normal(10,1)), nullhypo=0.5)
+addFactor!(fg, [:x0;:x1], LinearRelative(Normal(10,1)), nullhypo=0.5)
 
 
 pts = approxConv(fg, :x0x1f1, :x1)

@@ -31,8 +31,8 @@ v1 = getVariable(fg,:x1)
 
 ##
 fg = generateCanonicalFG_lineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, posePriorsAt=Int[0,5,10], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
-    # addFactor!(fg, [:x5; :x15], LinearConditional(Normal(10, 0.1)))
-    # addFactor!(fg, [:x15; :x25], LinearConditional(Normal(10, 0.1)))
+    # addFactor!(fg, [:x5; :x15], LinearRelative(Normal(10, 0.1)))
+    # addFactor!(fg, [:x15; :x25], LinearRelative(Normal(10, 0.1)))
 
 #to manually check all factors
 # foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
@@ -95,8 +95,8 @@ addVariable!(fg, :x1, ContinuousScalar, N=N) # autoinit = graphinit
 addVariable!(fg, :x2, ContinuousScalar, N=N) # autoinit = graphinit
 addFactor!(fg, [:x2], Prior(Normal(+1.0, 1.0)))
 
-addFactor!(fg, [:x0; :x1], LinearConditional(Normal(0.0, 1e-1)), graphinit=graphinit)
-addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0.0, 1e-1)), graphinit=graphinit)
+addFactor!(fg, [:x0; :x1], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphinit)
+addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphinit)
 
 
 

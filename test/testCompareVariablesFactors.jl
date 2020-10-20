@@ -6,7 +6,7 @@ using Test
 
 @testset "deprecation of old api" begin
 
-LinearConditional(Normal(2.0, 0.1))
+LinearRelative(Normal(2.0, 0.1))
 
 end
 
@@ -22,7 +22,7 @@ f1 = addFactor!(fg, [:x0;], Prior(Normal()))
 @test compareFactor(f1,f1)
 
 v2 = addVariable!(fg, :x1, ContinuousScalar)
-f2 = addFactor!(fg, [:x0;:x1], LinearConditional(Normal(2.0, 0.1)))
+f2 = addFactor!(fg, [:x0;:x1], LinearRelative(Normal(2.0, 0.1)))
 
 fg2 = deepcopy(fg)
 
@@ -89,13 +89,13 @@ addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal()))
 
 addVariable!(fg, :x1, ContinuousScalar)
-addFactor!(fg, [:x0;:x1], LinearConditional(Normal(2.0, 0.1)))
+addFactor!(fg, [:x0;:x1], LinearRelative(Normal(2.0, 0.1)))
 
 addVariable!(fg, :x2, ContinuousScalar)
-addFactor!(fg, [:x1;:x2], LinearConditional(Normal(4.0, 0.1)))
+addFactor!(fg, [:x1;:x2], LinearRelative(Normal(4.0, 0.1)))
 
 addVariable!(fg, :l1, ContinuousScalar)
-addFactor!(fg, [:x1;:l1], LinearConditional(Rayleigh()))
+addFactor!(fg, [:x1;:l1], LinearRelative(Rayleigh()))
 
 sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors 
 

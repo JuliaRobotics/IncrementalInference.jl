@@ -29,7 +29,7 @@ function taskSolveTree!(dfg::AbstractDFG,
                           smtasks=Task[],
                           algorithm::Symbol=:default)
   #
-  # revert :downsolved status to :initialized in preparation for new upsolve
+  # revert DOWNSOLVED status to INITIALIZED in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
@@ -97,7 +97,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachine_X!(dfg, treel, cliq, cliqKey,
+    history = initStartCliqStateMachine!(dfg, treel, cliq, cliqKey,
                                                     drawtree=drawtree, verbose=verbose,
                                                     limititers=limititers, downsolve=downsolve,
                                                     recordhistory=recordthiscliq, incremental=incremental,
@@ -138,7 +138,7 @@ function tryCliqStateMachineSolve!(dfg::G,
     close(logger.stream)
     rethrow()
   end
-  # if !(clst in [:upsolved; :downsolved; :marginalized])
+  # if !(clst in [UPSOLVED; DOWNSOLVED; MARGINALIZED])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
   return history
@@ -266,7 +266,7 @@ function solveTree!(dfgl::AbstractDFG,
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
 
-  opt.useMsgLikelihoods == false && @warn("#TODO Check the working of useMsgLikelihoods=false")
+  opt.useMsgLikelihoods == false && @warn("#TODO Verify useMsgLikelihoods=false works correctly")
 
   # depcrecation
   if maxparallel !== nothing

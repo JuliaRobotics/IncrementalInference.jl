@@ -20,16 +20,16 @@ export
 Return `::Symbol` status a particular clique is in, with specific regard to solution
 or numerical initialization status:
 - :needdownmsg
-- :upsolved
-- :downsolved
-- :initialized
-- :marginalized
-- :null
+- UPSOLVED
+- DOWNSOLVED
+- INITIALIZED
+- MARGINALIZED
+- NULL
 
 Notes:
-- `:null` represents the first uninitialized state of a cliq.
+- `NULL` represents the first uninitialized state of a cliq.
 """
-getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.initialized
+getCliqueStatus(cliqdata::BayesTreeNodeData) = cliqdata.status
 getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
 
 """
@@ -37,10 +37,10 @@ getCliqueStatus(cliq::TreeClique) = getCliqueStatus(getCliqueData(cliq))
 
 Set up initialization or solve status of this `cliq`.
 """
-function setCliqueStatus!(cdat::BayesTreeNodeData, status::Symbol)
-  cdat.initialized = status
+function setCliqueStatus!(cdat::BayesTreeNodeData, status::CliqStatus)
+  cdat.status = status
 end
-setCliqueStatus!(cliq::TreeClique, status::Symbol) = setCliqueStatus!(getCliqueData(cliq), status)
+setCliqueStatus!(cliq::TreeClique, status::CliqStatus) = setCliqueStatus!(getCliqueData(cliq), status)
 
 
 

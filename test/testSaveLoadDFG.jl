@@ -6,7 +6,7 @@ using Test
 
   fg = generateCanonicalFG_Kaess()
   addVariable!(fg, :x4, ContinuousScalar)
-  addFactor!(fg, [:x2;:x3;:x4], LinearConditional(Normal()), multihypo=[1.0;0.6;0.4])
+  addFactor!(fg, [:x2;:x3;:x4], LinearRelative(Normal()), multihypo=[1.0;0.6;0.4])
 
   saveFolder = "/tmp/dfg_test"
   saveDFG(fg, saveFolder)
@@ -33,7 +33,7 @@ end
 @testset "saving to and loading from FileDFG with nullhypo, eliminated, solveInProgress" begin
   fg = generateCanonicalFG_Kaess()
   addVariable!(fg, :x4, ContinuousScalar)
-  addFactor!(fg, [:x2;:x3;:x4], LinearConditional(Normal()), multihypo=[1.0;0.6;0.4])
+  addFactor!(fg, [:x2;:x3;:x4], LinearRelative(Normal()), multihypo=[1.0;0.6;0.4])
   addFactor!(fg, [:x1;], Prior(Normal(10,1)), nullhypo=0.5)
 
   solveTree!(fg)

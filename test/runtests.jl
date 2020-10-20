@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testHasPriors913.jl")
+
 include("testInitVariableOrder.jl")
 
 include("testExpXstroke.jl")
@@ -57,8 +59,6 @@ include("testCcolamdOrdering.jl")
 include("testBasicGraphs.jl")
 
 include("testDefaultDeconv.jl")
-
-include("testHasPriors913.jl")
 
 include("testlocalconstraintexamples.jl")
 

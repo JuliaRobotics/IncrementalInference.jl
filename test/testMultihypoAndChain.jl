@@ -25,9 +25,9 @@ addFactor!(fg, [:l1], Prior(Normal(l1, lnoise)))
 addFactor!(fg, [:l2], Prior(Normal(l2, lnoise)))
 
 # relative constraints
-addFactor!(fg, [:x1;:l1;:l1_0], LinearConditional(Normal(l1-x1, lnoise)), multihypo=[1;1/2;1/2])
-addFactor!(fg, [:x2;:l2;:l2_0], LinearConditional(Normal(l2-x2, lnoise)), multihypo=[1;1/2;1/2])
-addFactor!(fg, [:x1;:x2], LinearConditional(Normal(0, Onoise)))
+addFactor!(fg, [:x1;:l1;:l1_0], LinearRelative(Normal(l1-x1, lnoise)), multihypo=[1;1/2;1/2])
+addFactor!(fg, [:x2;:l2;:l2_0], LinearRelative(Normal(l2-x2, lnoise)), multihypo=[1;1/2;1/2])
+addFactor!(fg, [:x1;:x2], LinearRelative(Normal(0, Onoise)))
 
 tree, smt, hist = solveTree!(fg)
 

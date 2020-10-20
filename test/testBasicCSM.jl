@@ -22,8 +22,8 @@ dfg = initfg() #LightDFG{SolverParams}(solverParams=SolverParams())
 v1 = addVariable!(dfg, VAR1, ContinuousScalar, labels = [:POSE])
 v2 = addVariable!(dfg, VAR2, ContinuousScalar, labels = [:POSE])
 v3 = addVariable!(dfg, VAR3, ContinuousScalar, labels = [:LANDMARK])
-f1 = addFactor!(dfg, [VAR1; VAR2], LinearConditional(Normal(50.0,2.0)) )
-f2 = addFactor!(dfg, [VAR2; VAR3], LinearConditional(Normal(50.0,2.0)) )
+f1 = addFactor!(dfg, [VAR1; VAR2], LinearRelative(Normal(50.0,2.0)) )
+f2 = addFactor!(dfg, [VAR2; VAR3], LinearRelative(Normal(50.0,2.0)) )
 
 addFactor!(dfg, [VAR1], Prior(Normal()))
 

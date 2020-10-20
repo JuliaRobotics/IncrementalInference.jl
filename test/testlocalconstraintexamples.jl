@@ -22,7 +22,7 @@ f1  = addFactor!(fg,[v1], Prior( pd )) #, samplefnc=getSample
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
 v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
-odoc = LinearConditional(Normal(50.0,2.0)) # Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])
+odoc = LinearRelative(Normal(50.0,2.0)) # Odo(50.0*ones(1,1),2.0*ones(1,1),[1.0])
 f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
 
 # @test isInitialized(fg, :x1)

@@ -183,7 +183,7 @@ function putErrorDown(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
   logCSM(csmc, "CSM clique $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
   logCSM(csmc, "CSM clique $(csmc.cliq.index): Exit with error state", loglevel=Logging.Error)
   return nothing
@@ -193,7 +193,7 @@ function putErrorUp(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "red")
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "CSM clique, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+    putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
   return nothing
 end
@@ -243,7 +243,7 @@ function throwIntExcToAllTasks(alltasks)
 end
 
 function bruteForcePushErrorCSM(tree)
-    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
+    errMsg = LikelihoodMessage(status=ERROR_STATUS)
     for (i, ch) in tree.messageChannels
 
         if isready(ch.upMsg)
@@ -288,7 +288,7 @@ Set all up `upsolved` and `downsolved` cliq data flags `to::Bool=false`.
 function setAllSolveFlags!(treel::AbstractBayesTree, to::Bool=false)::Nothing
   for (id, cliq) in getCliques(treel)
     cliqdata = getCliqueData(cliq)
-    setCliqueStatus!(cliqdata, :null)
+    setCliqueStatus!(cliqdata, NULL)
     cliqdata.upsolved = to
     cliqdata.downsolved = to
   end
@@ -301,8 +301,8 @@ end
 Return true or false depending on whether the tree has been fully initialized/solved/marginalized.
 """
 function isTreeSolved(treel::AbstractBayesTree; skipinitialized::Bool=false)
-  acclist = Symbol[:upsolved; :downsolved; :marginalized]
-  skipinitialized ? nothing : push!(acclist, :initialized)
+  acclist = CliqStatus[UPSOLVED, DOWNSOLVED, MARGINALIZED]
+  skipinitialized ? nothing : push!(acclist, INITIALIZED)
   for (clid, cliq) in getCliques(treel)
     if !(getCliqueStatus(cliq) in acclist)
       return false
@@ -313,22 +313,7 @@ end
 
 function isTreeSolvedUp(treel::AbstractBayesTree)
   for (clid, cliq) in getCliques(treel)
-    if getCliqueStatus(cliq) != :upsolved
-      return false
-    end
-  end
-  return true
-end
-
-
-"""
-    $SIGNATURES
-
-Return `::Bool` on whether all variables in this `cliq` are marginalzed.
-"""
-function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
-  for vert in getCliqVars(subfg, cliq)
-    if !isMarginalized(vert)
+    if getCliqueStatus(cliq) != UPSOLVED
       return false
     end
   end
@@ -342,14 +327,14 @@ end
 Reset the Bayes (Junction) tree so that a new upsolve can be performed.
 
 Notes
-- Will change previous clique status from `:downsolved` to `:initialized` only.
+- Will change previous clique status from `DOWNSOLVED` to `INITIALIZED` only.
 - Sets the color of tree clique to `lightgreen`.
 """
 function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
-  acclist = Symbol[:downsolved;]
+  acclist = CliqStatus[DOWNSOLVED]
   for (clid, cliq) in getCliques(treel)
     if getCliqueStatus(cliq) in acclist
-      setCliqueStatus!(cliq, :initialized)
+      setCliqueStatus!(cliq, INITIALIZED)
       setCliqDrawColor(cliq, "sienna")
     end
   end
@@ -409,7 +394,7 @@ Notes
 function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
                                         cliq::TreeClique  )::Bool
   #
-  stillbusylist = [:null; :initialized;]
+  stillbusylist = [NULL, INITIALIZED]
   prnt = getParent(tree, cliq)
   if length(prnt) > 0
     for si in getChildren(tree, prnt[1])

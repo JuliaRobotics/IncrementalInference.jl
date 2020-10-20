@@ -21,17 +21,17 @@ addVariable!(fg, :l2, ContinuousScalar)
 
 # Add the pose chain constraints (odometry and priors).
 addFactor!(fg, [:x1], Prior(Normal()))
-addFactor!(fg, [:x1;:x2], LinearConditional(Normal()))
-addFactor!(fg, [:x2;:x3], LinearConditional(Normal()))
-addFactor!(fg, [:x3;:x4], LinearConditional(Normal()))
+addFactor!(fg, [:x1;:x2], LinearRelative(Normal()))
+addFactor!(fg, [:x2;:x3], LinearRelative(Normal()))
+addFactor!(fg, [:x3;:x4], LinearRelative(Normal()))
 
 # Add the pose-landmark constraints (range measurements)
-addFactor!(fg, [:x1;:l1], LinearConditional(Normal()))
-addFactor!(fg, [:x2;:l1], LinearConditional(Normal()))
-addFactor!(fg, [:x3;:l1], LinearConditional(Normal()))
-addFactor!(fg, [:x2;:l2], LinearConditional(Normal()))
-addFactor!(fg, [:x3;:l2], LinearConditional(Normal()))
-addFactor!(fg, [:x4;:l2], LinearConditional(Normal()))
+addFactor!(fg, [:x1;:l1], LinearRelative(Normal()))
+addFactor!(fg, [:x2;:l1], LinearRelative(Normal()))
+addFactor!(fg, [:x3;:l1], LinearRelative(Normal()))
+addFactor!(fg, [:x2;:l2], LinearRelative(Normal()))
+addFactor!(fg, [:x3;:l2], LinearRelative(Normal()))
+addFactor!(fg, [:x4;:l2], LinearRelative(Normal()))
 
 # Let's take a peek to see how our factor graph looks like.
 drawGraph(fg, show=true)

@@ -36,7 +36,7 @@ X0 = rand(z1, 1,100)
 # 0 -> 1 seconds
 # make approx function
 z2 = Normal(11,1.0) # odo
-statemodel = LinearConditional( z2 )
+statemodel = LinearRelative( z2 )
 X1_ = forwardConvolve(X0, statemodel)
 
 
@@ -53,7 +53,7 @@ X1 = getPoints(posterioriX1)
 
 ## predict, 1->2 seconds
 z4 = Normal(8,2.0) # odo
-statemodel = LinearConditional( z4 )
+statemodel = LinearRelative( z4 )
 X2_ = forwardConvolve(X1, statemodel)
 
 @test size(X2_) == (1,100)

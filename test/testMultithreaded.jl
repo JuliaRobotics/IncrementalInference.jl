@@ -25,7 +25,7 @@ addFactor!(fg, [:x0], Prior(Normal(0,1)))
 
 addVariable!(fg, :x1, ContinuousScalar, N=N)
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
-addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)) , threadmodel=MultiThreaded)
+addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)) , threadmodel=MultiThreaded)
 
 
 pts = approxConv(fg, :x0x1f1, :x1, N=N)
