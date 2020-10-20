@@ -474,7 +474,6 @@ include("NeedsResolution.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
-include("CSM_SiblDwnInit_fetch.jl")
 include("TreeMessageUtils.jl")
 include("TreeBasedInitialization.jl")
 
@@ -498,18 +497,15 @@ include("GraphProductOperations.jl")
 include("SolveTree.jl")
 include("TetherUtils.jl")
 include("TreeDebugTools.jl")
-include("CSMCommon_Consolidate.jl")
-include("CliqueStateMachine_fetch.jl")
 include("CliqStateMachineUtils.jl")
 include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
-include("CliqueStateMachine_take.jl")
+include("ParametricCSMFunctions.jl")
 include("ParametricUtils.jl")
 
-#EXPERIMENTAL X-stroke
-include("experimental/CliqStateMachine_X-stroke.jl")
-include("experimental/SolveTree_X.jl")
+#X-stroke
+include("CliqStateMachine_X-stroke.jl")
 
 include("CanonicalGraphExamples.jl")
 
