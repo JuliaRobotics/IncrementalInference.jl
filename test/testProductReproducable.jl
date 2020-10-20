@@ -17,10 +17,10 @@ addVariable!(fg, :d, ContinuousScalar)
 addVariable!(fg, :e, ContinuousScalar)
 
 addFactor!(fg, [:a], Prior(Normal()))
-addFactor!(fg, [:a;:b], LinearConditional(Normal(10, 1)))
-addFactor!(fg, [:b;:c], LinearConditional(Normal(10, 1)))
-addFactor!(fg, [:c;:d], LinearConditional(Normal(10, 1)))
-addFactor!(fg, [:d;:e], LinearConditional(Normal(10, 1)))
+addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
 ensureAllInitialized!(fg)
 
@@ -48,14 +48,14 @@ tree, smt, hist = solveTree!(fg)
 end
 
 
-@testset "Basic back and forth convolution over LinearConditional should spread" begin
+@testset "Basic back and forth convolution over LinearRelative should spread" begin
 
 fg = initfg()
 
 addVariable!(fg, :a, ContinuousScalar)
 addVariable!(fg, :b, ContinuousScalar)
 
-addFactor!(fg, [:a;:b], LinearConditional(Normal(10, 1)), graphinit=false)
+addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)), graphinit=false)
 
 initManual!(fg, :a, randn(1,100))
 initManual!(fg, :b, 10 .+randn(1,100))

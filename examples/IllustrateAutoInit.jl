@@ -30,7 +30,7 @@ addVariable!(fg, :x1, ContinuousScalar)
 
 # with a linear conditional belief to :x0
 # P(Z | :x1 - :x0 ) where Z ~ Normal(10,1)
-addFactor!(fg, [:x0, :x1], LinearConditional(Normal(10.0,1)))
+addFactor!(fg, [:x0, :x1], LinearRelative(Normal(10.0,1)))
 
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx01.png")
 
@@ -72,7 +72,7 @@ plotKDE(fg, [:x0, :x1, :x2])
 # Now transmit this 'weird' multi-modal marginal belief through a another unimodal linear offset (conditional likelihood)
 addVariable!(fg, :x3, ContinuousScalar)
 
-addFactor!(fg, [:x2, :x3], LinearConditional(Normal(-50, 1)))
+addFactor!(fg, [:x2, :x3], LinearRelative(Normal(-50, 1)))
 # note, this addFactor step relies on :x2 being initialized and would have done so if we didn't call ensureAllInitialized! a few lines earlier.
 
 # writeGraphPdf(fg, file="/home/dehann/Downloads/fgx0123.png")
@@ -81,7 +81,7 @@ ensureAllInitialized!(fg)
 plotKDE(fg, [:x0, :x1, :x2, :x3])
 
 
-lo3 = LinearConditional(Normal(40, 1))
+lo3 = LinearRelative(Normal(40, 1))
 addFactor!(fg, [:x3, :x0], lo3)
 
 

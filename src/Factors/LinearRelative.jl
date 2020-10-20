@@ -74,7 +74,7 @@ end
 
 """
 $(TYPEDEF)
-Serialization type for `LinearConditional` binary factor.
+Serialization type for `LinearRelative` binary factor.
 """
 mutable struct PackedLinearRelative <: PackedInferenceType
   Z::String

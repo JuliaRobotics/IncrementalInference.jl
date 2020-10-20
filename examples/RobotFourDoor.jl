@@ -28,20 +28,20 @@ f1  = addFactor!(fg,[v1], Prior(pd))
 
 # tem = 2.0*randn(1,N) .+ getVal(v1) .+ 50.0
 v2 = addVariable!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg,[v1;v2],LinearConditional(Normal(50.0,2.0)))
+addFactor!(fg,[v1;v2],LinearRelative(Normal(50.0,2.0)))
 
 # monocular sighting would look something like
 #addFactor!(fg, Mono, [:x3,:l1], [14.0], [1.0], [1.0])
 #addFactor!(fg, Mono, [:x4,:l1], [11.0], [1.0], [1.0])
 
 v3=addVariable!(fg,:x3,ContinuousScalar, N=N)
-addFactor!(fg,[v2;v3], LinearConditional( Normal(50.0,4.0)))
+addFactor!(fg,[v2;v3], LinearRelative( Normal(50.0,4.0)))
 f2 = addFactor!(fg,[v3], Prior(pd))
 
 if true
 
     v4=addVariable!(fg,:x4,ContinuousScalar, N=N)
-    addFactor!(fg,[v3;v4], LinearConditional( Normal(50.0,2.0)))
+    addFactor!(fg,[v3;v4], LinearRelative( Normal(50.0,2.0)))
 
     if true
         l1=addVariable!(fg, :l1, ContinuousScalar, N=N)
@@ -51,15 +51,15 @@ if true
 
 
     v5=addVariable!(fg,:x5,ContinuousScalar, N=N)
-    addFactor!(fg,[v4;v5], LinearConditional( Normal(50.0,2.0)))
+    addFactor!(fg,[v4;v5], LinearRelative( Normal(50.0,2.0)))
 
 
     v6=addVariable!(fg,:x6,ContinuousScalar, N=N)
-    addFactor!(fg,[v5;v6], LinearConditional( Normal(40.0,1.20)))
+    addFactor!(fg,[v5;v6], LinearRelative( Normal(40.0,1.20)))
 
 
     v7=addVariable!(fg,:x7,ContinuousScalar, N=N)
-    addFactor!(fg,[v6;v7], LinearConditional( Normal(60.0,2.0)))
+    addFactor!(fg,[v6;v7], LinearRelative( Normal(60.0,2.0)))
 
 
     mlc = MixturePrior(Normal.(doors[1,:], bws[1]), 0.25*ones(4))

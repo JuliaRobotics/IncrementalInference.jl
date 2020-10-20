@@ -40,18 +40,18 @@ addVariable!(fg, Symbol("l2_0"), ContinuousScalar, N=n_samples)
 # Add first pose
 addVariable!(fg, :x1, ContinuousScalar, N=n_samples)
 
-addFactor!(fg, [:x1; :l1; :l1_0], LinearConditional(Normal(40., meas_noise)), multihypo=[1.0; 1.0/2.0; 1.0/2.0])
+addFactor!(fg, [:x1; :l1; :l1_0], LinearRelative(Normal(40., meas_noise)), multihypo=[1.0; 1.0/2.0; 1.0/2.0])
 
 
 # Add second pose
 addVariable!(fg, :x2, ContinuousScalar, N=n_samples)
 
 # Gaussian transition model
-addFactor!(fg, [:x1; :x2], LinearConditional(Normal(0., odom_noise)))
+addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0., odom_noise)))
 
 # Make second "door" measurement
-# addFactor!(fg, [:x1; :l1], LinearConditional(Normal(0, meas_noise)) )
-addFactor!(fg, [:x2; :l2; :l2_0], LinearConditional(Normal(-40., meas_noise)), multihypo=[1.0; 1.0/2.0; 1.0/2.0])
+# addFactor!(fg, [:x1; :l1], LinearRelative(Normal(0, meas_noise)) )
+addFactor!(fg, [:x2; :l2; :l2_0], LinearRelative(Normal(-40., meas_noise)), multihypo=[1.0; 1.0/2.0; 1.0/2.0])
 
 # drawGraph(fg)
 

@@ -16,7 +16,7 @@ addFactor!(fg,[:x0], Prior( pd ) )
 
 # tem = 2.0*randn(1,N)+getVal(v1)+50.0
 addVariable!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg, [:x0; :x2], LinearConditional(Normal(50.0,2.0)) )
+addFactor!(fg, [:x0; :x2], LinearRelative(Normal(50.0,2.0)) )
 # addFactor!(fg, [v1;v2], Odo(50.0*ones(1,1),[2.0]',[1.0]))
 
 
@@ -25,11 +25,11 @@ addFactor!(fg, [:x0; :x2], LinearConditional(Normal(50.0,2.0)) )
 #addFactor!(fg, Mono, [:x4,:l1], [11.0], [1.0], [1.0])
 
 addVariable!(fg,:x3,ContinuousScalar, N=N)
-addFactor!(fg,[:x2;:x3], LinearConditional( Normal(50.0,4.0)) )
+addFactor!(fg,[:x2;:x3], LinearRelative( Normal(50.0,4.0)) )
 addFactor!(fg,[:x3], Prior( pd ))
 
 addVariable!(fg,:x4,ContinuousScalar, N=N)
-addFactor!(fg,[:x3;:x4], LinearConditional( Normal(50.0,2.0)) )
+addFactor!(fg,[:x3;:x4], LinearRelative( Normal(50.0,2.0)) )
 
 
 addVariable!(fg, :l1, ContinuousScalar, N=N)
@@ -39,15 +39,15 @@ addFactor!(fg, [:x4,:l1], Ranged([16.0],[0.5],[1.0]))
 
 
 addVariable!(fg,:x5,ContinuousScalar, N=N)
-addFactor!(fg,[:x4;:x5], LinearConditional( Normal(50.0,2.0)) )
+addFactor!(fg,[:x4;:x5], LinearRelative( Normal(50.0,2.0)) )
 
 
 addVariable!(fg,:x6,ContinuousScalar, N=N)
-addFactor!(fg,[:x5;:x6], LinearConditional( Normal(40.0,1.20)) )
+addFactor!(fg,[:x5;:x6], LinearRelative( Normal(40.0,1.20)) )
 
 
 addVariable!(fg,:x7,ContinuousScalar, N=N)
-addFactor!(fg,[:x6;:x7], LinearConditional( Normal(60.0,2.0)) )
+addFactor!(fg,[:x6;:x7], LinearRelative( Normal(60.0,2.0)) )
 
 # ensureAllInitialized!(fg)
 

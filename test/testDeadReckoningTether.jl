@@ -59,13 +59,13 @@ for i in 0:5
     psym = Symbol("x$i")
     nsym = Symbol("x$(i+1)")
     addVariable!(fg, nsym, ContinuousScalar)
-    pp = LinearConditional(Normal(1.0,0.1))
+    pp = LinearRelative(Normal(1.0,0.1))
     addFactor!(fg, [psym;nsym], pp )
 end
 
 # Add landmarks with Bearing range measurements
 addVariable!(fg, :l1, ContinuousScalar, tags=[:LANDMARK])
-p2br = LinearConditional(Normal(1.0,0.1))
+p2br = LinearRelative(Normal(1.0,0.1))
 addFactor!(fg, [:x0; :l1], p2br )
 
 

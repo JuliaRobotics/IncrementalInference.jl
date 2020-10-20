@@ -15,18 +15,18 @@ addFactor!(fg, [:x1;], Prior(Normal()))
 
 
 addVariable!(fg,:x2, ContinuousScalar, N=N)
-addFactor!(fg,[:x1, :x2], LinearConditional(Normal()))
+addFactor!(fg,[:x1, :x2], LinearRelative(Normal()))
 
 addVariable!(fg, :x3, ContinuousScalar, N=N)
-addFactor!(fg,[:x2,:x3],LinearConditional(Normal()))
+addFactor!(fg,[:x2,:x3],LinearRelative(Normal()))
 
 
 addVariable!(fg, :l1, ContinuousScalar, N=N)
-addFactor!(fg, [:x1,:l1], LinearConditional(Normal()) )
-addFactor!(fg, [:x2,:l1], LinearConditional(Normal()) )
+addFactor!(fg, [:x1,:l1], LinearRelative(Normal()) )
+addFactor!(fg, [:x2,:l1], LinearRelative(Normal()) )
 
 addVariable!(fg, :l2, ContinuousScalar, N=N)
-addFactor!(fg, [:x3,:l2], LinearConditional(Normal()))
+addFactor!(fg, [:x3,:l2], LinearRelative(Normal()))
 
 end
 

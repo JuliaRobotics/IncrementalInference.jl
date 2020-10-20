@@ -140,7 +140,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(0.0,1.0)))
 addFactor!(fg, [:x1;], Prior(Normal(0.0,1.0)))
-addFactor!(fg, [:x0;:x1;], LinearConditional(Normal(0.0,10.0)))
+addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,10.0)))
 
 tree, smt, hist = solveTree!(fg)
 
@@ -162,7 +162,7 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(-1.0,1.0)))
 addFactor!(fg, [:x1;], Prior(Normal(+1.0,1.0)))
-addFactor!(fg, [:x0;:x1;], LinearConditional(Normal(0.0,10.0)))
+addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,10.0)))
 
 tree, smt, hist = solveTree!(fg)
 
@@ -185,8 +185,8 @@ addVariable!(fg, :x1, ContinuousScalar)
 addVariable!(fg, :x2, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(-1.0,1.0)))
 addFactor!(fg, [:x2;], Prior(Normal(+1.0,1.0)))
-addFactor!(fg, [:x0;:x1;], LinearConditional(Normal(0.0,1.0)))
-addFactor!(fg, [:x1;:x2;], LinearConditional(Normal(0.0,1.0)))
+addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,1.0)))
+addFactor!(fg, [:x1;:x2;], LinearRelative(Normal(0.0,1.0)))
 
 tree, smt, hist = solveTree!(fg)
 
@@ -216,10 +216,10 @@ addVariable!(fg, :x3, ContinuousScalar)
 addVariable!(fg, :x4, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(-3.0,1.0)))
 addFactor!(fg, [:x4;], Prior(Normal(+3.0,1.0)))
-addFactor!(fg, [:x0;:x1;], LinearConditional(Normal(0.0,1.0)))
-addFactor!(fg, [:x1;:x2;], LinearConditional(Normal(0.0,1.0)))
-addFactor!(fg, [:x2;:x3;], LinearConditional(Normal(0.0,1.0)))
-addFactor!(fg, [:x3;:x4;], LinearConditional(Normal(0.0,1.0)))
+addFactor!(fg, [:x0;:x1;], LinearRelative(Normal(0.0,1.0)))
+addFactor!(fg, [:x1;:x2;], LinearRelative(Normal(0.0,1.0)))
+addFactor!(fg, [:x2;:x3;], LinearRelative(Normal(0.0,1.0)))
+addFactor!(fg, [:x3;:x4;], LinearRelative(Normal(0.0,1.0)))
 
 # drawGraph(fg, show=true)
 
