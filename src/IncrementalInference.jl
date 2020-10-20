@@ -505,7 +505,7 @@ include("ParametricCSMFunctions.jl")
 include("ParametricUtils.jl")
 
 #X-stroke
-include("CliqStateMachine_X-stroke.jl")
+include("CliqueStateMachine.jl")
 
 include("CanonicalGraphExamples.jl")
 
