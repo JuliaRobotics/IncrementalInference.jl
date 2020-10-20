@@ -45,7 +45,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   dbg::Bool=false;
                                   solveKey::Symbol=:default )
   #
-  @warn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", maxlog=1)
+  Base.depwarn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", :findRelatedFromPotential)
 
   # assuming it is properly initialized TODO
   ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
@@ -952,22 +952,7 @@ end
 
 
 
-@deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
 
-# getSample(s::MixtureRelative, N::Int=1) = (reshape.(rand.(s.Z, N),1,:)..., rand(s.C, N))
-
-# @deprecate (MixturePrior{T}(z::NTuple{N,<:SamplableBelief}, c::Union{<:Distributions.DiscreteNonParametric, NTuple{N,<:Real}, <:AbstractVector{<:Real}} ) where {T,N}) MixturePrior(z,c)
-
-@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
-# @deprecate LinearConditional(x::SamplableBelief) LinearRelative(x)
-@deprecate LinearConditional(x...) LinearRelative(x...)
-
-# function LinearConditional{N, T}(x...) where {N,T}
-#   @warn("LinearConditional{N, T} is deprecated, use LinearRelative instead")
-#   LinearRelative{N,T}(x...)
-# end
-
-@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
 
 
 
@@ -983,51 +968,6 @@ unlockUpStatus!(cliq::TreeClique) = unlockUpStatus!(getCliqueData(cliq))
 
 @deprecate unlockDwnStatus!(cdat::BayesTreeNodeData) ()->nothing
 
-
-
-
-function iifdepwarn(msg, funcsym; maxlog=nothing)
-  @logmsg(
-      Base.CoreLogging.Warn,
-      msg,
-      _module=begin
-          bt = backtrace()
-          frame, caller = Base.firstcaller(bt, funcsym)
-          # TODO: Is it reasonable to attribute callers without linfo to Core?
-          caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
-      end,
-      _file=String(caller.file),
-      _line=caller.line,
-      _id=(frame,funcsym),
-      _group=:iifdepwarn,
-      caller=caller,
-      short_stacktrace=stacktrace(bt)[7:9],
-      maxlog=maxlog
-  )
-  nothing
-end
-
-function Base.getproperty(obj::BayesTreeNodeData, sym::Symbol)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 get dwnMsg", :getproperty)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 get downInitMsg", :getproperty)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 get initDownChannel", :getproperty)
-  end
-  return getfield(obj, sym)
-end
-
-function Base.setproperty!(obj::BayesTreeNodeData, sym::Symbol, val)
-  if sym == :dwnMsg
-    # iifdepwarn("#459 set dwnMsg", :setproperty!)
-  elseif sym == :downInitMsg
-    # iifdepwarn("#459 set downInitMsg", :setproperty!)
-  elseif sym == :initDownChannel
-    # iifdepwarn("#459 set initDownChannel", :setproperty!)
-  end
-  return setfield!(obj, sym, convert(fieldtype(typeof(obj), sym), val))
-end
 
 
 # ============================================================================
@@ -1505,8 +1445,16 @@ end
 
 
 
-
-
 ##==============================================================================
 ## Deprecate at v0.18 
 ##==============================================================================
+
+# Keep these a bit longer
+
+@deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
+
+@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
+
+@deprecate LinearConditional(x...) LinearRelative(x...)
+
+@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)

@@ -266,7 +266,7 @@ function solveTree!(dfgl::AbstractDFG,
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
 
-  opt.useMsgLikelihoods == false && @warn("#TODO Check the working of useMsgLikelihoods=false")
+  opt.useMsgLikelihoods == false && @warn("#TODO Verify useMsgLikelihoods=false works correctly")
 
   # depcrecation
   if maxparallel !== nothing
