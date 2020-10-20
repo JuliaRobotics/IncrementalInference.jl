@@ -20,16 +20,17 @@ open(joinLogPath(fg, "csmLogicalReconstructMax.log"),"w") do io
   IIF.reconstructCSMHistoryLogical(getLogPath(fg), fid=io)
 end
 
-msg = getMsgUpThis(tree.cliques[2])
+# msg = getMsgUpThis(tree.cliques[2])
+msg = IIF.getMessageBuffer(tree.cliques[2]).upRx
 
 tfg = buildCliqSubgraph(fg, tree.cliques[2])
-addLikelihoodsDifferential!(tfg, msg)
+addLikelihoodsDifferential!.(tfg, values(msg))
 
 # drawGraph(tfg, show=true)
 
-@test intersect(ls(tfg), [:x2;:x6]) |> length == 2
-@test lsf(tfg) |> length == 1
-@test lsf(tfg, tags=[:UPWARD_DIFFERENTIAL]) |> length == 1
+@test issetequal(ls(tfg), [:x2,:x4,:x6])
+@test lsf(tfg) |> length == 2
+@test lsf(tfg, tags=[:UPWARD_DIFFERENTIAL]) |> length == 2
 
 end
 

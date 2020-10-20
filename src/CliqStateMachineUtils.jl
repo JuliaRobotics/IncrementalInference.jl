@@ -2,6 +2,89 @@
 export setVariablePosteriorEstimates!
 export updateCliqSolvableDims!, fetchCliqSolvableDims
 
+
+## ===================================================================================================================
+##  Consolidate by first changing to common functions of csmc
+## ===================================================================================================================
+"""
+    $SIGNATURES
+
+Calculate the full upward Chapman-Kolmogorov transit integral solution approximation (i.e. upsolve).
+
+Notes
+- State machine function nr. 8g
+- Assumes LIKELIHOODMESSAGE factors are in csmc.cliqSubFg but does not remove them.
+- TODO: Make multi-core
+
+DevNotes
+- NEEDS DFG v0.8.1, see IIF #760
+- temperory consolidation function
+"""
+function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
+
+  # check if all cliq vars have been initialized so that full inference can occur on clique
+  status = getCliqueStatus(csmc.cliq)
+  infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
+  logCSM(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
+
+  setCliqDrawColor(csmc.cliq, "red")
+  # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
+  retdict = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+  # retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
+  logCSM(csmc, "aproxCliqMarginalUp!"; retdict=retdict)
+
+  updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
+
+  # set clique color accordingly, using local memory
+  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+
+  # notify of results (part of #459 consolidation effort)
+  getCliqueData(csmc.cliq).upsolved = true
+
+  return nothing
+
+end
+
+"""
+    $SIGNATURES
+
+Do cliq downward inference
+
+Notes:
+- State machine function nr. 11
+- temperory consolidation function
+- adds message factors
+"""
+function __doCliqDownSolve!(csmc::CliqStateMachineContainer, dwnmsgs)
+
+  opts = getSolverParams(csmc.dfg)
+
+  # maybe cycle through separators (or better yet, just use values directly -- see next line)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
+  # force separator variables in cliqSubFg to adopt down message values
+  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+
+  #XXX test with and without
+  # add required all frontal connected factors
+  if !opts.useMsgLikelihoods
+    newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
+  end
+
+  # store the cliqSubFg for later debugging
+  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
+  
+
+  ## new way
+  # calculate belief on each of the frontal variables and iterate if required
+  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
+  csmc.dodownsolve = false
+
+  return nothing
+end
+
+## ===================================================================================================================
+##  CSM logging functions
+## ===================================================================================================================
 # using Serialization
 
 """
@@ -35,6 +118,167 @@ function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
 
 end
 
+
+"""
+    $SIGNATURES
+
+Specialized info logger print function to show clique state machine information
+in a standardized form.
+"""
+function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractString}
+
+  tm = string(Dates.now())
+  tmt = split(tm, 'T')[end]
+
+  lbl = getLabel(csmc.cliq)
+  lbl1 = split(lbl,',')[1]
+  cliqst = getCliqueStatus(csmc.cliq)
+
+  with_logger(csmc.logger) do
+    @info "$tmt | $(csmc.cliq.index)---$lbl1 @ $(cliqst) | "*str
+  end
+  flush(csmc.logger.stream)
+  nothing
+end
+
+"""
+    $SIGNATURES
+Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.index
+Notes:
+- Related to infocsm.
+- Different approach to logging that uses the build in logging functionality to provide more flexibility.
+- Can be used with LoggingExtras.jl 
+"""
+function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, maxlog=nothing, kwargs...)
+  #Debug = -1000
+  #Info = 0
+  #Warn = 1000
+  #Error = 2000
+  @logmsg(loglevel,
+          msg,
+          _module=begin
+            bt = backtrace()
+            funcsym=(:logCSM, Symbol("logCSM##kw")) #always use the calling function of logCSM
+            frame, caller = Base.firstcaller(bt, funcsym)
+            # TODO: Is it reasonable to attribute callers without linfo to Core?
+            caller.linfo isa Core.MethodInstance ? caller.linfo.def.module : Core
+          end,
+          _file=String(caller.file),
+          _line=caller.line,
+          _id=(frame,funcsym),
+          # caller=caller, 
+          # st4 = stacktrace()[4],
+          _group = Symbol("csm_$(csmc.cliq.index)"),
+          maxlog=maxlog,
+          kwargs...)
+  
+  return nothing
+end
+
+## ===================================================================================================================
+## CSM Error functions
+## ===================================================================================================================
+
+function putErrorDown(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "red")
+  @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+  logCSM(csmc, "CSM clique $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+  end
+  logCSM(csmc, "CSM clique $(csmc.cliq.index): Exit with error state", loglevel=Logging.Error)
+  return nothing
+end
+
+function putErrorUp(csmc::CliqStateMachineContainer)
+  setCliqDrawColor(csmc.cliq, "red")
+  for e in getEdgesParent(csmc.tree, csmc.cliq)
+    logCSM(csmc, "CSM clique, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
+  end
+  return nothing
+end
+
+
+## ===================================================================================================================
+## CSM Monitor functions
+## ===================================================================================================================
+
+"""
+    $SIGNATURES
+Monitor CSM tasks for failures and propagate error to the other CSMs to cleanly exit. 
+"""
+function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
+  task = @async begin
+    while true
+      all(istaskdone.(alltasks)) && (@info "monitorCSMs: all tasks done"; break)
+      for (i,t) in enumerate(alltasks)
+        if istaskfailed(t)
+          if forceIntExc
+            @error "Task $i failed, sending InterruptExceptions to all running CSM tasks"
+            throwIntExcToAllTasks(alltasks)
+            @debug "done with throwIntExcToAllTasks"
+          else
+            @error "Task $i failed, sending error to all cliques"
+            bruteForcePushErrorCSM(tree)
+            # for tree.messageChannels
+            @info "All cliques should have exited"
+          end
+        end
+      end
+      sleep(1)
+    end
+  end
+  return task
+end
+
+function throwIntExcToAllTasks(alltasks)
+  for (i,t) in enumerate(alltasks)
+    if !istaskdone(alltasks[i])
+      @debug "Sending InterruptExceptions to CSM task $i"
+      schedule(alltasks[i], InterruptException(), error=true)
+      @debug "InterruptExceptions CSM task $i"
+    end
+  end 
+  return nothing
+end
+
+function bruteForcePushErrorCSM(tree)
+    errMsg = LikelihoodMessage(status=:ERROR_STATUS)
+    for (i, ch) in tree.messageChannels
+
+        if isready(ch.upMsg)
+            take!(ch.upMsg)
+        else
+            @debug("Up edge $i", ch.upMsg)
+            @async put!(ch.upMsg, errMsg)
+        end
+        if isready(ch.downMsg)
+            take!(ch.downMsg)
+        else
+            @debug("Down edge $i", ch.downMsg)
+            @async put!(ch.downMsg, errMsg)
+        end
+
+    end
+
+    for (i, ch) in tree.messageChannels
+
+        while isready(ch.upMsg)
+            @debug "cleanup take on $i up"
+            take!(ch.upMsg)
+        end
+        while isready(ch.downMsg)
+            @debug "cleanup take on $i down"
+            take!(ch.downMsg)
+        end
+
+    end
+
+end
+
+## ===================================================================================================================
+## CSM Clique Functions
+## ===================================================================================================================
 
 """
     $SIGNATURES
@@ -193,7 +437,7 @@ Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
 function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
-                                childmsgs=fetchMsgsUpChildren(csmc, TreeBelief);
+                                childmsgs=LikelihoodMessage[];#fetchMsgsUpChildren(csmc, TreeBelief);
                                 N::Int=getSolverParams(csmc.cliqSubFg).N,
                                 dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
                                 multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,

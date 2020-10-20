@@ -18,8 +18,7 @@ mutable struct BayesTree <: AbstractBayesTree
   btid::Int
   cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
-  #TEMP JT for evaluation, store message channels associated with edges between nodes Int -> edge id.  TODO rather store in graph
-  messages::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
+  messageChannels::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
@@ -141,6 +140,7 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   oldcliqdata::BTND
   logger::SimpleLogger
   cliqKey::Int
+  algorithm::Symbol
 end
 
 const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
@@ -160,7 +160,8 @@ function CliqStateMachineContainer( dfg::G,
                                     refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
-                                    cliqKey::Int = cliq.index) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    cliqKey::Int = cliq.index,
+                                    algoritm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
@@ -225,13 +226,13 @@ end
 # include additional Tx buffers for later use
 # fetch vs take! #855
 # paremetric needs take! to work
-mutable struct MessageStore
+mutable struct MessageBuffer
   upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
   downRx::Union{Nothing, LikelihoodMessage} # down receive message buffer (one parent)
   upTx::Union{Nothing, LikelihoodMessage} # RESERVED up outgoing message buffer (one parent)
   downTx::Union{Nothing, LikelihoodMessage} # RESERVED down outgoing message buffer (multiple children but one message)
 end
-MessageStore() = MessageStore(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
+MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
 
 ## ^^^ DELETE
 
@@ -281,7 +282,7 @@ mutable struct BayesTreeNodeData
 
   ## DF THIS MUST BE consolidated with BTND.up[/dwn]MsgChannel -- ONLY A SINGLE LOCATION CAN REMAIN
   # JT Local messages saved for cache and debuging 
-  messages::MessageStore
+  messages::MessageBuffer
 end
 
 function BayesTreeNodeData(;frontalIDs=Symbol[],
@@ -310,7 +311,7 @@ function BayesTreeNodeData(;frontalIDs=Symbol[],
                             solvableDims=Channel{Dict{Symbol,Float64}}(1),
                             upMsgChannel=Channel{LikelihoodMessage}(1),
                             dwnMsgChannel=Channel{LikelihoodMessage}(1),
-                            messages = MessageStore()
+                            messages = MessageBuffer()
                           )
   btnd = BayesTreeNodeData(frontalIDs,
                         separatorIDs,
@@ -448,21 +449,3 @@ function convert(::Type{BayesTreeNodeData}, pbtnd::PackedBayesTreeNodeData)
 end
 
 
-
-
-##==============================================================================
-## Must consolideate tree message
-##==============================================================================
-
-
-function messages(btnd::BayesTreeNodeData)
-  @warn("btnd.messages will be deprecated")
-  btnd.messages
-end
-
-messages(clique::TreeClique) = getCliqueData(clique).messages
-
-
-
-
-#

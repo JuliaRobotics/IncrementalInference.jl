@@ -13,9 +13,10 @@ fg = generateCanonicalFG_lineStep(5;
                                   
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
+getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hist = IIF.solveTree_X!(fg; smtasks=smtasks);
+tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
   sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
@@ -38,9 +39,10 @@ deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
+getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = IIF.solveTree_X!(fg; smtasks=smtasks);
+tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
@@ -59,9 +61,10 @@ fg = generateCanonicalFG_lineStep(15;
 
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
+getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = IIF.solveTree_X!(fg; smtasks=smtasks);
+tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE

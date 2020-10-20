@@ -701,7 +701,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         drawbayesnet::Bool=false,
                         maxparallel::Union{Nothing, Int}=nothing )
   #
-  p = variableOrder != nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
+  p = variableOrder !== nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
   # depcrecation
   if maxparallel !== nothing
@@ -821,7 +821,7 @@ Experimental create and initialize tree message channels
 """
 function initTreeMessageChannels!(tree::BayesTree)
   for e = 1:tree.bt.nedges
-    push!(tree.messages, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
+    push!(tree.messageChannels, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
   end
   return nothing
 end
@@ -829,7 +829,7 @@ end
 function initTreeMessageChannels!(tree::MetaBayesTree)
   for e = MetaGraphs.edges(tree.bt)
     set_props!(tree.bt, e, Dict{Symbol,Any}(:upMsg=>Channel{LikelihoodMessage}(0),:downMsg=>Channel{LikelihoodMessage}(0)))
-    # push!(tree.messages, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
+    # push!(tree.messageChannels, e=>(upMsg=Channel{LikelihoodMessage}(0),downMsg=Channel{LikelihoodMessage}(0)))
   end
   return nothing
 end
@@ -839,7 +839,7 @@ function refTreeMessageChannelsFromBTND!(tree::BayesTree)
     for e in inci
         downMsg = e.target.data.dwnMsgChannel
         upMsg = e.target.data.upMsgChannel
-        push!(tree.messages, e.index=>(upMsg=upMsg,downMsg=downMsg))
+        push!(tree.messageChannels, e.index=>(upMsg=upMsg,downMsg=downMsg))
     end
   end
   return nothing

@@ -19,9 +19,11 @@ function initStartCliqStateMachine_X!(dfg::AbstractDFG,
                                        recordhistory::Bool=false,
                                        delay::Bool=false,
                                        logger::SimpleLogger=SimpleLogger(Base.stdout),
-                                       solve_progressbar=nothing)
+                                       solve_progressbar=nothing,
+                                       algorithm::Symbol=:default)
 
   # NOTE use tree and messages for operations involving children and parents
+  # TODO deprecate children and prnt clique copies
   children = TreeClique[]
   prnt = TreeClique[]
 
@@ -31,7 +33,8 @@ function initStartCliqStateMachine_X!(dfg::AbstractDFG,
                                    tree, cliq,
                                    prnt, children,
                                    incremental, drawtree, downsolve, delay,
-                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, cliqKey) 
+                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
+                                   cliqKey, algorithm) 
 
   nxt = buildCliqSubgraph_X_StateMachine
 
@@ -93,14 +96,14 @@ function waitForUp_X_StateMachine(csmc::CliqStateMachineContainer)
   # setCliqDrawColor(csmc.cliq, "olive") #TODO don't know if this is correct color
 
   # JT empty upRx buffer to save messages, TODO It may be ok not to empty 
-  beliefMessages = empty!(messages(csmc.cliq).upRx)
+  beliefMessages = empty!(getMessageBuffer(csmc.cliq).upRx)
 
   # take! messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
       thisEdge = isa(e,Graphs.Edge) ? e.index : e
       logCSM(csmc, "$(csmc.cliq.index): take! on edge $thisEdge")
-      # Blocks until data is available
+      # Blocks until data is available. -- take! model
       beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
       beliefMessages[thisEdge] = beliefMsg
       logCSM(csmc, "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)"; msgvars = keys(beliefMsg.belief))
@@ -115,57 +118,29 @@ function waitForUp_X_StateMachine(csmc::CliqStateMachineContainer)
   # If one up error is received propagate ERROR_STATUS 
   if :ERROR_STATUS in all_child_status
 
-    setCliqDrawColor(csmc.cliq, "red")
-
-    for e in getEdgesParent(csmc.tree, csmc.cliq)
-      @info "X-2, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-      putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-    end
+    putErrorUp(csmc)
     #if its a root, propagate error down
     #FIXME rather check if no parents with function (hasParents or isRoot)
     if length(getParent(csmc.tree, csmc.cliq)) == 0
-      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-      @info "X-2 Root $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-      @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-      end
-      @error "X-2 $(csmc.cliq.index): Exit with error state"
+      putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
     end
     
     return waitForDown_X_StateMachine
 
+  elseif csmc.algorithm == :parametric 
+    !all(all_child_status .== :UPSOLVED) && error("#FIXME")
+    return solveUp_ParametricStateMachine
+
   elseif true #TODO Currently all up goes through solveUp_X 
     return solveUp_X_StateMachine
+
   else
     error("waitForUp State Error: Unknown transision.")
   end
-      
+  
 end
 
-
-#TODO consolidate -- this is copied from fetch doCliqUpSolveInitialized_StateMachine
-function doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
-
-  # check if all cliq vars have been initialized so that full inference can occur on clique
-  status = getCliqueStatus(csmc.cliq)
-  logCSM(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
-  setCliqDrawColor(csmc.cliq, "red")
-  # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
-  # retdict = approxCliqMarginalUp!(csmc; iters=4, logger=csmc.logger)
-  retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
-
-  logCSM(csmc, "aproxCliqMarginalUp!"; retdict=retdict)
-
-  # set clique color accordingly, using local memory
-  updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
-  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
-
-  # notify of results (part of #459 consolidation effort)
-  getCliqueData(csmc.cliq).upsolved = true
-
-  # go to 8h
-  return nothing
-end
 
 
 """
@@ -182,14 +157,14 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
   opts = getSolverParams(csmc.dfg)
 
   # add message factors from upRx: cached messages taken from children saved in this clique
-  addMsgFactors!(csmc.cliqSubFg, messages(csmc.cliq).upRx, UpwardPass)
+  addMsgFactors!(csmc.cliqSubFg, getMessageBuffer(csmc.cliq).upRx, UpwardPass)
   logCSM(csmc, "messages for up"; upmsg=lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE]))
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
   #UPSOLVE here
-  all_child_status = map(msg -> msg.status, values(messages(csmc.cliq).upRx))
+  all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
 
   if all(all_child_status .== :UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
@@ -200,7 +175,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
   if all(all_child_status .== :UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "X-3 doing upSolve -- all initialized")
 
-    doCliqUpSolveInitialized!(csmc)
+    __doCliqUpSolveInitialized!(csmc)
     
     solveStatus = :UPSOLVED
     
@@ -267,20 +242,10 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
 
   else # something went wrong propagate error
     @error "X-3, something wrong with solve up" 
-
-    # propagate error to cleanly exit all cliques?
-    beliefMsg = LikelihoodMessage(status=:ERROR_STATUS)
-    for e in getEdgesParent(csmc.tree, csmc.cliq)
-      @info "X-3, $(csmc.cliq.index): generate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-      putBeliefMessageUp!(csmc.tree, e, beliefMsg)
-    end
-
+    # propagate error to cleanly exit all cliques
+    putErrorUp(csmc)
     if length(getParent(csmc.tree, csmc.cliq)) == 0
-      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-        @info "X-3 Root $(csmc.cliq.index): generate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-      end
-      @error "X-3 $(csmc.cliq.index): Exit with error state"
+      putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
     end
 
@@ -306,13 +271,12 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
   #propagate belief
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    messages(csmc.cliq).upTx = deepcopy(beliefMsg)
+    getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
   return waitForDown_X_StateMachine
 end
-
 
 
 """
@@ -323,34 +287,30 @@ Notes
 """
 function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
 
-  logCSM(csmc, "X-4, wait for down messages of needed")
+  logCSM(csmc, "X-4, wait for down messages if needed")
 
   # setCliqDrawColor(csmc.cliq, "lime")
  
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     # Blocks until data is available.
-    beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messages[e.index].downMsg)
+    beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messageChannels[e.index].downMsg)
     logCSM(csmc, "$(csmc.cliq.index): Belief message received with status $(beliefMsg.status)")
 
     logCSM(csmc, "X-4 down msg on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
-    # save DOWNSOLVED incoming message for use and debugging
-    messages(csmc.cliq).downRx = beliefMsg
+    # save down incoming message for use and debugging
+    getMessageBuffer(csmc.cliq).downRx = beliefMsg
 
     # Down branching happens here
     
     # ERROR_STATUS
     if beliefMsg.status == :ERROR_STATUS
-
-      setCliqDrawColor(csmc.cliq, "red")
-      # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
-
-      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-        @info "X-4, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=:ERROR_STATUS))
-      end
-      @error "X-4, $(csmc.cliq.index): Exit with error state"
+      putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
+
+    elseif csmc.algorithm == :parametric
+      beliefMsg.status != :DOWNSOLVED && error("#FIXME")
+      return solveDown_ParametricStateMachine
     elseif beliefMsg.status == :DOWNSOLVED 
       return solveDown_X_StateMachine
     elseif beliefMsg.status == :INIT || beliefMsg.status == :NO_INIT
@@ -361,8 +321,13 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
-  # Special root case 
+  if csmc.algorithm == :parametric
+    # The clique is a root
+    # root clique down branching happens here
+    return solveDown_ParametricStateMachine
+  end
 
+  # Special root case 
   #TODO improve
   solveStatus = getCliqueStatus(csmc.cliq)
   logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
@@ -384,7 +349,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
 
   if length(getParent(csmc.tree, csmc.cliq)) != 0
     
-    dwnmsgs = messages(csmc.cliq).downRx
+    dwnmsgs = getMessageBuffer(csmc.cliq).downRx
     
     msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
     
@@ -419,7 +384,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "msg to send down"; beliefMsg=beliefMsg)
   # pass through the frontal variables that were sent from above
-  downmsg = messages(csmc.cliq).downRx
+  downmsg = getMessageBuffer(csmc.cliq).downRx
   svars = getCliqSeparatorVarIds(csmc.cliq)
   if !isnothing(downmsg)
     pass_through_separators = intersect(svars, keys(downmsg.belief))
@@ -432,7 +397,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
+    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
   
   # detete all message factors to start clean
@@ -443,44 +408,6 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
   
 end
 
-
-function doCliqDownSolve!(csmc::CliqStateMachineContainer)
-  
-  opts = getSolverParams(csmc.dfg)
-
-  # get down msg from Rx buffer (saved in take!)
-  dwnmsgs = messages(csmc.cliq).downRx
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
-
-  # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-  # force separator variables in cliqSubFg to adopt down message values
-  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
-  
-
-  ## new way
-  # calculate belief on each of the frontal variables and iterate if required
-  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
-
-  csmc.dodownsolve = false
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
-
-  # update clique subgraph with new status
-  # setCliqDrawColor(csmc.cliq, "lightblue")
-
-  # remove msg factors that were added to the subfg
-  rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
-  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
-
-  return nothing
-
-end
 
 
 function CliqDownMessage(csmc::CliqStateMachineContainer, status=:DOWNSOLVED)
@@ -520,7 +447,26 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
     # TODO we can monitor the solve here to give it a timeout
     # add messages, do downsolve, remove messages
     logCSM(csmc, "11, doCliqDownSolve_StateMachine")
-    doCliqDownSolve!(csmc)
+    
+    #XXX
+    # get down msg from Rx buffer (saved in take!)
+    dwnmsgs = getMessageBuffer(csmc.cliq).downRx
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
+  
+    __doCliqDownSolve!(csmc, dwnmsgs)
+    
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
+
+    # update clique subgraph with new status
+    # setCliqDrawColor(csmc.cliq, "lightblue")
+
+    # remove msg factors that were added to the subfg
+    rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
+
+    # store the cliqSubFg for later debugging
+    _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
+    #XXX
 
     converged_and_happy = true
 
@@ -528,19 +474,13 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
 
     else
       @error "X-5, clique $(csmc.cliq.index) failed in down solve"
-
       #propagate error to cleanly exit all cliques
-      beliefMsg = LikelihoodMessage(status=:ERROR_STATUS)
-      @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-        @info "X-5, $(csmc.cliq.index): put! error on edge $(isa(e,Graphs.Edge) ? e.index : e)"
-        @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
-      end
-      @error "X-5, $(csmc.cliq.index): Exit with error state"
+      putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
-
     end
   end
 
+  #TODO use prepSetCliqueMsgDownConsolidated
   #fill in belief
   beliefMsg = CliqDownMessage(csmc)
 
@@ -550,7 +490,7 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "msg to send down on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
   # pass through the frontal variables that were sent from above
-  downmsg = messages(csmc.cliq).downRx
+  downmsg = getMessageBuffer(csmc.cliq).downRx
   svars = getCliqSeparatorVarIds(csmc.cliq)
   if !isnothing(downmsg)
     pass_through_separators = intersect(svars, keys(downmsg.belief))
@@ -563,7 +503,7 @@ function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
+    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.messageChannels.messages[e.index].downMsg, beliefMsg)
   end
 
   logCSM(csmc, "$(csmc.cliq.index): clique solve completed")

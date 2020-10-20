@@ -407,6 +407,40 @@ export *,
   Ranged,
   PackedRanged
 
+# CSM Exports
+export  doCliqDownSolve_StateMachine,
+        cleanupAfterDownSolve_StateMachine,
+        specialCaseRootDownSolve_StateMachine,
+        canCliqDownSolve_StateMachine,
+        checkUpsolveFinished_StateMachine,
+        prepInitUp_StateMachine,
+        doCliqUpSolveInitialized_StateMachine,
+        rmUpLikeliSaveSubFg_StateMachine,
+        waitChangeOnParentCondition_StateMachine,
+        towardUpOrDwnSolve_StateMachine,
+        canCliqMargSkipUpSolve_StateMachine,
+        tryDwnInitCliq_StateMachine,
+        rmMsgLikelihoodsAfterDwn_StateMachine,
+        blockSiblingStatus_StateMachine,
+        slowIfChildrenNotUpSolved_StateMachine,
+        blockUntilChildrenHaveStatus_StateMachine,
+        dwnInitSiblingWaitOrder_StateMachine,
+        trafficRedirectConsolidate459_StateMachine,
+        doAllSiblingsNeedDwn_StateMachine,
+        maybeNeedDwnMsg_StateMachine,
+        determineCliqNeedDownMsg_StateMachine,
+        tryUpInitCliq_StateMachine,
+        slowWhileInit_StateMachine,
+        decideUpMsgOrInit_StateMachine,
+        attemptCliqInitUp_StateMachine,
+        sendCurrentUpMsg_StateMachine,
+        buildCliqSubgraph_StateMachine,
+        buildCliqSubgraphForDown_StateMachine,
+        isCliqUpSolved_StateMachine,
+        checkChildrenAllUpRecycled_StateMachine,
+        canCliqIncrRecycle_StateMachine,
+        canCliqMargRecycle_StateMachine
+
 
 const NothingUnion{T} = Union{Nothing, T}
 
@@ -440,10 +474,8 @@ include("NeedsResolution.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
-include("CSM_fetchvstake.jl") # to be deprecated as part of #855
 include("CSM_SiblDwnInit_fetch.jl")
 include("TreeMessageUtils.jl")
-include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
 # special variables and factors, see RoME.jl for more examples
@@ -472,7 +504,6 @@ include("CliqStateMachineUtils.jl")
 include("CSMOccuranceUtils.jl")
 
 #EXPERIMENTAL parametric
-include("SolveTree_Parametric.jl")
 include("CliqueStateMachine_take.jl")
 include("ParametricUtils.jl")
 
