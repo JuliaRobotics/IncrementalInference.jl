@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testInitVariableOrder.jl")
+
 include("testExpXstroke.jl")
 
 include("testBasicMargin.jl")
