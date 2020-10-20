@@ -31,7 +31,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # LITTLE WEIRD get previously set up msgs (stored in this clique)
     # FIXME, fetch message buffered in channels
   # see #855
-  for (idx,upmsg) in messages(csmc.cliq).upRx #get cached messages taken from children saved in this clique
+  for (idx,upmsg) in getMessageBuffer(csmc.cliq).upRx #get cached messages taken from children saved in this clique
     #TODO remove temp msgfcts container
     append!(msgfcts, addMsgFactors!(csmc.cliqSubFg, upmsg, UpwardPass) ) # addMsgFactors_Parametric!
   end
@@ -97,7 +97,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    messages(csmc.cliq).upTx = deepcopy(beliefMsg)
+    getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
@@ -120,7 +120,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   # TODO create function: 
   # updateMsgSeparators!(csmc.cliqSubFg, downmsg)
-  downmsg = messages(csmc.cliq).downRx  #see #855
+  downmsg = getMessageBuffer(csmc.cliq).downRx  #see #855
   svars = getCliqSeparatorVarIds(csmc.cliq)
   if !isnothing(downmsg)
     for (msym, belief) in downmsg.belief
@@ -188,7 +188,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     logCSM(csmc,  "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messages[e.index].downMsg, beliefMsg)
+    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
 
   logCSM(csmc, "$(csmc.cliq.index): Solve completed")

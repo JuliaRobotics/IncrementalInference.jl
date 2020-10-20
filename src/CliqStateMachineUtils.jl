@@ -220,7 +220,7 @@ function monitorCSMs(tree, alltasks; forceIntExc::Bool=false)
           else
             @error "Task $i failed, sending error to all cliques"
             bruteForcePushErrorCSM(tree)
-            # for tree.messages
+            # for tree.messageChannels
             @info "All cliques should have exited"
           end
         end
@@ -244,7 +244,7 @@ end
 
 function bruteForcePushErrorCSM(tree)
     errMsg = LikelihoodMessage(status=:ERROR_STATUS)
-    for (i, ch) in tree.messages
+    for (i, ch) in tree.messageChannels
 
         if isready(ch.upMsg)
             take!(ch.upMsg)
@@ -261,7 +261,7 @@ function bruteForcePushErrorCSM(tree)
 
     end
 
-    for (i, ch) in tree.messages
+    for (i, ch) in tree.messageChannels
 
         while isready(ch.upMsg)
             @debug "cleanup take on $i up"
@@ -437,7 +437,7 @@ Future
 - TODO: internal function chain is too long and needs to be refactored for maintainability.
 """
 function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
-                                childmsgs=fetchMsgsUpChildren(csmc, TreeBelief);
+                                childmsgs=LikelihoodMessage[];#fetchMsgsUpChildren(csmc, TreeBelief);
                                 N::Int=getSolverParams(csmc.cliqSubFg).N,
                                 dbg::Bool=getSolverParams(csmc.cliqSubFg).dbg,
                                 multiproc::Bool=getSolverParams(csmc.cliqSubFg).multiproc,

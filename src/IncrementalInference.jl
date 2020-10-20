@@ -474,10 +474,8 @@ include("NeedsResolution.jl")
 include("SubGraphFunctions.jl")
 include("JunctionTree.jl")
 include("TreeMessageAccessors.jl")
-include("CSM_fetchvstake.jl") # to be deprecated as part of #855
 include("CSM_SiblDwnInit_fetch.jl")
 include("TreeMessageUtils.jl")
-include("TreeMsgDwnConsolidation.jl")
 include("TreeBasedInitialization.jl")
 
 # special variables and factors, see RoME.jl for more examples

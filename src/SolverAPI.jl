@@ -479,7 +479,7 @@ function solveTree!(dfgl::AbstractDFG,
     end
   else # fall back is :default with take CSM
     if opt.async
-      error("not implemented yet")
+      @async smtasks, hist = taskSolveTree!(dfgl, tree         ;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     else
       # smtasks, hist = taskSolveTree!(dfgl, tree; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, runtaskmonitor=runtaskmonitor )
       smtasks, hist = taskSolveTree!(dfgl, tree         ;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
