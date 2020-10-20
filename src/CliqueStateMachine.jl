@@ -4,7 +4,7 @@
 
 EXPERIMENTAL: Init and start state machine.
 """
-function initStartCliqStateMachine_X!(dfg::AbstractDFG,
+function initStartCliqStateMachine!(dfg::AbstractDFG,
                                        tree::AbstractBayesTree,
                                        cliq::TreeClique,
                                        cliqKey::Int;
@@ -36,7 +36,7 @@ function initStartCliqStateMachine_X!(dfg::AbstractDFG,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
                                    cliqKey, algorithm) 
 
-  nxt = buildCliqSubgraph_X_StateMachine
+  nxt = buildCliqSubgraph_StateMachine
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
 
@@ -65,7 +65,7 @@ Build a sub factor graph for clique variables from the larger factor graph.
 Notes
 - Parametric State machine function nr.1
 """
-function buildCliqSubgraph_X_StateMachine(csmc::CliqStateMachineContainer)
+function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
   syms = getCliqAllVarIds(csmc.cliq)
 
@@ -79,7 +79,7 @@ function buildCliqSubgraph_X_StateMachine(csmc::CliqStateMachineContainer)
   _dbgCSMSaveSubFG(csmc, "fg_build")
 
   # go to 2 wait for up
-  return waitForUp_X_StateMachine
+  return waitForUp_StateMachine
 end
 
 """
@@ -89,7 +89,7 @@ Branching up state
 Notes
 - State machine function nr. 2
 """
-function waitForUp_X_StateMachine(csmc::CliqStateMachineContainer)
+function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "X-2, wait for up messages if needed")
 
@@ -126,14 +126,14 @@ function waitForUp_X_StateMachine(csmc::CliqStateMachineContainer)
       return IncrementalInference.exitStateMachine
     end
     
-    return waitForDown_X_StateMachine
+    return waitForDow_StateMachine
 
   elseif csmc.algorithm == :parametric 
     !all(all_child_status .== :UPSOLVED) && error("#FIXME")
     return solveUp_ParametricStateMachine
 
-  elseif true #TODO Currently all up goes through solveUp_X 
-    return solveUp_X_StateMachine
+  elseif true #TODO Currently all up goes through solveUp 
+    return solveUp_StateMachine
 
   else
     error("waitForUp State Error: Unknown transision.")
@@ -149,7 +149,7 @@ end
 Notes
 - Parametric state machine function nr. 3
 """
-function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
+function solveUp_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "X-3, Solving Up")
 
@@ -213,7 +213,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
     printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
-    logCSM(csmc, "X-3, solveUp_X try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqKey)
+    logCSM(csmc, "X-3, solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqKey)
   
     someInit ? setCliqDrawColor(csmc.cliq, "darkgreen") :  setCliqDrawColor(csmc.cliq, "lightgreen")
 
@@ -249,7 +249,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
       return IncrementalInference.exitStateMachine
     end
 
-    return waitForDown_X_StateMachine
+    return waitForDown_StateMachine
   end
 
   #fill in belief
@@ -275,7 +275,7 @@ function solveUp_X_StateMachine(csmc::CliqStateMachineContainer)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
-  return waitForDown_X_StateMachine
+  return waitForDown_StateMachine
 end
 
 
@@ -285,7 +285,7 @@ end
 Notes
 - State machine function waitForDown nr. 4
 """
-function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
+function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "X-4, wait for down messages if needed")
 
@@ -312,9 +312,9 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
       beliefMsg.status != :DOWNSOLVED && error("#FIXME")
       return solveDown_ParametricStateMachine
     elseif beliefMsg.status == :DOWNSOLVED 
-      return solveDown_X_StateMachine
+      return solveDown_StateMachine
     elseif beliefMsg.status == :INIT || beliefMsg.status == :NO_INIT
-      return tryDownInit_X_StateMachine
+      return tryDownInit_StateMachine
     else
       logCSM(csmc, "Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
       error("waitForDown State Error: Unknown/unimplemented transision.")
@@ -332,10 +332,10 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
   solveStatus = getCliqueStatus(csmc.cliq)
   logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
   if solveStatus in [:INIT, :NO_INIT]
-    return tryDownInit_X_StateMachine
+    return tryDownInit_StateMachine
   elseif solveStatus == :UPSOLVED
     setCliqueStatus!(csmc.cliq, :DOWNSOLVED)
-    return solveDown_X_StateMachine
+    return solveDown_StateMachine
   else
     error("unknown status root $solveStatus")
   end
@@ -343,7 +343,7 @@ function waitForDown_X_StateMachine(csmc::CliqStateMachineContainer)
 
 end
 
-function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
+function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
 
   setCliqDrawColor(csmc.cliq, "olive")
 
@@ -371,7 +371,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
     solveStatus = someInit ? :INIT : :NO_INIT
     
     deleteMsgFactors!(csmc.cliqSubFg, msgfcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
-    logCSM(csmc, "tryDownInit_X_StateMachine - removing factors, length=$(length(msgfcts))")
+    logCSM(csmc, "tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
 
     someInit ? setCliqDrawColor(csmc.cliq, "seagreen") :  setCliqDrawColor(csmc.cliq, "khaki")
 
@@ -404,7 +404,7 @@ function tryDownInit_X_StateMachine(csmc::CliqStateMachineContainer)
   deleteMsgFactors!(csmc.cliqSubFg) 
 
 
-  return waitForUp_X_StateMachine
+  return waitForUp_StateMachine
   
 end
 
@@ -434,7 +434,7 @@ end
 Notes
 - Parametric state machine function nr. 5
 """
-function solveDown_X_StateMachine(csmc::CliqStateMachineContainer)
+function solveDown_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "X-5, Solving down")
 

@@ -97,7 +97,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachine_X!(dfg, treel, cliq, cliqKey,
+    history = initStartCliqStateMachine!(dfg, treel, cliq, cliqKey,
                                                     drawtree=drawtree, verbose=verbose,
                                                     limititers=limititers, downsolve=downsolve,
                                                     recordhistory=recordthiscliq, incremental=incremental,

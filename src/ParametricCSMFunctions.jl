@@ -69,7 +69,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       return IncrementalInference.exitStateMachine
     end
 
-    return waitForDown_X_StateMachine
+    return waitForDown_StateMachine
   end
 
   # Done with solve delete factors
@@ -101,7 +101,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
-  return waitForDown_X_StateMachine
+  return waitForDown_StateMachine
 end
 
 
