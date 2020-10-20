@@ -1,18 +1,9 @@
 
-# """
-#     CliqStatus
-# Clique status message enumerated type with status.
-#
-# DevNotes
-# - Temporary convert to Symbol to support #459 consolidation effort
-# - Long term enum looks like a good idea (see #744)
-# """
-# @enum CliqStatus NULL INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
-const CliqStatus = Symbol
-## Currently same name by used as Symbol, e.g. :NULL, ...
-## Older status names
-# :null; :upsolved; :downsolved; :marginalized; :uprecycled,
-## FIXME, consolidate at end of #459 work
+"""
+    CliqStatus
+Clique status message enumerated type with status.
+"""
+@enum CliqStatus NULL NO_INIT INITIALIZED UPSOLVED MARGINALIZED DOWNSOLVED UPRECYCLED ERROR_STATUS
 
 
 # Used for UPWARD_DIFFERENTIAL, UPWARD_COMMON, DOWNWARD_COMMON marginalized types
@@ -116,7 +107,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
 end
 
 
-LikelihoodMessage(; status::CliqStatus=:null,
+LikelihoodMessage(; status::CliqStatus=NULL,
                     beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                     variableOrder::Vector{Symbol}=Symbol[],
                     cliqueLikelihood=nothing,

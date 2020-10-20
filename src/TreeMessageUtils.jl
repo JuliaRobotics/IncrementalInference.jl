@@ -405,7 +405,7 @@ DevNotes
 """
 function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
                                       cliq::TreeClique,
-                                      status::Symbol=getCliqueStatus(cliq);
+                                      status::CliqStatus=getCliqueStatus(cliq);
                                       logger=ConsoleLogger(),
                                       duplicate::Bool=true )
   #

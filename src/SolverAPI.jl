@@ -29,7 +29,7 @@ function taskSolveTree!(dfg::AbstractDFG,
                           smtasks=Task[],
                           algorithm::Symbol=:default)
   #
-  # revert :downsolved status to :initialized in preparation for new upsolve
+  # revert DOWNSOLVED status to INITIALIZED in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
@@ -138,7 +138,7 @@ function tryCliqStateMachineSolve!(dfg::G,
     close(logger.stream)
     rethrow()
   end
-  # if !(clst in [:upsolved; :downsolved; :marginalized])
+  # if !(clst in [UPSOLVED; DOWNSOLVED; MARGINALIZED])
   #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
   return history

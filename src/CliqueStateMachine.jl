@@ -2,7 +2,7 @@
 """
     $SIGNATURES
 
-EXPERIMENTAL: Init and start state machine.
+Init and start state machine.
 """
 function initStartCliqStateMachine!(dfg::AbstractDFG,
                                        tree::AbstractBayesTree,
@@ -63,7 +63,7 @@ end
 Build a sub factor graph for clique variables from the larger factor graph.
 
 Notes
-- Parametric State machine function nr.1
+- State machine function nr.1
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
@@ -88,6 +88,7 @@ end
 Branching up state
 Notes
 - State machine function nr. 2
+- Common state for handeling messages with take! approach
 """
 function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -116,7 +117,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
   # Main Branching happens here - all up messages received
 
   # If one up error is received propagate ERROR_STATUS 
-  if :ERROR_STATUS in all_child_status
+  if ERROR_STATUS in all_child_status
 
     putErrorUp(csmc)
     #if its a root, propagate error down
@@ -129,7 +130,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
     return waitForDow_StateMachine
 
   elseif csmc.algorithm == :parametric 
-    !all(all_child_status .== :UPSOLVED) && error("#FIXME")
+    !all(all_child_status .== UPSOLVED) && error("#FIXME")
     return solveUp_ParametricStateMachine
 
   elseif true #TODO Currently all up goes through solveUp 
@@ -166,18 +167,18 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   #UPSOLVE here
   all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
 
-  if all(all_child_status .== :UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if all(all_child_status .== UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
   end
 
-  if all(all_child_status .== :UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if all(all_child_status .== UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
     logCSM(csmc, "X-3 doing upSolve -- all initialized")
 
     __doCliqUpSolveInitialized!(csmc)
     
-    solveStatus = :UPSOLVED
+    solveStatus = UPSOLVED
     
     converged_and_happy = true
 
@@ -217,7 +218,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   
     someInit ? setCliqDrawColor(csmc.cliq, "darkgreen") :  setCliqDrawColor(csmc.cliq, "lightgreen")
 
-    solveStatus = someInit ? :INIT : :NO_INIT
+    solveStatus = someInit ? INITIALIZED : NO_INIT
     converged_and_happy = true
 
         ## FIXME init to whatever is in frontals
@@ -225,7 +226,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
         if init_for_differential #experimental_sommer_init_to_whatever_is_in_frontals
           foreach(fvar->getSolverData(fvar).initialized = false, frontal_vars)
           if someInit 
-            solveStatus = :UPSOLVED
+            solveStatus = UPSOLVED
           end
         end
         ## END EXPERIMENTAL
@@ -233,7 +234,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   else
     setCliqDrawColor(csmc.cliq, "brown")
     logCSM(csmc, "X-3, we are initialized but children need to init, don't do anything")
-    solveStatus = :INIT
+    solveStatus = INITIALIZED
     converged_and_happy = true
   end
   
@@ -304,16 +305,16 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
     # Down branching happens here
     
     # ERROR_STATUS
-    if beliefMsg.status == :ERROR_STATUS
+    if beliefMsg.status == ERROR_STATUS
       putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
 
     elseif csmc.algorithm == :parametric
-      beliefMsg.status != :DOWNSOLVED && error("#FIXME")
+      beliefMsg.status != DOWNSOLVED && error("#FIXME")
       return solveDown_ParametricStateMachine
-    elseif beliefMsg.status == :DOWNSOLVED 
+    elseif beliefMsg.status == DOWNSOLVED 
       return solveDown_StateMachine
-    elseif beliefMsg.status == :INIT || beliefMsg.status == :NO_INIT
+    elseif beliefMsg.status == INITIALIZED || beliefMsg.status == NO_INIT
       return tryDownInit_StateMachine
     else
       logCSM(csmc, "Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
@@ -331,10 +332,10 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
   #TODO improve
   solveStatus = getCliqueStatus(csmc.cliq)
   logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
-  if solveStatus in [:INIT, :NO_INIT]
+  if solveStatus in [INITIALIZED, NO_INIT]
     return tryDownInit_StateMachine
-  elseif solveStatus == :UPSOLVED
-    setCliqueStatus!(csmc.cliq, :DOWNSOLVED)
+  elseif solveStatus == UPSOLVED
+    setCliqueStatus!(csmc.cliq, DOWNSOLVED)
     return solveDown_StateMachine
   else
     error("unknown status root $solveStatus")
@@ -368,7 +369,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
     printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
     logCSM(csmc, "8m, tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
 
-    solveStatus = someInit ? :INIT : :NO_INIT
+    solveStatus = someInit ? INITIALIZED : NO_INIT
     
     deleteMsgFactors!(csmc.cliqSubFg, msgfcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
     logCSM(csmc, "tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
@@ -410,7 +411,7 @@ end
 
 
 
-function CliqDownMessage(csmc::CliqStateMachineContainer, status=:DOWNSOLVED)
+function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
 
   #JT TODO maybe use Tx buffer
   newDwnMsgs = LikelihoodMessage(status=status)

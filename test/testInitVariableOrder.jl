@@ -18,7 +18,7 @@ fg.solverParams.useMsgLikelihoods = true
 solveTree!(fg)
 
 # construct a message on :x3
-msg = LikelihoodMessage(status=:UPSOLVED)
+msg = LikelihoodMessage(status=IIF.UPSOLVED)
 seps = [:x3]
 for vid in seps
   var = DFG.getVariable(fg, vid)
@@ -31,7 +31,7 @@ addMsgFactors!(fg, msg, IIF.UpwardPass)
 @test getCliqVarInitOrderUp(fg) == [:x3, :x0, :lm0, :x2, :x1]
 
 # construct a message on :lm0,:x2
-msg = LikelihoodMessage(status=:UPSOLVED, hasPriors=false)
+msg = LikelihoodMessage(status=IIF.UPSOLVED, hasPriors=false)
 seps = [:lm0, :x2]
 for vid in seps
     var = DFG.getVariable(fg, vid)

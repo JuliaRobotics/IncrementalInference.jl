@@ -4,11 +4,11 @@ export blockCliqSiblingsParentNeedDown
 
 
 function isCliqInitialized(cliq::TreeClique)::Bool
-  return getCliqueData(cliq).initialized in [:initialized; :upsolved]
+  return getCliqueData(cliq).initialized in [INITIALIZED; UPSOLVED]
 end
 
 function isCliqUpSolved(cliq::TreeClique)::Bool
-  return getCliqueData(cliq).initialized == :upsolved
+  return getCliqueData(cliq).initialized == UPSOLVED
 end
 
 
@@ -128,7 +128,7 @@ function areCliqVariablesAllInitialized(dfg::AbstractDFG,
 end
 
 
-
+#XXX
 """
     $SIGNATURES
 
@@ -145,7 +145,7 @@ function areCliqVariablesAllMarginalized( subfg::AbstractDFG,
   return true
 end
 
-
+#XXX
 """
     $SIGNATURES
 
@@ -162,7 +162,7 @@ function areCliqChildrenAllUpSolved(treel::AbstractBayesTree,
   return true
 end
 
-
+#XXX
 """
     $SIGNATURES
 
@@ -181,7 +181,7 @@ function doAnyChildrenNeedDwnMsg(tree::AbstractBayesTree, cliq::TreeClique)::Boo
   doAnyChildrenNeedDwnMsg( getChildren(tree, cliq) )
 end
 
-
+#XXX
 """
     $SIGNATURES
 
@@ -199,16 +199,16 @@ function isCliqParentNeedDownMsg(tree::AbstractBayesTree, cliq::TreeClique, logg
   return prstat == :needdownmsg
 end
 
-
+#XXX
 """
     $SIGNATURES
 
 Wait here if all siblings and the parent status are `:needdownmsg`.
-Return true when parent is `:initialized` after all were `:needdownmsg`
+Return true when parent is `INITIALIZED` after all were `:needdownmsg`
 
 Notes
 - used for regulating long need down message chains.
-- exit strategy is parent becomes status `:initialized`.
+- exit strategy is parent becomes status `INITIALIZED`.
 """
 function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
                                           cliq::TreeClique,
@@ -230,7 +230,7 @@ function blockCliqSiblingsParentNeedDown( tree::AbstractBayesTree,
     if allneeddwn
       # do actual fetch
       prtmsg = fetchDwnMsgConsolidated(prnt_).status
-      if prtmsg == :initialized
+      if prtmsg == INITIALIZED
         return true
       end
     end
