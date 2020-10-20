@@ -1412,6 +1412,22 @@ function updateTreeCliquesAsMarginalizedFromVars!(fgl::AbstractDFG, tree::Abstra
 end
 
 
+"""
+    $SIGNATURES
+
+Return `::Bool` on whether all variables in this `cliq` are marginalzed.
+"""
+function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
+  Base.depwarn("isCliqMarginalizedFromVars is deprecated", :isCliqMarginalizedFromVars)
+  for vert in getCliqVars(subfg, cliq)
+    if !isMarginalized(vert)
+      return false
+    end
+  end
+  return true
+end
+
+
 # NOTE I only saw this function after I replace all the functions with _dbgCSMSaveSubFG
 # I consolidated the 2 and think this one can therefore be deprecated. Unless you use it 
 # separate from a CSMC

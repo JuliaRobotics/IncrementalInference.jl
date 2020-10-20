@@ -324,21 +324,6 @@ end
 """
     $SIGNATURES
 
-Return `::Bool` on whether all variables in this `cliq` are marginalzed.
-"""
-function isCliqMarginalizedFromVars(subfg::AbstractDFG, cliq::TreeClique)
-  for vert in getCliqVars(subfg, cliq)
-    if !isMarginalized(vert)
-      return false
-    end
-  end
-  return true
-end
-
-
-"""
-    $SIGNATURES
-
 Reset the Bayes (Junction) tree so that a new upsolve can be performed.
 
 Notes
