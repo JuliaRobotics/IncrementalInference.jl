@@ -85,9 +85,10 @@ function tryCliqStateMachineSolve!(dfg::G,
   clst = :na
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
   syms = getCliqFrontalVarIds(cliq) # ids =
-  # TODO JT Removed old tree reuse
-  # oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
-  # oldcliqdata = getCliqueData(oldcliq)
+  
+  oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
+  oldcliqdata = getCliqueData(oldcliq)
+
   opts = getSolverParams(dfg)
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.index)/"))
@@ -97,12 +98,13 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachine!(dfg, treel, cliq, cliqKey,
-                                                    drawtree=drawtree, verbose=verbose,
-                                                    limititers=limititers, downsolve=downsolve,
-                                                    recordhistory=recordthiscliq, incremental=incremental,
-                                                    delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
-                                                    algorithm=algorithm )
+    history = initStartCliqStateMachine!(dfg, treel, cliq, cliqKey;
+                                         oldcliqdata=oldcliqdata,
+                                         drawtree=drawtree, verbose=verbose,
+                                         limititers=limititers, downsolve=downsolve,
+                                         recordhistory=recordthiscliq, incremental=incremental,
+                                         delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
+                                         algorithm=algorithm )
     #
     # cliqHistories[cliqKey] = history
     if length(history) >= limititers && limititers != -1

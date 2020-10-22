@@ -48,8 +48,14 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   end
 
   logCSM(csmc, "Clique $(csmc.cliq.index) starting", loglevel=Logging.Info)
+  
+  #TODO
+  # timeout
+  # verbosefid=verbosefid
+  # housekeeping_cb=csmiter_cb
+  # injectDelayBefore=injectDelayBefore
 
-  while statemachine(csmc, verbose=verbose, iterlimit=limititers, recordhistory=recordhistory)
+  while statemachine(csmc, verbose=verbose, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory)
     !isnothing(solve_progressbar) && next!(solve_progressbar)
   end
 
@@ -512,6 +518,8 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   end
 
   logCSM(csmc, "$(csmc.cliq.index): clique down solve completed")
+
+  setCliqueStatus!(csmc.cliq, DOWNSOLVED) 
 
   return updateFromSubgraph_StateMachine
 
