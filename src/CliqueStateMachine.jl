@@ -276,7 +276,11 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
-  return waitForDown_StateMachine
+  if opts.downsolve
+    return waitForDown_StateMachine
+  else
+    return updateFromSubgraph_StateMachine
+  end
 end
 
 

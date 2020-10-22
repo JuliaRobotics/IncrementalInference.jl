@@ -113,7 +113,7 @@ include("testDeadReckoningTether.jl")
 
 include("testCSMMonitor.jl")
 
-
+include("testSkipUpDown.jl")
 
 
 #
