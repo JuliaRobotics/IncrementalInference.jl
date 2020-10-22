@@ -206,7 +206,16 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  return solveUp_StateMachine
+  if all(all_child_status .== UPSOLVED) 
+    return solveUp_StateMachine
+  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+    return initUp_StateMachine
+  else
+    setCliqDrawColor(csmc.cliq, "brown")
+    logCSM(csmc, "X-3, we are initialized but children need to init, don't do anything")
+    setCliqueStatus!(csmc.cliq, INITIALIZED)
+    return postUpSolve_StateMachine
+  end
 end
 
 """
@@ -215,34 +224,8 @@ end
 Notes
 - State machine function nr. #XXX
 """
-function solveUp_StateMachine(csmc::CliqStateMachineContainer)
-  
-  logCSM(csmc, "X-3, Solving Up")
+function initUp_StateMachine(csmc)
 
-  setCliqDrawColor(csmc.cliq, "red")
-  opts = getSolverParams(csmc.dfg)
-
-  all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
-
-  #UPSOLVE here
-  
-  if all(all_child_status .== UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
-    logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
-    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
-  end
-
-  if all(all_child_status .== UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
-    logCSM(csmc, "X-3 doing upSolve -- all initialized")
-
-    __doCliqUpSolveInitialized!(csmc)
-    
-    solveStatus = UPSOLVED
-    
-    converged_and_happy = true
-
-  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
-    
         # FIXME experimental init to whatever is in frontals
         # should work if linear manifold
         # hardcoded off 
@@ -278,7 +261,6 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     someInit ? setCliqDrawColor(csmc.cliq, "darkgreen") :  setCliqDrawColor(csmc.cliq, "lightgreen")
 
     solveStatus = someInit ? INITIALIZED : NO_INIT
-    converged_and_happy = true
 
         ## FIXME init to whatever is in frontals
         # set frontals init back to false
@@ -289,30 +271,59 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
           end
         end
         ## END EXPERIMENTAL
+  
+  setCliqueStatus!(csmc.cliq, solveStatus)
+  
+  return postUpSolve_StateMachine
 
+end
+
+
+"""
+  $SIGNATURES
+
+Notes
+- State machine function nr. #XXX
+"""
+function solveUp_StateMachine(csmc::CliqStateMachineContainer)
+  
+  logCSM(csmc, "X-3, Solving Up")
+
+  setCliqDrawColor(csmc.cliq, "red")
+
+  #Make sure all are initialized
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+    logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
+    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+  end
+
+  # Check again  
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+    logCSM(csmc, "X-3 doing upSolve -- all initialized")
+
+    __doCliqUpSolveInitialized!(csmc)
+    
+    setCliqueStatus!(csmc.cliq, UPSOLVED)
+  
   else
-    setCliqDrawColor(csmc.cliq, "brown")
-    logCSM(csmc, "X-3, we are initialized but children need to init, don't do anything")
-    solveStatus = INITIALIZED
-    converged_and_happy = true
+    logCSM(csmc, "X-3 solveUp -- all children upsolved, but init failed (likeley should not happen)")
   end
   
+  # if converged_and_happy
 
-  if converged_and_happy
+  # else # something went wrong propagate error
+  #   @error "X-3, something wrong with solve up" 
+  #   # propagate error to cleanly exit all cliques
+  #   putErrorUp(csmc)
+  #   if length(getParent(csmc.tree, csmc.cliq)) == 0
+  #     putErrorDown(csmc)
+  #     return IncrementalInference.exitStateMachine
+  #   end
 
-  else # something went wrong propagate error
-    @error "X-3, something wrong with solve up" 
-    # propagate error to cleanly exit all cliques
-    putErrorUp(csmc)
-    if length(getParent(csmc.tree, csmc.cliq)) == 0
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
-    end
+  #   return waitForDown_StateMachine
+  # end
 
-    return waitForDown_StateMachine
-  end
-
-  setCliqueStatus!(csmc.cliq, solveStatus)
 
   return postUpSolve_StateMachine
 end
