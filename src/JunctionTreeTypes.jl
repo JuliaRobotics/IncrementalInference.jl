@@ -272,14 +272,14 @@ mutable struct BayesTreeNodeData
   isCliqReused::Bool             # holdover
 
   # keep the Condition and Channel{Int}'s for now
-  solveCondition::Condition
+  solveCondition::Condition #XXX Remove
 
   # FIXME consolidate Dict with LikelihoodMessage (#910), and pull model (#674)
-  solvableDims::Channel{Dict{Symbol, Float64}}
+  solvableDims::Channel{Dict{Symbol, Float64}}#XXX Remove
 
   # Consolidation for #459 complete!
-  upMsgChannel::Channel{LikelihoodMessage}
-  dwnMsgChannel::Channel{LikelihoodMessage}
+  upMsgChannel::Channel{LikelihoodMessage}#XXX Remove
+  dwnMsgChannel::Channel{LikelihoodMessage}#XXX Remove
 
   ## DF THIS MUST BE consolidated with BTND.up[/dwn]MsgChannel -- ONLY A SINGLE LOCATION CAN REMAIN
   # JT Local messages saved for cache and debuging 

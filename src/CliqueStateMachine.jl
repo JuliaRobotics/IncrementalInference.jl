@@ -37,6 +37,8 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                    cliqKey, algorithm) 
 
   nxt = buildCliqSubgraph_StateMachine
+  !upsolve && !downsolve && error("must attempt either up or down solve")
+  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
 
@@ -52,10 +54,9 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   #TODO
   # timeout
   # verbosefid=verbosefid
-  # housekeeping_cb=csmiter_cb
   # injectDelayBefore=injectDelayBefore
 
-  while statemachine(csmc, verbose=verbose, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory)
+  while statemachine(csmc; verbose=verbose, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb)
     !isnothing(solve_progressbar) && next!(solve_progressbar)
   end
 

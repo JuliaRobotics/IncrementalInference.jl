@@ -365,7 +365,7 @@ function solveTree!(dfgl::AbstractDFG,
 
   # if debugging and not async then also print the CSMHistory
   if opt.dbg && !opt.async
-    printCliqHistorySequential(hist, nothing, joinLogPath(dfgl,"HistoryCSMAll.txt") )
+    printCSMHistorySequential(hist, joinLogPath(dfgl,"HistoryCSMAll.txt") )
   end
 
   return oldtree, smtasks, hist
