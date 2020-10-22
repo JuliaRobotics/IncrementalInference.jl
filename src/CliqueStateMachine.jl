@@ -433,7 +433,7 @@ end
     $SIGNATURES
 
 Notes
-- Parametric state machine function nr. 5
+- State machine function nr. 5
 """
 function solveDown_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -507,33 +507,51 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.messageChannels.messages[e.index].downMsg, beliefMsg)
   end
 
-  logCSM(csmc, "$(csmc.cliq.index): clique solve completed")
+  logCSM(csmc, "$(csmc.cliq.index): clique down solve completed")
 
-  if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-    #Update frontal variables here 
+  return updateFromSubgraph_StateMachine
 
-    # set PPE and solved for all frontals
-    for sym in getCliqFrontalVarIds(csmc.cliq)
-      # set PPE in cliqSubFg
-      setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-      # set solved flag
-      vari = getVariable(csmc.cliqSubFg, sym)
-      setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
-    end
+end
 
-    # transfer results to main factor graph
-    frsyms = getCliqFrontalVarIds(csmc.cliq)
-    logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
-    #solve finished change color
-    setCliqDrawColor(csmc.cliq, "lightblue")
-    # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
-    logCSM(csmc, "Clique $(csmc.cliq.index) finished", loglevel=Logging.Info)
-    return IncrementalInference.exitStateMachine
-  else
-    #seems like a nice place to update remote variables here
-    return updateRemote_ExpStateMachine
+"""
+    $SIGNATURES
+
+The last step in CSM to update the main FG from the sub FG.
+
+Notes
+- CSM function #XXX
+"""
+function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
+  
+  # NOTE possible future use for things like retry on CGDFGs 
+  # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
+  # else
+  #   #seems like a nice place to update remote variables here
+  #   return updateRemote_ExpStateMachine
+  # end
+
+  #Update frontal variables here 
+
+  # set PPE and solved for all frontals
+  for sym in getCliqFrontalVarIds(csmc.cliq)
+    # set PPE in cliqSubFg
+    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+    # set solved flag
+    vari = getVariable(csmc.cliqSubFg, sym)
+    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
   end
+
+  # transfer results to main factor graph
+  frsyms = getCliqFrontalVarIds(csmc.cliq)
+  logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
+
+  #solve finished change color
+  setCliqDrawColor(csmc.cliq, "lightblue")
+
+  logCSM(csmc, "Clique $(csmc.cliq.index) finished", loglevel=Logging.Info)
+  return IncrementalInference.exitStateMachine
+
 end
