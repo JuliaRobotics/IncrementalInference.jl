@@ -9,13 +9,7 @@ using Cairo, RoMEPlotting
 Gadfly.set_default_plot_size(35cm,20cm)
 
 
-## Ground truth and parameters
-gt = Dict{Symbol, Matrix{Float64}}()
-# HMM computed ground truth for first 3 poses only
-gt[:x1]=[-100.0 0.0; 1.96 1.96]
-gt[:x2]=[-50.0 50; 3.1 3.1]
-gt[:x3]=[100.0 0.0; 3.05 3.05]
-
+## example parameters
 # Number of kernels representing each marginal belief
 N=100
 
@@ -84,22 +78,4 @@ pl |> PNG("4doors.png") # can also do SVG, PDF
 # drawTree(tree, show=true) # using Graphviz and Linux evince for pdf
 
 
-
-
-
-
-
-
-
-
-
-# if false
 #
-#   # draw upward messages
-#   msgPlots=drawTreeUpwardMsgs(fg, tree, N=500); # to init memory for eval(parse(string))
-#   println("Upward messages for all cliques except root")
-#   # vvMsgs = vstackedDensities(fg, tree, msgPlots)
-#   Gadfly.set_default_plot_size(17cm, 15cm)
-#   Gadfly.draw(PNG("results/testMsgs.png",17cm,15cm),vvMsgs)
-#   # vvMsgs
-# end
