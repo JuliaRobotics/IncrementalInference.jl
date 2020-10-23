@@ -193,36 +193,22 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "$(csmc.cliq.index): Solve completed")
 
-  if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-    #TODO update frontal variables here directly
-    frontsyms = getFrontals(csmc.cliq)
-    transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
+  return updateFromSubgraph_ParametricStateMachine
 
-    #solve finished change color
-    setCliqDrawColor(csmc.cliq, "lightblue")
-    # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
-
-    logCSM(csmc, "$(csmc.cliq.index): Finished")
-    return IncrementalInference.exitStateMachine
-  else
-    #seems like a nice place to update remote variables here
-    return updateRemote_ParametricStateMachine
-  end
 end
 
-"""
-    $SIGNATURES
+#TODO Consolidate with updateFromSubgraph_StateMachine
+function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
-Notes
-- Parametric state machine function nr. 6
-"""
-function updateRemote_ParametricStateMachine(csmc::CliqStateMachineContainer)
+  # transfer results to main factor graph
+  frontsyms = getFrontals(csmc.cliq)
+  logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frontsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
 
-  infocsm(csmc, "Par-6, Updating Remote")
-  #TODO update frontal variables remotely here
-  #NOTE a new state is made to allow for coms retries and error traping kind of behaviour
+  #solve finished change color
+  setCliqDrawColor(csmc.cliq, "lightblue")
 
-  @info "$(csmc.cliq.index): Finish en klaar"
+  logCSM(csmc, "Clique $(csmc.cliq.index): Finished", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine
 
 end

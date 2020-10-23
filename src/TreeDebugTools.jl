@@ -160,32 +160,37 @@ function printHistoryLine(fid,
   for i in length(first):53  first = first*" "; end
   # parent status
   first *= " P "
-  if 0 < length(hi[4].parentCliq)
-    first = first*"$(hi[4].parentCliq[1].index)"*string(getCliqueStatus(hi[4].parentCliq[1]))
+  downRxMessage = getMessageBuffer(hi[4].cliq).downRx
+  if !isnothing(downRxMessage)
+    #TODO maybe don't use tree here
+    first = first*"$(getParent(hi[4].tree, hi[4].cliq)[1].index):$(downRxMessage.status)"
   else
     first = first*"----"
   end
-  for i in length(first):69  first = first*" "; end
+  for i in length(first):70  first = first*" "; end
   # children status
   first = first*"C "
-  if 0 < length(hi[4].childCliqs)
-    for ch in hi[4].childCliqs
-      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
+
+  upRxMessages = getMessageBuffer(hi[4].cliq).upRx
+  # all_child_status = map((k,msg) -> (k,msg.status), pairs(upRxMessages))
+  if length(upRxMessages) > 0
+    for (k,msg) in upRxMessages
+      first = first*string(k)*":"*string(msg.status)*" "
     end
   else
     first = first*"---- "
   end
-  # sibling status
-  first *= "|S| "
-  if 0 < length(hi[4].parentCliq)
-    frt = (hi[4].parentCliq[1] |> getFrontals)[1]
-    childs = getChildren(hi[4].tree, frt)
-    # remove current clique to leave only siblings
-    filter!(x->x.index!=hi[4].cliq.index, childs)
-    for ch in childs
-      first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
-    end
-  end
+  # sibling status # TODO JT removed but kept for future if needed
+  # first *= "|S| "
+  # if 0 < length(hi[4].parentCliq)
+  #   frt = (hi[4].parentCliq[1] |> getFrontals)[1]
+  #   childs = getChildren(hi[4].tree, frt)
+  #   # remove current clique to leave only siblings
+  #   filter!(x->x.index!=hi[4].cliq.index, childs)
+  #   for ch in childs
+  #     first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
+  #   end
+  # end
 
   println(fid, first)
 end
@@ -310,7 +315,7 @@ function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, F
   #
   @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
   file = open(fid, "w")
-  printCSMHistorySequential(hists, file)
+  printCSMHistorySequential(hists, nothing, file)
   close(file)
   nothing
 end
