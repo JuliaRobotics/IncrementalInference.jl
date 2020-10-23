@@ -70,7 +70,7 @@ addFactor!(fg,[:x4], doorPrior)
 tree, smt, hists = solveTree!(fg)
 
 # list variables and factors in fg
-@show ls(fg)
+@show ls(fg) # |> sortDFG
 @show lsf(fg)
 
 ## draw all beliefs
