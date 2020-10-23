@@ -104,3 +104,37 @@ for i = [2,4,6]
 end
 
 end
+
+
+@testset "Testing basic incremental recycle" begin
+
+fg = generateCanonicalFG_lineStep(3; 
+                                   poseEvery=1, 
+                                   landmarkEvery=3, 
+                                   posePriorsAt=[],
+                                   landmarkPriorsAt=[0], 
+                                   sightDistance=2,
+                                   solverParams=SolverParams(algorithms=[:default, :parametric]))
+
+getSolverParams(fg).graphinit = false
+getSolverParams(fg).treeinit = true
+# getSolverParams(fg).dbg = true
+
+# tree = resetBuildTree!(fg, drawpdf=true, show=true)
+
+smtasks = Task[]
+tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
+
+addFactor!(fg, [:lm3], Prior(Normal(3, 0.1)), graphinit=false)
+_, _, hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
+
+@test !(IIF.solveUp_StateMachine in getindex.(hists[4], 3))
+
+for var in sortDFG(ls(fg))
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    println("Testing ", var,": ", sppe)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+end
+
+
+end

@@ -38,7 +38,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
-  nxt = recycleClique_StateMachine
+  nxt = setCliqueRecycling_StateMachine
 
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
@@ -70,24 +70,28 @@ end
 """
     $SIGNATURES
 
-Recycle clique functions
+Recycle clique setup for later uses
 
 Notes
 - State machine function nr.0
 """
-function recycleClique_StateMachine(csmc::CliqStateMachineContainer)
+function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
+  
+  oldstatus = getCliqueStatus(csmc.oldcliqdata)
+  
   # canCliqMargRecycle
   if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
+    #TODO is this used?
     getCliqueData(csmc.cliq).allmarginalized = true
-  end
+    setCliqueStatus!(csmc.cliq, MARGINALIZED)
 
-  #  canCliqIncrRecycle
+  # canCliqIncrRecycle
   # check if should be trying and can recycle clique computations
-  oldstatus = getCliqueStatus(csmc.oldcliqdata)
-  if csmc.incremental && oldstatus == DOWNSOLVED
+  elseif csmc.incremental && oldstatus == DOWNSOLVED
+    #TODO is this used?    
     csmc.cliq.data.isCliqReused = true
-    logCSM(csmc, "CSM-0, Incremental recycle clique $(csmc.cliqKey) as $oldstatus"; loglevel=Logging.Warn)
-    setCliqueStatus!(csmc.cliq, oldstatus)
+    logCSM(csmc, "CSM-0, Incremental recycle clique $(csmc.cliqKey) from $oldstatus")
+    setCliqueStatus!(csmc.cliq, UPRECYCLED)
   end
 
   return buildCliqSubgraph_StateMachine
@@ -192,9 +196,12 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
   
   logCSM(csmc, "preUpSolve_StateMachine with child status"; all_child_status=all_child_status)
+
+  all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
   
-  #TODO marginalized and recycled status
-  if getCliqueStatus(csmc.cliq) == UPSOLVED && all(all_child_status .== UPSOLVED)
+  #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
+  #no need to solve
+  if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
     logCSM(csmc, "Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))"; loglevel=Logging.Info)
     return postUpSolve_StateMachine
   end
@@ -206,7 +213,8 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  if all(all_child_status .== UPSOLVED) 
+  # if all(all_child_status .== UPSOLVED) 
+  if all_child_finished_up
     return solveUp_StateMachine
   elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     return initUp_StateMachine
@@ -421,8 +429,12 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
   if solveStatus in [INITIALIZED, NO_INIT]
     return tryDownInit_StateMachine
-  elseif solveStatus == UPSOLVED
-    setCliqueStatus!(csmc.cliq, DOWNSOLVED)
+  elseif solveStatus in [UPSOLVED, UPRECYCLED, MARGINALIZED]
+    if solveStatus == MARGINALIZED
+      setCliqueStatus!(csmc.cliq, MARGINALIZED)
+    else
+      setCliqueStatus!(csmc.cliq, DOWNSOLVED)
+    end
     return solveDown_StateMachine
   else
     error("unknown status root $solveStatus")
