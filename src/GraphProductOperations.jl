@@ -292,18 +292,23 @@ localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N
 
 Basic wrapper to take local product and then set the value of `sym` in `dfg`.
 
+Notes
+- returns `::Tuple{BallTreeDensity, Float64, Vector{Symbol}}`
+
 DevNotes:
 - Unknown issue first occurred here near IIF v0.8.4 tag, recorded case at 2020-01-17T15:26:17.673
 """
 function localProductAndUpdate!(dfg::AbstractDFG,
                                 sym::Symbol,
                                 setkde::Bool=true,
-                                logger=ConsoleLogger() )::Tuple{BallTreeDensity, Float64, Vector{Symbol}}
+                                logger=ConsoleLogger() )
   #
-  pp, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
-  setkde ? setValKDE!(dfg, sym, pp, false, infdim) : nothing
+  # calculate new points for sym using existing structure around sym in dfg
+  newPts, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
+  # maybe update dfg sym with newly calculated points
+  setkde && 0 < size(getPoints(newPts),2) ? setValKDE!(dfg, sym, newPts, false, infdim) : nothing
 
-  return pp, infdim, lbl
+  return newPts, infdim, lbl
 end
 
 
