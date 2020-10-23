@@ -175,6 +175,9 @@ export *,
   printVariable,
   printFactor,
   getTimestamp,
+  deepcopyGraph,
+  deepcopyGraph!,
+  copyGraph!,
 
   # using either dictionary or cloudgraphs
   FactorMetadata,
