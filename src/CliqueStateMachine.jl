@@ -197,21 +197,24 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   
   logCSM(csmc, "preUpSolve_StateMachine with child status"; all_child_status=all_child_status)
 
-  all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
-  
-  #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
-  #no need to solve
-  if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
-    logCSM(csmc, "Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))"; loglevel=Logging.Info)
-    return postUpSolve_StateMachine
-  end
-
+  #TODO perhaps don't add for MARGINALIZED 
+  # always add messages in case its needed for downsolve (needed for differential)
   # add message factors from upRx: cached messages taken from children saved in this clique
   addMsgFactors!(csmc.cliqSubFg, getMessageBuffer(csmc.cliq).upRx, UpwardPass)
   logCSM(csmc, "messages for up"; upmsg=lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE]))
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
+
+
+  all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
+
+  #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
+  #no need to solve
+  if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
+    logCSM(csmc, "Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
+    return postUpSolve_StateMachine
+  end
 
   # if all(all_child_status .== UPSOLVED) 
   if all_child_finished_up
@@ -541,8 +544,8 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "maroon")
 
   # DownSolve cliqSubFg
-  #only down solve if its not a root
-  if length(getParent(csmc.tree, csmc.cliq)) != 0
+  #only down solve if its not a root and not MARGINALIZED
+  if length(getParent(csmc.tree, csmc.cliq)) != 0 && getCliqueStatus(csmc.cliq) != MARGINALIZED
     
     # TODO we can monitor the solve here to give it a timeout
     # add messages, do downsolve, remove messages
