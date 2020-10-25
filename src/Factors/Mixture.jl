@@ -74,6 +74,9 @@ end
 #
 
 
+function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N,F,S,T}
+  return F <: AbstractPrior
+end
 
 """
 $(TYPEDEF)
