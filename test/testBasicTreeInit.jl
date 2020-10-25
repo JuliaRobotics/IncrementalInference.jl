@@ -9,7 +9,7 @@ tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 
 @test haskey(hist, 1)
 
-@test hist[1] |> length == 7
+@test hist[1] |> length == 10
 
 end
 

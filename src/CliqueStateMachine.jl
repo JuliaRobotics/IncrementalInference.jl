@@ -36,8 +36,10 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
                                    cliqKey, algorithm) 
 
-  nxt = buildCliqSubgraph_StateMachine
   !upsolve && !downsolve && error("must attempt either up or down solve")
+  # nxt = buildCliqSubgraph_StateMachine
+  nxt = setCliqueRecycling_StateMachine
+
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
 
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(cliq.index)")
@@ -61,6 +63,38 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   end
 
   return statemachine.history
+
+end
+
+
+"""
+    $SIGNATURES
+
+Recycle clique setup for later uses
+
+Notes
+- State machine function nr.0
+"""
+function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
+  
+  oldstatus = getCliqueStatus(csmc.oldcliqdata)
+  
+  # canCliqMargRecycle
+  if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
+    #TODO is this used?
+    getCliqueData(csmc.cliq).allmarginalized = true
+    setCliqueStatus!(csmc.cliq, MARGINALIZED)
+
+  # canCliqIncrRecycle
+  # check if should be trying and can recycle clique computations
+  elseif csmc.incremental && oldstatus == DOWNSOLVED
+    #TODO is this used?    
+    csmc.cliq.data.isCliqReused = true
+    logCSM(csmc, "CSM-0, Incremental recycle clique $(csmc.cliqKey) from $oldstatus")
+    setCliqueStatus!(csmc.cliq, UPRECYCLED)
+  end
+
+  return buildCliqSubgraph_StateMachine
 
 end
 
@@ -134,14 +168,14 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
       return IncrementalInference.exitStateMachine
     end
     
-    return waitForDow_StateMachine
+    return waitForDown_StateMachine
 
   elseif csmc.algorithm == :parametric 
     !all(all_child_status .== UPSOLVED) && error("#FIXME")
     return solveUp_ParametricStateMachine
 
   elseif true #TODO Currently all up goes through solveUp 
-    return solveUp_StateMachine
+    return preUpSolve_StateMachine
 
   else
     error("waitForUp State Error: Unknown transision.")
@@ -155,15 +189,16 @@ end
     $SIGNATURES
 
 Notes
-- Parametric state machine function nr. 3
+- State machine function nr. #XXX
 """
-function solveUp_StateMachine(csmc::CliqStateMachineContainer)
+function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
-  logCSM(csmc, "X-3, Solving Up")
+  all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
+  
+  logCSM(csmc, "preUpSolve_StateMachine with child status"; all_child_status=all_child_status)
 
-  setCliqDrawColor(csmc.cliq, "red")
-  opts = getSolverParams(csmc.dfg)
-
+  #TODO perhaps don't add for MARGINALIZED 
+  # always add messages in case its needed for downsolve (needed for differential)
   # add message factors from upRx: cached messages taken from children saved in this clique
   addMsgFactors!(csmc.cliqSubFg, getMessageBuffer(csmc.cliq).upRx, UpwardPass)
   logCSM(csmc, "messages for up"; upmsg=lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE]))
@@ -171,26 +206,37 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  #UPSOLVE here
-  all_child_status = map(msg -> msg.status, values(getMessageBuffer(csmc.cliq).upRx))
 
-  if all(all_child_status .== UPSOLVED) && !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
-    logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
-    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+  all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
+
+  #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
+  #no need to solve
+  if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
+    logCSM(csmc, "Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
+    return postUpSolve_StateMachine
   end
 
-  if all(all_child_status .== UPSOLVED) && areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
-    logCSM(csmc, "X-3 doing upSolve -- all initialized")
-
-    __doCliqUpSolveInitialized!(csmc)
-    
-    solveStatus = UPSOLVED
-    
-    converged_and_happy = true
-
+  # if all(all_child_status .== UPSOLVED) 
+  if all_child_finished_up
+    return solveUp_StateMachine
   elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
-    
+    return initUp_StateMachine
+  else
+    setCliqDrawColor(csmc.cliq, "brown")
+    logCSM(csmc, "X-3, we are initialized but children need to init, don't do anything")
+    setCliqueStatus!(csmc.cliq, INITIALIZED)
+    return postUpSolve_StateMachine
+  end
+end
+
+"""
+  $SIGNATURES
+
+Notes
+- State machine function nr. #XXX
+"""
+function initUp_StateMachine(csmc)
+
         # FIXME experimental init to whatever is in frontals
         # should work if linear manifold
         # hardcoded off 
@@ -226,7 +272,6 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     someInit ? setCliqDrawColor(csmc.cliq, "darkgreen") :  setCliqDrawColor(csmc.cliq, "lightgreen")
 
     solveStatus = someInit ? INITIALIZED : NO_INIT
-    converged_and_happy = true
 
         ## FIXME init to whatever is in frontals
         # set frontals init back to false
@@ -237,35 +282,77 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
           end
         end
         ## END EXPERIMENTAL
+  
+  setCliqueStatus!(csmc.cliq, solveStatus)
+  
+  return postUpSolve_StateMachine
 
+end
+
+
+"""
+  $SIGNATURES
+
+Notes
+- State machine function nr. #XXX
+"""
+function solveUp_StateMachine(csmc::CliqStateMachineContainer)
+  
+  logCSM(csmc, "X-3, Solving Up")
+
+  setCliqDrawColor(csmc.cliq, "red")
+
+  #Make sure all are initialized
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+    logCSM(csmc, "All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
+    varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+  end
+
+  # Check again  
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+    logCSM(csmc, "X-3 doing upSolve -- all initialized")
+
+    __doCliqUpSolveInitialized!(csmc)
+    
+    setCliqueStatus!(csmc.cliq, UPSOLVED)
+  
   else
-    setCliqDrawColor(csmc.cliq, "brown")
-    logCSM(csmc, "X-3, we are initialized but children need to init, don't do anything")
-    solveStatus = INITIALIZED
-    converged_and_happy = true
+    logCSM(csmc, "X-3 solveUp -- all children upsolved, but init failed (likeley should not happen)")
   end
   
+  # if converged_and_happy
 
-  if converged_and_happy
+  # else # something went wrong propagate error
+  #   @error "X-3, something wrong with solve up" 
+  #   # propagate error to cleanly exit all cliques
+  #   putErrorUp(csmc)
+  #   if length(getParent(csmc.tree, csmc.cliq)) == 0
+  #     putErrorDown(csmc)
+  #     return IncrementalInference.exitStateMachine
+  #   end
 
-  else # something went wrong propagate error
-    @error "X-3, something wrong with solve up" 
-    # propagate error to cleanly exit all cliques
-    putErrorUp(csmc)
-    if length(getParent(csmc.tree, csmc.cliq)) == 0
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
-    end
+  #   return waitForDown_StateMachine
+  # end
 
-    return waitForDown_StateMachine
-  end
 
+  return postUpSolve_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Post-upsolve remove message factors and send messages
+Notes
+- State machine function nr. #XXX
+"""
+function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
+
+  solveStatus = getCliqueStatus(csmc.cliq)
   #fill in belief
   beliefMsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
 
   logCSM(csmc, "X-3, prepCliqueMsgUpConsolidated", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
-  
-  setCliqueStatus!(csmc.cliq, solveStatus)
 
   # Done with solve delete factors
   # remove msg factors that were added to the subfg
@@ -283,7 +370,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 
-  if opts.downsolve
+  if getSolverParams(csmc.dfg).downsolve
     return waitForDown_StateMachine
   else
     return updateFromSubgraph_StateMachine
@@ -345,8 +432,12 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
   if solveStatus in [INITIALIZED, NO_INIT]
     return tryDownInit_StateMachine
-  elseif solveStatus == UPSOLVED
-    setCliqueStatus!(csmc.cliq, DOWNSOLVED)
+  elseif solveStatus in [UPSOLVED, UPRECYCLED, MARGINALIZED]
+    if solveStatus == MARGINALIZED
+      setCliqueStatus!(csmc.cliq, MARGINALIZED)
+    else
+      setCliqueStatus!(csmc.cliq, DOWNSOLVED)
+    end
     return solveDown_StateMachine
   else
     error("unknown status root $solveStatus")
@@ -453,8 +544,8 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "maroon")
 
   # DownSolve cliqSubFg
-  #only down solve if its not a root
-  if length(getParent(csmc.tree, csmc.cliq)) != 0
+  #only down solve if its not a root and not MARGINALIZED
+  if length(getParent(csmc.tree, csmc.cliq)) != 0 && getCliqueStatus(csmc.cliq) != MARGINALIZED
     
     # TODO we can monitor the solve here to give it a timeout
     # add messages, do downsolve, remove messages

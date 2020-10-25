@@ -9,7 +9,7 @@ include("testInitVariableOrder.jl")
 
 include("testExpXstroke.jl")
 
-include("testBasicMargin.jl")
+include("testBasicRecycling.jl")
 
 include("TestModuleFunctions.jl")
 
