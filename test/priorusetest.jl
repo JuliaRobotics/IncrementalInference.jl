@@ -43,6 +43,16 @@ x2_m = getKDEMean(getKDE(getVariable(fg, :x2)))[1]
 @test_skip isapprox(x1_m, 0.0, atol = 0.1)
 @test_skip isapprox(x2_m, 0.0, atol = 0.1)
 
+@warn "priorusetest.jl is testing with large tolerances"
+@test isapprox(x0_m, 0.0, atol = 1.0)
+@test isapprox(x1_m, 0.0, atol = 1.0)
+@test isapprox(x2_m, 0.0, atol = 1.0)
+
+#testing if values are close to one another
+testvals = [x0_m, x1_m, x2_m]
+meanval = mean(testvals)
+@test all(isapprox.(testvals, meanval, atol=0.3))
+
 end
 
 for  graphinit = graphinits
@@ -88,6 +98,18 @@ l1_m = getKDEMean(getKDE(getVariable(fg, :l1)))[1]
 @test_skip isapprox(x2_m, 0.0, atol = 0.1)
 @test_skip isapprox(l0_m, 0.0, atol = 0.1)
 @test_skip isapprox(l1_m, 0.0, atol = 0.1)
+
+@warn "priorusetest.jl is testing with large tolerances"
+@test isapprox(x0_m, 0.0, atol = 1.0)
+@test isapprox(x1_m, 0.0, atol = 1.0)
+@test isapprox(x2_m, 0.0, atol = 1.0)
+@test isapprox(l0_m, 0.0, atol = 1.0)
+@test isapprox(l1_m, 0.0, atol = 1.0)
+
+#testing if values are close to one another
+testvals = [x0_m, x1_m, x2_m, l0_m, l1_m]
+meanval = mean(testvals)
+@test all(isapprox.(testvals, meanval, atol=0.1))
 
 end
 
