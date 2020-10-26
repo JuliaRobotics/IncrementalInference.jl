@@ -355,8 +355,24 @@ function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "Skipping upsolve clique $(csmc.cliqKey)"; loglevel=Logging.Warn, st=getCliqueStatus(csmc.cliq))
   if getCliqueStatus(csmc.cliq) == NULL 
-    logCSM(csmc, "Clique $(csmc.cliqKey) status NULL, trying as UPSOLVED"; loglevel=Logging.Warn)
-    setCliqueStatus!(csmc.cliq, UPSOLVED)
+    logCSM(csmc, "Clique $(csmc.cliqKey) status NULL, trying as UPRECYCLED"; loglevel=Logging.Warn)
+    
+    # Are all variables solved at least once?
+    if all(getSolvedCount.(getVariables(csmc.cliqSubFg)) .> 0)
+      setCliqueStatus!(csmc.cliq, UPRECYCLED)
+    else
+      logCSM(csmc, "Clique $(csmc.cliqKey) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
+             loglevel=Logging.Error)
+      # propagate error to cleanly exit all cliques
+      putErrorUp(csmc)
+      if length(getParent(csmc.tree, csmc.cliq)) == 0
+        putErrorDown(csmc)
+        return IncrementalInference.exitStateMachine
+      end
+      return waitForDown_StateMachine
+
+    end
+
   end
 
   return postUpSolve_StateMachine
