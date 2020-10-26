@@ -43,4 +43,26 @@ addMsgFactors!(fg, msg, IIF.UpwardPass)
 
 @test getCliqVarInitOrderUp(fg) == [:x3, :x0, :lm0, :x1, :x2]
 
+
+# test order with mixture prior #998
+cv = 3.0
+doorPrior = Mixture(Prior,
+                    [Normal(-100,cv);Normal(0,cv);Normal(100,cv);Normal(300,cv)],
+                    [1/4;1/4;1/4;1/4] )
+
+                            
+fg = initfg()
+fg.solverParams.graphinit = false
+addVariable!(fg, :x0, ContinuousScalar)
+
+addFactor!(fg, [:x0], doorPrior)
+
+addVariable!(fg, :x1, ContinuousScalar)
+
+addFactor!(fg,[:x0; :x1], LinearRelative( Normal(0.0,1.0)))
+
+@test lsfPriors(fg) == [:x0f1]
+
+@test getCliqVarInitOrderUp(fg) == [:x0, :x1]
+
 end
