@@ -7,15 +7,7 @@ $(TYPEDEF)
 
 Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 """
-struct ContinuousScalar <: InferenceVariable
-  function ContinuousScalar(;manifolds=nothing)
-    manifolds !== nothing &&
-    Base.depwarn("ContinuousScalar keyword argument manifolds is deprecated.", :ContinuousScalar)
-    return new()
-  end
-end
-getDimension(::ContinuousScalar) = 1
-getManifolds(::ContinuousScalar) = (:Euclid,)
+@defVariable ContinuousScalar 1 (:Euclid,)
 
 """
 $(TYPEDEF)
