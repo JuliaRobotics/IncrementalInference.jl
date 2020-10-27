@@ -87,7 +87,7 @@ tree, smtasks, hists = solveTree!(fg, tree)#, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.25)
 end
 
 X1 = deepcopy(getVal(fg, :x1))
