@@ -151,8 +151,9 @@ Notes
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
 """
-function addLikelihoodsDifferential!(msgs::LikelihoodMessage, cliqSubFG::AbstractDFG,
-                                     tfg::AbstractDFG=initfg() )
+function addLikelihoodsDifferential!( msgs::LikelihoodMessage, 
+                                      cliqSubFG::AbstractDFG,
+                                      tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
   listVarByDim = Symbol[]
   for (label, val) in msgs.belief

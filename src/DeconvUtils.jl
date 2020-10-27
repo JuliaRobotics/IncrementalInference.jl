@@ -34,7 +34,10 @@ function solveFactorMeasurements(dfg::AbstractDFG,
   fcttype = getFactorType(fcto)
 
   N = size(vars[1])[2]
-  ud = FactorMetadata()
+  
+  # generate default fmd
+  ud = _defaultFactorMetadata(getVariable.(dfg,varsyms) )
+    # ud = FactorMetadata()
   meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
