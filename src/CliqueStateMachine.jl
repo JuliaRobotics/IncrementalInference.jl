@@ -463,10 +463,12 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
     elseif csmc.algorithm == :parametric
       beliefMsg.status != DOWNSOLVED && error("#FIXME")
       return solveDown_ParametricStateMachine
-    elseif beliefMsg.status == DOWNSOLVED 
-      return solveDown_StateMachine
-    elseif beliefMsg.status == INITIALIZED || beliefMsg.status == NO_INIT
-      return tryDownInit_StateMachine
+    elseif beliefMsg.status in [MARGINALIZED, DOWNSOLVED, INITIALIZED, NO_INIT]
+      return preDownSolve_StateMachine
+    # elseif beliefMsg.status == DOWNSOLVED 
+    #   return solveDown_StateMachine
+    # elseif beliefMsg.status == INITIALIZED || beliefMsg.status == NO_INIT
+    #   return tryDownInit_StateMachine
     else
       logCSM(csmc, "Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
       error("waitForDown State Error: Unknown/unimplemented transision.")
@@ -477,25 +479,9 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
     # The clique is a root
     # root clique down branching happens here
     return solveDown_ParametricStateMachine
+  else 
+    return preDownSolve_StateMachine
   end
-
-  # Special root case 
-  #TODO improve
-  solveStatus = getCliqueStatus(csmc.cliq)
-  logCSM(csmc, "root case"; status=solveStatus, c=csmc.cliqKey)
-  if solveStatus in [INITIALIZED, NO_INIT]
-    return tryDownInit_StateMachine
-  elseif solveStatus in [UPSOLVED, UPRECYCLED, MARGINALIZED]
-    if solveStatus == MARGINALIZED
-      setCliqueStatus!(csmc.cliq, MARGINALIZED)
-    else
-      setCliqueStatus!(csmc.cliq, DOWNSOLVED)
-    end
-    return solveDown_StateMachine
-  else
-    error("unknown status root $solveStatus")
-  end
-
 
 end
 
@@ -532,43 +518,74 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
 
   setCliqDrawColor(csmc.cliq, "olive")
 
-  if length(getParent(csmc.tree, csmc.cliq)) != 0
+  logCSM(csmc, "X-4a, Trying Down init -- all not initialized") 
     
-    dwnmsgs = getMessageBuffer(csmc.cliq).downRx
-    
-    msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-    
-    logCSM(csmc, "X-3, Trying Down init -- all not initialized")
-        
-    
-    # structure for all up message densities computed during this initialization procedure.
-    # XXX
-    dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
-    initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
-    # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
+  # structure for all up message densities computed during this initialization procedure.
+  # XXX
+  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
+  initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
+  # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
 
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, logger=csmc.logger)
-    # is clique fully upsolved or only partially?
-    # print out the partial init status of all vars in clique
-    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
-    logCSM(csmc, "8m, tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
+  someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, logger=csmc.logger)
+  # is clique fully upsolved or only partially?
+  # print out the partial init status of all vars in clique
+  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+  logCSM(csmc, "8m, tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
 
-    solveStatus = someInit ? INITIALIZED : NO_INIT
-    
-    deleteMsgFactors!(csmc.cliqSubFg, msgfcts) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
-    logCSM(csmc, "tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
-
-    someInit ? setCliqDrawColor(csmc.cliq, "seagreen") :  setCliqDrawColor(csmc.cliq, "khaki")
-
-  else
-    solveStatus = getCliqueStatus(csmc.cliq)
-  end
   
+  msgfcts = deleteMsgFactors!(csmc.cliqSubFg, [:DOWNWARD_COMMON;]) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
+  logCSM(csmc, "tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
+  
+  solveStatus = someInit ? INITIALIZED : NO_INIT
+  someInit ? setCliqDrawColor(csmc.cliq, "seagreen") :  setCliqDrawColor(csmc.cliq, "khaki")
   setCliqueStatus!(csmc.cliq, solveStatus)
 
   return postDownSolve_StateMachine
 end
 
+
+function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  logCSM(csmc, "X-5, Preparing for down init/solve")
+  
+  opts = getSolverParams(csmc.dfg)
+  
+  # get down msg from Rx buffer (saved in take!)
+  dwnmsgs = getMessageBuffer(csmc.cliq).downRx
+  
+  # DownSolve cliqSubFg
+  #only down solve if its not a root and not MARGINALIZED
+  if length(getParent(csmc.tree, csmc.cliq)) != 0 && getCliqueStatus(csmc.cliq) != MARGINALIZED
+    
+    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
+    # maybe cycle through separators (or better yet, just use values directly -- see next line)
+    msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
+    
+    if dwnmsgs.status in [DOWNSOLVED, MARGINALIZED] 
+      logCSM(csmc, "11, doCliqDownSolve_StateMachine")
+      return solveDown_StateMachine
+    elseif dwnmsgs.status == INITIALIZED || dwnmsgs.status == NO_INIT
+      return tryDownInit_StateMachine
+    else
+      logCSM(csmc, "Unknown state"; status=dwnmsgs.status, loglevel=Logging.Error, c=csmc.cliqKey)
+      error("waitForDown State Error: Unknown/unimplemented transision.")
+    end
+  else 
+    # Special root case or MARGINALIZED
+    #TODO improve
+    solveStatus = getCliqueStatus(csmc.cliq)
+    logCSM(csmc, "root case or MARGINALIZED"; status=solveStatus, c=csmc.cliqKey)
+    if solveStatus in [INITIALIZED, NO_INIT, UPSOLVED, UPRECYCLED, MARGINALIZED]
+      if solveStatus in [UPSOLVED, UPRECYCLED]
+        setCliqueStatus!(csmc.cliq, DOWNSOLVED)
+      end
+      return postDownSolve_StateMachine
+    else
+      error("unknown status root $solveStatus")
+    end
+  end
+
+  
+end
 
 """
     $SIGNATURES
@@ -583,44 +600,47 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   setCliqDrawColor(csmc.cliq, "maroon")
 
   # DownSolve cliqSubFg
-  #only down solve if its not a root and not MARGINALIZED
-  if length(getParent(csmc.tree, csmc.cliq)) != 0 && getCliqueStatus(csmc.cliq) != MARGINALIZED
-    
-    # TODO we can monitor the solve here to give it a timeout
-    # add messages, do downsolve, remove messages
-    logCSM(csmc, "11, doCliqDownSolve_StateMachine")
-    
-    #XXX
-    # get down msg from Rx buffer (saved in take!)
-    dwnmsgs = getMessageBuffer(csmc.cliq).downRx
-    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
+  # add messages, do downsolve, remove messages
+  logCSM(csmc, "11, doCliqDownSolve_StateMachine")
   
-    __doCliqDownSolve!(csmc, dwnmsgs)
-    
-    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
+  #XXX
+  # get down msg from Rx buffer (saved in take!)
+  dwnmsgs = getMessageBuffer(csmc.cliq).downRx
 
-    # update clique subgraph with new status
-    # setCliqDrawColor(csmc.cliq, "lightblue")
+  opts = getSolverParams(csmc.dfg)
 
-    # remove msg factors that were added to the subfg
-    rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
-    logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
+  # maybe cycle through separators (or better yet, just use values directly -- see next line)
+  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
 
-    # store the cliqSubFg for later debugging
-    _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
-    #XXX
+  # force separator variables in cliqSubFg to adopt down message values
+  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
 
-    converged_and_happy = true
-
-    if converged_and_happy
-
-    else
-      @error "X-5, clique $(csmc.cliq.index) failed in down solve"
-      #propagate error to cleanly exit all cliques
-      putErrorDown(csmc)
-      return IncrementalInference.exitStateMachine
-    end
+  #XXX test with and without
+  # add required all frontal connected factors
+  if !opts.useMsgLikelihoods
+    newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
   end
+
+  # store the cliqSubFg for later debugging
+  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
+  
+
+  ## new way
+  # calculate belief on each of the frontal variables and iterate if required
+  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
+  csmc.dodownsolve = false
+  
+  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
+
+  # update clique subgraph with new status
+  # setCliqDrawColor(csmc.cliq, "lightblue")
+
+  # remove msg factors that were added to the subfg
+  rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
+  logCSM(csmc, "11, doCliqDownSolve_StateMachine -- removing up message factors, length=$(length(rmFcts))")
+
+  # store the cliqSubFg for later debugging
+  _dbgCSMSaveSubFG(csmc, "fg_afterdownsolve")
 
   #TODO use prepSetCliqueMsgDownConsolidated
   #fill in belief
@@ -696,7 +716,7 @@ function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
   
-  if getCliqueStatus(csmc.cliq) == DOWNSOLVED
+  if getCliqueStatus(csmc.cliq) in [DOWNSOLVED, MARGINALIZED]
 
     return updateFromSubgraph_StateMachine
   
