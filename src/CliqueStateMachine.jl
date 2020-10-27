@@ -1,3 +1,6 @@
+## =========================================================================================
+## Initialization Functions -- 0
+## =========================================================================================
 
 """
     $SIGNATURES
@@ -73,7 +76,7 @@ end
 Recycle clique setup for later uses
 
 Notes
-- State machine function nr.0
+- State machine function 0a
 """
 function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
   
@@ -104,7 +107,7 @@ end
 Build a sub factor graph for clique variables from the larger factor graph.
 
 Notes
-- State machine function nr.1
+- State machine function 0b
 """
 function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   # build a local subgraph for inference operations
@@ -123,12 +126,16 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   return waitForUp_StateMachine
 end
 
+## =========================================================================================
+## Wait for up -- 1
+## =========================================================================================
+
 """
     $SIGNATURES
 
 Branching up state
 Notes
-- State machine function nr. 2
+- State machine function 1
 - Common state for handeling messages with take! approach
 """
 function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
@@ -183,13 +190,15 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
   
 end
 
-
+## =========================================================================================
+## Up functions -- 2
+## =========================================================================================
 
 """
     $SIGNATURES
 
 Notes
-- State machine function nr. #XXX
+- State machine function 2a
 """
 function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -238,7 +247,7 @@ end
   $SIGNATURES
 
 Notes
-- State machine function nr. #XXX
+- State machine function 2b
 """
 function initUp_StateMachine(csmc)
 
@@ -299,7 +308,7 @@ end
   $SIGNATURES
 
 Notes
-- State machine function nr. #XXX
+- State machine function 2c
 """
 function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   
@@ -347,8 +356,10 @@ end
 """
   $SIGNATURES
 
+CSM function only called when `getSolverParams(dfg).upsolve == false` that tries to skip upsolve.
 Notes
-- State machine function nr. #XXX
+- Cliques are uprecycled to add differential messages. 
+- State machine function 2d
 """
 function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "tryDownSolveOnly_StateMachine clique $(csmc.cliqKey) status $(getCliqueStatus(csmc.cliq))")
@@ -383,7 +394,7 @@ end
 
 Post-upsolve remove message factors and send messages
 Notes
-- State machine function nr. #XXX
+- State machine function 2e
 """
 function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -416,12 +427,15 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   end
 end
 
+## =========================================================================================
+## Wait for Down -- 3
+## =========================================================================================
 
 """
     $SIGNATURES
 
 Notes
-- State machine function waitForDown nr. 4
+- State machine function waitForDown 3
 """
 function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -485,6 +499,35 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
 
 end
 
+## =========================================================================================
+## Down Functions -- 4
+## =========================================================================================
+
+## TODO Consolidate
+function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
+
+  #JT TODO maybe use Tx buffer
+  newDwnMsgs = LikelihoodMessage(status=status)
+
+  # create all messages from subfg
+  for mk in getCliqFrontalVarIds(csmc.cliq)
+    v = getVariable(csmc.cliqSubFg, mk)
+    if isInitialized(v)
+      newDwnMsgs.belief[mk] = TreeBelief(v)
+    end
+  end
+
+  logCSM(csmc, "cliq $(csmc.cliq.index), CliqDownMessage, allkeys=$(keys(newDwnMsgs.belief))")
+ 
+  return newDwnMsgs
+end
+
+"""
+    $SIGNATURES
+
+Notes
+- State machine function 4a
+"""
 function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
 
   setCliqDrawColor(csmc.cliq, "olive")
@@ -521,60 +564,17 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
     solveStatus = getCliqueStatus(csmc.cliq)
   end
   
-  #fill in belief
-  beliefMsg = CliqDownMessage(csmc, solveStatus)
+  setCliqueStatus!(csmc.cliq, solveStatus)
 
-  logCSM(csmc, "msg to send down"; beliefMsg=beliefMsg)
-  # pass through the frontal variables that were sent from above
-  downmsg = getMessageBuffer(csmc.cliq).downRx
-  svars = getCliqSeparatorVarIds(csmc.cliq)
-  if !isnothing(downmsg)
-    pass_through_separators = intersect(svars, keys(downmsg.belief))
-    for si in pass_through_separators
-      beliefMsg.belief[si] = downmsg.belief[si]
-      logCSM(csmc, "adding parent message"; sym=si, msg=downmsg.belief[si])
-    end
-  end
-
-  #TODO maybe send a specific message to only the child that needs it
-  @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
-  end
-  
-  # detete all message factors to start clean
-  deleteMsgFactors!(csmc.cliqSubFg) 
-
-
-  return waitForUp_StateMachine
-  
+  return postDownSolve_StateMachine
 end
 
-
-
-function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
-
-  #JT TODO maybe use Tx buffer
-  newDwnMsgs = LikelihoodMessage(status=status)
-
-  # create all messages from subfg
-  for mk in getCliqFrontalVarIds(csmc.cliq)
-    v = getVariable(csmc.cliqSubFg, mk)
-    if isInitialized(v)
-      newDwnMsgs.belief[mk] = TreeBelief(v)
-    end
-  end
-
-  logCSM(csmc, "cliq $(csmc.cliq.index), CliqDownMessage, allkeys=$(keys(newDwnMsgs.belief))")
- 
-  return newDwnMsgs
-end
 
 """
     $SIGNATURES
 
 Notes
-- State machine function nr. 5
+- State machine function 4b
 """
 function solveDown_StateMachine(csmc::CliqStateMachineContainer)
 
@@ -624,10 +624,58 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
 
   #TODO use prepSetCliqueMsgDownConsolidated
   #fill in belief
-  beliefMsg = CliqDownMessage(csmc)
+  # beliefMsg = CliqDownMessage(csmc)
+
+  # if length(keys(beliefMsg.belief)) == 0
+  #   logCSM(csmc, "Empty message on clique frontals"; loglevel=Logging.Error)
+  # end
+
+  # logCSM(csmc, "msg to send down on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
+  # pass through the frontal variables that were sent from above
+  # downmsg = getMessageBuffer(csmc.cliq).downRx
+  # svars = getCliqSeparatorVarIds(csmc.cliq)
+  # if !isnothing(downmsg)
+  #   pass_through_separators = intersect(svars, keys(downmsg.belief))
+  #   for si in pass_through_separators
+  #     beliefMsg.belief[si] = downmsg.belief[si]
+  #     logCSM(csmc, "adding parent message"; sym=si, msg=downmsg.belief[si])
+  #   end
+  # end
+
+  # #TODO maybe send a specific message to only the child that needs it
+  # @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
+  #   logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+  #   @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.messageChannels.messages[e.index].downMsg, beliefMsg)
+  # end
+
+  # logCSM(csmc, "$(csmc.cliq.index): clique down solve completed")
+
+  # return updateFromSubgraph_StateMachine
+
+  setCliqueStatus!(csmc.cliq, DOWNSOLVED) 
+  
+  logCSM(csmc, "$(csmc.cliq.index): clique down solve completed")
+
+  return postDownSolve_StateMachine
+
+end
+
+
+"""
+    $SIGNATURES
+
+Notes
+- State machine function 4d
+"""
+function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
+  
+  solveStatus = getCliqueStatus(csmc.cliq)
+  #fill in belief
+  #TODO use prepSetCliqueMsgDownConsolidated
+  beliefMsg = CliqDownMessage(csmc, solveStatus)
 
   if length(keys(beliefMsg.belief)) == 0
-    logCSM(csmc, "Empty message on clique frontals"; loglevel=Logging.Error)
+    logCSM(csmc, "Empty message on clique frontals"; loglevel=Logging.Warn)
   end
 
   logCSM(csmc, "msg to send down on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
@@ -645,18 +693,25 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
-    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.messageChannels.messages[e.index].downMsg, beliefMsg)
+    @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
+  
+  if getCliqueStatus(csmc.cliq) == DOWNSOLVED
 
-  logCSM(csmc, "$(csmc.cliq.index): clique down solve completed")
+    return updateFromSubgraph_StateMachine
+  
+  else
+    # detete all message factors to start clean
+    deleteMsgFactors!(csmc.cliqSubFg) 
 
-  setCliqueStatus!(csmc.cliq, DOWNSOLVED) 
-
-  return updateFromSubgraph_StateMachine
+    return waitForUp_StateMachine
+  end
 
 end
 
-
+## =========================================================================================
+## Finalize Functions -- 5
+## =========================================================================================
 
 """
     $SIGNATURES
