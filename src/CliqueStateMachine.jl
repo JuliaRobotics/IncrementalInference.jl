@@ -209,6 +209,11 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
 
+  #try to skip upsolve 
+  if !getSolverParams(csmc.dfg).upsolve 
+    return tryDownSolveOnly_StateMachine
+  end
+
   #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
   #no need to solve
   if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
@@ -335,6 +340,40 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   #   return waitForDown_StateMachine
   # end
 
+
+  return postUpSolve_StateMachine
+end
+
+"""
+  $SIGNATURES
+
+Notes
+- State machine function nr. #XXX
+"""
+function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
+  logCSM(csmc, "tryDownSolveOnly_StateMachine clique $(csmc.cliqKey) status $(getCliqueStatus(csmc.cliq))")
+
+  logCSM(csmc, "Skipping upsolve clique $(csmc.cliqKey)"; loglevel=Logging.Warn, st=getCliqueStatus(csmc.cliq))
+  if getCliqueStatus(csmc.cliq) == NULL 
+    logCSM(csmc, "Clique $(csmc.cliqKey) status NULL, trying as UPRECYCLED"; loglevel=Logging.Warn)
+    
+    # Are all variables solved at least once?
+    if all(getSolvedCount.(getVariables(csmc.cliqSubFg)) .> 0)
+      setCliqueStatus!(csmc.cliq, UPRECYCLED)
+    else
+      logCSM(csmc, "Clique $(csmc.cliqKey) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
+             loglevel=Logging.Error)
+      # propagate error to cleanly exit all cliques
+      putErrorUp(csmc)
+      if length(getParent(csmc.tree, csmc.cliq)) == 0
+        putErrorDown(csmc)
+        return IncrementalInference.exitStateMachine
+      end
+      return waitForDown_StateMachine
+
+    end
+
+  end
 
   return postUpSolve_StateMachine
 end
