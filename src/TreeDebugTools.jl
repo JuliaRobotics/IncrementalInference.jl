@@ -136,7 +136,7 @@ Related:
 printCliqHistorySummary, printCliqHistorySequential
 """
 function printHistoryLine(fid,
-                          hi::Tuple{DateTime, Int, Function, CliqStateMachineContainer},
+                          hi::CSMHistoryTuple,
                           cliqid::AbstractString="")
   #
   # 5.13
@@ -205,7 +205,7 @@ Related:
 getTreeAllFrontalSyms, animateCliqStateMachines, printHistoryLine, printCliqHistorySequential
 """
 function printCliqHistorySummary( fid,
-                                  hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+                                  hist::Vector{CSMHistoryTuple},
                                   cliqid::AbstractString="")
   if length(hist) == 0
     @warn "printCliqHistorySummary -- No CSM history found."
@@ -216,13 +216,13 @@ function printCliqHistorySummary( fid,
   nothing
 end
 
-function printCliqHistorySummary( hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}},
+function printCliqHistorySummary( hist::Vector{CSMHistoryTuple},
                                   cliqid::AbstractString="")
   #
   printCliqHistorySummary(stdout, hist, cliqid)
 end
 
-function printCliqHistorySummary( hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCliqHistorySummary( hists::Dict{Int,Vector{CSMHistoryTuple}},
                                   tree::AbstractBayesTree,
                                   sym::Symbol  )
   #
@@ -266,11 +266,11 @@ Related:
 
 printHistoryLine, printCliqHistory
 """
-function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
                                     whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
                                     fid=stdout )
   # vectorize all histories in single Array
-  allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  allhists = Vector{CSMHistoryTuple}()
   alltimes = Vector{DateTime}()
   allcliqids = Vector{Int}()
   for (cid,hist) in hists, hi in hist
@@ -303,14 +303,14 @@ function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, F
   nothing
 end
 
-function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
                                     whichstep::Pair{<:CSMRanges,<:CSMRanges},
                                     fid=stdout)
   #
   printCSMHistorySequential(hists,[whichstep;], fid)
 end
 
-function printCSMHistorySequential(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
                                     fid::AbstractString)
   #
   @info "printCliqHistorySequential -- assuming file request, writing history to $fid"
@@ -329,7 +329,7 @@ Print one line of lanes summarizing all clique state machine histories.
 Notes
 - hiVec is vector of all cliques (i.e. lanes) to print as one LINE into `fid` 
   - contains `::Tuple{Int,..}` with global counter (not the default CSM counter)
-- Vector of `Tuple{DateTime, Int, Function, CliqStateMachineContainer}`
+- Vector of `CSMHistoryTuple`
 
 Related:
 
@@ -337,7 +337,7 @@ printCliqHistoryLogical, printCliqHistoryLine
 """
 function printHistoryLane(fid,
                           linecounter::Union{Int,String},
-                          hiVec::Vector{<:Tuple},
+                          hiVec::Vector{<:Union{NamedTuple,Tuple}},
                           seqLookup::NothingUnion{Dict{Pair{Int,Int},Int}}=nothing )
   #
 
@@ -387,14 +387,14 @@ close(fid)
 DevNotes
 - `order` should be flexible like `Sequential` and `<:CSMRanges`.
 """
-function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}},
+function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
                                 fid=stdout;
                                 order::AbstractVector{Int}=sort(collect(keys(hists))),
                                 printLines=1:99999999  )
   #
 
   # vectorize all histories in single Array
-  allhists = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  allhists = Vector{CSMHistoryTuple}()
   alltimes = Vector{DateTime}()
   allcliqids = Vector{Int}()
   # "lanes" (i.e. individual cliques)
@@ -446,7 +446,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{Tuple{DateTime, Int, Func
   for idx in printLines[1]:maxLines[1]
 
     ## build each line as vector of "lanes" (i.e. individual cliques)
-    allLanes = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}(undef, numLanes)
+    allLanes = Vector{CSMHistoryTuple}(undef, numLanes)
 
     laIdx = 0
     for laId in order
@@ -578,8 +578,8 @@ Related:
 
 printCliqHistorySummary, filterHistAllToArray, sandboxCliqResolveStep
 """
-function cliqHistFilterTransitions(hist::Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}, nextfnc::Function)
-  ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+function cliqHistFilterTransitions(hist::Vector{CSMHistoryTuple}, nextfnc::Function)
+  ret = Vector{CSMHistoryTuple}()
   for hi in hist
     if hi[3] == nextfnc
       push!(ret, hi)
@@ -598,7 +598,7 @@ Related:
 printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
 function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frontals::Vector{Symbol}, nextfnc::Function)
-  ret = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  ret = Vector{CSMHistoryTuple}()
   for sym in frontals
     hist = hists[sym] # getCliqSolveHistory(tree, sym)
     fih = cliqHistFilterTransitions(hist, nextfnc)
