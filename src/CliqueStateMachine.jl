@@ -10,9 +10,10 @@ Init and start state machine.
 function initStartCliqStateMachine!(dfg::AbstractDFG,
                                        tree::AbstractBayesTree,
                                        cliq::TreeClique,
-                                       cliqKey::Int;
+                                       timeout::Union{Nothing, <:Real}=nothing;
                                        oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
                                        verbose::Bool=false,
+                                       verbosefid=stdout,
                                        drawtree::Bool=false,
                                        show::Bool=false,
                                        incremental::Bool=true,
@@ -37,7 +38,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                    prnt, children,
                                    incremental, drawtree, downsolve, delay,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliqKey, algorithm) 
+                                   cliq.index, algorithm) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
@@ -61,7 +62,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   # verbosefid=verbosefid
   # injectDelayBefore=injectDelayBefore
 
-  while statemachine(csmc; verbose=verbose, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb)
+  while statemachine(csmc, timeout; verbose=verbose, verbosefid=verbosefid, verboseXtra=getCliqueStatus(csmc.cliq), iterlimit=limititers, recordhistory=recordhistory, housekeeping_cb=csmiter_cb)
     !isnothing(solve_progressbar) && next!(solve_progressbar)
   end
 
@@ -84,18 +85,18 @@ function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
   
   # canCliqMargRecycle
   if areCliqVariablesAllMarginalized(csmc.dfg, csmc.cliq)
-    #TODO is this used?
     getCliqueData(csmc.cliq).allmarginalized = true
     setCliqueStatus!(csmc.cliq, MARGINALIZED)
 
   # canCliqIncrRecycle
   # check if should be trying and can recycle clique computations
-  elseif csmc.incremental && oldstatus == DOWNSOLVED
-    #TODO is this used?    
+  elseif csmc.incremental && oldstatus == DOWNSOLVED  
     csmc.cliq.data.isCliqReused = true
-    logCSM(csmc, "CSM-0a, Incremental recycle clique $(csmc.cliqKey) from $oldstatus")
     setCliqueStatus!(csmc.cliq, UPRECYCLED)
   end
+  logCSM(csmc, "CSM-0a Recycling clique $(csmc.cliqKey) from $oldstatus"; 
+              incremental=csmc.cliq.data.isCliqReused, 
+              marginalized=getCliqueData(csmc.cliq).allmarginalized)
 
   return buildCliqSubgraph_StateMachine
 
@@ -227,6 +228,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   #no need to solve
   if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
     logCSM(csmc, "CSM-2a Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
+    getCliqueStatus(csmc.cliq) == MARGINALIZED &&  setCliqDrawColor(csmc.cliq, "blue")
     return postUpSolve_StateMachine
   end
 
@@ -332,7 +334,9 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     setCliqueStatus!(csmc.cliq, UPSOLVED)
   
   else
-    logCSM(csmc, "CSM-2c solveUp -- all children upsolved, but init failed (likeley should not happen)")
+    _dbgCSMSaveSubFG(csmc, "fg_child_solved_cant_init")
+    # it can be a leaf
+    logCSM(csmc, "CSM-2c solveUp -- all children upsolved, but init failed.")
   end
   
   # if converged_and_happy
@@ -444,7 +448,7 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
   # setCliqDrawColor(csmc.cliq, "lime")
  
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "CSM-3$(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "CSM-3 $(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     # Blocks until data is available.
     beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messageChannels[e.index].downMsg)
     logCSM(csmc, "CSM-3 $(csmc.cliq.index): Belief message received with status $(beliefMsg.status)")
@@ -475,9 +479,9 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
+  # The clique is a root
+  # root clique down branching happens here
   if csmc.algorithm == :parametric
-    # The clique is a root
-    # root clique down branching happens here
     return solveDown_ParametricStateMachine
   else 
     return preDownSolve_StateMachine
@@ -546,6 +550,7 @@ function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     solveStatus = getCliqueStatus(csmc.cliq)
     logCSM(csmc, "CSM-4a root case or MARGINALIZED"; status=solveStatus, c=csmc.cliqKey)
     if solveStatus in [INITIALIZED, NO_INIT, UPSOLVED, UPRECYCLED, MARGINALIZED]
+      solveStatus == MARGINALIZED &&  setCliqDrawColor(csmc.cliq, "blue")
       if solveStatus in [UPSOLVED, UPRECYCLED]
         setCliqueStatus!(csmc.cliq, DOWNSOLVED)
       end

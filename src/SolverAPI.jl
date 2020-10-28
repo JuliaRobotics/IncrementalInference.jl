@@ -15,10 +15,12 @@ export fetchCliqHistoryAll!
 Start tasks (@async or Threads.@spawn threads if multithread=true) to solve the factor graph on the tree.
 """
 function taskSolveTree!(dfg::AbstractDFG,
-                          treel::AbstractBayesTree;
+                          treel::AbstractBayesTree,
+                          timeout::Union{Nothing, <:Real}=nothing;
                           oldtree::AbstractBayesTree=emptyBayesTree(),
                           drawtree::Bool=false,
                           verbose::Bool=false,
+                          verbosefid=stdout,
                           limititers::Int=-1,
                           downsolve::Bool=false,
                           incremental::Bool=false,
@@ -50,9 +52,9 @@ function taskSolveTree!(dfg::AbstractDFG,
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
           if multithread
-            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(dfg, treel, i; algorithm=algorithm, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           else
-            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i; algorithm=algorithm, oldtree=oldtree, verbose=verbose, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           end
         end # if
       end # for
@@ -69,18 +71,20 @@ end
 
 
 function tryCliqStateMachineSolve!(dfg::G,
-                                             treel::AbstractBayesTree,
-                                             cliqKey::Int;
-                                             oldtree::AbstractBayesTree=emptyBayesTree(),
-                                             verbose::Bool=false,
-                                             drawtree::Bool=false,
-                                             limititers::Int=-1,
-                                             downsolve::Bool=false,
-                                             incremental::Bool=false,
-                                             delaycliqs::Vector{Symbol}=Symbol[],
-                                             recordcliqs::Vector{Symbol}=Symbol[],
-                                             solve_progressbar=nothing,
-                                             algorithm::Symbol=:default) where G <: AbstractDFG
+                                   treel::AbstractBayesTree,
+                                   cliqKey::Int,
+                                   timeout::Union{Nothing, <:Real}=nothing;
+                                   oldtree::AbstractBayesTree=emptyBayesTree(),
+                                   verbose::Bool=false,
+                                   verbosefid=stdout,
+                                   drawtree::Bool=false,
+                                   limititers::Int=-1,
+                                   downsolve::Bool=false,
+                                   incremental::Bool=false,
+                                   delaycliqs::Vector{Symbol}=Symbol[],
+                                   recordcliqs::Vector{Symbol}=Symbol[],
+                                   solve_progressbar=nothing,
+                                   algorithm::Symbol=:default) where G <: AbstractDFG
   #
   clst = :na
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
@@ -98,9 +102,9 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachine!(dfg, treel, cliq, cliqKey;
+    history = initStartCliqStateMachine!(dfg, treel, cliq, timeout;
                                          oldcliqdata=oldcliqdata,
-                                         drawtree=drawtree, verbose=verbose,
+                                         drawtree=drawtree, verbose=verbose, verbosefid=verbosefid,
                                          limititers=limititers, downsolve=downsolve,
                                          recordhistory=recordthiscliq, incremental=incremental,
                                          delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
@@ -332,14 +336,14 @@ function solveTree!(dfgl::AbstractDFG,
     @error "Under development, do not use, see #539"
     storeOld && @error("parametric storeOld keyword not wired up yet.") 
     # alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
-    smtasks, hist = taskSolveTree!(dfgl, tree         ; algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+    smtasks, hist = taskSolveTree!(dfgl, tree, timeout; algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     @info "Finished tree based Parametric inference"
   else # fall back is :default with take CSM
     if opt.async
-      @async smtasks, hist = taskSolveTree!(dfgl, tree         ;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     else
       # smtasks, hist = taskSolveTree!(dfgl, tree; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, runtaskmonitor=runtaskmonitor )
-      smtasks, hist = taskSolveTree!(dfgl, tree         ;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+      smtasks, hist = taskSolveTree!(dfgl, tree, timeout; algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     # smtasks, hist = initInferTreeUp!(dfgl, tree, timeout;                                            alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
       @info "Finished tree based init-inference"
     end
