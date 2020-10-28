@@ -45,43 +45,6 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
 
 end
 
-"""
-    $SIGNATURES
-
-Do cliq downward inference
-
-Notes:
-- State machine function nr. 11
-- temperory consolidation function
-- adds message factors
-"""
-function __doCliqDownSolve!(csmc::CliqStateMachineContainer, dwnmsgs)
-
-  opts = getSolverParams(csmc.dfg)
-
-  # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-  # force separator variables in cliqSubFg to adopt down message values
-  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
-
-  #XXX test with and without
-  # add required all frontal connected factors
-  if !opts.useMsgLikelihoods
-    newvars, newfcts = addDownVariableFactors!(csmc.dfg, csmc.cliqSubFg, csmc.cliq, csmc.logger, solvable=1)
-  end
-
-  # store the cliqSubFg for later debugging
-  _dbgCSMSaveSubFG(csmc, "fg_beforedownsolve")
-  
-
-  ## new way
-  # calculate belief on each of the frontal variables and iterate if required
-  solveCliqDownFrontalProducts!(csmc.cliqSubFg, csmc.cliq, opts, csmc.logger)
-  csmc.dodownsolve = false
-
-  return nothing
-end
-
 ## ===================================================================================================================
 ##  CSM logging functions
 ## ===================================================================================================================
