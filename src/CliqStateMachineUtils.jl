@@ -1,6 +1,5 @@
 
 export setVariablePosteriorEstimates!
-export updateCliqSolvableDims!, fetchCliqSolvableDims
 
 
 ## ===================================================================================================================
@@ -308,46 +307,6 @@ end
 """
     $SIGNATURES
 
-Store/cache a clique's solvable dimensions.
-"""
-function updateCliqSolvableDims!( cliq::TreeClique,
-                                  sdims::Dict{Symbol, Float64},
-                                  logger=ConsoleLogger() )::Nothing
-  #
-  cliqd = getCliqueData(cliq)
-  csd = getSolvableDims(cliqd)
-  if isready(csd)
-    take!(csd)
-    with_logger(logger) do
-      @info "cliq $(cliq.index), updateCliqSolvableDims! -- cleared solvableDims"
-    end
-  end
-  put!(csd, sdims)
-  with_logger(logger) do
-      @info "cliq $(cliq.index), updateCliqSolvableDims! -- updated"
-  end
-  nothing
-end
-
-
-"""
-    $SIGNATURES
-
-Retrieve a clique's cached solvable dimensions (since last update).
-"""
-function fetchCliqSolvableDims(cliq::TreeClique)::Dict{Symbol,Float64}
-  cliqd = getCliqueData(cliq)
-  csd = getSolvableDims(cliqd)
-  if isready(csd)
-    return csd.data[1]
-  end
-  return fetch(csd)
-end
-
-
-"""
-    $SIGNATURES
-
 Return true there is no other sibling that will make progress.
 
 Notes
@@ -405,10 +364,6 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
   if multiproc
     cliqc = deepcopy(cliq)
     btnd = getCliqueData(cliqc)
-    # redirect to new unused so that CAN be serialized
-    btnd.upMsgChannel = Channel{LikelihoodMessage}(1)
-    btnd.dwnMsgChannel = Channel{LikelihoodMessage}(1)
-    btnd.solveCondition = Condition()
     # ett.cliq = cliqc
     # TODO create new dedicated file for separate process to log with
     try

@@ -368,7 +368,7 @@ Notes
 function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "CSM-2d tryDownSolveOnly_StateMachine clique $(csmc.cliqKey) status $(getCliqueStatus(csmc.cliq))")
 
-  logCSM(csmc, "CSM-2d Skipping upsolve clique $(csmc.cliqKey)"; loglevel=Logging.Warn, st=getCliqueStatus(csmc.cliq))
+  logCSM(csmc, "CSM-2d Skipping upsolve clique $(csmc.cliqKey)"; loglevel=Logging.Info, st=getCliqueStatus(csmc.cliq))
   if getCliqueStatus(csmc.cliq) == NULL 
     logCSM(csmc, "CSM-2d Clique $(csmc.cliqKey) status NULL, trying as UPRECYCLED"; loglevel=Logging.Warn)
     

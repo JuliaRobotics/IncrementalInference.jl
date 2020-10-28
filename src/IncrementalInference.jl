@@ -102,7 +102,6 @@ export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
 export convert
 
 export *,
-  notifyCSMCondition,
   CSMHistory,
   # getTreeCliqsSolverHistories,
 

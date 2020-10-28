@@ -29,29 +29,10 @@ manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
 
 
 
-## =============================================================================
-# Fetch model uses Conditions as part of its synchronization
-## =============================================================================
-
-"""
-    $SIGNATURES
-
-Bump a clique state machine solver condition in case a task might be waiting on it.
-"""
-notifyCSMCondition(cliq::TreeClique) = notify(getSolveCondition(cliq))
-notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(getClique(tree, frsym))
-
 
 ## =============================================================================
 # helper functions for tree message channels
 ## =============================================================================
-
-
-
-# TODO deprecate solvableDims #910
-getSolvableDims(cliqd::BayesTreeNodeData) = cliqd.solvableDims
-getSolvableDims(cliq::TreeClique) = getSolvableDims(getSolverData(cliq))
-
 
 
 """
@@ -446,7 +427,6 @@ function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
   allprntkeys = collect(keys(prntDwnMsgs.belief))
   passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
   remainkeys = setdiff(allvars, passkeys)
-  # csd = getSolvableDims(cliq)
   newDwnMsgs = LikelihoodMessage(status=status)
 
   # some msgs are just pass through from parent

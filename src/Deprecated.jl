@@ -1474,3 +1474,86 @@ end
 @deprecate LinearConditional(x...) LinearRelative(x...)
 
 @deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
+
+# removed
+export getSolveCondition
+"""
+    $SIGNATURES
+
+Get the `::Condition` variable for a clique, likely used for delaying state transitions in
+state machine solver.
+"""
+getSolveCondition(cliq::TreeClique) = error("solveCondition is deprecated in favor of take! model")
+
+export notifyCSMCondition
+"""
+    $SIGNATURES
+
+Bump a clique state machine solver condition in case a task might be waiting on it.
+"""
+notifyCSMCondition(cliq::TreeClique) = notify(getSolveCondition(cliq))
+notifyCSMCondition(tree::AbstractBayesTree, frsym::Symbol) = notifyCSMCondition(getClique(tree, frsym))
+
+## solvable dims channel
+
+# TODO deprecate solvableDims #910
+getSolvableDims(cliqd::BayesTreeNodeData) = error("solveCondition is deprecated #910")
+getSolvableDims(cliq::TreeClique) = getSolvableDims(getSolverData(cliq))
+
+
+export updateCliqSolvableDims!, fetchCliqSolvableDims
+#TODO remove or update to take! model
+"""
+    $SIGNATURES
+
+Store/cache a clique's solvable dimensions.
+"""
+function updateCliqSolvableDims!( cliq::TreeClique,
+                                  sdims::Dict{Symbol, Float64},
+                                  logger=ConsoleLogger() )::Nothing
+  #
+  Base.depwarn("updateCliqSolvableDims! is deprecated", :updateCliqSolvableDims!)
+  cliqd = getCliqueData(cliq)
+  csd = getSolvableDims(cliqd)
+  if isready(csd)
+    take!(csd)
+    with_logger(logger) do
+      @info "cliq $(cliq.index), updateCliqSolvableDims! -- cleared solvableDims"
+    end
+  end
+  put!(csd, sdims)
+  with_logger(logger) do
+      @info "cliq $(cliq.index), updateCliqSolvableDims! -- updated"
+  end
+  nothing
+end
+
+#TODO remove or update to take! model
+"""
+    $SIGNATURES
+
+Retrieve a clique's cached solvable dimensions (since last update).
+"""
+function fetchCliqSolvableDims(cliq::TreeClique)::Dict{Symbol,Float64}
+
+  Base.depwarn("fetchCliqSolvableDims is deprecated #TODO replace with consolidated dims in message", :fetchCliqSolvableDims)
+
+  cliqd = getCliqueData(cliq)
+  csd = getSolvableDims(cliqd)
+  if isready(csd)
+    return csd.data[1]
+  end
+  return fetch(csd)
+end
+
+## channels in clique
+function refTreeMessageChannelsFromBTND!(tree::BayesTree)
+  for inci in tree.bt.inclist
+    for e in inci
+        downMsg = e.target.data.dwnMsgChannel
+        upMsg = e.target.data.upMsgChannel
+        push!(tree.messageChannels, e.index=>(upMsg=upMsg,downMsg=downMsg))
+    end
+  end
+  return nothing
+end

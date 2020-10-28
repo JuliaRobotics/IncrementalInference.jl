@@ -271,17 +271,6 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   isCliqReused::Bool             # holdover
 
-  # keep the Condition and Channel{Int}'s for now
-  solveCondition::Condition #XXX Remove
-
-  # FIXME consolidate Dict with LikelihoodMessage (#910), and pull model (#674)
-  solvableDims::Channel{Dict{Symbol, Float64}}#XXX Remove
-
-  # Consolidation for #459 complete!
-  upMsgChannel::Channel{LikelihoodMessage}#XXX Remove
-  dwnMsgChannel::Channel{LikelihoodMessage}#XXX Remove
-
-  ## DF THIS MUST BE consolidated with BTND.up[/dwn]MsgChannel -- ONLY A SINGLE LOCATION CAN REMAIN
   # JT Local messages saved for cache and debuging 
   messages::MessageBuffer
 end
@@ -309,10 +298,6 @@ function BayesTreeNodeData(;status::CliqStatus=NULL,
                             upsolved=false,
                             downsolved=false,
                             isCliqReused=false,
-                            solveCondition=Condition(),
-                            solvableDims=Channel{Dict{Symbol,Float64}}(1),
-                            upMsgChannel=Channel{LikelihoodMessage}(1),
-                            dwnMsgChannel=Channel{LikelihoodMessage}(1),
                             messages = MessageBuffer()
                           )
   btnd = BayesTreeNodeData(status,
@@ -338,13 +323,8 @@ function BayesTreeNodeData(;status::CliqStatus=NULL,
                         upsolved,
                         downsolved,
                         isCliqReused,
-                        solveCondition,
-                        solvableDims,
-                        upMsgChannel,
-                        dwnMsgChannel,
                         messages  )
   #
-  put!(btnd.upMsgChannel, LikelihoodMessage())
   return btnd
 end
 #
@@ -378,11 +358,6 @@ function compare( c1::BayesTreeNodeData,
   TP = TP && c1.upsolved == c2.upsolved
   TP = TP && c1.downsolved == c2.downsolved
   TP = TP && c1.isCliqReused == c2.isCliqReused
-  TP = TP && getMsgUpThis(c1) == getMsgUpThis(c2)
-  # TP = TP && c1.solveCondition == c2.solveCondition
-  # TP = TP && c1.solvableDims == c2.solvableDims  TBD deprecated #910
-  TP = TP && getMsgUpChannel(c1) == getMsgUpChannel(c2)
-  TP = TP && c1.dwnMsgChannel == c2.dwnMsgChannel
 
   return TP
 end
