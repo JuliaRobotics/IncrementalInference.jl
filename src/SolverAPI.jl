@@ -22,6 +22,7 @@ function taskSolveTree!(dfg::AbstractDFG,
                           verbose::Bool=false,
                           verbosefid=stdout,
                           limititers::Int=-1,
+                          limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                           downsolve::Bool=false,
                           incremental::Bool=false,
                           multithread::Bool=false,
@@ -51,10 +52,14 @@ function taskSolveTree!(dfg::AbstractDFG,
       for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
+
+          limthiscsm = filter(x -> (x[1] in scsym), limititercliqs)
+          limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
+
           if multithread
             smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           else
-            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           end
         end # if
       end # for
@@ -340,11 +345,13 @@ function solveTree!(dfgl::AbstractDFG,
     @info "Finished tree based Parametric inference"
   else # fall back is :default with take CSM
     if opt.async
-      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose,                        drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     else
-      # smtasks, hist = taskSolveTree!(dfgl, tree; alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose,  drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, runtaskmonitor=runtaskmonitor )
-      smtasks, hist = taskSolveTree!(dfgl, tree, timeout; algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
-    # smtasks, hist = initInferTreeUp!(dfgl, tree, timeout;                                            alltasks=smtasks, oldtree=oldtree, N=opt.N, verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs, injectDelayBefore=injectDelayBefore, runtaskmonitor=runtaskmonitor)
+      smtasks, hist = taskSolveTree!(dfgl, tree, timeout; 
+                                     algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree, 
+                                     verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, 
+                                     limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, 
+                                     skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
       @info "Finished tree based init-inference"
     end
   end
