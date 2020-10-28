@@ -32,13 +32,15 @@ X1 = deepcopy(getVal(fg, :x1))
 
 fifoFreeze!(fg)
 
-tree, smtasks, hists = solveTree!(fg)
+tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
 end
 
+# although variables are marginalized, no cliques are
+@test calcCliquesRecycled(tree) == (6,0,0,0)
 
 lm0cmp = deepcopy(getVal(fg, :lm0))
 X0cmp = deepcopy(getVal(fg, :x0))
@@ -56,7 +58,12 @@ addFactor!(fg, [:x7,:x8], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:x8,:x9], LinearRelative(Normal(1.0, 0.1)))
 addFactor!(fg, [:lm0, :x9], LinearRelative(Normal(9,0.1)))
 
-tree, smtasks, hists = solveTree!(fg)
+tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
+
+#clique 7 should be marginalized and therefor not do up or downsolve
+@test calcCliquesRecycled(tree) == (7,1,0,0)
+@test !(IIF.solveDown_StateMachine in getindex.(hists[7], 3))
+@test !(IIF.solveUp_StateMachine in getindex.(hists[7], 3))
 
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
@@ -79,22 +86,30 @@ tree, smtasks, hists = solveTree!(fg)
 
 # freeze 2,4,6 to all marginalize clique 2
 setfreeze!(fg, [:x2, :x4, :x6])
-tree, smtasks, hists = solveTree!(fg)
+tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
 
+#clique 2 should be marginalized and therefor not do up or downsolve
+@test calcCliquesRecycled(tree) == (7,1,0,0)
+@test !(IIF.solveDown_StateMachine in getindex.(hists[2], 3))
+@test !(IIF.solveUp_StateMachine in getindex.(hists[2], 3))
 @test areCliqVariablesAllMarginalized(fg, tree.cliques[2])
 
-tree, smtasks, hists = solveTree!(fg, tree)#, recordcliqs=ls(fg));
+tree, smtasks, hists = solveTree!(fg, tree; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.25)
 end
 
+@test calcCliquesRecycled(tree) == (7,1,6,0)
+
 X1 = deepcopy(getVal(fg, :x1))
 
 setfreeze!(fg, [:x3, :x5])
-tree, smtasks, hists = solveTree!(fg, tree)#, recordcliqs=ls(fg));
+tree, smtasks, hists = solveTree!(fg, tree; recordcliqs=ls(fg));
 # csmAnimate(tree, hists, frames=1)
+
+@test calcCliquesRecycled(tree) == (7,3,4,0)
 
 @test lm0 == getVal(fg, :lm0) #Still Frozen
 @test X1 != getVal(fg, :x1) #not frozen
