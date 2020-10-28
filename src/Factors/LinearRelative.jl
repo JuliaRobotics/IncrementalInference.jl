@@ -82,10 +82,10 @@ mutable struct PackedLinearRelative <: PackedInferenceType
   PackedLinearRelative(z::AS) where {AS <: AbstractString} = new(z)
 end
 function convert(::Type{PackedLinearRelative}, d::LinearRelative)
-  PackedLinearRelative(string(d.Z))
+  PackedLinearRelative(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{LinearRelative}, d::PackedLinearRelative)
-  LinearRelative(extractdistribution(d.Z))
+  LinearRelative(convert(SamplableBelief, d.Z))
 end
 
 
