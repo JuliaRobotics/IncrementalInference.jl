@@ -15,7 +15,7 @@ vars = listVariables(fg)
 # fetch values before solve
 before = Dict()
 for vs in vars
-  before[vs] = getVariablePPE(getVariable(fg, vs)) |> getSuggestedPPE
+  before[vs] = getVariablePPE(getVariable(fg, vs)) |> getPPESuggested
 end
 
 # do the solve
@@ -33,7 +33,7 @@ solveTree!(fg)
 
 after = Dict()
 for vs in vars
-  after[vs] = getVariablePPE(getVariable(fg, vs)) |> getSuggestedPPE
+  after[vs] = getVariablePPE(getVariable(fg, vs)) |> getPPESuggested
 end
 
 # before and after should be noticably different, because first inferred values have been found
@@ -47,7 +47,7 @@ end
 force = Dict()
 for vs in vars
   setVariablePosteriorEstimates!(fg, vs)
-  force[vs] = getVariablePPE(getVariable(fg, vs)) |> getSuggestedPPE
+  force[vs] = getVariablePPE(getVariable(fg, vs)) |> getPPESuggested
   # these need to be close to the same as after
   errd = norm(force[vs] - after[vs])
   # @show vs, errd

@@ -19,7 +19,7 @@ smtasks = Task[]
 tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
-  sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+  sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
   println("Testing ", var,": ", sppe)
   @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
 end
@@ -45,7 +45,7 @@ smtasks = Task[]
 tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
 end
@@ -67,7 +67,7 @@ smtasks = Task[]
 tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
 
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
     s = findfirst(r"\d", string(var))[1]
     @test isapprox(sppe[1], parse(Int,string(var)[s:end]), atol=0.2)
