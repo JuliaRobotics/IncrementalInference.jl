@@ -85,5 +85,7 @@ end
 
 @deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
 
+@deprecate extractdistribution(x) convert(SamplableBelief, x)
 
 
+#
