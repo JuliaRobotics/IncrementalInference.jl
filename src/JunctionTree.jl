@@ -834,17 +834,6 @@ function initTreeMessageChannels!(tree::MetaBayesTree)
   return nothing
 end
 
-function refTreeMessageChannelsFromBTND!(tree::BayesTree)
-  for inci in tree.bt.inclist
-    for e in inci
-        downMsg = e.target.data.dwnMsgChannel
-        upMsg = e.target.data.upMsgChannel
-        push!(tree.messageChannels, e.index=>(upMsg=upMsg,downMsg=downMsg))
-    end
-  end
-  return nothing
-end
-
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
                         fct::DFGFactor )
@@ -1559,14 +1548,6 @@ function getTreeAllFrontalSyms(fgl::G, tree::AbstractBayesTree) where G <: Abstr
   end
   return syms
 end
-
-"""
-    $SIGNATURES
-
-Get the `::Condition` variable for a clique, likely used for delaying state transitions in
-state machine solver.
-"""
-getSolveCondition(cliq::TreeClique) = getCliqueData(cliq).solveCondition
 
 
 # import DistributedFactorGraphs: getVariableOrder

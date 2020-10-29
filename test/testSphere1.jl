@@ -11,7 +11,7 @@ map(i->addFactor!(fg, [Symbol("x$i"),Symbol("x$(i+1)")], Sphere1Sphere1(Normal(1
 
 tree, smt, hist = solveTree!(fg)
 
-sppes = map(var->getSuggestedPPE(getPPE(var))[1], sortDFG(getVariables(fg),by=getLabel)) 
+sppes = map(var->getPPESuggested(getPPE(var))[1], sortDFG(getVariables(fg),by=getLabel)) 
 
 gt = rem2pi.(collect(0:4), RoundNearest)
 

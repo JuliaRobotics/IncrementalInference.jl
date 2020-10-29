@@ -1,8 +1,7 @@
 
 export
   getCliqueStatus,
-  setCliqueStatus!,
-  getSolveCondition
+  setCliqueStatus!
 
 export
   stackCliqUpMsgsByVariable,

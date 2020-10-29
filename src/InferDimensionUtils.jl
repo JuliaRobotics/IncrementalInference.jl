@@ -388,7 +388,6 @@ function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
   sidx = Vector{Int}(undef, len)
   for idx in 1:len
     cliqd = getCliqueData(sibs[idx])
-    csd = getSolvableDims(cliqd)
     with_logger(logger) do
       @info "$(now()), getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, $(cliqd.frontalIDs[1]), dwninitmsgs.childSolvDims=$(dwninitmsgs.childSolvDims)"
     end

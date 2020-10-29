@@ -102,7 +102,6 @@ export AbstractPrior, AbstractRelativeFactor, AbstractRelativeFactorMinimize
 export convert
 
 export *,
-  notifyCSMCondition,
   CSMHistory,
   # getTreeCliqsSolverHistories,
 
@@ -459,9 +458,9 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 
 include("AliasScalarSampling.jl")
-include("CliqueTypes.jl")
 include("Flux/entities.jl")
 include("BeliefTypes.jl")
+include("CliqueTypes.jl")
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")

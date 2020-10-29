@@ -9,6 +9,14 @@ tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;], limititercliqs=[(:x0=>2);])
 
 @test haskey(hist, 1)
 
+@test hist[1] |> length == 2
+
+#normal solve should have 11 states, update when more are added.
+fg = generateCanonicalFG_lineStep(1)
+tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;]);
+
+@test haskey(hist, 1)
+
 @test hist[1] |> length == 11
 
 end

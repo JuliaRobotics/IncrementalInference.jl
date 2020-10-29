@@ -25,7 +25,7 @@ tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
 
 #test if values are still correct
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
@@ -40,7 +40,7 @@ tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=[:x4]);
 
 #test if values are still correct
 for var in sortDFG(ls(fg))
-    sppe = getVariable(fg,var) |> getPPE |> IIF.getSuggestedPPE
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
