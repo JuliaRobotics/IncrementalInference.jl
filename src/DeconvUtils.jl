@@ -61,7 +61,7 @@ function solveFactorMeasurements(dfg::AbstractDFG,
         if !r.g_converged
           nsm = getSample(fcttype, 1)
           for count in 1:length(meas)
-            meas[count][:,idx] = nsm[count][:,idx]
+            meas[count][:,idx] = nsm[count][:,1]
           end
         else
           break
