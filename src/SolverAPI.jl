@@ -40,8 +40,8 @@ function taskSolveTree!(dfg::AbstractDFG,
   
   resize!(smtasks, getNumCliqs(treel))
   
-  approx_iters = getNumCliqs(treel)*20
-  solve_progressbar = ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
+  approx_iters = getNumCliqs(treel)*24
+  solve_progressbar = verbose ? nothing : ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
   
   # queue all the tasks/threads
   if !isTreeSolved(treel, skipinitialized=true)
@@ -64,7 +64,7 @@ function taskSolveTree!(dfg::AbstractDFG,
   # if record cliques is in use, else skip computational delay
   0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
   
-  finish!(solve_progressbar)
+  !isnothing(solve_progressbar) && finish!(solve_progressbar)
 
   return smtasks, cliqHistories
 end
@@ -206,7 +206,7 @@ function fetchCliqHistoryAll!(smt::Vector{Task},
       haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
     elseif !isnothing(sm.storage) && haskey(sm.storage, :statemachine)
-      hist[i] = sm.storage[:statemachine].history
+      hist[i] = CSMHistoryTuple.(sm.storage[:statemachine].history)
     end
   end
   hist

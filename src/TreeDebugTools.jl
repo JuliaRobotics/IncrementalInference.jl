@@ -660,10 +660,10 @@ function csmAnimate(tree::BayesTree,
   #
 
   easyNames = Dict{Symbol, Int}()
-  hists = Dict{Symbol, T}()
+  hists = Dict{Symbol, Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
-    hists[frtl[1]] = hist
+    hists[frtl[1]] = Tuple.(hist)
     easyNames[frtl[1]] = id
   end
 
