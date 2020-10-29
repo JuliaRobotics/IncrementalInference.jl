@@ -66,7 +66,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
     !isnothing(solve_progressbar) && next!(solve_progressbar)
   end
 
-  return statemachine.history
+  return CSMHistoryTuple.(statemachine.history)
 
 end
 

@@ -143,7 +143,12 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   algorithm::Symbol
 end
 
-const CSMHistory = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
+#TODO use @NamedTuple if julia compat > 1.5
+export CSMHistoryTuple
+const CSMHistoryTuple =  NamedTuple{(:timestamp, :id, :f, :csmc), Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
+const CSMHistory = Vector{CSMHistoryTuple}
+
+Base.show(io::IO, o::CSMHistoryTuple) = print("$(o[1]), $(o[2]), $(o[3])")
 
 
 function CliqStateMachineContainer( dfg::G,

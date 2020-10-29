@@ -37,12 +37,12 @@ function taskSolveTree!(dfg::AbstractDFG,
 
   drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
 
-  cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}()
   
   resize!(smtasks, getNumCliqs(treel))
   
-  approx_iters = getNumCliqs(treel)*20
-  solve_progressbar = ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
+  approx_iters = getNumCliqs(treel)*24
+  solve_progressbar = verbose ? nothing : ProgressUnknown("Solve Progress: approx max $approx_iters, at iter")
   
   # queue all the tasks/threads
   if !isTreeSolved(treel, skipinitialized=true)
@@ -69,7 +69,7 @@ function taskSolveTree!(dfg::AbstractDFG,
   # if record cliques is in use, else skip computational delay
   0 == length(recordcliqs) ? nothing : fetchCliqHistoryAll!(smtasks, cliqHistories)
   
-  finish!(solve_progressbar)
+  !isnothing(solve_progressbar) && finish!(solve_progressbar)
 
   return smtasks, cliqHistories
 end
@@ -103,7 +103,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.index)/"))
   logger = SimpleLogger(open(joinpath(opts.logpath,"logs/cliq$(cliq.index)/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
-  history = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  history = Vector{CSMHistoryTuple}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
@@ -202,8 +202,7 @@ end
 Fetch solver history from clique state machines that have completed their async Tasks and store in the `hist::Dict{Int,Tuple}` dictionary.
 """
 function fetchCliqHistoryAll!(smt::Vector{Task},
-                              hist::Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}=Dict{Int,Vector{Tuple{DateTime, Int,
-                                                                    Function, CliqStateMachineContainer}}}() )
+                              hist::Dict{Int,Vector{CSMHistoryTuple}}=Dict{Int,Vector{CSMHistoryTuple}}() )
   #
   for i in 1:length(smt)
     sm = smt[i]
@@ -212,7 +211,7 @@ function fetchCliqHistoryAll!(smt::Vector{Task},
       haskey(hist, i) ? @warn("overwriting existing history key $i") : nothing
       hist[i] = fetch(sm)
     elseif !isnothing(sm.storage) && haskey(sm.storage, :statemachine)
-      hist[i] = sm.storage[:statemachine].history
+      hist[i] = CSMHistoryTuple.(sm.storage[:statemachine].history)
     end
   end
   hist
@@ -303,7 +302,7 @@ function solveTree!(dfgl::AbstractDFG,
   # construct tree
   @info "Solving over the Bayes (Junction) tree."
   
-  hist = Dict{Int, Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+  hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
   if opt.isfixedlag
       @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
@@ -408,10 +407,10 @@ function solveCliq!(dfgl::AbstractDFG,
                     cliqid::Symbol;
                     verbose::Bool=false,
                     recordcliq::Bool=false,
-                    # cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}(),
+                    # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
                     async::Bool=false )
   #
-  # hist = Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}()
+  # hist = Vector{CSMHistoryTuple}()
   opt = DFG.getSolverParams(dfgl)
 
   if opt.isfixedlag

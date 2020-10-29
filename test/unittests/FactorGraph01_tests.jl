@@ -178,7 +178,7 @@ DFG.listFactors(dfg)
 
 
 
-cliqHistories = Dict{Int,Vector{Tuple{DateTime, Int, Function, CliqStateMachineContainer}}}()
+cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}()
 isTreeSolved(treel, skipinitialized=true)
 
 
