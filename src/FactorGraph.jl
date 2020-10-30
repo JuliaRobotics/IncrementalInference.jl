@@ -402,7 +402,7 @@ addVariable!(fg, :x0, Pose2)
 function addVariable!(dfg::AbstractDFG,
                       label::Symbol,
                       varTypeU::Union{T, Type{T}}; 
-                      N::Int=100,
+                      N::Int=getSolverParams(dfg).N,
                       solvable::Int=1,
                       timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                       nanosecondtime::Union{Nanosecond,Int64,Nothing}=nothing,

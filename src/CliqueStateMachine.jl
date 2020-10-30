@@ -55,7 +55,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
     task_local_storage(:csmc, csmc)
   end
 
-  logCSM(csmc, "Clique $(csmc.cliq.index) starting", loglevel=Logging.Info)
+  logCSM(csmc, "Clique $(csmc.cliq.index) starting", loglevel=Logging.Debug)
   
   #TODO
   # timeout
