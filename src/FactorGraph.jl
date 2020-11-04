@@ -791,11 +791,11 @@ Development Notes:
 * TODO get faster version of `isInitialized` for database version.
 * TODO: Persist this back if we want to here.
 """
-function doautoinit!(dfg::T,
-                     xi::DFGVariable;
-                     singles::Bool=true,
-                     N::Int=100,
-                     logger=ConsoleLogger() )::Bool where T <: AbstractDFG
+function doautoinit!( dfg::AbstractDFG,
+                      xi::DFGVariable;
+                      singles::Bool=true,
+                      N::Int=100,
+                      logger=ConsoleLogger() )
   #
   didinit = false
   # don't initialize a variable more than once
@@ -831,7 +831,8 @@ function doautoinit!(dfg::T,
         # Update the estimates (longer DFG function used so cloud is also updated)
         setVariablePosteriorEstimates!(dfg, xi.label)
         # Update the data in the event that it's not local
-        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    # TODO perhaps usecopy=false
+        # TODO perhaps usecopy=false
+        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    
         # deepcopy graphinit value, see IIF #612
         updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]; warn_if_absent=false)
         didinit = true
@@ -841,11 +842,11 @@ function doautoinit!(dfg::T,
   return didinit
 end
 
-function doautoinit!(dfg::T,
-                     Xi::Vector{<:DFGVariable};
-                     singles::Bool=true,
-                     N::Int=100,
-                     logger=ConsoleLogger() )::Bool where T <: AbstractDFG
+function doautoinit!( dfg::T,
+                      Xi::Vector{<:DFGVariable};
+                      singles::Bool=true,
+                      N::Int=100,
+                      logger=ConsoleLogger() )::Bool where T <: AbstractDFG
   #
   #
   # Mighty inefficient function, since we only need very select fields nearby from a few neighboring nodes
@@ -860,42 +861,51 @@ function doautoinit!(dfg::T,
   return didinit
 end
 
-function doautoinit!(dfg::T,
-                     xsyms::Vector{Symbol};
-                     singles::Bool=true,
-                     N::Int=100,
-                     logger=SimpleLogger(logger)  )::Bool where T <: AbstractDFG
+function doautoinit!( dfg::T,
+                      xsyms::Vector{Symbol};
+                      singles::Bool=true,
+                      N::Int=100,
+                      logger=SimpleLogger(logger)  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)
 end
-function doautoinit!(dfg::T,
-                     xsym::Symbol;
-                     singles::Bool=true,
-                     N::Int=100,
-                     logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
+function doautoinit!( dfg::T,
+                      xsym::Symbol;
+                      singles::Bool=true,
+                      N::Int=100,
+                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
   return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N, logger=logger)
 end
 
 """
-    $(SIGNATURES)
+    $(TYPEDSIGNATURES)
 
-Workaround function when first-version (factor graph based) auto initialization fails.  Usually occurs when using factors that have high connectivity to multiple variables.
+Method to manually initialize a variable using a set of points.
 """
-function initManual!(dfg::AbstractDFG, vert::DFGVariable, pX::BallTreeDensity)::Nothing
-  setValKDE!(vert, pX, true)
+function initManual!(dfg::AbstractDFG, 
+                    variable::DFGVariable, 
+                    ptsArr::BallTreeDensity)
+  #
+  setValKDE!(variable, ptsArr, true)
   return nothing
 end
-function initManual!(dfg::AbstractDFG, sym::Symbol, pX::BallTreeDensity)::Nothing
-  vert = getVariable(dfg, sym)
-  initManual!(dfg, vert, pX)
+function initManual!( dfg::AbstractDFG, 
+                      label::Symbol, 
+                      belief::BallTreeDensity)
+  #
+  variable = getVariable(dfg, label)
+  initManual!(dfg, variable, belief)
   return nothing
 end
-function initManual!(dfg::AbstractDFG, sym::Symbol, usefcts::Vector{Symbol})::Nothing
-  @info "initManual! $sym"
-  pts = predictbelief(dfg, sym, usefcts)[1]
-  vert = getVariable(dfg, sym)
+function initManual!( dfg::AbstractDFG, 
+                      label::Symbol, 
+                      usefcts::Vector{Symbol} )
+  #
+  @info "initManual! $label"
+  pts = predictbelief(dfg, label, usefcts)[1]
+  vert = getVariable(dfg, label)
   Xpre = AMP.manikde!(pts, getSofttype(vert) |> getManifolds )
   setValKDE!(vert, Xpre, true)
   return nothing
