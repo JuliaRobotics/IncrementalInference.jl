@@ -8,7 +8,7 @@ _defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
 """
 $(TYPEDEF)
 
-Define a categorical mixture of relative or prior likelihood beliefs.
+Define a mixture of relative or prior likelihood beliefs.
 """
 struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
   mechanics::F
@@ -18,7 +18,32 @@ struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
   labels::Vector{Int}
 end
 
+"""
+    $SIGNATURES
 
+Construct a `Mixture` object for use with either a `<: AbstractPrior` or `<: AbstractRelative`.
+
+Notes
+- The internal data representation is a `::NamedTuple`, which allows total type-stability for all component types.
+- Various construction helpers can accept a variety of inputs, including `<: AbstractArray` and `Tuple`.
+
+Example
+```juila
+# prior factor
+msp = Mixture(PriorSphere1, 
+              [model=Normal(0,0.1), Uniform(-pi/1,pi/2)],
+              [0.5;0.5])
+
+addFactor!(fg, [:head], msp, tags=[:MAGNETOMETER;])
+
+# Or relative
+mlr = Mixture(LinearRelative, 
+              (correlator=AliasingScalarSampler(...), naive=Normal(0.5,5), lucky=Uniform(0,10)),
+              [0.5;0.4;0.1])
+
+addFactor!(fg, [:x0;:x1], mlr)
+```
+"""
 Mixture(f::Type{F},
         z::NamedTuple{S,T}, 
         c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
