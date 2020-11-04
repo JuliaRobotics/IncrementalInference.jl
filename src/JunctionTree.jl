@@ -421,15 +421,15 @@ function drawTree(treel::AbstractBayesTree;
   #
   fext = filepath[(end-2):end] #split(filepath, '.')[end]
   fpwoext = filepath[1:(end-4)]# split(filepath, '.')[end-1]
-  mkpath(dirname(fpwoext))
+  path = mkpath(dirname(fpwoext))
   
   # modify a deepcopy
   btc = deepcopy(treel)
   for (cid, cliq) in getCliques(btc)
     if imgs
       firstlabel = split(getLabel(cliq),',')[1]
-      spyCliqMat(cliq, suppressprint=true) |> exportimg("/tmp/caesar/random/$firstlabel$suffix.png")
-      cliq.attributes["image"] = "/tmp/caesar/random/$firstlabel$suffix.png"
+      spyCliqMat(cliq, suppressprint=true) |> exportimg(path*"/$firstlabel$suffix.png")
+      cliq.attributes["image"] = path*"/$firstlabel$suffix.png"
       setLabel!(cliq, "")
     end
     delete!(cliq.attributes, "data")
