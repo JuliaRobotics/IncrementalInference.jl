@@ -8,20 +8,7 @@ _defaultNamesMixtures(N::Int) = ((Symbol[Symbol("c$i") for i in 1:N])...,)
 """
 $(TYPEDEF)
 
-Define a mixture of relative or prior likelihood beliefs.
-"""
-struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
-  mechanics::F
-  components::NamedTuple{S,T}
-  diversity::Distributions.Categorical
-  dims::Int
-  labels::Vector{Int}
-end
-
-"""
-    $SIGNATURES
-
-Construct a `Mixture` object for use with either a `<: AbstractPrior` or `<: AbstractRelative`.
+A `Mixture` object for use with either a `<: AbstractPrior` or `<: AbstractRelative`.
 
 Notes
 - The internal data representation is a `::NamedTuple`, which allows total type-stability for all component types.
@@ -44,6 +31,15 @@ mlr = Mixture(LinearRelative,
 addFactor!(fg, [:x0;:x1], mlr)
 ```
 """
+struct Mixture{N, F<:FunctorInferenceType, S, T<:Tuple} <: FunctorInferenceType
+  mechanics::F
+  components::NamedTuple{S,T}
+  diversity::Distributions.Categorical
+  dims::Int
+  labels::Vector{Int}
+end
+
+
 Mixture(f::Type{F},
         z::NamedTuple{S,T}, 
         c::Distributions.DiscreteNonParametric ) where {F<:FunctorInferenceType, S, T} = Mixture{length(z),F,S,T}(f(LinearAlgebra.I), z, c, size( rand(z[1],1), 1), zeros(Int, 0))
