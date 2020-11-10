@@ -565,11 +565,11 @@ Function to calculate measurement dimension from factor sampling.
 
 Notes
 - Will not work in all situations, but good enough so far.
-  - # TODO standardize
+  - # TODO standardize via domain or manifold definition...??
 """
 function calcZDim(usrfnc::T, 
                   Xi::Vector{<:DFGVariable}, 
-                  fmd::FactorMetadata=FactorMetadata()) where {T <: FunctorInferenceType}
+                  fmd::FactorMetadata=_defaultFactorMetadata(Xi)) where {T <: FunctorInferenceType}
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -1099,8 +1099,14 @@ function addFactor!(dfg::AbstractDFG,
     getSolverParams(dfg).maxincidence = maxparallel
   end
 
-  verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, verts, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
+  # basic sanity check for unary vs n-ary
+  if length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
+    @warn "Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))"
+  end
+
+  variables = getVariable.(dfg, xisyms)
+  # verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
+  addFactor!(dfg, variables, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
 end
 
 

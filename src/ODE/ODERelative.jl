@@ -8,12 +8,33 @@ import IncrementalInference: getSample
 export ODERelative
 
 
-struct ODERelative{T <:InferenceVariable, P} <: AbstractRelativeRoots
+"""
+    $TYPEDEF
+
+Build a full ODE solution into a relative factor to condense possible sensor data into a relative transformation,
+but keeping the parameter estimation process fluid.  Assumes first and second variable in order 
+are of same dimension and compatible manifolds, such that ODE runs from Xi to Xi+1 on all
+dimensions.  Internal state vector can be decoupled onto different domain as needed.
+
+Notes
+- Based on DifferentialEquations.jl
+- `getSample` step does the `solve(ODEProblem)` step.
+- `tspan` is taken from variables only once at object construction -- i.e. won't detect changed timestamps.
+- Regular factor evaluation is done as full dimension `AbstractRelativeRoots`, and is basic linear difference.
+
+DevNotes
+- # FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
+- # TODO does not yet handle case where a factor spans across two timezones.
+"""
+struct ODERelative{T <:InferenceVariable, F, P, D} <: AbstractRelativeRoots
   domain::Type{T}
+  state::Vector{F}
   problem::P
+  data::D
+  variableToState::Function
+  stateToVariable::Function
   specialSampler::Function
 end
-
 
 
 """
@@ -21,64 +42,77 @@ end
 
 Calculate a DifferentialEquations.jl ready `tspan::Tuple{Float64,Float64}` from DFGVariables.
 
-Notes
-- Can change numerical data return type using an additional first argument, `_calcTimespan(Float32, Xi)`.
-
 DevNotes
 - # TODO does not yet incorporate Xi.nanosecond field.
+- # TODO does not handle timezone crossing properly yet.
 """
-function _calcTimespan( elemType::Type{<:Real},
-                        Xi::AbstractVector{<:DFGVariable} )
+function _calcTimespan( Xi::AbstractVector{<:DFGVariable}  )
   #
-  tsmps = getTimestamp.(Xi)
-  toffs = (tsmps .- tsmps[1]) .|> x-> elemType(x.value*1e-3) 
-  return (toffs...,)
+  tsmps = getTimestamp.(Xi) .|> DateTime .|> datetime2unix
+  # toffs = (tsmps .- tsmps[1]) .|> x-> elemType(x.value*1e-3)
+  return (tsmps...,)
 end
-
-_calcTimespan(Xi::AbstractVector{<:DFGVariable}) = _calcTimespan(Float64, Xi)
+# Notes
+# - Can change numerical data return type using an additional first argument, `_calcTimespan(Float32, Xi)`.
+# _calcTimespan(Xi::AbstractVector{<:DFGVariable}) = _calcTimespan(Float64, Xi)
 
 
 function ODERelative( Xi::AbstractVector{<:DFGVariable},
                       domain::Type{<:InferenceVariable},
-                      f::Function;
+                      f::Function,
+                      data=()->(),
+                      var2state=(state,src)->(state .= src),
+                      state2var=(var,src)->(var .= src);
                       dt::Real=1,
-                      u0::AbstractVector{<:Real}=zeros(getDimension(domain)),
-                      tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi)  )
+                      state0::AbstractVector{<:Real}=zeros(getDimension(domain)),
+                      tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
+                      problemType = DiscreteProblem )
   #
-  prob = DiscreteProblem(f, u0, tspan, dt=dt)
-  ODERelative( domain, prob, getSample )
+  problem = problemType(f, state0, tspan, data, dt=dt )
+  ODERelative( domain, deepcopy(state0), problem, data, var2state, state2var, getSample)
 end
+
 
 ODERelative(dfg::AbstractDFG,
             labels::AbstractVector{Symbol},
             domain::Type{<:InferenceVariable},
-            f::Function;
+            f::Function,
+            data=()->(),
+            var2state=(dest,src)->(dest .= src),
+            state2var=(dest,src)->(dest .= src);
             Xi::AbstractArray{<:DFGVariable}=getVariable.(dfg, labels),
             dt::Real=1,
-            u0::AbstractVector{<:Real}=zeros(getDimension(domain)),
-            tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi)  ) = ODERelative( Xi, domain, f; dt=dt, u0=u0, tspan=tspan  )
+            state0::AbstractVector{<:Real}=zeros(getDimension(domain)),
+            tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
+            problemType = DiscreteProblem ) = ODERelative( Xi, domain, f, data, var2state, state2var; dt=dt, state0=state0, tspan=tspan, problemType=problemType  )
 #
+
 
 function getSample( oder::ODERelative, 
                     N::Int=1, 
                     fmd_...)
   #
   # how many trajectories to propagate?
-  meas = zeros(getDimension(oder.domain),N)
+  meas = zeros(getDimension(fmd_[1].fullvariables[2]), N)
   
-  u0pts = getBelief(fmd_[1].fullvariables[1]) |> getPoints
+  u0pts = getBelief( fmd_[1].fullvariables[1] ) |> getPoints
 
   # solve likely elements
   for i in 1:N
     # set the initial condition
     oder.problem.u0 .= u0pts[:,i]
+    sol = DifferentialEquations.solve(oder.problem)
 
     # solve the ode
-    meas[:,i] = DifferentialEquations.solve(oder.problem).u[end]
+    oder.stateToVariable(view(meas, :,i), sol.u[end])
   end
 
-  return (meas,)
+  # buffer manifold operations for use during factor evaluation
+  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[2]) )
+
+  return (meas, diffOp)
 end
+# getDimension(oderel.domain)
 
 
 function (oderel::ODERelative)( res::AbstractVector{<:Real},
@@ -87,9 +121,21 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
                                 meas::Tuple,
                                 X...)
   #
-  fill!(res, 0.0)
-  res .= meas[1][:,idx] - X[2][:,idx]
+  
+  # work on-manifold
+  diffOp = meas[2]
+  
+  # find the difference between measured and predicted.
+  ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas[1][:,idx]`)
+  ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
+  for i in 1:size(X[2],1)
+    # diffop( test, reference )   <===>   ΔX = test \ reference
+    res[i] = diffOp[i]( X[2][i,idx], meas[1][i,idx] )
+  end
+  res
 end
+
+
 
 ## the function
 # ode.problem.f.f

@@ -41,14 +41,20 @@ function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
   fct = getFactor(dfg, sym)
   usrfnc = getFactorType(fct)
   if hasfield(typeof(usrfnc), :specialSampler)
-    freshSamples(usrfnc, N, FactorMetadata(), getVariable.(dfg,getVariableOrder(fct)) )
+    variables = getVariable.(dfg, getVariableOrder(fct))
+    fmd = _defaultFactorMetadata(variables)
+    freshSamples(usrfnc, N, fmd, variables )
   else
     freshSamples(usrfnc, N)
   end
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
-function freshSamples!(ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[])
+function freshSamples!( ccwl::CommonConvWrapper, 
+                        N::Int, 
+                        fmd::FactorMetadata, 
+                        vnd::Vector=[] )
+  #
   # if size(ccwl.measurement, 2) == N
   # DOESNT WORK DUE TO TUPLE, not so quick and easy
   #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
