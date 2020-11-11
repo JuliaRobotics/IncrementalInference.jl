@@ -508,7 +508,7 @@ DevNotes
 
 Related
 
-[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`
+[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`
 """
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
