@@ -47,7 +47,7 @@ ensureAllInitialized!(fg)
 
 # Juno.breakpoint("/home/dehann/.julia/v0.5/IncrementalInference/src/ApproxConv.jl",121)
 
-global pts = evalFactor2(fg, f1, v1.label, N=N)
+global pts = evalFactor(fg, f1, v1.label, N=N)
 
 @test sum(abs.(pts .- 1.0) .< 5) < 30
 @test sum(abs.(pts .- 10.0) .< 5) > 30

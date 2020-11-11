@@ -48,7 +48,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   Base.depwarn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", :findRelatedFromPotential)
 
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
+  ptsbw = evalFactor(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
 
   # solvable dimension
@@ -70,10 +70,18 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 end
 
 
+##==============================================================================
+## TODO deprecated  
+##==============================================================================
+
+
 
 ##==============================================================================
 ## Deprecate at v0.18 
 ##==============================================================================
+
+
+@deprecate evalFactor2(w...;kw...) evalFactor(w...;kw...)
 
 # Keep these a bit longer
 

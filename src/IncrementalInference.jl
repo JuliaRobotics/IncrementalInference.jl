@@ -311,7 +311,7 @@ export *,
   drawTreeAsyncLoop,
 
   # Bayes (Junction) Tree
-  evalFactor2,
+  evalFactor,
   approxConv,
   approxConvBinary,
 

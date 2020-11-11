@@ -37,7 +37,7 @@ f2  = addFactor!(fg,[:x1],dp)
 
 
 @testset "test evaluation of full constraint prior" begin
-  pts = evalFactor2(fg, f1, v1.label, N=N)
+  pts = evalFactor(fg, f1, v1.label, N=N)
   @test size(pts,1) == 2
   @test size(pts,2) == N
   @test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.3
@@ -48,7 +48,6 @@ memcheck = getVal(v1)
 @testset "test evaluation of partial constraint prior" begin
 
 X1pts = getVal(v1)
-# pts = evalFactor2(fg, f2, v1.label, N=N)
 pts = approxConv(fg, f2.label, :x1, N=N)
 
 @test size(pts, 1) == 2
@@ -111,12 +110,12 @@ global fg
 
 ensureAllInitialized!(fg)
 valx2 = getVal(fg, :x2)
-pts = approxConv(fg, :x1x2f1, :x2, N=N) # evalFactor2(fg, f3, v2.index, N=N)
+pts = approxConv(fg, :x1x2f1, :x2, N=N) # evalFactor(fg, f3, v2.index, N=N)
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
 @test norm(valx2[1,:] - pts[1,:]) < 1e-5
 
-pts = approxConv(fg, :x2f1, :x2, N=N) # evalFactor2(fg, f4, v2.index, N=N)
+pts = approxConv(fg, :x2f1, :x2, N=N) # evalFactor(fg, f4, v2.index, N=N)
 @test size(pts,1) == 2
 @test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 0.75
 @test (Statistics.std(pts,dims=2)[1] .- 1.0) < 0.4

@@ -414,13 +414,13 @@ end
 
 Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
 """
-function evalFactor2( dfg::AbstractDFG,
-                      fct::DFGFactor,
-                      solvefor::Symbol,
-                      measurement::Tuple=(zeros(0,100),);
-                      solveKey::Symbol=:default,
-                      N::Int=size(measurement[1],2),
-                      dbg::Bool=false  )
+function evalFactor(dfg::AbstractDFG,
+                    fct::DFGFactor,
+                    solvefor::Symbol,
+                    measurement::Tuple=(zeros(0,100),);
+                    solveKey::Symbol=:default,
+                    N::Int=size(measurement[1],2),
+                    dbg::Bool=false  )
   #
 
   ccw = getSolverData(fct).fnc
@@ -459,7 +459,7 @@ function approxConv(dfg::AbstractDFG,
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1) : N
-  return evalFactor2(dfg, fc, v1.label, measurement, N=N)
+  return evalFactor(dfg, fc, v1.label, measurement, N=N)
 end
 
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
@@ -508,7 +508,7 @@ DevNotes
 
 Related
 
-[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`
+[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`, [`evalFactor`](@ref)
 """
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
