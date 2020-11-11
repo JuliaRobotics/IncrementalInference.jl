@@ -167,7 +167,7 @@ end
 Accumulate chains of binary factors---potentially starting from a prior---as a parameteric mean value only.
 
 Notes
-- Not used during mmisam inference.
+- Not used during tree inference.
 - Expected uses are for user analysis of factors and estimates.
 - real-time dead reckoning chain prediction.
 
@@ -176,7 +176,7 @@ DevNotes
 
 Related:
 
-approxConv, approxConvChain, solveBinaryFactorParameteric, MutablePose2Pose2Gaussian
+[`approxConv`](@ref), solveBinaryFactorParameteric, `RoME.MutablePose2Pose2Gaussian`
 """
 function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
 

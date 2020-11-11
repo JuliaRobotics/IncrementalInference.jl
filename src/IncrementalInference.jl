@@ -78,6 +78,7 @@ export AbstractDFG,
   InMemDFGType,
   getSolverParams,
   LightDFG,
+  findShortestPathDijkstra,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,
   deepcopySolvekeys!, deepcopySupersolve!,
@@ -310,7 +311,7 @@ export *,
   drawTreeAsyncLoop,
 
   # Bayes (Junction) Tree
-  evalFactor2,
+  evalFactor,
   approxConv,
   approxConvBinary,
 
