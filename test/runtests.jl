@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testApproxConv.jl")
+
 include("testHasPriors913.jl")
 
 include("testInitVariableOrder.jl")
