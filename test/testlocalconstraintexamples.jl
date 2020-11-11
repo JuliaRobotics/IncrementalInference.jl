@@ -28,7 +28,7 @@ f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
 # @test isInitialized(fg, :x1)
 
 pts = approxConv(fg, :x1x2f1, :x2)
-# pts = evalFactor2(fg, f2, v2.label)
+# pts = evalFactor(fg, f2, v2.label)
 @show Statistics.mean(pts,dims=2)
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
 
