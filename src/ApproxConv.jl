@@ -449,31 +449,18 @@ function evalFactor2( dfg::AbstractDFG,
   return evalPotentialSpecific(Xi, ccw, solvefor, measurement, solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
 end
 
-# import IncrementalInference: evalFactor2, approxConv
-"""
-    $(SIGNATURES)
 
-Draw samples from the approximate convolution of `towards` symbol using factor `fct` relative to the other variables.  In addition the `api` can be adjusted to recover the data from elsewhere (likely to be replaced/removed in the future).
-"""
+
 function approxConv(dfg::AbstractDFG,
                     fc::DFGFactor,
-                    towards::Symbol,
+                    target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
                     N::Int=size(measurement[1],2) )
   #
-  v1 = getVariable(dfg, towards)
+  v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1) : N
   return evalFactor2(dfg, fc, v1.label, measurement, N=N)
 end
-# function approxConv(dfg::AbstractDFG,
-#                     fct::Symbol,
-#                     towards::Symbol,
-#                     measurement::Tuple=(zeros(0,0),);
-#                     N::Int=size(measurement[1],2) )
-#   #
-#   fc = getFactor(dfg, fct)
-#   return approxConv(dfg, fc, towards, measurement, N=N)
-# end
 
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
@@ -516,9 +503,12 @@ Notes
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
 - pass in `tfg` to get a recoverable result of all convolutions in the chain.
 
+DevNotes
+- FIXME must consolidate with `accumulateFactorMeans`
+
 Related
 
-`accumulateFactorMeans`, `DFG.findFactorsBetweenNaive`
+[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`
 """
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
