@@ -26,13 +26,12 @@ DevNotes
 - # FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
 - # TODO does not yet handle case where a factor spans across two timezones.
 """
-struct ODERelative{T <:InferenceVariable, F, P, D} <: AbstractRelativeRoots
+struct ODERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
   domain::Type{T}
-  state::Vector{F}
-  problem::P
+  forwardProblem::P
+  backwardProblem::P
+  # second element of this data tuple is additional variables that will be passed down as a parameter
   data::D
-  variableToState::Function
-  stateToVariable::Function
   specialSampler::Function
 end
 
@@ -60,16 +59,25 @@ end
 function ODERelative( Xi::AbstractVector{<:DFGVariable},
                       domain::Type{<:InferenceVariable},
                       f::Function,
-                      data=()->(),
-                      var2state=(state,src)->(state .= src),
-                      state2var=(var,src)->(var .= src);
+                      data=()->();
                       dt::Real=1,
                       state0::AbstractVector{<:Real}=zeros(getDimension(domain)),
+                      state1::AbstractVector{<:Real}=zeros(getDimension(domain)),
                       tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
                       problemType = DiscreteProblem )
   #
-  problem = problemType(f, state0, tspan, data, dt=dt )
-  ODERelative( domain, deepcopy(state0), problem, data, var2state, state2var, getSample)
+  datatuple = if 2 < length(Xi)
+    datavec = getDimension.(Xi) .|> x->zeros(x)
+    (data,datavec...,)
+  else
+    data
+  end
+  # forward time problem
+  fproblem = problemType(f, state0, tspan, datatuple, dt=dt )
+  # backward time problem
+  bproblem = problemType(f, state1, (tspan[2],tspan[1]), datatuple, dt=-dt )
+  # build the IIF recognizable object
+  ODERelative( domain, fproblem, bproblem, datatuple, getSample )
 end
 
 
@@ -77,14 +85,13 @@ ODERelative(dfg::AbstractDFG,
             labels::AbstractVector{Symbol},
             domain::Type{<:InferenceVariable},
             f::Function,
-            data=()->(),
-            var2state=(dest,src)->(dest .= src),
-            state2var=(dest,src)->(dest .= src);
+            data=()->();
             Xi::AbstractArray{<:DFGVariable}=getVariable.(dfg, labels),
             dt::Real=1,
             state0::AbstractVector{<:Real}=zeros(getDimension(domain)),
+            state1::AbstractVector{<:Real}=zeros(getDimension(domain)),
             tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
-            problemType = DiscreteProblem ) = ODERelative( Xi, domain, f, data, var2state, state2var; dt=dt, state0=state0, tspan=tspan, problemType=problemType  )
+            problemType = DiscreteProblem ) = ODERelative( Xi, domain, f, data; dt=dt, state0=state0, state1=state1, tspan=tspan, problemType=problemType  )
 #
 
 
@@ -95,21 +102,25 @@ function getSample( oder::ODERelative,
   # how many trajectories to propagate?
   meas = zeros(getDimension(fmd_[1].fullvariables[2]), N)
   
-  u0pts = getBelief( fmd_[1].fullvariables[1] ) |> getPoints
+  # pick forward or backward direction
+  
 
+  # set boundary condition
+  u0pts = getBelief( fmd_[1].fullvariables[1] ) |> getPoints
+  
   # solve likely elements
   for i in 1:N
     # set the initial condition
-    oder.problem.u0 .= u0pts[:,i]
-    sol = DifferentialEquations.solve(oder.problem)
-
-    # solve the ode
-    oder.stateToVariable(view(meas, :,i), sol.u[end])
+    oder.forwardProblem.u0[:] = u0pts[:,i]
+    sol = DifferentialEquations.solve(oder.forwardProblem)
+    
+    # extract solution from solved ode
+    meas[:,i] = sol.u[end]
   end
-
+  
   # buffer manifold operations for use during factor evaluation
   addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[2]) )
-
+  
   return (meas, diffOp)
 end
 # getDimension(oderel.domain)
