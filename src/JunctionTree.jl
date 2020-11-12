@@ -698,7 +698,7 @@ function prepBatchTree!(dfg::AbstractDFG;
                         filepath::String="/tmp/caesar/bt.pdf",
                         viewerapp::String="evince",
                         imgs::Bool=false,
-                        drawbayesnet::Bool=false,
+#                         drawbayesnet::Bool=false,
                         maxparallel::Union{Nothing, Int}=nothing )
   #
   p = variableOrder !== nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
@@ -717,7 +717,7 @@ function prepBatchTree!(dfg::AbstractDFG;
     end
   end
 
-  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=drawbayesnet)
+  tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=false) # drawbayesnet
 
   # GraphViz.Graph(to_dot(tree.bt))
   # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
