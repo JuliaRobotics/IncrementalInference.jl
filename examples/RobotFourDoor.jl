@@ -21,7 +21,6 @@ doorPrior = Mixture(Prior,
 
 ## Build the factor graph object
 fg = initfg()
-getSolverParams(fg).useMsgLikelihoods = true
 
 # first pose location
 v1 = addVariable!(fg,:x1,ContinuousScalar,N=N)

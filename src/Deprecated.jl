@@ -9,15 +9,15 @@ export _evalType
 
 # not sure if and where this is still being used
 function _evalType(pt::String)::Type
-    @error "_evalType has been deprecated, use DFG serialization methods instead."
-    try
-        getfield(Main, Symbol(pt))
-    catch ex
-        io = IOBuffer()
-        showerror(io, ex, catch_backtrace())
-        err = String(take!(io))
-        error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
-    end
+  @error "_evalType has been deprecated, use DFG serialization methods instead."
+  try
+    getfield(Main, Symbol(pt))
+  catch ex
+    io = IOBuffer()
+    showerror(io, ex, catch_backtrace())
+    err = String(take!(io))
+    error("_evalType: Unable to locate factor/distribution type '$pt' in main context (e.g. do a using on all your factor libraries). Please check that this factor type is loaded into main. Stack trace = $err")
+  end
 end
 
 
@@ -48,7 +48,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   Base.depwarn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", :findRelatedFromPotential)
 
   # assuming it is properly initialized TODO
-  ptsbw = evalFactor2(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
+  ptsbw = evalFactor(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
   # determine if evaluation is "dimension-deficient"
 
   # solvable dimension
@@ -70,10 +70,28 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 end
 
 
+##==============================================================================
+## TODO deprecated  
+##==============================================================================
+
+
+
+
+
+##==============================================================================
+## Deprecate at v0.19
+##==============================================================================
+
+
+@deprecate setCliqueDrawColor!(w...;kw...) setCliqueDrawColor!(w...;kw...)
+
+@deprecate evalFactor2(w...;kw...) evalFactor(w...;kw...)
+
 
 ##==============================================================================
 ## Deprecate at v0.18 
 ##==============================================================================
+
 
 # Keep these a bit longer
 

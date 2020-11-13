@@ -23,7 +23,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-3, Solving Up")
 
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   #TODO maybe change to symbols
@@ -115,7 +115,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   infocsm(csmc, "Par-5, Solving down")
 
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   # csmc.drawtree ? drawTree(csmc.tree, show=false, filepath=joinpath(getSolverParams(csmc.dfg).logpath,"bt.pdf")) : nothing
 
   # TODO create function: 
@@ -206,7 +206,7 @@ function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContain
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
 
   #solve finished change color
-  setCliqDrawColor(csmc.cliq, "lightblue")
+  setCliqueDrawColor!(csmc.cliq, "lightblue")
 
   logCSM(csmc, "Clique $(csmc.cliq.index): Finished", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine

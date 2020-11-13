@@ -414,13 +414,13 @@ end
 
 Single entry point for evaluating factors from factor graph, using multiple dispatch to locate the correct `evalPotentialSpecific` function.
 """
-function evalFactor2( dfg::AbstractDFG,
-                      fct::DFGFactor,
-                      solvefor::Symbol,
-                      measurement::Tuple=(zeros(0,100),);
-                      solveKey::Symbol=:default,
-                      N::Int=size(measurement[1],2),
-                      dbg::Bool=false  )
+function evalFactor(dfg::AbstractDFG,
+                    fct::DFGFactor,
+                    solvefor::Symbol,
+                    measurement::Tuple=(zeros(0,100),);
+                    solveKey::Symbol=:default,
+                    N::Int=size(measurement[1],2),
+                    dbg::Bool=false  )
   #
 
   ccw = getSolverData(fct).fnc
@@ -449,30 +449,17 @@ function evalFactor2( dfg::AbstractDFG,
   return evalPotentialSpecific(Xi, ccw, solvefor, measurement, solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
 end
 
-# import IncrementalInference: evalFactor2, approxConv
-"""
-    $(SIGNATURES)
 
-Draw samples from the approximate convolution of `towards` symbol using factor `fct` relative to the other variables.  In addition the `api` can be adjusted to recover the data from elsewhere (likely to be replaced/removed in the future).
-"""
+
 function approxConv(dfg::AbstractDFG,
                     fc::DFGFactor,
-                    towards::Symbol,
+                    target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
                     N::Int=size(measurement[1],2) )
   #
-  v1 = getVariable(dfg, towards)
+  v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1) : N
-  return evalFactor2(dfg, fc, v1.label, measurement, N=N)
-end
-function approxConv(dfg::AbstractDFG,
-                    fct::Symbol,
-                    towards::Symbol,
-                    measurement::Tuple=(zeros(0,0),);
-                    N::Int=size(measurement[1],2) )
-  #
-  fc = getFactor(dfg, fct)
-  return approxConv(dfg, fc, towards, measurement, N=N)
+  return evalFactor(dfg, fc, v1.label, measurement, N=N)
 end
 
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
@@ -504,6 +491,85 @@ function approxConvBinary(arr::Array{Float64,2},
 end
 
 
+"""
+    $SIGNATURES
+
+Calculate the sequential series of convolutions in order as listed by `fctLabels`, and starting from the 
+value already contained in the first variable.  
+
+Notes
+- The ultimate `target` variable must be given to allow path discovery through n-ary factors.
+- Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPrior`.
+- This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
+- pass in `tfg` to get a recoverable result of all convolutions in the chain.
+
+DevNotes
+- FIXME must consolidate with `accumulateFactorMeans`
+
+Related
+
+[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`, [`evalFactor`](@ref)
+"""
+function approxConv(dfg::AbstractDFG, 
+                    from::Symbol, 
+                    target::Symbol,
+                    measurement::Tuple=(zeros(0,0),);
+                    N::Int=size(measurement[1],2),
+                    tfg = initfg() )
+  #
+  @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
+  
+  if from in ls(dfg, target)
+    # direct request
+    # TODO avoid this allocation for direct cases ( dfg, :x1x2f1, :x2[/:x1] )
+    path = Symbol[from; target]
+    varLbls = Symbol[target;]
+  else
+    # must first discover shortest factor path in dfg
+    # TODO DFG only supports LightDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
+    path = findShortestPathDijkstra(dfg, from, target)
+    @assert path[1] == from "sanity check that shortest path function is working as expected"
+
+    # list of variables
+    varMsk = isVariable.(dfg, path)
+      # @assert varMsk[end] "approxConv(dfg, from, target,...) where `target` must be a variable in dfg"
+    varLbls = path[varMsk]
+    neMsk = exists.(tfg, varLbls) .|> x-> xor(x,true)
+    # put the non-existing variables into the temporary graph `tfg`
+    addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
+  end
+  
+  # find/set the starting point
+  idxS = 1
+  pts = if varLbls[1] == from
+    # starting from a variable
+    pts0 = getBelief(dfg, varLbls[1]) |> getPoints
+  else
+    # chain would start one later
+    idxS += 1
+    # get the factor
+    fct0 = getFactor(dfg,from)
+    # get the Matrix{<:Real} of projected points
+    pts1 = approxConv(dfg, fct0, path[2], measurement, N=N)
+    length(path) == 2 ? (return pts1) : pts1
+  end
+  # sneaky shortcut, didn't return early so `varLbls` will exist (thanks JuliaLang IR)
+  initManual!(tfg, varLbls[1], pts)
+
+  # do chain of convolutions
+  for idx in idxS:length(path)
+    if !varMsk[idx]
+      # this is a factor path[idx]
+      fct = getFactor(dfg, path[idx])
+      addFactor!(tfg, fct)
+      pts = approxConv(tfg, fct, path[idx+1], N=N)
+      initManual!(tfg, path[idx+1], pts)
+    end
+  end
+
+  # return target variable values
+  return getBelief(tfg, target) |> getPoints
+end
 
 
 

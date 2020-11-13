@@ -55,7 +55,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
     task_local_storage(:csmc, csmc)
   end
 
-  logCSM(csmc, "Clique $(csmc.cliq.index) starting", loglevel=Logging.Info)
+  logCSM(csmc, "Clique $(csmc.cliq.index) starting", loglevel=Logging.Debug)
   
   #TODO
   # timeout
@@ -143,7 +143,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "CSM-1 Wait for up messages if needed")
 
-  # setCliqDrawColor(csmc.cliq, "olive") #TODO don't know if this is correct color
+  # setCliqueDrawColor!(csmc.cliq, "olive") #TODO don't know if this is correct color
 
   # JT empty upRx buffer to save messages, TODO It may be ok not to empty 
   beliefMessages = empty!(getMessageBuffer(csmc.cliq).upRx)
@@ -228,7 +228,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   #no need to solve
   if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
     logCSM(csmc, "CSM-2a Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
-    getCliqueStatus(csmc.cliq) == MARGINALIZED &&  setCliqDrawColor(csmc.cliq, "blue")
+    getCliqueStatus(csmc.cliq) == MARGINALIZED &&  setCliqueDrawColor!(csmc.cliq, "blue")
     return postUpSolve_StateMachine
   end
 
@@ -238,7 +238,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     return initUp_StateMachine
   else
-    setCliqDrawColor(csmc.cliq, "brown")
+    setCliqueDrawColor!(csmc.cliq, "brown")
     logCSM(csmc, "CSM-2a Clique $(csmc.cliqKey) is initialized but children need to init, don't do anything")
     setCliqueStatus!(csmc.cliq, INITIALIZED)
     return postUpSolve_StateMachine
@@ -273,7 +273,7 @@ function initUp_StateMachine(csmc)
         end
         ## END experimental
 
-    setCliqDrawColor(csmc.cliq, "green")
+    setCliqueDrawColor!(csmc.cliq, "green")
 
     logCSM(csmc, "CSM-2b Trying up init -- all not initialized"; c=csmc.cliqKey)
      
@@ -285,7 +285,7 @@ function initUp_StateMachine(csmc)
     printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
     logCSM(csmc, "CSM-2b solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqKey)
   
-    someInit ? setCliqDrawColor(csmc.cliq, "darkgreen") :  setCliqDrawColor(csmc.cliq, "lightgreen")
+    someInit ? setCliqueDrawColor!(csmc.cliq, "darkgreen") :  setCliqueDrawColor!(csmc.cliq, "lightgreen")
 
     solveStatus = someInit ? INITIALIZED : NO_INIT
 
@@ -316,7 +316,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   
   logCSM(csmc, "CSM-2c Solving Up")
 
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
 
   #Make sure all are initialized
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
@@ -445,7 +445,7 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "CSM-3 wait for down messages if needed")
 
-  # setCliqDrawColor(csmc.cliq, "lime")
+  # setCliqueDrawColor!(csmc.cliq, "lime")
  
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "CSM-3 $(csmc.cliq.index): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
@@ -550,7 +550,7 @@ function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     solveStatus = getCliqueStatus(csmc.cliq)
     logCSM(csmc, "CSM-4a root case or MARGINALIZED"; status=solveStatus, c=csmc.cliqKey)
     if solveStatus in [INITIALIZED, NO_INIT, UPSOLVED, UPRECYCLED, MARGINALIZED]
-      solveStatus == MARGINALIZED &&  setCliqDrawColor(csmc.cliq, "blue")
+      solveStatus == MARGINALIZED &&  setCliqueDrawColor!(csmc.cliq, "blue")
       if solveStatus in [UPSOLVED, UPRECYCLED]
         setCliqueStatus!(csmc.cliq, DOWNSOLVED)
       end
@@ -571,7 +571,7 @@ Notes
 """
 function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
 
-  setCliqDrawColor(csmc.cliq, "olive")
+  setCliqueDrawColor!(csmc.cliq, "olive")
 
   logCSM(csmc, "CSM-4b Trying Down init -- all not initialized") 
     
@@ -592,7 +592,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "CSM-4b tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
   
   solveStatus = someInit ? INITIALIZED : NO_INIT
-  someInit ? setCliqDrawColor(csmc.cliq, "seagreen") :  setCliqDrawColor(csmc.cliq, "khaki")
+  someInit ? setCliqueDrawColor!(csmc.cliq, "seagreen") :  setCliqueDrawColor!(csmc.cliq, "khaki")
   setCliqueStatus!(csmc.cliq, solveStatus)
 
   return postDownSolve_StateMachine
@@ -609,7 +609,7 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "CSM-4c Solving down")
 
-  setCliqDrawColor(csmc.cliq, "maroon")
+  setCliqueDrawColor!(csmc.cliq, "maroon")
 
   # DownSolve cliqSubFg
   # add messages, do downsolve, remove messages
@@ -644,7 +644,7 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "CSM-4c solveDown -- finished with downGibbsCliqueDensity, now update csmc")
 
   # update clique subgraph with new status
-  # setCliqDrawColor(csmc.cliq, "lightblue")
+  # setCliqueDrawColor!(csmc.cliq, "lightblue")
 
   # remove msg factors that were added to the subfg
   rmFcts = deleteMsgFactors!(csmc.cliqSubFg)
@@ -748,7 +748,7 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
 
   #solve finished change color
-  setCliqDrawColor(csmc.cliq, "lightblue")
+  setCliqueDrawColor!(csmc.cliq, "lightblue")
 
   logCSM(csmc, "CSM-5 Clique $(csmc.cliq.index) finished", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine
