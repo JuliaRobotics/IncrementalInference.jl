@@ -126,7 +126,6 @@ end
 
 
 
-
 """
     $SIGNATURES
 
@@ -169,22 +168,6 @@ end
 
 
 """
-    $SIGNATURES
-
-Set the color of a cliq in the Bayes (Junction) tree.
-"""
-function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
-  cliq.attributes["fillcolor"] = fillcolor
-  cliq.attributes["style"] = "filled"
-  nothing
-end
-
-function getCliqueDrawColor(cliq::TreeClique)
-  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
-end
-
-
-"""
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
@@ -201,7 +184,7 @@ function updateFGBT!( fg::AbstractDFG,
   #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
   # end
   if fillcolor != ""
-    setCliqDrawColor(cliq, fillcolor)
+    setCliqueDrawColor!(cliq, fillcolor)
   end
   for (id,dat) in IDvals
     with_logger(logger) do

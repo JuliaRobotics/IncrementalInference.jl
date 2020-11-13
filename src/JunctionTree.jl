@@ -2,6 +2,23 @@ export getVariableOrder, calcCliquesRecycled
 export getCliquePotentials
 export getClique, getCliques, getCliqueIds, getCliqueData
 export hasClique
+export setCliqueDrawColor!, getCliqueDrawColor
+
+"""
+    $SIGNATURES
+
+Set the color of a cliq in the Bayes (Junction) tree.
+"""
+function setCliqueDrawColor!(cliq::TreeClique, fillcolor::String)::Nothing
+  cliq.attributes["fillcolor"] = fillcolor
+  cliq.attributes["style"] = "filled"
+  nothing
+end
+
+
+function getCliqueDrawColor(cliq::TreeClique)
+  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
+end
 
 """
     $SIGNATURES

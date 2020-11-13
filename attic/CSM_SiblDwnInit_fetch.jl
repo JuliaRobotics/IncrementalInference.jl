@@ -287,7 +287,7 @@ function testPartialNeedsDwnInit_StateMachine(csmc::CliqStateMachineContainer)
         # partials treated special -- this is slightly hacky
         if length(intersect(localsep, partialKeys)) > 0 && length(mighthave) > 0
           # this sibling might have info to delay about
-          setCliqDrawColor(cliq,"magenta")
+          setCliqueDrawColor!(cliq,"magenta")
           # go to 8o.iv
           return sibsDwnPriorityInit_StateMachine
         end
