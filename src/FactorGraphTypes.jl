@@ -138,9 +138,10 @@ end
 $(TYPEDEF)
 
 DevNotes
-- # TODO remove Union types -- issue #383
-- # TODO standardize -- #927
-- # FIXME standardize inner constructors
+- TODO remove Union types -- issue #383
+- TODO standardize -- #927
+- FIXME standardize inner constructors
+- TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
 mutable struct FactorMetadata{T}
   factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
@@ -149,21 +150,27 @@ mutable struct FactorMetadata{T}
   solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
   variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
   dbg::Bool #
-  cachedata::Union{Nothing,Vector{T}} # New. Maybe change to Vector{T}
-  fullvariables::Vector{DFGVariable}# New. Vector{DFGVariable}
-  
-  # inner constructors (delete?)
+  # for type specific user data, see (? #784)
+  cachedata::Vector{T}
+  # full list of Vector{DFGVariable} connected to the factor
+  fullvariables::Vector{DFGVariable}
+  # TODO consolidate, same as ARR used in CCW,
+  arrRef::Vector{Matrix{Float64}}
+
+  # # inner constructors (delete?)
   FactorMetadata{T}() where T = new{T}()
-  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef)
 end
 FactorMetadata() = FactorMetadata{Any}()
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd=nothing, fv=DFGVariable[]) =
-               FactorMetadata{Any}(fud, vud, vsm, sf, vl, dbg, cd, fv)
+FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
+                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                dbg::Bool=false)
+                                arrRef=Vector{Matrix{Float64}}(),
+                                dbg::Bool=false,
+                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
   # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,[],[],nothing,map(x->x.label,Xi),dbg,nothing,copy(Xi))
+  FactorMetadata(nothing,[],[],nothing,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
 end
 
 """

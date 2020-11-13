@@ -42,8 +42,8 @@ end
 Calculate a DifferentialEquations.jl ready `tspan::Tuple{Float64,Float64}` from DFGVariables.
 
 DevNotes
-- # TODO does not yet incorporate Xi.nanosecond field.
-- # TODO does not handle timezone crossing properly yet.
+- TODO does not yet incorporate Xi.nanosecond field.
+- TODO does not handle timezone crossing properly yet.
 """
 function _calcTimespan( Xi::AbstractVector{<:DFGVariable}  )
   #
@@ -93,7 +93,24 @@ ODERelative(dfg::AbstractDFG,
             tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
             problemType = DiscreteProblem ) = ODERelative( Xi, domain, f, data; dt=dt, state0=state0, state1=state1, tspan=tspan, problemType=problemType  )
 #
+#
 
+
+# Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
+function _solveFactorODE!(meas, prob, u0pts, i, Xtra...)
+  # should more variables be included in calculation
+  for (xid, xtra) in enumerate(Xtra)
+    prob.data[xid+1][:] = Xtra[xid][:,i]
+  end
+  
+  # set the initial condition
+  prob.u0[:] = u0pts[:,i]
+  sol = DifferentialEquations.solve(prob)
+  
+  # extract solution from solved ode
+  meas[:,i] = sol.u[end]
+  sol
+end
 
 function getSample( oder::ODERelative, 
                     N::Int=1, 
@@ -103,24 +120,31 @@ function getSample( oder::ODERelative,
   meas = zeros(getDimension(fmd_[1].fullvariables[2]), N)
   
   # pick forward or backward direction
-  
-
-  # set boundary condition
-  u0pts = getBelief( fmd_[1].fullvariables[1] ) |> getPoints
-  
-  # solve likely elements
-  for i in 1:N
-    # set the initial condition
-    oder.forwardProblem.u0[:] = u0pts[:,i]
-    sol = DifferentialEquations.solve(oder.forwardProblem)
-    
-    # extract solution from solved ode
-    meas[:,i] = sol.u[end]
-  end
-  
+  prob = oder.forwardProblem
   # buffer manifold operations for use during factor evaluation
   addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[2]) )
-  
+  # set boundary condition
+  u0pts = if fmd_[1].solvefor == DFG.getLabel(fmd_[1].fullvariables[2])
+    # backward direction
+    prob = oder.backwardProblem
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[1]) )
+    getBelief( fmd_[1].fullvariables[2] ) |> getPoints
+  else
+    # forward backward
+    getBelief( fmd_[1].fullvariables[1] ) |> getPoints
+  end
+
+  # solve likely elements
+  for i in 1:N
+    _solveFactorODE!(meas, prob, u0pts, i, fmd_[1].arrRef[3:end]...)
+    # # set the initial condition
+    # prob.u0[:] = u0pts[:,i]
+    # sol = DifferentialEquations.solve(prob)
+    
+    # # extract solution from solved ode
+    # meas[:,i] = sol.u[end]
+  end
+
   return (meas, diffOp)
 end
 # getDimension(oderel.domain)
@@ -135,13 +159,26 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
   
   # work on-manifold
   diffOp = meas[2]
+  # if backwardSolve else forward
   
+  # check direction
+  dirIdx = 2
+  if fmd.solvefor == DFG.getLabel(fmd.fullvariables[2])
+    dirIdx = 1
+  elseif 2 < length(X)
+    # need to recalculate new ODE for change in parameters
+    # use forward solve for all solvefor not in [1;2]
+    u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
+    # update parameters for additional variables
+    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx)
+  end
+
   # find the difference between measured and predicted.
   ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas[1][:,idx]`)
   ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
   for i in 1:size(X[2],1)
     # diffop( test, reference )   <===>   ΔX = test \ reference
-    res[i] = diffOp[i]( X[2][i,idx], meas[1][i,idx] )
+    res[i] = diffOp[i]( X[dirIdx][i,idx], meas[1][i,idx] )
   end
   res
 end
