@@ -78,6 +78,8 @@ include("testExplicitMultihypo.jl")
 
 include("TestCSMMultihypo.jl")
 
+include("testMultihypoFMD.jl")
+
 include("testMultiHypo2Door.jl")
 
 include("testMultimodal1D.jl")

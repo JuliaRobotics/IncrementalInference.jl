@@ -1,5 +1,14 @@
 
 
+
+function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+  # function is being deprecated
+  @warn "numericRoot is likely to be deprected, switch to using approxConv, evalFactor, or numericSolutionCCW!"
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
+end
+
+
+
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
