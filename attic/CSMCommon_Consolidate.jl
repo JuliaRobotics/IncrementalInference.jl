@@ -33,7 +33,7 @@ function canCliqMargRecycle_StateMachine(csmc::CliqStateMachineContainer)
     prepPutCliqueStatusMsgUp!(csmc, :marginalized, dfg=csmc.dfg)
 
     # set marginalized color
-    setCliqDrawColor(csmc.cliq, "blue")
+    setCliqueDrawColor!(csmc.cliq, "blue")
 
     # set flag, looks to be previously unused???
     getCliqueData(csmc.cliq).allmarginalized = true
@@ -91,7 +91,7 @@ function checkChildrenAllUpRecycled_StateMachine(csmc::CliqStateMachineContainer
       end
     end
     prepPutCliqueStatusMsgUp!(csmc, :uprecycled, dfg=csmc.dfg)
-    setCliqDrawColor(csmc.cliq, "orange")
+    setCliqueDrawColor!(csmc.cliq, "orange")
     #go to 10
     return canCliqDownSolve_StateMachine
         # # go to 1
@@ -294,7 +294,7 @@ DevNotes
 function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   # this is the root clique, so assume already downsolved -- only special case
   dwnmsgs = getCliqDownMsgsAfterDownSolve(csmc.cliqSubFg, csmc.cliq)
-  setCliqDrawColor(csmc.cliq, "lightblue")
+  setCliqueDrawColor!(csmc.cliq, "lightblue")
 
   # this part looks like a pull model
   # JT 459 putMsgDwnThis!(csmc.cliq, dwnmsgs)
@@ -351,7 +351,7 @@ function sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer)
   cliqst = prepPutCliqueStatusMsgDwn!(csmc)
 
   # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
-  setCliqDrawColor(csmc.cliq, "sienna")
+  setCliqueDrawColor!(csmc.cliq, "sienna")
 
   infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- near-end down init attempt, $cliqst.")
 
@@ -388,7 +388,7 @@ Notes:
 """
 function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   infocsm(csmc, "11, doCliqDownSolve_StateMachine")
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   # get down msg from parent (assuming root clique CSM wont make it here)
   # this looks like a pull model #674
   prnt = getParent(csmc.tree, csmc.cliq)
@@ -404,7 +404,7 @@ function doCliqDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   prepPutCliqueStatusMsgDwn!(csmc, :downsolved)
 
   # update clique subgraph with new status
-  setCliqDrawColor(csmc.cliq, "lightblue")
+  setCliqueDrawColor!(csmc.cliq, "lightblue")
 
   infocsm(csmc, "11, doCliqDownSolve_StateMachine -- finished with downGibbsCliqueDensity, now update csmc")
 
@@ -488,13 +488,13 @@ function checkUpsolveFinished_StateMachine(csmc::CliqStateMachineContainer)
     # go to 10
     return canCliqDownSolve_StateMachine # IncrementalInference.exitStateMachine
   elseif cliqst == :initialized
-    # setCliqDrawColor(csmc.cliq, "sienna")
+    # setCliqueDrawColor!(csmc.cliq, "sienna")
 
     # go to 7
     return determineCliqNeedDownMsg_StateMachine
   else
     infocsm(csmc, "9, checkUpsolveFinished_StateMachine -- init not complete and should wait on init down message.")
-    # setCliqDrawColor(csmc.cliq, "coral")
+    # setCliqueDrawColor!(csmc.cliq, "coral")
     # TODO, potential problem with trying to downsolve
     # return canCliqMargSkipUpSolve_StateMachine
   end
@@ -522,7 +522,7 @@ DevNotes
 - TODO: Make multi-core
 """
 function prepInitUp_StateMachine(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "green")
+  setCliqueDrawColor!(csmc.cliq, "green")
 
   # check if init is required and possible
   infocsm(csmc, "8f, prepInitUp_StateMachine -- going for doCliqAutoInitUpPart1!.")
@@ -626,7 +626,7 @@ Notes
 """
 function waitChangeOnParentCondition_StateMachine(csmc::CliqStateMachineContainer)
   #
-  # setCliqDrawColor(csmc.cliq, "coral")
+  # setCliqueDrawColor!(csmc.cliq, "coral")
 
   prnt = getParent(csmc.tree, csmc.cliq)
   if 0 < length(prnt)
@@ -699,7 +699,7 @@ Notes:
 - May modify `cliq` values.
   - `putMsgUpInit!(cliq, msg)`
   - `setCliqueStatus!(cliq, status)`
-  - `setCliqDrawColor(cliq, "sienna")`
+  - `setCliqueDrawColor!(cliq, "sienna")`
   - `notifyCliqDownInitStatus!(cliq, status)`
 
 Algorithm:
@@ -709,7 +709,7 @@ Algorithm:
 - can only ever return :initialized or :needdownmsg status
 """
 function tryDwnInitCliq_StateMachine(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "green")
+  setCliqueDrawColor!(csmc.cliq, "green")
   opt = getSolverParams(csmc.cliqSubFg)
   dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
 
@@ -733,7 +733,7 @@ function tryDwnInitCliq_StateMachine(csmc::CliqStateMachineContainer)
     # cliqst = :initialized
     # TODO: transfer values changed in the cliques should be transfered to the tree in proc 1 here.
     # # TODO: is status of notify required here? either up or down msg??
-    setCliqDrawColor(csmc.cliq, "sienna")
+    setCliqueDrawColor!(csmc.cliq, "sienna")
     setCliqueStatus!(csmc.cliq, :initialized)
   end
   
@@ -756,7 +756,7 @@ DevNotes
 """
 function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # attempt initialize if necessary
-  setCliqDrawColor(csmc.cliq, "green")
+  setCliqueDrawColor!(csmc.cliq, "green")
   someInit = false
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
     # structure for all up message densities computed during this initialization procedure.
@@ -788,7 +788,7 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- totSolDims=$totSolDims")
 
     # prep and put down init message
-    setCliqDrawColor(csmc.cliq, "sienna")
+    setCliqueDrawColor!(csmc.cliq, "sienna")
     prepPutCliqueStatusMsgDwn!(csmc, :initialized, childSolvDims=totSolDims)
 
     # go to 7e
@@ -798,7 +798,7 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   # clique should be initialized and all children upsolved, uprecycled, or marginalized
   elseif allvarinit && all(in.(all_child_status, Ref([:upsolved; :uprecycled; :marginalized])))
     infocsm(csmc, "8m, tryUpInitCliq_StateMachine -- all initialized")
-    setCliqDrawColor(csmc.cliq, "sienna")
+    setCliqueDrawColor!(csmc.cliq, "sienna")
     # don't send a message yet since the upsolve is about to occur too
     setCliqueStatus!(csmc.cliq, :initialized)
 
@@ -812,7 +812,7 @@ function tryUpInitCliq_StateMachine(csmc::CliqStateMachineContainer)
 
   if !(status == :initialized || length(getParent(csmc.tree, csmc.cliq)) == 0)
     # notify of results (big part of #459 consolidation effort)
-    setCliqDrawColor(csmc.cliq, "orchid")
+    setCliqueDrawColor!(csmc.cliq, "orchid")
     prepPutCliqueStatusMsgUp!(csmc, :needdownmsg)
   end
 
