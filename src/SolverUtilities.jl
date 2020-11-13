@@ -9,11 +9,6 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
-function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
-  # function is being deprecated
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
-end
-
 """
     $SIGNATURES
 
@@ -118,47 +113,6 @@ function (ccw::CommonConvWrapper)(x::Vector{Float64})
               ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
-
-
-"""
-    $SIGNATURES
-
-Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
-
-Notes
-- assume single variable separators only.
-"""
-function accumulateFactorChain( dfg::AbstractDFG,
-                                from::Symbol,
-                                to::Symbol,
-                                fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
-                                initval=zeros(size(getVal(dfg, from))))
-
-  # get associated variables
-  svars = union(ls.(dfg, fsyms)...)
-
-  # use subgraph copys to do calculations
-  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
-  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
-
-  # drive variable values manually to ensure no additional stochastics are introduced.
-  nextvar = from
-  initManual!(tfg_meas, nextvar, initval)
-  initManual!(tfg_pred, nextvar, initval)
-
-  # nextfct = fsyms[1] # for debugging
-  for nextfct in fsyms
-    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
-    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
-    nextvar = nextvars[1]
-    meas, pred = solveFactorMeasurements(dfg, nextfct)
-    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
-    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
-    initManual!(tfg_meas, nextvar, pts_meas)
-    initManual!(tfg_pred, nextvar, pts_pred)
-  end
-  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
-end
 
 
 """
