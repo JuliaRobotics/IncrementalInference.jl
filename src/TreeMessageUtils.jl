@@ -64,7 +64,7 @@ function resetCliqSolve!( dfg::AbstractDFG,
   putCliqueInitMsgDown!(cda, LikelihoodMessage() )
 
   setCliqueStatus!(cliq, :null)
-  setCliqDrawColor(cliq, "")
+  setCliqueDrawColor!(cliq, "")
   return nothing
 end
 

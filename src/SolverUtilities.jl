@@ -124,63 +124,6 @@ end
 
 
 """
-    $SIGNATURES
-
-Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
-
-Notes
-- assume single variable separators only.
-"""
-function accumulateFactorChain( dfg::AbstractDFG,
-                                from::Symbol,
-                                to::Symbol,
-                                fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
-                                initval=zeros(size(getVal(dfg, from))))
-
-  # get associated variables
-  svars = union(ls.(dfg, fsyms)...)
-
-  # use subgraph copys to do calculations
-  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
-  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
-
-  # drive variable values manually to ensure no additional stochastics are introduced.
-  nextvar = from
-  initManual!(tfg_meas, nextvar, initval)
-  initManual!(tfg_pred, nextvar, initval)
-
-  # nextfct = fsyms[1] # for debugging
-  for nextfct in fsyms
-    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
-    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
-    nextvar = nextvars[1]
-    meas, pred = solveFactorMeasurements(dfg, nextfct)
-    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
-    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
-    initManual!(tfg_meas, nextvar, pts_meas)
-    initManual!(tfg_pred, nextvar, pts_pred)
-  end
-  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
-end
-
-
-"""
-    $SIGNATURES
-
-Set the color of a cliq in the Bayes (Junction) tree.
-"""
-function setCliqDrawColor(cliq::TreeClique, fillcolor::String)::Nothing
-  cliq.attributes["fillcolor"] = fillcolor
-  cliq.attributes["style"] = "filled"
-  nothing
-end
-
-function getCliqueDrawColor(cliq::TreeClique)
-  haskey(cliq.attributes, "fillcolor") ? cliq.attributes["fillcolor"] : nothing
-end
-
-
-"""
     $(SIGNATURES)
 
 Update cliq `cliqID` in Bayes (Juction) tree `bt` according to contents of `urt` -- intended use is to update main clique after a upward belief propagation computation has been completed per clique.
@@ -197,7 +140,7 @@ function updateFGBT!( fg::AbstractDFG,
   #   cliq.attributes["debug"] = deepcopy(urt.dbgUp)
   # end
   if fillcolor != ""
-    setCliqDrawColor(cliq, fillcolor)
+    setCliqueDrawColor!(cliq, fillcolor)
   end
   for (id,dat) in IDvals
     with_logger(logger) do

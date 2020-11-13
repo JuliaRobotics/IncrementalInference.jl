@@ -285,7 +285,7 @@ function maybeNeedDwnMsg_StateMachine(csmc::CliqStateMachineContainer)
     # TODO maybe can happen where some children need more information?
     infocsm(csmc, "4d, maybeNeedDwnMsg_StateMachine, escalating to :needdownmsg since all children :needdownmsg")
     # NOTE, trying consolidation with prepPutUp for #459 effort
-    setCliqDrawColor(csmc.cliq, "orchid1")
+    setCliqueDrawColor!(csmc.cliq, "orchid1")
     prepPutCliqueStatusMsgUp!(csmc, :needdownmsg)
 
     # debuggin #459 transition
@@ -392,7 +392,7 @@ DevNotes
 """
 function blockSiblingStatus_StateMachine(csmc::CliqStateMachineContainer)
     # infocsm(csmc, "5, blocking on parent until all sibling cliques have valid status")
-    # setCliqDrawColor(csmc.cliq, "blueviolet")
+    # setCliqueDrawColor!(csmc.cliq, "blueviolet")
 
     cliqst = getCliqueStatus(csmc.cliq)
     infocsm(csmc, "5, block on siblings")

@@ -26,7 +26,7 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
   infocsm(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
   logCSM(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
 
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
   retdict = approxCliqMarginalUp!(csmc, logger=csmc.logger)
   # retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
@@ -35,7 +35,7 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
   updateFGBT!(csmc.cliqSubFg, csmc.cliq, retdict, dbg=getSolverParams(csmc.cliqSubFg).dbg, logger=csmc.logger) # urt
 
   # set clique color accordingly, using local memory
-  setCliqDrawColor(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
+  setCliqueDrawColor!(csmc.cliq, isCliqFullDim(csmc.cliqSubFg, csmc.cliq) ? "pink" : "tomato1")
 
   # notify of results (part of #459 consolidation effort)
   getCliqueData(csmc.cliq).upsolved = true
@@ -142,7 +142,7 @@ end
 ## ===================================================================================================================
 
 function putErrorDown(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
   logCSM(csmc, "CSM clique $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
   @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
@@ -152,7 +152,7 @@ function putErrorDown(csmc::CliqStateMachineContainer)
 end
 
 function putErrorUp(csmc::CliqStateMachineContainer)
-  setCliqDrawColor(csmc.cliq, "red")
+  setCliqueDrawColor!(csmc.cliq, "red")
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "CSM clique, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
@@ -297,7 +297,7 @@ function resetTreeCliquesForUpSolve!(treel::AbstractBayesTree)::Nothing
   for (clid, cliq) in getCliques(treel)
     if getCliqueStatus(cliq) in acclist
       setCliqueStatus!(cliq, INITIALIZED)
-      setCliqDrawColor(cliq, "sienna")
+      setCliqueDrawColor!(cliq, "sienna")
     end
   end
   nothing
