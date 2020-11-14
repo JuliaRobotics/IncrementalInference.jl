@@ -28,6 +28,7 @@ end
 # testing function parameter version (could also be array of data)
 tstForce(t) = 0
 
+
 ## build a representative factor graph with ODE built inside
 
 fg = initfg()
@@ -36,6 +37,7 @@ addVariable!(fg, :x0, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,0))
 # pin with a simple prior
 addFactor!(fg, [:x0], Prior(Normal(1,0.01)))
 
+doautoinit!(fg, :x0)
 
 prev = :x0
 
@@ -46,16 +48,29 @@ for i in 1:3
   # another point in the trajectory 5 seconds later
   addVariable!(fg, nextSym, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,5*i))
   oder = IIF.ODERelative( fg, [prev; nextSym], 
-                      ContinuousEuclid{1}, 
-                      firstOrder!,
-                      tstForce,
-                      dt=0.05, 
-                      problemType=ODEProblem )
+                          ContinuousEuclid{1}, 
+                          firstOrder!,
+                          tstForce,
+                          dt=0.05, 
+                          problemType=ODEProblem )
   #
-  addFactor!( fg, [prev;nextSym], oder )
+  addFactor!( fg, [prev;nextSym], oder, graphinit=false )
+  initManual!(fg, nextSym, zeros(1,100))
 
   prev = nextSym
 end
+
+
+## basic sample and solve test
+
+meas = freshSamples(fg, :x0x1f1, 10)
+@test size(meas[1],1) == 1
+@test size(meas[1],2) == 10
+
+
+# do all forward solutions
+pts = approxConv(fg, :x0x1f1, :x1)
+@test 0.3 < Statistics.mean(pts) < 0.4
 
 
 ##
@@ -73,7 +88,7 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 ##
 
 
-Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["u"],layout=(1,1))
+Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",layout=(1,1))
 
 for lb in [:x0; :x1;:x2;:x3]
   x = getTimestamp(getVariable(fg, lb)) |> DateTime |> datetime2unix
@@ -86,10 +101,11 @@ end
 
 
 tfg = initfg()
-pts = approxConv(fg, :x0f1, :x3, tfg=tfg)
-initManual!(tfg, :x3, pts)
-calcPPE(getVariable(tfg, :x3))
+pts = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
+# initManual!(tfg, :x3, pts)
 
+
+##
 
 
 @test getPPE(tfg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
@@ -101,6 +117,7 @@ calcPPE(getVariable(tfg, :x3))
 ##
 
 # plotKDE(tfg, [:x0;:x1;:x2;:x3])
+
 
 ##
 
@@ -173,8 +190,8 @@ for s in ls(fg)
   initManual!(fg, s, zeros(2,100))
 end
 
-pts = approxConv(fg, :x0f1, :x7, tfg=tfg)
-initManual!(tfg, :x7, pts)
+pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
+# initManual!(tfg, :x7, pts)
 
 
 
@@ -194,8 +211,8 @@ oder_ = ODERelative( fg, [:x0; :x7],
                     dt=0.05, 
                     problemType=ODEProblem )
 
-oder_.problem.u0 .= [1.0;0.0]
-sl = DifferentialEquations.solve(oder_.problem)
+oder_.forwardProblem.u0 .= [1.0;0.0]
+sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 
 
@@ -216,3 +233,12 @@ end
 ##
 
 end
+
+
+
+@error "ODERelative not tested for `multihypo=` case yet, see issue #1025"
+
+
+
+
+#

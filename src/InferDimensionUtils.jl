@@ -74,7 +74,7 @@ end
 ## Factors
 
 """
-    $SIGNATURES
+    $TYPEDSIGNATURES
 
 Return the number of dimensions this factor vertex `fc` influences.
 """

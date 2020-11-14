@@ -1,5 +1,5 @@
 
-@info "Loading DifferentialEquations.jl tools in IncrementalInference.jl"
+@info "IncrementalInference.jl is loading tools related to DifferentialEquations.jl"
 
 using .DifferentialEquations
 
@@ -23,8 +23,9 @@ Notes
 - Regular factor evaluation is done as full dimension `AbstractRelativeRoots`, and is basic linear difference.
 
 DevNotes
-- # FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
-- # TODO does not yet handle case where a factor spans across two timezones.
+- FIXME see 1025, `multihypo=` will not yet work. 
+- FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
+- TODO does not yet handle case where a factor spans across two timezones.
 """
 struct ODERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
   domain::Type{T}
@@ -112,6 +113,7 @@ function _solveFactorODE!(meas, prob, u0pts, i, Xtra...)
   sol
 end
 
+# FIXME see #1025, `multihypo=` will not work properly yet
 function getSample( oder::ODERelative, 
                     N::Int=1, 
                     fmd_...)
@@ -149,7 +151,7 @@ function getSample( oder::ODERelative,
 end
 # getDimension(oderel.domain)
 
-
+# FIXME see #1025, `multihypo=` will not work properly yet
 function (oderel::ODERelative)( res::AbstractVector{<:Real},
                                 fmd::FactorMetadata,
                                 idx::Int,
@@ -162,15 +164,16 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
   # if backwardSolve else forward
   
   # check direction
-  dirIdx = 2
+  # TODO put solveforIdx in FMD?
+  solveforIdx = 1
   if fmd.solvefor == DFG.getLabel(fmd.fullvariables[2])
-    dirIdx = 1
+    solveforIdx = 2
   elseif 2 < length(X)
     # need to recalculate new ODE for change in parameters
     # use forward solve for all solvefor not in [1;2]
     u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
     # update parameters for additional variables
-    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx)
+    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, X[3:end]...)
   end
 
   # find the difference between measured and predicted.
@@ -178,7 +181,7 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
   ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
   for i in 1:size(X[2],1)
     # diffop( test, reference )   <===>   ΔX = test \ reference
-    res[i] = diffOp[i]( X[dirIdx][i,idx], meas[1][i,idx] )
+    res[i] = diffOp[i]( X[solveforIdx][i,idx], meas[1][i,idx] )
   end
   res
 end

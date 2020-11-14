@@ -283,6 +283,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   #
 
   # Prep computation variables
+  # FIXME #1025, should FMD be built here?
   sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
@@ -503,9 +504,12 @@ Notes
 - Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPrior`.
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
 - pass in `tfg` to get a recoverable result of all convolutions in the chain.
+- `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
 
 DevNotes
 - FIXME must consolidate with `accumulateFactorMeans`
+- TODO `solveKey` not fully wired up everywhere yet
+  - tfg gets all the solveKeys inside the source `dfg` variables
 
 Related
 
@@ -515,8 +519,11 @@ function approxConv(dfg::AbstractDFG,
                     from::Symbol, 
                     target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
-                    N::Int=size(measurement[1],2),
-                    tfg = initfg() )
+                    N::Int = size(measurement[1],2),
+                    solveKey::Symbol=:default,
+                    tfg::AbstractDFG = initfg(),
+                    setPPEmethod::Union{Nothing, <:AbstractPointParametricEst}=nothing,
+                    setPPE::Bool= setPPEmethod!==nothing )
   #
   @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -537,6 +544,7 @@ function approxConv(dfg::AbstractDFG,
     varLbls = path[varMsk]
     neMsk = exists.(tfg, varLbls) .|> x-> xor(x,true)
     # put the non-existing variables into the temporary graph `tfg`
+    # bring all the solveKeys too
     addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
   end
   
@@ -554,8 +562,11 @@ function approxConv(dfg::AbstractDFG,
     pts1 = approxConv(dfg, fct0, path[2], measurement, N=N)
     length(path) == 2 ? (return pts1) : pts1
   end
-  # sneaky shortcut, didn't return early so `varLbls` will exist (thanks JuliaLang IR)
+  # didn't return early so shift focus to using `tfg` more intensely
   initManual!(tfg, varLbls[1], pts)
+  # use in combination with setPPE and setPPEmethod keyword arguments
+  ppemethod = setPPEmethod === nothing ? MeanMaxPPE : ppemethod
+  !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
 
   # do chain of convolutions
   for idx in idxS:length(path)
@@ -565,6 +576,7 @@ function approxConv(dfg::AbstractDFG,
       addFactor!(tfg, fct)
       pts = approxConv(tfg, fct, path[idx+1], N=N)
       initManual!(tfg, path[idx+1], pts)
+      !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
   end
 
