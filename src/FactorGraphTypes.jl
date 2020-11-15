@@ -166,11 +166,12 @@ FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVec
                 FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
+                                solvefor=nothing,
                                 arrRef=Vector{Matrix{Float64}}(),
                                 dbg::Bool=false,
                                 cachedata::AbstractVector{T}=Vector{Any}() ) where T
   # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,[],[],nothing,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
+  FactorMetadata(nothing,[],[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
 end
 
 """

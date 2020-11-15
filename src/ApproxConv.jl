@@ -89,7 +89,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
-  fmd = _defaultFactorMetadata(Xi, arrRef=ARR, dbg=false)
+  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR, dbg=false)
   # fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)

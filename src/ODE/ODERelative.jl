@@ -131,7 +131,7 @@ function getSample( oder::ODERelative,
   # buffer manifold operations for use during factor evaluation
   addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[2]) )
   # set boundary condition
-  u0pts = if fmd_[1].solvefor == DFG.getLabel(fmd_[1].fullvariables[2])
+  u0pts = if fmd_[1].solvefor == DFG.getLabel(fmd_[1].fullvariables[1])
     # backward direction
     prob = oder.backwardProblem
     addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[1]) )

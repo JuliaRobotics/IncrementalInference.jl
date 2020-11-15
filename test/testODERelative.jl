@@ -11,7 +11,7 @@ using Statistics
 
 using Plots
 using Cairo, RoMEPlotting
-Gadfly.set_default_plot_size(35cm,20cm)
+Gadfly.set_default_plot_size(25cm,20cm)
 
 ##
 
@@ -61,16 +61,27 @@ for i in 1:3
 end
 
 
-## basic sample and solve test
+## basic sample test
 
 meas = freshSamples(fg, :x0x1f1, 10)
 @test size(meas[1],1) == 1
 @test size(meas[1],2) == 10
 
 
-# do all forward solutions
+## do all forward solutions
+pts, = freshSamples(fg, :x0f1, 100)
+initManual!(fg, :x0, pts)
 pts = approxConv(fg, :x0x1f1, :x1)
 @test 0.3 < Statistics.mean(pts) < 0.4
+
+
+# check that the reverse solve also works
+
+initManual!(fg, :x1, pts)
+pts = approxConv(fg, :x0x1f1, :x0)
+
+# check the reverse solve to be relatively accurate
+@test pts - (getBelief(fg, :x0) |> getPoints) |> norm < 1e-4
 
 
 ##
@@ -88,14 +99,15 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 ##
 
 
-Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",layout=(1,1))
+# Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",layout=(1,1))
 
-for lb in [:x0; :x1;:x2;:x3]
-  x = getTimestamp(getVariable(fg, lb)) |> DateTime |> datetime2unix
-  xx = [x;x]
-  yy = [0;1]
-  Plots.plot!(xx, yy, show=true)
-end
+# for lb in [:x0; :x1;:x2;:x3]
+#   x = getTimestamp(getVariable(fg, lb)) |> DateTime |> datetime2unix
+#   xx = [x;x]
+#   yy = [0;1]
+#   Plots.plot!(xx, yy, show=true)
+# end
+
 
 ##
 
@@ -117,6 +129,20 @@ pts = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
 ##
 
 # plotKDE(tfg, [:x0;:x1;:x2;:x3])
+
+
+## Now test a full solve
+
+solveTree!(fg);
+
+
+##
+
+
+@test getPPE(fg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
+@test getPPE(fg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
+@test getPPE(fg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
+@test getPPE(fg, :x3).suggested - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
 
 
 ##
