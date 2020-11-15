@@ -38,7 +38,7 @@ end
 
 
 """
-    $SIGNATURES
+$SIGNATURES
 
 Calculate a DifferentialEquations.jl ready `tspan::Tuple{Float64,Float64}` from DFGVariables.
 
@@ -48,13 +48,16 @@ DevNotes
 """
 function _calcTimespan( Xi::AbstractVector{<:DFGVariable}  )
   #
-  tsmps = getTimestamp.(Xi) .|> DateTime .|> datetime2unix
+  tsmps = getTimestamp.(Xi[1:2]) .|> DateTime .|> datetime2unix
   # toffs = (tsmps .- tsmps[1]) .|> x-> elemType(x.value*1e-3)
   return (tsmps...,)
 end
 # Notes
 # - Can change numerical data return type using an additional first argument, `_calcTimespan(Float32, Xi)`.
 # _calcTimespan(Xi::AbstractVector{<:DFGVariable}) = _calcTimespan(Float64, Xi)
+
+# performance helper function
+_maketuplebeyond2args = (w1=nothing,w2=nothing,w3_...) -> (w3_...,)
 
 
 function ODERelative( Xi::AbstractVector{<:DFGVariable},
@@ -68,7 +71,7 @@ function ODERelative( Xi::AbstractVector{<:DFGVariable},
                       problemType = DiscreteProblem )
   #
   datatuple = if 2 < length(Xi)
-    datavec = getDimension.(Xi) .|> x->zeros(x)
+    datavec = getDimension.([_maketuplebeyond2args(Xi...)...]) .|> x->zeros(x)
     (data,datavec...,)
   else
     data
@@ -98,10 +101,11 @@ ODERelative(dfg::AbstractDFG,
 
 
 # Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
-function _solveFactorODE!(meas, prob, u0pts, i, Xtra...)
+function _solveFactorODE!(measArr, prob, u0pts, i, Xtra...)
   # should more variables be included in calculation
   for (xid, xtra) in enumerate(Xtra)
-    prob.data[xid+1][:] = Xtra[xid][:,i]
+    # update the data register before ODE solver calls the function
+    prob.p[xid+1][:] = Xtra[xid][:,i]
   end
   
   # set the initial condition
@@ -109,7 +113,7 @@ function _solveFactorODE!(meas, prob, u0pts, i, Xtra...)
   sol = DifferentialEquations.solve(prob)
   
   # extract solution from solved ode
-  meas[:,i] = sol.u[end]
+  measArr[:,i] = sol.u[end]
   sol
 end
 
@@ -118,6 +122,7 @@ function getSample( oder::ODERelative,
                     N::Int=1, 
                     fmd_...)
   #
+
   # how many trajectories to propagate?
   meas = zeros(getDimension(fmd_[1].fullvariables[2]), N)
   
@@ -138,18 +143,13 @@ function getSample( oder::ODERelative,
 
   # solve likely elements
   for i in 1:N
-    _solveFactorODE!(meas, prob, u0pts, i, fmd_[1].arrRef[3:end]...)
-    # # set the initial condition
-    # prob.u0[:] = u0pts[:,i]
-    # sol = DifferentialEquations.solve(prob)
-    
-    # # extract solution from solved ode
-    # meas[:,i] = sol.u[end]
+    _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_[1].arrRef...)...)
   end
 
   return (meas, diffOp)
 end
 # getDimension(oderel.domain)
+
 
 # FIXME see #1025, `multihypo=` will not work properly yet
 function (oderel::ODERelative)( res::AbstractVector{<:Real},
@@ -173,7 +173,7 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
     # use forward solve for all solvefor not in [1;2]
     u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
     # update parameters for additional variables
-    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, X[3:end]...)
+    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, _maketuplebeyond2args(X)...)
   end
 
   # find the difference between measured and predicted.

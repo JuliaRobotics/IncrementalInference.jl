@@ -523,7 +523,8 @@ function approxConv(dfg::AbstractDFG,
                     solveKey::Symbol=:default,
                     tfg::AbstractDFG = initfg(),
                     setPPEmethod::Union{Nothing, <:AbstractPointParametricEst}=nothing,
-                    setPPE::Bool= setPPEmethod!==nothing )
+                    setPPE::Bool= setPPEmethod!==nothing,
+                    path::Vector{Symbol}=Symbol[]  )
   #
   @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -535,17 +536,21 @@ function approxConv(dfg::AbstractDFG,
   else
     # must first discover shortest factor path in dfg
     # TODO DFG only supports LightDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
-    path = findShortestPathDijkstra(dfg, from, target)
+    path = 0 == length(path) ? findShortestPathDijkstra(dfg, from, target) : path
     @assert path[1] == from "sanity check that shortest path function is working as expected"
 
     # list of variables
-    varMsk = isVariable.(dfg, path)
-      # @assert varMsk[end] "approxConv(dfg, from, target,...) where `target` must be a variable in dfg"
-    varLbls = path[varMsk]
+    fctMsk = isFactor.(dfg, path)
+    # which factors in the path
+    fctLbls = path[fctMsk]
+    # must still add
+    varLbls =  union(lsf.(dfg, fctLbls)...)
     neMsk = exists.(tfg, varLbls) .|> x-> xor(x,true)
     # put the non-existing variables into the temporary graph `tfg`
     # bring all the solveKeys too
     addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
+    # variables adjacent to the shortest path should be initialized from dfg
+    setdiff(varLbls, path[xor.(fctMsk,true)]) .|> x->initManual!(tfg, x, getBelief(dfg, x))
   end
   
   # find/set the starting point
@@ -570,7 +575,7 @@ function approxConv(dfg::AbstractDFG,
 
   # do chain of convolutions
   for idx in idxS:length(path)
-    if !varMsk[idx]
+    if fctMsk[idx]
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)

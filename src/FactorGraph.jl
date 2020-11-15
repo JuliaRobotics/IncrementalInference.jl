@@ -593,7 +593,7 @@ function prepgenericconvolution(
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
 
-  fmd = _defaultFactorMetadata(Xi)
+  fmd = _defaultFactorMetadata(Xi, arrRef=ARR)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
