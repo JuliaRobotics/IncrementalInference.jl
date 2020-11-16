@@ -168,8 +168,8 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
   solveforIdx = 1
   if fmd.solvefor == DFG.getLabel(fmd.fullvariables[2])
     solveforIdx = 2
-  elseif 2 < length(X)
-    # need to recalculate new ODE for change in parameters
+  elseif fmd.solvefor in _maketuplebeyond2args(fmd.variablelist...)
+    # need to recalculate new ODE for change in parameters (solving for 3rd or higher variable)
     # use forward solve for all solvefor not in [1;2]
     u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
     # update parameters for additional variables

@@ -316,8 +316,8 @@ end
 function dampedOscillatorParametrized!(dstate, state, force_ωβ, t)
   # 3rd variable in this factor graph test example
   force = force_ωβ[1]
-  @show ω     = force_ωβ[2][1]
-  @show β     = force_ωβ[2][2]
+  ω     = force_ωβ[2][1]
+  β     = force_ωβ[2][2]
   # classic ODE between first and second fg variables
   dstate[2] = β*state[2] - ω*state[1] + force(t)
   dstate[1] = state[2]
@@ -375,9 +375,24 @@ for i in 1:7
 end
 
 
-## test basic single approxConv
+## check forward and backward solving
 
-pts = approxConv(fg, :x0f1, :x1)
+pts = approxConv(fg, :x0f1, :x0)
+@test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
+
+initManual!(fg, :x0, pts)
+X0_ = deepcopy(pts)
+
+pts = approxConv(fg, :x0x1ωβf1, :x1)
+@test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
+
+# now check the reverse direction solving
+initManual!(fg, :x1, pts)
+
+# failing here
+pts = approxConv(fg, :x0x1ωβf1, :x0)
+
+@test (X0_ - pts) |> norm < 1e-2
 
 
 ##
@@ -413,14 +428,14 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg, path=forcepath)
 
 ##
 
-plotKDE(tfg, ls(tfg) |> sortDFG, dims=[1] )
+# plotKDE(tfg, ls(tfg) |> sortDFG, dims=[1] )
 
 
 ##
 
 # getBelief(fg, :ωβ) |> getPoints
 
-plotKDE(tfg, :ωβ)
+# plotKDE(tfg, :ωβ)
 
 ##
 
@@ -440,21 +455,40 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 
 
-##
+## check the approxConv is working right
 
 
-
-Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
-
-for lb in sortDFG(ls(fg))
-  x = getTimestamp(getVariable(tfg, lb)) |> DateTime |> datetime2unix
-  xx = [x;x]
-  yy = [-1;1]
-  Plots.plot!(xx, yy, show=true)
+for sym in setdiff(ls(tfg), [:ωβ])
+  @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
 end
 
 
+## 
+
+
+# Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
+
+# for lb in sortDFG(ls(fg))
+#   x = getTimestamp(getVariable(tfg, lb)) |> DateTime |> datetime2unix
+#   xx = [x;x]
+#   yy = [-1;1]
+#   Plots.plot!(xx, yy, show=true)
+# end
+
+
+## test convolution to the parameter (third) variable
+
+pts = approxConv(fg, :x0x1ωβf1, :ωβ)
+
+
+
 ##
+
+
+
+
+#
+
 
 end
 
