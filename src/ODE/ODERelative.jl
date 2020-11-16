@@ -169,11 +169,12 @@ function (oderel::ODERelative)( res::AbstractVector{<:Real},
   if fmd.solvefor == DFG.getLabel(fmd.fullvariables[2])
     solveforIdx = 2
   elseif fmd.solvefor in _maketuplebeyond2args(fmd.variablelist...)
-    # need to recalculate new ODE for change in parameters (solving for 3rd or higher variable)
+    # need to recalculate new ODE (forward) for change in parameters (solving for 3rd or higher variable)
+    solveforIdx = 2
     # use forward solve for all solvefor not in [1;2]
     u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
     # update parameters for additional variables
-    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, _maketuplebeyond2args(X)...)
+    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, _maketuplebeyond2args(X...)...)
   end
 
   # find the difference between measured and predicted.

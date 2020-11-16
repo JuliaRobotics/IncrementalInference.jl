@@ -9,9 +9,9 @@ using Statistics
 
 ## plotting functions
 
-using Plots
-using Cairo, RoMEPlotting
-Gadfly.set_default_plot_size(25cm,20cm)
+# using Plots
+# using Cairo, RoMEPlotting
+# Gadfly.set_default_plot_size(25cm,20cm)
 
 ##
 
@@ -459,7 +459,7 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 
 for sym in setdiff(ls(tfg), [:ωβ])
-  @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+  @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
 end
 
 
@@ -478,17 +478,44 @@ end
 
 ## test convolution to the parameter (third) variable
 
+# easy test with good starting points
+pts = approxConv(fg, :ωβf1, :ωβ)
+initManual!(fg, :ωβ, pts)
+
+# make sure the other variables are in the right place
+@test Statistics.mean(getBelief(fg, :x0) |> getPoints, dims=2) - [1;0] |> norm < 0.1
+@test Statistics.mean(getBelief(fg, :x1) |> getPoints, dims=2) - [0;-0.6] |> norm < 0.2
+
+
 pts = approxConv(fg, :x0x1ωβf1, :ωβ)
 
+@test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 
-##
+# repeat with more difficult starting point
+
+initManual!(fg, :ωβ, zeros(2,100))
+
+pts = approxConv(fg, :x0x1ωβf1, :ωβ)
+
+@test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 
+@warn "n-ary ODERelative test on :ωβ requires issue #1010 to be resolved first before being reintroduced."
+# ## do a complete solve (must first resolve #1010)
+
+# solveTree!(fg);
+
+# ## Solve quality might not yet be good enough for this particular test case
+
+# @test getPPE(fg, :ωβ).suggested - [0.7;-0.3] |> norm < 0.2
+
+# for sym in setdiff(ls(tfg), [:ωβ])
+#   @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+# end
 
 
 #
-
 
 end
 
