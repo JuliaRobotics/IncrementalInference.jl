@@ -10,14 +10,23 @@ Default linear offset between two scalar variables.
 """
 struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeFactor
   Z::T
+
+  # # Julia 1.5.2 still requires this inner constructor given all default helpers below?
+  # LinearRelative{N, T}(z0::T) where {N, T <: SamplableBelief} = new{N,T}(z0)
 end
 
-function LinearRelative{N}(::UniformScaling) where N
-  newval = MvNormal(zeros(N), diagm(ones(N)))
-  LinearRelative{N,typeof(newval)}(newval)
+# function LinearRelative{N, T}(::UniformScaling=LinearAlgebra.I,
+#                               z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
+#   #
+#   LinearRelative{N,T}(z0)
+# end
+
+function LinearRelative{N}( z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
+  #
+  LinearRelative{N, T}(z0)
 end
-# LinearRelative(n::Int=1) = LinearRelative{n}()
-LinearRelative(iden::UniformScaling=LinearAlgebra.I) = LinearRelative{1}(iden)
+
+LinearRelative(::UniformScaling=LinearAlgebra.I) = LinearRelative{1}(MvNormal(zeros(1), diagm(ones(1))))
 LinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = LinearRelative{1, typeof(nm)}(nm)
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
 LinearRelative(nm::BallTreeDensity) = LinearRelative{Ndim(nm), typeof(nm)}(nm)

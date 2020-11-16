@@ -209,6 +209,24 @@ for i in 1:7
 end
 
 
+## check forward and backward solving
+
+pts = approxConv(fg, :x0f1, :x0)
+@test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
+
+initManual!(fg, :x0, pts)
+X0_ = deepcopy(pts)
+
+pts = approxConv(fg, :x0x1f1, :x1)
+@test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
+
+# now check the reverse direction solving
+initManual!(fg, :x1, pts)
+pts = approxConv(fg, :x0x1f1, :x0)
+
+@test (X0_ - pts) |> norm < 1e-4
+
+
 ##
 
 tfg = initfg()
@@ -223,7 +241,7 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
 
 ##
 
-plotKDE(tfg, ls(fg) |> sortDFG, dims=[1] )
+# plotKDE(tfg, ls(fg) |> sortDFG, dims=[1] )
 
 ##
 
@@ -241,18 +259,38 @@ oder_.forwardProblem.u0 .= [1.0;0.0]
 sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 
+## check the solve values are correct
+
+
+for sym = ls(tfg)
+  @test getPPE(tfg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
+end
+
 
 ##
 
 
 
-Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
+# Plots.plot(sl,linewidth=2,xaxis="unixtime [s]",label=["ω [rad/s]" "θ [rad]"],layout=(2,1))
 
-for lb in sortDFG(ls(fg))
-  x = getTimestamp(getVariable(tfg, lb)) |> DateTime |> datetime2unix
-  xx = [x;x]
-  yy = [-1;1]
-  Plots.plot!(xx, yy, show=true)
+# for lb in sortDFG(ls(fg))
+#   x = getTimestamp(getVariable(tfg, lb)) |> DateTime |> datetime2unix
+#   xx = [x;x]
+#   yy = [-1;1]
+#   Plots.plot!(xx, yy, show=true)
+# end
+
+
+##
+
+solveTree!(fg);
+
+
+## 
+
+
+for sym = ls(fg)
+  @test getPPE(fg, sym).suggested - sl(getVariable(fg, sym) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.2
 end
 
 
