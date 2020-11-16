@@ -89,7 +89,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
-  fmd = FactorMetadata()
+  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR, dbg=false)
+  # fmd = FactorMetadata()
   #  get variable node data
   vnds = Xi # (x->getSolverData(x)).(Xi)
   freshSamples!(ccwl, maxlen, fmd, vnds)
@@ -282,6 +283,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   #
 
   # Prep computation variables
+  # FIXME #1025, should FMD be built here?
   sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
@@ -502,9 +504,12 @@ Notes
 - Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPrior`.
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
 - pass in `tfg` to get a recoverable result of all convolutions in the chain.
+- `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
 
 DevNotes
 - FIXME must consolidate with `accumulateFactorMeans`
+- TODO `solveKey` not fully wired up everywhere yet
+  - tfg gets all the solveKeys inside the source `dfg` variables
 
 Related
 
@@ -514,8 +519,12 @@ function approxConv(dfg::AbstractDFG,
                     from::Symbol, 
                     target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
-                    N::Int=size(measurement[1],2),
-                    tfg = initfg() )
+                    N::Int = size(measurement[1],2),
+                    solveKey::Symbol=:default,
+                    tfg::AbstractDFG = initfg(),
+                    setPPEmethod::Union{Nothing, <:AbstractPointParametricEst}=nothing,
+                    setPPE::Bool= setPPEmethod!==nothing,
+                    path::Vector{Symbol}=Symbol[]  )
   #
   @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -527,16 +536,21 @@ function approxConv(dfg::AbstractDFG,
   else
     # must first discover shortest factor path in dfg
     # TODO DFG only supports LightDFG.findShortestPathDijkstra at the time of writing (DFG v0.10.9)
-    path = findShortestPathDijkstra(dfg, from, target)
+    path = 0 == length(path) ? findShortestPathDijkstra(dfg, from, target) : path
     @assert path[1] == from "sanity check that shortest path function is working as expected"
 
     # list of variables
-    varMsk = isVariable.(dfg, path)
-      # @assert varMsk[end] "approxConv(dfg, from, target,...) where `target` must be a variable in dfg"
-    varLbls = path[varMsk]
+    fctMsk = isFactor.(dfg, path)
+    # which factors in the path
+    fctLbls = path[fctMsk]
+    # must still add
+    varLbls =  union(lsf.(dfg, fctLbls)...)
     neMsk = exists.(tfg, varLbls) .|> x-> xor(x,true)
     # put the non-existing variables into the temporary graph `tfg`
+    # bring all the solveKeys too
     addVariable!.(tfg, getVariable.(dfg, varLbls[neMsk]))
+    # variables adjacent to the shortest path should be initialized from dfg
+    setdiff(varLbls, path[xor.(fctMsk,true)]) .|> x->initManual!(tfg, x, getBelief(dfg, x))
   end
   
   # find/set the starting point
@@ -553,17 +567,21 @@ function approxConv(dfg::AbstractDFG,
     pts1 = approxConv(dfg, fct0, path[2], measurement, N=N)
     length(path) == 2 ? (return pts1) : pts1
   end
-  # sneaky shortcut, didn't return early so `varLbls` will exist (thanks JuliaLang IR)
+  # didn't return early so shift focus to using `tfg` more intensely
   initManual!(tfg, varLbls[1], pts)
+  # use in combination with setPPE and setPPEmethod keyword arguments
+  ppemethod = setPPEmethod === nothing ? MeanMaxPPE : ppemethod
+  !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
 
   # do chain of convolutions
   for idx in idxS:length(path)
-    if !varMsk[idx]
+    if fctMsk[idx]
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
       pts = approxConv(tfg, fct, path[idx+1], N=N)
       initManual!(tfg, path[idx+1], pts)
+      !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
   end
 
@@ -572,6 +590,48 @@ function approxConv(dfg::AbstractDFG,
 end
 
 
+
+
+
+"""
+    $SIGNATURES
+
+Calculate both measured and predicted relative variable values, starting with `from` at zeros up to `to::Symbol`.
+
+Notes
+- assume single variable separators only.
+"""
+function accumulateFactorChain( dfg::AbstractDFG,
+                                from::Symbol,
+                                to::Symbol,
+                                fsyms::Vector{Symbol}=findFactorsBetweenNaive(dfg, from, to);
+                                initval=zeros(size(getVal(dfg, from))))
+
+  # get associated variables
+  svars = union(ls.(dfg, fsyms)...)
+
+  # use subgraph copys to do calculations
+  tfg_meas = buildSubgraph(dfg, [svars;fsyms])
+  tfg_pred = buildSubgraph(dfg, [svars;fsyms])
+
+  # drive variable values manually to ensure no additional stochastics are introduced.
+  nextvar = from
+  initManual!(tfg_meas, nextvar, initval)
+  initManual!(tfg_pred, nextvar, initval)
+
+  # nextfct = fsyms[1] # for debugging
+  for nextfct in fsyms
+    nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
+    @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
+    nextvar = nextvars[1]
+    meas, pred = solveFactorMeasurements(dfg, nextfct)
+    pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
+    pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
+    initManual!(tfg_meas, nextvar, pts_meas)
+    initManual!(tfg_pred, nextvar, pts_pred)
+  end
+  return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
+end
 
 
 #

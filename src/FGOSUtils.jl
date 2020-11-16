@@ -5,6 +5,7 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 
 export calcPPE, calcVariablePPE
+export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
 export fetchDataJSON
@@ -125,7 +126,6 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
-
 """
     $SIGNATURES
 
@@ -136,12 +136,12 @@ DevNotes
 
 Related
 
-getVariablePPE, setVariablePosteriorEstimates!, getVariablePPE!
+[`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref)
 """
-function calcPPE(var::DFGVariable,
+function calcPPE( var::DFGVariable,
                   varType::InferenceVariable;
-                  solveKey::Symbol=:default,
-                  method::Type{MeanMaxPPE}=MeanMaxPPE  )
+                  method::Type{MeanMaxPPE}=MeanMaxPPE,
+                  solveKey::Symbol=:default  )
   #
   P = getBelief(var, solveKey)
   manis = getManifolds(varType) # getManifolds(vnd)
@@ -167,17 +167,31 @@ end
 
 calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
 
-function calcPPE(dfg::AbstractDFG,
-                  sym::Symbol;
-                  method::Type{<:AbstractPointParametricEst}=MeanMaxPPE,
-                  solveKey::Symbol=:default )
+"""
+    $TYPEDSIGNATURES
+
+Calculate new Parametric Point Estimates for a given variable.
+
+Notes
+- Different methods are possible, currently [`MeanMaxPPE`](@ref) `<: AbstractPointParametricEst`.
+
+Aliases
+- `calcVariablePPE`
+
+Related
+
+[`setPPE!`](@ref)
+"""
+function calcPPE( dfg::AbstractDFG,
+                  label::Symbol;
+                  solveKey::Symbol=:default,
+                  method::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
   #
-  var = getVariable(dfg, sym)
+  var = getVariable(dfg, label)
   calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
 end
 
 const calcVariablePPE = calcPPE
-
 
 
 """
@@ -188,8 +202,8 @@ Return `::Bool` on whether this variable has been marginalized.
 isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
 isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
 
-function setThreadModel!(fgl::AbstractDFG;
-                         model=IncrementalInference.SingleThreaded )
+function setThreadModel!( fgl::AbstractDFG;
+                          model=IIF.SingleThreaded )
   #
   for (key, id) in fgl.fIDs
     getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
@@ -328,10 +342,10 @@ Related
 
 findVariablesNearTimestamp
 """
-function findVariablesNear(dfg::AbstractDFG,
-                           loc::Vector{<:Real},
-                           regexFilter::Union{Nothing, Regex}=nothing;
-                           number::Int=3  )
+function findVariablesNear( dfg::AbstractDFG,
+                            loc::Vector{<:Real},
+                            regexFilter::Union{Nothing, Regex}=nothing;
+                            number::Int=3  )
   #
 
   xy = getPPESuggestedAll(dfg, regexFilter)
@@ -434,34 +448,53 @@ DevNotes
 - TODO consider a more fiting name.
 - guess it would make sense that :default=>variableNodeData, goes with :default=>MeanMaxPPE
 
+Aliases
+- `setVariablePosteriorEstimates!`
+
+DevNotes:
+
+JT - TODO if subfg is in the cloud or from another fg it has to be updated
+it feels like a waste to update the whole variable for one field.
+currently i could find mergeUpdateVariableSolverData()
+might be handy to use a setter such as updatePointParametricEst(dfg, variable, solverkey)
+This might also not be the correct place, if it is uncomment:
+````
+if (subfg <: InMemoryDFGTypes)
+  updateVariable!(subfg, var)
+end
+```
+
 Related
 
-calcVariablePPE, getVariablePPE, (setVariablePPE!/setPPE!/updatePPE! ?)
+[`calcPPE`](@ref), getVariablePPE, (updatePPE! ?)
 """
-function setVariablePosteriorEstimates!(var::DFG.DFGVariable,
-                                        solveKey::Symbol=:default)::DFG.DFGVariable
-
-  vnd = getSolverData(var, solveKey)
+function setPPE!( variable::DFGVariable,
+                  solveKey::Symbol = :default,
+                  method::Type{T} = MeanMaxPPE,
+                  newPPEVal::T = calcPPE(variable, method=method, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
+  #
+  # vnd = getSolverData(variable, solveKey)
 
   #TODO in the future one can perhaps populate other solver data types here by looking at the typeof ppeDict entries
-  var.ppeDict[solveKey] = calcVariablePPE(var, method=MeanMaxPPE, solveKey=solveKey)
+  getPPEDict(variable)[solveKey] = newPPEVal
 
-  return var
+  return variable
 end
 
-function setVariablePosteriorEstimates!(subfg::AbstractDFG,
-                                        sym::Symbol )::DFG.DFGVariable
-  var = setVariablePosteriorEstimates!(getVariable(subfg, sym))
-  # JT - TODO if subfg is in the cloud or from another fg it has to be updated
-  # it feels like a waste to update the whole vairable for one field.
-  # currently i could find mergeUpdateVariableSolverData()
-  # might be handy to use a setter such as updatePointParametricEst(dfg, variable, solverkey)
-  # This might also not be the correct place, if it is uncomment:
-  # if (subfg <: InMemoryDFGTypes)
-  #   updateVariable!(subfg, var)
-  # end
+function setPPE!( subfg::AbstractDFG,
+                  label::Symbol,
+                  solveKey::Symbol = :default,
+                  method::Type{T} = MeanMaxPPE,
+                  newPPEVal::NothingUnion{T} = nothing )  where {T <: AbstractPointParametricEst}
+  #
+  variable = getVariable(subfg,label)
+  # slight optimization to avoid double variable lookup (should be optimized out during code lowering)
+  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, method=method)  
+  setPPE!(variable, solveKey, method, newppe)
 end
 
+
+const setVariablePosteriorEstimates! = setPPE!
 
 
 ## ============================================================================

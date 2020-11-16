@@ -14,11 +14,11 @@ Notes
 - Does the proper continuous (Qc) to discrete process noise (Qd) calculation -- as per Farrell, 2008.
 - Used downstream for in-time Gaussian mean and covariance propagation.
 """
-function cont2disc(F::Matrix{Float64},
-                   G::Matrix{Float64},
-                   Qc::Matrix{Float64},
-                   dt::Float64,
-                   Phik::Matrix{Float64}=Matrix{Float64}(LinearAlgebra.I, 0,0) )
+function cont2disc( F::Matrix{Float64},
+                    G::Matrix{Float64},
+                    Qc::Matrix{Float64},
+                    dt::Float64,
+                    Phik::Matrix{Float64}=Matrix{Float64}(LinearAlgebra.I, 0,0) )
     #
     fr,fc = size(F)
     gr,gc = size(G)
@@ -61,11 +61,11 @@ Notes
 - Developed for updating a dead reckoning odometry factor.
 - Arguments are order sensitive.
 """
-function rebaseFactorVariable!(dfg::AbstractDFG,
-                               fctsym::Symbol,
-                               newvars::Vector{Symbol};
-                               rmDisconnected::Bool=true,
-                               autoinit::Bool=false  )::Nothing
+function rebaseFactorVariable!( dfg::AbstractDFG,
+                                fctsym::Symbol,
+                                newvars::Vector{Symbol};
+                                rmDisconnected::Bool=true,
+                                autoinit::Bool=false  )::Nothing
   #
   # check that all new variables are available
   @assert sum(map(x->exists(dfg, x), newvars)) == length(newvars)
@@ -74,9 +74,9 @@ function rebaseFactorVariable!(dfg::AbstractDFG,
   fct = getFactor(dfg, fctsym)
   fcttype = getFactorType(fct)
   mh = getMultihypoDistribution(fct)
- 
+
   mh = isnothing(mh) ? Float64[] : mh 
- 
+
   # get old vars
   oldvars = getVariableOrder(fct)
 
@@ -171,9 +171,12 @@ Notes
 - Expected uses are for user analysis of factors and estimates.
 - real-time dead reckoning chain prediction.
 
+DevNotes
+- # TODO consolidate with similar `approxConvChain`
+
 Related:
 
-[`approxConv`](@ref), solveBinaryFactorParameteric, MutablePose2Pose2Gaussian
+[`approxConv`](@ref), solveBinaryFactorParameteric, `RoME.MutablePose2Pose2Gaussian`
 """
 function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
 
