@@ -218,6 +218,7 @@ end
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
                         factorsyms::Vector{Symbol};
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
@@ -230,17 +231,18 @@ function predictbelief( dfg::AbstractDFG,
   nn = N != 0 ? N : size(getVal(vert),2)
 
   # do the belief prediction
-  predictbelief(dfg, vert, factors, N=nn, dbg=dbg, logger=logger)
+  predictbelief(dfg, vert, factors, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger)
 end
 
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
                         factorsyms::Colon;
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger() )
   #
-  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger )
 end
 
 """
