@@ -43,6 +43,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
+  alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
   SolverParams(;dimID::Int=0,
                 registeredModuleFunctions=nothing,
@@ -70,6 +71,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 algorithms::Vector{Symbol}=[:default],
                 spreadNH::Float64=3.0,
                 maxincidence::Int=500,
+                alwaysFreshMeasurements::Bool=true,
                 devParams::Dict{Symbol,String}=Dict{Symbol,String}()
               ) = new(dimID,
                       registeredModuleFunctions,
@@ -97,6 +99,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       algorithms,
                       spreadNH,
                       maxincidence,
+                      alwaysFreshMeasurements,
                       devParams )
   #
 end
@@ -290,8 +293,8 @@ function CommonConvWrapper( fnc::T,
   ccw.nullhypo=nullhypo
   ccw.params = params
   ccw.varidx = varidx
-  ccw.threadmodel = threadmodel
   ccw.measurement = measurement
+  ccw.threadmodel = threadmodel
 
   # thread specific elements
   ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())

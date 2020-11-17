@@ -59,6 +59,7 @@ function doFMCIteration(fgl::AbstractDFG,
                         fmsgs,
                         N::Int,
                         dbg::Bool,
+                        needFreshMeasurements::Bool=true,
                         logger=ConsoleLogger()  )
   #
   # global countsolve
@@ -66,7 +67,7 @@ function doFMCIteration(fgl::AbstractDFG,
   if !getSolverData(vert).ismargin
     if true
       potprod = nothing
-      densPts, inferdim = predictbelief(fgl, vsym, :, N=N, dbg=dbg, logger=logger)
+      densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
     else
       # NOTE THIS PART IS DEPRECATED IN v0.16.0
       # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
@@ -108,6 +109,7 @@ function fmcmc!(fgl::AbstractDFG,
   end
   mcmcdbg = Array{CliqGibbsMC,1}()
 
+  # burn-in loop for outer Gibbs
   for iter in 1:MCMCIter
     # iterate through each of the variables, KL-divergence tolerence would be nice test here
     with_logger(logger) do
@@ -115,8 +117,11 @@ function fmcmc!(fgl::AbstractDFG,
     end
     dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
 
+    needFreshMeasurements = iter == 1 || getSolverParams(fgl).alwaysFreshMeasurements
+
+    # outer Gibbs cycle
     for vsym in lbls
-        doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, logger)
+        doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, needFreshMeasurements, logger)
     end
     !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end

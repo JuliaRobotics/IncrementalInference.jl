@@ -151,7 +151,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           factors::AbstractVector{<:DFGFactor},
                           # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
-                          partials::Dict{Int, Vector{BallTreeDensity}};
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          measurement::Tuple=(zeros(0,0),);
                           solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false  )
@@ -161,7 +162,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
   for fct in factors
     count += 1
     data = getSolverData(fct)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg, solveKey=solveKey)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -171,7 +172,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
-    else # full density
+    else # add onto full density list
       push!(dens, p)
     end
     push!(inferddimproposal, inferd)
@@ -190,6 +191,7 @@ Notes
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
                         factors::Vector{<:DFGFactor};
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
