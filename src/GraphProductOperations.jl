@@ -110,7 +110,7 @@ function productbelief( dfg::AbstractDFG,
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
     # only partials
-    denspts = getPoints(getKDE(dfg, vertlabel))
+    denspts = getPoints(getBelief(dfg, vertlabel))
     Ndims = size(denspts,1)
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"

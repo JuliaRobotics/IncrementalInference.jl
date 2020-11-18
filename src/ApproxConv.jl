@@ -489,34 +489,6 @@ function approxConv(dfg::AbstractDFG,
   return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N)
 end
 
-# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
-function approxConvBinary(arr::Array{Float64,2},
-                          meas::FunctorInferenceType,
-                          outdims::Int,
-                          measurement::Tuple=(zeros(0,size(arr,2)),);
-                          varidx::Int=2,
-                          N::Int=size(arr,2),
-                          fmd::FactorMetadata=FactorMetadata(),
-                          vnds=DFGVariable[] )
-  #
-  # N = N == 0 ? size(arr,2) : N
-  pts = zeros(outdims,N);
-  t = Array{Array{Float64,2},1}()
-  push!(t,arr)
-  push!(t,pts)
-
-  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
-
-  zDim = size(measurement[1],1)
-  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
-
-  for n in 1:N
-    ccw.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccw )
-  end
-  return pts
-end
-
 
 """
     $SIGNATURES
@@ -532,13 +504,16 @@ Notes
 - `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
 
 DevNotes
+- TODO strong requirement that this function is super efficient on single factor/variable case!
 - FIXME must consolidate with `accumulateFactorMeans`
 - TODO `solveKey` not fully wired up everywhere yet
   - tfg gets all the solveKeys inside the source `dfg` variables
+- TODO add a approxConv on PPE option
+  - Consolidate with [`accumulateFactorMeans`](@ref), `approxConvBinary`
 
 Related
 
-[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`, [`evalFactor`](@ref)
+[`approxDeconv`](@ref), `LightDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
 """
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
@@ -615,6 +590,33 @@ function approxConv(dfg::AbstractDFG,
 end
 
 
+# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
+function approxConvBinary(arr::Array{Float64,2},
+                          meas::FunctorInferenceType,
+                          outdims::Int,
+                          measurement::Tuple=(zeros(0,size(arr,2)),);
+                          varidx::Int=2,
+                          N::Int=size(arr,2),
+                          fmd::FactorMetadata=FactorMetadata(),
+                          vnds=DFGVariable[] )
+  #
+  # N = N == 0 ? size(arr,2) : N
+  pts = zeros(outdims,N);
+  t = Array{Array{Float64,2},1}()
+  push!(t,arr)
+  push!(t,pts)
+
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
+
+  zDim = size(measurement[1],1)
+  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+
+  for n in 1:N
+    ccw.cpt[Threads.threadid()].particleidx = n
+    numericSolutionCCW!( ccw )
+  end
+  return pts
+end
 
 
 
