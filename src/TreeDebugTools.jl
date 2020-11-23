@@ -163,7 +163,7 @@ function printHistoryLine(fid,
   downRxMessage = getMessageBuffer(hi[4].cliq).downRx
   if !isnothing(downRxMessage)
     #TODO maybe don't use tree here
-    first = first*"$(getParent(hi[4].tree, hi[4].cliq)[1].index):$(downRxMessage.status)"
+    first = first*"$(getParent(hi[4].tree, hi[4].cliq)[1].id):$(downRxMessage.status)"
   else
     first = first*"----"
   end
@@ -186,7 +186,7 @@ function printHistoryLine(fid,
   #   frt = (hi[4].parentCliq[1] |> getFrontals)[1]
   #   childs = getChildren(hi[4].tree, frt)
   #   # remove current clique to leave only siblings
-  #   filter!(x->x.index!=hi[4].cliq.index, childs)
+  #   filter!(x->x.index!=hi[4].cliq.id, childs)
   #   for ch in childs
   #     first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
   #   end
@@ -226,8 +226,8 @@ function printCliqHistorySummary( hists::Dict{Int,Vector{CSMHistoryTuple}},
                                   tree::AbstractBayesTree,
                                   sym::Symbol  )
   #
-  hist = hists[getClique(tree, sym).index]
-  printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).index))
+  hist = hists[getClique(tree, sym).id]
+  printCliqHistorySummary(stdout, hist, string(getClique(tree, sym).id))
 end
 
 # TODO maybe Base. already has something like this Union{UnitRange, AbstractVector, etc.}
@@ -352,7 +352,7 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.index=>hi[2])] : hi[2]
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id=>hi[2])] : hi[2]
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
@@ -423,7 +423,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
     seqLookup = Dict{Pair{Int,Int},Int}()
     for idx in 1:length(alltimes)
       hiln = allhists_[idx]
-      seqLookup[(hiln[4].cliq.index => hiln[2])] = idx
+      seqLookup[(hiln[4].cliq.id => hiln[2])] = idx
     end
 
   
@@ -507,9 +507,9 @@ function attachCSM!(csmc::CliqStateMachineContainer,
   csmc.logger = logger # TODO option to reopen and append to previous logger file
 
   @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
-  cid = csmc.cliq.index
-  pids = csmc.parentCliq .|> x->x.index
-  cids = csmc.childCliqs .|> x->x.index
+  cid = csmc.cliq.id
+  pids = csmc.parentCliq .|> x->x.id
+  cids = csmc.childCliqs .|> x->x.id
 
   csmc.cliq = tree.cliques[cid]
   csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)

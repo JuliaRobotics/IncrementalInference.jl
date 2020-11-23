@@ -165,7 +165,7 @@ function CliqStateMachineContainer( dfg::G,
                                     refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
-                                    cliqKey::Int = cliq.index,
+                                    cliqKey::Int = cliq.id,
                                     algoritm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,

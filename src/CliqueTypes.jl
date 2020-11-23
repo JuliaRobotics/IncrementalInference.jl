@@ -216,21 +216,41 @@ DEV NOTES: To replace TreeClique completely
     $(FIELDS)
 """
 mutable struct TreeClique
-  index::Int # see issue #540
+  "Interger id unique within a tree with userId, robotId, sessionId"
+  id::Int # see issue #540
   label::Symbol #NOTE this is currently a label such as clique 1, # The drawing label is saved in attributes, JT I'm not sure of the current use
   data::BayesTreeNodeData 
   attributes::Dict{String, Any} #The drawing attributes
   #solveInProgress #on a clique level a "solve in progress" might be very handy
 end
 
+getId(c::TreeClique) = c.id
+
+function Base.getproperty(x::TreeClique,f::Symbol)
+  if f == :index
+    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :getproperty)
+    getfield(x,:id)
+  else
+    getfield(x,f)
+  end
+end
+
+function Base.setproperty!(x::TreeClique, f::Symbol, val)
+  if f == :index
+    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :setproperty!)
+    f = :id
+  end
+  return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
+end
+
 TreeClique(i::Int, label::Symbol) = TreeClique(i, label, BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
 
 Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
-Graphs.vertex_index(v::TreeClique) = v.index
+Graphs.vertex_index(v::TreeClique) = v.id
 Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
 
-#TODO the label field and label atribute is a bit confusing with accessors.
+#TODO the label field and label attribute is a bit confusing with accessors.
 DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
 function setLabel!(cliq::TreeClique, lbl::String)
   cliq.attributes["label"] = lbl

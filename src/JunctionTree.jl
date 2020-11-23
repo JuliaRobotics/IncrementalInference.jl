@@ -643,12 +643,12 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
 end
 
 
-isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.index])
+isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.id])
 function isRoot(treel::MetaBayesTree, cliqKey::Int)
   length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
 end
 
-isRoot(treel::BayesTree, cliq::TreeClique) = isRoot(tree, cliq.index)
+isRoot(treel::BayesTree, cliq::TreeClique) = isRoot(tree, cliq.id)
 function isRoot(treel::BayesTree, cliqKey::Int)
   length(Graphs.in_neighbors(getClique(treel, cliqKey), treel.bt)) == 0
 end
@@ -903,7 +903,7 @@ function getCliqFactorsFromFrontals(fgl::G,
                     union!(usefcts, Symbol[Symbol(fct.label);])
                     getSolverData(fct).potentialused = true
                     if !insep
-                        @debug "cliq=$(cliq.index) adding factor that is not in separator, $sep"
+                        @debug "cliq=$(cliq.id) adding factor that is not in separator, $sep"
                     end
                 end
             end
@@ -1303,7 +1303,7 @@ function directAssignmentIDs(cliq::TreeClique)
 end
 
 function mcmcIterationIDs(cliq::TreeClique)
-  @debug "mcmcIterationIDs\n" cliq.index getCliqFrontalVarIds(cliq) getCliqSeparatorVarIds(cliq)
+  @debug "mcmcIterationIDs\n" cliq.id getCliqFrontalVarIds(cliq) getCliqSeparatorVarIds(cliq)
   mat = getCliqMat(cliq)
   @debug "getCliqMat" mat
   # assocMat = getCliqueData(cliq).cliqAssocMat
@@ -1446,7 +1446,7 @@ end
 
 
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
-  cliqKey = treel.bt[:index][cliq.index]
+  cliqKey = treel.bt[:index][cliq.id]
   childcliqs = TreeClique[]
   for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
     push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
@@ -1472,7 +1472,7 @@ function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.index])
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.id])
 
 """
     $SIGNATURES
@@ -1484,7 +1484,7 @@ function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.index])
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.id])
 
 """
     $SIGNATURES
@@ -1501,7 +1501,7 @@ function getCliqSiblings(treel::AbstractBayesTree, cliq::TreeClique, inclusive::
   end
   sibs = TreeClique[]
   for ch in allch
-    if ch.index != cliq.index
+    if ch.id != cliq.id
       push!(sibs, ch)
     end
   end
@@ -1521,7 +1521,7 @@ function parentCliq(treel::BayesTree, frtsym::Symbol)
 end
 
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)
-  cliqKey = treel.bt[:index][cliq.index]
+  cliqKey = treel.bt[:index][cliq.id]
   parentcliqs = TreeClique[]
   for pIdx in  MetaGraphs.inneighbors(treel.bt, cliqKey)
     push!(parentcliqs, get_prop(treel.bt, pIdx, :clique))

@@ -90,7 +90,7 @@ function drawGraphCliq(hists::Dict{Int, <: Tuple},
                        frontal::Symbol;
                        show::Bool=true  )
   #
-  cid = getClique(tree, frontal).index
+  cid = getId(getClique(tree, frontal))
   cfg = hists[cid][step][4].cliqSubFg
   drawGraph(cfg, show=show)
 end
@@ -117,7 +117,7 @@ function printCliqSummary(dfg::G,
   infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
 
   with_logger(logger) do
-    @info "Clique $(cliq.index) summary:"
+    @info "Clique $(getId(cliq)) summary:"
     @info "  num frontals:    $(length(frtl))"
     @info "  num separators:  $(length(seps))"
     @info "  num factors:     $(length(fcts))"
