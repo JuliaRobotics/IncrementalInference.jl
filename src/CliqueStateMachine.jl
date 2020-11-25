@@ -151,7 +151,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
   # take! messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
-      thisEdge = isa(e,Graphs.Edge) ? e.index : e
+      thisEdge = isa(e,Graphs.Edge) ? e.index : e.dst
       logCSM(csmc, "CSM-1 $(csmc.cliq.id): take! on edge $thisEdge")
       # Blocks until data is available. -- take! model
       beliefMsg = takeBeliefMessageUp!(csmc.tree, e)

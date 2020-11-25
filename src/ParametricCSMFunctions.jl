@@ -1,11 +1,11 @@
 # Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
 function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
   inclist = gr.inclist
-  targid = vert.index
+  targid = vert.id
   inlist = Edge{V}[]
   for edgelist in inclist
     for ed in edgelist
-      if ed.target.index == targid
+      if ed.target.id == targid
         push!(inlist, ed)
       end
     end

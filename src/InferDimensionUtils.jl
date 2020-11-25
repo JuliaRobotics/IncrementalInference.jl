@@ -392,7 +392,7 @@ function getCliqSiblingsPriorityInitOrder(tree::AbstractBayesTree,
       @info "$(now()), getCliqSiblingsPriorityInitOrder, sidx=$sidx of $len, $(cliqd.frontalIDs[1]), dwninitmsgs.childSolvDims=$(dwninitmsgs.childSolvDims)"
     end
     flush(logger.stream)
-    sidx[idx] = sibs[idx].index
+    sidx[idx] = sibs[idx].id
     
         # NEW accumulate the solvableDims for each sibling (#910)
         # FIXME rather determine this using static tree structure and values from dwnmsg (#910)

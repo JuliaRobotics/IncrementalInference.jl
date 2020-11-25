@@ -229,10 +229,9 @@ getId(c::TreeClique) = c.id
 function Base.getproperty(x::TreeClique,f::Symbol)
   if f == :index
     Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :getproperty)
-    getfield(x,:id)
-  else
-    getfield(x,f)
+    f = :id
   end
+  getfield(x,f)
 end
 
 function Base.setproperty!(x::TreeClique, f::Symbol, val)

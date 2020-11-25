@@ -33,7 +33,7 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
 #
 
 #TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
-global UseMetaBayesTree = false
+global UseMetaBayesTree = true
 setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
 function emptyBayesTree()
   global UseMetaBayesTree
@@ -99,8 +99,8 @@ function MetaBayesTree(tree::BayesTree)
 
   #deep copy over properties
   for v in tree.bt.vertices
-    # set_prop!(mtree.bt, v.index, :label, deepcopy(v.label))
-    set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
+    # set_prop!(mtree.bt, v.id, :label, deepcopy(v.label))
+    set_prop!(mtree.bt, v.id, :clique, deepcopy(v))
   end
 
   ##  FIXME: Use common location for channels #675 (DF, asking for BTND)

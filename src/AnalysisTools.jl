@@ -95,7 +95,7 @@ end
 Get total number of non-zero entries for a Bayes tree. Num of non-zero matrix
 entries is the sum of all non-zero entries for each individual clique.
 """
-function nnzTree(tree::BayesTree)
+function nnzTree(tree::AbstractBayesTree)
   nnzTot = 0
   for (cliqid, cliq) in tree.cliques
     nnzTot += nnzClique(cliq)

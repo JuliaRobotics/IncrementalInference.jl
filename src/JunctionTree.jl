@@ -226,7 +226,7 @@ function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, var
     Graphs.add_edge!(bt.bt, edge)
   elseif isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
-    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.index]) "Add edge failed"
+    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.id]) "Add edge failed"
   else
     error("Oops, something went wrong")
   end
@@ -495,7 +495,7 @@ Related
 
 drawTree, drawGraph
 """
-function drawTreeAsyncLoop( tree::BayesTree,
+function drawTreeAsyncLoop( tree::AbstractBayesTree,
                             opt::SolverParams;
                             filepath=joinLogPath(opt,"bt.pdf"),
                             dotreedraw = Int[1;]  )
@@ -1660,7 +1660,7 @@ end
 
 Return Tuple of number cliques (Marginalized, Reused).
 """
-function calcCliquesRecycled(tree::BayesTree)
+function calcCliquesRecycled(tree::AbstractBayesTree)
   numMarg = 0
   numReused = 0
   numBoth = 0
