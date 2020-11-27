@@ -2,7 +2,7 @@ using IncrementalInference
 using Test
 
 # a new factor that is broken
-struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeFactor
+struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
 
@@ -46,18 +46,18 @@ sleep(0.1)
 
 # Test parametric solve also
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x9lm10f2)
 # add a broken factor - leave
 addFactor!(fg, [:x10, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x10lm10f2)
 # add a broken factor - root
 addFactor!(fg, [:x7, :lm10], BrokenFactor(Normal()); graphinit=false)
-@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; algorithm = :parametric)
+@test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 
 end

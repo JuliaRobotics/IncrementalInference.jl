@@ -203,10 +203,9 @@ function throwIntExcToAllTasks(alltasks)
   return nothing
 end
 
-function bruteForcePushErrorCSM(tree)
+function bruteForcePushErrorCSM(tree::AbstractBayesTree)
     errMsg = LikelihoodMessage(status=ERROR_STATUS)
-    for (i, ch) in tree.messageChannels
-
+    for (i, ch) in getMessageChannels(tree)
         if isready(ch.upMsg)
             take!(ch.upMsg)
         else
@@ -222,7 +221,7 @@ function bruteForcePushErrorCSM(tree)
 
     end
 
-    for (i, ch) in tree.messageChannels
+    for (i, ch) in getMessageChannels(tree)
 
         while isready(ch.upMsg)
             @debug "cleanup take on $i up"

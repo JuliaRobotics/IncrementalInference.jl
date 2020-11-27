@@ -32,6 +32,8 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                         0.0  )
 #
 
+getMessageChannels(tree::BayesTree) = tree.messageChannels
+
 #TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
 global UseMetaBayesTree = true
 setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
@@ -65,10 +67,7 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      if !(@isdefined getCliquesWarnOnce)
-        @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-        global getCliquesWarnOnce = true
-      end
+      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
       d = Dict{Int,Any}()
       for (k,v) in x.bt.vprops
         d[k] = v[:clique]
@@ -81,10 +80,7 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
 
 function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
   if f == :cliques
-    if !(@isdefined setCliquesWarnOnce)
-      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-      global setCliquesWarnOnce = true
-    end
+    @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
     for (k,v) in val
       set_prop!(x.bt, k, :clique, v)
     end
@@ -115,6 +111,17 @@ function MetaBayesTree(tree::BayesTree)
 
 end
 
+function getMessageChannels(tree::MetaBayesTree)
+
+  d = Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}()
+
+  for (k,e) in tree.bt.eprops
+    d[k.dst] = (upMsg=e[:upMsg], downMsg=e[:downMsg])
+  end
+  
+  return d
+
+end
 
 """
     $TYPEDEF
