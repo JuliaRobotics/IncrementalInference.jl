@@ -35,12 +35,11 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
 getMessageChannels(tree::BayesTree) = tree.messageChannels
 
 #TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
-global UseMetaBayesTree = true
+global UseMetaBayesTree = false
 setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
 function emptyBayesTree()
   global UseMetaBayesTree
   if UseMetaBayesTree
-    @warn "Experimental, do not use yet, MetaBayesTree is under development"
     return MetaBayesTree()
   else
     return BayesTree()
