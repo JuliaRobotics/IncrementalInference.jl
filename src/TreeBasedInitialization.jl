@@ -156,7 +156,7 @@ function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
-    @info "$tt, cliq $(cliq.index), PARINIT: $varids | $initstatus | $initpartial"
+    @info "$tt, cliq $(cliq.id), PARINIT: $varids | $initstatus | $initpartial"
   end
 end
 

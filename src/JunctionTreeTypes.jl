@@ -32,13 +32,14 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
                         0.0  )
 #
 
+getMessageChannels(tree::BayesTree) = tree.messageChannels
+
 #TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
 global UseMetaBayesTree = false
 setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
 function emptyBayesTree()
   global UseMetaBayesTree
   if UseMetaBayesTree
-    @warn "Experimental, do not use yet, MetaBayesTree is under development"
     return MetaBayesTree()
   else
     return BayesTree()
@@ -65,10 +66,7 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      if !(@isdefined getCliquesWarnOnce)
-        @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-        global getCliquesWarnOnce = true
-      end
+      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
       d = Dict{Int,Any}()
       for (k,v) in x.bt.vprops
         d[k] = v[:clique]
@@ -81,10 +79,7 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
 
 function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
   if f == :cliques
-    if !(@isdefined setCliquesWarnOnce)
-      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-      global setCliquesWarnOnce = true
-    end
+    @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
     for (k,v) in val
       set_prop!(x.bt, k, :clique, v)
     end
@@ -99,8 +94,8 @@ function MetaBayesTree(tree::BayesTree)
 
   #deep copy over properties
   for v in tree.bt.vertices
-    # set_prop!(mtree.bt, v.index, :label, deepcopy(v.label))
-    set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
+    # set_prop!(mtree.bt, v.id, :label, deepcopy(v.label))
+    set_prop!(mtree.bt, v.id, :clique, deepcopy(v))
   end
 
   ##  FIXME: Use common location for channels #675 (DF, asking for BTND)
@@ -115,6 +110,17 @@ function MetaBayesTree(tree::BayesTree)
 
 end
 
+function getMessageChannels(tree::MetaBayesTree)
+
+  d = Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}()
+
+  for (k,e) in tree.bt.eprops
+    d[k.dst] = (upMsg=e[:upMsg], downMsg=e[:downMsg])
+  end
+  
+  return d
+
+end
 
 """
     $TYPEDEF
@@ -165,7 +171,7 @@ function CliqStateMachineContainer( dfg::G,
                                     refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
-                                    cliqKey::Int = cliq.index,
+                                    cliqKey::Int = cliq.id,
                                     algoritm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,

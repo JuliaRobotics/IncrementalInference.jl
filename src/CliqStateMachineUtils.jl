@@ -65,7 +65,7 @@ function _dbgCSMSaveSubFG(csmc::CliqStateMachineContainer, filename::String)
   opt = getSolverParams(csmc.cliqSubFg)
   
   if opt.dbg
-    folder::String=joinpath(opt.logpath,"logs","cliq$(csmc.cliq.index)")
+    folder::String=joinpath(opt.logpath,"logs","cliq$(getId(csmc.cliq))")
     if !ispath(folder)
       mkpath(folder)
     end
@@ -96,7 +96,7 @@ function infocsm(csmc::CliqStateMachineContainer, str::A) where {A <: AbstractSt
   cliqst = getCliqueStatus(csmc.cliq)
 
   with_logger(csmc.logger) do
-    @info "$tmt | $(csmc.cliq.index)---$lbl1 @ $(cliqst) | "*str
+    @info "$tmt | $(getId(csmc.cliq))---$lbl1 @ $(cliqst) | "*str
   end
   flush(csmc.logger.stream)
   nothing
@@ -104,7 +104,7 @@ end
 
 """
     $SIGNATURES
-Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.index
+Helper function to log a message at a specific level to a clique identified by `csm_i` where i = cliq.id
 Notes:
 - Related to infocsm.
 - Different approach to logging that uses the build in logging functionality to provide more flexibility.
@@ -129,7 +129,7 @@ function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, max
           _id=(frame,funcsym),
           # caller=caller, 
           # st4 = stacktrace()[4],
-          _group = Symbol("csm_$(csmc.cliq.index)"),
+          _group = Symbol("csm_$(csmc.cliq.id)"),
           maxlog=maxlog,
           kwargs...)
   
@@ -143,17 +143,17 @@ end
 function putErrorDown(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-  logCSM(csmc, "CSM clique $(csmc.cliq.index): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+  logCSM(csmc, "CSM clique $(csmc.cliq.id): propagate down error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
   @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
-  logCSM(csmc, "CSM clique $(csmc.cliq.index): Exit with error state", loglevel=Logging.Error)
+  logCSM(csmc, "CSM clique $(csmc.cliq.id): Exit with error state", loglevel=Logging.Error)
   return nothing
 end
 
 function putErrorUp(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "CSM clique, $(csmc.cliq.index): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "CSM clique, $(csmc.cliq.id): propagate up error on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     putBeliefMessageUp!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
   return nothing
@@ -203,10 +203,9 @@ function throwIntExcToAllTasks(alltasks)
   return nothing
 end
 
-function bruteForcePushErrorCSM(tree)
+function bruteForcePushErrorCSM(tree::AbstractBayesTree)
     errMsg = LikelihoodMessage(status=ERROR_STATUS)
-    for (i, ch) in tree.messageChannels
-
+    for (i, ch) in getMessageChannels(tree)
         if isready(ch.upMsg)
             take!(ch.upMsg)
         else
@@ -222,7 +221,7 @@ function bruteForcePushErrorCSM(tree)
 
     end
 
-    for (i, ch) in tree.messageChannels
+    for (i, ch) in getMessageChannels(tree)
 
         while isready(ch.upMsg)
             @debug "cleanup take on $i up"
@@ -320,7 +319,7 @@ function areSiblingsRemaingNeedDownOnly(tree::AbstractBayesTree,
   if length(prnt) > 0
     for si in getChildren(tree, prnt[1])
       # are any of the other siblings still busy?
-      if si.index != cliq.index && getCliqueStatus(si) in stillbusylist
+      if si.id != cliq.id && getCliqueStatus(si) in stillbusylist
         return false
       end
     end
@@ -380,7 +379,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     end
   else
     with_logger(logger) do
-      @info "Single process upsolve clique=$(cliq.index)"
+      @info "Single process upsolve clique=$(cliq.id)"
     end
     retdict = upGibbsCliqueDensity(fg_, cliq, childmsgs, N, dbg, iters, logger)
   end
@@ -481,7 +480,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
   iterFrtls = setdiff(iterFrtls, skip)
   directs = setdiff(directs, skip)
   with_logger(logger) do
-    @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, skipping marginalized keys=$(skip)"
+    @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, skipping marginalized keys=$(skip)"
   end
 
 
@@ -495,11 +494,11 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
       end
     end
     with_logger(logger) do
-      @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, multiproc keys=$(keys(downresult))"
+      @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, multiproc keys=$(keys(downresult))"
     end
     for fr in directs
         with_logger(logger) do
-            @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
+            @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
         end
       setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
     end
@@ -509,7 +508,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
         # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
-          @info "cliq $(cliq.index), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
+          @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
         end
       catch ex
         # what if results contains an error?

@@ -234,16 +234,16 @@ function addDownVariableFactors!( dfg::AbstractDFG,
   allclsyms = getCliqVarsWithFrontalNeighbors(dfg, cliq, solvable=solvable)
   newsyms = setdiff(allclsyms, currsyms)
   with_logger(logger) do
-    @info "addDownVariableFactors!, cliq=$(cliq.index), newsyms=$newsyms"
+    @info "addDownVariableFactors!, cliq=$(cliq.id), newsyms=$newsyms"
   end
   frtls = getCliqFrontalVarIds(cliq)
   with_logger(logger) do
-    @info "addDownVariableFactors!, cliq=$(cliq.index), frtls=$frtls"
+    @info "addDownVariableFactors!, cliq=$(cliq.id), frtls=$frtls"
   end
   allnewfcts = union(map(x->findFactorsBetweenFrom(dfg,union(currsyms, newsyms),x), frtls)...)
   newfcts = setdiff(allnewfcts, lsf(subfg))
   with_logger(logger) do
-    @info "addDownVariableFactors!, cliq=$(cliq.index), newfcts=$newfcts, allnewfcts=$allnewfcts"
+    @info "addDownVariableFactors!, cliq=$(cliq.id), newfcts=$newfcts, allnewfcts=$allnewfcts"
   end
 
   #TODO solvable?
@@ -447,7 +447,7 @@ function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
 
   # set the downward keys
   with_logger(logger) do
-    @info "cliq $(cliq.index), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
+    @info "cliq $(cliq.id), getSetDownMessagesComplete!, allkeys=$(allvars), passkeys=$(passkeys), msgkeys=$(collect(keys(newDwnMsgs.belief)))"
   end
 
   return newDwnMsgs
@@ -478,10 +478,10 @@ function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
     msgs = getUpMsgs(cliq)
-    allUpMsgs[cliq.index] = LikelihoodMessage()
+    allUpMsgs[cliq.id] = LikelihoodMessage()
     for (lbl,msg) in msgs
       # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.index].belief[lbl] = msg
+      allUpMsgs[cliq.id].belief[lbl] = msg
     end
   end
   return allUpMsgs

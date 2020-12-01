@@ -1,11 +1,11 @@
 # Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
 function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
   inclist = gr.inclist
-  targid = vert.index
+  targid = vert.id
   inlist = Edge{V}[]
   for edgelist in inclist
     for ed in edgelist
-      if ed.target.index == targid
+      if ed.target.id == targid
         push!(inlist, ed)
       end
     end
@@ -43,25 +43,25 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   vardict, result, varIds, Σ = solveFactorGraphParametric(csmc.cliqSubFg)
 
-  logCSM(csmc, "$(csmc.cliq.index) vars $(keys(varIds))")
-  # @info "$(csmc.cliq.index) Σ $(Σ)"
+  logCSM(csmc, "$(csmc.cliq.id) vars $(keys(varIds))")
+  # @info "$(csmc.cliq.id) Σ $(Σ)"
   # Pack all results in variables
   # FIXME test f_converged, ls_success, confirm convergence check
   if result.f_converged || result.g_converged
-    logCSM(csmc, "$(csmc.cliq.index): subfg optim converged updating variables")
+    logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables")
     for (v,val) in vardict
       vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
-      logCSM(csmc, "$(csmc.cliq.index) up: updating $v : $val")
+      logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
       vnd.val .= val.val
       #calculate and fill in covariance
       #TODO rather broadcast than make new memory
       vnd.bw = val.cov
     end
   # elseif length(lsfPriors(csmc.cliqSubFg)) == 0 #FIXME
-  #   @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve, but ignoring since no priors" result
+  #   @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve, but ignoring since no priors" result
   else
-    @error "Par-3, clique $(csmc.cliq.index) failed to converge in upsolve" result
+    @error "Par-3, clique $(csmc.cliq.id) failed to converge in upsolve" result
     # propagate error to cleanly exit all cliques
     putErrorUp(csmc)
     if length(getParent(csmc.tree, csmc.cliq)) == 0
@@ -84,7 +84,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqSeparatorVarIds = getCliqSeparatorVarIds(csmc.cliq)
   #Fil in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
-  # @info "$(csmc.cliq.index) clique likelihood message $(cliqlikelihood)"
+  # @info "$(csmc.cliq.id) clique likelihood message $(cliqlikelihood)"
   beliefMsg = LikelihoodMessage(status=UPSOLVED, variableOrder=cliqSeparatorVarIds, cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage())
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
@@ -96,7 +96,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
@@ -127,7 +127,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
       if msym in svars
         #TODO maybe combine variable and factor in new prior?
         vnd = getSolverData(getVariable(csmc.cliqSubFg, msym), :parametric)
-        logCSM(csmc, "$(csmc.cliq.index): Updating separator $msym from message $(belief.val)")
+        logCSM(csmc, "$(csmc.cliq.id): Updating separator $msym from message $(belief.val)")
         vnd.val .= belief.val
         vnd.bw .= belief.bw
       end
@@ -147,16 +147,16 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     # vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
     if result.g_converged || result.f_converged
-      logCSM(csmc, "$(csmc.cliq.index): subfg optim converged updating variables"; loglevel=Logging.Info)
+      logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables"; loglevel=Logging.Info)
       for (v,val) in vardict
-        logCSM(csmc, "$(csmc.cliq.index) down: updating $v : $val"; loglevel=Logging.Info)
+        logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel=Logging.Info)
         vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
         vnd.val .= val.val
         vnd.bw .= val.cov
       end
     else
-      @error "Par-5, clique $(csmc.cliq.index) failed to converge in down solve" result
+      @error "Par-5, clique $(csmc.cliq.id) failed to converge in down solve" result
       #propagate error to cleanly exit all cliques
       putErrorDown(csmc)
       return IncrementalInference.exitStateMachine
@@ -172,7 +172,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)
     # beliefMsg.belief[fi] = TreeBelief(vnd.val, vnd.bw, vnd.inferdim, vnd.softtype.manifolds)
-    logCSM(csmc, "$(csmc.cliq.index): down message $fi : $beliefMsg"; loglevel=Logging.Info)
+    logCSM(csmc, "$(csmc.cliq.id): down message $fi : $beliefMsg"; loglevel=Logging.Info)
   end
 
   # pass through the frontal variables that were sent from above
@@ -187,11 +187,11 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO sendBeliefMessageParametric(csmc, beliefMsg)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc,  "$(csmc.cliq.index): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc,  "$(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
 
-  logCSM(csmc, "$(csmc.cliq.index): Solve completed")
+  logCSM(csmc, "$(csmc.cliq.id): Solve completed")
 
   return updateFromSubgraph_ParametricStateMachine
 
@@ -208,7 +208,7 @@ function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContain
   #solve finished change color
   setCliqueDrawColor!(csmc.cliq, "lightblue")
 
-  logCSM(csmc, "Clique $(csmc.cliq.index): Finished", loglevel=Logging.Info)
+  logCSM(csmc, "Clique $(csmc.cliq.id): Finished", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine
 
 end
