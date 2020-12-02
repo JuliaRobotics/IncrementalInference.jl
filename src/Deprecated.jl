@@ -85,6 +85,22 @@ end
 
 @deprecate evalFactor2(w...;kw...) evalFactor(w...;kw...)
 
+# TreeBelief field softtype->variableType rename
+function Base.getproperty(x::TreeBelief,f::Symbol)
+  if f == :softtype
+    Base.depwarn("`TreeBelief` field `softtype` is deprecated, use `variableType`", :getproperty)
+    f = :variableType
+  end
+  getfield(x,f)
+end
+
+function Base.setproperty!(x::TreeBelief, f::Symbol, val)
+  if f == :softtype
+    Base.depwarn("`TreeBelief` field `softtype` is deprecated, use `variableType`", :getproperty)
+    f = :variableType
+  end
+  return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
+end
 
 ##==============================================================================
 ## Deprecate at v0.18 

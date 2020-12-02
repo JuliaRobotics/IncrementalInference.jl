@@ -86,9 +86,9 @@ pd = packVariableNodeData(dfg, dat)
 unpckd = unpackVariableNodeData(dfg, pd)
 
 @test compareFields(dat, unpckd, skip=[:variableType])
-@test compareFields(dat.variableType, unpckd.variableType)
-@test isa(dat.variableType, ContinuousScalar)
-@test isa(unpckd.variableType, ContinuousScalar)
+@test compareFields(getVariableType(dat), getVariableType(unpckd))
+@test isa(getVariableType(dat), ContinuousScalar)
+@test isa(getVariableType(unpckd), ContinuousScalar)
 
 end
 

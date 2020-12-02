@@ -616,7 +616,7 @@ function prepgenericconvolution(
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
-      push!(ccw.cpt[i].factormetadata.variableuserdata, getSolverData(xi).variableType)
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
     end
   end
   return ccw
