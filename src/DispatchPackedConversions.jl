@@ -62,7 +62,7 @@ completely rebuild the factor's CCW and user data.
 function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFactor)
   # Set up the neighbor data
   neighbors = map(vId->getVariable(dfg, vId), getNeighbors(dfg, factor))
-  neighborUserData = map(v->getSolverData(v).softtype, neighbors)
+  neighborUserData = map(v->getSolverData(v).variableType, neighbors)
 
   # Rebuilding the CCW
   fsd = getSolverData(factor)

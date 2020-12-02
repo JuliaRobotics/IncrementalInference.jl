@@ -61,7 +61,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   Npoints = size(ptsbw,2)
   # Assume we only have large particle population sizes, thanks to addNode!
   manis = getManifolds(dfg, varid)
-  # manis = getSofttype(DFG.getVariable(dfg, varid)).manifolds # older
+  # manis = getVariableType(DFG.getVariable(dfg, varid)).manifolds # older
   p = AMP.manikde!(ptsbw, manis)
   if Npoints != N # this is where we control the overall particle set size
       p = resample(p,N)

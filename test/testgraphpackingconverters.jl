@@ -85,10 +85,10 @@ dat = getSolverData(getVariable(fg,:x1))
 pd = packVariableNodeData(dfg, dat)
 unpckd = unpackVariableNodeData(dfg, pd)
 
-@test compareFields(dat, unpckd, skip=[:softtype])
-@test compareFields(dat.softtype, unpckd.softtype)
-@test isa(dat.softtype, ContinuousScalar)
-@test isa(unpckd.softtype, ContinuousScalar)
+@test compareFields(dat, unpckd, skip=[:variableType])
+@test compareFields(dat.variableType, unpckd.variableType)
+@test isa(dat.variableType, ContinuousScalar)
+@test isa(unpckd.variableType, ContinuousScalar)
 
 end
 
