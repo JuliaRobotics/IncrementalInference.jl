@@ -97,7 +97,7 @@ export AbstractDFG,
 
 # Inference types
 export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelativeRoots, AbstractRelativeMinimize
+export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
 
 # not sure if this is necessary
 export convert

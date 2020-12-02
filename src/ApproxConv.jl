@@ -682,13 +682,11 @@ function findRelatedFromPotential(dfg::AbstractDFG,
                                   dbg::Bool=false  )
   #
 
-  pts = approxConv(dfg, fct, target, measurement, N=N, solveKey=solveKey)
-  # Base.depwarn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", :findRelatedFromPotential)
-
   # # assuming it is properly initialized TODO
-  # pts = evalFactor(dfg, fct, target, solveKey=solveKey, N=N, dbg=dbg);
-  # # determine if evaluation is "dimension-deficient"
+  pts = evalFactor(dfg, fct, target, solveKey=solveKey, N=N, dbg=dbg);
+  # pts = approxConv(dfg, fct, target, measurement, N=N, solveKey=solveKey)
   
+  # # determine if evaluation is "dimension-deficient"
   # solvable dimension
   inferdim = getFactorSolvableDim(dfg, fct, target)
   # zdim = getFactorDim(fct)
