@@ -42,7 +42,7 @@ function compileFMCMessages(fgl::AbstractDFG,
     vari = DFG.getVariable(fgl,vsym)
     pden = getKDE(vari)
     bws = vec(getBW(pden)[:,1])
-    manis = getSofttype(vari) |> getManifolds
+    manis = getVariableType(vari) |> getManifolds
     d[vsym] = TreeBelief(vari) # getVal(vari), bws, manis, getSolverData(vari).inferdim
     with_logger(logger) do
       @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
@@ -70,7 +70,7 @@ function doFMCIteration(fgl::AbstractDFG,
     else
       # NOTE THIS PART IS DEPRECATED IN v0.16.0
       # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-      densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getSofttype(vert) |> getManifolds, logger)
+      densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getVariableType(vert) |> getManifolds, logger)
     end
 
     if size(densPts,1)>0

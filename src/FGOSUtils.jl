@@ -31,9 +31,9 @@ manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manik
 # extend convenience function
 function manikde!(pts::AbstractArray{Float64,2},
   bws::Vector{Float64},
-  softtype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
 #
-manikde!(pts, bws, getManifolds(softtype))
+manikde!(pts, bws, getManifolds(variableType))
 end
 
 
@@ -56,7 +56,7 @@ Get graph node (variable or factor) dimension.
 """
 getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
 getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
-getDimension(var::DFGVariable) = getDimension(getSofttype(var))
+getDimension(var::DFGVariable) = getDimension(getVariableType(var))
 getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 """
@@ -165,7 +165,7 @@ function calcPPE( var::DFGVariable,
 end
 
 
-calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
+calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 
 """
     $TYPEDSIGNATURES
@@ -188,7 +188,7 @@ function calcPPE( dfg::AbstractDFG,
                   method::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
   #
   var = getVariable(dfg, label)
-  calcPPE(var, getSofttype(var), method=method, solveKey=solveKey)
+  calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 end
 
 const calcVariablePPE = calcPPE

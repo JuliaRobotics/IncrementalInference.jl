@@ -10,7 +10,7 @@ export addLikelihoodsDifferential!
 
 
 
-convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.softtype)
+convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.variableType)
 
 """
     $(SIGNATURES)
@@ -94,7 +94,7 @@ function updateSubFgFromDownMsgs!(sfg::G,
   # update specific variables in sfg from msgs
   for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.softtype)), false, beldim.inferdim)
+      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.variableType)), false, beldim.inferdim)
     end
   end
 
@@ -104,7 +104,7 @@ end
 
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.softtype))
+  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifolds(belief_.variableType))
   MsgPrior(kdePr, belief_.inferdim)
 end
 
@@ -140,7 +140,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   for (label, val) in msgs.belief
     push!(listVarByDim, label)
     if !exists(tfg, label)
-      addVariable!(tfg, label, val.softtype)
+      addVariable!(tfg, label, val.variableType)
       @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
     end
     initManual!(tfg, label, manikde!(val))
@@ -194,7 +194,7 @@ function addLikelihoodPriorCommon!( subfg::AbstractDFG,
   i = 0
   for (label, val) in msgs.belief
     i += 1
-    dims[i] = getDimension(val.softtype)
+    dims[i] = getDimension(val.variableType)
     syms[i] = label
     biAdj[i] = ls(subfg, label) |> length
   end
@@ -575,7 +575,7 @@ function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
     # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
     for (msgsym, msg) in msgs.belief
       # re-initialize with new type
-      varType = typeof(msg.softtype)
+      varType = typeof(msg.variableType)
       # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
       if !haskey(msgspervar, msgsym)
         # there will be an entire list...

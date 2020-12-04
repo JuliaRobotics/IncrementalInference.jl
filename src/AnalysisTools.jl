@@ -173,7 +173,7 @@ function mmdSolveKey(vari::DFGVariable,
   tstVal = getBelief(vari, tstKey)
 
   # calc mmd distance
-  mmd(refVal, tstVal, getSofttype(vari), bw=bw)
+  mmd(refVal, tstVal, getVariableType(vari), bw=bw)
 end
 
 

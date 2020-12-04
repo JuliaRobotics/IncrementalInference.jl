@@ -65,8 +65,8 @@ function treeProductUp(fg::AbstractDFG,
   #   dict = Dict{Symbol, TreeBelief}()
   #   for (dsy, btd) in msgdict.belief
   #     vari = getVariable(fg, dsy)
-  #     # manis = getSofttype(vari).manifolds
-  #     dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(vari))
+  #     # manis = getVariableType(vari).manifolds
+  #     dict[dsy] = TreeBelief(btd.val, btd.bw, btd.inferdim, getVariableType(vari))
   #   end
   #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
   # end
@@ -75,7 +75,7 @@ function treeProductUp(fg::AbstractDFG,
   # perform the actual computation
   potprod = nothing
   pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg )
-  # manis = getSofttype(getVariable(fg, sym)) |> getManifolds
+  # manis = getVariableType(getVariable(fg, sym)) |> getManifolds
   # pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
   return pGM, potprod
@@ -109,7 +109,7 @@ function treeProductDwn(fg::G,
   msgdict = getDwnMsgs(cl[1])
   dict = Dict{Int, TreeBelief}()
   for (dsy, btd) in msgdict
-      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getSofttype(getVariable(fg,sym)) )
+      dict[fg.IDs[dsy]] = TreeBelief(btd.val, btd.bw, btd.inferdim, getVariableType(getVariable(fg,sym)) )
   end
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 

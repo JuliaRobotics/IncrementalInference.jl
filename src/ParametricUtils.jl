@@ -314,7 +314,7 @@ end
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getSofttype(fg, k) |> getManifolds .== :Circular)
+    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
   end
   MixedCircular(circMask)
 end
