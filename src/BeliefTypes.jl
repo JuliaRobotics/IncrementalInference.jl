@@ -1,4 +1,6 @@
 
+import DistributedFactorGraphs: getVariableType
+
 """
     CliqStatus
 Clique status message enumerated type with status.
@@ -39,7 +41,8 @@ struct TreeBelief{T <: InferenceVariable}
   val::Array{Float64,2}
   bw::Array{Float64,2}
   inferdim::Float64
-  variableType::T # rename to VariableType, DFG #603 
+  # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph
+  variableType::T
   # TODO -- DEPRECATE
   manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
   # only populated during up as solvableDims for each variable in clique, #910
@@ -63,6 +66,8 @@ function TreeBelief(vnd::VariableNodeData, solvDim::Real=0)
 end
 
 TreeBelief(vari::DFGVariable, solveKey::Symbol=:default; solvableDim::Real=0) = TreeBelief( getSolverData(vari, solveKey) , solvableDim)
+
+getVariableType(tb::TreeBelief) = tb.variableType
 
 getManifolds(treeb::TreeBelief) = getManifolds(treeb.variableType)
 
