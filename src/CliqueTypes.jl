@@ -217,10 +217,13 @@ DEV NOTES: To replace TreeClique completely
 """
 mutable struct TreeClique
   "Interger id unique within a tree with userId, robotId, sessionId"
-  id::Int # see issue #540
-  label::Symbol #NOTE this is currently a label such as clique 1, # The drawing label is saved in attributes, JT I'm not sure of the current use
+  id::Int # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
+  "This is currently a label such as `clique 1`"
+  label::Symbol #TODO maybe deprecated? # The drawing label is saved in attributes, JT I'm not sure of the current use
+  "Data as `BayesTreeNodeData`"
   data::BayesTreeNodeData 
-  attributes::Dict{String, Any} #The drawing attributes
+  "Drawing attributes"
+  attributes::Dict{String, Any} 
   #solveInProgress #on a clique level a "solve in progress" might be very handy
 end
 

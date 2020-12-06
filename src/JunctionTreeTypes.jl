@@ -1,17 +1,19 @@
-
-
+## ========================================================================================================================
 ## Bayes Trees
+## ========================================================================================================================
 
 abstract type AbstractBayesTree end
 
-# TODO - see #540 related to indexing and ids
-# BayesTree declarations
+# TODO Deprecate
+# Graphs.jl BayesTree declarations
 const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
 
 """
 $(TYPEDEF)
 
 Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::AbstractDFG`.
+Dev Notes:
+- To be deprecated or `BTGdict` replaced, as Graphs.jl is deprecated.
 """
 mutable struct BayesTree <: AbstractBayesTree
   bt::BTGdict
@@ -34,8 +36,9 @@ BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
 
 getMessageChannels(tree::BayesTree) = tree.messageChannels
 
-#TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
-global UseMetaBayesTree = false
+# TODO will be removed with BayesTree deprecation, TEMP switch the tree to use
+# emptyBayesTree() = MetaBayesTree()
+global UseMetaBayesTree = true
 setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
 function emptyBayesTree()
   global UseMetaBayesTree
@@ -54,7 +57,6 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
-  # cliques::Dict{Int,TreeClique}
   frontals::Dict{Symbol,Int}
   variableOrder::Vector{Symbol}
   buildTime::Float64
@@ -66,7 +68,7 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
+      @warn "Don't use cliques field directly, use eg. getClique(tree, cliqId)" maxlog=1
       d = Dict{Int,Any}()
       for (k,v) in x.bt.vprops
         d[k] = v[:clique]
@@ -79,35 +81,13 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
 
 function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
   if f == :cliques
-    @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)" maxlog=1
+    @warn "`setproperty!(clique)` Don't use cliques field directly, use eg. addClique(tree, cliqId)" maxlog=1
     for (k,v) in val
       set_prop!(x.bt, k, :clique, v)
     end
   else
     setfield!(x,f,val)
   end
-end
-
-function MetaBayesTree(tree::BayesTree)
-  # create graph from Graphs.jl adjacency_matrix
-  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals, tree.variableOrder, tree.buildTime)
-
-  #deep copy over properties
-  for v in tree.bt.vertices
-    # set_prop!(mtree.bt, v.id, :label, deepcopy(v.label))
-    set_prop!(mtree.bt, v.id, :clique, deepcopy(v))
-  end
-
-  ##  FIXME: Use common location for channels #675 (DF, asking for BTND)
-  ##  TODO: placeholder for edge stored Channels
-  ## set message passing properties,
-  # for e in MetaGraphs.edges(mtree.bt)
-  #   set_prop!(mtree.bt, e, :upMsg, Channel{BelieveMessage}(0))
-  #   set_prop!(mtree.bt, e, :downMsg, Channel{BelieveMessage}(0))
-  # end
-
-  return mtree
-
 end
 
 function getMessageChannels(tree::MetaBayesTree)
