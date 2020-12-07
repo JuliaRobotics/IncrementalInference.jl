@@ -121,5 +121,7 @@ include("testCSMMonitor.jl")
 
 include("testSkipUpDown.jl")
 
+include("testTreeFunctions.jl")
+
 
 #

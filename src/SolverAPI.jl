@@ -276,8 +276,6 @@ function solveTree!(dfgl::AbstractDFG,
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
 
-  opt.useMsgLikelihoods == false && @warn("#TODO Verify useMsgLikelihoods=false works correctly")
-
   # depcrecation
   if maxparallel !== nothing
     @warn "`maxparallel` keyword is deprecated, use `getSolverParams(fg).maxincidence` instead."

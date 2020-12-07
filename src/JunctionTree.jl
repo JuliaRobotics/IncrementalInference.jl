@@ -84,7 +84,18 @@ getCliq, getTreeAllFrontalSyms
 """
 getClique(tree::AbstractBayesTree, cId::Int) = tree.cliques[cId]
 getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
-getClique(tree::MetaBayesTree, cId::Int)::TreeClique = MetaGraphs.get_prop(tree.bt, cId, :clique)
+getClique(tree::MetaBayesTree, cId::Int) = MetaGraphs.get_prop(tree.bt, tree.bt[:index][cId], :clique)
+
+"""
+    $(SIGNATURES)
+"""
+function deleteClique!(tree::MetaBayesTree, cId::Int)
+  clique = getClique(tree, cId) 
+  index = MetaGraphs.get_prop(tree.bt, cId, :index)
+  @assert MetaGraphs.rem_vertex!(tree.bt, index) "rem_vertex! failed"
+  foreach(frt->delete!(tree.frontals,frt), getFrontals(clique))
+  return clique
+end
 
 
 """
