@@ -9,7 +9,19 @@ export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
 export fetchDataJSON
+export setMarginalized!
 
+
+
+"""
+    $SIGNATURES
+
+Get graph node (variable or factor) dimension.
+"""
+getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
+getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
+getDimension(var::DFGVariable) = getDimension(getVariableType(var))
+getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
@@ -25,7 +37,7 @@ end
 
 # export setSolvable!
 
-manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
 # extend convenience function
@@ -49,15 +61,6 @@ function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   freshSamples(fnc, N)
 end
 
-"""
-    $SIGNATURES
-
-Get graph node (variable or factor) dimension.
-"""
-getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
-getDimension(var::DFGVariable) = getDimension(getVariableType(var))
-getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
 
 """
     $SIGNATURES
@@ -236,6 +239,19 @@ getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
 """
     $SIGNATURES
 
+Mark a variable as marginalized `true` or `false`.
+"""
+function setMarginalized!(vnd::VariableNodeData, val::Bool)
+  vnd.ismargin = val
+end
+setMarginalized!(vari::DFGVariable, val::Bool) = setMarginalized!(getSolverData(vari), val)
+setMarginalized!(dfg::AbstractDFG, sym::Symbol, val::Bool) = setMarginalized!(getVariable(dfg, sym), val)
+
+
+
+"""
+    $SIGNATURES
+
 Free all variables from marginalization.
 """
 function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
@@ -243,7 +259,7 @@ function dontMarginalizeVariablesAll!(fgl::AbstractDFG)
   fgl.solverParams.qfl = 9999999999
   fgl.solverParams.limitfixeddown = false
   for sym in ls(fgl)
-    getSolverData(getVariable(fgl, sym)).ismargin = false
+    setMarginalized!(fgl, sym, false)
   end
   nothing
 end
