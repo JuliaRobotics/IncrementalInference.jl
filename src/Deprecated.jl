@@ -102,6 +102,21 @@ function Base.setproperty!(x::TreeBelief, f::Symbol, val)
   return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
 end
 
+function MetaBayesTree(tree::BayesTree)
+  Base.depwarn("Graphs.jl Bayes Tree is deprecated, this constructor will be removed", :MetaBayesTree)
+  # create graph from Graphs.jl adjacency_matrix
+  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals, tree.variableOrder, tree.buildTime)
+
+  #deep copy over properties
+  for v in tree.bt.vertices
+    # set_prop!(mtree.bt, v.id, :label, deepcopy(v.label))
+    set_prop!(mtree.bt, v.id, :clique, deepcopy(v))
+  end
+
+  return mtree
+
+end
+
 ##==============================================================================
 ## Deprecate at v0.18 
 ##==============================================================================
