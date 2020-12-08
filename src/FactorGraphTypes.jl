@@ -40,6 +40,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   logpath::String
   graphinit::Bool
   treeinit::Bool # still experimental with known errors
+  limittreeinit_iters::Int
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
@@ -67,6 +68,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 logpath::String="/tmp/caesar/$(now())",
                 graphinit::Bool=true,
                 treeinit::Bool=false,
+                limittreeinit_iters::Int=10,
                 algorithms::Vector{Symbol}=[:default],
                 spreadNH::Float64=3.0,
                 maxincidence::Int=500,
@@ -94,6 +96,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                       logpath,
                       graphinit,
                       treeinit,
+                      limittreeinit_iters,
                       algorithms,
                       spreadNH,
                       maxincidence,
