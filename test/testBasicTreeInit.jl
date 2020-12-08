@@ -71,6 +71,35 @@ tree, smt, hist = solveTree!(fg, timeout=70) # , verbose=true, verbosefid=verbos
 
 end
 
+@testset "basic tree initialization limittreeinit_iters" begin
 
+# part of fg that can init
+fg = generateCanonicalFG_lineStep(3; poseEvery=1)
+
+good_vars = sortDFG(ls(fg))
+# fg.solverParams.showtree = true
+# fg.solverParams.drawtree = true
+
+# part of fg that cannot init
+addVariable!(fg, :s0, ContinuousScalar)
+addVariable!(fg, :s1, ContinuousScalar)
+addVariable!(fg, :s2, ContinuousScalar)
+
+addFactor!(fg, [:s0;:s1], LinearRelative(Normal()))
+addFactor!(fg, [:s1;:s2], LinearRelative(Normal()))
+
+smtasks = Task[]
+
+solveTree!(fg; smtasks=smtasks, verbose=true)
+
+
+for var in good_vars
+    sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
+    println("Testing ", var,": ", sppe)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
+end
+
+
+end
 
 #
