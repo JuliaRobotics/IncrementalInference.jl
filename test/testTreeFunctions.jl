@@ -20,12 +20,12 @@ fg = generateCanonicalFG_lineStep(3;
 # getSolverParams(fg).showtree = true
 
 smtasks = Task[]
-oldtree, smt, hists = solveTree!(fg; smtasks, verbose=true, recordcliqs=ls(fg));
+oldtree, smt, hists = solveTree!(fg; smtasks=smtasks, verbose=true, recordcliqs=ls(fg));
 
 IIF.deleteClique!(oldtree, 1)
 # drawTree(oldtree, show=true)
 
-tree, smt, hists = solveTree!(fg, oldtree; smtasks, verbose=true, recordcliqs=ls(fg));
+tree, smt, hists = solveTree!(fg, oldtree; smtasks=smtasks, verbose=true, recordcliqs=ls(fg));
 
 # csmAnimate(tree, hists, frames=1)
 
