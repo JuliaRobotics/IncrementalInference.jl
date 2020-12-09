@@ -75,6 +75,9 @@ end
 ##==============================================================================
 
 
+# see DFG #590
+@deprecate extractdistribution(x) convert(SamplableBelief, x)
+
 
 ##==============================================================================
 ## Deprecate at v0.19
@@ -117,22 +120,6 @@ function MetaBayesTree(tree::BayesTree)
 
 end
 
-##==============================================================================
-## Deprecate at v0.18 
-##==============================================================================
-
-
-# Keep these a bit longer
-
-@deprecate wipeBuildNewTree!(dfg::AbstractDFG; kwargs...) resetBuildTree!(dfg; kwargs...)
-
-@deprecate LinearConditional(N::Int=1) LinearRelative{N}(LinearAlgebra.I)
-
-@deprecate LinearConditional(x...) LinearRelative(x...)
-
-@deprecate PackedLinearConditional(x...) PackedLinearRelative(x...)
-
-@deprecate extractdistribution(x) convert(SamplableBelief, x)
 
 
 #
