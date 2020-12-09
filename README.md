@@ -47,7 +47,7 @@ Installation
 Pre-install the following packages system wide packages[, and easily draw factor graph and Bayes tree]:
 ```bash
 sudo apt-get install hdf5-tools
-sudo apt-get install graphviz  # optional
+sudo apt-get install graphviz xdot # optional
 ```
 
 Install the package from inside Julia
