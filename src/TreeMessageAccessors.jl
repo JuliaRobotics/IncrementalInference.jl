@@ -60,7 +60,6 @@ setCliqueStatus!(cliq::TreeClique, status::CliqStatus) = setCliqueStatus!(getCli
 $SIGNATURES
 Get the message channel
 """
-getMsgUpChannel(tree::BayesTree, edge) = tree.messageChannels[edge.index].upMsg
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
 
 """
@@ -97,7 +96,6 @@ end
 $SIGNATURES
 Get the message channel
 """
-getMsgDwnChannel(tree::BayesTree, edge) = tree.messageChannels[edge.index].downMsg
 getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
 
 @deprecate getDwnMsgConsolidated(tree::AbstractBayesTree, edge) getMsgDwnChannel(tree, edge)

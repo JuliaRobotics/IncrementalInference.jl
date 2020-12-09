@@ -494,13 +494,17 @@ end
 """
     $SIGNATURES
 Reattach a CSM's data container after the deepcopy used from recordcliq.
+
+MIGHT BE OBSOLETE
 """
 function attachCSM!(csmc::CliqStateMachineContainer,
                     dfg::AbstractDFG,
-                    tree::BayesTree;
+                    tree::MetaBayesTree;
                     logger = SimpleLogger(stdout))
   #
   # csmc = csmc__
+
+  @error("attachCSM! has been updated without testing and might not work as you intended.")
 
   csmc.dfg = dfg
   csmc.tree = tree

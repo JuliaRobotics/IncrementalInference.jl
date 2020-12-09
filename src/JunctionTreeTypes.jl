@@ -4,37 +4,6 @@
 
 abstract type AbstractBayesTree end
 
-# TODO Deprecate
-# Graphs.jl BayesTree declarations
-const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
-
-"""
-$(TYPEDEF)
-
-Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::AbstractDFG`.
-Dev Notes:
-- To be deprecated or `BTGdict` replaced, as Graphs.jl is deprecated.
-"""
-mutable struct BayesTree <: AbstractBayesTree
-  bt::BTGdict
-  btid::Int
-  cliques::Dict{Int,TreeClique}
-  frontals::Dict{Symbol,Int}
-  messageChannels::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
-  variableOrder::Vector{Symbol}
-  buildTime::Float64
-end
-
-BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
-                        0,
-                        Dict{Int,TreeClique}(),
-                        Dict{AbstractString, Int}(),
-                        Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}(),
-                        Symbol[],
-                        0.0  )
-#
-
-getMessageChannels(tree::BayesTree) = tree.messageChannels
 
 # TODO will be removed with BayesTree deprecation, TEMP switch the tree to use
 # emptyBayesTree() = MetaBayesTree()

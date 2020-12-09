@@ -1,17 +1,4 @@
-# Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
-function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
-  inclist = gr.inclist
-  targid = vert.id
-  inlist = Edge{V}[]
-  for edgelist in inclist
-    for ed in edgelist
-      if ed.target.id == targid
-        push!(inlist, ed)
-      end
-    end
-  end
-  return inlist
-end
+
 
 """
     $SIGNATURES
@@ -96,7 +83,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   end
 
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "$(csmc.cliq.id): put! on edge $(e)")
     getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
@@ -187,7 +174,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #TODO sendBeliefMessageParametric(csmc, beliefMsg)
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc,  "$(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc,  "$(csmc.cliq.id): put! on edge $(e)")
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
 

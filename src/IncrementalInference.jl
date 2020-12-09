@@ -9,7 +9,7 @@ using Reexport
 @reexport using Distributions
 @reexport using KernelDensityEstimate
 @reexport using ApproxManifoldProducts
-@reexport using Graphs
+# @reexport using Graphs
 @reexport using LinearAlgebra
 
 using
@@ -33,7 +33,7 @@ using
   Combinatorics,
   UUIDs
 
-# experimental for replacing BayesTree on Graphs.jl
+# for BayesTree
 using MetaGraphs
 
 using Logging
