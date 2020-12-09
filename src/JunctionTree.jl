@@ -359,8 +359,8 @@ end
 Open view to see the graphviz exported Bayes tree, assuming default location and
 viewer app.  See keyword arguments for more details.
 """
-function showTree(; filepath::String="/tmp/caesar/bt.pdf",
-                    viewerapp::String="evince"  )
+function showTree(; filepath::String="/tmp/caesar/bt.dot",
+                    viewerapp::String="xdot"  )
   #
   try
     @async run(`$(viewerapp) $(filepath)`)
@@ -441,10 +441,10 @@ Notes
 function drawTree(treel::AbstractBayesTree;
                   show::Bool=false,                  # must remain false for stability and automated use in solver
                   suffix::AbstractString="_"*(split(string(uuid1()),'-')[1]),
-                  filepath::String="/tmp/caesar/random/bt$(suffix).pdf",
+                  filepath::String="/tmp/caesar/random/bt$(suffix).dot",
                   xlabels::Dict{Int,String}=Dict{Int,String}(),
                   dpi::Int=200,
-                  viewerapp::String="evince",
+                  viewerapp::String="xdot",
                   imgs::Bool=false )
   #
   fext = filepath[(end-2):end] #split(filepath, '.')[end]
