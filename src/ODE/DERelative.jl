@@ -5,7 +5,7 @@ using .DifferentialEquations
 
 import IncrementalInference: getSample
 
-export ODERelative
+export DERelative
 
 
 """
@@ -27,7 +27,7 @@ DevNotes
 - FIXME Lots of consolidation and standardization to do, see RoME.jl #244 regarding Manifolds.jl.
 - TODO does not yet handle case where a factor spans across two timezones.
 """
-struct ODERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
+struct DERelative{T <:InferenceVariable, P, D} <: AbstractRelativeRoots
   domain::Type{T}
   forwardProblem::P
   backwardProblem::P
@@ -60,7 +60,7 @@ end
 _maketuplebeyond2args = (w1=nothing,w2=nothing,w3_...) -> (w3_...,)
 
 
-function ODERelative( Xi::AbstractVector{<:DFGVariable},
+function DERelative( Xi::AbstractVector{<:DFGVariable},
                       domain::Type{<:InferenceVariable},
                       f::Function,
                       data=()->();
@@ -81,11 +81,11 @@ function ODERelative( Xi::AbstractVector{<:DFGVariable},
   # backward time problem
   bproblem = problemType(f, state1, (tspan[2],tspan[1]), datatuple, dt=-dt )
   # build the IIF recognizable object
-  ODERelative( domain, fproblem, bproblem, datatuple, getSample )
+  DERelative( domain, fproblem, bproblem, datatuple, getSample )
 end
 
 
-ODERelative(dfg::AbstractDFG,
+DERelative(dfg::AbstractDFG,
             labels::AbstractVector{Symbol},
             domain::Type{<:InferenceVariable},
             f::Function,
@@ -95,7 +95,7 @@ ODERelative(dfg::AbstractDFG,
             state0::AbstractVector{<:Real}=zeros(getDimension(domain)),
             state1::AbstractVector{<:Real}=zeros(getDimension(domain)),
             tspan::Tuple{<:Real,<:Real}=_calcTimespan(Xi),
-            problemType = DiscreteProblem ) = ODERelative( Xi, domain, f, data; dt=dt, state0=state0, state1=state1, tspan=tspan, problemType=problemType  )
+            problemType = DiscreteProblem ) = DERelative( Xi, domain, f, data; dt=dt, state0=state0, state1=state1, tspan=tspan, problemType=problemType  )
 #
 #
 
@@ -118,7 +118,7 @@ function _solveFactorODE!(measArr, prob, u0pts, i, Xtra...)
 end
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function getSample( oder::ODERelative, 
+function getSample( oder::DERelative, 
                     N::Int=1, 
                     fmd_...)
   #
@@ -152,7 +152,7 @@ end
 
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function (oderel::ODERelative)( res::AbstractVector{<:Real},
+function (oderel::DERelative)( res::AbstractVector{<:Real},
                                 fmd::FactorMetadata,
                                 idx::Int,
                                 meas::Tuple,

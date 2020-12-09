@@ -1,4 +1,4 @@
-# Basic test of ODERelative
+# Basic test of DERelative
 
 
 using Test
@@ -15,7 +15,7 @@ using Statistics
 
 ##
 
-@testset "First order ODERelative" begin
+@testset "First order DERelative" begin
 
 ##
 
@@ -47,7 +47,7 @@ for i in 1:3
 
   # another point in the trajectory 5 seconds later
   addVariable!(fg, nextSym, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,5*i))
-  oder = IIF.ODERelative( fg, [prev; nextSym], 
+  oder = IIF.DERelative( fg, [prev; nextSym], 
                           ContinuousEuclid{1}, 
                           firstOrder!,
                           tstForce,
@@ -86,7 +86,7 @@ pts = approxConv(fg, :x0x1f1, :x0)
 
 ##
 
-oder_ = ODERelative( fg, [:x0; :x3], 
+oder_ = DERelative( fg, [:x0; :x3], 
                     ContinuousEuclid{1}, 
                     firstOrder!,
                     tstForce, 
@@ -152,7 +152,7 @@ end
 
 ##
 
-@testset "Damped Oscillator ODERelative" begin
+@testset "Damped Oscillator DERelative" begin
 
 ## setup some example dynamics
 
@@ -194,7 +194,7 @@ for i in 1:7
 
   # another point in the trajectory 5 seconds later
   addVariable!(fg, nextSym, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
-  oder = ODERelative( fg, [prev; nextSym], 
+  oder = DERelative( fg, [prev; nextSym], 
                       ContinuousEuclid{2}, 
                       dampedOscillator!,
                       tstForce, 
@@ -246,7 +246,7 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
 ##
 
 
-oder_ = ODERelative( fg, [:x0; :x7], 
+oder_ = DERelative( fg, [:x0; :x7], 
                     ContinuousEuclid{2}, 
                     dampedOscillator!,
                     tstForce, 
@@ -304,7 +304,7 @@ end
 
 ##
 
-@testset "Parameterized Damped Oscillator ODERelative" begin
+@testset "Parameterized Damped Oscillator DERelative" begin
 
 ## setup some example dynamics
 
@@ -360,7 +360,7 @@ for i in 1:7
 
   # another point in the trajectory 5 seconds later
   addVariable!(fg, nextSym, ContinuousEuclid{2}, timestamp=DateTime(2000,1,1,0,0,DT*i))
-  oder = ODERelative( fg, [prev; nextSym; :ωβ], 
+  oder = DERelative( fg, [prev; nextSym; :ωβ], 
                       ContinuousEuclid{2}, 
                       dampedOscillatorParametrized!,
                       tstForce, # this is passed in as `force_ωβ[1]`
@@ -440,7 +440,7 @@ pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg, path=forcepath)
 ##
 
 
-oder_ = ODERelative( fg, [:x0; :x7; :ωβ], 
+oder_ = DERelative( fg, [:x0; :x7; :ωβ], 
                     ContinuousEuclid{2}, 
                     dampedOscillatorParametrized!,
                     tstForce,
@@ -501,7 +501,7 @@ pts = approxConv(fg, :x0x1ωβf1, :ωβ)
 @test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 
-@warn "n-ary ODERelative test on :ωβ requires issue #1010 to be resolved first before being reintroduced."
+@warn "n-ary DERelative test on :ωβ requires issue #1010 to be resolved first before being reintroduced."
 # ## do a complete solve (must first resolve #1010)
 
 # solveTree!(fg);
@@ -523,7 +523,7 @@ end
 
 
 
-@error "ODERelative not tested for `multihypo=` case yet, see issue #1025"
+@error "DERelative not tested for `multihypo=` case yet, see issue #1025"
 
 
 
