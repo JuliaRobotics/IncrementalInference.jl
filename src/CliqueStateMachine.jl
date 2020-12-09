@@ -151,7 +151,7 @@ function waitForUp_StateMachine(csmc::CliqStateMachineContainer)
   # take! messages from edges
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     @async begin
-      thisEdge = isa(e,Graphs.Edge) ? e.index : e.dst
+      thisEdge = e.dst
       logCSM(csmc, "CSM-1 $(csmc.cliq.id): take! on edge $thisEdge")
       # Blocks until data is available. -- take! model
       beliefMsg = takeBeliefMessageUp!(csmc.tree, e)
@@ -426,14 +426,14 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
     putErrorUp(csmc)
     if length(getParent(csmc.tree, csmc.cliq)) == 0
       putErrorDown(csmc)
-       return IncrementalInference.exitStateMachine
+      return IncrementalInference.exitStateMachine
     end
     return waitForDown_StateMachine
   end
 
   #propagate belief
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "CSM-2e $(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "CSM-2e $(csmc.cliq.id): put! on edge $(e)")
     getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
@@ -462,7 +462,7 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
   # setCliqueDrawColor!(csmc.cliq, "lime")
  
   for e in getEdgesParent(csmc.tree, csmc.cliq)
-    logCSM(csmc, "CSM-3 $(csmc.cliq.id): take! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "CSM-3 $(csmc.cliq.id): take! on edge $(e)")
     # Blocks until data is available.
     beliefMsg = takeBeliefMessageDown!(csmc.tree, e) # take!(csmc.tree.messageChannels[e.index].downMsg)
     logCSM(csmc, "CSM-3 $(csmc.cliq.id): Belief message received with status $(beliefMsg.status)")
@@ -707,7 +707,7 @@ function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-    logCSM(csmc, "CSM-4d $(csmc.cliq.id): put! on edge $(isa(e,Graphs.Edge) ? e.index : e)")
+    logCSM(csmc, "CSM-4d $(csmc.cliq.id): put! on edge $(e)")
     @async putBeliefMessageDown!(csmc.tree, e, beliefMsg)#put!(csmc.tree.messageChannels[e.index].downMsg, beliefMsg)
   end
   

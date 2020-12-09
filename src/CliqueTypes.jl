@@ -248,9 +248,6 @@ end
 TreeClique(i::Int, label::Symbol) = TreeClique(i, label, BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
 
-Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
-Graphs.vertex_index(v::TreeClique) = v.id
-Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
 
 #TODO the label field and label attribute is a bit confusing with accessors.
 DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]

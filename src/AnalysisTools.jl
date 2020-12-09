@@ -126,7 +126,7 @@ end
 Simple cost function for ranking the structure of a Bayes tree. Weighting:
     cost = (max tree depth) * (max clique dimension)^alpha
 """
-function getTreeCost_01(tree::BayesTree; alpha::Float64=1.0 )
+function getTreeCost_01(tree::AbstractBayesTree; alpha::Float64=1.0 )
   cliqs = tree.cliques |> values |> collect
   maxdepth = map(x->getCliqDepth(tree, x)+1, cliqs) |> maximum
   maxdim = length.(map(x->getCliqVarIdsAll(x), cliqs)) |> maximum
@@ -144,7 +144,7 @@ Weighting:
     cost = 1/(total num of child / num of parents) *
                            (max tree depth) * (max clique dimension)^alpha
 """
-function getTreeCost_02(tree::BayesTree; alpha::Float64=1.0)
+function getTreeCost_02(tree::AbstractBayesTree; alpha::Float64=1.0)
   # Frontal and number of children.
   ARR = Tuple{Symbol, Int}[]
   for (cliqid, vex) in tree.cliques

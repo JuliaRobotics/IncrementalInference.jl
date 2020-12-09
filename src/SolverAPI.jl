@@ -49,7 +49,7 @@ function taskSolveTree!(dfg::AbstractDFG,
     @sync begin
       monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
-      for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
+      for i in 1:getNumCliqs(treel) # TODO, this might not always work?
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
 
