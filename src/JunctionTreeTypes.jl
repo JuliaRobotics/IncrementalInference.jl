@@ -127,6 +127,7 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   logger::SimpleLogger
   cliqKey::Int
   algorithm::Symbol
+  init_iter::Int
 end
 
 #TODO use @NamedTuple if julia compat > 1.5
@@ -152,7 +153,7 @@ function CliqStateMachineContainer( dfg::G,
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
                                     cliqKey::Int = cliq.id,
-                                    algoritm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    algorithm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
@@ -168,7 +169,9 @@ function CliqStateMachineContainer( dfg::G,
                                             refactoring,
                                             oldcliqdata,
                                             logger,
-                                            cliqKey )
+                                            cliqKey,
+                                            algorithm,
+                                            0 )
   #
 end
 

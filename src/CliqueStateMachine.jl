@@ -38,7 +38,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                    prnt, children,
                                    incremental, drawtree, downsolve, delay,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliq.id, algorithm) 
+                                   cliq.id, algorithm, 0) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
@@ -252,7 +252,9 @@ end
 Notes
 - State machine function 2b
 """
-function initUp_StateMachine(csmc)
+function initUp_StateMachine(csmc::CliqStateMachineContainer)
+
+  csmc.init_iter += 1
 
         # FIXME experimental init to whatever is in frontals
         # should work if linear manifold
@@ -417,6 +419,17 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_afterupsolve")
+
+  # warn and clean exit on stalled tree init
+  if csmc.init_iter > getSolverParams(csmc.cliqSubFg).limittreeinit_iters
+    logCSM(csmc, "CSM-2e Clique $(csmc.cliqKey) tree init failed, max init retries reached."; loglevel=Logging.Error)
+    putErrorUp(csmc)
+    if length(getParent(csmc.tree, csmc.cliq)) == 0
+      putErrorDown(csmc)
+       return IncrementalInference.exitStateMachine
+    end
+    return waitForDown_StateMachine
+  end
 
   #propagate belief
   for e in getEdgesParent(csmc.tree, csmc.cliq)
