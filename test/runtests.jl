@@ -102,7 +102,7 @@ include("testMixtureLinearConditional.jl")
 
 include("testFluxModelsDistribution.jl")
 
-include("testODERelative.jl")
+include("testDERelative.jl")
 
 include("testAnalysisTools.jl")
 
