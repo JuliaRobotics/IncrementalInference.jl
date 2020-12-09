@@ -229,6 +229,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
     logCSM(csmc, "CSM-2a Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
     getCliqueStatus(csmc.cliq) == MARGINALIZED &&  setCliqueDrawColor!(csmc.cliq, "blue")
+    getCliqueStatus(csmc.cliq) == UPRECYCLED &&  setCliqueDrawColor!(csmc.cliq, "orange")
     return postUpSolve_StateMachine
   end
 
