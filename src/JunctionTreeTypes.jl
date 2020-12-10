@@ -4,19 +4,7 @@
 
 abstract type AbstractBayesTree end
 
-
-# TODO will be removed with BayesTree deprecation, TEMP switch the tree to use
-# emptyBayesTree() = MetaBayesTree()
-global UseMetaBayesTree = true
-setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
-function emptyBayesTree()
-  global UseMetaBayesTree
-  if UseMetaBayesTree
-    return MetaBayesTree()
-  else
-    return BayesTree()
-  end
-end
+emptyBayesTree() = MetaBayesTree()
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
@@ -26,7 +14,7 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
-  frontals::Dict{Symbol,Int}
+  frontals::Dict{Symbol,CliqueId{Int}}
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
@@ -84,8 +72,8 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  parentCliq::Vector{TreeClique} #TODO deprecate
-  childCliqs::Vector{TreeClique} #TODO deprecate
+  # parentCliq::Vector{TreeClique} #TODO deprecate
+  # childCliqs::Vector{TreeClique} #TODO deprecate
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
@@ -94,7 +82,7 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  cliqKey::Int
+  cliqId::CliqueId
   algorithm::Symbol
   init_iter::Int
 end
@@ -111,8 +99,8 @@ function CliqStateMachineContainer( dfg::G,
                                     cliqSubFg::M,
                                     tree::T,
                                     cliq::TreeClique,
-                                    parentCliq::Vector{TreeClique},
-                                    childCliqs::Vector{TreeClique},
+                                    # parentCliq::Vector{TreeClique},
+                                    # childCliqs::Vector{TreeClique},
                                     incremental::Bool,
                                     drawtree::Bool,
                                     dodownsolve::Bool,
@@ -121,15 +109,15 @@ function CliqStateMachineContainer( dfg::G,
                                     refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
-                                    cliqKey::Int = cliq.id,
+                                    cliqId::CliqueId = cliq.id,
                                     algorithm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
                                             tree,
                                             cliq,
-                                            parentCliq,
-                                            childCliqs,
+                                            # parentCliq,
+                                            # childCliqs,
                                             incremental,
                                             drawtree,
                                             dodownsolve,
@@ -138,7 +126,7 @@ function CliqStateMachineContainer( dfg::G,
                                             refactoring,
                                             oldcliqdata,
                                             logger,
-                                            cliqKey,
+                                            cliqId,
                                             algorithm,
                                             0 )
   #
@@ -161,7 +149,7 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
   @warn "Skipping compare of CSMC.tree"
   # TP = TP && compare(cs1.tree,  cs2.tree)
   TP = TP && compare(cs1.cliq,  cs2.cliq)
-  TP = TP && compare(cs1.cliqKey,  cs2.cliqKey)
+  TP = TP && compare(cs1.cliqId,  cs2.cliqId)
   TP = TP && length(cs1.parentCliq) == length(cs2.parentCliq)
   for i in 1:length(cs1.parentCliq)
     TP = TP && compare(cs1.parentCliq[i],  cs2.parentCliq[i])

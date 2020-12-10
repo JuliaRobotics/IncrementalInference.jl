@@ -209,6 +209,14 @@ end
 ## Cliques
 ## TreeClique
 ##==============================================================================
+struct CliqueId{T}
+  value::T
+end
+
+Base.getindex(cId::CliqueId) = cId.value
+Base.show(io::IO, ::MIME"text/plain", x::CliqueId) = print(io, x.value)
+Base.show(io::IO, x::CliqueId) = print(io, x.value)
+
 """
     $(TYPEDEF)
 Structure to store clique data
@@ -217,9 +225,7 @@ DEV NOTES: To replace TreeClique completely
 """
 mutable struct TreeClique
   "Interger id unique within a tree with userId, robotId, sessionId"
-  id::Int # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
-  "This is currently a label such as `clique 1`"
-  label::Symbol #TODO maybe deprecated? # The drawing label is saved in attributes, JT I'm not sure of the current use
+  id::CliqueId{Int64} # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
   "Data as `BayesTreeNodeData`"
   data::BayesTreeNodeData 
   "Drawing attributes"
@@ -245,11 +251,11 @@ function Base.setproperty!(x::TreeClique, f::Symbol, val)
   return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
 end
 
-TreeClique(i::Int, label::Symbol) = TreeClique(i, label, BayesTreeNodeData(), Dict{String,Any}())
-TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
+@deprecate TreeClique(i::Int, label::Union{AbstractString, Symbol}) TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
+TreeClique(i::Int) = TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
+TreeClique(id::CliqueId) = TreeClique(id, BayesTreeNodeData(), Dict{String,Any}())
 
 
-#TODO the label field and label attribute is a bit confusing with accessors.
 DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
 function setLabel!(cliq::TreeClique, lbl::String)
   cliq.attributes["label"] = lbl

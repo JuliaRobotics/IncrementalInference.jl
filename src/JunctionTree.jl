@@ -41,13 +41,15 @@ getFrontals(cliqd::Union{TreeClique,BayesTreeNodeData})::Vector{Symbol} = getCli
 
 Create a new clique.
 """
-function addClique!(bt::AbstractBayesTree,
+function addClique!(bt::MetaBayesTree,
                     dfg::AbstractDFG,
                     varID::Symbol,
                     condIDs::Array{Symbol}=Symbol[]  )
-  bt.btid += 1 #used by Graphs.jl for id -- Graphs.jl will be deprecated
+  bt.btid += 1 #increment cliqueID counter
 
-  clq = TreeClique(bt.btid, string("Clique", bt.btid))
+  cId = CliqueId(bt.btid)
+  
+  clq = TreeClique(cId)
   setLabel!(clq, "")
 
   #TODO addClique!(bt, clq), can't we already have the parent here
@@ -55,16 +57,17 @@ function addClique!(bt::AbstractBayesTree,
   #   Graphs.add_vertex!(bt.bt, clq)
   #   bt.cliques[bt.btid] = clq
   #   clId = bt.btid
-  if isa(bt.bt, MetaDiGraph)
-    @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "add_vertex! failed"
-    clId = MetaGraphs.nv(bt.bt)
-    MetaGraphs.set_indexing_prop!(bt.bt, clId, :index, bt.btid)
-  else
-    error("Oops, something went wrong when adding a clique to the tree")
-  end
+  # if isa(bt.bt, MetaDiGraph)
+  #   @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "add_vertex! failed"
+  #   clId = MetaGraphs.nv(bt.bt)
+  #   MetaGraphs.set_indexing_prop!(bt.bt, clId, :cliqId, bt.btid)
+  # else
+  #   error("Oops, something went wrong when adding a clique to the tree")
+  # end
+  @assert MetaGraphs.add_vertex!(bt.bt, :clique, clq) "Error trying to addClique! - add_vertex! failed"
+  MetaGraphs.set_indexing_prop!(bt.bt, MetaGraphs.nv(bt.bt), :cliqId, cId)
 
-  appendClique!(bt, clId, dfg, varID, condIDs)
-  # appendClique!(bt, bt.btid, dfg, varID, condIDs)
+  appendClique!(bt, cId, dfg, varID, condIDs)
   return clq
 end
 
@@ -84,19 +87,23 @@ getCliq, getTreeAllFrontalSyms
 """
 getClique(tree::AbstractBayesTree, cId::Int) = tree.cliques[cId]
 getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
-getClique(tree::MetaBayesTree, cId::Int) = MetaGraphs.get_prop(tree.bt, tree.bt[:index][cId], :clique)
+getClique(tree::MetaBayesTree, cId::CliqueId) = MetaGraphs.get_prop(tree.bt, tree.bt[:cliqId][cId], :clique)
+getClique(tree::MetaBayesTree, cIndex::Int) = MetaGraphs.get_prop(tree.bt, cIndex, :clique)
 
 """
     $(SIGNATURES)
 """
-function deleteClique!(tree::MetaBayesTree, cId::Int)
+function deleteClique!(tree::MetaBayesTree, cId::CliqueId)
   clique = getClique(tree, cId) 
-  index = MetaGraphs.get_prop(tree.bt, cId, :index)
-  @assert MetaGraphs.rem_vertex!(tree.bt, index) "rem_vertex! failed"
+  @assert MetaGraphs.rem_vertex!(tree.bt, tree.bt[:cliqId][cId]) "rem_vertex! failed"
   foreach(frt->delete!(tree.frontals,frt), getFrontals(clique))
   return clique
 end
 
+isRoot(tree::MetaBayesTree, cliq::TreeClique) = isRoot(tree, cliq.id)
+function isRoot(tree::MetaBayesTree, cliqId::CliqueId)
+  length(MetaGraphs.inneighbors(tree.bt, tree.bt[:cliqId][cliqId])) == 0
+end
 
 """
     $SIGNATURES
@@ -137,7 +144,8 @@ end
 getCliqueIds(tree::AbstractBayesTree) = keys(getCliques(tree))
 
 function getCliqueIds(tree::MetaBayesTree)
-  MetaGraphs.vertices(tree.bt)
+  # MetaGraphs.vertices(tree.bt)
+  keys(tree.bt.metaindex[:cliqId])
 end
 
 """
@@ -146,7 +154,7 @@ end
 Return reference to the clique data container.
 """
 getCliqueData(cliq::TreeClique) = cliq.data
-getCliqueData(tree::AbstractBayesTree, cId::Int) = getClique(tree, cId) |> getCliqueData
+getCliqueData(tree::AbstractBayesTree, cId::Union{CliqueId, Int}) = getClique(tree, cId) |> getCliqueData
 
 """
     $SIGNATURES
@@ -166,7 +174,7 @@ setCliqueData!(tree::AbstractBayesTree, cId::Int, data::Union{PackedBayesTreeNod
 
 Generate the label for particular clique (used by graphviz for visualization).
 """
-function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::Int)::String where G <: AbstractDFG
+function makeCliqueLabel(dfg::G, bt::AbstractBayesTree, clqID::CliqueId)::String where G <: AbstractDFG
   clq = getClique(bt, clqID)
   flbl = ""
   clbl = ""
@@ -184,7 +192,7 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique(bt::AbstractBayesTree, clqID::Int, seprIDs::Array{Symbol,1})
+function appendSeparatorToClique(bt::AbstractBayesTree, clqID::CliqueId, seprIDs::Array{Symbol,1})
   union!(getCliqueData(bt, clqID).separatorIDs, seprIDs)
   nothing
 end
@@ -198,7 +206,7 @@ DevNotes
 - TODO, define what "conditionals" are CLEARLY!!
 """
 function appendClique!(bt::AbstractBayesTree,
-                       clqID::Int,
+                       clqID::CliqueId,
                        dfg::AbstractDFG,
                        varID::Symbol,
                        seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
@@ -224,12 +232,12 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, varID::Symbol, Sepj::Array{Symbol,1})
+function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::CliqueId, varID::Symbol, Sepj::Array{Symbol,1})
   #TODO this is too manual, replace with just addClique that takes as argument the parent
         # addClique!(bt, dfg, CpID, varID, Sepj)
   # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
-  parent = getClique(bt,CpID)
+  parent = getClique(bt, CpID)
 
   # if isa(bt.bt,GenericIncidenceList)
   #   # Staying with Graphs.jl for tree in first stage
@@ -237,7 +245,7 @@ function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::Int, var
   #   Graphs.add_edge!(bt.bt, edge)
   if isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
-    @assert MetaGraphs.add_edge!(bt.bt, CpID, bt.bt[:index][chclq.id]) "Add edge failed"
+    @assert MetaGraphs.add_edge!(bt.bt, bt.bt[:cliqId][CpID], bt.bt[:cliqId][chclq.id]) "Add edge failed"
   else
     error("Oops, something went wrong when adding a new child clique to the tree")
   end
@@ -418,7 +426,7 @@ function _to_dot(mdigraph::MetaDiGraph)
   for (i,val) in g.vprops
     push!(g.vprops[i],:attributes=>val[:clique].attributes)
     delete!(g.vprops[i],:clique)
-    delete!(g.vprops[i],:index)
+    delete!(g.vprops[i],:cliqId)
   end
   m = PipeBuffer()
   savedot_attributes(m, g)
@@ -654,12 +662,6 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
 end
 
 
-isRoot(treel::MetaBayesTree, cliq::TreeClique) = isRoot(tree, tree.bt[:index][cliq.id])
-function isRoot(treel::MetaBayesTree, cliqKey::Int)
-  length(MetaGraphs.inneighbors(treel.bt, cliqKey)) == 0
-end
-
-
 """
     $SIGNATURES
 
@@ -670,8 +672,6 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 drawbayesnet::Bool=false,
                                 maxparallel::Union{Nothing, Int}=nothing  )
   #
-  println()
-
   @debug "Copying to a local DFG"
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
     #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
@@ -1434,7 +1434,7 @@ end
 Return a vector of child cliques to `cliq`.
 """
 function childCliqs(treel::MetaBayesTree, cliq::TreeClique)
-  cliqKey = treel.bt[:index][cliq.id]
+  cliqKey = treel.bt[:cliqId][cliq.id]
   childcliqs = TreeClique[]
   for cIdx in MetaGraphs.outneighbors(treel.bt, cliqKey)
     push!(childcliqs, get_prop(treel.bt, cIdx, :clique))
@@ -1458,7 +1458,7 @@ function getEdgesChildren(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(cliqkey, chkey) for chkey in MetaGraphs.outneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:index][cliq.id])
+getEdgesChildren(tree::MetaBayesTree, cliq::TreeClique) = getEdgesChildren(tree, tree.bt[:cliqId][cliq.id])
 
 """
     $SIGNATURES
@@ -1468,7 +1468,7 @@ function getEdgesParent(tree::MetaBayesTree, cliqkey::Int)
   [MetaGraphs.Edge(pkey, cliqkey) for pkey in MetaGraphs.inneighbors(tree.bt, cliqkey)]
 end
 
-getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:index][cliq.id])
+getEdgesParent(tree::MetaBayesTree, cliq::TreeClique) = getEdgesParent(tree, tree.bt[:cliqId][cliq.id])
 
 """
     $SIGNATURES
@@ -1498,7 +1498,7 @@ end
 Return `cliq`'s parent clique.
 """
 function parentCliq(treel::MetaBayesTree, cliq::TreeClique)
-  cliqKey = treel.bt[:index][cliq.id]
+  cliqKey = treel.bt[:cliqId][cliq.id]
   parentcliqs = TreeClique[]
   for pIdx in  MetaGraphs.inneighbors(treel.bt, cliqKey)
     push!(parentcliqs, get_prop(treel.bt, pIdx, :clique))
@@ -1667,7 +1667,7 @@ function attemptTreeSimilarClique(othertree::AbstractBayesTree,
   #
   # inner convenience function for returning empty clique
   function EMPTYCLIQ()
-    clq = TreeClique(-1,"null")
+    clq = TreeClique(-1)
     setLabel!(clq, "")
     setCliqueData!(clq, BayesTreeNodeData())
     return clq

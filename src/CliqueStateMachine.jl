@@ -28,14 +28,14 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   # NOTE use tree and messages for operations involving children and parents
   # TODO deprecate children and prnt clique copies
-  children = TreeClique[]
-  prnt = TreeClique[]
+  # children = TreeClique[]
+  # prnt = TreeClique[]
 
   destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
 
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
                                    tree, cliq,
-                                   prnt, children,
+                                  #  prnt, children,
                                    incremental, drawtree, downsolve, delay,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
                                    cliq.id, algorithm, 0) 
@@ -94,7 +94,7 @@ function setCliqueRecycling_StateMachine(csmc::CliqStateMachineContainer)
     csmc.cliq.data.isCliqReused = true
     setCliqueStatus!(csmc.cliq, UPRECYCLED)
   end
-  logCSM(csmc, "CSM-0a Recycling clique $(csmc.cliqKey) from $oldstatus"; 
+  logCSM(csmc, "CSM-0a Recycling clique $(csmc.cliqId) from $oldstatus"; 
               incremental=csmc.cliq.data.isCliqReused, 
               marginalized=getCliqueData(csmc.cliq).allmarginalized)
 
@@ -227,7 +227,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   #Clique and children UPSOLVED, UPRECYCLED or MARGINALIZED (finished upsolve)
   #no need to solve
   if getCliqueStatus(csmc.cliq) in [UPSOLVED, UPRECYCLED, MARGINALIZED] && all_child_finished_up
-    logCSM(csmc, "CSM-2a Reusing clique $(csmc.cliqKey) as $(getCliqueStatus(csmc.cliq))")
+    logCSM(csmc, "CSM-2a Reusing clique $(csmc.cliqId) as $(getCliqueStatus(csmc.cliq))")
     getCliqueStatus(csmc.cliq) == MARGINALIZED &&  setCliqueDrawColor!(csmc.cliq, "blue")
     getCliqueStatus(csmc.cliq) == UPRECYCLED &&  setCliqueDrawColor!(csmc.cliq, "orange")
     return postUpSolve_StateMachine
@@ -240,7 +240,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
     return initUp_StateMachine
   else
     setCliqueDrawColor!(csmc.cliq, "brown")
-    logCSM(csmc, "CSM-2a Clique $(csmc.cliqKey) is initialized but children need to init, don't do anything")
+    logCSM(csmc, "CSM-2a Clique $(csmc.cliqId) is initialized but children need to init, don't do anything")
     setCliqueStatus!(csmc.cliq, INITIALIZED)
     return postUpSolve_StateMachine
   end
@@ -264,7 +264,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
           allvars = getVariables(csmc.cliqSubFg)
           any_init = any(isInitialized.(allvars))
           is_root = isempty(getEdgesParent(csmc.tree, csmc.cliq)) 
-          logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqKey, is_root=is_root, any_init=any_init)
+          logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId, is_root=is_root, any_init=any_init)
           linear_on_manifold && !is_root && !any_init
         end
         
@@ -272,13 +272,13 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
           frontal_vars = getVariable.(csmc.cliqSubFg,  getCliqFrontalVarIds(csmc.cliq))
           filter!(!isInitialized, frontal_vars)
           foreach(fvar->getSolverData(fvar).initialized = true, frontal_vars)
-          logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqKey,lbl=getLabel.(frontal_vars))
+          logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId,lbl=getLabel.(frontal_vars))
         end
         ## END experimental
 
     setCliqueDrawColor!(csmc.cliq, "green")
 
-    logCSM(csmc, "CSM-2b Trying up init -- all not initialized"; c=csmc.cliqKey)
+    logCSM(csmc, "CSM-2b Trying up init -- all not initialized"; c=csmc.cliqId)
      
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
@@ -286,7 +286,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
     printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
-    logCSM(csmc, "CSM-2b solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqKey)
+    logCSM(csmc, "CSM-2b solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqId)
   
     someInit ? setCliqueDrawColor!(csmc.cliq, "darkgreen") :  setCliqueDrawColor!(csmc.cliq, "lightgreen")
 
@@ -323,7 +323,7 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
 
   #Make sure all are initialized
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
-    logCSM(csmc, "CSM-2c All children upsolved, not init, try init then upsolve"; c=csmc.cliqKey)
+    logCSM(csmc, "CSM-2c All children upsolved, not init, try init then upsolve"; c=csmc.cliqId)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
   end
@@ -369,17 +369,17 @@ Notes
 - State machine function 2d
 """
 function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
-  logCSM(csmc, "CSM-2d tryDownSolveOnly_StateMachine clique $(csmc.cliqKey) status $(getCliqueStatus(csmc.cliq))")
+  logCSM(csmc, "CSM-2d tryDownSolveOnly_StateMachine clique $(csmc.cliqId) status $(getCliqueStatus(csmc.cliq))")
 
-  logCSM(csmc, "CSM-2d Skipping upsolve clique $(csmc.cliqKey)"; loglevel=Logging.Info, st=getCliqueStatus(csmc.cliq))
+  logCSM(csmc, "CSM-2d Skipping upsolve clique $(csmc.cliqId)"; loglevel=Logging.Info, st=getCliqueStatus(csmc.cliq))
   if getCliqueStatus(csmc.cliq) == NULL 
-    logCSM(csmc, "CSM-2d Clique $(csmc.cliqKey) status NULL, trying as UPRECYCLED"; loglevel=Logging.Warn)
+    logCSM(csmc, "CSM-2d Clique $(csmc.cliqId) status NULL, trying as UPRECYCLED"; loglevel=Logging.Warn)
     
     # Are all variables solved at least once?
     if all(getSolvedCount.(getVariables(csmc.cliqSubFg)) .> 0)
       setCliqueStatus!(csmc.cliq, UPRECYCLED)
     else
-      logCSM(csmc, "CSM-2d Clique $(csmc.cliqKey) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
+      logCSM(csmc, "CSM-2d Clique $(csmc.cliqId) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
              loglevel=Logging.Error)
       # propagate error to cleanly exit all cliques
       putErrorUp(csmc)
@@ -422,7 +422,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # warn and clean exit on stalled tree init
   if csmc.init_iter > getSolverParams(csmc.cliqSubFg).limittreeinit_iters
-    logCSM(csmc, "CSM-2e Clique $(csmc.cliqKey) tree init failed, max init retries reached."; loglevel=Logging.Error)
+    logCSM(csmc, "CSM-2e Clique $(csmc.cliqId) tree init failed, max init retries reached."; loglevel=Logging.Error)
     putErrorUp(csmc)
     if length(getParent(csmc.tree, csmc.cliq)) == 0
       putErrorDown(csmc)
@@ -488,7 +488,7 @@ function waitForDown_StateMachine(csmc::CliqStateMachineContainer)
     # elseif beliefMsg.status == INITIALIZED || beliefMsg.status == NO_INIT
     #   return tryDownInit_StateMachine
     else
-      logCSM(csmc, "CSM-3 Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqKey)
+      logCSM(csmc, "CSM-3 Unknown state"; status=beliefMsg.status, loglevel=Logging.Error, c=csmc.cliqId)
       error("CSM-3 waitForDown State Error: Unknown/unimplemented transision.")
     end
   end
@@ -555,14 +555,14 @@ function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     elseif dwnmsgs.status == INITIALIZED || dwnmsgs.status == NO_INIT
       return tryDownInit_StateMachine
     else
-      logCSM(csmc, "CSM-4a Unknown state"; status=dwnmsgs.status, loglevel=Logging.Error, c=csmc.cliqKey)
+      logCSM(csmc, "CSM-4a Unknown state"; status=dwnmsgs.status, loglevel=Logging.Error, c=csmc.cliqId)
       error("CSM-4a waitForDown State Error: Unknown/unimplemented transision.")
     end
   else 
     # Special root case or MARGINALIZED
     #TODO improve
     solveStatus = getCliqueStatus(csmc.cliq)
-    logCSM(csmc, "CSM-4a root case or MARGINALIZED"; status=solveStatus, c=csmc.cliqKey)
+    logCSM(csmc, "CSM-4a root case or MARGINALIZED"; status=solveStatus, c=csmc.cliqId)
     if solveStatus in [INITIALIZED, NO_INIT, UPSOLVED, UPRECYCLED, MARGINALIZED]
       solveStatus == MARGINALIZED &&  setCliqueDrawColor!(csmc.cliq, "blue")
       if solveStatus in [UPSOLVED, UPRECYCLED]
@@ -690,7 +690,7 @@ function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
   beliefMsg = CliqDownMessage(csmc, solveStatus)
 
   if length(keys(beliefMsg.belief)) == 0
-    logCSM(csmc, "CSM-4d Empty message on clique $(csmc.cliqKey) frontals"; loglevel=Logging.Info)
+    logCSM(csmc, "CSM-4d Empty message on clique $(csmc.cliqId) frontals"; loglevel=Logging.Info)
   end
 
   logCSM(csmc, "CSM-4d msg to send down on $(keys(beliefMsg.belief))"; beliefMsg=beliefMsg)
