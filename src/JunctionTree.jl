@@ -3,6 +3,7 @@ export getCliquePotentials
 export getClique, getCliques, getCliqueIds, getCliqueData
 export hasClique
 export setCliqueDrawColor!, getCliqueDrawColor
+export appendSeparatorToClique!
 
 """
     $SIGNATURES
@@ -192,10 +193,13 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique(bt::AbstractBayesTree, clqID::CliqueId, seprIDs::Array{Symbol,1})
+function appendSeparatorToClique!(bt::AbstractBayesTree, clqID::CliqueId, seprIDs::Array{Symbol,1})
   union!(getCliqueData(bt, clqID).separatorIDs, seprIDs)
   nothing
 end
+
+# FIXME, move Deprecated.jl
+@deprecate appendSeparatorToClique(w...;kw...) appendSeparatorToClique!(w...;kw...)
 
 """
     $SIGNATURES
