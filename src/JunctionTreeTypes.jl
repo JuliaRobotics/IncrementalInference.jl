@@ -1,3 +1,6 @@
+
+export BayesTree
+
 ## ========================================================================================================================
 ## Bayes Trees
 ## ========================================================================================================================
@@ -5,6 +8,8 @@
 abstract type AbstractBayesTree end
 
 emptyBayesTree() = MetaBayesTree()
+
+const BayesTree = MetaBayesTree
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
