@@ -198,9 +198,6 @@ function appendSeparatorToClique!(bt::AbstractBayesTree, clqID::CliqueId, seprID
   nothing
 end
 
-# FIXME, move Deprecated.jl
-@deprecate appendSeparatorToClique(w...;kw...) appendSeparatorToClique!(w...;kw...)
-
 """
     $SIGNATURES
 

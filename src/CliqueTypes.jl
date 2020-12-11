@@ -251,7 +251,6 @@ function Base.setproperty!(x::TreeClique, f::Symbol, val)
   return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
 end
 
-@deprecate TreeClique(i::Int, label::Union{AbstractString, Symbol}) TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(i::Int) = TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
 TreeClique(id::CliqueId) = TreeClique(id, BayesTreeNodeData(), Dict{String,Any}())
 

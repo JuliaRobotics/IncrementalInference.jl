@@ -1,5 +1,5 @@
 
-export BayesTree
+export MetaBayesTree, BayesTree
 
 ## ========================================================================================================================
 ## Bayes Trees
@@ -7,9 +7,6 @@ export BayesTree
 
 abstract type AbstractBayesTree end
 
-emptyBayesTree() = MetaBayesTree()
-
-const BayesTree = MetaBayesTree
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
@@ -23,6 +20,8 @@ mutable struct MetaBayesTree <: AbstractBayesTree
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
+
+const BayesTree = MetaBayesTree
 
 MetaBayesTree() = MetaBayesTree(MetaDiGraph{Int,Float64}(), 0, Dict{AbstractString, Int}(), Symbol[], 0.0)
 
