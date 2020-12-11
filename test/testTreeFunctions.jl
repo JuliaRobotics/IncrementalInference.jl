@@ -39,7 +39,7 @@ IIF.deleteClique!(oldtree, IIF.CliqueId(1))
 
 tree, smt, hists = solveTree!(fg, oldtree; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
 
-csmAnimate(tree, hists, frames=1)
+# csmAnimate(tree, hists, frames=1)
 
 end
   
