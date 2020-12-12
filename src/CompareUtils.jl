@@ -27,7 +27,6 @@ function compare(c1::TreeClique,
 #
 TP = true
 TP = TP && c1.id == c2.id
-TP = TP && c1.label == c2.label
 # data
 @warn "skipping ::TreeClique compare of data"
 # TP = TP && compare(c1.data, c2.data)
