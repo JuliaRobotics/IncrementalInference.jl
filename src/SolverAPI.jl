@@ -265,6 +265,7 @@ function solveTree!(dfgl::AbstractDFG,
                     skipcliqids::Vector{Symbol}=Symbol[],
                     maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                    eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[],
                     smtasks::Vector{Task}=Task[],
                     dotreedraw = Int[1;],
@@ -280,6 +281,10 @@ function solveTree!(dfgl::AbstractDFG,
   if maxparallel !== nothing
     @warn "`maxparallel` keyword is deprecated, use `getSolverParams(fg).maxincidence` instead."
     opt.maxincidence = maxparallel
+  end
+  if variableOrder !== nothing
+    @warn "`variableOrder` keyword is deprecated, use `eliminationOrder` instead."
+    eliminationOrder = variableOrder
   end
 
   # update worker pool incase there are more or less
@@ -323,7 +328,7 @@ function solveTree!(dfgl::AbstractDFG,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = resetBuildTree!(dfgl, eliminationOrder=eliminationOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
   
   initTreeMessageChannels!(tree)
