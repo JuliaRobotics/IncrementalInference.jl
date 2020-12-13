@@ -24,9 +24,9 @@ DevNotes
 - Test for various cases with multiple variables.
 - Test for cases with `nullhypo` and `multihypo`.
 """
-function solveFactorMeasurements(dfg::AbstractDFG,
-                                 fctsym::Symbol,
-                                 solveKey::Symbol=:default  )
+function solveFactorMeasurements( dfg::AbstractDFG,
+                                  fctsym::Symbol,
+                                  solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
   varsyms = getVariableOrder(fcto)

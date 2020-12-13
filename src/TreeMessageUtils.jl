@@ -2,6 +2,7 @@
 
 export resetCliqSolve!
 export addLikelihoodsDifferential!
+export addLikelihoodsDifferentialCHILD!
 
 
 ## =============================================================================
@@ -174,6 +175,59 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
 end
 # default verbNoun API spec (dest, src)
 addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLikelihoodsDifferential!(msgs, subfg)
+
+
+# child CSM calculates the differential factors that should be sent up
+function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
+                                          seps::Vector{Symbol}, 
+                                          tfg::AbstractDFG=initfg() )
+  #
+  # return this list
+  retlist = Vector{Tuple{Vector{Symbol},DFG.AbstractRelative}}()
+
+
+  # create new local dfg and add all the variables with data
+  for label in seps
+    if !exists(tfg, label)
+      addVariable!(tfg, label, getVariableType(cliqSubFG, label))
+      @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
+    end
+    initManual!(tfg, label, getBelief(cliqSubFG, label))
+  end
+
+  # list all variables in order of dimension size
+  alreadylist = Symbol[]
+  listDims = getDimension.(getVariable.(tfg, seps))
+  per = sortperm(listDims, rev=true)
+  listVarDec = seps[per]
+  listVarAcc = reverse(listVarDec)
+  # add all differential factors (without deconvolution values)
+  for sym1_ in listVarDec
+    push!(alreadylist, sym1_)
+    for sym2_ in setdiff(listVarAcc, alreadylist)
+      isHom, ftyps = isPathFactorsHomogeneous(cliqSubFG, :x0, :x2)
+      # chain of user factors are of the same type
+      if isHom
+        @show _sft = selectFactorType(tfg, sym1_, sym2_) 
+        sft = _sft()
+        # only take factors that are homogeneous with the generic relative
+        if typeof(sft).name == ftyps[1]
+          # assume default helper function # buildFactorDefault(nfactype)
+          afc = addFactor!(tfg, [sym1_;sym2_], sft, graphinit=false, tags=[:DUMMY;])
+          # calculate the general deconvolution between variables
+          pts, = approxDeconv(tfg, afc.label)  # solveFactorMeasurements
+          newBel = manikde!(pts, _sft) # getManifolds(sft)
+          # replace dummy factor with real deconv factor using manikde approx belief measurement
+          fullFct = _sft(newBel)
+          deleteFactor!(tfg, afc.label)
+          push!(retlist, ([sym1_;sym2_], fullFct))
+        end
+      end
+    end
+  end
+
+  return retlist
+end
 
 """
     $SIGNATURES
@@ -408,6 +462,10 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
       msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
     end
   end
+
+  # FIXME calculate the new DIFFERENTIAL factors
+  msg.diffJoints = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
+
   return msg
 end
 

@@ -109,6 +109,8 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   hasPriors::Bool
   # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
   childSolvDims::Dict{Int, Float64} 
+  # calc differential factors for joint in the child clique
+  diffJoint::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}
 end
 
 
@@ -119,8 +121,9 @@ LikelihoodMessage(; status::CliqStatus=NULL,
                     msgType::T=NonparametricMessage(),
                     hasPriors::Bool=true,
                     childSolvDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
+                    diffJoint::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}=Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}(),
                     ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims)
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims, diffJoint)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
