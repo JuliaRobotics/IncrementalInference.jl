@@ -98,7 +98,7 @@ DevNotes:
 - Better conditioning for joint structure in the works using deconvolution, see #579, #635.
   - TODO confirm why <: Singleton.
 
-  $(TYPEDFIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   status::CliqStatus
@@ -110,7 +110,7 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
   # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
   childSolvDims::Dict{Int, Float64} 
   # calc differential factors for joint in the child clique
-  diffJoint::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}
+  diffJoints::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}
 end
 
 
@@ -121,9 +121,9 @@ LikelihoodMessage(; status::CliqStatus=NULL,
                     msgType::T=NonparametricMessage(),
                     hasPriors::Bool=true,
                     childSolvDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
-                    diffJoint::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}=Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}(),
-                    ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims, diffJoint)
+                    diffJoints::Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}=Vector{Tuple{Vector{Symbol}, DFG.AbstractRelative}}(),
+                  ) where {T <: MessageType} =
+        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims, diffJoints)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)

@@ -205,10 +205,10 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
   for sym1_ in listVarDec
     push!(alreadylist, sym1_)
     for sym2_ in setdiff(listVarAcc, alreadylist)
-      isHom, ftyps = isPathFactorsHomogeneous(cliqSubFG, :x0, :x2)
+      isHom, ftyps = isPathFactorsHomogeneous(cliqSubFG, sym1_, sym2_)
       # chain of user factors are of the same type
       if isHom
-        @show _sft = selectFactorType(tfg, sym1_, sym2_) 
+        _sft = selectFactorType(tfg, sym1_, sym2_) 
         sft = _sft()
         # only take factors that are homogeneous with the generic relative
         if typeof(sft).name == ftyps[1]
@@ -216,7 +216,8 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           afc = addFactor!(tfg, [sym1_;sym2_], sft, graphinit=false, tags=[:DUMMY;])
           # calculate the general deconvolution between variables
           pts, = approxDeconv(tfg, afc.label)  # solveFactorMeasurements
-          newBel = manikde!(pts, _sft) # getManifolds(sft)
+          # @show sft
+          newBel = manikde!(pts, sft) # getManifolds(sft)
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)
