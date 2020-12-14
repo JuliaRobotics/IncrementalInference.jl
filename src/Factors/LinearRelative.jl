@@ -8,7 +8,7 @@ $(TYPEDEF)
 
 Default linear offset between two scalar variables.
 """
-struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeFactor
+struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
   Z::T
 
   # # Julia 1.5.2 still requires this inner constructor given all default helpers below?
@@ -56,8 +56,8 @@ function (s::LinearRelative{N,<:ParametricTypes})(
                                 X1::AbstractArray{<:Real},
                                 X2::AbstractArray{<:Real};
                                 userdata::Union{Nothing,FactorMetadata}=nothing ) where N
-                                #can I change userdata to a keyword arg
   #
+  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
   # FIXME, replace if with dispatch
   if isa(s.Z, Normal)
     meas = mean(s.Z)

@@ -70,6 +70,8 @@ include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
 
+include("testEuclidDistance.jl")
+
 include("priorusetest.jl")
 
 include("testVariousNSolveSize.jl")
