@@ -4,20 +4,20 @@
 using IncrementalInference
 
 
-##
+## test case with disjoint clique joint subgraph
 
 fg = initfg()
 
-addVariable!(fg, :x0, ContinuousEuclid{1})
-addVariable!(fg, :x1, ContinuousEuclid{1})
-addVariable!(fg, :x2, ContinuousEuclid{1})
+addVariable!(fg, :x0, ContinuousEuclid{2})
+addVariable!(fg, :x1, ContinuousEuclid{2})
+addVariable!(fg, :x2, ContinuousEuclid{2})
 
-initManual!(fg, :x0, randn(1,100))
-initManual!(fg, :x1, randn(1,100) .+ 10)
-initManual!(fg, :x2, randn(1,100) .+ 20)
+initManual!(fg, :x0, randn(2,100))
+initManual!(fg, :x1, randn(2,100) .+ 10)
+initManual!(fg, :x2, randn(2,100) .+ 20)
 
-addFactor!(fg , [:x0; :x1], LinearRelative(MvNormal([10.0;], diagm([1.0;]))))
-addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;], diagm([1.0;]))))
+addFactor!(fg , [:x0; :x1], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
+addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
 
 # setPPE!(fg, :x2)
 # fg[:x2]
@@ -25,12 +25,12 @@ addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;], diagm([1.0;]))))
 
 ##
 
-addVariable!(fg, :x3, ContinuousScalar)
-addFactor!(fg, [:x2; :x3], LinearRelative(MvNormal([10.0], diagm([1.0]))))
+addVariable!(fg, :x3, ContinuousEuclid{2})
+addFactor!( fg, [:x2; :x3], EuclidDistance(Normal(10, 1)) )
 
 ##
 
-addFactor!(fg, [:x0; :x3], LinearRelative(MvNormal([10.0], diagm([1.0]))), graphinit=false)
+addFactor!( fg, [:x0; :x3], EuclidDistance(Normal(30, 1)), graphinit=false )
 
 
 ##
@@ -133,12 +133,17 @@ bestCandidate = IIF._calcCandidatePriorBest(subfg, msg, allClasses[1])
   # push!(commonJoints, upcm)
 
 
+
+
+
+
+
 ##
 
 mb = IIF.getMessageBuffer(getClique(tree, :x0))
 
-mb.upRx[2].diffJoints[1][1]
-mb.upRx[2].diffJoints[1][2]
+mb.upRx[2].diffJoints[1].variables
+mb.upRx[2].diffJoints[1].likelihood
 
 
 ##
