@@ -443,6 +443,7 @@ end
 Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
 
 Notes
+- To view, make sure you install `sudo apt-get install xdot`
 - Uses system install of graphviz.org.
 - Can also use Linux tool `xdot`.
 - `xlabels` is optional `cliqid=>xlabel`.

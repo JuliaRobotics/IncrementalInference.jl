@@ -137,39 +137,44 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
                                       cliqSubFG::AbstractDFG,
                                       tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
-  listVarByDim = Symbol[]
-  for (label, val) in msgs.belief
-    push!(listVarByDim, label)
-    if !exists(tfg, label)
-      addVariable!(tfg, label, val.variableType)
-      @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
-    end
-    initManual!(tfg, label, manikde!(val))
+
+  for difflikl in msgs.diffJoints
+    addFactor!(cliqSubFG, difflikl.variables, difflikl.likelihood, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
   end
 
-  # list all variables in order of dimension size
-  alreadylist = Symbol[]
-  listDims = getDimension.(getVariable.(tfg,listVarByDim))
-  per = sortperm(listDims, rev=true)
-  listVarDec = listVarByDim[per]
-  listVarAcc = reverse(listVarDec)
-  # add all differential factors (without deconvolution values)
-  for sym1_ in listVarDec
-    push!(alreadylist, sym1_)
-    for sym2_ in setdiff(listVarAcc, alreadylist)
-      nfactype = selectFactorType(tfg, sym1_, sym2_)
-      # assume default helper function # buildFactorDefault(nfactype)
-      nfct = nfactype()
-      afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
-      # calculate the general deconvolution between variables
-      pts = solveFactorMeasurements(tfg, afc.label)
-      newBel = manikde!(pts[1], getManifolds(nfactype))
-      # replace dummy factor with real deconv factor using manikde approx belief measurement
-      fullFct = nfactype(newBel)
-      deleteFactor!(tfg, afc.label)
-      addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
-    end
-  end
+  # listVarByDim = Symbol[]
+  # for (label, val) in msgs.belief
+  #   push!(listVarByDim, label)
+  #   if !exists(tfg, label)
+  #     addVariable!(tfg, label, val.variableType)
+  #     @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
+  #   end
+  #   initManual!(tfg, label, manikde!(val))
+  # end
+
+  # # list all variables in order of dimension size
+  # alreadylist = Symbol[]
+  # listDims = getDimension.(getVariable.(tfg,listVarByDim))
+  # per = sortperm(listDims, rev=true)
+  # listVarDec = listVarByDim[per]
+  # listVarAcc = reverse(listVarDec)
+  # # add all differential factors (without deconvolution values)
+  # for sym1_ in listVarDec
+  #   push!(alreadylist, sym1_)
+  #   for sym2_ in setdiff(listVarAcc, alreadylist)
+  #     nfactype = selectFactorType(tfg, sym1_, sym2_)
+  #     # assume default helper function # buildFactorDefault(nfactype)
+  #     nfct = nfactype()
+  #     afc = addFactor!(tfg, [sym1_;sym2_], nfct, graphinit=false, tags=[:DUMMY;])
+  #     # calculate the general deconvolution between variables
+  #     pts = solveFactorMeasurements(tfg, afc.label)
+  #     newBel = manikde!(pts[1], getManifolds(nfactype))
+  #     # replace dummy factor with real deconv factor using manikde approx belief measurement
+  #     fullFct = nfactype(newBel)
+  #     deleteFactor!(tfg, afc.label)
+  #     addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+  #   end
+  # end
 
   return tfg
 end
@@ -178,13 +183,13 @@ addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLi
 
 
 # child CSM calculates the differential factors that should be sent up
+# FIXME, must be renamed and standardized
 function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           seps::Vector{Symbol}, 
                                           tfg::AbstractDFG=initfg() )
   #
-  # return this list
-  retlist = Vector{Tuple{Vector{Symbol},DFG.AbstractRelative}}()
-
+  # return list of differential factors the parent should add as part upward partial joint posterior
+  retlist = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}()
 
   # create new local dfg and add all the variables with data
   for label in seps
@@ -221,13 +226,44 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           # replace dummy factor with real deconv factor using manikde approx belief measurement
           fullFct = _sft(newBel)
           deleteFactor!(tfg, afc.label)
-          push!(retlist, ([sym1_;sym2_], fullFct))
+          push!(retlist, (;variables=[sym1_;sym2_], likelihood=fullFct))
         end
       end
     end
   end
 
   return retlist
+end
+
+# use variableList to select a sub-subgraph -- useful for disconnected segments of graph
+function _calcCandidatePriorBest( subfg::AbstractDFG, 
+                                  msgs::LikelihoodMessage,
+                                  variableList::Vector{Symbol}=collect(keys(msgs.belief)) )
+  #
+  ## TODO repackage as new function for wider use
+  len = length(variableList)
+  dims = Vector{Int}(undef, len)
+  syms = Vector{Symbol}(undef, len)
+  biAdj = Vector{Int}(undef, len)
+  # TODO, not considering existing priors for MsgPrior placement at this time
+  # priors = Vector{Int}(undef, len)
+  i = 0
+  for (label, val) in msgs.belief
+    # skip elements not in variableList
+    (label in variableList) ? nothing : continue
+    # do calculations based on dimension
+    i += 1
+    dims[i] = getDimension(val.variableType)
+    syms[i] = label
+    biAdj[i] = ls(subfg, label) |> length
+  end
+  # work only with highest dimension variable
+  maxDim = maximum(dims)
+  dimMask = dims .== maxDim
+  mdAdj = biAdj[dimMask]
+  pe = sortperm(mdAdj, rev=true) # decending
+
+  return (syms[dimMask])[pe][1]
 end
 
 """
@@ -240,25 +276,7 @@ function addLikelihoodPriorCommon!( subfg::AbstractDFG,
   #
   # find max dimension variable, which also has highest biadjacency
 
-  len = length(msgs.belief)
-  dims = Vector{Int}(undef, len)
-  syms = Vector{Symbol}(undef, len)
-  biAdj = Vector{Int}(undef, len)
-  # TODO, not considering existing priors for MsgPrior placement at this time
-  # priors = Vector{Int}(undef, len)
-  i = 0
-  for (label, val) in msgs.belief
-    i += 1
-    dims[i] = getDimension(val.variableType)
-    syms[i] = label
-    biAdj[i] = ls(subfg, label) |> length
-  end
-  # work only with highest dimension variable
-  maxDim = maximum(dims)
-  dimMask = dims .== maxDim
-  mdAdj = biAdj[dimMask]
-  pe = sortperm(mdAdj, rev=true) # decending
-  topCandidate = (syms[dimMask])[pe][1]
+  topCandidate = _calcCandidatePriorBest(subfg, msgs)
 
   # get prior for top candidate
   msgPrior = generateMsgPrior(msgs.belief[topCandidate], msgs.msgType)
@@ -331,17 +349,21 @@ Related
 function addMsgFactors!(subfg::AbstractDFG,
                         msgs::LikelihoodMessage,
                         dir::Type{<:MessagePassDirection};
-                        tags::Vector{Symbol}=Symbol[])
+                        tags::Vector{Symbol}=Symbol[],
+                        attemptPriors::Bool=true  )
   #
   # add messages as priors to this sub factor graph
   msgfcts = DFGFactor[]
   # TODO, expand -- this deconv approach only works for NonparametricMessage at this time.
-  if getSolverParams(subfg).useMsgLikelihoods && dir == UpwardPass && msgs.msgType isa NonparametricMessage
+  if  getSolverParams(subfg).useMsgLikelihoods && 
+      dir == UpwardPass && 
+      msgs.msgType isa NonparametricMessage
+    #
     if 0 < msgs.belief |> length
       # currently only works for nonparametric
       addLikelihoodsDifferential!(subfg, msgs)          # :UPWARD_DIFFERENTIAL
       ## FIXME, only do this if there are priors below
-      if msgs.hasPriors
+      if attemptPriors && msgs.hasPriors
         prFcts = addLikelihoodPriorCommon!(subfg, msgs)   # :UPWARD_COMMON
       end
     end
@@ -397,8 +419,8 @@ function deleteMsgFactors!( subfg::AbstractDFG,
 end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
-function deleteMsgFactors!(subfg::AbstractDFG, 
-                           tags::Vector{Symbol}=[:LIKELIHOODMESSAGE])
+function deleteMsgFactors!( subfg::AbstractDFG, 
+                            tags::Vector{Symbol}=[:LIKELIHOODMESSAGE])
   # remove msg factors that were added to the subfg
   facs = lsf(subfg, tags=tags)
   deleteFactor!.(subfg, facs)
@@ -465,7 +487,9 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   end
 
   # FIXME calculate the new DIFFERENTIAL factors
-  msg.diffJoints = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
+  retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
+  # @show typeof(retval)
+  msg.diffJoints = retval
 
   return msg
 end

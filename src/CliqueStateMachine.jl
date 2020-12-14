@@ -380,7 +380,7 @@ function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
       setCliqueStatus!(csmc.cliq, UPRECYCLED)
     else
       logCSM(csmc, "CSM-2d Clique $(csmc.cliqId) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
-             loglevel=Logging.Error)
+              loglevel=Logging.Error)
       # propagate error to cleanly exit all cliques
       putErrorUp(csmc)
       if length(getParent(csmc.tree, csmc.cliq)) == 0
@@ -406,7 +406,7 @@ Notes
 function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   solveStatus = getCliqueStatus(csmc.cliq)
-  #fill in belief
+  # fill in belief
   beliefMsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)

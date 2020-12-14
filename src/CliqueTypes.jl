@@ -23,7 +23,7 @@ mutable struct MessageBuffer
   # RESERVED down outgoing message buffer (multiple children but one message)
   downTx::Union{Nothing, LikelihoodMessage} 
 end
-MessageBuffer(ur=Dict{Int, LikelihoodMessage}(), dr=nothing, ut=nothing, dt=nothing) = MessageBuffer(ur,dr,ut,dt)
+MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
 
 
 """
