@@ -22,7 +22,11 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
   if !ccwl.partial
-    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
+    r = if length(ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx]) == 1
+      optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], BFGS() )
+    else
+      optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] )
+    end
     ccwl.cpt[Threads.threadid()].Y .= r.minimizer
     ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
   else

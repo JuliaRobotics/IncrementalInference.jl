@@ -272,7 +272,7 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  emptyBayesTree,
+  BayesTree, emptyBayesTree,
   buildTree!,
   buildTreeFromOrdering!,
   resetBuildTreeFromOrder!,
@@ -484,6 +484,7 @@ include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
+include("Factors/EuclidDistance.jl")
 include("Factors/Sphere1D.jl")
 include("Variables/Sphere1D.jl")
 include("DefaultNodeTypes.jl") # older file
