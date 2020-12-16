@@ -120,6 +120,90 @@ function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
   return msgPrior
 end
 
+# this is a developmental type, will be standardized after conclusion of #1010
+const DiffJointType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
+
+"""
+    $SIGNATURES
+
+Return `Dict{Int, Vector{Symbol}}` where each `Int` is a new subgraph and the vector contains all variables
+connected to that subgraph.  Subgraphs connectivity is defined by factors of the [`selectFactorType`](@ref) 
+type -- e.g. `Pose2` variables connected by a chain of `Pose2Pose2` factors is connected, but not if a link
+is `Pose2Pose2Range`.  This function is specifically intended for use with `MessageRelativeLikelihoods` in mind
+to determine which relative and prior factors should be included in an upward belief propagation (joint) message.
+Each returned subgraph should receive a `MsgPrior` on the dominant variable.
+
+Notes
+- Disconnected subgraphs in the separator variables of a clique should instead be connected by a 
+  `TangentAtlasFactor` approximation -- i.e. when analytical `selectFactorType`s cannot be used.
+
+Related
+
+[`_calcCandidatePriorBest`](@ref)
+"""
+function _findSubgraphsFactorType(dfg_::AbstractDFG,
+                                  diffJoints::DiffJointType,
+                                  separators::Vector{Symbol} )
+  #
+  commonJoints = []
+  subClassify = Dict{Symbol,Int}()
+  newClass = 0
+  
+  # 1. count separtor connectivity in UPWARD_DIFFERENTIAL
+  sepsCount = Dict{Symbol, Int}()
+  map(x->(sepsCount[x]=0), separators)
+  # tagsFilter = [:LIKELIHOODMESSAGE;]
+  # tflsf = lsf(fg, tags=tagsFilter)
+  for likl in diffJoints
+    for vari in likl.variables
+      sepsCount[vari] += 1
+    end
+  end
+  
+  # 2. start with 0's as subgraphs
+  for (id, count) in sepsCount
+    if count == 0
+      # also keep second list just to be sure based on labels
+      newClass += 1
+      subClassify[id] = newClass
+    end
+  end
+  
+  # 3. then < 0 and search all paths, adding each hit to subgraph classifications
+  for key1 in setdiff(keys(sepsCount), keys(subClassify))
+    if !(key1 in keys(subClassify))
+      newClass += 1
+      subClassify[key1] = newClass
+    end
+    # if sepsCount[key1] == 1
+      # search connectivity throughout remaining variables, some duplicate computation occurring
+      for key2 in setdiff(keys(sepsCount), keys(subClassify))
+        defaultFct = selectFactorType(dfg_, key1, key2)
+        # @show key1, key2, defaultFct
+        pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[defaultFct;])
+        # check if connected to existing subClass
+        if 0 == length(pth)
+          # not connected, so need new class
+          newClass += 1
+          subClassify[key2] = newClass
+        else
+          # is connected, so add existing class of key1
+          subClassify[key2] = subClassify[key1]
+        end
+      end
+    # end
+  end
+  
+  # 4. inverse classification dictionary
+  allClasses = Dict{Int, Vector{Symbol}}()
+  for (key, cls) in subClassify
+    !haskey(allClasses, cls) ? (allClasses[cls] = Symbol[key;]) : union!(allClasses[cls],[key;])
+  end
+  
+  # 
+  return allClasses
+end
+
 
 """
     $SIGNATURES
@@ -189,7 +273,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           tfg::AbstractDFG=initfg() )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior
-  retlist = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}()
+  retlist = DiffJointType()
 
   # create new local dfg and add all the variables with data
   for label in seps
@@ -266,13 +350,50 @@ function _calcCandidatePriorBest( subfg::AbstractDFG,
   return (syms[dimMask])[pe][1]
 end
 
+
 """
     $SIGNATURES
+
+Generate `MsgPriors` required for upward message joint.  Follows which relative factors ("differentials")
+should also be added.
+
+Notes
+- Might skip some priors based on `msg.hasPriors`
+- This might still be hard to work with, will be clear once engaged in codebase
+- TODO obviously much consolidation to do here
+
+Related
+
+[`_findSubgraphsFactorType`](@ref), [`_calcCandidatePriorBest`](@ref)
+"""
+function _generateSubgraphMsgPriors(subfg, 
+                                    msg::LikelihoodMessage,
+                                    allClasses::Dict{Int, Vector{Symbol}})
+  #
+  priorsJoint = Dict{Symbol, MsgPrior}()
+  
+  # 5. find best variable of each of allClasses to place MsgPrior
+  for (id, syms) in allClasses
+    # if any `diffJoints per variable && !msg.hasPriors`, then dont add a prior
+    if 1 == length(syms) || msg.hasPriors
+      whichVar = IIF._calcCandidatePriorBest(subfg, msg, syms)
+      priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msg.msgType)
+    end
+  end
+  
+  # return the required priors
+  return priorsJoint
+end
+
+
+"""
+    $SIGNATURES
+
 Place a single message likelihood prior on the highest dimension variable with highest connectivity in existing subfg.
 """
 function addLikelihoodPriorCommon!( subfg::AbstractDFG, 
                                     msgs::LikelihoodMessage;
-                                    tags::Vector{Symbol}=Symbol[])
+                                    tags::Vector{Symbol}=Symbol[]  )
   #
   # find max dimension variable, which also has highest biadjacency
 

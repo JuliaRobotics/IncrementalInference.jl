@@ -1,8 +1,10 @@
 # test case to enforce consistency in joint gibbs
 
-
+using Test
 using IncrementalInference
 
+
+@testset "test case with disjoint clique joint subgraph" begin
 
 ## test case with disjoint clique joint subgraph
 
@@ -35,110 +37,72 @@ addFactor!( fg, [:x0; :x3], EuclidDistance(Normal(30, 1)), graphinit=false )
 
 ##
 
-drawGraph(fg, show=true)
+# drawGraph(fg, show=true)
+
+
+## test shortest path
+
+# first path
+tp1_ = [ :x0;:x0x1f1;:x1;:x1x2f1;:x2]
+tp2_ = [ :x0;:x0x3f1;:x3;:x2x3f1;:x2]
+
+pth = findShortestPathDijkstra(fg, :x0, :x2)
+@test pth == tp1_ || pth == tp2_
+
+pth = findShortestPathDijkstra(fg, :x0, :x2, typeFactors=[LinearRelative;])
+@test pth == tp1_
+
+# different path
+pth = findShortestPathDijkstra(fg, :x0, :x2, typeFactors=[EuclidDistance;])
+@test pth == tp2_
+
+
+## use a specific solve order
+
+vo = [:x3; :x1; :x2; :x0] # getEliminationOrder(fg)
+tree, _, = solveTree!(fg, variableOrder=vo);
 
 ##
 
-tree, _, = solveTree!(fg);
-
-
-##
-
-drawTree(tree, show=true)
+# drawTree(tree, show=true)
 
 ## get up message from child clique
 
 msgBuf = IIF.getMessageBuffer(getClique(tree, :x3))
-
 msg = msgBuf.upTx
 
 
+## Child clique subgraph
 
-## findSubgraphs
+# each clique has a subgraph
+cliq2 = getClique(tree,:x3)
+cfg2 = buildCliqSubgraph(fg, cliq2)
 
-  ## new version needs to search better which diffJoints are included
-  # 1. count separtor connectivity in UPWARD_DIFFERENTIAL
-  # 2. start with 0's as subgraphs
-  # 3a. then 1's and search all paths, adding each hit to subgraph lists
-  # 3b. then 2's
-  # 4. until all separators allocated to subgraph
+drawGraph(cfg2, show=true)
 
-
-
-commonJoints = []
-subClassify = Dict{Symbol,Int}()
-newClass = 0
-
-separators = [:x2;:x0; :x4]
-
-# 1. count separtor connectivity in UPWARD_DIFFERENTIAL
-sepsCount = Dict{Symbol, Int}()
-map(x->(sepsCount[x]=0), separators)
-# tagsFilter = [:LIKELIHOODMESSAGE;]
-# tflsf = lsf(fg, tags=tagsFilter)
-for likl in msg.diffJoints
-  for vari in likl.variables
-    sepsCount[vari] += 1
-  end
-end
-
-# 2. start with 0's as subgraphs
-for (id, count) in sepsCount
-  if count == 0
-    # also keep second list just to be sure based on labels
-    newClass += 1
-    subClassify[id] = newClass
-  end
-end
-
-# 3. then < 0 and search all paths, adding each hit to subgraph classifications
-for key in setdiff(keys(sepsCount), keys(subClassify))
-  if !(key in keys(subClassify))
-    newClass += 1
-    subClassify[key] = newClass
-  end
-  # if sepsCount[key] == 1
-    # search connectivity throughout remaining variables, some duplicate computation occurring
-    for key2 in setdiff(keys(sepsCount), keys(subClassify))
-      pth = findShortestPathDijkstra(subfg, key, key2)
-      # check if connected to existing subClass
-      if 0 == length(pth)
-        # not connected, so need new class
-        newClass += 1
-        subClassify[key2] = newClass
-      else
-        # is connected, so add existing class of key
-        subClassify[key2] = subClassify[key]
-      end
-    end
-  # end
-end
-
-# 4. inverse classification dictionary
-allClasses = Dict{Int, Vector{Symbol}}()
-for (key, cls) in subClassify
-  !haskey(allClasses, cls) ? (allClasses[cls] = Symbol[key;]) : union!(allClasses[cls],[key;])
-end
-@show allClasses
+##
 
 
-# 5. find best variable of each of allClasses to place MsgPrior
+separators = getCliqSeparatorVarIds(cliq2)
 
-bestCandidate = IIF._calcCandidatePriorBest(subfg, msg, allClasses[1])
+allClasses = IIF._findSubgraphsFactorType( cfg2, msg.diffJoints, separators )
 
-
-
-  # # add a prior to this variable
-  # upcm = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, id)), msg.msgType)
-  # push!(commonJoints, upcm)
+upmsgpriors = _generateSubgraphMsgPriors( cfg2, msg, allClasses)
 
 
+##
 
 
 
 
 
 ##
+
+prs = _generateSubgraphMsgPriors(cfg2, msg, allClasses)
+
+
+##
+
 
 mb = IIF.getMessageBuffer(getClique(tree, :x0))
 
@@ -179,9 +143,7 @@ drawTree(tree, show=true)
 ##
 
 
-# each clique has a subgraph
-cfg2 = buildCliqSubgraph(fg,getClique(tree,:x3))
-drawGraph(cfg2, show=true)
+
 
 
 ## check which path between separators has homogeneous factors

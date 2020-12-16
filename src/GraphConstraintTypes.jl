@@ -3,7 +3,7 @@
 """
 $(TYPEDEF)
 """
-mutable struct Ranged <: AbstractRelativeFactor
+mutable struct Ranged <: AbstractRelativeRoots
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
@@ -49,7 +49,7 @@ end
 """
 $(TYPEDEF)
 """
-mutable struct GenericMarginal <: AbstractRelativeFactor
+mutable struct GenericMarginal <: AbstractRelativeRoots
     Zij::Array{Float64,1}
     Cov::Array{Float64,1}
     W::Array{Float64,1}
