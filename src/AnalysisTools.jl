@@ -95,7 +95,7 @@ end
 Get total number of non-zero entries for a Bayes tree. Num of non-zero matrix
 entries is the sum of all non-zero entries for each individual clique.
 """
-function nnzTree(tree::BayesTree)
+function nnzTree(tree::AbstractBayesTree)
   nnzTot = 0
   for (cliqid, cliq) in tree.cliques
     nnzTot += nnzClique(cliq)
@@ -126,7 +126,7 @@ end
 Simple cost function for ranking the structure of a Bayes tree. Weighting:
     cost = (max tree depth) * (max clique dimension)^alpha
 """
-function getTreeCost_01(tree::BayesTree; alpha::Float64=1.0 )
+function getTreeCost_01(tree::AbstractBayesTree; alpha::Float64=1.0 )
   cliqs = tree.cliques |> values |> collect
   maxdepth = map(x->getCliqDepth(tree, x)+1, cliqs) |> maximum
   maxdim = length.(map(x->getCliqVarIdsAll(x), cliqs)) |> maximum
@@ -144,7 +144,7 @@ Weighting:
     cost = 1/(total num of child / num of parents) *
                            (max tree depth) * (max clique dimension)^alpha
 """
-function getTreeCost_02(tree::BayesTree; alpha::Float64=1.0)
+function getTreeCost_02(tree::AbstractBayesTree; alpha::Float64=1.0)
   # Frontal and number of children.
   ARR = Tuple{Symbol, Int}[]
   for (cliqid, vex) in tree.cliques
@@ -173,7 +173,7 @@ function mmdSolveKey(vari::DFGVariable,
   tstVal = getBelief(vari, tstKey)
 
   # calc mmd distance
-  mmd(refVal, tstVal, getSofttype(vari), bw=bw)
+  mmd(refVal, tstVal, getVariableType(vari), bw=bw)
 end
 
 

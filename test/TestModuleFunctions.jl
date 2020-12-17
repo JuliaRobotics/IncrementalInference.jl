@@ -39,7 +39,7 @@ end
 end
 
 
-module Second
+module SecondModule
 
 using Main.First
 export SecondType, SecondAgain, evalPotential, solve, registerCallback!, Container
@@ -70,7 +70,7 @@ end
 # typeof(f).name.mt.name
 
 # Okay lets see
-using Main.Second
+using Main.SecondModule
 
 
 @testset "out of module evalPotential..." begin
@@ -80,23 +80,23 @@ Col = First.Container()
 
 
 # running on first process only
-First.registerCallback!(Col, Second.evalPotential)
+First.registerCallback!(Col, SecondModule.evalPotential)
 
 CCol = deepcopy(Col)
 
 stA = 1.0
 saA = 3.0
 
-st = Second.SecondType(stA)
-sa = Second.SecondAgain(saA)
+st = SecondModule.SecondType(stA)
+sa = SecondModule.SecondAgain(saA)
 
 # Symbol(typeof(st).name.module)
 @test First.solve(CCol, st) == stA
 @test First.solve(CCol, sa) == saA
 
 
-@elapsed Second.evalPotential(st)
-t1 = @elapsed Second.evalPotential(st)
+@elapsed SecondModule.evalPotential(st)
+t1 = @elapsed SecondModule.evalPotential(st)
 t2 = @elapsed solve(Col, sa)
 
 println("Check the speed is reasonable")

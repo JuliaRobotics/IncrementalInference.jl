@@ -30,31 +30,28 @@ end
 """
     $SIGNATURES
 
-Draw and show the factor graph `<:AbstractDFG` via system graphviz and pdf app.
+Draw and show the factor graph `<:AbstractDFG` via system graphviz and xdot app.
 
 Notes
+- Requires system install on Linux of `sudo apt-get install xdot`
 - Should not be calling outside programs.
 - Need long term solution
 - DFG's `toDotFile` a better solution -- view with `xdot` application.
 - also try `engine={"sfdp","fdp","dot","twopi","circo","neato"}`
 
-Future:
-- Might be kept with different call strategy since this function so VERY useful!
-- Major issue that this function calls an external program such as "evince", which should be
-   under user control only.
-- Maybe solution is
-- ```toDot(fg,file=...); @async run(`xdot file.dot`)```, or
-  - ```toDot(fg,file=...); exportPdf(...); @async run(`evince ...pdf`)```.
+Notes:
+- Calls external system application `xdot` to read the `.dot` file format
+  - ```toDot(fg,file=...); @async run(`xdot file.dot`)```
 
 Related
 
-drawGraphCliq, drawTree, printCliqSummary, spyCliqMat
+drawGraphCliq, [`drawTree`](@ref), printCliqSummary, spyCliqMat
 """
-function drawGraph(fgl::AbstractDFG;
-                   viewerapp::AbstractString="evince",
-                   filepath::AbstractString="/tmp/caesar/random/fg.pdf",
-                   engine::AbstractString="neato", #sfdp
-                   show::Bool=true )
+function drawGraph( fgl::AbstractDFG;
+                    viewerapp::AbstractString="xdot",
+                    filepath::AbstractString="/tmp/caesar/random/fg.dot",
+                    engine::AbstractString="neato", #sfdp
+                    show::Bool=true )
   #
   mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )
 
@@ -67,8 +64,8 @@ function drawGraph(fgl::AbstractDFG;
   DFG.toDotFile(fgl, dotfile)
 
   try
-    run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
-    show ? (@async run(`$(viewerapp) $(filepath)`)) : nothing
+    # run(`$(engine) $(dotfile) -T$(fext) -o $(filepath)`)
+    show ? (@async run(`$(viewerapp) $(dotfile)`)) : nothing
   catch e
     @warn "not able to show $(filepath) with viewerapp=$(viewerapp). Exception e=$(e)"
   end
@@ -84,13 +81,13 @@ Related
 
 drawCliqSubgraphUpMocking, drawGraph, drawTree
 """
-function drawGraphCliq(hists::Dict{Int, <: Tuple},
-                       step::Int,
-                       tree::AbstractBayesTree,
-                       frontal::Symbol;
-                       show::Bool=true  )
+function drawGraphCliq( hists::Dict{Int, <: Tuple},
+                        step::Int,
+                        tree::AbstractBayesTree,
+                        frontal::Symbol;
+                        show::Bool=true  )
   #
-  cid = getClique(tree, frontal).index
+  cid = getId(getClique(tree, frontal))
   cfg = hists[cid][step][4].cliqSubFg
   drawGraph(cfg, show=show)
 end
@@ -117,7 +114,7 @@ function printCliqSummary(dfg::G,
   infdim = map(x->getVariableInferredDim(dfg, x), [frtl;seps])
 
   with_logger(logger) do
-    @info "Clique $(cliq.index) summary:"
+    @info "Clique $(getId(cliq)) summary:"
     @info "  num frontals:    $(length(frtl))"
     @info "  num separators:  $(length(seps))"
     @info "  num factors:     $(length(fcts))"

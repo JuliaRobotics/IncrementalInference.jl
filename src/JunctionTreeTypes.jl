@@ -1,49 +1,12 @@
 
+export MetaBayesTree, BayesTree
 
+## ========================================================================================================================
 ## Bayes Trees
+## ========================================================================================================================
 
 abstract type AbstractBayesTree end
 
-# TODO - see #540 related to indexing and ids
-# BayesTree declarations
-const BTGdict = GenericIncidenceList{TreeClique,Edge{TreeClique},Array{TreeClique,1},Array{Array{Edge{TreeClique},1},1}}
-
-"""
-$(TYPEDEF)
-
-Data structure for the Bayes (Junction) tree, which is used for inference and constructed from a given `::AbstractDFG`.
-"""
-mutable struct BayesTree <: AbstractBayesTree
-  bt::BTGdict
-  btid::Int
-  cliques::Dict{Int,TreeClique}
-  frontals::Dict{Symbol,Int}
-  messageChannels::Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}
-  variableOrder::Vector{Symbol}
-  buildTime::Float64
-end
-
-BayesTree() = BayesTree(Graphs.inclist(TreeClique,is_directed=true),
-                        0,
-                        Dict{Int,TreeClique}(),
-                        Dict{AbstractString, Int}(),
-                        Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}(),
-                        Symbol[],
-                        0.0  )
-#
-
-#TEMP switch the tree to use NOTE under development don't use MetaBayesTree yet
-global UseMetaBayesTree = false
-setUseMetaBayesTree(b::Bool) = global UseMetaBayesTree = b
-function emptyBayesTree()
-  global UseMetaBayesTree
-  if UseMetaBayesTree
-    @warn "Experimental, do not use yet, MetaBayesTree is under development"
-    return MetaBayesTree()
-  else
-    return BayesTree()
-  end
-end
 
 # TODO DEV MetaGraphs bayes tree, will potentially also make a LightBayesTree, CloudBayesTree,
 """
@@ -53,11 +16,12 @@ Data structure for the Bayes (Junction) tree, which is used for inference and co
 mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
-  # cliques::Dict{Int,TreeClique}
-  frontals::Dict{Symbol,Int}
+  frontals::Dict{Symbol,CliqueId{Int}}
   variableOrder::Vector{Symbol}
   buildTime::Float64
 end
+
+const BayesTree = MetaBayesTree
 
 MetaBayesTree() = MetaBayesTree(MetaDiGraph{Int,Float64}(), 0, Dict{AbstractString, Int}(), Symbol[], 0.0)
 
@@ -65,10 +29,7 @@ Base.propertynames(x::MetaBayesTree, private::Bool=false) = (:bt, :btid, :clique
 
 Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
     if f == :cliques
-      if !(@isdefined getCliquesWarnOnce)
-        @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-        global getCliquesWarnOnce = true
-      end
+      @warn "Don't use cliques field directly, use eg. getClique(tree, cliqId)" maxlog=1
       d = Dict{Int,Any}()
       for (k,v) in x.bt.vprops
         d[k] = v[:clique]
@@ -81,10 +42,7 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
 
 function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
   if f == :cliques
-    if !(@isdefined setCliquesWarnOnce)
-      @warn "Maybe don't use cliques field directly, TODO implement add/update/get/delete eg. getClique(tree, cliqId)"
-      global setCliquesWarnOnce = true
-    end
+    @warn "`setproperty!(clique)` Don't use cliques field directly, use eg. addClique(tree, cliqId)" maxlog=1
     for (k,v) in val
       set_prop!(x.bt, k, :clique, v)
     end
@@ -93,28 +51,17 @@ function Base.setproperty!(x::MetaBayesTree, f::Symbol, val)
   end
 end
 
-function MetaBayesTree(tree::BayesTree)
-  # create graph from Graphs.jl adjacency_matrix
-  mtree = MetaBayesTree(MetaDiGraph{Int, Float64}(MetaGraphs.SimpleDiGraph(Graphs.adjacency_matrix(tree.bt))), tree.btid, tree.frontals, tree.variableOrder, tree.buildTime)
+function getMessageChannels(tree::MetaBayesTree)
 
-  #deep copy over properties
-  for v in tree.bt.vertices
-    # set_prop!(mtree.bt, v.index, :label, deepcopy(v.label))
-    set_prop!(mtree.bt, v.index, :clique, deepcopy(v))
+  d = Dict{Int, NamedTuple{(:upMsg, :downMsg),Tuple{Channel{LikelihoodMessage},Channel{LikelihoodMessage}}}}()
+
+  for (k,e) in tree.bt.eprops
+    d[k.dst] = (upMsg=e[:upMsg], downMsg=e[:downMsg])
   end
-
-  ##  FIXME: Use common location for channels #675 (DF, asking for BTND)
-  ##  TODO: placeholder for edge stored Channels
-  ## set message passing properties,
-  # for e in MetaGraphs.edges(mtree.bt)
-  #   set_prop!(mtree.bt, e, :upMsg, Channel{BelieveMessage}(0))
-  #   set_prop!(mtree.bt, e, :downMsg, Channel{BelieveMessage}(0))
-  # end
-
-  return mtree
+  
+  return d
 
 end
-
 
 """
     $TYPEDEF
@@ -129,8 +76,8 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  parentCliq::Vector{TreeClique} #TODO deprecate
-  childCliqs::Vector{TreeClique} #TODO deprecate
+  # parentCliq::Vector{TreeClique} #TODO deprecate
+  # childCliqs::Vector{TreeClique} #TODO deprecate
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
@@ -139,8 +86,9 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   refactoring::Dict{Symbol, String}
   oldcliqdata::BTND
   logger::SimpleLogger
-  cliqKey::Int
+  cliqId::CliqueId
   algorithm::Symbol
+  init_iter::Int
 end
 
 #TODO use @NamedTuple if julia compat > 1.5
@@ -155,8 +103,8 @@ function CliqStateMachineContainer( dfg::G,
                                     cliqSubFg::M,
                                     tree::T,
                                     cliq::TreeClique,
-                                    parentCliq::Vector{TreeClique},
-                                    childCliqs::Vector{TreeClique},
+                                    # parentCliq::Vector{TreeClique},
+                                    # childCliqs::Vector{TreeClique},
                                     incremental::Bool,
                                     drawtree::Bool,
                                     dodownsolve::Bool,
@@ -165,15 +113,15 @@ function CliqStateMachineContainer( dfg::G,
                                     refactoring::Dict{Symbol,String}=Dict{Symbol,String}(),
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
-                                    cliqKey::Int = cliq.index,
-                                    algoritm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    cliqId::CliqueId = cliq.id,
+                                    algorithm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
                                             tree,
                                             cliq,
-                                            parentCliq,
-                                            childCliqs,
+                                            # parentCliq,
+                                            # childCliqs,
                                             incremental,
                                             drawtree,
                                             dodownsolve,
@@ -182,7 +130,9 @@ function CliqStateMachineContainer( dfg::G,
                                             refactoring,
                                             oldcliqdata,
                                             logger,
-                                            cliqKey )
+                                            cliqId,
+                                            algorithm,
+                                            0 )
   #
 end
 
@@ -203,7 +153,7 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
   @warn "Skipping compare of CSMC.tree"
   # TP = TP && compare(cs1.tree,  cs2.tree)
   TP = TP && compare(cs1.cliq,  cs2.cliq)
-  TP = TP && compare(cs1.cliqKey,  cs2.cliqKey)
+  TP = TP && compare(cs1.cliqId,  cs2.cliqId)
   TP = TP && length(cs1.parentCliq) == length(cs2.parentCliq)
   for i in 1:length(cs1.parentCliq)
     TP = TP && compare(cs1.parentCliq[i],  cs2.parentCliq[i])

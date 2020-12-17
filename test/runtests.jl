@@ -70,6 +70,8 @@ include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
 
+include("testEuclidDistance.jl")
+
 include("priorusetest.jl")
 
 include("testVariousNSolveSize.jl")
@@ -102,7 +104,7 @@ include("testMixtureLinearConditional.jl")
 
 include("testFluxModelsDistribution.jl")
 
-include("testODERelative.jl")
+include("testDERelative.jl")
 
 include("testAnalysisTools.jl")
 
@@ -120,6 +122,8 @@ include("testDeadReckoningTether.jl")
 include("testCSMMonitor.jl")
 
 include("testSkipUpDown.jl")
+
+include("testTreeFunctions.jl")
 
 
 #

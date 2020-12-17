@@ -209,6 +209,14 @@ end
 ## Cliques
 ## TreeClique
 ##==============================================================================
+struct CliqueId{T}
+  value::T
+end
+
+Base.getindex(cId::CliqueId) = cId.value
+Base.show(io::IO, ::MIME"text/plain", x::CliqueId) = print(io, x.value)
+Base.show(io::IO, x::CliqueId) = print(io, x.value)
+
 """
     $(TYPEDEF)
 Structure to store clique data
@@ -216,21 +224,37 @@ DEV NOTES: To replace TreeClique completely
     $(FIELDS)
 """
 mutable struct TreeClique
-  index::Int # see issue #540
-  label::Symbol #NOTE this is currently a label such as clique 1, # The drawing label is saved in attributes, JT I'm not sure of the current use
+  "Interger id unique within a tree with userId, robotId, sessionId"
+  id::CliqueId{Int64} # not to be confused with the underlying index used by LightGraphs.jl, see issue #540
+  "Data as `BayesTreeNodeData`"
   data::BayesTreeNodeData 
-  attributes::Dict{String, Any} #The drawing attributes
+  "Drawing attributes"
+  attributes::Dict{String, Any} 
   #solveInProgress #on a clique level a "solve in progress" might be very handy
 end
 
-TreeClique(i::Int, label::Symbol) = TreeClique(i, label, BayesTreeNodeData(), Dict{String,Any}())
-TreeClique(i::Int, label::AbstractString) = TreeClique(i, Symbol(label))
+getId(c::TreeClique) = c.id
 
-Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
-Graphs.vertex_index(v::TreeClique) = v.index
-Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
+function Base.getproperty(x::TreeClique,f::Symbol)
+  if f == :index
+    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :getproperty)
+    f = :id
+  end
+  getfield(x,f)
+end
 
-#TODO the label field and label atribute is a bit confusing with accessors.
+function Base.setproperty!(x::TreeClique, f::Symbol, val)
+  if f == :index
+    Base.depwarn("`TreeCliqe` field `index` is deprecated, use `id`", :setproperty!)
+    f = :id
+  end
+  return setfield!(x, f, convert(fieldtype(typeof(x), f), val))
+end
+
+TreeClique(i::Int) = TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
+TreeClique(id::CliqueId) = TreeClique(id, BayesTreeNodeData(), Dict{String,Any}())
+
+
 DFG.getLabel(cliq::TreeClique) = cliq.attributes["label"]
 function setLabel!(cliq::TreeClique, lbl::String)
   cliq.attributes["label"] = lbl

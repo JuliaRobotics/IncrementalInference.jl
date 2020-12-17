@@ -91,7 +91,7 @@ function productbelief( dfg::AbstractDFG,
                         logger=ConsoleLogger()  )
   #
   vert = DFG.getVariable(dfg, vertlabel)
-  manis = getSofttype(vert) |> getManifolds
+  manis = getVariableType(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
   if lennonp > 1
@@ -282,7 +282,7 @@ function localProduct(dfg::AbstractDFG,
   # take the product
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
   vari = DFG.getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getSofttype(vari) |> getManifolds )
+  pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifolds )
 
   return pp, dens, partials, lb, sum(inferdim)
 end

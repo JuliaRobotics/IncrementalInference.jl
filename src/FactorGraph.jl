@@ -6,7 +6,7 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
     $SIGNATURES
 Return the manifolds on which variable `sym::Symbol` is defined.
 """
-getManifolds(vd::VariableNodeData) = getSofttype(vd) |> getManifolds
+getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
 function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
@@ -135,8 +135,8 @@ function setValKDE!(vd::VariableNodeData,
                     val::Array{Float64,2},
                     setinit::Bool=true,
                     inferdim::Float64=0.0)::Nothing
-  # recover softtype information
-  sty = getSofttype(vd)
+  # recover variableType information
+  sty = getVariableType(vd)
   p = AMP.manikde!(val, getManifolds(sty))
   setValKDE!(vd, p, setinit, inferdim)
   nothing
@@ -148,7 +148,7 @@ function setValKDE!(v::DFGVariable,
                     setinit::Bool=true,
                     inferdim::Float64=0;
                     solveKey::Symbol=:default)::Nothing
-  # recover softtype information
+  # recover variableType information
   setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
   nothing
@@ -159,7 +159,7 @@ function setValKDE!(v::DFGVariable,
                     setinit::Bool=true,
                     inferdim::Float64=0.0;
                     solveKey::Symbol=:default)::Nothing
-  # recover softtype information
+  # recover variableType information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
   nothing
 end
@@ -264,14 +264,14 @@ end
 
 function DefaultNodeDataParametric(dodims::Int,
                                    dims::Int,
-                                   softtype::InferenceVariable;
+                                   variableType::InferenceVariable;
                                    initialized::Bool=true,
                                    dontmargin::Bool=false)::VariableNodeData
 
   # this should be the only function allocating memory for the node points
   if false && initialized
     error("not implemented yet")
-    # pN = AMP.manikde!(randn(dims, N), softtype.manifolds);
+    # pN = AMP.manikde!(randn(dims, N), variableType.manifolds);
     #
     # sp = Int[0;] #round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     # gbw = getBW(pN)[:,1]
@@ -281,18 +281,18 @@ function DefaultNodeDataParametric(dodims::Int,
     # #initval, stdev
     # return VariableNodeData(pNpts,
     #                         gbw2, Symbol[], sp,
-    #                         dims, false, :_null, Symbol[], softtype, true, 0.0, false, dontmargin)
+    #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     return VariableNodeData(zeros(dims, 1),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], softtype, false, 0.0, false, dontmargin, 0, 0, :parametric)
+                            dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
 
 end
 
-function setDefaultNodeDataParametric!(v::DFGVariable, softtype::InferenceVariable; kwargs...)
-  vnd = DefaultNodeDataParametric(0, softtype |> getDimension, softtype; kwargs...)
+function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVariable; kwargs...)
+  vnd = DefaultNodeDataParametric(0, variableType |> getDimension, variableType; kwargs...)
   setSolverData!(v, vnd, :parametric)
   return nothing
 end
@@ -367,7 +367,7 @@ function setVariableRefence!(dfg::AbstractDFG,
                          false,
                          :_null,
                          Symbol[],
-                         getSofttype(var),
+                         getVariableType(var),
                          true,
                          0.0,
                          false,
@@ -616,7 +616,7 @@ function prepgenericconvolution(
     ccw.cpt[i].factormetadata.variableuserdata = []
     ccw.cpt[i].factormetadata.solvefor = :null
     for xi in Xi
-      push!(ccw.cpt[i].factormetadata.variableuserdata, getSolverData(xi).softtype)
+      push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
     end
   end
   return ccw
@@ -929,7 +929,7 @@ function initManual!( dfg::AbstractDFG,
   @info "initManual! $label"
   pts = predictbelief(dfg, label, usefcts)[1]
   vert = getVariable(dfg, label)
-  Xpre = AMP.manikde!(pts, getSofttype(vert) |> getManifolds )
+  Xpre = AMP.manikde!(pts, getVariableType(vert) |> getManifolds )
   setValKDE!(vert, Xpre, true)
   return nothing
 end
@@ -1355,7 +1355,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getSofttype(vnd) |> getManifolds)
+getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) |> getManifolds)
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
 

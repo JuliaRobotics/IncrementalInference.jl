@@ -49,7 +49,7 @@ function taskSolveTree!(dfg::AbstractDFG,
     @sync begin
       monitortask = monitorCSMs(treel, smtasks)
       # duplicate int i into async (important for concurrency)
-      for i in 1:getNumCliqs(treel) # TODO, this might not always work for Graphs.jl
+      for i in 1:getNumCliqs(treel) # TODO, this might not always work?
         scsym = getCliqFrontalVarIds(getClique(treel, i))
         if length(intersect(scsym, skipcliqids)) == 0
 
@@ -100,8 +100,8 @@ function tryCliqStateMachineSolve!(dfg::G,
 
   opts = getSolverParams(dfg)
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
-  mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.index)/"))
-  logger = SimpleLogger(open(joinpath(opts.logpath,"logs/cliq$(cliq.index)/log.txt"), "w+")) # NullLogger()
+  mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.id)/"))
+  logger = SimpleLogger(open(joinpath(opts.logpath,"logs/cliq$(cliq.id)/log.txt"), "w+")) # NullLogger()
   # global_logger(logger)
   history = Vector{CSMHistoryTuple}()
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
@@ -117,9 +117,9 @@ function tryCliqStateMachineSolve!(dfg::G,
     #
     # cliqHistories[cliqKey] = history
     if length(history) >= limititers && limititers != -1
-      # @warn "writing logs/cliq$(cliq.index)/csm.txt"
-      # @save "/tmp/cliqHistories/cliq$(cliq.index).jld2" history
-      fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.index)/csm.txt"), "w")
+      # @warn "writing logs/cliq$(cliq.id)/csm.txt"
+      # @save "/tmp/cliqHistories/cliq$(cliq.id).jld2" history
+      fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.id)/csm.txt"), "w")
       printCliqHistorySummary(fid, history)
       close(fid)
     end
@@ -131,18 +131,18 @@ function tryCliqStateMachineSolve!(dfg::G,
     bt = catch_backtrace()
     println()
     showerror(stderr, err, bt)
-    # @warn "writing /tmp/caesar/logs/cliq$(cliq.index)/*.txt"
-    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.index)/stacktrace.txt"), "w")
+    # @warn "writing /tmp/caesar/logs/cliq$(cliq.id)/*.txt"
+    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.id)/stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
-    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.index)_stacktrace.txt"), "w")
+    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.id)_stacktrace.txt"), "w")
     showerror(fid, err, bt)
     close(fid)
     # @save "/tmp/cliqHistories/$(cliq.label).jld2" history
-    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.index)/csm.txt"), "w")
+    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.id)/csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
-    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.index)_csm.txt"), "w")
+    fid = open(joinpath(opts.logpath,"logs/cliq$(cliq.id)_csm.txt"), "w")
     printCliqHistorySummary(fid, history)
     close(fid)
     flush(logger.stream)
@@ -150,7 +150,7 @@ function tryCliqStateMachineSolve!(dfg::G,
     rethrow()
   end
   # if !(clst in [UPSOLVED; DOWNSOLVED; MARGINALIZED])
-  #   error("Clique $(cliq.index), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
+  #   error("Clique $(cliq.id), initInferTreeUp! -- cliqInitSolveUp! did not arrive at the desired solution statu: $clst")
   # end
   return history
 end
@@ -184,7 +184,7 @@ function solveCliqWithStateMachine!(dfg::G,
   destType = (G <: InMemoryDFGTypes) ? G : InMemDFGType
 
   csmc = isa(prevcsmc, Nothing) ? CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)), tree, cliq, prnt, children, false, true, true, downsolve, false, getSolverParams(dfg)) : prevcsmc
-  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc, name="cliq$(cliq.index)")
+  statemachine = StateMachine{CliqStateMachineContainer}(next=nextfnc, name="cliq$(cliq.id)")
   while statemachine(csmc, verbose=verbose, iterlimit=iters, recordhistory=recordhistory); end
   statemachine, csmc
 end
@@ -275,8 +275,6 @@ function solveTree!(dfgl::AbstractDFG,
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
-
-  opt.useMsgLikelihoods == false && @warn("#TODO Verify useMsgLikelihoods=false works correctly")
 
   # depcrecation
   if maxparallel !== nothing
@@ -421,9 +419,9 @@ function solveCliq!(dfgl::AbstractDFG,
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = getClique(tree, cliqid)
   cliqtask = if async
-    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.index, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
-    tryCliqStateMachineSolve!(dfgl, tree, cliq.index, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+    tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   end
   # end # if
 

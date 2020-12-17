@@ -60,7 +60,6 @@ setCliqueStatus!(cliq::TreeClique, status::CliqStatus) = setCliqueStatus!(getCli
 $SIGNATURES
 Get the message channel
 """
-getMsgUpChannel(tree::BayesTree, edge) = tree.messageChannels[edge.index].upMsg
 getMsgUpChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :upMsg)
 
 """
@@ -85,11 +84,6 @@ function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
   return beliefMsg
 end
 
-# @deprecate putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage) putMessageUp!(tree, edge, beliefMsg)
-# @deprecate takeBeliefMessageUp!(tree::AbstractBayesTree, edge) takeMessageUp!(tree, edge)
-# @deprecate putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage) putMessageDown!(tree, edge, beliefMsg)
-# @deprecate takeBeliefMessageDown!(tree::BayesTree, edge) takeMessageDown!(tree, edge)
-
 ## ----------------------------------------------------------------------------- 
 ## DOWN
 ## ----------------------------------------------------------------------------- 
@@ -97,17 +91,14 @@ end
 $SIGNATURES
 Get the message channel
 """
-getMsgDwnChannel(tree::BayesTree, edge) = tree.messageChannels[edge.index].downMsg
 getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
-
-@deprecate getDwnMsgConsolidated(tree::AbstractBayesTree, edge) getMsgDwnChannel(tree, edge)
 
 """
     $SIGNATURES
 
 Put a belief message on the down tree message channel edge. Blocks until a take! is performed by a different task.
 """
-function putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage)
+function putBeliefMessageDown!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage)
   # Blocks until data is available.
   put!(getMsgDwnChannel(tree, edge), beliefMsg)
   return beliefMsg
@@ -119,7 +110,7 @@ end
 
 Remove and return a belief message from the down tree message channel edge. Blocks until data is available.
 """
-function takeBeliefMessageDown!(tree::BayesTree, edge)
+function takeBeliefMessageDown!(tree::AbstractBayesTree, edge)
   # Blocks until data is available.
   beliefMsg = take!(getMsgDwnChannel(tree, edge))
   return beliefMsg
