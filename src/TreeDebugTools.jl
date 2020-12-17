@@ -186,7 +186,7 @@ function printHistoryLine(fid,
   #   frt = (hi[4].parentCliq[1] |> getFrontals)[1]
   #   childs = getChildren(hi[4].tree, frt)
   #   # remove current clique to leave only siblings
-  #   filter!(x->x.index!=hi[4].cliq.id, childs)
+  #   filter!(x->x.index!=hi[4].cliq.id.value, childs)
   #   for ch in childs
   #     first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
   #   end
@@ -352,7 +352,7 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id=>hi[2])] : hi[2]
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id.value=>hi[2])] : hi[2]
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
@@ -423,7 +423,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
     seqLookup = Dict{Pair{Int,Int},Int}()
     for idx in 1:length(alltimes)
       hiln = allhists_[idx]
-      seqLookup[(hiln[4].cliq.id => hiln[2])] = idx
+      seqLookup[(hiln[4].cliq.id.value => hiln[2])] = idx
     end
 
   
@@ -511,7 +511,7 @@ function attachCSM!(csmc::CliqStateMachineContainer,
   csmc.logger = logger # TODO option to reopen and append to previous logger file
 
   @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
-  cid = csmc.cliq.id
+  cid = csmc.cliq.id.value
   pids = csmc.parentCliq .|> x->x.id
   cids = csmc.childCliqs .|> x->x.id
 
