@@ -962,7 +962,7 @@ function setCliqPotentials!(dfg::G,
   nothing
 end
 
-getCliquePotentials(cliq::TreeBelief) = getCliqueData(cliq).potentials
+getCliquePotentials(cliq::TreeClique) = getCliqueData(cliq).potentials
 
 function cliqPotentialIDs(cliq::TreeClique)
   potIDs = Symbol[]

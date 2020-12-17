@@ -79,6 +79,45 @@ end
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
 
 
+"""
+$(TYPEDEF)
+
+TODO TO BE DEPRECATED
+"""
+mutable struct PotProd
+    Xi::Symbol # Int
+    prev::Array{Float64,2}
+    product::Array{Float64,2}
+    potentials::Array{BallTreeDensity,1}
+    potentialfac::Vector{Symbol}
+end
+
+"""
+$(TYPEDEF)
+
+TODO TO BE DEPRECATED
+"""
+mutable struct CliqGibbsMC
+    prods::Array{PotProd,1}
+    lbls::Vector{Symbol}
+    CliqGibbsMC() = new()
+    CliqGibbsMC(a,b) = new(a,b)
+end
+
+"""
+$(TYPEDEF)
+
+TODO TO BE DEPRECATED
+"""
+mutable struct DebugCliqMCMC
+  mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
+  outmsg::LikelihoodMessage
+  outmsglbls::Dict{Symbol, Symbol} # Int
+  priorprods::Vector{CliqGibbsMC}
+  DebugCliqMCMC() = new()
+  DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
+end
+
 ##==============================================================================
 ## Deprecate at v0.19
 ##==============================================================================

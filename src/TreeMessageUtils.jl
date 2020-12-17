@@ -120,8 +120,6 @@ function generateMsgPrior(belief_::TreeBelief, ::ParametricMessage)
   return msgPrior
 end
 
-# this is a developmental type, will be standardized after conclusion of #1010
-const DiffJointType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
 
 """
     $SIGNATURES
@@ -142,7 +140,7 @@ Related
 [`_calcCandidatePriorBest`](@ref)
 """
 function _findSubgraphsFactorType(dfg_::AbstractDFG,
-                                  diffJoints::DiffJointType,
+                                  jointrelatives::MsgRelativeType,
                                   separators::Vector{Symbol} )
   #
   commonJoints = []
@@ -154,7 +152,7 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
   map(x->(sepsCount[x]=0), separators)
   # tagsFilter = [:LIKELIHOODMESSAGE;]
   # tflsf = lsf(fg, tags=tagsFilter)
-  for likl in diffJoints
+  for likl in jointrelatives
     for vari in likl.variables
       sepsCount[vari] += 1
     end
@@ -222,7 +220,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
                                       tfg::AbstractDFG=initfg() )
   # create new local dfg and add all the variables with data
 
-  for difflikl in msgs.diffJoints
+  for difflikl in msgs.jointmsg.relatives
     addFactor!(cliqSubFG, difflikl.variables, difflikl.likelihood, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
   end
 
@@ -273,7 +271,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           tfg::AbstractDFG=initfg() )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior
-  retlist = DiffJointType()
+  retlist = MsgRelativeType()
 
   # create new local dfg and add all the variables with data
   for label in seps
@@ -320,9 +318,10 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
 end
 
 # use variableList to select a sub-subgraph -- useful for disconnected segments of graph
-function _calcCandidatePriorBest( subfg::AbstractDFG, 
-                                  msgs::LikelihoodMessage,
-                                  variableList::Vector{Symbol}=collect(keys(msgs.belief)) )
+function _calcCandidatePriorBest( subfg::AbstractDFG,
+                                  msgbeliefs::Dict,
+                                  # msgs::LikelihoodMessage,
+                                  variableList::Vector{Symbol}=collect(keys(msgbeliefs)) )
   #
   ## TODO repackage as new function for wider use
   len = length(variableList)
@@ -332,7 +331,7 @@ function _calcCandidatePriorBest( subfg::AbstractDFG,
   # TODO, not considering existing priors for MsgPrior placement at this time
   # priors = Vector{Int}(undef, len)
   i = 0
-  for (label, val) in msgs.belief
+  for (label, val) in msgbeliefs
     # skip elements not in variableList
     (label in variableList) ? nothing : continue
     # do calculations based on dimension
@@ -366,23 +365,45 @@ Related
 
 [`_findSubgraphsFactorType`](@ref), [`_calcCandidatePriorBest`](@ref)
 """
-function _generateSubgraphMsgPriors(subfg, 
-                                    msg::LikelihoodMessage,
-                                    allClasses::Dict{Int, Vector{Symbol}})
+function _generateSubgraphMsgPriors(subfg::AbstractDFG,
+                                    allClasses::Dict{Int, Vector{Symbol}},
+                                    msgbeliefs::Dict,
+                                    msgHasPriors::Bool,
+                                    msgType::MessageType )
   #
-  priorsJoint = Dict{Symbol, MsgPrior}()
+  priorsJoint = MsgPriorType()
   
   # 5. find best variable of each of allClasses to place MsgPrior
   for (id, syms) in allClasses
-    # if any `diffJoints per variable && !msg.hasPriors`, then dont add a prior
-    if 1 == length(syms) || msg.hasPriors
-      whichVar = IIF._calcCandidatePriorBest(subfg, msg, syms)
-      priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msg.msgType)
+    # if any `jointmsg per variable && !msg.hasPriors`, then dont add a prior
+    if 1 == length(syms) || msgHasPriors
+      whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs, syms)
+      priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msgType)
     end
   end
   
   # return the required priors
   return priorsJoint
+end
+
+
+
+
+function _generateMsgJointRelativesPriors(dfg::AbstractDFG,
+                                          cliq::TreeClique, 
+                                          cfg::AbstractDFG=buildCliqSubgraph(dfg, cliq) )
+  #
+  separators = getCliqSeparatorVarIds(cliq)
+  jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators )
+  allClasses = IIF._findSubgraphsFactorType( cfg, jointrelatives, separators )
+  hasPriors = 0 < length( intersect(getCliquePotentials(cliq), lsfPriors(cfg)) )
+
+  msgbeliefs = Dict{Symbol, TreeBelief}()
+  IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq )
+
+  upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
+
+  _MsgJointLikelihood(relatives=jointrelatives, priors=upmsgpriors)
 end
 
 
@@ -397,7 +418,7 @@ function addLikelihoodPriorCommon!( subfg::AbstractDFG,
   #
   # find max dimension variable, which also has highest biadjacency
 
-  topCandidate = _calcCandidatePriorBest(subfg, msgs)
+  topCandidate = _calcCandidatePriorBest(subfg, msgs.belief)
 
   # get prior for top candidate
   msgPrior = generateMsgPrior(msgs.belief[topCandidate], msgs.msgType)
@@ -570,6 +591,28 @@ end
 ## =============================================================================
 
 
+function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
+                                subfg::AbstractDFG,
+                                cliq::TreeClique,
+                                sdims=getCliqVariableMoreInitDims(subfg, cliq);
+                                duplicate::Bool=true )
+  #
+  # TODO better logging
+  # with_logger(logger) do
+  #   @info "$(now()), prepCliqInitMsgsUp, seps=$seps, sdims=$sdims"
+  # end
+
+  seps = getCliqSeparatorVarIds(cliq)
+  for vid in seps
+    var = DFG.getVariable(subfg, vid)
+    var = duplicate ? deepcopy(var) : var
+    if isInitialized(var)
+      msgdict[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
+    end
+  end
+  nothing
+end
+
 #TODO rename to just prepCliqueMsgUp
 """
     $SIGNATURES
@@ -595,22 +638,22 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
   msg = LikelihoodMessage(status=status, hasPriors=hasPriors)
-  seps = getCliqSeparatorVarIds(cliq)
-  with_logger(logger) do
-    @info "$(now()), prepCliqInitMsgsUp, seps=$seps, sdims=$sdims"
-  end
-  for vid in seps
-    var = DFG.getVariable(subfg, vid)
-    var = duplicate ? deepcopy(var) : var
-    if isInitialized(var)
-      msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
-    end
-  end
+
+  _buildTreeBeliefDict!(msg.belief,subfg,cliq,duplicate=duplicate )
+
+  # seps = getCliqSeparatorVarIds(cliq)
+  # for vid in seps
+  #   var = DFG.getVariable(subfg, vid)
+  #   var = duplicate ? deepcopy(var) : var
+  #   if isInitialized(var)
+  #     msg.belief[var.label] = TreeBelief(var, solvableDim=sdims[var.label])
+  #   end
+  # end
 
   # FIXME calculate the new DIFFERENTIAL factors
   retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
   # @show typeof(retval)
-  msg.diffJoints = retval
+  msg.jointmsg.relatives = retval
 
   return msg
 end
@@ -666,6 +709,12 @@ end
 
 
 #TODO function is currently broken as getUpMsgs does not exist, possibly deprecated?
+# DF, I did some digging and got this far
+# v0.14 @deprecate getUpMsgs(x...) getMsgsUpThis(x...)
+#       @deprecate getMsgsUpThis(x...) getMsgUpThis(x...)
+#         getMsgUpThis(cdat::BayesTreeNodeData) = fetch(getMsgUpChannel(cdat))
+# v0.16 @deprecate getMsgUpThis(x...;kw...) fetchMsgUpThis(x...;kw...)
+# fetchMsgUpThis was never properly deprecated, see #1053
 """
     $SIGNATURES
 
@@ -673,6 +722,9 @@ Return dictionary of all up belief messages currently in a Bayes `tree`.
 
 Notes
 - Returns `::Dict{Int,LikelihoodMessage}`
+
+DevNotes
+- see #1053, `getUpMsgs` --> `fetchMsgUpThis` v0.16
 
 Related
 
@@ -723,7 +775,7 @@ function stackCliqUpMsgsByVariable( tree::AbstractBayesTree,
         stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
       end
       # assemble metadata
-      cliq = getCliques(tree,cidx)
+      cliq = getClique(tree,cidx)
       frt = getCliqFrontalVarIds(cliq)[1]
       # add this belief msg and meta data to vector of variable entry
       push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))

@@ -3,6 +3,8 @@
 using Test
 using IncrementalInference
 
+##
+
 
 @testset "test case with disjoint clique joint subgraph" begin
 
@@ -39,7 +41,6 @@ addFactor!( fg, [:x0; :x3], EuclidDistance(Normal(30, 1)), graphinit=false )
 
 # drawGraph(fg, show=true)
 
-
 ## test shortest path
 
 # first path
@@ -57,70 +58,46 @@ pth = findShortestPathDijkstra(fg, :x0, :x2, typeFactors=[EuclidDistance;])
 @test pth == tp2_
 
 
+##
+
+isHom, typeName = isPathFactorsHomogeneous(fg, :x0, :x2)
+
+@test isHom
+@test length(typeName) == 1
+@test typeName[1].name == :LinearRelative
+
+
+
 ## use a specific solve order
 
 vo = [:x3; :x1; :x2; :x0] # getEliminationOrder(fg)
-tree, _, = solveTree!(fg, variableOrder=vo);
+tree = resetBuildTreeFromOrder!(fg, vo)
 
 ##
 
 # drawTree(tree, show=true)
 
-## get up message from child clique
-
-msgBuf = IIF.getMessageBuffer(getClique(tree, :x3))
-msg = msgBuf.upTx
-
-
 ## Child clique subgraph
 
 # each clique has a subgraph
 cliq2 = getClique(tree,:x3)
-cfg2 = buildCliqSubgraph(fg, cliq2)
 
-drawGraph(cfg2, show=true)
-
-##
-
-
-separators = getCliqSeparatorVarIds(cliq2)
-
-allClasses = IIF._findSubgraphsFactorType( cfg2, msg.diffJoints, separators )
-
-upmsgpriors = _generateSubgraphMsgPriors( cfg2, msg, allClasses)
-
+# drawGraph(cfg2, show=true)
 
 ##
 
 
 
-
-
 ##
 
-prs = _generateSubgraphMsgPriors(cfg2, msg, allClasses)
+jointmsg = _generateMsgJointRelativesPriors(fg, cliq2)
 
+## get up message from child clique
 
-##
+tree, _, = solveTree!(fg, variableOrder=vo);
 
-
-mb = IIF.getMessageBuffer(getClique(tree, :x0))
-
-mb.upRx[2].diffJoints[1].variables
-mb.upRx[2].diffJoints[1].likelihood
-
-
-##
-
-@show findShortestPathDijkstra(fg, :x0,:x2)
-
-@show findShortestPathDijkstra(fg, :x1,:x3)
-
-
-
-##
-
-isPathFactorsHomogeneous(fg, :x0, :x2)
+msgBuf = IIF.getMessageBuffer(getClique(tree, :x3))
+msg = msgBuf.upTx
 
 
 ##
