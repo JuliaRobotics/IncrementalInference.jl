@@ -33,21 +33,21 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
 
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
-                                   tree, cliq,
-                                  #  prnt, children,
-                                   incremental, drawtree, downsolve, delay,
-                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliq.id, algorithm, 0) 
-
+  csmc = CliqStateMachineContainer( dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                    tree, cliq,
+                                    incremental, drawtree, downsolve, delay,
+                                    getSolverParams(dfg), Dict{Symbol,String}(), 
+                                    oldcliqdata, logger, 
+                                    cliq.id, algorithm, 0) 
+  #
+  
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
-
+  
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
-
+  
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(getId(cliq))")
-
 
   # store statemachine and csmc in task
   if dfg.solverParams.dbg || recordhistory
@@ -407,6 +407,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
+  logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated, going for prepCliqueMsgUpConsolidated")
   beliefMsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)

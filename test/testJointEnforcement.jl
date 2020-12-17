@@ -79,41 +79,46 @@ tree = resetBuildTreeFromOrder!(fg, vo)
 
 ## Child clique subgraph
 
-# each clique has a subgraph
 cliq2 = getClique(tree,:x3)
-
 # drawGraph(cfg2, show=true)
 
-##
-
-
 
 ##
 
-jointmsg = _generateMsgJointRelativesPriors(fg, cliq2)
+cfg2 = buildCliqSubgraph(fg, cliq2)
 
-## get up message from child clique
+jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, cliq2)
+
+
+@info "update these jointmsg test after #1010"
+@test intersect( keys(jointmsg.priors) , [:x0; :x2] ) |> length == 2
+@test length(jointmsg.relatives) == 0
+
+
+##
+
+
+# retlist = addLikelihoodsDifferentialCHILD!([:x2; :x0], cfg2)
+
+
+##
 
 tree, _, = solveTree!(fg, variableOrder=vo);
+
+
+## get up message from child clique
 
 msgBuf = IIF.getMessageBuffer(getClique(tree, :x3))
 msg = msgBuf.upTx
 
 
+msg.jointmsg.priors
+
+msg.jointmsg.relatives
+
+
 ##
 
-fg[:x4]
-fg[:x2]
-
-##
-
-
-# vo = getEliminationOrder(fg)
-
-tree = resetBuildTree!(fg)
-# tree = resetBuildTreeFromOrder!(fg, [:x0;:x1;:x3;:x2])
-
-drawTree(tree, show=true)
 
 
 
@@ -138,15 +143,6 @@ getindex(Main, ftyps[1])
 
 
 ##  dev
-
-
-##
-
-
-retlist = addLikelihoodsDifferentialCHILD!([:x2; :x0], cfg2)
-
-
-retlist[1][2]
 
 
 

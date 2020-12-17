@@ -1,8 +1,11 @@
 using IncrementalInference
 using Test
 
+##
 
 @testset "test endless cycle case, issue #754" begin
+
+##
 
 # testgraph from issue #754
 fg = generateCanonicalFG_lineStep(5; 
@@ -10,19 +13,41 @@ fg = generateCanonicalFG_lineStep(5;
                                   landmarkEvery=5, 
                                   posePriorsAt=[0,2], 
                                   sightDistance=4)
-                                  
+#                                  
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
 
+##
+
+# tree = resetBuildTree!(fg)
+# drawTree(tree, show=true)
+
+
+##
+
+ENV["JULIA_DEBUG"] = :csm_4
+
 smtasks = Task[]
-tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks);
+tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
+
+
+##
+
+hists = fetchCliqHistoryAll!(smtasks);
+printCSMHistoryLogical(hists)
+
+
+##
 
 for var in sortDFG(ls(fg))
   sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
   println("Testing ", var,": ", sppe)
   @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
 end
+
+
+##
 
 
 # linear octo 
@@ -50,6 +75,8 @@ for var in sortDFG(ls(fg))
     @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
+
+##
 
 # Larger graph
 fg = generateCanonicalFG_lineStep(15; 

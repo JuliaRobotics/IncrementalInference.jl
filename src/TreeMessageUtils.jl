@@ -321,7 +321,7 @@ end
 function _calcCandidatePriorBest( subfg::AbstractDFG,
                                   msgbeliefs::Dict,
                                   # msgs::LikelihoodMessage,
-                                  variableList::Vector{Symbol}=collect(keys(msgbeliefs)) )
+                                  variableList::Vector{Symbol}=collect(keys(msgbeliefs))  )
   #
   ## TODO repackage as new function for wider use
   len = length(variableList)
@@ -369,7 +369,7 @@ function _generateSubgraphMsgPriors(subfg::AbstractDFG,
                                     allClasses::Dict{Int, Vector{Symbol}},
                                     msgbeliefs::Dict,
                                     msgHasPriors::Bool,
-                                    msgType::MessageType )
+                                    msgType::MessageType  )
   #
   priorsJoint = MsgPriorType()
   
@@ -388,10 +388,16 @@ end
 
 
 
+"""
+    $SIGNATURES
 
-function _generateMsgJointRelativesPriors(dfg::AbstractDFG,
-                                          cliq::TreeClique, 
-                                          cfg::AbstractDFG=buildCliqSubgraph(dfg, cliq) )
+Generate relative and prior factors that make up the joint msg likelihood.
+
+DevNotes
+- Non-standard relative likelihoods will be populated by TAF factors, removing priors assumption.
+"""
+function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
+                                          cliq::TreeClique  )
   #
   separators = getCliqSeparatorVarIds(cliq)
   jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators )
@@ -401,6 +407,7 @@ function _generateMsgJointRelativesPriors(dfg::AbstractDFG,
   msgbeliefs = Dict{Symbol, TreeBelief}()
   IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq )
 
+  @show cliq.id, ls(cfg)
   upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
 
   _MsgJointLikelihood(relatives=jointrelatives, priors=upmsgpriors)
@@ -650,10 +657,10 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   #   end
   # end
 
+  msg.jointmsg = IIF._generateMsgJointRelativesPriors( subfg, cliq )
   # FIXME calculate the new DIFFERENTIAL factors
-  retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
-  # @show typeof(retval)
-  msg.jointmsg.relatives = retval
+  # retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
+  # msg.jointmsg.relatives = retval
 
   return msg
 end
