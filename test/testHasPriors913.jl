@@ -38,7 +38,7 @@ tree, smt, hists = solveTree!(fg);
 for i = 0:4
   ppe = getPPE(getVariable(fg, Symbol("x$i"))).suggested[1]
   @show i ppe
-  @test isapprox(ppe, i; atol=0.4)
+  @test isapprox(ppe, i; atol=0.7)
 end 
 
 

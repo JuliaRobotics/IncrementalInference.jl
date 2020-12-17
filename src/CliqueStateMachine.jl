@@ -8,23 +8,23 @@
 Init and start state machine.
 """
 function initStartCliqStateMachine!(dfg::AbstractDFG,
-                                       tree::AbstractBayesTree,
-                                       cliq::TreeClique,
-                                       timeout::Union{Nothing, <:Real}=nothing;
-                                       oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
-                                       verbose::Bool=false,
-                                       verbosefid=stdout,
-                                       drawtree::Bool=false,
-                                       show::Bool=false,
-                                       incremental::Bool=true,
-                                       limititers::Int=20,
-                                       upsolve::Bool=true,
-                                       downsolve::Bool=true,
-                                       recordhistory::Bool=false,
-                                       delay::Bool=false,
-                                       logger::SimpleLogger=SimpleLogger(Base.stdout),
-                                       solve_progressbar=nothing,
-                                       algorithm::Symbol=:default)
+                                    tree::AbstractBayesTree,
+                                    cliq::TreeClique,
+                                    timeout::Union{Nothing, <:Real}=nothing;
+                                    oldcliqdata::BayesTreeNodeData=BayesTreeNodeData(),
+                                    verbose::Bool=false,
+                                    verbosefid=stdout,
+                                    drawtree::Bool=false,
+                                    show::Bool=false,
+                                    incremental::Bool=true,
+                                    limititers::Int=20,
+                                    upsolve::Bool=true,
+                                    downsolve::Bool=true,
+                                    recordhistory::Bool=false,
+                                    delay::Bool=false,
+                                    logger::SimpleLogger=SimpleLogger(Base.stdout),
+                                    solve_progressbar=nothing,
+                                    algorithm::Symbol=:default)
 
   # NOTE use tree and messages for operations involving children and parents
   # TODO deprecate children and prnt clique copies
