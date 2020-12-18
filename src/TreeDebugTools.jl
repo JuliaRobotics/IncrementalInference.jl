@@ -475,6 +475,8 @@ end
 Repeat a solver state machine step -- useful for debugging. 
 
 Notes
+- use in combination with `solveTree!(fg, recordcliqs=[:0; :x7; ...])` -- i.e. by clique frontals as identifier
+  - to record everything, one can do: `recordcliqs=ls(fg)`.
 - `duplicate` avoids changing history or prime data in `hists`.
 - Replaces old API `sandboxCliqResolveStep`
 

@@ -90,6 +90,12 @@ printCSMHistoryLogical(hists)
 
 printCSMHistorySequential(hists)
 
+## test CSM resolve steps
+
+@info "test repeatCSMStep"
+csmc_ = repeatCSMStep(hists, 1, 1)
+
+
 ##
 
 end
