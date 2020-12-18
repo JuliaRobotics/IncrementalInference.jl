@@ -669,7 +669,7 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function csmAnimate(tree::AbstractBayesTree,
+function animateCSM(tree::AbstractBayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
