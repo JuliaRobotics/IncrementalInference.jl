@@ -18,10 +18,11 @@ getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
 
+
 ##
 
-# tree = resetBuildTree!(fg)
-# drawTree(tree, show=true)
+tree = resetBuildTree!(fg)
+drawTree(tree, show=true)
 
 
 ##
@@ -35,10 +36,25 @@ tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
 ##
 
 hists = fetchCliqHistoryAll!(smtasks);
+printCSMHistorySequential(hists)
 printCSMHistoryLogical(hists)
+
+##
+
+
+hists[4][6].csmc
 
 
 ##
+
+csmc_ = repeatCSMStep(hists, 4, 6)
+
+##
+
+
+
+##
+
 
 for var in sortDFG(ls(fg))
   sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
