@@ -1,6 +1,7 @@
 
 #
 
+export repeatCSMStep
 export attachCSM!
 export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
 export printHistoryLine, printHistoryLane, printCliqHistorySummary
@@ -471,22 +472,38 @@ end
 """
   $SIGNATURES
 
-Repeat a solver state machine step without changing history or primary values.
+Repeat a solver state machine step -- useful for debugging. 
 
-printCliqSummary, printCliqHistorySummary, cliqHistFilterTransitions
+Notes
+- use in combination with `solveTree!(fg, recordcliqs=[:0; :x7; ...])` -- i.e. by clique frontals as identifier
+  - to record everything, one can do: `recordcliqs=ls(fg)`.
+- `duplicate` avoids changing history or prime data in `hists`.
+- Replaces old API `sandboxCliqResolveStep`
+
+Related
+
+[`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
+function repeatCSMStep( hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
+                        csmid::Int, 
+                        step::Int; 
+                        duplicate::Bool=true )
+  #
+  
+  # the function at steo 
+  fnc_ = hists[csmid][step].f
+  # the data before step
+  csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
+  
+  # run the step
+  fnc_(csmc_)
+end
+
 function sandboxCliqResolveStep(tree::AbstractBayesTree,
                                 frontal::Symbol,
                                 step::Int)
   #
-  @error "needs to be update to take hist directly"
-  # hist = getCliqSolveHistory(tree, frontal)
-  # # clear Condition states to allow step solve
-  # getCliqueData(hist[step][4].cliq).solveCondition = Condition()
-  #
-  # # cond = getSolveCondition(hist[step][4].cliq)
-  # # cond = Any[]
-  # return sandboxStateMachineStep(hist, step)
+  error("API changed, `sandboxCliqResolveStep` is replaced by `repeatCSMStep`")
 end
 
 
@@ -542,6 +559,7 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
                                   hists::Dict{Symbol, Tuple};
                                   frames::Int=100  )
   #
+  error("`animateCliqStateMachines` is outdated")
   startT = Dates.now()
   stopT = Dates.now()
 
@@ -602,6 +620,7 @@ Related:
 printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
 function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frontals::Vector{Symbol}, nextfnc::Function)
+  error("filterHistAllToArray needs to be updated for new CSM")
   ret = Vector{CSMHistoryTuple}()
   for sym in frontals
     hist = hists[sym] # getCliqSolveHistory(tree, sym)
@@ -652,7 +671,7 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function csmAnimate(tree::AbstractBayesTree,
+function animateCSM(tree::AbstractBayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
