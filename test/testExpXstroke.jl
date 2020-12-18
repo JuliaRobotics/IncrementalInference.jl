@@ -42,12 +42,7 @@ printCSMHistoryLogical(hists)
 ##
 
 
-hists[4][6].csmc
-
-
-##
-
-csmc_ = repeatCSMStep(hists, 4, 6)
+csmc_ = repeatCSMStep!(hists, 4, 6)
 
 ##
 
