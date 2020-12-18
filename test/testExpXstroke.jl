@@ -1,3 +1,6 @@
+
+##
+
 using IncrementalInference
 using Test
 
@@ -13,7 +16,7 @@ fg = generateCanonicalFG_lineStep(5;
                                   landmarkEvery=5, 
                                   posePriorsAt=[0,2], 
                                   sightDistance=4)
-#                                  
+#
 getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
@@ -21,8 +24,8 @@ getSolverParams(fg).useMsgLikelihoods = true
 
 ##
 
-tree = resetBuildTree!(fg)
-drawTree(tree, show=true)
+# tree = resetBuildTree!(fg)
+# drawTree(tree, show=true)
 
 
 ##
@@ -35,17 +38,13 @@ tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
 
 ##
 
-hists = fetchCliqHistoryAll!(smtasks);
-printCSMHistorySequential(hists)
-printCSMHistoryLogical(hists)
+# hists = fetchCliqHistoryAll!(smtasks);
+# printCSMHistorySequential(hists)
+# printCSMHistoryLogical(hists)
 
 ##
 
-
-csmc_ = repeatCSMStep!(hists, 4, 6)
-
-##
-
+# csmc_ = repeatCSMStep!(hists, 4, 6)
 
 
 ##
