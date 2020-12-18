@@ -74,6 +74,8 @@ end
 ## Deprecate at v0.19
 ##==============================================================================
 
+@deprecate csmAnimate(w...;kw...) animateCSM(w...;kw...)
+
 @deprecate getDwnMsgConsolidated(tree::AbstractBayesTree, edge) getMsgDwnChannel(tree, edge)
 
 # @deprecate putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage) putMessageUp!(tree, edge, beliefMsg)
