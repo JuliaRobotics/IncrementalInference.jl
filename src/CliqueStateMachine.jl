@@ -33,14 +33,13 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
 
-  csmc = CliqStateMachineContainer( dfg, initfg(destType, solverParams=getSolverParams(dfg)),
-                                    tree, cliq,
-                                    incremental, drawtree, downsolve, delay,
-                                    getSolverParams(dfg), Dict{Symbol,String}(), 
-                                    oldcliqdata, logger, 
-                                    cliq.id, algorithm, 0) 
-  #
-  
+  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                   tree, cliq,
+                                  #  prnt, children,
+                                   incremental, drawtree, downsolve, delay,
+                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
+                                   cliq.id, algorithm, 0, true) 
+
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine

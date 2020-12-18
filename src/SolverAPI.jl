@@ -243,13 +243,12 @@ Notes
 - `limititercliqs` allows user to limit the number of iterations a specific CSM does.
 - keywords `verbose` and `verbosefid::IOStream` can be used together to to send output to file or default `stdout`.
 - keyword `recordcliqs=[:x0; :x7...]` identifies by frontals which cliques to record CSM steps.
-  - See [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref)
+  - See [`repeatCSMStep!`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref)
 
 Example
 ```julia
-smtasks = Task[] # OPTIONAL
 # pass in old `tree` to enable compute recycling -- see online Documentation for more details
-tree, smt, hist = solveTree!(fg [,tree][,smtasks=smtasks])
+tree, smt, hist = solveTree!(fg [,tree])
 ```
 
 Related

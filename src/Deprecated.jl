@@ -71,8 +71,18 @@ mutable struct DebugCliqMCMC
 end
 
 ##==============================================================================
-## Deprecate at v0.19
+## Deprecate code below before v0.20
 ##==============================================================================
+
+
+export sandboxCliqResolveStep
+
+function sandboxCliqResolveStep(tree::AbstractBayesTree,
+                                frontal::Symbol,
+                                step::Int)
+  #
+  error("API changed, `sandboxCliqResolveStep` is replaced by `repeatCSMStep`")
+end
 
 @deprecate csmAnimate(w...;kw...) animateCSM(w...;kw...)
 
