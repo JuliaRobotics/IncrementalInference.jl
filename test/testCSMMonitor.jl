@@ -65,7 +65,7 @@ end
 
 
 
-@testset "test CSM debug options work"
+@testset "test CSM debug options work" begin
 
 
 ## create a factor graph
