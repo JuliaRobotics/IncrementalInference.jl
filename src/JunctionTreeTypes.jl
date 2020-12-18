@@ -117,6 +117,7 @@ function CliqStateMachineContainer( dfg::G,
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
                                     cliqId::CliqueId = cliq.id,
                                     algorithm::Symbol = :default,
+                                    init_iter::Int=0,
                                     enableLogging::Bool=true ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
@@ -135,7 +136,7 @@ function CliqStateMachineContainer( dfg::G,
                                             logger,
                                             cliqId,
                                             algorithm,
-                                            0,
+                                            init_iter,
                                             enableLogging )
   #
 end

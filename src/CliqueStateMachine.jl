@@ -38,7 +38,7 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                   #  prnt, children,
                                    incremental, drawtree, downsolve, delay,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliq.id, algorithm, 0) 
+                                   cliq.id, algorithm, 0, true) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
