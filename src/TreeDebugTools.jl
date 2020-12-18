@@ -501,16 +501,16 @@ drawTree(tree, show=true)
 hists = fetchCliqHistoryAll!(smtasks);
 
 # check a new csmc before step 2
-csmc_ = repeatCSMStep(hists, 1, 1)
+csmc_ = repeatCSMStep!(hists, 1, 1)
 
 # For use with VSCode debugging
-@enter repeatCSMStep(hists, 1, 1)
+@enter repeatCSMStep!(hists, 1, 1)
 
 # or perhaps test a longer chain of changes
 hists_ = deepcopy(hists)
-repeatCSMStep(hists_, 1, 4, duplicate=false)
-repeatCSMStep(hists_, 1, 5, duplicate=false)
-repeatCSMStep(hists_, 1, 6, duplicate=false)
+repeatCSMStep!(hists_, 1, 4, duplicate=false)
+repeatCSMStep!(hists_, 1, 5, duplicate=false)
+repeatCSMStep!(hists_, 1, 6, duplicate=false)
 ```
 
 Related
@@ -520,14 +520,15 @@ Related
 function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
                         csmid::Int, 
                         step::Int; 
-                        duplicate::Bool=true )
+                        duplicate::Bool=true,
+                        enableLogging::Bool=false )
   #
   
   # the function at steo 
   fnc_ = hists[csmid][step].f
   # the data before step
   csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
-  csmc_.enableLogging = false
+  csmc_.enableLogging = enableLogging
   
   # run the step
   fnc_(csmc_)
