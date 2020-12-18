@@ -247,9 +247,8 @@ Notes
 
 Example
 ```julia
-smtasks = Task[] # OPTIONAL
 # pass in old `tree` to enable compute recycling -- see online Documentation for more details
-tree, smt, hist = solveTree!(fg [,tree][,smtasks=smtasks])
+tree, smt, hist = solveTree!(fg [,tree])
 ```
 
 Related

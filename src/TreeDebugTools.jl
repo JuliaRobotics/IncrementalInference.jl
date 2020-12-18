@@ -1,7 +1,7 @@
 
 #
 
-export repeatCSMStep
+export repeatCSMStep!
 export attachCSM!
 export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
 export printHistoryLine, printHistoryLane, printCliqHistorySummary
@@ -479,12 +479,45 @@ Notes
   - to record everything, one can do: `recordcliqs=ls(fg)`.
 - `duplicate` avoids changing history or prime data in `hists`.
 - Replaces old API `sandboxCliqResolveStep`
+- Consider using this in combination with tools like [Revise.jl](https://github.com/timholy/Revise.jl)
+  - On by default in VSCode.
+- Internally sets `csmc.enableLogging=false`
+
+Example
+
+```julia
+using IncrementalInference
+
+# generate a factor graph
+fg = generateCanonicalFG_Kaess()
+
+# solve and record everything
+smtasks = Task[]
+tree, _, = solveTree!(fg, smtasks=smtasks, recordcliqs=ls(fg));
+# draw Bayes tree with graphviz and xdot installed
+drawTree(tree, show=true)
+
+# fetch histories
+hists = fetchCliqHistoryAll!(smtasks);
+
+# check a new csmc before step 2
+csmc_ = repeatCSMStep(hists, 1, 1)
+
+# For use with VSCode debugging
+@enter repeatCSMStep(hists, 1, 1)
+
+# or perhaps test a longer chain of changes
+hists_ = deepcopy(hists)
+repeatCSMStep(hists_, 1, 4, duplicate=false)
+repeatCSMStep(hists_, 1, 5, duplicate=false)
+repeatCSMStep(hists_, 1, 6, duplicate=false)
+```
 
 Related
 
-[`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
+[`solveTree!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
-function repeatCSMStep( hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
+function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
                         csmid::Int, 
                         step::Int; 
                         duplicate::Bool=true )
@@ -494,18 +527,11 @@ function repeatCSMStep( hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}},
   fnc_ = hists[csmid][step].f
   # the data before step
   csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
+  csmc_.enableLogging = false
   
   # run the step
   fnc_(csmc_)
 end
-
-function sandboxCliqResolveStep(tree::AbstractBayesTree,
-                                frontal::Symbol,
-                                step::Int)
-  #
-  error("API changed, `sandboxCliqResolveStep` is replaced by `repeatCSMStep`")
-end
-
 
 
 """
