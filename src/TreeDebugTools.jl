@@ -512,12 +512,12 @@ function attachCSM!(csmc::CliqStateMachineContainer,
 
   @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
   cid = csmc.cliq.id.value
-  pids = csmc.parentCliq .|> x->x.id
-  cids = csmc.childCliqs .|> x->x.id
+  # pids = csmc.parentCliq .|> x->x.id
+  # cids = csmc.childCliqs .|> x->x.id
 
   csmc.cliq = tree.cliques[cid]
-  csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
-  csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
+  # csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
+  # csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
 
   return csmc
 end
