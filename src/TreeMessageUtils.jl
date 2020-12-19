@@ -377,7 +377,7 @@ function _generateSubgraphMsgPriors(subfg::AbstractDFG,
   for (id, syms) in allClasses
     # if any `jointmsg per variable && !msg.hasPriors`, then dont add a prior
     if (1 == length(syms) || msgHasPriors) && 0 < length(msgbeliefs)
-      whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs, syms)
+      whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs) # syms
       priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msgType)
     end
   end
