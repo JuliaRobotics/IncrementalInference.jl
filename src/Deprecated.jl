@@ -36,17 +36,24 @@ end
 ##==============================================================================
 
 
+@deprecate prepBatchTree!(w...;kw...) buildTreeReset!(w...;kw...)
+
+@deprecate resetBuildTree!(w...;kw...) buildTreeReset!(w...;kw...)
+
+@deprecate resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol}) buildTreeReset!(fgl, p)
+
 # """
 #     $SIGNATURES
 
-# Returns state of vertex data `.initialized` flag.
+# Reset factor graph and build a new tree from the provided variable ordering `p`.
 
-# Notes:
-# - used by Bayes tree clique logic.
-# - similar method in DFG
+# Related
+
+# [`buildTreeReset!`](@ref)
 # """
-# function isInitialized(vert::TreeClique)::Bool
-#   return getSolverData(vert).initialized
+# function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})
+#   resetFactorGraphNewTree!(fgl)
+#   return buildTreeFromOrdering!(fgl, p)
 # end
 
 export sandboxCliqResolveStep

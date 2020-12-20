@@ -74,7 +74,7 @@ ensureAllInitialized!(fg)
 #
 
 varor = [:x1, :lm1, :lm2, :lp1, :lp2]
-# tree = resetBuildTreeFromOrder!(fg, varor)
+# tree = buildTreeReset!(fg, varor)
 tree, smt, hist = solveTree!(fg, variableOrder = varor)
 tree, smt, hist = solveTree!(fg, variableOrder = varor)
 tree, smt, hist = solveTree!(fg, variableOrder = varor)
