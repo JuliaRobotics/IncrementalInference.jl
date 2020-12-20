@@ -75,6 +75,26 @@ end
 ##==============================================================================
 
 
+@deprecate prepBatchTree!(w...;kw...) buildTreeReset!(w...;kw...)
+
+@deprecate resetBuildTree!(w...;kw...) buildTreeReset!(w...;kw...)
+
+@deprecate resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol}) buildTreeReset!(fgl, p)
+
+# """
+#     $SIGNATURES
+
+# Reset factor graph and build a new tree from the provided variable ordering `p`.
+
+# Related
+
+# [`buildTreeReset!`](@ref)
+# """
+# function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})
+#   resetFactorGraphNewTree!(fgl)
+#   return buildTreeFromOrdering!(fgl, p)
+# end
+
 export sandboxCliqResolveStep
 
 function sandboxCliqResolveStep(tree::AbstractBayesTree,

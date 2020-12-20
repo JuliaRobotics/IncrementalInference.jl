@@ -638,7 +638,7 @@ function getDefaultFactorData(
       eliminated::Bool = false,
       potentialused::Bool = false,
       edgeIDs = Int[],
-      solveInProgress = 0) where T <: FunctorInferenceType
+      solveInProgress = 0 ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -653,35 +653,22 @@ function getDefaultFactorData(
 
 end
 
-"""
-    $SIGNATURES
-
-Returns state of vertex data `.initialized` flag.
-
-Notes:
-- used by Bayes tree clique logic.
-- similar method in DFG
-"""
-function isInitialized(vert::TreeClique)::Bool
-  return getSolverData(vert).initialized
-end
-
 
 """
     $SIGNATURES
 
 Return `::Bool` on whether at least one hypothesis is available for intended computations (assuming direction `sfidx`).
 """
-function isLeastOneHypoAvailable(sfidx::Int,
-                                 certainidx::Vector{Int},
-                                 uncertnidx::Vector{Int},
-                                 isinit::Vector{Bool})::Bool
+function isLeastOneHypoAvailable( sfidx::Int,
+                                  certainidx::Vector{Int},
+                                  uncertnidx::Vector{Int},
+                                  isinit::Vector{Bool})
   #
   # @show isinit
   # @show sfidx in certainidx, sum(isinit[uncertnidx])
   # @show sfidx in uncertnidx, sum(isinit[certainidx])
-  return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
-         sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+  return  sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
+          sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
 end
 
 """

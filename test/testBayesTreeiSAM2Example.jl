@@ -53,6 +53,7 @@ buildTree!(tree, fge, p)
 
 
 # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
+# Michael reference 3sig -- x2l1x4x3    x1|x2
 # if false
 #   println("Bayes Tree")
 #   # Graphs.plot(tree.bt)

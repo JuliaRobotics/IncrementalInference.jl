@@ -71,7 +71,7 @@ isHom, typeName = isPathFactorsHomogeneous(fg, :x0, :x2)
 ## use a specific solve order
 
 vo = [:x3; :x1; :x2; :x0]  # getEliminationOrder(fg)
-tree = resetBuildTreeFromOrder!(fg, vo)
+tree = buildTreeReset!(fg, vo)
 
 ##
 
