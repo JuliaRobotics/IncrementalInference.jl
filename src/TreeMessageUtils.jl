@@ -401,7 +401,8 @@ DevNotes
 function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
                                           cliq::TreeClique  )
   #
-  separators = getCliqSeparatorVarIds(cliq)
+  @show cliq.id
+  @show separators = getCliqSeparatorVarIds(cliq)
   jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators )
   allClasses = IIF._findSubgraphsFactorType( cfg, jointrelatives, separators )
   hasPriors = 0 < length( intersect(getCliquePotentials(cliq), lsfPriors(cfg)) )
