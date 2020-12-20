@@ -44,7 +44,7 @@ printCSMHistoryLogical(hists)
 
 ##
 
-fnc_ = repeatCSMStep!(hists, 1, 3)
+fnc_ = repeatCSMStep!(hists, 4, 6)
 
 
 ##
