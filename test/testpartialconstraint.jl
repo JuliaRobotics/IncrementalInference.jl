@@ -131,7 +131,7 @@ end
 thefac = getFactor(fg, :x1x2f1)
 
 X2lpts = getVal(getVariable(fg, :x2))
-keepaside, = findRelatedFromPotential(fg, thefac, :x2, N)
+keepaside, = findRelatedFromPotential(fg, thefac, :x2, N=N)
 @test Ndim(keepaside) == 2
 lpts = KernelDensityEstimate.getPoints(keepaside)
 @test size(lpts,2) == N
@@ -148,7 +148,7 @@ memcheck = getVal(v2)
 
 
 X2lpts = getVal(v2)
-p4, = findRelatedFromPotential(fg, f4, v2.label, N)
+p4, = findRelatedFromPotential(fg, f4, v2.label, N=N)
 @test Ndim(p4) == 2
 lpts = KernelDensityEstimate.getPoints(keepaside)
 @test size(lpts,2) == N

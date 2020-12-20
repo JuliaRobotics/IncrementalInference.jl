@@ -20,7 +20,7 @@ tree, smtasks, hists = solveTree!(fg)
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 
@@ -36,7 +36,7 @@ tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 # although variables are marginalized, no cliques are
@@ -68,7 +68,7 @@ tree, smtasks, hists = solveTree!(fg; recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 @test lm0 == getVal(fg, :lm0) #Still Frozen
@@ -148,7 +148,7 @@ _, _, hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 
@@ -187,7 +187,7 @@ _,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     # println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 # add some more 
@@ -198,7 +198,7 @@ _,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     # println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 # add some more 
@@ -209,7 +209,7 @@ _,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     # println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 # add some more,close the loop 
@@ -220,7 +220,7 @@ _,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 # force a reshuffle

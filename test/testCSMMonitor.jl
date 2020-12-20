@@ -1,7 +1,7 @@
 using IncrementalInference
 using Test
 
-# a new factor that is broken
+## a new factor that is broken
 struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
@@ -59,5 +59,43 @@ deleteFactor!(fg, :x10lm10f2)
 # add a broken factor - root
 addFactor!(fg, [:x7, :lm10], BrokenFactor(Normal()); graphinit=false)
 @test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+
+end
+
+
+
+
+@testset "test CSM debug options work" begin
+
+
+## create a factor graph
+
+fg = generateCanonicalFG_lineStep(10; 
+                                  poseEvery=1, 
+                                  landmarkEvery=5, 
+                                  posePriorsAt=[0], 
+                                  sightDistance=4 )
+#                            
+
+smtasks = Task[];
+solveTree!(fg, smtasks=smtasks, recordcliqs=ls(fg));
+
+
+## make sure we fetch the results
+
+
+hists = fetchCliqHistoryAll!(smtasks);
+
+printCSMHistoryLogical(hists)
+
+printCSMHistorySequential(hists)
+
+## test CSM resolve steps
+
+@info "test repeatCSMStep"
+csmc_ = repeatCSMStep!(hists, 1, 1)
+
+
+##
 
 end

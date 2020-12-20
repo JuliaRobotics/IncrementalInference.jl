@@ -110,7 +110,7 @@ function productbelief( dfg::AbstractDFG,
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
   elseif lennonp == 0 && lenpart >= 1
     # only partials
-    denspts = getPoints(getKDE(dfg, vertlabel))
+    denspts = getPoints(getBelief(dfg, vertlabel))
     Ndims = size(denspts,1)
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
@@ -151,7 +151,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           factors::AbstractVector{<:DFGFactor},
                           # inferddimproposal::Vector{Float64},
                           dens::Vector{BallTreeDensity},
-                          partials::Dict{Int, Vector{BallTreeDensity}};
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          measurement::Tuple=(zeros(0,0),);
                           solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false  )
@@ -161,7 +162,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
   for fct in factors
     count += 1
     data = getSolverData(fct)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, N, dbg, solveKey=solveKey)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
     if data.fnc.partial   # partial density
       pardims = data.fnc.usrfnc!.partial
       for dimnum in pardims
@@ -171,7 +172,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
           partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
         end
       end
-    else # full density
+    else # add onto full density list
       push!(dens, p)
     end
     push!(inferddimproposal, inferd)
@@ -190,6 +191,7 @@ Notes
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
                         factors::Vector{<:DFGFactor};
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
@@ -216,6 +218,7 @@ end
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
                         factorsyms::Vector{Symbol};
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
@@ -228,17 +231,18 @@ function predictbelief( dfg::AbstractDFG,
   nn = N != 0 ? N : size(getVal(vert),2)
 
   # do the belief prediction
-  predictbelief(dfg, vert, factors, N=nn, dbg=dbg, logger=logger)
+  predictbelief(dfg, vert, factors, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger)
 end
 
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
                         factorsyms::Colon;
+                        needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger() )
   #
-  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), N=N, dbg=dbg, logger=logger )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger )
 end
 
 """

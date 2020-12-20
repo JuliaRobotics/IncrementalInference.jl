@@ -97,7 +97,7 @@ export AbstractDFG,
 
 # Inference types
 export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelativeRoots, AbstractRelativeMinimize
+export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
 
 # not sure if this is necessary
 export convert
@@ -119,7 +119,6 @@ export *,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
-  sandboxCliqResolveStep,
   # draw and animate state machine
   getStateLabel,
   histStateMachineTransitions,
@@ -129,7 +128,6 @@ export *,
   animateStateMachineHistoryByTime,
   animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
-  csmAnimate,
   makeCsmMovie,
   areSiblingsRemaingNeedDownOnly,
 
@@ -272,7 +270,7 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  emptyBayesTree,
+  BayesTree, emptyBayesTree,
   buildTree!,
   buildTreeFromOrdering!,
   resetBuildTreeFromOrder!,
@@ -484,6 +482,7 @@ include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
+include("Factors/EuclidDistance.jl")
 include("Factors/Sphere1D.jl")
 include("Variables/Sphere1D.jl")
 include("DefaultNodeTypes.jl") # older file

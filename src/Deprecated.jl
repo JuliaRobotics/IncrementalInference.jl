@@ -23,54 +23,6 @@ end
 
 
 ##==============================================================================
-## Cannot delete until GraphProductOperations usage of this function updated
-##==============================================================================
-
-export findRelatedFromPotential
-
-"""
-    $(SIGNATURES)
-
-Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
-Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
-The remaining dimensions will keep pre-existing variable values.
-
-Notes
-- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
-"""
-function findRelatedFromPotential(dfg::AbstractDFG,
-                                  fct::DFGFactor,
-                                  varid::Symbol,
-                                  N::Int,
-                                  dbg::Bool=false;
-                                  solveKey::Symbol=:default )
-  #
-  Base.depwarn("findRelatedFromPotential likely to be deprecated, use `lsf` or `productbelief(fg, variableSym, ...) instead`", :findRelatedFromPotential)
-
-  # assuming it is properly initialized TODO
-  ptsbw = evalFactor(dfg, fct, varid, solveKey=solveKey, N=N, dbg=dbg);
-  # determine if evaluation is "dimension-deficient"
-
-  # solvable dimension
-  inferdim = getFactorSolvableDim(dfg, fct, varid)
-  # zdim = getFactorDim(fct)
-  # vdim = getVariableDim(DFG.getVariable(dfg, varid))
-
-  # TODO -- better to upsample before the projection
-  Ndim = size(ptsbw,1)
-  Npoints = size(ptsbw,2)
-  # Assume we only have large particle population sizes, thanks to addNode!
-  manis = getManifolds(dfg, varid)
-  # manis = getVariableType(DFG.getVariable(dfg, varid)).manifolds # older
-  p = AMP.manikde!(ptsbw, manis)
-  if Npoints != N # this is where we control the overall particle set size
-      p = resample(p,N)
-  end
-  return (p, inferdim)
-end
-
-
-##==============================================================================
 ## TODO deprecated  
 ##==============================================================================
 
@@ -80,9 +32,33 @@ end
 
 
 ##==============================================================================
-## Deprecate at v0.19
+## Deprecate code below before v0.20
 ##==============================================================================
 
+
+export sandboxCliqResolveStep
+
+function sandboxCliqResolveStep(tree::AbstractBayesTree,
+                                frontal::Symbol,
+                                step::Int)
+  #
+  error("API changed, `sandboxCliqResolveStep` is replaced by `repeatCSMStep`")
+end
+
+@deprecate csmAnimate(w...;kw...) animateCSM(w...;kw...)
+
+@deprecate getDwnMsgConsolidated(tree::AbstractBayesTree, edge) getMsgDwnChannel(tree, edge)
+
+# @deprecate putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage) putMessageUp!(tree, edge, beliefMsg)
+# @deprecate takeBeliefMessageUp!(tree::AbstractBayesTree, edge) takeMessageUp!(tree, edge)
+# @deprecate putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage) putMessageDown!(tree, edge, beliefMsg)
+# @deprecate takeBeliefMessageDown!(tree::BayesTree, edge) takeMessageDown!(tree, edge)
+
+@deprecate appendSeparatorToClique(w...;kw...) appendSeparatorToClique!(w...;kw...)
+
+@deprecate TreeClique(i::Int, label::Union{AbstractString, Symbol}) TreeClique(CliqueId(i), BayesTreeNodeData(), Dict{String,Any}())
+
+@deprecate emptyBayesTree() BayesTree()
 
 # Graph.jl does not have an in_edges function for a GenericIncidenceList, so extending here.
 # function Graphs.in_edges(vert::V, gr::GenericIncidenceList{V, Edge{V}, Vector{V}}) where {V}
@@ -174,6 +150,8 @@ end
 # Graphs.make_vertex(g::AbstractGraph{TreeClique}, label::AbstractString) = TreeClique(num_vertices(g) + 1, String(label))
 # Graphs.vertex_index(v::TreeClique) = v.id
 # Graphs.attributes(v::TreeClique, g::AbstractGraph) = v.attributes
+
+@deprecate initManual!(dfg::AbstractDFG, variable::DFGVariable, ptsArr::BallTreeDensity) initManual!(variable, ptsArr)
 
 @deprecate setCliqueDrawColor!(w...;kw...) setCliqueDrawColor!(w...;kw...)
 
