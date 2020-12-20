@@ -178,7 +178,7 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
       for key2 in setdiff(keys(sepsCount), keys(subClassify))
         defaultFct = selectFactorType(dfg_, key1, key2)
         # @show key1, key2, defaultFct
-        pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[defaultFct;])
+        pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[defaultFct;], initialized=true)
         # check if connected to existing subClass
         if 0 == length(pth)
           # not connected, so need new class
@@ -346,6 +346,8 @@ function _calcCandidatePriorBest( subfg::AbstractDFG,
   mdAdj = biAdj[dimMask]
   pe = sortperm(mdAdj, rev=true) # decending
 
+  @show variableList, keys(msgbeliefs)
+  @show syms
   return (syms[dimMask])[pe][1]
 end
 
@@ -377,7 +379,7 @@ function _generateSubgraphMsgPriors(subfg::AbstractDFG,
   for (id, syms) in allClasses
     # if any `jointmsg per variable && !msg.hasPriors`, then dont add a prior
     if (1 == length(syms) || msgHasPriors) && 0 < length(msgbeliefs)
-      whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs) # syms
+      whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs, syms)
       priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msgType)
     end
   end
@@ -407,7 +409,7 @@ function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
   msgbeliefs = Dict{Symbol, TreeBelief}()
   IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq )
 
-  @show cliq.id, ls(cfg)
+  @show cliq.id, ls(cfg), keys(msgbeliefs), allClasses
   upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
 
   _MsgJointLikelihood(relatives=jointrelatives, priors=upmsgpriors)

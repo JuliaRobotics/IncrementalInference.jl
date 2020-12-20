@@ -70,7 +70,7 @@ isHom, typeName = isPathFactorsHomogeneous(fg, :x0, :x2)
 
 ## use a specific solve order
 
-vo = [:x3; :x1; :x2; :x0] # getEliminationOrder(fg)
+vo = [:x3; :x1; :x2; :x0]  # getEliminationOrder(fg)
 tree = resetBuildTreeFromOrder!(fg, vo)
 
 ##
@@ -113,7 +113,6 @@ msg = msgBuf.upTx
 
 
 msg.jointmsg.priors
-
 msg.jointmsg.relatives
 
 
@@ -124,37 +123,9 @@ msg.jointmsg.relatives
 
 ##
 
+end
 
 
-
-
-## check which path between separators has homogeneous factors
-
-
-isHom, ftyps = isPathFactorsHomogeneous(fg, :x0, :x2)
-
-
-_sft = selectFactorType(fg, :x0, :x2) 
-sft = _sft()
-
-typeof(sft).name == ftyps[1]
-
-getindex(Main, ftyps[1])
-
-
-##  dev
-
-
-
-
-##
-
-drawGraph(tfg, show=true)
-
-
-##
-
-getManifolds(LinearRelative)
 
 
 

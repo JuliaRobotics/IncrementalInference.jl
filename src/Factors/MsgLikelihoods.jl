@@ -81,6 +81,26 @@ end
 
 _MsgJointLikelihood(;relatives::MsgRelativeType=MsgRelativeType(),priors::MsgPriorType=MsgPriorType() ) = _MsgJointLikelihood(relatives, priors)
 
+
+function Base.show(io::IO, x::_MsgJointLikelihood)
+  println(io, )
+  printstyled(io, " _MsgJointLikelihood:\n", color=:blue)
+  print(io, "  .relatives: ")
+  for tp in x.relatives
+    print(io, tp.variables, "::", typeof(tp.likelihood).name)
+    print(io, "; ")
+  end
+  println(io)
+  print(io, "  .priors: ")
+  for k in keys(x.priors)
+    print(io, k, ", ")
+  end
+  println(io)
+end
+
+Base.show(io::IO, ::MIME"text/plain", x::_MsgJointLikelihood) = show(io, x)
+
+
 """
   $(TYPEDEF)
 Belief message for message passing on the tree.  This should be considered an incomplete joint probility.
@@ -131,7 +151,7 @@ function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)
   t = typeof(msg)
   fields = fieldnames(t)
   nf = nfields(msg)
-
+  println(io, "LikelihoodMessage:")
   for f in fields
     printstyled(io, f,": ", color=:blue)
     show(io, getproperty(msg, f))
