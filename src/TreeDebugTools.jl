@@ -129,46 +129,43 @@ end
 
 Print one specific line of a clique state machine history.
 
-DevNotes
-- TODO refactor to use `clampBufferString` -- see e.g. `printHistoryLane`
-
 Related:
 
-printCliqHistorySummary, printCliqHistorySequential
+[`printCliqHistorySequential`](@ref), [`printCliqHistorySummary`](@ref)
 """
 function printHistoryLine(fid,
                           hi::CSMHistoryTuple,
-                          cliqid::AbstractString="")
+                          cliqid::AbstractString="",
+                          seq::Int=0)
   #
+  
+  # global sequence number
+  first = clampBufferString("$seq", 5)
+
   # 5.13
-  first = "$cliqid.$(string(hi[2])) "
-  for i in length(first):6  first = first*" "; end
+  first *= clampBufferString("$cliqid.$(string(hi[2]))", 6)
+  
   # time
-  first = first*(split(string(hi[1]), 'T')[end])*" "
-  # for i in length(first):16  first = first*" "; end
-  for i in length(first):19  first = first*" "; end
+  first *= clampBufferString(string(split(string(hi[1]), 'T')[end]), 14)
+
   # next function
   nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-  nextfn = 18 < length(nextfn) ? nextfn[1:18] : nextfn
-  first = first*nextfn
-  for i in length(first):38  first = first*" "; end
-  # force proceed
-  # first = first*string(Int(hi[4].forceproceed))
-  for i in length(first):39  first = first*" "; end
-  # this clique status
+  first *= clampBufferString(nextfn*"                             ", 20, 18)
+  
   first *= " | "
-  first = first*string(getCliqueStatus(hi[4].cliq))
-  for i in length(first):53  first = first*" "; end
+  first *= clampBufferString(string(getCliqueStatus(hi[4].cliq))*"             ", 9, 7)
+
   # parent status
   first *= " P "
   downRxMessage = getMessageBuffer(hi[4].cliq).downRx
-  if !isnothing(downRxMessage)
+  toadd = if !isnothing(downRxMessage)
     #TODO maybe don't use tree here
-    first = first*"$(getParent(hi[4].tree, hi[4].cliq)[1].id):$(downRxMessage.status)"
+    "$(getParent(hi[4].tree, hi[4].cliq)[1].id):$(downRxMessage.status)"
   else
-    first = first*"----"
+    "  ----"
   end
-  for i in length(first):70  first = first*" "; end
+  first *= clampBufferString(toadd*"          ", 9, 7)
+
   # children status
   first = first*"C "
 
@@ -176,11 +173,13 @@ function printHistoryLine(fid,
   # all_child_status = map((k,msg) -> (k,msg.status), pairs(upRxMessages))
   if length(upRxMessages) > 0
     for (k,msg) in upRxMessages
-      first = first*string(k)*":"*string(msg.status)*" "
+      toadd = string(k)*":"*string(msg.status)*" "
+      first *= clampBufferString(toadd*"                  ", 8, 7)
     end
   else
-    first = first*"---- "
+    first *= clampBufferString("  ----", 8)
   end
+
   # sibling status # TODO JT removed but kept for future if needed
   # first *= "|S| "
   # if 0 < length(hi[4].parentCliq)
@@ -267,9 +266,10 @@ Related:
 
 printHistoryLine, printCliqHistory
 """
-function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
+function printCSMHistorySequential( hists::Dict{Int,Vector{CSMHistoryTuple}},
                                     whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
                                     fid=stdout )
+  #
   # vectorize all histories in single Array
   allhists = Vector{CSMHistoryTuple}()
   alltimes = Vector{DateTime}()
@@ -298,7 +298,7 @@ function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
       end
     end
     if inSliceList
-      printHistoryLine(fid,hiln,string(allcliqids_[idx]))
+      printHistoryLine(fid,hiln,string(allcliqids_[idx]), idx)
     end
   end
   nothing
