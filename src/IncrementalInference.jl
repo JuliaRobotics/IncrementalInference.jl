@@ -50,7 +50,8 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
+import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifolds
 
@@ -270,12 +271,10 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  BayesTree, emptyBayesTree,
+  buildTreeFromOrdering!, # TODO obsolete? deprecate?
+  BayesTree,
   buildTree!,
-  buildTreeFromOrdering!,
-  resetBuildTreeFromOrder!,
-  prepBatchTree!,
-  resetBuildTree!,
+  buildTreeReset!,
   buildCliquePotentials,
 
   getCliqDepth,
