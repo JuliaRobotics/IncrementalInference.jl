@@ -36,6 +36,19 @@ end
 ##==============================================================================
 
 
+# """
+#     $SIGNATURES
+
+# Returns state of vertex data `.initialized` flag.
+
+# Notes:
+# - used by Bayes tree clique logic.
+# - similar method in DFG
+# """
+# function isInitialized(vert::TreeClique)::Bool
+#   return getSolverData(vert).initialized
+# end
+
 export sandboxCliqResolveStep
 
 function sandboxCliqResolveStep(tree::AbstractBayesTree,
