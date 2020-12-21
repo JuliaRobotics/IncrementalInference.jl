@@ -111,6 +111,7 @@ Notes:
 - Can be used with LoggingExtras.jl 
 """
 function logCSM(csmc, msg::String; loglevel::Logging.LogLevel=Logging.Debug, maxlog=nothing, kwargs...)
+  csmc.enableLogging ? nothing : (return nothing)
   #Debug = -1000
   #Info = 0
   #Warn = 1000

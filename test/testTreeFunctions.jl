@@ -20,12 +20,24 @@ fg = generateCanonicalFG_lineStep(3;
 # getSolverParams(fg).showtree = true
 
 smtasks = Task[]
-oldtree, smt, hists = solveTree!(fg; smtasks=smtasks, verbose=true, recordcliqs=ls(fg));
+oldtree, smt, hists = solveTree!(fg; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
 
-IIF.deleteClique!(oldtree, 1)
+@test IIF.isRoot(oldtree, IIF.CliqueId(1))
+@test IIF.isRoot(oldtree, IIF.getClique(oldtree,1))
+@test !IIF.isRoot(oldtree, IIF.CliqueId(2))
+@test !IIF.isRoot(oldtree, IIF.CliqueId(3))
+
+IIF.deleteClique!(oldtree, IIF.CliqueId(1))
+
+@test IIF.isRoot(oldtree, IIF.CliqueId(2))
+@test IIF.isRoot(oldtree, IIF.CliqueId(3))
+
+@test IIF.getClique(oldtree, :x0) == IIF.getClique(oldtree, IIF.CliqueId(3)) == IIF.getClique(oldtree, 1)
+@test IIF.getClique(oldtree, :x3) == IIF.getClique(oldtree, IIF.CliqueId(2)) == IIF.getClique(oldtree, 2)
+ 
 # drawTree(oldtree, show=true)
 
-tree, smt, hists = solveTree!(fg, oldtree; smtasks=smtasks, verbose=true, recordcliqs=ls(fg));
+tree, smt, hists = solveTree!(fg, oldtree; smtasks=smtasks, verbose=false, recordcliqs=ls(fg));
 
 # csmAnimate(tree, hists, frames=1)
 

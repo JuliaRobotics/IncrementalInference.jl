@@ -2,14 +2,14 @@
 
 > Click on badges to follow links:
 
-Stable v0.17 | Stable v0.17 | Dev | Coverage | Documentation
+Stable v0.17 | Stable v0.18 | Dev | Coverage | Documentation
 --------------|-------------|-------------|-----|---------
-[![build-0-17]][travis-url] | [![build-0-17]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
+[![build-0-17]][travis-url] | [![build-0-18]][travis-url] | [![build-master]][travis-url] <br> [![commits-url]][contributors-url] <br> [![issues-time]][issues-url] | [![codecov-io]][codecov-url] <br> [![issues-open]][issues-url] | [![cjl-slack-badge]][cjl-slack] <br> [![caesar-docs]][cjl-docs-url] <br> [![dfg-docs]][dfg-docs-url]
 
 [travis-url]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl
 [build-master]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=master
 [build-0-17]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.17
-[build-0-16]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.16
+[build-0-18]: https://travis-ci.org/JuliaRobotics/IncrementalInference.jl.svg?branch=release/v0.18
 
 [codecov-io]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl/coverage.svg?branch=master
 [codecov-url]: https://codecov.io/github/JuliaRobotics/IncrementalInference.jl?branch=master

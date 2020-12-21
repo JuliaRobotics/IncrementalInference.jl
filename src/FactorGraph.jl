@@ -638,7 +638,7 @@ function getDefaultFactorData(
       eliminated::Bool = false,
       potentialused::Bool = false,
       edgeIDs = Int[],
-      solveInProgress = 0) where T <: FunctorInferenceType
+      solveInProgress = 0 ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -653,35 +653,22 @@ function getDefaultFactorData(
 
 end
 
-"""
-    $SIGNATURES
-
-Returns state of vertex data `.initialized` flag.
-
-Notes:
-- used by Bayes tree clique logic.
-- similar method in DFG
-"""
-function isInitialized(vert::TreeClique)::Bool
-  return getSolverData(vert).initialized
-end
-
 
 """
     $SIGNATURES
 
 Return `::Bool` on whether at least one hypothesis is available for intended computations (assuming direction `sfidx`).
 """
-function isLeastOneHypoAvailable(sfidx::Int,
-                                 certainidx::Vector{Int},
-                                 uncertnidx::Vector{Int},
-                                 isinit::Vector{Bool})::Bool
+function isLeastOneHypoAvailable( sfidx::Int,
+                                  certainidx::Vector{Int},
+                                  uncertnidx::Vector{Int},
+                                  isinit::Vector{Bool})
   #
   # @show isinit
   # @show sfidx in certainidx, sum(isinit[uncertnidx])
   # @show sfidx in uncertnidx, sum(isinit[certainidx])
-  return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
-         sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+  return  sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
+          sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
 end
 
 """
@@ -883,10 +870,33 @@ end
     $(TYPEDSIGNATURES)
 
 Method to manually initialize a variable using a set of points.
+
+Notes
+- Disable automated graphinit on `addFactor!(fg, ...; graphinit=false)
+  - any un-initialized variables will automatically be initialized by `solveTree!`
+
+Example:
+
+```julia
+# some variable is added to fg
+addVariable!(fg, :somepoint3, ContinuousEuclid{2})
+
+# data is organized as (row,col) == (dimension, samples)
+pts = randn(2,100)
+initManual!(fg, :somepoint3, pts)
+
+# manifold management should be done automatically.
+# note upgrades are coming to consolidate with Manifolds.jl, see RoME #244
+
+## it is also possible to initManual! by using existing factors, e.g.
+initManual!(fg, :x3, [:x2x3f1])
+```
+
+DevNotes
+- TODO better document graphinit and treeinit.
 """
-function initManual!(dfg::AbstractDFG, 
-                    variable::DFGVariable, 
-                    ptsArr::BallTreeDensity)
+function initManual!( variable::DFGVariable, 
+                      ptsArr::BallTreeDensity)
   #
   setValKDE!(variable, ptsArr, true)
   return nothing

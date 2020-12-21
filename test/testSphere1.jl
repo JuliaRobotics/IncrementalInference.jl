@@ -4,6 +4,7 @@ using Test
 @testset "test Sphere1D" begin
 
 fg = initfg()
+getSolverParams(fg).useMsgLikelihoods = true
 
 addVariable!.(fg, [Symbol("x$i") for i=0:4], Sphere1)
 addFactor!(fg, [:x0], PriorSphere1(Normal(0.0,0.1)))

@@ -50,7 +50,8 @@ import Random: rand, rand!
 import KernelDensityEstimate: getBW
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
-import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized, compare, compareAllSpecial
+import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
+import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifolds
 
@@ -97,7 +98,7 @@ export AbstractDFG,
 
 # Inference types
 export FunctorInferenceType, PackedInferenceType
-export AbstractPrior, AbstractRelativeRoots, AbstractRelativeMinimize
+export AbstractPrior, AbstractRelative, AbstractRelativeRoots, AbstractRelativeMinimize
 
 # not sure if this is necessary
 export convert
@@ -119,7 +120,6 @@ export *,
   getGraphFromHistory,
   getCliqSubgraphFromHistory,
   sandboxStateMachineStep,
-  sandboxCliqResolveStep,
   # draw and animate state machine
   getStateLabel,
   histStateMachineTransitions,
@@ -129,7 +129,6 @@ export *,
   animateStateMachineHistoryByTime,
   animateStateMachineHistoryByTimeCompound,
   animateCliqStateMachines,
-  csmAnimate,
   makeCsmMovie,
   areSiblingsRemaingNeedDownOnly,
 
@@ -272,12 +271,10 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  emptyBayesTree,
+  buildTreeFromOrdering!, # TODO obsolete? deprecate?
+  BayesTree,
   buildTree!,
-  buildTreeFromOrdering!,
-  resetBuildTreeFromOrder!,
-  prepBatchTree!,
-  resetBuildTree!,
+  buildTreeReset!,
   buildCliquePotentials,
 
   getCliqDepth,
@@ -484,6 +481,7 @@ include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
+include("Factors/EuclidDistance.jl")
 include("Factors/Sphere1D.jl")
 include("Variables/Sphere1D.jl")
 include("DefaultNodeTypes.jl") # older file

@@ -23,10 +23,14 @@ DevNotes
 - FIXME FactorMetadata object for all use-cases, not just empty object.
 - Test for various cases with multiple variables.
 - Test for cases with `nullhypo` and `multihypo`.
+
+Related
+
+[`approxDeconv`](@ref)
 """
-function solveFactorMeasurements(dfg::AbstractDFG,
-                                 fctsym::Symbol,
-                                 solveKey::Symbol=:default  )
+function solveFactorMeasurements( dfg::AbstractDFG,
+                                  fctsym::Symbol,
+                                  solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
   varsyms = getVariableOrder(fcto)
@@ -89,15 +93,19 @@ end
     $SIGNATURES
 
 Generalized deconvolution to find the predicted measurement values of the factor `fctsym` in `dfg`.
+Inverse solve of predicted noise value and returns tuple of (newly predicted, and known "measured" noise) values.
 
 Notes
-- Opposite operation contained in `approxConv`
+- Opposite operation contained in `approxConv`.
+- For more notes see [`solveFactorMeasurements`](@ref).
 
 Related
 
-solveFactorMeasurements, deconvSolveKey, approxConv
+[`approxConv`](@ref), `deconvSolveKey`
 """
-function approxDeconv(dfg::AbstractDFG, fctsym::Symbol, solveKey::Symbol=:default)
+function approxDeconv(dfg::AbstractDFG, 
+                      fctsym::Symbol, 
+                      solveKey::Symbol=:default)
   # which factor
   pts = solveFactorMeasurements(dfg, fctsym, solveKey)
   return pts
@@ -118,34 +126,41 @@ solveTree!(fg, storeOld=true)
 pts = deconvSolveKey(fg, :x1, :default, :x1, :graphinit)
 ```
 
+Notes
+- Can pass user `tfg::AbstractDFG` for better in-place operations.
+
 DevNotes
 - TODO use dfg, rather than building new tfg internally.
 
 Related
 
-approxDeconv, mmd
+[`approxDeconv`](@ref), [`mmd`](@ref)
 """
 function deconvSolveKey(dfg::AbstractDFG, 
                         refSym::Symbol, 
                         refKey::Symbol, 
                         tstSym::Symbol, 
-                        tstKey::Symbol  )
+                        tstKey::Symbol;  
+                        tfg = initfg()  )
   #
   # create a new temporary factor graph for calculations
-  tfg = initfg()
 
   # add the first "reference" variable
-  refVarType = getVariableType(dfg, refSym)
   Xref = getBelief(dfg, refSym, refKey)
   refSym_ = Symbol(refSym, "_ref")
-  addVariable!(tfg, refSym_, refVarType)
+  refVarType = getVariableType(dfg, refSym)
+  if !exists(tfg, refSym_)
+    addVariable!(tfg, refSym_, refVarType)
+  end
   initManual!(tfg, refSym_, Xref)
 
   # add the second "test" variable
   tstVarType = getVariableType(dfg, tstSym)
   Xtst = getBelief(dfg, tstSym, tstKey)
   tstSym_ = Symbol(tstSym, "_tst")
-  addVariable!(tfg, tstSym_, tstVarType)
+  if !exists(tfg, tstSym_)
+    addVariable!(tfg, tstSym_, tstVarType)
+  end
   initManual!(tfg, tstSym_, Xtst)
 
   # add the new dummy factor with default manifold for computations
@@ -155,24 +170,39 @@ function deconvSolveKey(dfg::AbstractDFG,
   # TODO connect from dfg all other data that might form part of FactorMetadata in tfg
   pts = approxDeconv(tfg, nf.label)
 
+  # assuming tfg was passed in by the user
+  deleteFactor!(tfg, nf.label)
+
   # return result
   return pts, fctType
 end
 
 
-function mmd(p1::AbstractMatrix{<:Real}, 
-             p2::AbstractMatrix{<:Real}, 
-             varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-             bw::AbstractVector{<:Real}=[0.001;] )
+"""
+    $TYPEDSIGNATURES
+
+Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
+
+Notes
+- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+
+Related
+
+`KDE.kld`
+"""
+function mmd( p1::AbstractMatrix{<:Real}, 
+              p2::AbstractMatrix{<:Real}, 
+              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;] )
   #
   manis = convert(AMP.Manifold, varType)
   mmd(p1, p2, manis, bw=bw)  
 end
 
-function mmd(p1::BallTreeDensity, 
-             p2::BallTreeDensity, 
-             nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-             bw::AbstractVector{<:Real}=[0.001;])
+function mmd( p1::BallTreeDensity, 
+              p2::BallTreeDensity, 
+              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;])
   #
   mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
 end

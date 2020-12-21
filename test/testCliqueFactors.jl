@@ -37,7 +37,7 @@ addFactor!(fg, [:l0;], lp, graphinit=false)
 
 # build tree
 vo = Symbol[:x2, :x0, :l0, :x3, :x1, :l1, :x4]
-tree = resetBuildTreeFromOrder!(fg, vo)
+tree = buildTreeReset!(fg, vo)
 # drawTree(tree, show=true)
 
 
@@ -127,7 +127,7 @@ addFactor!(fg, [:x3;:lm3], lc, graphinit=false)
 
 # particular order from 458
 vo = Symbol[:x0, :x2, :x1, :lm3, :lm0, :x3]
-tree = resetBuildTreeFromOrder!(fg, vo)
+tree = buildTreeReset!(fg, vo)
 # drawTree(tree, show=true)
 
 sfg_1 = buildCliqSubgraph(fg,tree,:x3)

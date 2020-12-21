@@ -84,11 +84,6 @@ function takeBeliefMessageUp!(tree::AbstractBayesTree, edge)
   return beliefMsg
 end
 
-# @deprecate putBeliefMessageUp!(tree::AbstractBayesTree, edge, beliefMsg::LikelihoodMessage) putMessageUp!(tree, edge, beliefMsg)
-# @deprecate takeBeliefMessageUp!(tree::AbstractBayesTree, edge) takeMessageUp!(tree, edge)
-# @deprecate putBeliefMessageDown!(tree::BayesTree, edge, beliefMsg::LikelihoodMessage) putMessageDown!(tree, edge, beliefMsg)
-# @deprecate takeBeliefMessageDown!(tree::BayesTree, edge) takeMessageDown!(tree, edge)
-
 ## ----------------------------------------------------------------------------- 
 ## DOWN
 ## ----------------------------------------------------------------------------- 
@@ -97,8 +92,6 @@ $SIGNATURES
 Get the message channel
 """
 getMsgDwnChannel(tree::MetaBayesTree, edge) = MetaGraphs.get_prop(tree.bt, edge, :downMsg)
-
-@deprecate getDwnMsgConsolidated(tree::AbstractBayesTree, edge) getMsgDwnChannel(tree, edge)
 
 """
     $SIGNATURES
