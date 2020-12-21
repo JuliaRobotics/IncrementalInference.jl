@@ -33,18 +33,18 @@ getSolverParams(fg).useMsgLikelihoods = true
 ENV["JULIA_DEBUG"] = :csm_4
 
 smtasks = Task[]
-tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
+tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 
 
 ##
 
-hists = fetchCliqHistoryAll!(smtasks);
-printCSMHistorySequential(hists)
-printCSMHistoryLogical(hists)
+# hists = fetchCliqHistoryAll!(smtasks);
+# printCSMHistorySequential(hists)
+# printCSMHistoryLogical(hists)
 
-##
+# ##
 
-fnc_ = repeatCSMStep!(hists, 4, 6)
+# fnc_ = repeatCSMStep!(hists, 4, 6)
 
 
 ##

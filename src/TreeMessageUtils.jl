@@ -134,6 +134,8 @@ Each returned subgraph should receive a `MsgPrior` on the dominant variable.
 Notes
 - Disconnected subgraphs in the separator variables of a clique should instead be connected by a 
   `TangentAtlasFactor` approximation -- i.e. when analytical `selectFactorType`s cannot be used.
+- Internally does `getfield(Main, Symbol(factorname::Core.TypeName))` which might cause unique situations with weird user functions
+  - As well as a possible speed penalty -- TODO, investigate
 
 Related
 
@@ -178,7 +180,9 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
       for key2 in setdiff(keys(sepsCount), keys(subClassify))
         defaultFct = selectFactorType(dfg_, key1, key2)
         # @show key1, key2, defaultFct
-        pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[defaultFct;], initialized=true)
+        # TODO validate getfield Main here
+        resname = defaultFct isa UnionAll ? getfield(Main, defaultFct.body.name |> Symbol) : defaultFct
+        pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[resname;], initialized=true)
         # check if connected to existing subClass
         if 0 == length(pth)
           # not connected, so need new class
@@ -191,11 +195,13 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
       end
     # end
   end
-  
+
   # 4. inverse classification dictionary
   allClasses = Dict{Int, Vector{Symbol}}()
   for (key, cls) in subClassify
-    !haskey(allClasses, cls) ? (allClasses[cls] = Symbol[key;]) : union!(allClasses[cls],[key;])
+    if isInitialized(dfg_, key)
+      !haskey(allClasses, cls) ? (allClasses[cls] = Symbol[key;]) : union!(allClasses[cls],[key;])
+    end
   end
   
   # 
@@ -318,6 +324,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
 end
 
 # use variableList to select a sub-subgraph -- useful for disconnected segments of graph
+# NOTE expect msgbeliefs to contain all required keys passed in via special variableList
 function _calcCandidatePriorBest( subfg::AbstractDFG,
                                   msgbeliefs::Dict,
                                   # msgs::LikelihoodMessage,
@@ -401,8 +408,7 @@ DevNotes
 function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
                                           cliq::TreeClique  )
   #
-  @show cliq.id
-  @show separators = getCliqSeparatorVarIds(cliq)
+  separators = getCliqSeparatorVarIds(cliq)
   jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators )
   allClasses = IIF._findSubgraphsFactorType( cfg, jointrelatives, separators )
   hasPriors = 0 < length( intersect(getCliquePotentials(cliq), lsfPriors(cfg)) )
@@ -410,7 +416,7 @@ function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
   msgbeliefs = Dict{Symbol, TreeBelief}()
   IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq )
 
-  @show cliq.id, ls(cfg), keys(msgbeliefs), allClasses
+  # @show cliq.id, ls(cfg), keys(msgbeliefs), allClasses
   upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
 
   _MsgJointLikelihood(relatives=jointrelatives, priors=upmsgpriors)
