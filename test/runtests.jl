@@ -62,6 +62,8 @@ include("testBasicGraphs.jl")
 
 include("testDefaultDeconv.jl")
 
+include("testJointEnforcement.jl")
+
 include("testlocalconstraintexamples.jl")
 
 include("testBasicTreeInit.jl")
