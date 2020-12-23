@@ -283,6 +283,9 @@ end
 
 ##
 
+@error "Disabling useMsgLikelihood for DERelative test, must fix"
+getSolverParams(fg).useMsgLikelihood = false
+
 solveTree!(fg);
 
 

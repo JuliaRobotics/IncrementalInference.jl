@@ -353,8 +353,8 @@ function _calcCandidatePriorBest( subfg::AbstractDFG,
   mdAdj = biAdj[dimMask]
   pe = sortperm(mdAdj, rev=true) # decending
 
-  @show variableList, keys(msgbeliefs)
-  @show syms
+  # @show variableList, keys(msgbeliefs)
+  # @show syms
   return (syms[dimMask])[pe][1]
 end
 
