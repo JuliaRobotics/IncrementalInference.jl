@@ -30,7 +30,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 
 ##
 
-ENV["JULIA_DEBUG"] = :csm_4
+# ENV["JULIA_DEBUG"] = :csm_4
 
 smtasks = Task[]
 tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
