@@ -529,6 +529,7 @@ function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}},
   # the data before step
   csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
   csmc_.enableLogging = enableLogging
+  csmc_logger = SimpleLogger(Base.stdout)
   
   # run the step
   fnc_(csmc_)
