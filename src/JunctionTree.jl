@@ -639,7 +639,7 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
   buildBayesNet!(fge, p, solvable=solvable)
 
   @info "Staring the Bayes tree construction from Bayes net"
-  tree = emptyBayesTree()
+  tree = BayesTree()
   tree.variableOrder = p
   buildTree!(tree, fge, p)
 

@@ -1111,7 +1111,8 @@ function addFactor!(dfg::AbstractDFG,
                     tags::Vector{Symbol}=Symbol[],
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Nothing,Int}=nothing  )
+                    maxparallel::Union{Nothing,Int}=nothing,
+                    suppressChecks::Bool=false  )
   #
   # depcrecation
   if maxparallel !== nothing
@@ -1120,7 +1121,7 @@ function addFactor!(dfg::AbstractDFG,
   end
 
   # basic sanity check for unary vs n-ary
-  if length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
+  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
     @warn "Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))"
   end
 
@@ -1155,10 +1156,10 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder(dfg::G;
-                             ordering::Symbol=:qr,
-                             solvable::Int=1,
-                             constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+function getEliminationOrder( dfg::G;
+                              ordering::Symbol=:qr,
+                              solvable::Int=1,
+                              constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -1195,8 +1196,8 @@ end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::AbstractDFG,
-                           elimOrder::Array{Symbol,1} )
+function addBayesNetVerts!( dfg::AbstractDFG,
+                            elimOrder::Array{Symbol,1} )
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
@@ -1209,9 +1210,9 @@ function addBayesNetVerts!(dfg::AbstractDFG,
   end
 end
 
-function addConditional!(dfg::AbstractDFG,
-                         vertId::Symbol,
-                         Si::Vector{Symbol} )
+function addConditional!( dfg::AbstractDFG,
+                          vertId::Symbol,
+                          Si::Vector{Symbol} )
   #
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getSolverData(bnv)
@@ -1222,9 +1223,9 @@ function addConditional!(dfg::AbstractDFG,
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG,
-                               Si::Vector{Symbol};
-                               maxparallel::Union{Nothing,Int}=nothing )
+function addChainRuleMarginal!( dfg::AbstractDFG,
+                                Si::Vector{Symbol};
+                                maxparallel::Union{Nothing,Int}=nothing )
   #
   if maxparallel !== nothing
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
@@ -1238,14 +1239,14 @@ function addChainRuleMarginal!(dfg::AbstractDFG,
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!( dfg, Xi, genmarg, graphinit=false )
+  addFactor!( dfg, Xi, genmarg, graphinit=false, suppressChecks=true )
   nothing
 end
 
-function rmVarFromMarg(dfg::AbstractDFG,
-                       fromvert::DFGVariable,
-                       gm::Vector{DFGFactor};
-                       maxparallel::Union{Nothing,Int}=nothing  )
+function rmVarFromMarg( dfg::AbstractDFG,
+                        fromvert::DFGVariable,
+                        gm::Vector{DFGFactor};
+                        maxparallel::Union{Nothing,Int}=nothing  )
   #
   if maxparallel !== nothing
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
@@ -1287,8 +1288,8 @@ function buildBayesNet!(dfg::AbstractDFG,
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
     @debug """ 
-                 Eliminating $(v)
-                 ===============
+                Eliminating $(v)
+                ===============
           """
     # which variable are we eliminating
 
