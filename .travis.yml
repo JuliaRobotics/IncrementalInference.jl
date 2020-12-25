@@ -13,16 +13,16 @@ jobs:
   include:
     - name: "DEV MASTERS, Julia 1.5"
       if: NOT branch =~ ^release.*$
-      julia: 1.5
+      julia: 1.6
       script:
       - julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.add(PackageSpec(name="DistributedFactorGraphs", rev="master")); Pkg.build(); Pkg.test(coverage=true)'
     - name: "MASTER AND TAGS"
-      julia: 1.4
+      julia: 1.5
     - name: "Julia nightly"
       julia: nightly
-    - name: "ARM64, Julia 1.4"
+    - name: "ARM64, Julia 1.6"
       arch: arm64
-      julia: 1.4
+      julia: 1.6
   fast_finish: true
   allow_failures:
     - julia: nightly
