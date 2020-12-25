@@ -519,9 +519,9 @@ function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
       newDwnMsgs.belief[mk] = TreeBelief(v)
     end
   end
-
+  
   logCSM(csmc, "cliq $(csmc.cliq.id), CliqDownMessage, allkeys=$(keys(newDwnMsgs.belief))")
- 
+  
   return newDwnMsgs
 end
 
@@ -547,7 +547,9 @@ function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     logCSM(csmc, "CSM-4a doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
     # maybe cycle through separators (or better yet, just use values directly -- see next line)
     msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-    
+    # force separator variables in cliqSubFg to adopt down message values
+    updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+
     if dwnmsgs.status in [DOWNSOLVED, MARGINALIZED] 
       logCSM(csmc, "CSM-4a doCliqDownSolve_StateMachine")
       return solveDown_StateMachine
@@ -627,18 +629,15 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   # DownSolve cliqSubFg
   # add messages, do downsolve, remove messages
   
-  #XXX
   # get down msg from Rx buffer (saved in take!)
   dwnmsgs = getMessageBuffer(csmc.cliq).downRx
-
-  opts = getSolverParams(csmc.dfg)
-
-  # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-
+  # #XXX
+  # # maybe cycle through separators (or better yet, just use values directly -- see next line)
+  # msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)  
   # force separator variables in cliqSubFg to adopt down message values
-  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
-
+  # updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+  
+  opts = getSolverParams(csmc.dfg)
   #XXX test with and without
   # add required all frontal connected factors
   if !opts.useMsgLikelihoods

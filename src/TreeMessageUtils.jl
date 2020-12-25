@@ -429,20 +429,30 @@ end
 Place a single message likelihood prior on the highest dimension variable with highest connectivity in existing subfg.
 """
 function addLikelihoodPriorCommon!( subfg::AbstractDFG, 
-                                    msgs::LikelihoodMessage;
+                                    msg::LikelihoodMessage;
                                     tags::Vector{Symbol}=Symbol[]  )
   #
-  # find max dimension variable, which also has highest biadjacency
-
-  topCandidate = _calcCandidatePriorBest(subfg, msgs.belief)
-
-  # get prior for top candidate
-  msgPrior = generateMsgPrior(msgs.belief[topCandidate], msgs.msgType)
-
-  # get ready
   tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
-  # finally add the single AbstractPrior from LikelihoodMessage
-  addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
+  # find if any orphaned variables exist
+  for (lbl, msgpr) in msg.jointmsg.priors
+    # don't add numerical gauge reference unless absolutely necessary
+    if msg.hasPriors || 0 == length(ls(subfg, lbl))
+      # finally add the single AbstractPrior from LikelihoodMessage
+      addFactor!(subfg, [lbl], msgpr, graphinit=false, tags=tags__)
+    end
+  end
+
+  
+  # # find max dimension variable, which also has highest biadjacency
+  # topCandidate = _calcCandidatePriorBest(subfg, msg.belief)
+
+  # # get prior for top candidate
+  # msgPrior = generateMsgPrior(msg.belief[topCandidate], msg.msgType)
+
+  # # get ready
+  # tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
+  # # finally add the single AbstractPrior from LikelihoodMessage
+  # addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
 end
 
 
@@ -505,7 +515,7 @@ Related
 `deleteMsgFactors!`
 """
 function addMsgFactors!(subfg::AbstractDFG,
-                        msgs::LikelihoodMessage,
+                        msg::LikelihoodMessage,
                         dir::Type{<:MessagePassDirection};
                         tags::Vector{Symbol}=Symbol[],
                         attemptPriors::Bool=true  )
@@ -515,23 +525,23 @@ function addMsgFactors!(subfg::AbstractDFG,
   # TODO, expand -- this deconv approach only works for NonparametricMessage at this time.
   if  getSolverParams(subfg).useMsgLikelihoods && 
       dir == UpwardPass && 
-      msgs.msgType isa NonparametricMessage
+      msg.msgType isa NonparametricMessage
     #
-    if 0 < msgs.belief |> length
+    if 0 < length(msg.belief)
       # currently only works for nonparametric
-      addLikelihoodsDifferential!(subfg, msgs)          # :UPWARD_DIFFERENTIAL
-      ## FIXME, only do this if there are priors below
-      if attemptPriors && msgs.hasPriors
-        prFcts = addLikelihoodPriorCommon!(subfg, msgs)   # :UPWARD_COMMON
+      addLikelihoodsDifferential!(subfg, msg)          # :UPWARD_DIFFERENTIAL
+      if attemptPriors
+        # will only be added based on internal tests
+        prFcts = addLikelihoodPriorCommon!(subfg, msg)   # :UPWARD_COMMON
       end
     end
   else
     svars = DFG.listVariables(subfg)
     tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
     dir == DownwardPass ? push!(tags__, :DOWNWARD_COMMON) : nothing
-    for (msym, belief_) in msgs.belief
+    for (msym, belief_) in msg.belief
       if msym in svars
-        msgPrior = generateMsgPrior(belief_, msgs.msgType)
+        msgPrior = generateMsgPrior(belief_, msg.msgType)
         fc = addFactor!(subfg, [msym], msgPrior, graphinit=false, tags=tags__)
         push!(msgfcts, fc)
       end
