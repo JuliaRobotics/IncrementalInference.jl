@@ -263,14 +263,12 @@ function localProduct(dfg::AbstractDFG,
   # TODO -- converge this function with predictbelief for this node
   dens = Array{BallTreeDensity,1}()
   partials = Dict{Int, Vector{BallTreeDensity}}()
-  lb = Symbol[]
   fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
-  cf = getNeighbors(dfg, sym)
-  for f in cf
+  @show lb = getNeighbors(dfg, sym)
+  for f in lb
     gfct = DFG.getFactor(dfg, f)
     push!(fcts, gfct)
-    push!(lb, gfct.label)
   end
 
   # memory for if proposals are full dimension
@@ -280,8 +278,10 @@ function localProduct(dfg::AbstractDFG,
   inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, solveKey=solveKey, N=N, dbg=dbg)
 
   # take the product
+  # @show sym, lb, length(dens), length(partials)
   pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
   vari = DFG.getVariable(dfg, sym)
+  # @show size(pGM)
   pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifolds )
 
   return pp, dens, partials, lb, sum(inferdim)
