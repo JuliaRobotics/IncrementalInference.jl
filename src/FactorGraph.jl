@@ -1073,11 +1073,12 @@ function addFactor!(dfg::AbstractDFG,
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Int,Nothing}=nothing  ) where
+                    maxparallel::Union{Int,Nothing}=nothing,
+                    suppressChecks::Bool=false  ) where
                       {R <: FunctorInferenceType}
   #
   # depcrecation
-  if maxparallel !== nothing
+  if !suppressChecks && maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
@@ -1115,7 +1116,7 @@ function addFactor!(dfg::AbstractDFG,
                     suppressChecks::Bool=false  )
   #
   # depcrecation
-  if maxparallel !== nothing
+  if !suppressChecks && maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
