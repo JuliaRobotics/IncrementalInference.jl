@@ -265,7 +265,7 @@ function localProduct(dfg::AbstractDFG,
   partials = Dict{Int, Vector{BallTreeDensity}}()
   fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
-  @show lb = getNeighbors(dfg, sym)
+  lb = getNeighbors(dfg, sym)
   for f in lb
     gfct = DFG.getFactor(dfg, f)
     push!(fcts, gfct)
