@@ -11,7 +11,7 @@ notifications:
 
 jobs:
   include:
-    - name: "DEV MASTERS, Julia 1.5"
+    - name: "DEV MASTERS, Julia 1.6"
       if: NOT branch =~ ^release.*$
       julia: 1.6
       script:
