@@ -529,10 +529,11 @@ function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}},
   # the data before step
   csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
   csmc_.enableLogging = enableLogging
-  csmc_logger = SimpleLogger(Base.stdout)
+  csmc_.logger = enableLogging ? SimpleLogger() : SimpleLogger(Base.devnull)
   
   # run the step
-  fnc_(csmc_)
+  newfnc_ = fnc_(csmc_)
+  newfnc_, csmc_
 end
 
 
@@ -656,7 +657,7 @@ function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple
     for fi in fih
       push!(ret, fi)
     end
-   end
+  end
   return ret
 end
 
@@ -714,7 +715,10 @@ function animateCSM(tree::AbstractBayesTree,
   hists = Dict{Symbol, Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
-    hists[frtl[1]] = Tuple.(hist)
+    hists[frtl[1]] = Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}()
+    for hi in hist
+      push!(hists[frtl[1]], (hi.timestamp,hi.id,hi.f,hi.csmc) ) # Tuple.(hist)
+    end
     easyNames[frtl[1]] = id
   end
 
@@ -755,13 +759,13 @@ function animateCSM(tree::AbstractBayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
-                                              folderpath=folderpath, 
-                                              interval=interval, dpi=dpi, 
-                                              draw_more_cb=csmTreeAni, 
-                                              fsmColors=fsmColors, 
-                                              defaultColor=defaultColor, 
-                                              autocolor_cb=autocolor_cb )
+  FSM.animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
+                                                  folderpath=folderpath, 
+                                                  interval=interval, dpi=dpi, 
+                                                  draw_more_cb=csmTreeAni, 
+                                                  fsmColors=fsmColors, 
+                                                  defaultColor=defaultColor, 
+                                                  autocolor_cb=autocolor_cb )
 end
 
 """
