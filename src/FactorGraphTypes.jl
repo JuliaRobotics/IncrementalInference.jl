@@ -5,6 +5,19 @@ import Base: ==
 
 const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
+
+"""
+$(TYPEDEF)
+"""
+struct SingleThreaded
+end
+"""
+$(TYPEDEF)
+"""
+struct MultiThreaded
+end
+
+
 """
 $(TYPEDEF)
 
@@ -46,66 +59,68 @@ mutable struct SolverParams <: DFG.AbstractParams
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
-  SolverParams(;dimID::Int=0,
-                registeredModuleFunctions=nothing,
-                reference=nothing,
-                stateless::Bool=false,
-                qfl::Int=99999999999,
-                isfixedlag::Bool=false,
-                limitfixeddown::Bool=false,
-                incremental::Bool=true,
-                useMsgLikelihoods::Bool=true,
-                upsolve::Bool=true,
-                downsolve::Bool=true,
-                drawtree::Bool=false,
-                drawCSMIters::Bool=true,
-                showtree::Bool=false,
-                drawtreerate::Float64=0.5,
-                dbg::Bool=false,
-                async::Bool=false,
-                limititers::Int=500,
-                N::Int=100,
-                multiproc::Bool=1 < nprocs(),
-                logpath::String="/tmp/caesar/$(now())",
-                graphinit::Bool=true,
-                treeinit::Bool=false,
-                limittreeinit_iters::Int=10,
-                algorithms::Vector{Symbol}=[:default],
-                spreadNH::Float64=3.0,
-                maxincidence::Int=500,
-                alwaysFreshMeasurements::Bool=true,
-                devParams::Dict{Symbol,String}=Dict{Symbol,String}()
-              ) = new(dimID,
-                      registeredModuleFunctions,
-                      reference,
-                      stateless,
-                      qfl,
-                      isfixedlag,
-                      limitfixeddown,
-                      incremental,
-                      useMsgLikelihoods,
-                      upsolve,
-                      downsolve,
-                      drawtree,
-                      drawCSMIters,
-                      showtree,
-                      drawtreerate,
-                      dbg,
-                      async,
-                      limititers,
-                      N,
-                      multiproc,
-                      logpath,
-                      graphinit,
-                      treeinit,
-                      limittreeinit_iters,
-                      algorithms,
-                      spreadNH,
-                      maxincidence,
-                      alwaysFreshMeasurements,
-                      devParams )
   #
 end
+
+SolverParams(;dimID::Int=0,
+              registeredModuleFunctions=nothing,
+              reference=nothing,
+              stateless::Bool=false,
+              qfl::Int=99999999999,
+              isfixedlag::Bool=false,
+              limitfixeddown::Bool=false,
+              incremental::Bool=true,
+              useMsgLikelihoods::Bool=true,
+              upsolve::Bool=true,
+              downsolve::Bool=true,
+              drawtree::Bool=false,
+              drawCSMIters::Bool=true,
+              showtree::Bool=false,
+              drawtreerate::Float64=0.5,
+              dbg::Bool=false,
+              async::Bool=false,
+              limititers::Int=500,
+              N::Int=100,
+              multiproc::Bool=1 < nprocs(),
+              logpath::String="/tmp/caesar/$(now())",
+              graphinit::Bool=true,
+              treeinit::Bool=false,
+              limittreeinit_iters::Int=10,
+              algorithms::Vector{Symbol}=[:default],
+              spreadNH::Float64=3.0,
+              maxincidence::Int=500,
+              alwaysFreshMeasurements::Bool=true,
+              devParams::Dict{Symbol,String}=Dict{Symbol,String}()
+            ) = SolverParams( dimID,
+                              registeredModuleFunctions,
+                              reference,
+                              stateless,
+                              qfl,
+                              isfixedlag,
+                              limitfixeddown,
+                              incremental,
+                              useMsgLikelihoods,
+                              upsolve,
+                              downsolve,
+                              drawtree,
+                              drawCSMIters,
+                              showtree,
+                              drawtreerate,
+                              dbg,
+                              async,
+                              limititers,
+                              N,
+                              multiproc,
+                              logpath,
+                              graphinit,
+                              treeinit,
+                              limittreeinit_iters,
+                              algorithms,
+                              spreadNH,
+                              maxincidence,
+                              alwaysFreshMeasurements,
+                              devParams )
+#
 
 
 """
@@ -113,8 +128,8 @@ $(TYPEDEF)
 
 DevNotes
 - TODO remove Union types -- issue #383
-- TODO standardize -- #927, #1025, #784, #825, #692, #640
-- FIXME standardize inner constructors
+- TODO standardize -- #927, #1025, #784, #692, #640
+- TODO make immutable #825
 - TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
 mutable struct FactorMetadata{T}
@@ -132,44 +147,17 @@ mutable struct FactorMetadata{T}
   arrRef::Vector{Matrix{Float64}}
 end
 
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
-
-function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                solvefor=nothing,
-                                arrRef=Vector{Matrix{Float64}}(),
-                                dbg::Bool=false,
-                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
-  #
-  
-  variableuserdata = []
-  for xi in Xi
-    push!(variableuserdata, getVariableType(xi))
-  end
-  
-  # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,variableuserdata,[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
-end
-
 """
 $(TYPEDEF)
-"""
-struct SingleThreaded
-end
-"""
-$(TYPEDEF)
-"""
-struct MultiThreaded
-end
 
-"""
-$(TYPEDEF)
+DevNotes
+- FIXME remove inner constructor
 """
 mutable struct ConvPerThread
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
-  # additional data passed to user function -- optionally used by user function
+  # additional/optional data passed to user function
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
@@ -180,34 +168,16 @@ mutable struct ConvPerThread
   X::Array{Float64,2}
   Y::Vector{Float64}
   res::Vector{Float64}
-  ConvPerThread() = new()
-end
 
-function ConvPerThread( X::Array{Float64,2},
-                        zDim::Int;
-                        factormetadata::FactorMetadata=FactorMetadata(),
-                        particleidx::Int=1,
-                        activehypo= 1:length(params),
-                        p=collect(1:size(X,1)),
-                        perturb=zeros(zDim),
-                        Y=zeros(size(X,1)),
-                        res=zeros(zDim)  )
-  #
-  cpt = ConvPerThread()
-  cpt.thrid_ = 0
-  cpt.X = X
-  cpt.factormetadata = factormetadata
-  cpt.particleidx = particleidx
-  cpt.activehypo = activehypo
-  cpt.p = p
-  cpt.perturb = perturb
-  cpt.Y = Y
-  cpt.res = res
-  return cpt
+  # remove
+  ConvPerThread() = new()
 end
 
 """
 $(TYPEDEF)
+
+DevNotes
+- FIXME remove inner constructor
 """
 mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMemory
   ### Values consistent across all threads during approx convolution
@@ -230,7 +200,52 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{ConvPerThread}
 
+  # remove
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
+end
+
+
+
+FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
+                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
+
+function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
+                                solvefor=nothing,
+                                arrRef=Vector{Matrix{Float64}}(),
+                                dbg::Bool=false,
+                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
+  #
+  
+  variableuserdata = []
+  for xi in Xi
+    push!(variableuserdata, getVariableType(xi))
+  end
+  
+  # FIXME standardize fmd, see #927
+  FactorMetadata(nothing,variableuserdata,[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
+end
+
+function ConvPerThread( X::Array{Float64,2},
+                        zDim::Int,
+                        factormetadata::FactorMetadata;
+                        particleidx::Int=1,
+                        activehypo= 1:length(params),
+                        p=collect(1:size(X,1)),
+                        perturb=zeros(zDim),
+                        Y=zeros(size(X,1)),
+                        res=zeros(zDim)  )
+  #
+  cpt = ConvPerThread()
+  cpt.thrid_ = 0
+  cpt.X = X
+  cpt.factormetadata = factormetadata
+  cpt.particleidx = particleidx
+  cpt.activehypo = activehypo
+  cpt.p = p
+  cpt.perturb = perturb
+  cpt.Y = Y
+  cpt.res = res
+  return cpt
 end
 
 
@@ -274,7 +289,7 @@ function CommonConvWrapper( fnc::T,
   ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
   for i in 1:Threads.nthreads()
     ccw.cpt[i] = ConvPerThread(X, zDim,
-                    factormetadata=factormetadata,
+                    factormetadata,
                     particleidx=particleidx,
                     activehypo=activehypo,
                     p=p,
