@@ -109,43 +109,11 @@ end
 
 
 """
-    $SIGNATURES
-
-Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
-"""
-function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
-                                    sessionname="NA",
-                                    robotname="",
-                                    username="",
-                                    cloudgraph=nothing) where T <: AbstractDFG
-  #
-  return dfg
-end
-
-
-#init an empty fg with a provided type and SolverParams
-function initfg(::Type{T};solverParams=SolverParams(),
-                          sessionname="NA",
-                          robotname="",
-                          username="",
-                          cloudgraph=nothing) where T <: AbstractDFG
-  return T(solverParams=solverParams)
-end
-
-function initfg(::Type{T},solverParams::SolverParams;
-                          sessionname="NA",
-                          robotname="",
-                          username="",
-                          cloudgraph=nothing) where T <: AbstractDFG
-  return T{SolverParams}(solverParams=solverParams)
-end
-
-"""
 $(TYPEDEF)
 
 DevNotes
 - TODO remove Union types -- issue #383
-- TODO standardize -- #927
+- TODO standardize -- #927, #1025, #784, #825, #692, #640
 - FIXME standardize inner constructors
 - TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
@@ -164,10 +132,10 @@ mutable struct FactorMetadata{T}
   arrRef::Vector{Matrix{Float64}}
 
   # # inner constructors (delete?)
-  FactorMetadata{T}() where T = new{T}()
-  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef)
+  # FactorMetadata{T}() where T = new{T}()
+  # FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef)
 end
-FactorMetadata() = FactorMetadata{Any}()
+# FactorMetadata() = FactorMetadata{Any}()
 FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
                 FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
 
@@ -176,8 +144,15 @@ function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
                                 arrRef=Vector{Matrix{Float64}}(),
                                 dbg::Bool=false,
                                 cachedata::AbstractVector{T}=Vector{Any}() ) where T
+  #
+  
+  variableuserdata = []
+  for xi in Xi
+    push!(variableuserdata, getVariableType(xi))
+  end
+  
   # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,[],[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
+  FactorMetadata(nothing,variableuserdata,[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
 end
 
 """
@@ -266,8 +241,8 @@ end
 function CommonConvWrapper( fnc::T,
                             X::Array{Float64,2},
                             zDim::Int,
-                            params::Vector{Array{Float64,2}};
-                            factormetadata::FactorMetadata=FactorMetadata(),
+                            params::Vector{Array{Float64,2}},
+                            factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
                             hypotheses=nothing,

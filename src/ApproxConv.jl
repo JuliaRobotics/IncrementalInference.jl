@@ -594,10 +594,10 @@ end
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
                           outdims::Int,
+                          fmd::FactorMetadata,
                           measurement::Tuple=(zeros(0,size(arr,2)),);
                           varidx::Int=2,
                           N::Int=size(arr,2),
-                          fmd::FactorMetadata=FactorMetadata(),
                           vnds=DFGVariable[] )
   #
   # N = N == 0 ? size(arr,2) : N
@@ -606,10 +606,12 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
+  fmd.arrRef = t
+
   measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
-  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n

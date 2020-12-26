@@ -25,23 +25,17 @@ function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) wh
   end
 end
 
-function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
-  if hasfield(T, :specialSampler)
-    error("specialSampler requires FactorMetadata and VariableNodeDatas")
-  end
-  freshSamples(usrfnc, N, FactorMetadata(),)
-end
 
 function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
   fct = getFactor(dfg, sym)
   usrfnc = getFactorType(fct)
-  if hasfield(typeof(usrfnc), :specialSampler)
-    variables = getVariable.(dfg, getVariableOrder(fct))
-    fmd = _defaultFactorMetadata(variables)
+  variables = getVariable.(dfg, getVariableOrder(fct))
+  fmd = _defaultFactorMetadata(variables)
+  # if hasfield(typeof(usrfnc), :specialSampler)
     freshSamples(usrfnc, N, fmd, variables )
-  else
-    freshSamples(usrfnc, N)
-  end
+  # else
+  #   freshSamples(usrfnc, N, fmd)
+  # end
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
@@ -58,10 +52,7 @@ function freshSamples!( ccwl::CommonConvWrapper,
   # end
   nothing
 end
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  # could maybe use default to reduce member functions
-  freshSamples!(ccwl, N, FactorMetadata(),)
-end
+
 
 function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
   # n = length(X)
