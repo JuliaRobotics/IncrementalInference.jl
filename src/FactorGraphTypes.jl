@@ -130,12 +130,8 @@ mutable struct FactorMetadata{T}
   fullvariables::Vector{DFGVariable}
   # TODO consolidate, same as ARR used in CCW,
   arrRef::Vector{Matrix{Float64}}
-
-  # # inner constructors (delete?)
-  # FactorMetadata{T}() where T = new{T}()
-  # FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef)
 end
-# FactorMetadata() = FactorMetadata{Any}()
+
 FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
                 FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
 

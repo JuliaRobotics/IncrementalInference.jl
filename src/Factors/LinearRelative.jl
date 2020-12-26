@@ -10,16 +10,9 @@ Default linear offset between two scalar variables.
 """
 struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
   Z::T
-
-  # # Julia 1.5.2 still requires this inner constructor given all default helpers below?
-  # LinearRelative{N, T}(z0::T) where {N, T <: SamplableBelief} = new{N,T}(z0)
 end
 
-# function LinearRelative{N, T}(::UniformScaling=LinearAlgebra.I,
-#                               z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
-#   #
-#   LinearRelative{N,T}(z0)
-# end
+
 
 function LinearRelative{N}( z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
   #
@@ -75,7 +68,7 @@ function (s::LinearRelative{N,<:ParametricTypes})(
 
   else
     #this should not happen
-    @error("$s not suported, please use non-parametric")
+    @error("$s not supported, please use non-parametric")
   end
 end
 

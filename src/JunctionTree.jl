@@ -5,6 +5,8 @@ export hasClique
 export setCliqueDrawColor!, getCliqueDrawColor
 export appendSeparatorToClique!
 
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
 """
     $SIGNATURES
 
@@ -615,6 +617,7 @@ function generateTexTree( treel::AbstractBayesTree;
 
   return btc
 end
+
 
 """
     $SIGNATURES

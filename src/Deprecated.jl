@@ -26,9 +26,12 @@ end
 ## TODO deprecated  
 ##==============================================================================
 
+function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+  # function is being deprecated
+  @warn "numericRoot is likely to be deprected, switch to using approxConv, evalFactor, or numericSolutionCCW!"
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
+end
 
-
-export buildTreeFromOrdering! # TODO obsolete? deprecate?
 
 
 # see DFG #590
