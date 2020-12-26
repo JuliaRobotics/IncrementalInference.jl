@@ -27,6 +27,10 @@ end
 ##==============================================================================
 
 
+
+export buildTreeFromOrdering! # TODO obsolete? deprecate?
+
+
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
 
@@ -74,6 +78,74 @@ end
 ## Deprecate code below before v0.20
 ##==============================================================================
 
+
+function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+  error("freshSamples API changing, use freshSamples!( ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[] ) instead")
+  # could maybe use default to reduce member functions
+  freshSamples!(ccwl, N, FactorMetadata(),)
+end
+
+function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
+  error("freshSamples API changing, use freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int) instead")
+  if hasfield(T, :specialSampler)
+    error("specialSampler requires FactorMetadata and VariableNodeDatas")
+  end
+  freshSamples(usrfnc, N, FactorMetadata(),)
+end
+
+# export cliqInitSolveUpByStateMachine!,
+# state machine functions,
+# checkUpsolveFinished_StateMachine,
+# determineCliqNeedDownMsg_StateMachine,
+# blockSiblingStatus_StateMachine,
+# trafficRedirectConsolidate459_StateMachine,
+# slowIfChildrenNotUpSolved_StateMachine,
+# buildCliqSubgraph_StateMachine,
+# isCliqUpSolved_StateMachine,
+# canCliqMargRecycle_StateMachine,
+# buildCliqSubgraphForDown_StateMachine,
+# doAnyChildrenNeedDwnMsg,
+# areCliqChildrenAllUpSolved,
+# doCliqInitDown!,
+# prepCliqInitMsgsUp,
+# isCliqMarginalizedFromVars,
+# isCliqParentNeedDownMsg,
+# setCliqAsMarginalized!,
+# updateTreeCliquesAsMarginalizedFromVars!,
+# landmarks,
+
+# CSM Exports
+# export  doCliqDownSolve_StateMachine,
+#         cleanupAfterDownSolve_StateMachine,
+#         specialCaseRootDownSolve_StateMachine,
+#         canCliqDownSolve_StateMachine,
+#         checkUpsolveFinished_StateMachine,
+#         prepInitUp_StateMachine,
+#         doCliqUpSolveInitialized_StateMachine,
+#         rmUpLikeliSaveSubFg_StateMachine,
+#         waitChangeOnParentCondition_StateMachine,
+#         towardUpOrDwnSolve_StateMachine,
+#         canCliqMargSkipUpSolve_StateMachine,
+#         tryDwnInitCliq_StateMachine,
+#         rmMsgLikelihoodsAfterDwn_StateMachine,
+#         blockSiblingStatus_StateMachine,
+#         slowIfChildrenNotUpSolved_StateMachine,
+#         blockUntilChildrenHaveStatus_StateMachine,
+#         dwnInitSiblingWaitOrder_StateMachine,
+#         trafficRedirectConsolidate459_StateMachine,
+#         doAllSiblingsNeedDwn_StateMachine,
+#         maybeNeedDwnMsg_StateMachine,
+#         determineCliqNeedDownMsg_StateMachine,
+#         tryUpInitCliq_StateMachine,
+#         slowWhileInit_StateMachine,
+#         decideUpMsgOrInit_StateMachine,
+#         attemptCliqInitUp_StateMachine,
+#         sendCurrentUpMsg_StateMachine,
+#         buildCliqSubgraphForDown_StateMachine,
+#         isCliqUpSolved_StateMachine,
+#         checkChildrenAllUpRecycled_StateMachine,
+#         canCliqIncrRecycle_StateMachine,
+#         canCliqMargRecycle_StateMachine
 
 @deprecate prepBatchTree!(w...;kw...) buildTreeReset!(w...;kw...)
 

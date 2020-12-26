@@ -620,6 +620,9 @@ end
     $SIGNATURES
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
+
+DevNotes
+- FIXME deprecate and use only [`buildTreeReset!`](@ref) instead
 """
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
@@ -663,12 +666,6 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
   return tree
 end
 
-
-"""
-    $SIGNATURES
-
-Build Bayes/Junction/Elimination tree from a given variable ordering.
-"""
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,

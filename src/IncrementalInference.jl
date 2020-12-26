@@ -177,6 +177,7 @@ export *,
   deepcopyGraph,
   deepcopyGraph!,
   copyGraph!,
+  getSolverData,
 
   # using either dictionary or cloudgraphs
   FactorMetadata,
@@ -232,18 +233,6 @@ export *,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # cliqInitSolveUpByStateMachine!,
-
-  # state machine functions
-  # checkUpsolveFinished_StateMachine,
-  # determineCliqNeedDownMsg_StateMachine,
-  # blockSiblingStatus_StateMachine,
-  # trafficRedirectConsolidate459_StateMachine,
-  # slowIfChildrenNotUpSolved_StateMachine,
-  # buildCliqSubgraph_StateMachine,
-  # isCliqUpSolved_StateMachine,
-  # canCliqMargRecycle_StateMachine,
-  # buildCliqSubgraphForDown_StateMachine,
 
   #
   isPartial,
@@ -253,13 +242,9 @@ export *,
   isCliqInitialized,
   isCliqUpSolved,
   areCliqVariablesAllInitialized,
-  # doAnyChildrenNeedDwnMsg,
-  # areCliqChildrenAllUpSolved,
   ensureSolvable!,
   ensureAllInitialized!,
-  # doCliqInitDown!,
   cycleInitByVarOrder!,
-  # prepCliqInitMsgsUp,
   getOutNeighbors,
   BayesTree,
   TreeBelief,
@@ -271,7 +256,6 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  buildTreeFromOrdering!, # TODO obsolete? deprecate?
   BayesTree,
   buildTree!,
   buildTreeReset!,
@@ -323,10 +307,6 @@ export *,
   isMultihypo,
   getMultihypoDistribution,
   getHypothesesVectors,
-  # isCliqMarginalizedFromVars,
-  # isCliqParentNeedDownMsg,
-  # setCliqAsMarginalized!,
-  # updateTreeCliquesAsMarginalizedFromVars!,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -375,7 +355,6 @@ export *,
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
-  # landmarks,
 
   # Temp placeholder for evaluating string types to real types
   saveDFG,
@@ -406,39 +385,8 @@ export *,
   Ranged,
   PackedRanged
 
-# CSM Exports
-# export  doCliqDownSolve_StateMachine,
-#         cleanupAfterDownSolve_StateMachine,
-#         specialCaseRootDownSolve_StateMachine,
-#         canCliqDownSolve_StateMachine,
-#         checkUpsolveFinished_StateMachine,
-#         prepInitUp_StateMachine,
-#         doCliqUpSolveInitialized_StateMachine,
-#         rmUpLikeliSaveSubFg_StateMachine,
-#         waitChangeOnParentCondition_StateMachine,
-#         towardUpOrDwnSolve_StateMachine,
-#         canCliqMargSkipUpSolve_StateMachine,
-#         tryDwnInitCliq_StateMachine,
-#         rmMsgLikelihoodsAfterDwn_StateMachine,
-#         blockSiblingStatus_StateMachine,
-#         slowIfChildrenNotUpSolved_StateMachine,
-#         blockUntilChildrenHaveStatus_StateMachine,
-#         dwnInitSiblingWaitOrder_StateMachine,
-#         trafficRedirectConsolidate459_StateMachine,
-#         doAllSiblingsNeedDwn_StateMachine,
-#         maybeNeedDwnMsg_StateMachine,
-#         determineCliqNeedDownMsg_StateMachine,
-#         tryUpInitCliq_StateMachine,
-#         slowWhileInit_StateMachine,
-#         decideUpMsgOrInit_StateMachine,
-#         attemptCliqInitUp_StateMachine,
-#         sendCurrentUpMsg_StateMachine,
+
 export  buildCliqSubgraph_StateMachine
-        # buildCliqSubgraphForDown_StateMachine,
-        # isCliqUpSolved_StateMachine,
-        # checkChildrenAllUpRecycled_StateMachine,
-        # canCliqIncrRecycle_StateMachine,
-        # canCliqMargRecycle_StateMachine
 
 
 const NothingUnion{T} = Union{Nothing, T}

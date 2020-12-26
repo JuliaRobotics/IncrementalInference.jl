@@ -1,4 +1,40 @@
 
+
+
+"""
+$SIGNATURES
+
+Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
+"""
+function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
+                                sessionname="NA",
+                                robotname="",
+                                username="",
+                                cloudgraph=nothing) where T <: AbstractDFG
+#
+return dfg
+end
+
+
+#init an empty fg with a provided type and SolverParams
+function initfg(::Type{T};solverParams=SolverParams(),
+                      sessionname="NA",
+                      robotname="",
+                      username="",
+                      cloudgraph=nothing) where T <: AbstractDFG
+return T(solverParams=solverParams)
+end
+
+function initfg(::Type{T},solverParams::SolverParams;
+                      sessionname="NA",
+                      robotname="",
+                      username="",
+                      cloudgraph=nothing) where T <: AbstractDFG
+return T{SolverParams}(solverParams=solverParams)
+end
+
+
+
 # Should deprecate in favor of TensorCast.jl
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
@@ -570,6 +606,7 @@ Notes
 function calcZDim(usrfnc::T, 
                   Xi::Vector{<:DFGVariable}, 
                   fmd::FactorMetadata=_defaultFactorMetadata(Xi)) where {T <: FunctorInferenceType}
+  #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -582,26 +619,38 @@ function calcZDim(usrfnc::T,
 end
 
 
-function prepgenericconvolution(
-            Xi::Vector{<:DFGVariable},
-            usrfnc::T;
-            multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-            nullhypo::Real=0.0,
-            threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
+function prepgenericconvolution(Xi::Vector{<:DFGVariable},
+                                usrfnc::T;
+                                multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+                                nullhypo::Real=0.0,
+                                threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
 
-  fmd = _defaultFactorMetadata(Xi, arrRef=ARR)
+  # standard factor metadata
+  fmd = _defaultFactorMetadata(Xi, solvefor=:null, arrRef=ARR)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  
+    # for i in 1:Threads.nthreads()
+    #   # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
+    #   ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
+    #   ccw.cpt[i].factormetadata.variableuserdata = []
+    #   ccw.cpt[i].factormetadata.solvefor = :null
+    #   for xi in Xi
+    #     push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
+    #   end
+    # end
+  
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
           zdim,
           ARR,
+          fmd,
           specialzDim = sum(fldnms .== :zDim) >= 1,
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo,
@@ -610,15 +659,6 @@ function prepgenericconvolution(
           threadmodel=threadmodel
         )
   #
-  for i in 1:Threads.nthreads()
-    # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
-    ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
-    ccw.cpt[i].factormetadata.variableuserdata = []
-    ccw.cpt[i].factormetadata.solvefor = :null
-    for xi in Xi
-      push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
-    end
-  end
   return ccw
 end
 
