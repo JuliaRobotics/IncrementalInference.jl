@@ -37,15 +37,15 @@ end
 
 # export setSolvable!
 
-manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
 # extend convenience function
 function manikde!(pts::AbstractArray{Float64,2},
-  bws::Vector{Float64},
-  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
-#
-manikde!(pts, bws, getManifolds(variableType))
+                  bws::Vector{Float64},
+                  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+  #
+  manikde!(pts, bws, getManifolds(variableType))
 end
 
 

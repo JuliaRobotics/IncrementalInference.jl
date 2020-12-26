@@ -79,7 +79,7 @@ export AbstractDFG,
   InMemDFGType,
   getSolverParams,
   LightDFG,
-  findShortestPathDijkstra,
+  findShortestPathDijkstra, isPathFactorsHomogeneous,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,
   deepcopySolvekeys!, deepcopySupersolve!,
@@ -457,7 +457,12 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 include("AliasScalarSampling.jl")
 include("Flux/entities.jl")
 include("BeliefTypes.jl")
+
+# Refactoring in progress
+include("Factors/MsgLikelihoods.jl")
+
 include("CliqueTypes.jl")
+
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
@@ -468,6 +473,7 @@ include("Variables/DefaultVariables.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 include("NeedsResolution.jl")
+
 
 # tree and init related functions
 include("SubGraphFunctions.jl")
@@ -484,6 +490,7 @@ include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
 include("Factors/Sphere1D.jl")
 include("Variables/Sphere1D.jl")
+include("Factors/PartialPrior.jl")
 include("DefaultNodeTypes.jl") # older file
 
 # solving graphs
@@ -534,12 +541,6 @@ function __init__()
   end
 end
 
-# Old code that might be used again
-# function getType(typestring::AS) where {AS <: AbstractString}
-#  # eval(Meta.parse(typestring))()
-#  # getfield(Main, Symbol(typestring))
-#  getfield(@__MODULE__, Symbol(typestring))
-# end
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules
 

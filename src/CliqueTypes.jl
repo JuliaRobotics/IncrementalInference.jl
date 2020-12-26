@@ -4,11 +4,24 @@
 ## BayesTreeNodeData
 ##==============================================================================
 
+
+"""
+    $TYPEDEF
+
+Cache messages being passed on the tree, one container per clique.
+
+Notes
+- See model 2 (?) on IIF #674
+"""
 mutable struct MessageBuffer
-  upRx::Dict{Int, LikelihoodMessage} # up receive message buffer (multiple children, multiple messages)
-  downRx::Union{Nothing, LikelihoodMessage} # down receive message buffer (one parent)
-  upTx::Union{Nothing, LikelihoodMessage} # RESERVED up outgoing message buffer (one parent)
-  downTx::Union{Nothing, LikelihoodMessage} # RESERVED down outgoing message buffer (multiple children but one message)
+  # up receive message buffer (multiple children, multiple messages)
+  upRx::Dict{Int, LikelihoodMessage} 
+  # down receive message buffer (one parent)
+  downRx::Union{Nothing, LikelihoodMessage} 
+  # RESERVED up outgoing message buffer (one parent)
+  upTx::Union{Nothing, LikelihoodMessage} 
+  # RESERVED down outgoing message buffer (multiple children but one message)
+  downTx::Union{Nothing, LikelihoodMessage} 
 end
 MessageBuffer() = MessageBuffer(Dict{Int, LikelihoodMessage}(), nothing, nothing, nothing)
 
@@ -46,7 +59,7 @@ mutable struct BayesTreeNodeData
   downsolved::Bool
   isCliqReused::Bool             # holdover
 
-  # JT Local messages saved for cache and debuging 
+  # JT Local messages saved for cache and debugging, see IIF #675
   messages::MessageBuffer
 end
 

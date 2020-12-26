@@ -54,7 +54,7 @@ mutable struct SolverParams <: DFG.AbstractParams
                 isfixedlag::Bool=false,
                 limitfixeddown::Bool=false,
                 incremental::Bool=true,
-                useMsgLikelihoods::Bool=false,
+                useMsgLikelihoods::Bool=true,
                 upsolve::Bool=true,
                 downsolve::Bool=true,
                 drawtree::Bool=false,

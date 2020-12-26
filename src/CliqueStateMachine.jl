@@ -35,7 +35,6 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
                                    tree, cliq,
-                                  #  prnt, children,
                                    incremental, drawtree, downsolve, delay,
                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
                                    cliq.id, algorithm, 0, true) 
@@ -43,11 +42,10 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
-
+  
   csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
-
+  
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(getId(cliq))")
-
 
   # store statemachine and csmc in task
   if dfg.solverParams.dbg || recordhistory
@@ -380,7 +378,7 @@ function tryDownSolveOnly_StateMachine(csmc::CliqStateMachineContainer)
       setCliqueStatus!(csmc.cliq, UPRECYCLED)
     else
       logCSM(csmc, "CSM-2d Clique $(csmc.cliqId) cannot be UPRECYCLED, all variables not solved. Set solverParams to upsolve=true.";
-             loglevel=Logging.Error)
+              loglevel=Logging.Error)
       # propagate error to cleanly exit all cliques
       putErrorUp(csmc)
       if length(getParent(csmc.tree, csmc.cliq)) == 0
@@ -406,7 +404,8 @@ Notes
 function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   solveStatus = getCliqueStatus(csmc.cliq)
-  #fill in belief
+  # fill in belief
+  logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated, going for prepCliqueMsgUpConsolidated")
   beliefMsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
@@ -520,9 +519,9 @@ function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
       newDwnMsgs.belief[mk] = TreeBelief(v)
     end
   end
-
+  
   logCSM(csmc, "cliq $(csmc.cliq.id), CliqDownMessage, allkeys=$(keys(newDwnMsgs.belief))")
- 
+  
   return newDwnMsgs
 end
 
@@ -548,7 +547,9 @@ function preDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     logCSM(csmc, "CSM-4a doCliqDownSolve_StateMachine -- dwnmsgs=$(collect(keys(dwnmsgs.belief)))")
     # maybe cycle through separators (or better yet, just use values directly -- see next line)
     msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-    
+    # force separator variables in cliqSubFg to adopt down message values
+    updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+
     if dwnmsgs.status in [DOWNSOLVED, MARGINALIZED] 
       logCSM(csmc, "CSM-4a doCliqDownSolve_StateMachine")
       return solveDown_StateMachine
@@ -628,18 +629,15 @@ function solveDown_StateMachine(csmc::CliqStateMachineContainer)
   # DownSolve cliqSubFg
   # add messages, do downsolve, remove messages
   
-  #XXX
   # get down msg from Rx buffer (saved in take!)
   dwnmsgs = getMessageBuffer(csmc.cliq).downRx
-
-  opts = getSolverParams(csmc.dfg)
-
-  # maybe cycle through separators (or better yet, just use values directly -- see next line)
-  msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)
-
+  # #XXX
+  # # maybe cycle through separators (or better yet, just use values directly -- see next line)
+  # msgfcts = addMsgFactors!(csmc.cliqSubFg, dwnmsgs, DownwardPass)  
   # force separator variables in cliqSubFg to adopt down message values
-  updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
-
+  # updateSubFgFromDownMsgs!(csmc.cliqSubFg, dwnmsgs, getCliqSeparatorVarIds(csmc.cliq))
+  
+  opts = getSolverParams(csmc.dfg)
   #XXX test with and without
   # add required all frontal connected factors
   if !opts.useMsgLikelihoods

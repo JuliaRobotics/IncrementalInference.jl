@@ -443,6 +443,7 @@ end
 Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
 
 Notes
+- To view, make sure you install `sudo apt-get install xdot`
 - Uses system install of graphviz.org.
 - Can also use Linux tool `xdot`.
 - `xlabels` is optional `cliqid=>xlabel`.
@@ -978,7 +979,7 @@ function setCliqPotentials!(dfg::G,
   nothing
 end
 
-getCliquePotentials(cliq::TreeBelief) = getCliqueData(cliq).potentials
+getCliquePotentials(cliq::TreeClique) = getCliqueData(cliq).potentials
 
 function cliqPotentialIDs(cliq::TreeClique)
   potIDs = Symbol[]
