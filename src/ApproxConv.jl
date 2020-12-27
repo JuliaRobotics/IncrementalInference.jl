@@ -13,7 +13,6 @@ Notes:
 Future work:
 - once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
 - improve handling of n and particleidx, especially considering future multithreading support
-
 """
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -28,44 +27,19 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   nothing
 end
 
-"""
-    $(SIGNATURES)
 
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccwl ) # numericRootGenericRandomizedFnc!
+    numericSolutionCCW!( ccwl )
   end
   nothing
 end
 
 
-"""
-    $(SIGNATURES)
-
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
@@ -239,12 +213,6 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
-    # elseif hypoidx == sfidx
-    #   # multihypo, do conv case, hypoidx == sfidx
-    #   ah = sort(union([sfidx;], certainidx))
-    #   @assert norm(ah - vars) < 1e-10
-    #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
-    #   approxConvOnElements!(ccwl, allelements[count])
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
@@ -272,7 +240,12 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
   end
   nothing
 end
-
+  # elseif hypoidx == sfidx
+  #   # multihypo, do conv case, hypoidx == sfidx
+  #   ah = sort(union([sfidx;], certainidx))
+  #   @assert norm(ah - vars) < 1e-10
+  #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
+  #   approxConvOnElements!(ccwl, allelements[count])
 
 
 """

@@ -54,63 +54,6 @@ function freshSamples!( ccwl::CommonConvWrapper,
 end
 
 
-function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
-  # n = length(X)
-  Y = deepcopy(Alt)
-  for i in 1:d
-    Y[p[i]] = X[i]
-  end
-  return Y
-end
-
-"""
-    $(SIGNATURES)
-
-Shuffle incoming X into random positions in fr.Y.
-Shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res).
-"""
-function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
-  # populate defaults from existing values
-  for i in 1:ccwl.xDim
-    ccwl.cpt[Threads.threadid()].Y[i] = ccwl.cpt[Threads.threadid()].X[i, ccwl.cpt[Threads.threadid()].particleidx]
-  end
-  # populate as many measurment dimensions randomly for calculation
-  for i in 1:ccwl.zDim
-    ccwl.cpt[Threads.threadid()].Y[ccwl.cpt[Threads.threadid()].p[i]] = X[i]
-  end
-  nothing
-end
-
-
-function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Real})
-  shuffleXAltD!(ccw, x)
-  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
-  # evaulate the user provided residual function with constructed set of parameters
-  ret = ccw.usrfnc!(res,
-                    ccw.cpt[Threads.threadid()].factormetadata,
-                    ccw.cpt[Threads.threadid()].particleidx,
-                    ccw.measurement,
-                    ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
-  return ret
-end
-
-
-function (ccw::CommonConvWrapper)(x::Vector{Float64})
-  # set internal memory to that of external caller value `x`, special care if partial
-  if !ccw.partial
-    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  else
-    ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  end
-  # evaluate the user provided residual function with constructed set of parameters
-  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
-              ccw.cpt[Threads.threadid()].factormetadata,
-              ccw.cpt[Threads.threadid()].particleidx,
-              ccw.measurement,
-              ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
-end
-
-
 
 """
     $(SIGNATURES)
