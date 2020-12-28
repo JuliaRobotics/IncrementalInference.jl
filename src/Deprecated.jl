@@ -81,6 +81,14 @@ end
 ## Deprecate code below before v0.20
 ##==============================================================================
 
+# function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
+#   # n = length(X)
+#   Y = deepcopy(Alt)
+#   for i in 1:d
+#     Y[p[i]] = X[i]
+#   end
+#   return Y
+# end
 
 function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
   error("freshSamples API changing, use freshSamples!( ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[] ) instead")

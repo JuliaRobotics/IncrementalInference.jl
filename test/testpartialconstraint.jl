@@ -71,7 +71,7 @@ end
 
 
 
-mutable struct DevelopPartialPairwise <: AbstractRelativeFactor
+mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   x::Distribution
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
@@ -86,7 +86,8 @@ function (dp::DevelopPartialPairwise)(res::AbstractVector{<:Real},
                                       x2::AbstractArray{<:Real}  )
   #
   res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
-  nothing
+  res[1] ^= 2
+  res[1]
 end
 
 
