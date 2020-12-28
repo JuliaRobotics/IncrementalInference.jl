@@ -26,13 +26,6 @@ end
 ## TODO deprecated  
 ##==============================================================================
 
-function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
-  # function is being deprecated
-  @warn "numericRoot is likely to be deprected, switch to using approxConv, evalFactor, or numericSolutionCCW!"
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
-end
-
-
 
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
@@ -80,6 +73,76 @@ end
 ##==============================================================================
 ## Deprecate code below before v0.20
 ##==============================================================================
+
+
+function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Number})
+  # <: AbstractRelativeRoots case
+  @error("calling on (::CCW)(::Vector, ::Vector) is obsolete, use higher level API instead.  See #1025 for details.")
+  
+  # use of Y is excessive since #1072
+  # target = view(ccw.params[ccw.varidx], :, ccw.cpt[Threads.threadid()].particleidx )
+  # target .= x
+    ccw.cpt[Threads.threadid()].Y .= x
+    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
+
+  # evaulate the user provided residual function with constructed set of parameters
+  ret = ccw.usrfnc!(res,
+                    ccw.cpt[Threads.threadid()].factormetadata,
+                    ccw.cpt[Threads.threadid()].particleidx,
+                    ccw.measurement,
+                    ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
+  return ret
+end
+
+
+function (ccw::CommonConvWrapper)(x::AbstractVector{<:Number} )
+  #
+  # AbstractRelativeMinimize case
+  @error("calling on (::CCW)(::Vector) is obsolete, use higher level API instead.  See #1025 for details.")
+
+  # set internal memory to that of external caller value `x`, special care if partial
+  # trying to use view instead
+    # target = view(ccw.params[ccw.varidx], ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx)
+    # target .= x # broadcast updates original view mem location
+  ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
+
+  # evaluate the user provided residual function with constructed set of parameters
+  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
+              ccw.cpt[Threads.threadid()].factormetadata,
+              ccw.cpt[Threads.threadid()].particleidx,
+              ccw.measurement,
+              ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
+end
+
+function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
+  # function is being deprecated
+  @warn "numericRoot is likely to be deprected, switch to using approxConv, evalFactor, or numericSolutionCCW!"
+  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
+end
+
+
+"""
+    $(SIGNATURES)
+
+Shuffle incoming X into random positions in fr.Y.
+Shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res).
+
+DevNotes
+- TODO remove, see #1072
+"""
+function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
+  @warn("shuffleXAltD! has been made obsolete")
+  return nothing
+#   # populate defaults from existing values
+#   for i in 1:ccwl.xDim
+#     ccwl.cpt[Threads.threadid()].Y[i] = ccwl.cpt[Threads.threadid()].X[i, ccwl.cpt[Threads.threadid()].particleidx]
+#   end
+#   # populate as many measurment dimensions randomly for calculation
+#   for i in 1:ccwl.zDim
+#     ccwl.cpt[Threads.threadid()].Y[ccwl.cpt[Threads.threadid()].p[i]] = X[i]
+#   end
+#   nothing
+end
 
 # function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
 #   # n = length(X)
