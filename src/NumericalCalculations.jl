@@ -23,6 +23,7 @@ end
 
 
 function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Number})
+  # <: AbstractRelativeRoots case
   # TODO unclear how long this feature will persist
   shuffleXAltD!(ccw, x)
   ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
@@ -39,12 +40,9 @@ end
 function (ccw::CommonConvWrapper)(x::AbstractVector{<:Number} )
   #
   # AbstractRelativeMinimize case
+  idxs = ccw.cpt[Threads.threadid()].p
   # set internal memory to that of external caller value `x`, special care if partial
-  if !ccw.partial
-    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  else
-    ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  end
+  ccw.params[ccw.varidx][idxs, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
   # evaluate the user provided residual function with constructed set of parameters
   ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
               ccw.cpt[Threads.threadid()].factormetadata,
@@ -57,9 +55,6 @@ end
 # Try calling an existing lambda
 # sensitive to which hypo of course , see #1024
 # need to shuffle content inside .cpt.fmd as well as .params accordingly
-#
-#
-#
 #
 #
 
@@ -75,28 +70,27 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
   #
-  # fnc::InstanceType{AbstractRelativeMinimize}, 
-
-  # @show fnc
 
   fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
 
   # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
   # TODO -- clearly lots of optmization to be done here
   islen1 = length(ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx]) == 1
-  moreargs = islen1 ? (BFGS(),) : ()
-  if !ccwl.partial
-    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
-    ccwl.cpt[Threads.threadid()].Y .= r.minimizer
-    ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
-  else
-    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
-    # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
-    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p, ccwl.cpt[Threads.threadid()].particleidx], BFGS() )
-    #
-    ccwl.cpt[Threads.threadid()].Y = r.minimizer
-    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
-  end
+  moreargs = islen1 || ccwl.partial ? (BFGS(),) : () # cannot Nelder-Mead on 1dim
+  ccwl.cpt[Threads.threadid()].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
+  # if !ccwl.partial
+  #   ccwl.cpt[Threads.threadid()].p = Int[1:ccwl.xDim;] #1:size(ccwl.params[ccwl.varidx], 1);]
+  #   # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
+  #   # ccwl.cpt[Threads.threadid()].Y .= r.minimizer
+  #   # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  # else
+  #   ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
+  #   # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
+  #   #
+  # end
+  r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
+  ccwl.cpt[Threads.threadid()].Y = r.minimizer
+  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
   
   nothing
 end
@@ -122,7 +116,9 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
 
   ## TODO needs cleaning up and refactoring
   if ccwl.zDim >= ccwl.xDim && !ccwl.partial
+    # FIXME conslidate perturbation with inflation or nullhypo
     # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
+    # also not on-manifold which is bad
     ccwl.cpt[thrid].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
     ccwl.cpt[thrid].X[1:ccwl.xDim, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb[1:ccwl.xDim] # moved up
     
@@ -139,7 +135,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   elseif ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
   else
-    error("Unresolved numeric <:AbstractRelateiveRoots solve case")
+    error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
   ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ccwl.cpt[thrid].Y
 

@@ -96,7 +96,7 @@ tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.25)
 end
 
 
