@@ -86,11 +86,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   islen1 = length(ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx]) == 1
   moreargs = islen1 ? (BFGS(),) : ()
   if !ccwl.partial
-    # r = if islen1
-    #   optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], BFGS() )
-    # else
-      r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
-    # end
+    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
     ccwl.cpt[Threads.threadid()].Y .= r.minimizer
     ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
   else
@@ -128,31 +124,31 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # ststr = "thrid=$(thrid), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
   # ccall(:jl_, Nothing, (Any,), ststr)
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
-    # less measurement dimensions than variable dimensions -- i.e. shuffle
-    shuffle!(ccwl.cpt[thrid].p)
-    for i in 1:ccwl.xDim
-      # TODO consolidate with inflation #1051 or perhaps even nullhypo
-      ccwl.cpt[thrid].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
-      ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
-      r = nlsolve(  ccwl,
-                    ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx], # this is x0
-                    inplace=true
-                  )
-      if r.f_converged
-        shuffleXAltD!( ccwl, r.zero )
-        break;
-      else
-        # TODO -- report on this bottleneck, useful for optimization of code
-        # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
-        temp = ccwl.cpt[thrid].p[end]
-        ccwl.cpt[thrid].p[2:end] = ccwl.cpt[thrid].p[1:(end-1)]
-        ccwl.cpt[thrid].p[1] = temp
-        if i == ccwl.xDim
-          error("numericSolutionCCW! could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
-        end
-      end
-    end
-    #shuffleXAltD!( ccwl, r.zero ) # moved up
+    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
+    # # less measurement dimensions than variable dimensions -- i.e. shuffle
+    # shuffle!(ccwl.cpt[thrid].p)
+    # for i in 1:ccwl.xDim
+    #   # TODO consolidate with inflation #1051 or perhaps even nullhypo
+    #   ccwl.cpt[thrid].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
+    #   ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
+    #   r = nlsolve(  ccwl,
+    #                 ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx], # this is x0
+    #                 inplace=true
+    #               )
+    #   if r.f_converged
+    #     shuffleXAltD!( ccwl, r.zero )
+    #     break;
+    #   else
+    #     # TODO -- report on this bottleneck, useful for optimization of code
+    #     # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
+    #     temp = ccwl.cpt[thrid].p[end]
+    #     ccwl.cpt[thrid].p[2:end] = ccwl.cpt[thrid].p[1:(end-1)]
+    #     ccwl.cpt[thrid].p[1] = temp
+    #     if i == ccwl.xDim
+    #       error("numericSolutionCCW! could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
+    #     end
+    #   end
+    # end
   elseif ccwl.zDim >= ccwl.xDim && !ccwl.partial
     # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
     ccwl.cpt[thrid].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
