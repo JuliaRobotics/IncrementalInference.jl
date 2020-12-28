@@ -70,27 +70,26 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
   #
+  thrid = Threads.threadid()
 
-  fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
+  # reset the residual vector
+  fill!(ccwl.cpt[thrid].res, 0.0) # 1:frl.xDim
 
-  # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
-  # TODO -- clearly lots of optmization to be done here
-  islen1 = length(ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx]) == 1
-  moreargs = islen1 || ccwl.partial ? (BFGS(),) : () # cannot Nelder-Mead on 1dim
-  ccwl.cpt[Threads.threadid()].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
-  # if !ccwl.partial
-  #   ccwl.cpt[Threads.threadid()].p = Int[1:ccwl.xDim;] #1:size(ccwl.params[ccwl.varidx], 1);]
-  #   # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
-  #   # ccwl.cpt[Threads.threadid()].Y .= r.minimizer
-  #   # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
-  # else
-  #   ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
-  #   # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
-  #   #
-  # end
-  r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p, ccwl.cpt[Threads.threadid()].particleidx], moreargs... )
-  ccwl.cpt[Threads.threadid()].Y = r.minimizer
-  ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  # cannot Nelder-Mead on 1dim
+  islen1 = length(ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx]) == 1
+  moreargs = islen1 || ccwl.partial ? (BFGS(),) : () 
+
+  # which elements of the variable dimension should be used as decision variables
+  ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
+
+  # do the parameter search over defined decision variables using Minimization
+  r = Optim.optimize( ccwl, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx], moreargs... )
+
+  # extract the result from inference
+  ccwl.cpt[thrid].Y = r.minimizer
+  
+  # insert result back in variable element
+  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= ccwl.cpt[thrid].Y
   
   nothing
 end
@@ -107,6 +106,9 @@ ccw.X must be set to memory ref the param[varidx] being solved, at creation of c
 
 Notes
 - Assumes only `ccw.particleidx` will be solved for
+
+DevNotes
+- TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
@@ -114,29 +116,33 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   #
   thrid = Threads.threadid()
 
-  ## TODO needs cleaning up and refactoring
-  if ccwl.zDim >= ccwl.xDim && !ccwl.partial
-    # FIXME conslidate perturbation with inflation or nullhypo
-    # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
-    # also not on-manifold which is bad
-    ccwl.cpt[thrid].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
-    ccwl.cpt[thrid].X[1:ccwl.xDim, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb[1:ccwl.xDim] # moved up
-    
-    # str = "nlsolve, thrid_=$(thrid), partidx=$(ccwl.cpt[thrid].particleidx), X=$(ccwl.cpt[thrid].X[1:ccwl.xDim,ccwl.cpt[thrid].particleidx])"
-    r = nlsolve( ccwl, ccwl.cpt[thrid].X[1:ccwl.xDim,ccwl.cpt[thrid].particleidx], inplace=true )
-    if sum(isnan.(( r ).zero)) == 0
-      ccwl.cpt[thrid].Y[1:ccwl.xDim] = ( r ).zero
-    else
-      @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
-      for thatlen in 1:length(ccwl.params)
-        @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
-      end
-    end
-  elseif ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
+  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
-  else
+  elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
     error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
+  # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
+  # if ccwl.zDim >= ccwl.xDim && !ccwl.partial
+  
+  # NOTE ignoring small perturbation from manifold as numerical workaround only
+  # use all element dimensions : ==> 1:ccwl.xDim
+  ccwl.cpt[thrid].perturb[:] = perturb*randn(ccwl.xDim)
+  ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
+  
+  # do the parameter search over defined decision variables using Root finding
+  r = NLsolve.nlsolve( ccwl, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
+  
+  # Check for NaNs
+  if sum(isnan.(( r ).zero)) == 0
+    ccwl.cpt[thrid].Y[:] = ( r ).zero
+  else
+    @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
+    for thatlen in 1:length(ccwl.params)
+      @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
+    end
+  end
+
+  # insert result back in variable element
   ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ccwl.cpt[thrid].Y
 
   nothing
