@@ -325,11 +325,6 @@ export *,
   SingleThreaded,
   MultiThreaded,
 
-  # Solving utils
-  shuffleXAltD!,
-  numericRoot,
-  numericSolutionCCW!,
-
   # user functions
   predictbelief,
   getCliqMat,

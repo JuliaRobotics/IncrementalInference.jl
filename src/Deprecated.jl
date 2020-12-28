@@ -74,6 +74,8 @@ end
 ## Deprecate code below before v0.20
 ##==============================================================================
 
+export   shuffleXAltD!, numericRoot
+
 
 function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Number})
   # <: AbstractRelativeRoots case
@@ -82,8 +84,8 @@ function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector
   # use of Y is excessive since #1072
   # target = view(ccw.params[ccw.varidx], :, ccw.cpt[Threads.threadid()].particleidx )
   # target .= x
-    ccw.cpt[Threads.threadid()].Y .= x
-    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
+    # ccw.cpt[Threads.threadid()].Y .= x
+    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = x # ccw.cpt[Threads.threadid()].Y
 
   # evaulate the user provided residual function with constructed set of parameters
   ret = ccw.usrfnc!(res,

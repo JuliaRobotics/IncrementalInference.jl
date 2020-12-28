@@ -27,11 +27,14 @@ function (lr::LineResidual)(res::AbstractVector{<:Real},
   nothing
 end
 
+##
+
 
 @testset "test CommonConvWrapper{T}, solve of residual functions..." begin
 
+##
 
-function assembleConvType(dfgvrs::Vector{<:DFGVariable}, functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: AbstractRelativeFactor}
+function assembleConvType(dfgvrs::Vector{<:DFGVariable}, functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: AbstractRelativeRoots}
   # @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
@@ -46,7 +49,7 @@ function assembleConvType(dfgvrs::Vector{<:DFGVariable}, functor::T, xDim::Int, 
 end
 
 
-
+##
 
 # TODO -- expand testing to include subcomponent tests from numericSolutionCCW!
 lr1 = LineResidual(2.0, 3.0)
@@ -67,6 +70,8 @@ numericSolutionCCW!( ccw )
 
 @test abs(ccw.cpt[1].Y[1] + 1.50) < 1e-5
 
+
+##
 
 end
 
