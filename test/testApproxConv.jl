@@ -36,7 +36,7 @@ pts = approxConv(fg, :x1, :x3)
 pts = approxConv(fg, :x1f1, :l2)
 
 @test Statistics.mean(pts) |> abs  < 0.65
-@test 1.7 < Statistics.std(pts) < 3.0
+@test 1.6 < Statistics.std(pts) < 3.0
 
 
 end
