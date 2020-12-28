@@ -120,71 +120,25 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   #
   thrid = Threads.threadid()
 
-  ## TODO desperately needs cleaning up and refactoring
-  # ststr = "thrid=$(thrid), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
-  # ccall(:jl_, Nothing, (Any,), ststr)
-  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
-    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
-    # # less measurement dimensions than variable dimensions -- i.e. shuffle
-    # shuffle!(ccwl.cpt[thrid].p)
-    # for i in 1:ccwl.xDim
-    #   # TODO consolidate with inflation #1051 or perhaps even nullhypo
-    #   ccwl.cpt[thrid].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
-    #   ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
-    #   r = nlsolve(  ccwl,
-    #                 ccwl.cpt[thrid].X[ccwl.cpt[thrid].p[1:ccwl.zDim], ccwl.cpt[thrid].particleidx], # this is x0
-    #                 inplace=true
-    #               )
-    #   if r.f_converged
-    #     shuffleXAltD!( ccwl, r.zero )
-    #     break;
-    #   else
-    #     # TODO -- report on this bottleneck, useful for optimization of code
-    #     # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
-    #     temp = ccwl.cpt[thrid].p[end]
-    #     ccwl.cpt[thrid].p[2:end] = ccwl.cpt[thrid].p[1:(end-1)]
-    #     ccwl.cpt[thrid].p[1] = temp
-    #     if i == ccwl.xDim
-    #       error("numericSolutionCCW! could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
-    #     end
-    #   end
-    # end
-  elseif ccwl.zDim >= ccwl.xDim && !ccwl.partial
+  ## TODO needs cleaning up and refactoring
+  if ccwl.zDim >= ccwl.xDim && !ccwl.partial
     # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
     ccwl.cpt[thrid].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
     ccwl.cpt[thrid].X[1:ccwl.xDim, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb[1:ccwl.xDim] # moved up
-
+    
     # str = "nlsolve, thrid_=$(thrid), partidx=$(ccwl.cpt[thrid].particleidx), X=$(ccwl.cpt[thrid].X[1:ccwl.xDim,ccwl.cpt[thrid].particleidx])"
-    # ccall(:jl_, Nothing, (Any,), str)
     r = nlsolve( ccwl, ccwl.cpt[thrid].X[1:ccwl.xDim,ccwl.cpt[thrid].particleidx], inplace=true )
-    # ccall(:jl_, Nothing, (Any,), "nlsolve.zero=$(r.zero)")
     if sum(isnan.(( r ).zero)) == 0
       ccwl.cpt[thrid].Y[1:ccwl.xDim] = ( r ).zero
     else
-      # FIXME update print to new PARTR IO
-      str = "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
-      @info str
-      ccall(:jl_, Nothing, (Any,), str)
-      ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
+      @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
       for thatlen in 1:length(ccwl.params)
-        str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
-        ccall(:jl_, Nothing, (Any,), str)
-        @warn str
+        @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
       end
     end
-  elseif ccwl.partial
-    error("Use of partial factors with <:AbstractRelativeRoots has been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
-    # # improve memory management in this function
-    # # TODO -- move this line up and out of inner loop
-    # ccwl.cpt[thrid].p = Int[ccwl.usrfnc!.partial...] # [1:length(ccwl.usrfnc!.partial)]
-    # r = nlsolve(  ccwl,
-    #               ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p,
-    #                                               ccwl.cpt[thrid].particleidx],  # p[1:ccwl.zDim]# this is x0
-    #               inplace=true
-    #             )
-    # shuffleXAltD!( ccwl, r.zero )
+  elseif ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
+    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
   else
-    ccall(:jl_, Nothing, (Any,), "ERROR: Unresolved numeric solve case")
     error("Unresolved numeric solve case")
   end
   ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ccwl.cpt[thrid].Y
