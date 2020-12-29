@@ -1,5 +1,5 @@
 
-struct ProductNumbers <: AbstractRelativeFactor
+struct ProductNumbers <: AbstractRelativeRoots
   z::Distributions.Normal
 end
 getSample(s::ProductNumbers, N::Int=1) = (reshape(rand(s.z,N),1,:), )
@@ -18,7 +18,7 @@ end
 
 
 
-struct AreEqual <: AbstractRelativeFactor
+struct AreEqual <: AbstractRelativeRoots
   z::Distributions.Normal
 end
 function getSample(s::AreEqual, N::Int=1)
@@ -38,7 +38,7 @@ end
 
 
 
-struct Square <: AbstractRelativeFactor
+struct Square <: AbstractRelativeRoots
   z::Distributions.Normal
 end
 getSample(s::Square, N::Int=1) = (reshape(rand(s.z,N),1,:), )

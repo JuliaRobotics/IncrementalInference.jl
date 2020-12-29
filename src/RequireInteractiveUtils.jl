@@ -14,8 +14,8 @@ Return all factors currently registered in the workspace.
 function getCurrentWorkspaceFactors()
     return [
         InteractiveUtils.subtypes(AbstractPrior)...,
-        InteractiveUtils.subtypes(AbstractRelativeFactor)...,
-        InteractiveUtils.subtypes(AbstractRelativeFactorMinimize)...];
+        InteractiveUtils.subtypes(AbstractRelativeRoots)...,
+        InteractiveUtils.subtypes(AbstractRelativeMinimize)...];
 end
 
 """
@@ -24,7 +24,7 @@ end
 Return all variables currently registered in the workspace.
 """
 function getCurrentWorkspaceVariables()
-    return InteractiveUtils.subtypes(IncrementalInference.InferenceVariable);
+    return InteractiveUtils.subtypes(IIF.InferenceVariable);
 end
 
 function _listTypeTree(mytype, printlevel::Int)
