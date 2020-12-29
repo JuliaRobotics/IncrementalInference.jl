@@ -135,10 +135,10 @@ DevNotes
 mutable struct FactorMetadata{T}
   # factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
   # variableuserdata::Union{Vector, Tuple} # TODO deprecate, to be replaced by cachedata
-  variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
+  # variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
   solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
   variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
-  dbg::Bool #
+  # dbg::Bool #
   # for type specific user data, see (? #784)
   cachedata::Vector{T}
   # full list of Vector{DFGVariable} connected to the factor
@@ -206,13 +206,13 @@ end
 
 
 
-FactorMetadata(vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(vsm, sf, vl, dbg, cd, fv, arr)
+FactorMetadata(sf=nothing, vl=nothing, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
+                FactorMetadata{T}(sf, vl, cd, fv, arr)
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
                                 solvefor=nothing,
                                 arrRef=Vector{Matrix{Float64}}(),
-                                dbg::Bool=false,
+                                # dbg::Bool=false,
                                 cachedata::AbstractVector{T}=Vector{Any}() ) where T
   #
   
@@ -222,7 +222,7 @@ function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
   # end
   
   # FIXME standardize fmd, see #927
-  FactorMetadata([],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
+  FactorMetadata(solvefor,map(x->x.label,Xi),cachedata,copy(Xi), arrRef)
 end
 
 function ConvPerThread( X::Array{Float64,2},
