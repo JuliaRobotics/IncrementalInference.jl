@@ -133,14 +133,10 @@ DevNotes
 - TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
 mutable struct FactorMetadata{T}
-  # factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
-  # variableuserdata::Union{Vector, Tuple} # TODO deprecate, to be replaced by cachedata
-  # variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
-  solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
+  solvefor::Symbol       # Change to Symbol? Nothing Union might still be ok
   variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
-  # dbg::Bool #
   # for type specific user data, see (? #784)
-  cachedata::Vector{T}
+  cachedata::T
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::Vector{DFGVariable}
   # TODO consolidate, same as ARR used in CCW,
@@ -206,14 +202,13 @@ end
 
 
 
-FactorMetadata(sf=nothing, vl=nothing, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
+FactorMetadata(sf::Symbol=:null, vl=Symbol[], cd::T=nothing, fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
                 FactorMetadata{T}(sf, vl, cd, fv, arr)
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                solvefor=nothing,
+                                solvefor::Symbol=:null,
                                 arrRef=Vector{Matrix{Float64}}(),
-                                # dbg::Bool=false,
-                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
+                                cachedata::T=nothing ) where T
   #
   
   # variableuserdata = []

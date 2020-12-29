@@ -26,12 +26,16 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx)
 
   # prepare fmd according to hypo selection
-  # fmd = ccwl.cpt[thrid].factormetadata
-  # fmd.fullvariables = 
-  # fmd.arrRef = 
+  # FIXME must refactor (memory waste)
+  fmd = ccwl.cpt[thrid].factormetadata
+  fmd_ = _defaultFactorMetadata(fmd.fullvariables[ccwl.cpt[thrid].activehypo], 
+                                solvefor=fmd.solvefor,
+                                arrRef=fmd.arrRef[ccwl.cpt[thrid].activehypo],
+                                cachedata=fmd.cachedata )
 
   # build static lambda
-  unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,ccwl.cpt[thrid].factormetadata,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+    # ccwl.cpt[thrid].factormetadata
+  unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
   # broadcast updates original view memory location
   _hypoObj = (x) -> (target.=x; unrollHypo())
   
@@ -99,8 +103,17 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # build a view to the decision variable memory
   target = view(ccwl.params[ccwl.varidx], :, ccwl.cpt[Threads.threadid()].particleidx )
   
+  # prepare fmd according to hypo selection
+  # FIXME must refactor (memory waste)
+  fmd = ccwl.cpt[thrid].factormetadata
+  fmd_ = _defaultFactorMetadata(fmd.fullvariables[ccwl.cpt[thrid].activehypo], 
+                                solvefor=fmd.solvefor,
+                                arrRef=fmd.arrRef[ccwl.cpt[thrid].activehypo],
+                                cachedata=fmd.cachedata )
+
   # build static lambda
-  unrollHypo! = (res) -> ccwl.usrfnc!(res, ccwl.cpt[thrid].factormetadata, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
+    # ccwl.cpt[thrid].factormetadata
+  unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
   # broadcast updates original view memory location
   _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
 
