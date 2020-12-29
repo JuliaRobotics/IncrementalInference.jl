@@ -15,7 +15,7 @@ mutable struct DevelopPrior <: AbstractPrior
 end
 getSample(dpl::DevelopPrior, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )
 
-mutable struct DevelopLikelihood <: AbstractRelativeFactor
+mutable struct DevelopLikelihood <: AbstractRelativeRoots
   x::Distribution
 end
 getSample(dpl::DevelopLikelihood, N::Int=1) = (reshape(rand(dpl.x, N),1,N), )

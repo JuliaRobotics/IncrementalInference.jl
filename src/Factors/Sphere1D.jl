@@ -5,7 +5,7 @@ export Sphere1Sphere1, PriorSphere1, PackedSphere1Sphere1, PackedPriorSphere1
 """
 $(TYPEDEF)
 """
-mutable struct Sphere1Sphere1{T<: SamplableBelief} <: AbstractRelativeFactor
+mutable struct Sphere1Sphere1{T<: SamplableBelief} <: AbstractRelativeRoots
   Z::T
   Sphere1Sphere1{T}() where {T <: SamplableBelief} = new{T}()
   Sphere1Sphere1{T}(z1::T) where {T <: SamplableBelief} = new{T}(z1)

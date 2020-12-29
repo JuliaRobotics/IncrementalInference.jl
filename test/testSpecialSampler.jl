@@ -14,7 +14,7 @@ end
 specialSample(s::SpecialPrior, N::Int, fmd::FactorMetadata, Xi) = (reshape(rand(s.z,N),1,:), )
 SpecialPrior(z::T) where {T <: SamplableBelief}= SpecialPrior{T}(z, specialSample)
 
-struct SpecialLinearOffset{T} <: AbstractRelativeFactor where T <: Distribution
+struct SpecialLinearOffset{T <: SamplableBelief} <: AbstractRelativeRoots
   z::T
   specialSampler::Function
 end
@@ -24,11 +24,11 @@ specialSample(s::SpecialLinearOffset, N::Int, fmd::FactorMetadata, Xi, Xj) = (re
 SpecialLinearOffset(z::T) where {T <: SamplableBelief} = SpecialLinearOffset{T}(z, specialSample)
 
 function (s::SpecialLinearOffset)(res::Array{Float64},
-                           userdata::FactorMetadata,
-                           idx::Int,
-                           meas::Tuple{Array{Float64, 2}},
-                           X1::Array{Float64,2},
-                           X2::Array{Float64,2}  )
+                                  userdata::FactorMetadata,
+                                  idx::Int,
+                                  meas::Tuple{Array{Float64, 2}},
+                                  X1::Array{Float64,2},
+                                  X2::Array{Float64,2}  )
   #
   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
   nothing
