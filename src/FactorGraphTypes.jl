@@ -24,8 +24,9 @@ $(TYPEDEF)
 Solver parameters for the DistributedFactoGraph.
 
 Dev Notes
-- # TODO remove NothingUnion
-- # TODO Upgrade to common @kwargs struct approach
+- FIXME change to using kwargs from Parameters.jl
+- TODO remove NothingUnion
+- TODO Upgrade to common @kwargs struct approach
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
@@ -126,23 +127,28 @@ SolverParams(;dimID::Int=0,
 """
 $(TYPEDEF)
 
+Notes
+- type-stable `usercache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
+
 DevNotes
-- TODO remove Union types -- issue #383
+- TODO why not just a NamedTuple? Perhaps part of #467
 - TODO standardize -- #927, #1025, #784, #692, #640
 - TODO make immutable #825
-- TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
-mutable struct FactorMetadata{T}
+mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
+                              VL<:AbstractVector{Symbol}, 
+                              AR<:AbstractVector{<:AbstractArray}, 
+                              CD}
   # full list of Vector{DFGVariable} connected to the factor
-  fullvariables::Vector{DFGVariable}
+  fullvariables::FV # Vector{<:DFGVariable}
   #TODO full variable can perhaps replace this
-  variablelist::Vector{Symbol} 
+  variablelist::VL # Vector{Symbol} 
   # TODO consolidate, same as ARR used in CCW,
-  arrRef::Vector{Matrix{Float64}}
+  arrRef::AR # Vector{Matrix{Float64}}
   # label of which variable is being solved for
   solvefor::Symbol       
   # for type specific user data, see (? #784)
-  cachedata::T
+  cachedata::CD
 end
 
 """
@@ -203,28 +209,6 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
 end
 
 
-
-FactorMetadata( sf::Symbol=:null, 
-                vl::Vector{Symbol}=Symbol[], 
-                cd::T=nothing, 
-                fv::AbstractVector{<:DFGVariable}=DFGVariable[], 
-                arr::AbstractVector{<:AbstractArray}=Vector{Matrix{Float64}}() ) where T = FactorMetadata{T}(fv, vl, arr, sf, cd)
-#
-
-function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                solvefor::Symbol=:null,
-                                arrRef=Vector{Matrix{Float64}}(),
-                                cachedata::T=nothing ) where T
-  #
-  
-  # variableuserdata = []
-  # for xi in Xi
-  #   push!(variableuserdata, getVariableType(xi))
-  # end
-  
-  # FIXME standardize fmd, see #927
-  FactorMetadata(solvefor,map(x->x.label,Xi),cachedata,copy(Xi), arrRef)
-end
 
 function ConvPerThread( X::Array{Float64,2},
                         zDim::Int,

@@ -74,6 +74,32 @@ end
 ## Deprecate code below before v0.20
 ##==============================================================================
 
+
+# FactorMetadata( Xi::AbstractVector{<:DFGVariable}=Vector{DFGVariable}(),
+#                 vl::Vector{Symbol}=map(x->x.label,Xi),
+#                 arr::AbstractVector{<:AbstractArray}=Vector{Matrix{Float64}}(),
+#                 sf::Symbol=:null, 
+#                 cd::T=nothing ) where T = FactorMetadata{T}(Xi, vl, arr, sf, cd)
+# #
+
+# function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
+#                                 solvefor::Symbol=:null,
+#                                 arrRef=Vector{Matrix{Float64}}(),
+#                                 cachedata::T=nothing ) where T
+#   #
+  
+#   # variableuserdata = []
+#   # for xi in Xi
+#   #   push!(variableuserdata, getVariableType(xi))
+#   # end
+  
+#   # FIXME standardize fmd, see #927
+#   FactorMetadata(solvefor,map(x->x.label,Xi),cachedata,copy(Xi), arrRef)
+# end
+
+@deprecate _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};solvefor::Symbol=:null,arrRef=Vector{Matrix{Float64}}(),cachedata=nothing ) FactorMetadata(Xi,map(x->x.label,Xi),arrRef,solvefor,cachedata)
+
+
 export   shuffleXAltD!, numericRoot
 
 

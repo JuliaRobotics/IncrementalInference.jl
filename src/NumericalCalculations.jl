@@ -28,10 +28,11 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste)
   fmd = ccwl.cpt[thrid].factormetadata
-  fmd_ = _defaultFactorMetadata(fmd.fullvariables[ccwl.cpt[thrid].activehypo], 
-                                solvefor=fmd.solvefor,
-                                arrRef=fmd.arrRef[ccwl.cpt[thrid].activehypo],
-                                cachedata=fmd.cachedata )
+  fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
+                        view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        fmd.solvefor,
+                        fmd.cachedata  )
 
   # build static lambda
     # ccwl.cpt[thrid].factormetadata
@@ -100,10 +101,12 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste)
   fmd = ccwl.cpt[thrid].factormetadata
-  fmd_ = _defaultFactorMetadata(fmd.fullvariables[ccwl.cpt[thrid].activehypo], 
-                                solvefor=fmd.solvefor,
-                                arrRef=fmd.arrRef[ccwl.cpt[thrid].activehypo],
-                                cachedata=fmd.cachedata )
+  fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
+                        view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        fmd.solvefor,
+                        fmd.cachedata  )
+  #
 
   # build static lambda
     # ccwl.cpt[thrid].factormetadata
