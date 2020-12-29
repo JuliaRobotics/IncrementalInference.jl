@@ -133,8 +133,8 @@ DevNotes
 - TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
 mutable struct FactorMetadata{T}
-  factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
-  variableuserdata::Union{Vector, Tuple} # TODOO deprecate, to be replaced by cachedata
+  # factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
+  # variableuserdata::Union{Vector, Tuple} # TODO deprecate, to be replaced by cachedata
   variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
   solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
   variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
@@ -206,8 +206,8 @@ end
 
 
 
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
+FactorMetadata(vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
+                FactorMetadata{T}(vsm, sf, vl, dbg, cd, fv, arr)
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
                                 solvefor=nothing,
@@ -216,13 +216,13 @@ function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
                                 cachedata::AbstractVector{T}=Vector{Any}() ) where T
   #
   
-  variableuserdata = []
-  for xi in Xi
-    push!(variableuserdata, getVariableType(xi))
-  end
+  # variableuserdata = []
+  # for xi in Xi
+  #   push!(variableuserdata, getVariableType(xi))
+  # end
   
   # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,variableuserdata,[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
+  FactorMetadata([],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
 end
 
 function ConvPerThread( X::Array{Float64,2},

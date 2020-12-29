@@ -25,6 +25,11 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # build a view to the decision variable memory
   target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx)
 
+  # prepare fmd according to hypo selection
+  # fmd = ccwl.cpt[thrid].factormetadata
+  # fmd.fullvariables = 
+  # fmd.arrRef = 
+
   # build static lambda
   unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,ccwl.cpt[thrid].factormetadata,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
   # broadcast updates original view memory location
