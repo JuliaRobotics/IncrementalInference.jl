@@ -166,7 +166,7 @@ mutable struct ConvPerThread
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   X::Array{Float64,2}
-  Y::Vector{Float64}
+  # Y::Vector{Float64}
   res::Vector{Float64}
 
   # remove
@@ -232,7 +232,7 @@ function ConvPerThread( X::Array{Float64,2},
                         activehypo= 1:length(params),
                         p=collect(1:size(X,1)),
                         perturb=zeros(zDim),
-                        Y=zeros(size(X,1)),
+                        # Y=zeros(zDim), #zeros(size(X,1)),
                         res=zeros(zDim)  )
   #
   cpt = ConvPerThread()
@@ -243,7 +243,7 @@ function ConvPerThread( X::Array{Float64,2},
   cpt.activehypo = activehypo
   cpt.p = p
   cpt.perturb = perturb
-  cpt.Y = Y
+  # cpt.Y = Y
   cpt.res = res
   return cpt
 end
@@ -265,7 +265,7 @@ function CommonConvWrapper( fnc::T,
                             particleidx::Int=1,
                             p=collect(1:size(X,1)),
                             perturb=zeros(zDim),
-                            Y=zeros(size(X,1)),
+                            # Y=zeros(zDim), # zeros(size(X,1)),
                             xDim=size(X,1),
                             res=zeros(zDim),
                             threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
@@ -294,7 +294,7 @@ function CommonConvWrapper( fnc::T,
                     activehypo=activehypo,
                     p=p,
                     perturb=perturb,
-                    Y=Y,
+                    # Y=Y,
                     res=res )
   end
 

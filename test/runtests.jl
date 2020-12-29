@@ -44,7 +44,8 @@ include("testgraphpackingconverters.jl")
 
 include("testNLsolve.jl")
 
-include("testNumericRootGenericRandomized.jl")
+# Randomized roots no longer supported, see PR #1075
+# include("testNumericRootGenericRandomized.jl")
 
 include("testCommonConvWrapper.jl")
 

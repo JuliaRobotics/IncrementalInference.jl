@@ -1,5 +1,8 @@
 
 
+export numericSolutionCCW!
+
+# Also see #467 on API consolidation
 # function (cf::CalcResidual{<:LinearRelative})(res::Vector, z, xi, xj)
 #   # cf.metadata.variablelist...
 #   # cf.metadata.targetvariable
@@ -38,10 +41,10 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # r = Optim.optimize( ccwl, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx], moreargs... )
   
   # extract the result from inference
-  ccwl.cpt[thrid].Y = r.minimizer
+  # ccwl.cpt[thrid].Y[:] = r.minimizer
   
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= ccwl.cpt[thrid].Y
+  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= r.minimizer #  ccwl.cpt[thrid].Y
   
   nothing
 end
@@ -102,7 +105,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   
   # Check for NaNs
   if sum(isnan.(( r ).zero)) == 0
-    ccwl.cpt[thrid].Y[:] = ( r ).zero
+    # ccwl.cpt[thrid].Y[:] = ( r ).zero
   else
     @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
     for thatlen in 1:length(ccwl.params)
@@ -111,7 +114,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   end
 
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ccwl.cpt[thrid].Y
+  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ( r ).zero # ccwl.cpt[thrid].Y
 
   nothing
 end
