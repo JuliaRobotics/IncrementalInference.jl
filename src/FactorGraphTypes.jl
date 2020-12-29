@@ -134,7 +134,7 @@ DevNotes
 """
 mutable struct FactorMetadata{T}
   solvefor::Symbol       # Change to Symbol? Nothing Union might still be ok
-  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
+  variablelist::Vector{Symbol} #TODO full variable can perhaps replace this
   # for type specific user data, see (? #784)
   cachedata::T
   # full list of Vector{DFGVariable} connected to the factor
@@ -157,7 +157,7 @@ mutable struct ConvPerThread
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (AbstractRelativeFactor only)
+  # a permutation vector for low-dimension solves (AbstractRelativeRoots only)
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
