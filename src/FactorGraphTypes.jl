@@ -133,14 +133,16 @@ DevNotes
 - TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
 mutable struct FactorMetadata{T}
-  solvefor::Symbol       # Change to Symbol? Nothing Union might still be ok
-  variablelist::Vector{Symbol} #TODO full variable can perhaps replace this
-  # for type specific user data, see (? #784)
-  cachedata::T
   # full list of Vector{DFGVariable} connected to the factor
   fullvariables::Vector{DFGVariable}
+  #TODO full variable can perhaps replace this
+  variablelist::Vector{Symbol} 
   # TODO consolidate, same as ARR used in CCW,
   arrRef::Vector{Matrix{Float64}}
+  # label of which variable is being solved for
+  solvefor::Symbol       
+  # for type specific user data, see (? #784)
+  cachedata::T
 end
 
 """
@@ -202,8 +204,12 @@ end
 
 
 
-FactorMetadata(sf::Symbol=:null, vl=Symbol[], cd::T=nothing, fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(sf, vl, cd, fv, arr)
+FactorMetadata( sf::Symbol=:null, 
+                vl::Vector{Symbol}=Symbol[], 
+                cd::T=nothing, 
+                fv::AbstractVector{<:DFGVariable}=DFGVariable[], 
+                arr::AbstractVector{<:AbstractArray}=Vector{Matrix{Float64}}() ) where T = FactorMetadata{T}(fv, vl, arr, sf, cd)
+#
 
 function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
                                 solvefor::Symbol=:null,
