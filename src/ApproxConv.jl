@@ -93,7 +93,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     ccwl.cpt[i].X = ccwl.params[sfidx]
     ccwl.cpt[i].p = Int[1:ccwl.xDim;] # collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
     # ccwl.cpt[i].Y = zeros(ccwl.zDim) # zeros(xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeFactorMinimize
+    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
     # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
   end
@@ -192,7 +192,7 @@ end
 """
     $(SIGNATURES)
 
-Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
+Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -251,7 +251,7 @@ end
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
