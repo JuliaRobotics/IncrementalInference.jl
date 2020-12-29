@@ -47,13 +47,9 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   else
     Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx] )
   end
-  # r = Optim.optimize( ccwl, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx], moreargs... )
-  
-  # extract the result from inference
-  # ccwl.cpt[thrid].Y[:] = r.minimizer
   
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= r.minimizer #  ccwl.cpt[thrid].Y
+  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= r.minimizer
   
   nothing
 end
@@ -92,8 +88,6 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
     error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
-  # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
-  # if ccwl.zDim >= ccwl.xDim && !ccwl.partial
   
   # NOTE ignoring small perturbation from manifold as numerical workaround only
   # use all element dimensions : ==> 1:ccwl.xDim
@@ -119,12 +113,9 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
 
   # do the parameter search over defined decision variables using Root finding
   r = NLsolve.nlsolve( _hypoObj, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
-  # r = NLsolve.nlsolve( ccwl, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
   
   # Check for NaNs
-  if sum(isnan.(( r ).zero)) == 0
-    # ccwl.cpt[thrid].Y[:] = ( r ).zero
-  else
+  if sum(isnan.(( r ).zero)) != 0
     @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
     for thatlen in 1:length(ccwl.params)
       @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
@@ -132,7 +123,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   end
 
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ( r ).zero # ccwl.cpt[thrid].Y
+  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ( r ).zero
 
   nothing
 end
