@@ -397,5 +397,7 @@ end
 # end
 
 
+@deprecate fetchMsgUpThis(cliq::TreeClique) IIF.getMessageBuffer(cliq).upTx
+
 
 #
