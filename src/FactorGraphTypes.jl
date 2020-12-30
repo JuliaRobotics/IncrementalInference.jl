@@ -24,8 +24,9 @@ $(TYPEDEF)
 Solver parameters for the DistributedFactoGraph.
 
 Dev Notes
-- # TODO remove NothingUnion
-- # TODO Upgrade to common @kwargs struct approach
+- FIXME change to using kwargs from Parameters.jl
+- TODO remove NothingUnion
+- TODO Upgrade to common @kwargs struct approach
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
@@ -126,25 +127,28 @@ SolverParams(;dimID::Int=0,
 """
 $(TYPEDEF)
 
+Notes
+- type-stable `usercache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
+
 DevNotes
-- TODO remove Union types -- issue #383
+- TODO why not just a NamedTuple? Perhaps part of #467
 - TODO standardize -- #927, #1025, #784, #692, #640
 - TODO make immutable #825
-- TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
 """
-mutable struct FactorMetadata{T}
-  factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
-  variableuserdata::Union{Vector, Tuple} # TODOO deprecate, to be replaced by cachedata
-  variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
-  solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
-  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
-  dbg::Bool #
-  # for type specific user data, see (? #784)
-  cachedata::Vector{T}
+mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
+                              VL<:AbstractVector{Symbol}, 
+                              AR<:AbstractVector{<:AbstractArray}, 
+                              CD}
   # full list of Vector{DFGVariable} connected to the factor
-  fullvariables::Vector{DFGVariable}
+  fullvariables::FV # Vector{<:DFGVariable}
+  #TODO full variable can perhaps replace this
+  variablelist::VL # Vector{Symbol} 
   # TODO consolidate, same as ARR used in CCW,
-  arrRef::Vector{Matrix{Float64}}
+  arrRef::AR # Vector{Matrix{Float64}}
+  # label of which variable is being solved for
+  solvefor::Symbol       
+  # for type specific user data, see (? #784)
+  cachedata::CD
 end
 
 """
@@ -161,7 +165,7 @@ mutable struct ConvPerThread
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (AbstractRelativeFactor only)
+  # a permutation vector for low-dimension solves (AbstractRelativeRoots only)
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
@@ -205,25 +209,6 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
 end
 
 
-
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
-
-function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                solvefor=nothing,
-                                arrRef=Vector{Matrix{Float64}}(),
-                                dbg::Bool=false,
-                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
-  #
-  
-  variableuserdata = []
-  for xi in Xi
-    push!(variableuserdata, getVariableType(xi))
-  end
-  
-  # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,variableuserdata,[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
-end
 
 function ConvPerThread( X::Array{Float64,2},
                         zDim::Int,
