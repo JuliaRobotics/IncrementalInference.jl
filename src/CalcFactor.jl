@@ -12,12 +12,13 @@ export CalcFactor
 # end
 
 
-struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple}
+struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple, X <: AbstractVector}
   factor::T
   metadata::M
   _sampleIdx::Int
   _measCount::Int
   _legacyMeas::P
+  _legacyParams::X
 end
 
 
@@ -41,8 +42,8 @@ Example
 function (cf::CalcFactor{T,M})( res::AbstractVector{<:Real},
                                 measparams... ) where {T<:FunctorInferenceType,M}
   #
-  # make meas a tuple again
-  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, measparams[(cf._measCount+1):end]...)
+  # NOTE this is a legacy interface
+  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
 end
 
 

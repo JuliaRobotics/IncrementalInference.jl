@@ -27,14 +27,15 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                         fmd.cachedata  )
   #
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement)
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement, view(ccwl.params, ccwl.cpt[thrid].activehypo))
 
   # build static lambda
-  unrollHypo = () -> cf(ccwl.cpt[thrid].res, ccwl.measurement..., ccwl.params[ccwl.cpt[thrid].activehypo]...)
-    # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
-
+  # unrollHypo = () -> cf( ccwl.cpt[thrid].res )
+  # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  
   # broadcast updates original view memory location
-  _hypoObj = (x) -> (target.=x; unrollHypo())
+   # using CalcFactor legacy path
+  _hypoObj = (x) -> (target.=x; cf( ccwl.cpt[thrid].res ) )
   
   # cannot Nelder-Mead on 1dim
   islen1 = length(ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx]) == 1 || ccwl.partial
@@ -62,14 +63,14 @@ end
 """
     $(SIGNATURES)
 
-Solve free variable x by root finding residual function fgr.usrfnc(x, res)
-randomly shuffle x dimensions if underconstrained by measurement z dimensions
-small random perturbation used to prevent trivial solver cases, div by 0 etc.
-result stored in fgr.Y
+Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`
+
 ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
 
 Notes
 - Assumes only `ccw.particleidx` will be solved for
+- small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
+- Also incorporates the active hypo lookup
 
 DevNotes
 - TODO perhaps consolidate perturbation with inflation or nullhypo
@@ -104,13 +105,14 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                         fmd.cachedata  )
   #
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement)
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement, view(ccwl.params, ccwl.cpt[thrid].activehypo))
 
   # build static lambda
-  unrollHypo! = (res) -> cf(res, ccwl.measurement..., ccwl.params[ccwl.cpt[thrid].activehypo]...)
-    # unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  # unrollHypo! = (res) -> cf(res )
+  # unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
   # broadcast updates original view memory location
-  _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
+   # using CalcFactor legacy path
+  _hypoObj = (res,x) -> (target.=x; cf(res))
 
   # do the parameter search over defined decision variables using Root finding
   r = NLsolve.nlsolve( _hypoObj, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
