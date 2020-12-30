@@ -266,9 +266,10 @@ function solveTree!(dfgl::AbstractDFG,
                     limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableConstraints::Vector{Symbol}=Symbol[],
+                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                    eliminationConstraints::Vector{Symbol}=Symbol[],
+                    variableConstraints=nothing,
                     smtasks::Vector{Task}=Task[],
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
@@ -283,6 +284,10 @@ function solveTree!(dfgl::AbstractDFG,
   if variableOrder !== nothing
     @warn "`variableOrder` keyword is deprecated, use `eliminationOrder` instead."
     eliminationOrder = variableOrder
+  end
+  if variableConstraints !== nothing
+    @warn "`variableConstraints` keyword is deprecated, use `eliminationConstraints` instead."
+    eliminationConstraints = variableConstraints
   end
   
   # showtree should force drawtree
