@@ -266,8 +266,10 @@ function solveTree!(dfgl::AbstractDFG,
                     limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
+                    eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableConstraints::Vector{Symbol}=Symbol[],
+                    eliminationConstraints::Vector{Symbol}=Symbol[],
+                    variableConstraints=nothing,
                     smtasks::Vector{Task}=Task[],
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
@@ -278,6 +280,16 @@ function solveTree!(dfgl::AbstractDFG,
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
 
+  # depcrecation
+  if variableOrder !== nothing
+    @warn "`variableOrder` keyword is deprecated, use `eliminationOrder` instead."
+    eliminationOrder = variableOrder
+  end
+  if variableConstraints !== nothing
+    @warn "`variableConstraints` keyword is deprecated, use `eliminationConstraints` instead."
+    eliminationConstraints = variableConstraints
+  end
+  
   # showtree should force drawtree
   opt.showtree && !opt.drawtree ? @info("Since .showtree=true, also bumping .drawtree=true") : nothing
   opt.drawtree |= opt.showtree
@@ -321,10 +333,11 @@ function solveTree!(dfgl::AbstractDFG,
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 
-  orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
+  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=false, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = buildTreeReset!(dfgl, eliminationOrder, drawpdf=false, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), eliminationConstraints=eliminationConstraints, ordering=orderMethod)
+
   # setAllSolveFlags!(tree, false)
   
   initTreeMessageChannels!(tree)
@@ -370,7 +383,7 @@ function solveTree!(dfgl::AbstractDFG,
   oldtree.btid = tree.btid
   oldtree.cliques = tree.cliques
   oldtree.frontals = tree.frontals
-  oldtree.variableOrder = tree.variableOrder
+  oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
 
   hist = !opt.async ? fetchCliqHistoryAll!(smtasks) : hist
@@ -391,7 +404,8 @@ function solveTree!(dfgl::AbstractDFG,
 end
 
 """
-$SIGNATURES
+    solveGrapn!
+
 See `solveTree!`.
 """
 const solveGraph! = solveTree!

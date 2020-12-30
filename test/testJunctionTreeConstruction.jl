@@ -10,8 +10,8 @@ using Test
   fg = generateCanonicalFG_Kaess()
   # Choose specific variable ordering and perform check.
   vo = [:l1, :l2, :x1, :x2, :x3]
-  tree = buildTreeFromOrdering!(fg, vo)
-  @test vo == tree.variableOrder
+  tree = buildTreeReset!(fg, vo)
+  @test vo == tree.eliminationOrder
   @test vo == getEliminationOrder(tree)
 
 end
@@ -23,7 +23,7 @@ fg = generateCanonicalFG_CaesarRing1D()
 
 eo = [:x0;:x2;:x4;:x6;:x1;:l1;:x5;:x3;]
 
-tree = buildTreeFromOrdering!(fg,eo)
+tree = buildTreeReset!(fg,eo)
 # drawTree(tree, show=true)
 
 @test length(tree.cliques) == 6
@@ -74,7 +74,7 @@ fg = generateCanonicalFG_TestSymbolic()
 
 eo = [:x1; :l3; :l1; :x5; :x2; :l2; :x4; :x3]
 
-tree = buildTreeFromOrdering!(fg,eo)
+tree = buildTreeReset!(fg,eo)
 # drawTree(tree, show=true)
 
 @warn "TODO, complete further testing on tree formation"

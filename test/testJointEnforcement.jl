@@ -100,7 +100,7 @@ jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, cliq2)
 
 ##
 
-tree, _, = solveTree!(fg, variableOrder=vo);
+tree, _, = solveTree!(fg, eliminationOrder=vo);
 
 
 ## get up message from child clique
@@ -199,7 +199,7 @@ jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, cliq2)
 
 ## similar during solving
 
-tree, _, = solveTree!(fg, variableOrder=vo);
+tree, _, = solveTree!(fg, eliminationOrder=vo);
 
 
 ## get up message from child clique

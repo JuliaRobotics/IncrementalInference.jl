@@ -1069,13 +1069,8 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
 end
 
 function assembleFactorName(dfg::AbstractDFG,
-                            Xi::Vector{<:DFGVariable};
-                            maxparallel::Union{Nothing,Int}=nothing)
+                            Xi::Vector{<:DFGVariable} )
   #
-  if maxparallel !== nothing
-    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
 
   existingFactorLabels = listFactors(dfg)
   existingFactorLabelDict = Dict(existingFactorLabels .=> existingFactorLabels)
@@ -1113,15 +1108,10 @@ function addFactor!(dfg::AbstractDFG,
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Int,Nothing}=nothing,
                     suppressChecks::Bool=false  ) where
                       {R <: FunctorInferenceType}
   #
   # depcrecation
-  if !suppressChecks && maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
 
   varOrderLabels = [v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi)
@@ -1152,14 +1142,9 @@ function addFactor!(dfg::AbstractDFG,
                     tags::Vector{Symbol}=Symbol[],
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Nothing,Int}=nothing,
                     suppressChecks::Bool=false  )
   #
   # depcrecation
-  if !suppressChecks && maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
 
   # basic sanity check for unary vs n-ary
   if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
@@ -1265,13 +1250,8 @@ function addConditional!( dfg::AbstractDFG,
 end
 
 function addChainRuleMarginal!( dfg::AbstractDFG,
-                                Si::Vector{Symbol};
-                                maxparallel::Union{Nothing,Int}=nothing )
+                                Si::Vector{Symbol} )
   #
-  if maxparallel !== nothing
-    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
 
   lbls = String[]
   genmarg = GenericMarginal()
@@ -1286,13 +1266,9 @@ end
 
 function rmVarFromMarg( dfg::AbstractDFG,
                         fromvert::DFGVariable,
-                        gm::Vector{DFGFactor};
-                        maxparallel::Union{Nothing,Int}=nothing  )
+                        gm::Vector{DFGFactor}  )
   #
-  if maxparallel !== nothing
-    @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
+
   @debug " - Removing $(fromvert.label)"
   for m in gm
     @debug "Looking at $(m.label)"
@@ -1323,7 +1299,6 @@ end
 
 function buildBayesNet!(dfg::AbstractDFG,
                         elimorder::Vector{Symbol};
-                        maxparallel::Union{Nothing,Int}=nothing,
                         solvable::Int=1 )
   #
   # addBayesNetVerts!(dfg, elimorder)
