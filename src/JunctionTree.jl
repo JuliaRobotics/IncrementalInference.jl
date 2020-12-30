@@ -660,17 +660,17 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   end
 
   println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root
-  buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-  # for cliqIds in getCliqueIds(tree)
-  #   if isRoot(tree, cliqIds)
-  #     cliq = getClique(tree, cliqIds) # start at the root
-  #     buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-  #   end
-  # end
+  for cliqIds in getCliqueIds(tree)
+    # start at the root, of which there could be multiple disconnected trees
+    if isRoot(tree, cliqIds)
+      cliq = getClique(tree, cliqIds) 
+      # fg does not have the marginals as fge does
+      buildCliquePotentials(dfg, tree, cliq, solvable=solvable)
+    end
+  end
 
   # also store the build time
-  tree.buildTime = (time_ns()-t0)/1e9
+  tree.buildTime = (time_ns()-t0)*1e-9
 
   return tree
 end
@@ -1140,9 +1140,9 @@ Get variable ids`::Int` with prior factors associated with this `cliq`.
 Notes:
 - does not include any singleton messages from upward or downward message passing.
 """
-function getCliqVarIdsPriors(cliq::TreeClique,
-                             allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                             partials::Bool=true  )::Vector{Symbol}
+function getCliqVarIdsPriors( cliq::TreeClique,
+                              allids::Vector{Symbol}=getCliqAllVarIds(cliq),
+                              partials::Bool=true  )
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
   prfcts = sum(amat, dims=2) .== 1
@@ -1152,7 +1152,7 @@ function getCliqVarIdsPriors(cliq::TreeClique,
 
   # return variable ids in `mask`
   mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
-  return allids[mask]
+  return allids[mask]::Vector{Symbol}
 end
 
 
@@ -1163,7 +1163,7 @@ Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and
 """
 function getCliqVarSingletons(cliq::TreeClique,
                               allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                              partials::Bool=true  )::Vector{Symbol}
+                              partials::Bool=true  )
   # get incoming upward messages (known singletons)
   mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
   upmsgids = allids[mask]
@@ -1172,7 +1172,7 @@ function getCliqVarSingletons(cliq::TreeClique,
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
 
   # return union of both lists
-  return union(upmsgids, prids)
+  return union(upmsgids, prids)::Vector{Symbol}
 end
 
 
