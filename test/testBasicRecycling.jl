@@ -14,7 +14,7 @@ fg = generateCanonicalFG_lineStep(N;
 
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
-# tree = resetBuildTree!(fg, show=true, drawpdf=true)
+# tree = buildTreeReset!(fg, show=true, drawpdf=true)
 tree, smtasks, hists = solveTree!(fg)
 
 for var in sortDFG(ls(fg))
@@ -135,7 +135,7 @@ getSolverParams(fg).graphinit = false
 getSolverParams(fg).treeinit = true
 # getSolverParams(fg).dbg = true
 
-# tree = resetBuildTree!(fg, drawpdf=true, show=true)
+# tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
 smtasks = Task[]
 tree, smt, hists = solveTree!(fg; smtasks=smtasks, recordcliqs=ls(fg));
@@ -179,7 +179,7 @@ getSolverParams(fg).treeinit = true
 getSolverParams(fg).dbg = true
 getSolverParams(fg).useMsgLikelihoods = true
 
-tree = resetBuildTree!(fg)#, drawpdf=true, show=true)
+tree = buildTreeReset!(fg)#, drawpdf=true, show=true)
 
 smtasks = Task[]
 _,_,hists = solveTree!(fg, tree; smtasks=smtasks, recordcliqs=ls(fg));

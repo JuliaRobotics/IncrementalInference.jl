@@ -168,7 +168,7 @@ end
 # clique subfg test
 fg = generateCanonicalFG_lineStep(4, landmarkPriorsAt=[0,4])
 # dfgplot(fg)
-tree = resetBuildTree!(fg)
+tree = buildTreeReset!(fg)
 
 #check clique 1
 cliq = getClique(tree, 1)

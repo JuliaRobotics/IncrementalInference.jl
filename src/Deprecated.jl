@@ -75,6 +75,44 @@ end
 ##==============================================================================
 
 
+# function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
+#                                 p::Vector{Symbol};
+#                                 drawbayesnet::Bool=false,
+#                                 solvable::Int=1 )
+#   #
+
+#   t0 =time_ns()
+#   println()
+#   fge = deepcopy(dfg)
+#   # depcrecation
+#   @info "Building Bayes net..."
+#   buildBayesNet!(fge, p, solvable=solvable)
+
+#   @info "Staring the Bayes tree construction from Bayes net"
+#   tree = BayesTree()
+#   tree.eliminationOrder = p
+#   buildTree!(tree, fge, p)
+
+#   if drawbayesnet
+#     println("Bayes Net")
+#     sleep(0.1)
+#     fid = open("bn.dot","w+")
+#     write(fid,_to_dot(fge.bn))
+#     close(fid)
+#   end
+
+#   @debug "Find potential functions for each clique"
+#   for cliqIds in getCliqueIds(tree)
+#     if isRoot(tree, cliqIds)
+#       cliq = getClique(tree, cliqIds) # start at the root
+#       buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+#     end
+#   end
+#   tree.buildTime = (time_ns()-t0)/1e9
+#   return tree
+# end
+
+
 # import DistributedFactorGraphs: getVariableOrder
 #
 # getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder

@@ -625,22 +625,28 @@ end
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 
 DevNotes
-- FIXME deprecate and use only [`buildTreeReset!`](@ref) instead
+- TODO use `solvable` filter during local graph copy step
+
+Related
+
+[`buildTreeReset!`](@ref)
 """
-function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
+function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                solvable::Int=1 )
+                                solvable::Int=1  )
   #
-
+  @debug "Copying to a local DFG"
   t0 =time_ns()
-  println()
-  fge = deepcopy(dfg)
-  # depcrecation
-  @info "Building Bayes net..."
+  fge = InMemDFGType(solverParams=getSolverParams(dfg))
+
+  #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
+  # copy required for both remote and local graphs
+  DFG.deepcopyGraph!(fge, dfg)
+
+  println("Building Bayes net from cloud...")
   buildBayesNet!(fge, p, solvable=solvable)
 
-  @info "Staring the Bayes tree construction from Bayes net"
   tree = BayesTree()
   tree.eliminationOrder = p
   buildTree!(tree, fge, p)
@@ -653,45 +659,18 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
     close(fid)
   end
 
-  @debug "Find potential functions for each clique"
+  println("Find potential functions for each clique")
   for cliqIds in getCliqueIds(tree)
     if isRoot(tree, cliqIds)
       cliq = getClique(tree, cliqIds) # start at the root
       buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
     end
   end
+  # cliq = getClique(tree, 1) # start at the root
+  # buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+
+  # also store the build time
   tree.buildTime = (time_ns()-t0)/1e9
-  return tree
-end
-
-function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
-                                p::Vector{Symbol};
-                                drawbayesnet::Bool=false )
-  #
-  @debug "Copying to a local DFG"
-  fge = InMemDFGType(solverParams=getSolverParams(dfg))
-    #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
-  DFG.deepcopyGraph!(fge, dfg)
-  # depcrecation
-
-  println("Building Bayes net from cloud...")
-  buildBayesNet!(fge, p)
-
-  tree = BayesTree()
-  tree.variableOrder = p
-  buildTree!(tree, fge, p)
-
-  if drawbayesnet
-    println("Bayes Net")
-    sleep(0.1)
-    fid = open("bn.dot","w+")
-    write(fid,_to_dot(fge.bn))
-    close(fid)
-  end
-
-  println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root
-  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
 
   return tree
 end
@@ -704,6 +683,9 @@ Build Bayes/Junction/Elimination tree.
 
 Notes
 - Default to free qr factorization for variable elimination order.
+
+DevNotes
+- TODO deprecate and update to better name than `drawpdf`
 """
 function prepBatchTreeOLD!( dfg::AbstractDFG;
                             eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
@@ -713,7 +695,7 @@ function prepBatchTreeOLD!( dfg::AbstractDFG;
                             ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                             drawpdf::Bool=false,
                             show::Bool=false,
-                            filepath::String="/tmp/caesar/bt.dot",
+                            filepath::String="/tmp/caesar/random/bt.dot",
                             viewerapp::String="xdot",
                             imgs::Bool=false )
                             # drawbayesnet::Bool=false )

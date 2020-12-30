@@ -316,7 +316,7 @@ f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
 
-tree = resetBuildTree!(fg)
+tree = buildTreeReset!(fg)
 
 pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0
