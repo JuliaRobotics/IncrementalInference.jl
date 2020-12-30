@@ -333,7 +333,7 @@ function solveTree!(dfgl::AbstractDFG,
     @info "storeOld=true, previous :default deepcopied into $newKey for solvable==1 variables."
   end
 
-  orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
+  orderMethod = 0 < length(eliminationConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
   tree = buildTreeReset!(dfgl, eliminationOrder, drawpdf=false, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), eliminationConstraints=eliminationConstraints, ordering=orderMethod)
