@@ -209,7 +209,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # always add messages in case its needed for downsolve (needed for differential)
   # add message factors from upRx: cached messages taken from children saved in this clique
   addMsgFactors!(csmc.cliqSubFg, getMessageBuffer(csmc.cliq).upRx, UpwardPass)
-  logCSM(csmc, "CSM-2a messages for up"; upmsg=lsf(csmc.cliqSubFg, tags=[:LIKELIHOODMESSAGE]))
+  logCSM(csmc, "CSM-2a messages for up"; upmsg=lsf(csmc.cliqSubFg, tags=[:__LIKELIHOODMESSAGE__]))
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
@@ -412,7 +412,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   # Done with solve delete factors
   # remove msg factors that were added to the subfg
-  tags_ = getSolverParams(csmc.cliqSubFg).useMsgLikelihoods ? [:UPWARD_COMMON;] : [:LIKELIHOODMESSAGE;]
+  tags_ = getSolverParams(csmc.cliqSubFg).useMsgLikelihoods ? [:__UPWARD_COMMON__;] : [:__LIKELIHOODMESSAGE__;]
   msgfcts= deleteMsgFactors!(csmc.cliqSubFg, tags_)
   logCSM(csmc, "CSM-2e doCliqUpsSolveInit.! -- status = $(solveStatus), removing $(tags_) factors, length=$(length(msgfcts))")
 
@@ -592,7 +592,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
     
   # structure for all up message densities computed during this initialization procedure.
   # XXX
-  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
+  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:__DOWNWARD_COMMON__;]) .|> x->ls(csmc.cliqSubFg, x)[1]
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
   # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
 
@@ -603,7 +603,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   logCSM(csmc, "CSM-4b tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
 
   
-  msgfcts = deleteMsgFactors!(csmc.cliqSubFg, [:DOWNWARD_COMMON;]) # msgfcts # TODO, use tags=[:LIKELIHOODMESSAGE], see #760
+  msgfcts = deleteMsgFactors!(csmc.cliqSubFg, [:__DOWNWARD_COMMON__;]) # msgfcts # TODO, use tags=[:__LIKELIHOODMESSAGE__], see #760
   logCSM(csmc, "CSM-4b tryDownInit_StateMachine - removing factors, length=$(length(msgfcts))")
   
   solveStatus = someInit ? INITIALIZED : NO_INIT

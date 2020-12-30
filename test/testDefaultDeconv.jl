@@ -30,7 +30,7 @@ addLikelihoodsDifferential!.(tfg, values(msg))
 
 @test issetequal(ls(tfg), [:x2,:x4,:x6])
 @test lsf(tfg) |> length == 2
-@test lsf(tfg, tags=[:UPWARD_DIFFERENTIAL]) |> length == 2
+@test lsf(tfg, tags=[:__UPWARD_DIFFERENTIAL__]) |> length == 2
 
 end
 
