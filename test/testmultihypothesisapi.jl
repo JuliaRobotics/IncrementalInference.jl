@@ -9,6 +9,7 @@ using Statistics
 import Base: convert
 import IncrementalInference: getSample
 
+##
 
 mutable struct DevelopPrior <: AbstractPrior
   x::Distribution
@@ -250,6 +251,20 @@ global pts = approxConv(fg, :x2x3x4x5f1, :x5, N=N)
 
 @test 0.5*N <= sum(80 .< pts .< 100.0) + sum(pts .== 2.0) + sum(pts .== 3.0)
 
+
+
+end
+
+##
+
+@testset "test multihypo api numerical tolerance, #1086" begin
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousEuclid{1})
+addVariable!(fg, :x1a, ContinuousEuclid{1})
+addVariable!(fg, :x1b, ContinuousEuclid{1})
+addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.4999999999999])
 
 
 end
