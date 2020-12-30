@@ -30,6 +30,9 @@ function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
   fct = getFactor(dfg, sym)
   usrfnc = getFactorType(fct)
   variables = getVariable.(dfg, getVariableOrder(fct))
+
+  # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
+   # not really, because that would imply stochastic dependency on association before noise process??
   fmd = _defaultFactorMetadata(variables)
   # if hasfield(typeof(usrfnc), :specialSampler)
     freshSamples(usrfnc, N, fmd, variables )
