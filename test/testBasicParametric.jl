@@ -121,7 +121,7 @@ foreach(x->getSolverData(getVariable(fg,x.first),:parametric).val .= x.second.va
   #   global smt
   #   global hist
 #force message passing with manual variable order
-tree2, smt, hist = IIF.solveTree!(fg; algorithm=:parametric, variableOrder=[:x0, :x2, :x1])
+tree2, smt, hist = solveTree!(fg; algorithm=:parametric, eliminationOrder=[:x0, :x2, :x1])
 # end
 foreach(v->println(v.label, ": ", DFG.getSolverData(v, :parametric).val), getVariables(fg))
 

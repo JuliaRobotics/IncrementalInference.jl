@@ -18,7 +18,7 @@ mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
   frontals::Dict{Symbol,CliqueId{Int}}
-  variableOrder::Vector{Symbol}
+  eliminationOrder::Vector{Symbol}
   buildTime::Float64
 end
 

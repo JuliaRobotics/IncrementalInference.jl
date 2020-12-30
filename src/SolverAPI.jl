@@ -266,7 +266,6 @@ function solveTree!(dfgl::AbstractDFG,
                     limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[],
@@ -281,10 +280,6 @@ function solveTree!(dfgl::AbstractDFG,
   opt = getSolverParams(dfgl)
 
   # depcrecation
-  if maxparallel !== nothing
-    @warn "`maxparallel` keyword is deprecated, use `getSolverParams(fg).maxincidence` instead."
-    opt.maxincidence = maxparallel
-  end
   if variableOrder !== nothing
     @warn "`variableOrder` keyword is deprecated, use `eliminationOrder` instead."
     eliminationOrder = variableOrder
@@ -331,7 +326,7 @@ function solveTree!(dfgl::AbstractDFG,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = resetBuildTree!(dfgl, eliminationOrder=eliminationOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = resetBuildTree!(dfgl, eliminationOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
   
   initTreeMessageChannels!(tree)
@@ -367,7 +362,7 @@ function solveTree!(dfgl::AbstractDFG,
   oldtree.btid = tree.btid
   oldtree.cliques = tree.cliques
   oldtree.frontals = tree.frontals
-  oldtree.variableOrder = tree.variableOrder
+  oldtree.eliminationOrder = tree.eliminationOrder
   oldtree.buildTime = tree.buildTime
 
   hist = !opt.async ? fetchCliqHistoryAll!(smtasks) : hist
@@ -388,7 +383,8 @@ function solveTree!(dfgl::AbstractDFG,
 end
 
 """
-$SIGNATURES
+    solveGrapn!
+
 See `solveTree!`.
 """
 const solveGraph! = solveTree!

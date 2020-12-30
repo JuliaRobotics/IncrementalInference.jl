@@ -195,7 +195,10 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique!(bt::AbstractBayesTree, clqID::CliqueId, seprIDs::Array{Symbol,1})
+function appendSeparatorToClique!(bt::AbstractBayesTree, 
+                                  clqID::CliqueId, 
+                                  seprIDs::Array{Symbol,1} )
+  #
   union!(getCliqueData(bt, clqID).separatorIDs, seprIDs)
   nothing
 end
@@ -208,11 +211,11 @@ Add a new frontal variable to clique.
 DevNotes
 - TODO, define what "conditionals" are CLEARLY!!
 """
-function appendClique!(bt::AbstractBayesTree,
-                       clqID::CliqueId,
-                       dfg::AbstractDFG,
-                       varID::Symbol,
-                       seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
+function appendClique!( bt::AbstractBayesTree,
+                        clqID::CliqueId,
+                        dfg::AbstractDFG,
+                        varID::Symbol,
+                        seprIDs::Array{Symbol,1}=Symbol[] )
   #
   clq = getClique(bt, clqID)
   var = DFG.getVariable(dfg, varID)
@@ -225,7 +228,7 @@ function appendClique!(bt::AbstractBayesTree,
 
   # TODO - confirm this, append to cliq separator ??
   # @info "going for: appendSeparatorToClique on (clqID, seprIDs)=($clqID, $seprIDs)"
-  appendSeparatorToClique(bt, clqID, seprIDs)
+  appendSeparatorToClique!(bt, clqID, seprIDs)
   makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
@@ -235,24 +238,22 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::CliqueId, varID::Symbol, Sepj::Array{Symbol,1})
-  #TODO this is too manual, replace with just addClique that takes as argument the parent
-        # addClique!(bt, dfg, CpID, varID, Sepj)
+function newChildClique!( bt::AbstractBayesTree, 
+                          dfg::AbstractDFG, 
+                          CpID::CliqueId, 
+                          varID::Symbol, 
+                          Sepj::Array{Symbol,1})
+  #
   # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = getClique(bt, CpID)
 
-  # if isa(bt.bt,GenericIncidenceList)
-  #   # Staying with Graphs.jl for tree in first stage
-  #   edge = Graphs.make_edge(bt.bt, parent, chclq)
-  #   Graphs.add_edge!(bt.bt, edge)
   if isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
     @assert MetaGraphs.add_edge!(bt.bt, bt.bt[:cliqId][CpID], bt.bt[:cliqId][chclq.id]) "Add edge failed"
   else
     error("Oops, something went wrong when adding a new child clique to the tree")
   end
-
 
   return chclq
 end
@@ -630,7 +631,6 @@ DevNotes
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Union{Nothing, Int}=nothing,
                                 solvable::Int=1 )
   #
 
@@ -638,16 +638,12 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
   println()
   fge = deepcopy(dfg)
   # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(fge).maxincidence = maxparallel
-  end
   @info "Building Bayes net..."
   buildBayesNet!(fge, p, solvable=solvable)
 
   @info "Staring the Bayes tree construction from Bayes net"
   tree = BayesTree()
-  tree.variableOrder = p
+  tree.eliminationOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -671,23 +667,18 @@ end
 
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
-                                drawbayesnet::Bool=false,
-                                maxparallel::Union{Nothing, Int}=nothing  )
+                                drawbayesnet::Bool=false )
   #
   @debug "Copying to a local DFG"
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
     #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
   DFG.deepcopyGraph!(fge, dfg)
   # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(fge).maxincidence = maxparallel
-  end
 
   println("Building Bayes net from cloud...")
   buildBayesNet!(fge, p)
 
-  tree = emptyBayesTree()
+  tree = BayesTree()
   tree.variableOrder = p
   buildTree!(tree, fge, p)
 
@@ -725,9 +716,8 @@ function prepBatchTreeOLD!( dfg::AbstractDFG;
                             show::Bool=false,
                             filepath::String="/tmp/caesar/bt.dot",
                             viewerapp::String="xdot",
-                            imgs::Bool=false,
-                            # drawbayesnet::Bool=false,
-                            maxparallel::Union{Nothing, Int}=nothing )
+                            imgs::Bool=false )
+                            # drawbayesnet::Bool=false )
   #
 
   # deprecations on keywords
@@ -766,7 +756,7 @@ end
 
 Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` structures.
 """
-function resetData!(vdata::VariableNodeData)::Nothing
+function resetData!(vdata::VariableNodeData)
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
   # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
@@ -774,7 +764,7 @@ function resetData!(vdata::VariableNodeData)::Nothing
   nothing
 end
 
-function resetData!(vdata::FunctionNodeData)::Nothing
+function resetData!(vdata::FunctionNodeData)
   vdata.eliminated = false
   vdata.potentialused = false
   nothing
@@ -811,27 +801,22 @@ Related:
 buildTreeFromOrdering!, 
 """
 function buildTreeReset!( dfg::AbstractDFG,
-                          eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing;
-                          variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                          eliminationOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing;
+                          variableOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing,
                           ordering::Symbol=:qr,
                           drawpdf::Bool=false,
                           show::Bool=false,
                           filepath::String="/tmp/caesar/random/bt.dot",
                           viewerapp::String="xdot",
                           imgs::Bool=false,
-                          maxparallel::Union{Nothing, Int}=nothing,
                           ensureSolvable::Bool=true,
-                          eliminationConstraints::Vector{Symbol}=Symbol[],
+                          eliminationConstraints::AbstractVector{Symbol}=Symbol[],
                           variableConstraints=nothing  )
   #
   if ensureSolvable
     ensureSolvable!(dfg)
   end
   # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
   if variableOrder !== nothing
     @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
     eliminationOrder = variableOrder
@@ -1562,16 +1547,12 @@ function getTreeAllFrontalSyms(::AbstractDFG, tree::AbstractBayesTree)
 end
 
 
-# import DistributedFactorGraphs: getVariableOrder
-#
-# getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
-
 """
     $SIGNATURES
 
 Return the variable elimination order stored in a tree object.
 """
-getEliminationOrder(treel::AbstractBayesTree) = treel.variableOrder
+getEliminationOrder(treel::AbstractBayesTree) = treel.eliminationOrder
 
 
 """

@@ -75,6 +75,11 @@ end
 ##==============================================================================
 
 
+# import DistributedFactorGraphs: getVariableOrder
+#
+# getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
+
+
 # FactorMetadata( Xi::AbstractVector{<:DFGVariable}=Vector{DFGVariable}(),
 #                 vl::Vector{Symbol}=map(x->x.label,Xi),
 #                 arr::AbstractVector{<:AbstractArray}=Vector{Matrix{Float64}}(),
