@@ -152,7 +152,7 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
   # 1. count separtor connectivity in UPWARD_DIFFERENTIAL
   sepsCount = Dict{Symbol, Int}()
   map(x->(sepsCount[x]=0), separators)
-  # tagsFilter = [:LIKELIHOODMESSAGE;]
+  # tagsFilter = [:__LIKELIHOODMESSAGE__;]
   # tflsf = lsf(fg, tags=tagsFilter)
   for likl in jointrelatives
     for vari in likl.variables
@@ -216,7 +216,7 @@ Build from a `LikelihoodMessage` a temporary distributed factor graph object con
 information likelihood factors based on values in the messages.
 
 Notes
-- Modifies tfg argument by adding `:UPWARD_DIFFERENTIAL` factors.
+- Modifies tfg argument by adding `:__UPWARD_DIFFERENTIAL__` factors.
 
 DevNotes
 - Initial version which only works for Pose2 and Point2 at this stage.
@@ -227,7 +227,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   # create new local dfg and add all the variables with data
 
   for difflikl in msgs.jointmsg.relatives
-    addFactor!(cliqSubFG, difflikl.variables, difflikl.likelihood, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+    addFactor!(cliqSubFG, difflikl.variables, difflikl.likelihood, graphinit=false, tags=[:__LIKELIHOODMESSAGE__; :__UPWARD_DIFFERENTIAL__] )
   end
 
   # listVarByDim = Symbol[]
@@ -260,7 +260,7 @@ function addLikelihoodsDifferential!( msgs::LikelihoodMessage,
   #     # replace dummy factor with real deconv factor using manikde approx belief measurement
   #     fullFct = nfactype(newBel)
   #     deleteFactor!(tfg, afc.label)
-  #     addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:LIKELIHOODMESSAGE; :UPWARD_DIFFERENTIAL] )
+  #     addFactor!( cliqSubFG, [sym1_;sym2_], fullFct, graphinit=false, tags=[:__LIKELIHOODMESSAGE__; :__UPWARD_DIFFERENTIAL__] )
   #   end
   # end
 
@@ -432,7 +432,7 @@ function addLikelihoodPriorCommon!( subfg::AbstractDFG,
                                     msg::LikelihoodMessage;
                                     tags::Vector{Symbol}=Symbol[]  )
   #
-  tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
+  tags__ = union(Symbol[:__LIKELIHOODMESSAGE__;:__UPWARD_COMMON__], tags)
   # find if any orphaned variables exist
   for (lbl, msgpr) in msg.jointmsg.priors
     # don't add numerical gauge reference unless absolutely necessary
@@ -450,7 +450,7 @@ function addLikelihoodPriorCommon!( subfg::AbstractDFG,
   # msgPrior = generateMsgPrior(msg.belief[topCandidate], msg.msgType)
 
   # # get ready
-  # tags__ = union(Symbol[:LIKELIHOODMESSAGE;:UPWARD_COMMON], tags)
+  # tags__ = union(Symbol[:__LIKELIHOODMESSAGE__;:__UPWARD_COMMON__], tags)
   # # finally add the single AbstractPrior from LikelihoodMessage
   # addFactor!(subfg, [topCandidate], msgPrior, graphinit=false, tags=tags__)
 end
@@ -529,16 +529,16 @@ function addMsgFactors!(subfg::AbstractDFG,
     #
     if 0 < length(msg.belief)
       # currently only works for nonparametric
-      addLikelihoodsDifferential!(subfg, msg)          # :UPWARD_DIFFERENTIAL
+      addLikelihoodsDifferential!(subfg, msg)          # :__UPWARD_DIFFERENTIAL__
       if attemptPriors
         # will only be added based on internal tests
-        prFcts = addLikelihoodPriorCommon!(subfg, msg)   # :UPWARD_COMMON
+        prFcts = addLikelihoodPriorCommon!(subfg, msg)   # :__UPWARD_COMMON__
       end
     end
   else
     svars = DFG.listVariables(subfg)
-    tags__ = union(Symbol[:LIKELIHOODMESSAGE;], tags)
-    dir == DownwardPass ? push!(tags__, :DOWNWARD_COMMON) : nothing
+    tags__ = union(Symbol[:__LIKELIHOODMESSAGE__;], tags)
+    dir == DownwardPass ? push!(tags__, :__DOWNWARD_COMMON__) : nothing
     for (msym, belief_) in msg.belief
       if msym in svars
         msgPrior = generateMsgPrior(belief_, msg.msgType)
@@ -588,7 +588,7 @@ end
 # deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
 function deleteMsgFactors!( subfg::AbstractDFG, 
-                            tags::Vector{Symbol}=[:LIKELIHOODMESSAGE])
+                            tags::Vector{Symbol}=[:__LIKELIHOODMESSAGE__])
   # remove msg factors that were added to the subfg
   facs = lsf(subfg, tags=tags)
   deleteFactor!.(subfg, facs)

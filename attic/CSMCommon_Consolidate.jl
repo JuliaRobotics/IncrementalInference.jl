@@ -515,7 +515,7 @@ transit integral in upward direction.
 Notes
 - State machine function nr. 8f
 - Includes initialization routines.
-- Adds `:LIKELIHOODMESSAGE` factors but does not remove.
+- Adds `:__LIKELIHOODMESSAGE__` factors but does not remove.
 - gets msg likelihoods from cliqSubFg, see #760
 
 DevNotes
@@ -544,7 +544,7 @@ function prepInitUp_StateMachine(csmc::CliqStateMachineContainer)
   
   # add incoming up messages as priors to subfg
   infocsm(csmc, "8f, prepInitUp_StateMachine -- adding up message factors")
-  # interally adds :LIKELIHOODMESSAGE, :UPWARD_DIFFERENTIAL, :UPWARD_COMMON to each of the factors
+  # interally adds :__LIKELIHOODMESSAGE__, :__UPWARD_DIFFERENTIAL__, :__UPWARD_COMMON__ to each of the factors
   msgfcts = addMsgFactors!(csmc.cliqSubFg, upmsgs, UpwardPass)
 
   # store the cliqSubFg for later debugging
@@ -601,7 +601,7 @@ function rmUpLikeliSaveSubFg_StateMachine(csmc::CliqStateMachineContainer)
   opts = getSolverParams(csmc.dfg)
 
   # remove msg factors that were added to the subfg
-  tags__ = opts.useMsgLikelihoods ? [:UPWARD_COMMON;] : [:LIKELIHOODMESSAGE;]
+  tags__ = opts.useMsgLikelihoods ? [:__UPWARD_COMMON__;] : [:__LIKELIHOODMESSAGE__;]
   msgfcts = deleteMsgFactors!(csmc.cliqSubFg, tags__)
   infocsm(csmc, "8g, doCliqUpsSolveInit.! -- status = $(status), removing $(tags__) factors, length=$(length(msgfcts))")
 
@@ -711,7 +711,7 @@ Algorithm:
 function tryDwnInitCliq_StateMachine(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "green")
   opt = getSolverParams(csmc.cliqSubFg)
-  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
+  dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:__DOWNWARD_COMMON__;]) .|> x->ls(csmc.cliqSubFg, x)[1]
 
   ## TODO deal with partial inits only, either delay or continue at end...
   # find intersect between downinitmsgs and local clique variables
@@ -824,13 +824,13 @@ end
 """
     $SIGNATURES
 
-Remove any `:LIKELIHOODMESSAGE` from `cliqSubFg`.
+Remove any `:__LIKELIHOODMESSAGE__` from `cliqSubFg`.
 
 Notes
 - State machine function nr.8l
 """
 function rmMsgLikelihoodsAfterDwn_StateMachine(csmc::CliqStateMachineContainer)
-  ## TODO only remove :DOWNWARD_COMMON messages here
+  ## TODO only remove :__DOWNWARD_COMMON__ messages here
   #
 
   _dbgCSMSaveSubFG(csmc, "fg_afterdowninit")
