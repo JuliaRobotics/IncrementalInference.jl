@@ -30,9 +30,8 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement)
 
   # build static lambda
-    # ccwl.cpt[thrid].factormetadata
   unrollHypo = () -> cf(ccwl.cpt[thrid].res, ccwl.measurement..., ccwl.params[ccwl.cpt[thrid].activehypo]...)
-  # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+    # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
 
   # broadcast updates original view memory location
   _hypoObj = (x) -> (target.=x; unrollHypo())
@@ -104,10 +103,12 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                         fmd.solvefor,
                         fmd.cachedata  )
   #
+  # new dev work on CalcFactor
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement)
 
   # build static lambda
-    # ccwl.cpt[thrid].factormetadata
-  unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  unrollHypo! = (res) -> cf(res, ccwl.measurement..., ccwl.params[ccwl.cpt[thrid].activehypo]...)
+    # unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
   # broadcast updates original view memory location
   _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
 

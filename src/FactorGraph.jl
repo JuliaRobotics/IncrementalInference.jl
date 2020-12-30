@@ -635,16 +635,6 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
-    # for i in 1:Threads.nthreads()
-    #   # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
-    #   ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
-    #   ccw.cpt[i].factormetadata.variableuserdata = []
-    #   ccw.cpt[i].factormetadata.solvefor = :null
-    #   for xi in Xi
-    #     push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
-    #   end
-    # end
-  
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
