@@ -541,7 +541,7 @@ function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
     multihypo2 = multihypo
     multihypo2[1-1e-10 .< multihypo] .= 0.0
     # check that terms sum to full probability
-    @assert sum(multihypo2) % 1 ≈ 0.0 || 1-1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
+    @assert abs(sum(multihypo2) % 1) < 1e-10  || 1-1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
     # check that only one variable broken into fractions
     @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
     # force normalize something that is now known to be close
@@ -592,7 +592,7 @@ function prepgenericconvolution(
   fmd = _defaultFactorMetadata(Xi, arrRef=ARR)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
