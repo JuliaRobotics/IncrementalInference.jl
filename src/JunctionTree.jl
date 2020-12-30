@@ -5,6 +5,8 @@ export hasClique
 export setCliqueDrawColor!, getCliqueDrawColor
 export appendSeparatorToClique!
 
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
 """
     $SIGNATURES
 
@@ -443,6 +445,7 @@ end
 Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
 
 Notes
+- To view, make sure you install `sudo apt-get install xdot`
 - Uses system install of graphviz.org.
 - Can also use Linux tool `xdot`.
 - `xlabels` is optional `cliqid=>xlabel`.
@@ -615,10 +618,14 @@ function generateTexTree( treel::AbstractBayesTree;
   return btc
 end
 
+
 """
     $SIGNATURES
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
+
+DevNotes
+- FIXME deprecate and use only [`buildTreeReset!`](@ref) instead
 """
 function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
                                 p::Vector{Symbol};
@@ -639,7 +646,7 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
   buildBayesNet!(fge, p, solvable=solvable)
 
   @info "Staring the Bayes tree construction from Bayes net"
-  tree = emptyBayesTree()
+  tree = BayesTree()
   tree.variableOrder = p
   buildTree!(tree, fge, p)
 
@@ -662,12 +669,6 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
   return tree
 end
 
-
-"""
-    $SIGNATURES
-
-Build Bayes/Junction/Elimination tree from a given variable ordering.
-"""
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
@@ -714,39 +715,43 @@ Build Bayes/Junction/Elimination tree.
 Notes
 - Default to free qr factorization for variable elimination order.
 """
-function prepBatchTree!(dfg::AbstractDFG;
-                        variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                        variableConstraints::Vector{Symbol}=Symbol[],
-                        ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
-                        drawpdf::Bool=false,
-                        show::Bool=false,
-                        filepath::String="/tmp/caesar/bt.pdf",
-                        viewerapp::String="evince",
-                        imgs::Bool=false,
-#                         drawbayesnet::Bool=false,
-                        maxparallel::Union{Nothing, Int}=nothing )
+function prepBatchTreeOLD!( dfg::AbstractDFG;
+                            eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                            variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                            eliminationConstraints::Vector{Symbol}=Symbol[],
+                            variableConstraints::Union{Nothing, Vector{Symbol}}=nothing,
+                            ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
+                            drawpdf::Bool=false,
+                            show::Bool=false,
+                            filepath::String="/tmp/caesar/bt.dot",
+                            viewerapp::String="xdot",
+                            imgs::Bool=false,
+                            # drawbayesnet::Bool=false,
+                            maxparallel::Union{Nothing, Int}=nothing )
   #
-  p = variableOrder !== nothing ? variableOrder : getEliminationOrder(dfg, ordering=ordering, constraints=variableConstraints)
 
-  # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(dfg).maxincidence = maxparallel
+  # deprecations on keywords
+  if variableOrder !== nothing
+    @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
+    eliminationOrder = variableOrder
+  end
+  if variableConstraints !== nothing
+    @warn "variableConstraints keyword is deprecated, use eliminationConstraints instead."
+    eliminationConstraints = variableConstraints
   end
 
-  # for debuggin , its useful to have the variable ordering
+  p = eliminationOrder !== nothing ? eliminationOrder : getEliminationOrder(dfg, ordering=ordering, constraints=eliminationConstraints)
+
+  # for debuggin , its useful to have the elimination ordering
   if drawpdf
     ispath(getLogPath(dfg)) ? nothing : Base.mkpath(getLogPath(dfg))
-    open(joinLogPath(dfg,"variableOrder.txt"), "a") do io
+    open(joinLogPath(dfg,"eliminationOrder.txt"), "a") do io
       writedlm(io, string.(reshape(p,1,:)), ',')
     end
   end
 
   tree = buildTreeFromOrdering!(dfg, p, drawbayesnet=false) # drawbayesnet
 
-  # GraphViz.Graph(_to_dot(tree.bt))
-  # Michael reference -- x2->x1, x2->x3, x2->x4, x2->l1, x4->x3, l1->x3, l1->x4
-  #Michael reference 3sig -- x2l1x4x3    x1|x2
   @info "Bayes Tree Complete"
   if drawpdf
     drawTree(tree, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs)
@@ -754,6 +759,7 @@ function prepBatchTree!(dfg::AbstractDFG;
 
   return tree
 end
+
 
 """
     $SIGNATURES
@@ -790,19 +796,6 @@ function resetFactorGraphNewTree!(dfg::AbstractDFG)
   nothing
 end
 
-"""
-    $SIGNATURES
-
-Reset factor graph and build a new tree from the provided variable ordering `p`.
-
-Related
-
-resetBuildTree!
-"""
-function resetBuildTreeFromOrder!(fgl::AbstractDFG, p::Vector{Symbol})
-  resetFactorGraphNewTree!(fgl)
-  return buildTreeFromOrdering!(fgl, p)
-end
 
 """
     $(SIGNATURES)
@@ -810,21 +803,26 @@ end
 Build a completely new Bayes (Junction) tree, after first wiping clean all
 temporary state in fg from a possibly pre-existing tree.
 
+DevNotes
+- replaces `resetBuildTreeFromOrder!`
+
 Related:
 
-buildTreeFromOrdering!, resetBuildTreeFromOrder!
+buildTreeFromOrdering!, 
 """
-function resetBuildTree!( dfg::AbstractDFG;
+function buildTreeReset!( dfg::AbstractDFG,
+                          eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing;
+                          variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                           ordering::Symbol=:qr,
                           drawpdf::Bool=false,
                           show::Bool=false,
-                          filepath::String="/tmp/caesar/bt.pdf",
-                          viewerapp::String="evince",
+                          filepath::String="/tmp/caesar/random/bt.dot",
+                          viewerapp::String="xdot",
                           imgs::Bool=false,
                           maxparallel::Union{Nothing, Int}=nothing,
                           ensureSolvable::Bool=true,
-                          variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                          variableConstraints::Vector{Symbol}=Symbol[]  )
+                          eliminationConstraints::Vector{Symbol}=Symbol[],
+                          variableConstraints=nothing  )
   #
   if ensureSolvable
     ensureSolvable!(dfg)
@@ -834,9 +832,17 @@ function resetBuildTree!( dfg::AbstractDFG;
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
+  if variableOrder !== nothing
+    @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
+    eliminationOrder = variableOrder
+  end
+  if variableConstraints !== nothing
+    @warn "variableConstraints keyword is deprecated, use eliminationConstraints instead."
+    eliminationConstraints = variableConstraints
+  end
 
   resetFactorGraphNewTree!(dfg);
-  return prepBatchTree!(dfg, variableOrder=variableOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, variableConstraints=variableConstraints);
+  return prepBatchTreeOLD!(dfg, eliminationOrder=eliminationOrder, ordering=ordering, drawpdf=drawpdf, show=show, filepath=filepath, viewerapp=viewerapp, imgs=imgs, eliminationConstraints=eliminationConstraints);
 end
 
 
@@ -851,6 +857,18 @@ function initTreeMessageChannels!(tree::MetaBayesTree)
   end
   return nothing
 end
+
+
+"""
+    $SIGNATURES
+
+Returns state of Bayes tree clique `.initialized` flag.
+
+Notes:
+- used by Bayes tree clique logic.
+- similar method in DFG
+"""
+isInitialized(cliq::TreeClique) = getSolverData(cliq).initialized
 
 function appendUseFcts!(usefcts,
                         lblid::Symbol,
@@ -961,7 +979,7 @@ function setCliqPotentials!(dfg::G,
   nothing
 end
 
-getCliquePotentials(cliq::TreeBelief) = getCliqueData(cliq).potentials
+getCliquePotentials(cliq::TreeClique) = getCliqueData(cliq).potentials
 
 function cliqPotentialIDs(cliq::TreeClique)
   potIDs = Symbol[]

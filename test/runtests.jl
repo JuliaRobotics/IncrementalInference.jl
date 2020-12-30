@@ -44,7 +44,8 @@ include("testgraphpackingconverters.jl")
 
 include("testNLsolve.jl")
 
-include("testNumericRootGenericRandomized.jl")
+# Randomized roots no longer supported, see PR #1075
+# include("testNumericRootGenericRandomized.jl")
 
 include("testCommonConvWrapper.jl")
 
@@ -62,6 +63,8 @@ include("testBasicGraphs.jl")
 
 include("testDefaultDeconv.jl")
 
+include("testJointEnforcement.jl")
+
 include("testlocalconstraintexamples.jl")
 
 include("testBasicTreeInit.jl")
@@ -69,6 +72,8 @@ include("testBasicTreeInit.jl")
 include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
+
+include("testEuclidDistance.jl")
 
 include("priorusetest.jl")
 

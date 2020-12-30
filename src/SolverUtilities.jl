@@ -25,23 +25,20 @@ function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) wh
   end
 end
 
-function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
-  if hasfield(T, :specialSampler)
-    error("specialSampler requires FactorMetadata and VariableNodeDatas")
-  end
-  freshSamples(usrfnc, N, FactorMetadata(),)
-end
 
 function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
   fct = getFactor(dfg, sym)
   usrfnc = getFactorType(fct)
-  if hasfield(typeof(usrfnc), :specialSampler)
-    variables = getVariable.(dfg, getVariableOrder(fct))
-    fmd = _defaultFactorMetadata(variables)
+  variables = getVariable.(dfg, getVariableOrder(fct))
+
+  # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
+   # not really, because that would imply stochastic dependency on association before noise process??
+  fmd = _defaultFactorMetadata(variables)
+  # if hasfield(typeof(usrfnc), :specialSampler)
     freshSamples(usrfnc, N, fmd, variables )
-  else
-    freshSamples(usrfnc, N)
-  end
+  # else
+  #   freshSamples(usrfnc, N, fmd)
+  # end
 end
 
 # TODO, add Xi::Vector{DFGVariable} if possible
@@ -57,66 +54,6 @@ function freshSamples!( ccwl::CommonConvWrapper,
     ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd)
   # end
   nothing
-end
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  # could maybe use default to reduce member functions
-  freshSamples!(ccwl, N, FactorMetadata(),)
-end
-
-function shuffleXAltD(X::Vector{Float64}, Alt::Vector{Float64}, d::Int, p::Vector{Int})
-  # n = length(X)
-  Y = deepcopy(Alt)
-  for i in 1:d
-    Y[p[i]] = X[i]
-  end
-  return Y
-end
-
-"""
-    $(SIGNATURES)
-
-Shuffle incoming X into random positions in fr.Y.
-Shuffled fr.Y will be placed back into fr.X[:,fr.gwp.particleidx] upon fr.gwp.usrfnc(x, res).
-"""
-function shuffleXAltD!(ccwl::CommonConvWrapper, X::Vector{Float64})
-  # populate defaults from existing values
-  for i in 1:ccwl.xDim
-    ccwl.cpt[Threads.threadid()].Y[i] = ccwl.cpt[Threads.threadid()].X[i, ccwl.cpt[Threads.threadid()].particleidx]
-  end
-  # populate as many measurment dimensions randomly for calculation
-  for i in 1:ccwl.zDim
-    ccwl.cpt[Threads.threadid()].Y[ccwl.cpt[Threads.threadid()].p[i]] = X[i]
-  end
-  nothing
-end
-
-
-function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Real})
-  shuffleXAltD!(ccw, x)
-  ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] = ccw.cpt[Threads.threadid()].Y
-  # evaulate the user provided residual function with constructed set of parameters
-  ret = ccw.usrfnc!(res,
-                    ccw.cpt[Threads.threadid()].factormetadata,
-                    ccw.cpt[Threads.threadid()].particleidx,
-                    ccw.measurement,
-                    ccw.params[ccw.cpt[Threads.threadid()].activehypo]...) # optmize the view here, re-use the same memory
-  return ret
-end
-
-
-function (ccw::CommonConvWrapper)(x::Vector{Float64})
-  # set internal memory to that of external caller value `x`, special care if partial
-  if !ccw.partial
-    ccw.params[ccw.varidx][:, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  else
-    ccw.params[ccw.varidx][ccw.cpt[Threads.threadid()].p, ccw.cpt[Threads.threadid()].particleidx] .= x #ccw.Y
-  end
-  # evaluate the user provided residual function with constructed set of parameters
-  ccw.usrfnc!(ccw.cpt[Threads.threadid()].res,
-              ccw.cpt[Threads.threadid()].factormetadata,
-              ccw.cpt[Threads.threadid()].particleidx,
-              ccw.measurement,
-              ccw.params[ccw.cpt[Threads.threadid()].activehypo]...)
 end
 
 

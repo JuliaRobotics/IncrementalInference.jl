@@ -6,7 +6,7 @@ using RoMEPlotting
 import IncrementalInference: getSample
 
 ## create a new facor type MultiModalConditional
-mutable struct MultiModalConditional <: AbstractRelativeFactor
+mutable struct MultiModalConditional <: AbstractRelativeRoots
   x::Vector{Distribution}
   hypo::Categorical
   MultiModalConditional(x::Vector{<:Distribution}, p::Categorical) = new(x, p)

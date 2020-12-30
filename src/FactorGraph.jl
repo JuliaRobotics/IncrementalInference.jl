@@ -1,4 +1,40 @@
 
+
+
+"""
+$SIGNATURES
+
+Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
+"""
+function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
+                                sessionname="NA",
+                                robotname="",
+                                username="",
+                                cloudgraph=nothing) where T <: AbstractDFG
+#
+return dfg
+end
+
+
+#init an empty fg with a provided type and SolverParams
+function initfg(::Type{T};solverParams=SolverParams(),
+                      sessionname="NA",
+                      robotname="",
+                      username="",
+                      cloudgraph=nothing) where T <: AbstractDFG
+return T(solverParams=solverParams)
+end
+
+function initfg(::Type{T},solverParams::SolverParams;
+                      sessionname="NA",
+                      robotname="",
+                      username="",
+                      cloudgraph=nothing) where T <: AbstractDFG
+return T{SolverParams}(solverParams=solverParams)
+end
+
+
+
 # Should deprecate in favor of TensorCast.jl
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
@@ -570,6 +606,7 @@ Notes
 function calcZDim(usrfnc::T, 
                   Xi::Vector{<:DFGVariable}, 
                   fmd::FactorMetadata=_defaultFactorMetadata(Xi)) where {T <: FunctorInferenceType}
+  #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
     vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -582,26 +619,38 @@ function calcZDim(usrfnc::T,
 end
 
 
-function prepgenericconvolution(
-            Xi::Vector{<:DFGVariable},
-            usrfnc::T;
-            multihypo::Union{Nothing, Distributions.Categorical}=nothing,
-            nullhypo::Real=0.0,
-            threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
+function prepgenericconvolution(Xi::Vector{<:DFGVariable},
+                                usrfnc::T;
+                                multihypo::Union{Nothing, Distributions.Categorical}=nothing,
+                                nullhypo::Real=0.0,
+                                threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
 
-  fmd = _defaultFactorMetadata(Xi, arrRef=ARR)
+  # standard factor metadata
+  fmd = _defaultFactorMetadata(Xi, solvefor=:null, arrRef=ARR)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
-  certainhypo = multihypo != nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
+  
+    # for i in 1:Threads.nthreads()
+    #   # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
+    #   ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
+    #   ccw.cpt[i].factormetadata.variableuserdata = []
+    #   ccw.cpt[i].factormetadata.solvefor = :null
+    #   for xi in Xi
+    #     push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
+    #   end
+    # end
+  
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
           zdim,
           ARR,
+          fmd,
           specialzDim = sum(fldnms .== :zDim) >= 1,
           partial = sum(fldnms .== :partial) >= 1,
           hypotheses=multihypo,
@@ -610,15 +659,6 @@ function prepgenericconvolution(
           threadmodel=threadmodel
         )
   #
-  for i in 1:Threads.nthreads()
-    # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
-    ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
-    ccw.cpt[i].factormetadata.variableuserdata = []
-    ccw.cpt[i].factormetadata.solvefor = :null
-    for xi in Xi
-      push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
-    end
-  end
   return ccw
 end
 
@@ -638,7 +678,7 @@ function getDefaultFactorData(
       eliminated::Bool = false,
       potentialused::Bool = false,
       edgeIDs = Int[],
-      solveInProgress = 0) where T <: FunctorInferenceType
+      solveInProgress = 0 ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -653,35 +693,22 @@ function getDefaultFactorData(
 
 end
 
-"""
-    $SIGNATURES
-
-Returns state of vertex data `.initialized` flag.
-
-Notes:
-- used by Bayes tree clique logic.
-- similar method in DFG
-"""
-function isInitialized(vert::TreeClique)::Bool
-  return getSolverData(vert).initialized
-end
-
 
 """
     $SIGNATURES
 
 Return `::Bool` on whether at least one hypothesis is available for intended computations (assuming direction `sfidx`).
 """
-function isLeastOneHypoAvailable(sfidx::Int,
-                                 certainidx::Vector{Int},
-                                 uncertnidx::Vector{Int},
-                                 isinit::Vector{Bool})::Bool
+function isLeastOneHypoAvailable( sfidx::Int,
+                                  certainidx::Vector{Int},
+                                  uncertnidx::Vector{Int},
+                                  isinit::Vector{Bool})
   #
   # @show isinit
   # @show sfidx in certainidx, sum(isinit[uncertnidx])
   # @show sfidx in uncertnidx, sum(isinit[certainidx])
-  return sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
-         sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
+  return  sfidx in certainidx && 0 < sum(isinit[uncertnidx]) ||
+          sfidx in uncertnidx && sum(isinit[certainidx]) == length(certainidx)
 end
 
 """
@@ -883,10 +910,33 @@ end
     $(TYPEDSIGNATURES)
 
 Method to manually initialize a variable using a set of points.
+
+Notes
+- Disable automated graphinit on `addFactor!(fg, ...; graphinit=false)
+  - any un-initialized variables will automatically be initialized by `solveTree!`
+
+Example:
+
+```julia
+# some variable is added to fg
+addVariable!(fg, :somepoint3, ContinuousEuclid{2})
+
+# data is organized as (row,col) == (dimension, samples)
+pts = randn(2,100)
+initManual!(fg, :somepoint3, pts)
+
+# manifold management should be done automatically.
+# note upgrades are coming to consolidate with Manifolds.jl, see RoME #244
+
+## it is also possible to initManual! by using existing factors, e.g.
+initManual!(fg, :x3, [:x2x3f1])
+```
+
+DevNotes
+- TODO better document graphinit and treeinit.
 """
-function initManual!(dfg::AbstractDFG, 
-                    variable::DFGVariable, 
-                    ptsArr::BallTreeDensity)
+function initManual!( variable::DFGVariable, 
+                      ptsArr::BallTreeDensity)
   #
   setValKDE!(variable, ptsArr, true)
   return nothing
@@ -1063,11 +1113,12 @@ function addFactor!(dfg::AbstractDFG,
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Int,Nothing}=nothing  ) where
+                    maxparallel::Union{Int,Nothing}=nothing,
+                    suppressChecks::Bool=false  ) where
                       {R <: FunctorInferenceType}
   #
   # depcrecation
-  if maxparallel !== nothing
+  if !suppressChecks && maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
@@ -1101,16 +1152,17 @@ function addFactor!(dfg::AbstractDFG,
                     tags::Vector{Symbol}=Symbol[],
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    maxparallel::Union{Nothing,Int}=nothing  )
+                    maxparallel::Union{Nothing,Int}=nothing,
+                    suppressChecks::Bool=false  )
   #
   # depcrecation
-  if maxparallel !== nothing
+  if !suppressChecks && maxparallel !== nothing
     @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
     getSolverParams(dfg).maxincidence = maxparallel
   end
 
   # basic sanity check for unary vs n-ary
-  if length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
+  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
     @warn "Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))"
   end
 
@@ -1145,10 +1197,10 @@ Future
 - TODO: `A` should be sparse data structure (when we exceed 10'000 var dims)
 - TODO: Incidence matrix is rectagular and adjacency is the square.
 """
-function getEliminationOrder(dfg::G;
-                             ordering::Symbol=:qr,
-                             solvable::Int=1,
-                             constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
+function getEliminationOrder( dfg::G;
+                              ordering::Symbol=:qr,
+                              solvable::Int=1,
+                              constraints::Vector{Symbol}=Symbol[]) where G <: AbstractDFG
   #
   @assert 0 == length(constraints) || ordering == :ccolamd "Must use ordering=:ccolamd when trying to use constraints"
   # Get the sparse adjacency matrix, variable, and factor labels
@@ -1185,8 +1237,8 @@ end
 
 
 # lets create all the vertices first and then deal with the elimination variables thereafter
-function addBayesNetVerts!(dfg::AbstractDFG,
-                           elimOrder::Array{Symbol,1} )
+function addBayesNetVerts!( dfg::AbstractDFG,
+                            elimOrder::Array{Symbol,1} )
   #
   for pId in elimOrder
     vert = DFG.getVariable(dfg, pId)
@@ -1199,9 +1251,9 @@ function addBayesNetVerts!(dfg::AbstractDFG,
   end
 end
 
-function addConditional!(dfg::AbstractDFG,
-                         vertId::Symbol,
-                         Si::Vector{Symbol} )
+function addConditional!( dfg::AbstractDFG,
+                          vertId::Symbol,
+                          Si::Vector{Symbol} )
   #
   bnv = DFG.getVariable(dfg, vertId)
   bnvd = getSolverData(bnv)
@@ -1212,9 +1264,9 @@ function addConditional!(dfg::AbstractDFG,
   return nothing
 end
 
-function addChainRuleMarginal!(dfg::AbstractDFG,
-                               Si::Vector{Symbol};
-                               maxparallel::Union{Nothing,Int}=nothing )
+function addChainRuleMarginal!( dfg::AbstractDFG,
+                                Si::Vector{Symbol};
+                                maxparallel::Union{Nothing,Int}=nothing )
   #
   if maxparallel !== nothing
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
@@ -1228,14 +1280,14 @@ function addChainRuleMarginal!(dfg::AbstractDFG,
   # for x in Xi
   #   @info "x.index=",x.index
   # end
-  addFactor!( dfg, Xi, genmarg, graphinit=false )
+  addFactor!( dfg, Xi, genmarg, graphinit=false, suppressChecks=true )
   nothing
 end
 
-function rmVarFromMarg(dfg::AbstractDFG,
-                       fromvert::DFGVariable,
-                       gm::Vector{DFGFactor};
-                       maxparallel::Union{Nothing,Int}=nothing  )
+function rmVarFromMarg( dfg::AbstractDFG,
+                        fromvert::DFGVariable,
+                        gm::Vector{DFGFactor};
+                        maxparallel::Union{Nothing,Int}=nothing  )
   #
   if maxparallel !== nothing
     @warn "keyword maxparallel has been deprecated, use getSolverParams(fg).maxincidence=$maxparallel instead."
@@ -1277,8 +1329,8 @@ function buildBayesNet!(dfg::AbstractDFG,
   # addBayesNetVerts!(dfg, elimorder)
   for v in elimorder
     @debug """ 
-                 Eliminating $(v)
-                 ===============
+                Eliminating $(v)
+                ===============
           """
     # which variable are we eliminating
 

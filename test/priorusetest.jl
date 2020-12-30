@@ -51,7 +51,7 @@ x2_m = getKDEMean(getKDE(getVariable(fg, :x2)))[1]
 #testing if values are close to one another
 testvals = [x0_m, x1_m, x2_m]
 meanval = mean(testvals)
-@test all(isapprox.(testvals, meanval, atol=0.3))
+@test all(isapprox.(testvals, meanval, atol=0.4))
 
 end
 
@@ -109,7 +109,7 @@ l1_m = getKDEMean(getKDE(getVariable(fg, :l1)))[1]
 #testing if values are close to one another
 @show testvals = [x0_m, x1_m, x2_m, l0_m, l1_m]
 @show meanval = mean(testvals)
-@test all(isapprox.(testvals, meanval, atol=0.1))
+@test all(isapprox.(testvals, meanval, atol=0.2))
 
 end
 

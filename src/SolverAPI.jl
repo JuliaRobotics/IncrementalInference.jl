@@ -75,21 +75,21 @@ function taskSolveTree!(dfg::AbstractDFG,
 end
 
 
-function tryCliqStateMachineSolve!(dfg::G,
-                                   treel::AbstractBayesTree,
-                                   cliqKey::Int,
-                                   timeout::Union{Nothing, <:Real}=nothing;
-                                   oldtree::AbstractBayesTree=emptyBayesTree(),
-                                   verbose::Bool=false,
-                                   verbosefid=stdout,
-                                   drawtree::Bool=false,
-                                   limititers::Int=-1,
-                                   downsolve::Bool=false,
-                                   incremental::Bool=false,
-                                   delaycliqs::Vector{Symbol}=Symbol[],
-                                   recordcliqs::Vector{Symbol}=Symbol[],
-                                   solve_progressbar=nothing,
-                                   algorithm::Symbol=:default) where G <: AbstractDFG
+function tryCliqStateMachineSolve!( dfg::G,
+                                    treel::AbstractBayesTree,
+                                    cliqKey::Int,
+                                    timeout::Union{Nothing, <:Real}=nothing;
+                                    oldtree::AbstractBayesTree=BayesTree(),
+                                    verbose::Bool=false,
+                                    verbosefid=stdout,
+                                    drawtree::Bool=false,
+                                    limititers::Int=-1,
+                                    downsolve::Bool=false,
+                                    incremental::Bool=false,
+                                    delaycliqs::Vector{Symbol}=Symbol[],
+                                    recordcliqs::Vector{Symbol}=Symbol[],
+                                    solve_progressbar=nothing,
+                                    algorithm::Symbol=:default) where G <: AbstractDFG
   #
   clst = :na
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
@@ -97,7 +97,7 @@ function tryCliqStateMachineSolve!(dfg::G,
   
   oldcliq = attemptTreeSimilarClique(oldtree, getCliqueData(cliq))
   oldcliqdata = getCliqueData(oldcliq)
-
+  
   opts = getSolverParams(dfg)
   # Base.rm(joinpath(opts.logpath,"logs/cliq$i"), recursive=true, force=true)
   mkpath(joinpath(opts.logpath,"logs/cliq$(cliq.id)/"))
@@ -107,13 +107,13 @@ function tryCliqStateMachineSolve!(dfg::G,
   recordthiscliq = length(intersect(recordcliqs,syms)) > 0
   delaythiscliq = length(intersect(delaycliqs,syms)) > 0
   try
-    history = initStartCliqStateMachine!(dfg, treel, cliq, timeout;
-                                         oldcliqdata=oldcliqdata,
-                                         drawtree=drawtree, verbose=verbose, verbosefid=verbosefid,
-                                         limititers=limititers, downsolve=downsolve,
-                                         recordhistory=recordthiscliq, incremental=incremental,
-                                         delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
-                                         algorithm=algorithm )
+    history = initStartCliqStateMachine!( dfg, treel, cliq, timeout;
+                                          oldcliqdata=oldcliqdata,
+                                          drawtree=drawtree, verbose=verbose, verbosefid=verbosefid,
+                                          limititers=limititers, downsolve=downsolve,
+                                          recordhistory=recordthiscliq, incremental=incremental,
+                                          delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
+                                          algorithm=algorithm )
     #
     # cliqHistories[cliqKey] = history
     if length(history) >= limititers && limititers != -1
@@ -236,21 +236,24 @@ Perform inference over the Bayes tree according to `opt::SolverParams`.
 
 Notes
 - Variety of options, including fixed-lag solving -- see `getSolverParams(fg)` for details.
+  - See online Documentation for more details: https://juliarobotics.org/Caesar.jl/latest/
 - Latest result always stored in `solvekey=:default`.
 - Experimental `storeOld::Bool=true` will duplicate the current result as supersolve `:default_k`.
   - Based on `solvable==1` assumption.
 - `limititercliqs` allows user to limit the number of iterations a specific CSM does.
 - keywords `verbose` and `verbosefid::IOStream` can be used together to to send output to file or default `stdout`.
+- keyword `recordcliqs=[:x0; :x7...]` identifies by frontals which cliques to record CSM steps.
+  - See [`repeatCSMStep!`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref)
 
 Example
 ```julia
-# without [or with] compute recycling
+# pass in old `tree` to enable compute recycling -- see online Documentation for more details
 tree, smt, hist = solveTree!(fg [,tree])
 ```
 
 Related
 
-solveCliq!, resetBuildTree!
+[`solveCliq!`](@ref), [`resetBuildTree!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
 function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=emptyBayesTree();
@@ -271,7 +274,7 @@ function solveTree!(dfgl::AbstractDFG,
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
                     algorithm::Symbol=:default,
-                    multithread::Bool=false)
+                    multithread::Bool=false  )
   #
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
@@ -349,11 +352,11 @@ function solveTree!(dfgl::AbstractDFG,
     if opt.async
       @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     else
-      smtasks, hist = taskSolveTree!(dfgl, tree, timeout; 
-                                     algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree, 
-                                     verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, 
-                                     limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, 
-                                     skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
+      smtasks, hist = taskSolveTree!( dfgl, tree, timeout; 
+                                      algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree, 
+                                      verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, 
+                                      limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, 
+                                      skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
       @info "Finished tree based init-inference"
     end
   end

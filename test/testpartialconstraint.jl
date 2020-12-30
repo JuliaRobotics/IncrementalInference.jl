@@ -71,7 +71,7 @@ end
 
 
 
-mutable struct DevelopPartialPairwise <: AbstractRelativeFactor
+mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   x::Distribution
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
@@ -86,7 +86,8 @@ function (dp::DevelopPartialPairwise)(res::AbstractVector{<:Real},
                                       x2::AbstractArray{<:Real}  )
   #
   res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
-  nothing
+  res[1] ^= 2
+  res[1]
 end
 
 
@@ -131,7 +132,7 @@ end
 thefac = getFactor(fg, :x1x2f1)
 
 X2lpts = getVal(getVariable(fg, :x2))
-keepaside, = findRelatedFromPotential(fg, thefac, :x2, N)
+keepaside, = findRelatedFromPotential(fg, thefac, :x2, N=N)
 @test Ndim(keepaside) == 2
 lpts = KernelDensityEstimate.getPoints(keepaside)
 @test size(lpts,2) == N
@@ -148,7 +149,7 @@ memcheck = getVal(v2)
 
 
 X2lpts = getVal(v2)
-p4, = findRelatedFromPotential(fg, f4, v2.label, N)
+p4, = findRelatedFromPotential(fg, f4, v2.label, N=N)
 @test Ndim(p4) == 2
 lpts = KernelDensityEstimate.getPoints(keepaside)
 @test size(lpts,2) == N

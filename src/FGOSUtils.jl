@@ -37,15 +37,15 @@ end
 
 # export setSolvable!
 
-manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
+manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
 manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
 
 # extend convenience function
 function manikde!(pts::AbstractArray{Float64,2},
-  bws::Vector{Float64},
-  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
-#
-manikde!(pts, bws, getManifolds(variableType))
+                  bws::Vector{Float64},
+                  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+  #
+  manikde!(pts, bws, getManifolds(variableType))
 end
 
 
@@ -55,10 +55,11 @@ end
 Return N=100 measurement samples for a factor in `<:AbstractDFG`.
 """
 function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
-  fnc = getFactorFunction(dfg, fsym)
-  # getSample(fnc, N)
-  Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
-  freshSamples(fnc, N)
+  # fnc = getFactorFunction(dfg, fsym)
+  ## getSample(fnc, N)
+  # Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
+  # freshSamples(fnc, N)
+  freshSamples(dfg, fsym, N)
 end
 
 

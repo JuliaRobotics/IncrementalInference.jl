@@ -1,3 +1,7 @@
+
+export findRelatedFromPotential
+
+
 """
     $(SIGNATURES)
 
@@ -9,7 +13,6 @@ Notes:
 Future work:
 - once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
 - improve handling of n and particleidx, especially considering future multithreading support
-
 """
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -24,44 +27,19 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   nothing
 end
 
-"""
-    $(SIGNATURES)
 
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccwl ) # numericRootGenericRandomizedFnc!
+    numericSolutionCCW!( ccwl )
   end
   nothing
 end
 
 
-"""
-    $(SIGNATURES)
-
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
@@ -81,6 +59,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     Xi::Vector{DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
+                                    needFreshMeasurements::Bool=true,
                                     solveKey::Symbol=:default  ) where {F <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
@@ -89,11 +68,16 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
-  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR, dbg=false)
-  # fmd = FactorMetadata()
+  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR)
+
   #  get variable node data
-  vnds = Xi # (x->getSolverData(x)).(Xi)
-  freshSamples!(ccwl, maxlen, fmd, vnds)
+  vnds = Xi
+
+  # option to disable fresh samples
+  if needFreshMeasurements
+    freshSamples!(ccwl, maxlen, fmd, vnds)
+  end
+
   # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
@@ -107,9 +91,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
-    ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeFactorMinimize
+    ccwl.cpt[i].p = Int[1:ccwl.xDim;] # collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
+    # ccwl.cpt[i].Y = zeros(ccwl.zDim) # zeros(xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
+    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
     # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
   end
@@ -123,9 +107,10 @@ function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
                                     Xi::Vector{DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
+                                    needFreshMeasurements::Bool=true,
                                     solveKey::Symbol=:default  ) where {N_,F<:AbstractRelative,S,T}
   #
-  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N, solveKey=solveKey)
+  prepareCommonConvWrapper!(F, ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
 end
 
 function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
@@ -207,7 +192,7 @@ end
 """
     $(SIGNATURES)
 
-Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
+Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -228,12 +213,6 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
-    # elseif hypoidx == sfidx
-    #   # multihypo, do conv case, hypoidx == sfidx
-    #   ah = sort(union([sfidx;], certainidx))
-    #   @assert norm(ah - vars) < 1e-10
-    #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
-    #   approxConvOnElements!(ccwl, allelements[count])
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
@@ -261,13 +240,18 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
   end
   nothing
 end
-
+  # elseif hypoidx == sfidx
+  #   # multihypo, do conv case, hypoidx == sfidx
+  #   ah = sort(union([sfidx;], certainidx))
+  #   @assert norm(ah - vars) < 1e-10
+  #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
+  #   approxConvOnElements!(ccwl, allelements[count])
 
 
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
@@ -276,6 +260,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
                                 measurement::Tuple=(zeros(0,100),);
+                                needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
@@ -284,7 +269,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
 
   # Prep computation variables
   # FIXME #1025, should FMD be built here?
-  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, solveKey=solveKey)
+  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
@@ -308,11 +293,13 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   return ccwl.params[ccwl.varidx]
 end
 
+# TODO `measurement` might not be properly wired up yet
 function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
                                 measurement::Tuple=(zeros(0,0),);
+                                needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
@@ -326,7 +313,10 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   # FIXME FMD is not always just ()
-  freshSamples!(ccwl, nn, FactorMetadata(), vnds)
+  if needFreshMeasurements
+    fmd = _defaultFactorMetadata(Xi, solvefor=solvefor)
+    freshSamples!(ccwl, nn, fmd, vnds)
+  end
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
@@ -374,6 +364,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
                                 measurement::Tuple=(zeros(0,0),);
+                                needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
@@ -384,6 +375,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                         solvefor,
                         F,
                         measurement;
+                        needFreshMeasurements=needFreshMeasurements,
                         solveKey=solveKey,
                         N=N,
                         dbg=dbg,
@@ -395,6 +387,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
                                 measurement::Tuple=(zeros(0,0),);
+                                needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
@@ -405,6 +398,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                         solvefor,
                         F,
                         measurement;
+                        needFreshMeasurements=needFreshMeasurements,
                         solveKey=solveKey,
                         N=N,
                         dbg=dbg,
@@ -420,6 +414,7 @@ function evalFactor(dfg::AbstractDFG,
                     fct::DFGFactor,
                     solvefor::Symbol,
                     measurement::Tuple=(zeros(0,100),);
+                    needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
                     N::Int=size(measurement[1],2),
                     dbg::Bool=false  )
@@ -448,7 +443,9 @@ function evalFactor(dfg::AbstractDFG,
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
   end
-  return evalPotentialSpecific(Xi, ccw, solvefor, measurement, solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH)
+  return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
+                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH )
+  #
 end
 
 
@@ -457,39 +454,12 @@ function approxConv(dfg::AbstractDFG,
                     fc::DFGFactor,
                     target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
+                    solveKey::Symbol=:default,
                     N::Int=size(measurement[1],2) )
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1) : N
-  return evalFactor(dfg, fc, v1.label, measurement, N=N)
-end
-
-# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
-function approxConvBinary(arr::Array{Float64,2},
-                          meas::FunctorInferenceType,
-                          outdims::Int,
-                          measurement::Tuple=(zeros(0,size(arr,2)),);
-                          varidx::Int=2,
-                          N::Int=size(arr,2),
-                          fmd::FactorMetadata=FactorMetadata(),
-                          vnds=DFGVariable[] )
-  #
-  # N = N == 0 ? size(arr,2) : N
-  pts = zeros(outdims,N);
-  t = Array{Array{Float64,2},1}()
-  push!(t,arr)
-  push!(t,pts)
-
-  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
-
-  zDim = size(measurement[1],1)
-  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
-
-  for n in 1:N
-    ccw.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccw )
-  end
-  return pts
+  return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N)
 end
 
 
@@ -507,13 +477,16 @@ Notes
 - `setPPE` and `setPPEmethod` can be used to store PPE information in temporary `tfg`
 
 DevNotes
+- TODO strong requirement that this function is super efficient on single factor/variable case!
 - FIXME must consolidate with `accumulateFactorMeans`
 - TODO `solveKey` not fully wired up everywhere yet
   - tfg gets all the solveKeys inside the source `dfg` variables
+- TODO add a approxConv on PPE option
+  - Consolidate with [`accumulateFactorMeans`](@ref), `approxConvBinary`
 
 Related
 
-[`accumulateFactorMeans`](@ref), `LightDFG.findShortestPathDijkstra`, `approxConvBinary`, [`evalFactor`](@ref)
+[`approxDeconv`](@ref), `LightDFG.findShortestPathDijkstra`, [`evalFactor`](@ref)
 """
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
@@ -564,7 +537,7 @@ function approxConv(dfg::AbstractDFG,
     # get the factor
     fct0 = getFactor(dfg,from)
     # get the Matrix{<:Real} of projected points
-    pts1 = approxConv(dfg, fct0, path[2], measurement, N=N)
+    pts1 = approxConv(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N)
     length(path) == 2 ? (return pts1) : pts1
   end
   # didn't return early so shift focus to using `tfg` more intensely
@@ -579,7 +552,7 @@ function approxConv(dfg::AbstractDFG,
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
-      pts = approxConv(tfg, fct, path[idx+1], N=N)
+      pts = approxConv(tfg, fct, path[idx+1], solveKey=solveKey, N=N)
       initManual!(tfg, path[idx+1], pts)
       !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
@@ -590,6 +563,35 @@ function approxConv(dfg::AbstractDFG,
 end
 
 
+# TODO, perhaps pass Xi::Vector{DFGVariable} instead?
+function approxConvBinary(arr::Array{Float64,2},
+                          meas::FunctorInferenceType,
+                          outdims::Int,
+                          fmd::FactorMetadata,
+                          measurement::Tuple=(zeros(0,size(arr,2)),);
+                          varidx::Int=2,
+                          N::Int=size(arr,2),
+                          vnds=DFGVariable[] )
+  #
+  # N = N == 0 ? size(arr,2) : N
+  pts = zeros(outdims,N);
+  t = Array{Array{Float64,2},1}()
+  push!(t,arr)
+  push!(t,pts)
+
+  fmd.arrRef = t
+
+  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
+
+  zDim = size(measurement[1],1)
+  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+
+  for n in 1:N
+    ccw.cpt[Threads.threadid()].particleidx = n
+    numericSolutionCCW!( ccw )
+  end
+  return pts
+end
 
 
 
@@ -632,6 +634,54 @@ function accumulateFactorChain( dfg::AbstractDFG,
   end
   return getVal(tfg_meas,nextvar), getVal(tfg_pred,nextvar)
 end
+
+
+
+
+"""
+    $(SIGNATURES)
+
+Compute proposal belief on `vertid` through `fct` representing some constraint in factor graph.
+Always full dimension variable node -- partial constraints will only influence subset of variable dimensions.
+The remaining dimensions will keep pre-existing variable values.
+
+Notes
+- fulldim is true when "rank-deficient" -- TODO swap to false (or even float)
+"""
+function findRelatedFromPotential(dfg::AbstractDFG,
+                                  fct::DFGFactor,
+                                  target::Symbol,
+                                  measurement::Tuple=(zeros(0,0),);
+                                  N::Int=size(measurement[1],2),
+                                  solveKey::Symbol=:default,
+                                  dbg::Bool=false  )
+  #
+
+  # # assuming it is properly initialized TODO
+  pts = evalFactor(dfg, fct, target, solveKey=solveKey, N=N, dbg=dbg);
+  # pts = approxConv(dfg, fct, target, measurement, N=N, solveKey=solveKey)
+  
+  # # determine if evaluation is "dimension-deficient"
+  # solvable dimension
+  inferdim = getFactorSolvableDim(dfg, fct, target)
+  # zdim = getFactorDim(fct)
+  # vdim = getVariableDim(DFG.getVariable(dfg, target))
+
+  # TODO -- better to upsample before the projection
+  Ndim = size(pts,1)
+  Npoints = size(pts,2)
+  # Assume we only have large particle population sizes, thanks to addNode!
+  manis = getManifolds(dfg, target)
+  # manis = getSofttype(DFG.getVariable(dfg, target)).manifolds # older
+  proposal = AMP.manikde!(pts, manis)
+
+  # FIXME consolidate with approxConv method instead
+  if Npoints != N # this is where we control the overall particle set size
+      proposal = resample(proposal,N)
+  end
+  return (proposal, inferdim)
+end
+
 
 
 #

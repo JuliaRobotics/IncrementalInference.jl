@@ -83,7 +83,7 @@ tree = buildTreeFromOrdering!(fg,eo)
 ## test variable order APIs consistent, see issue 499
 
 vo = getEliminationOrder(fg)
-tree1 = resetBuildTreeFromOrder!(fg, vo)
+tree1 = buildTreeReset!(fg, vo)
 # drawTree(tree1, show=true)
 
 tree2 = resetBuildTree!(fg)

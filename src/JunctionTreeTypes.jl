@@ -1,5 +1,6 @@
 
 export MetaBayesTree, BayesTree
+export CSMHistoryTuple
 
 ## ========================================================================================================================
 ## Bayes Trees
@@ -89,10 +90,11 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliqId::CliqueId
   algorithm::Symbol
   init_iter::Int
+  enableLogging::Bool
 end
 
 #TODO use @NamedTuple if julia compat > 1.5
-export CSMHistoryTuple
+
 const CSMHistoryTuple =  NamedTuple{(:timestamp, :id, :f, :csmc), Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 const CSMHistory = Vector{CSMHistoryTuple}
 
@@ -114,7 +116,9 @@ function CliqStateMachineContainer( dfg::G,
                                     oldcliqdata::BTND=BayesTreeNodeData(),
                                     logger::SimpleLogger=SimpleLogger(Base.stdout);
                                     cliqId::CliqueId = cliq.id,
-                                    algorithm::Symbol = :default) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    algorithm::Symbol = :default,
+                                    init_iter::Int=0,
+                                    enableLogging::Bool=true ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
@@ -132,7 +136,8 @@ function CliqStateMachineContainer( dfg::G,
                                             logger,
                                             cliqId,
                                             algorithm,
-                                            0 )
+                                            init_iter,
+                                            enableLogging )
   #
 end
 

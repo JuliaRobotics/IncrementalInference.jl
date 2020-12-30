@@ -49,7 +49,7 @@ function getAllTrees(fg::AbstractDFG)
     # Produce a tree for each ordering, and store in dictionary.
     all_trees = Dict{Int, Tuple{BayesTree, Vector{Symbol}, Float64}}()
     for i in 1:length(orderings)
-        tree = resetBuildTreeFromOrder!(fg, orderings[i])
+        tree = buildTreeReset!(fg, orderings[i])
         nnz = nnzTree(tree)
         all_trees[i] = (tree, orderings[i], nnz)
     end

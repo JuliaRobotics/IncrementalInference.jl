@@ -6,7 +6,7 @@ using Test
 
 ##
 
-mutable struct MutableLinearConditional{N, T <: SamplableBelief} <: AbstractRelativeFactor
+mutable struct MutableLinearConditional{N, T <: SamplableBelief} <: AbstractRelativeRoots
     Z::T
     # timestamp::DateTime
 end

@@ -1,6 +1,7 @@
 
 #
 
+export repeatCSMStep!
 export attachCSM!
 export filterHistAllToArray, cliqHistFilterTransitions, printCliqSummary
 export printHistoryLine, printHistoryLane, printCliqHistorySummary
@@ -128,46 +129,43 @@ end
 
 Print one specific line of a clique state machine history.
 
-DevNotes
-- TODO refactor to use `clampBufferString` -- see e.g. `printHistoryLane`
-
 Related:
 
-printCliqHistorySummary, printCliqHistorySequential
+[`printCliqHistorySequential`](@ref), [`printCliqHistorySummary`](@ref)
 """
 function printHistoryLine(fid,
                           hi::CSMHistoryTuple,
-                          cliqid::AbstractString="")
+                          cliqid::AbstractString="",
+                          seq::Int=0)
   #
+  
+  # global sequence number
+  first = clampBufferString("$seq", 5)
+
   # 5.13
-  first = "$cliqid.$(string(hi[2])) "
-  for i in length(first):6  first = first*" "; end
+  first *= clampBufferString("$cliqid.$(string(hi[2]))", 6)
+  
   # time
-  first = first*(split(string(hi[1]), 'T')[end])*" "
-  # for i in length(first):16  first = first*" "; end
-  for i in length(first):19  first = first*" "; end
+  first *= clampBufferString(string(split(string(hi[1]), 'T')[end]), 14)
+
   # next function
   nextfn = split(split(string(hi[3]),'.')[end], '_')[1]
-  nextfn = 18 < length(nextfn) ? nextfn[1:18] : nextfn
-  first = first*nextfn
-  for i in length(first):38  first = first*" "; end
-  # force proceed
-  # first = first*string(Int(hi[4].forceproceed))
-  for i in length(first):39  first = first*" "; end
-  # this clique status
+  first *= clampBufferString(nextfn*"                             ", 20, 18)
+  
   first *= " | "
-  first = first*string(getCliqueStatus(hi[4].cliq))
-  for i in length(first):53  first = first*" "; end
+  first *= clampBufferString(string(getCliqueStatus(hi[4].cliq))*"             ", 9, 7)
+
   # parent status
   first *= " P "
   downRxMessage = getMessageBuffer(hi[4].cliq).downRx
-  if !isnothing(downRxMessage)
+  toadd = if !isnothing(downRxMessage)
     #TODO maybe don't use tree here
-    first = first*"$(getParent(hi[4].tree, hi[4].cliq)[1].id):$(downRxMessage.status)"
+    "$(getParent(hi[4].tree, hi[4].cliq)[1].id):$(downRxMessage.status)"
   else
-    first = first*"----"
+    "  ----"
   end
-  for i in length(first):70  first = first*" "; end
+  first *= clampBufferString(toadd*"          ", 9, 7)
+
   # children status
   first = first*"C "
 
@@ -175,18 +173,20 @@ function printHistoryLine(fid,
   # all_child_status = map((k,msg) -> (k,msg.status), pairs(upRxMessages))
   if length(upRxMessages) > 0
     for (k,msg) in upRxMessages
-      first = first*string(k)*":"*string(msg.status)*" "
+      toadd = string(k)*":"*string(msg.status)*" "
+      first *= clampBufferString(toadd*"                  ", 8, 7)
     end
   else
-    first = first*"---- "
+    first *= clampBufferString("  ----", 8)
   end
+
   # sibling status # TODO JT removed but kept for future if needed
   # first *= "|S| "
   # if 0 < length(hi[4].parentCliq)
   #   frt = (hi[4].parentCliq[1] |> getFrontals)[1]
   #   childs = getChildren(hi[4].tree, frt)
   #   # remove current clique to leave only siblings
-  #   filter!(x->x.index!=hi[4].cliq.id, childs)
+  #   filter!(x->x.index!=hi[4].cliq.id.value, childs)
   #   for ch in childs
   #     first = first*"$(ch.index)"*string(getCliqueStatus(ch))*" "
   #   end
@@ -266,9 +266,10 @@ Related:
 
 printHistoryLine, printCliqHistory
 """
-function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
+function printCSMHistorySequential( hists::Dict{Int,Vector{CSMHistoryTuple}},
                                     whichsteps::Union{Nothing,Vector{<:Pair{<:CSMRanges,<:CSMRanges}}}=nothing,
                                     fid=stdout )
+  #
   # vectorize all histories in single Array
   allhists = Vector{CSMHistoryTuple}()
   alltimes = Vector{DateTime}()
@@ -297,7 +298,7 @@ function printCSMHistorySequential(hists::Dict{Int,Vector{CSMHistoryTuple}},
       end
     end
     if inSliceList
-      printHistoryLine(fid,hiln,string(allcliqids_[idx]))
+      printHistoryLine(fid,hiln,string(allcliqids_[idx]), idx)
     end
   end
   nothing
@@ -352,7 +353,7 @@ function printHistoryLane(fid,
     end
     hi = hiVec[counter]
     # global counter
-    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id=>hi[2])] : hi[2]
+    useCount = seqLookup !== nothing ? seqLookup[(hi[4].cliq.id.value=>hi[2])] : hi[2]
     line *= clampBufferString("$(useCount)",4)
     # next function
     nextfn = split(string(hi[3]),'.')[end]
@@ -423,7 +424,7 @@ function printCSMHistoryLogical(hists::Dict{Int,Vector{CSMHistoryTuple}},
     seqLookup = Dict{Pair{Int,Int},Int}()
     for idx in 1:length(alltimes)
       hiln = allhists_[idx]
-      seqLookup[(hiln[4].cliq.id => hiln[2])] = idx
+      seqLookup[(hiln[4].cliq.id.value => hiln[2])] = idx
     end
 
   
@@ -471,24 +472,69 @@ end
 """
   $SIGNATURES
 
-Repeat a solver state machine step without changing history or primary values.
+Repeat a solver state machine step -- useful for debugging. 
 
-printCliqSummary, printCliqHistorySummary, cliqHistFilterTransitions
+Notes
+- use in combination with `solveTree!(fg, recordcliqs=[:0; :x7; ...])` -- i.e. by clique frontals as identifier
+  - to record everything, one can do: `recordcliqs=ls(fg)`.
+- `duplicate` avoids changing history or prime data in `hists`.
+- Replaces old API `sandboxCliqResolveStep`
+- Consider using this in combination with tools like [Revise.jl](https://github.com/timholy/Revise.jl)
+  - On by default in VSCode.
+- Internally sets `csmc.enableLogging=false`
+
+Example
+
+```julia
+using IncrementalInference
+
+# generate a factor graph
+fg = generateCanonicalFG_Kaess()
+
+# solve and record everything
+smtasks = Task[]
+tree, _, = solveTree!(fg, smtasks=smtasks, recordcliqs=ls(fg));
+# draw Bayes tree with graphviz and xdot installed
+drawTree(tree, show=true)
+
+# fetch histories
+hists = fetchCliqHistoryAll!(smtasks);
+
+# check a new csmc before step 2
+csmc_ = repeatCSMStep!(hists, 1, 1)
+
+# For use with VSCode debugging
+@enter repeatCSMStep!(hists, 1, 1)
+
+# or perhaps test a longer chain of changes
+hists_ = deepcopy(hists)
+repeatCSMStep!(hists_, 1, 4, duplicate=false)
+repeatCSMStep!(hists_, 1, 5, duplicate=false)
+repeatCSMStep!(hists_, 1, 6, duplicate=false)
+```
+
+Related
+
+[`solveTree!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
-function sandboxCliqResolveStep(tree::AbstractBayesTree,
-                                frontal::Symbol,
-                                step::Int)
+function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
+                        csmid::Int, 
+                        step::Int; 
+                        duplicate::Bool=true,
+                        enableLogging::Bool=false )
   #
-  @error "needs to be update to take hist directly"
-  # hist = getCliqSolveHistory(tree, frontal)
-  # # clear Condition states to allow step solve
-  # getCliqueData(hist[step][4].cliq).solveCondition = Condition()
-  #
-  # # cond = getSolveCondition(hist[step][4].cliq)
-  # # cond = Any[]
-  # return sandboxStateMachineStep(hist, step)
+  
+  # the function at steo 
+  fnc_ = hists[csmid][step].f
+  # the data before step
+  csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
+  csmc_.enableLogging = enableLogging
+  csmc_.logger = enableLogging ? SimpleLogger() : SimpleLogger(Base.devnull)
+  
+  # run the step
+  newfnc_ = fnc_(csmc_)
+  newfnc_, csmc_
 end
-
 
 
 """
@@ -511,13 +557,13 @@ function attachCSM!(csmc::CliqStateMachineContainer,
   csmc.logger = logger # TODO option to reopen and append to previous logger file
 
   @info "attaching csmc and dropping any contents from csmc's previously held (copied) message channels."
-  cid = csmc.cliq.id
-  pids = csmc.parentCliq .|> x->x.id
-  cids = csmc.childCliqs .|> x->x.id
+  cid = csmc.cliq.id.value
+  # pids = csmc.parentCliq .|> x->x.id
+  # cids = csmc.childCliqs .|> x->x.id
 
   csmc.cliq = tree.cliques[cid]
-  csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
-  csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
+  # csmc.parentCliq = pids .|> x->getindex(tree.cliques, x)
+  # csmc.childCliqs = cids .|> x->getindex(tree.cliques, x)
 
   return csmc
 end
@@ -542,6 +588,7 @@ function animateCliqStateMachines(tree::AbstractBayesTree,
                                   hists::Dict{Symbol, Tuple};
                                   frames::Int=100  )
   #
+  error("`animateCliqStateMachines` is outdated")
   startT = Dates.now()
   stopT = Dates.now()
 
@@ -602,6 +649,7 @@ Related:
 printCliqHistorySummary, cliqHistFilterTransitions, sandboxCliqResolveStep
 """
 function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple}, frontals::Vector{Symbol}, nextfnc::Function)
+  error("filterHistAllToArray needs to be updated for new CSM")
   ret = Vector{CSMHistoryTuple}()
   for sym in frontals
     hist = hists[sym] # getCliqSolveHistory(tree, sym)
@@ -609,7 +657,7 @@ function filterHistAllToArray(tree::AbstractBayesTree, hists::Dict{Symbol, Tuple
     for fi in fih
       push!(ret, fi)
     end
-   end
+  end
   return ret
 end
 
@@ -652,7 +700,7 @@ run(`ffmpeg -r 10 -i /tmp/caesar/csmCompound/csm_%d.png -c:v libx264 -vf fps=25 
 run(`vlc /tmp/caesar/csmCompound/out.mp4`)
 ```
 """
-function csmAnimate(tree::AbstractBayesTree,
+function animateCSM(tree::AbstractBayesTree,
                     autohist::Dict{Int, T};
                     frames::Int=100,
                     interval::Int=2,
@@ -667,7 +715,10 @@ function csmAnimate(tree::AbstractBayesTree,
   hists = Dict{Symbol, Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}}()
   for (id, hist) in autohist
     frtl = getFrontals(tree.cliques[id])
-    hists[frtl[1]] = Tuple.(hist)
+    hists[frtl[1]] = Vector{Tuple{DateTime,Int64,Function,CliqStateMachineContainer}}()
+    for hi in hist
+      push!(hists[frtl[1]], (hi.timestamp,hi.id,hi.f,hi.csmc) ) # Tuple.(hist)
+    end
     easyNames[frtl[1]] = id
   end
 
@@ -708,13 +759,13 @@ function csmAnimate(tree::AbstractBayesTree,
   end
 
   # animateStateMachineHistoryByTimeCompound(hists, startT, stopT, folder="caesar/csmCompound", frames=frames)
-  animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
-                                              folderpath=folderpath, 
-                                              interval=interval, dpi=dpi, 
-                                              draw_more_cb=csmTreeAni, 
-                                              fsmColors=fsmColors, 
-                                              defaultColor=defaultColor, 
-                                              autocolor_cb=autocolor_cb )
+  FSM.animateStateMachineHistoryIntervalCompound( hists, easyNames=easyNames, 
+                                                  folderpath=folderpath, 
+                                                  interval=interval, dpi=dpi, 
+                                                  draw_more_cb=csmTreeAni, 
+                                                  fsmColors=fsmColors, 
+                                                  defaultColor=defaultColor, 
+                                                  autocolor_cb=autocolor_cb )
 end
 
 """
