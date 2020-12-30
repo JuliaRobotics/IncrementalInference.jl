@@ -24,7 +24,7 @@ getSolverParams(fg).useMsgLikelihoods = true
 
 ##
 
-# tree = resetBuildTree!(fg)
+# tree = buildTreeReset!(fg)
 # drawTree(tree, show=true)
 
 

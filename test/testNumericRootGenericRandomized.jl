@@ -34,7 +34,12 @@ end
 
 ##
 
-function assembleConvType(dfgvrs::Vector{<:DFGVariable}, functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: AbstractRelativeRoots}
+function assembleConvType(dfgvrs::Vector{<:DFGVariable}, 
+                          functor::T, 
+                          xDim::Int, 
+                          zDim::Int, 
+                          nvars::Int) where {T <: AbstractRelativeRoots}
+  #
   # @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
@@ -43,7 +48,7 @@ function assembleConvType(dfgvrs::Vector{<:DFGVariable}, functor::T, xDim::Int, 
     push!(vars, zeros(xDim, N))
   end
 
-  fmd = IIF._defaultFactorMetadata(dfgvrs, arrRef=vars)
+  fmd = FactorMetadata(dfgvrs, getLabel.(dfgvrs), vars, :null, nothing)
 
   CommonConvWrapper(functor,vars[1],zDim,vars, fmd, measurement=(zeros(zDim,N),))
 end

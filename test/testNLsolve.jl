@@ -74,7 +74,7 @@ addFactor!(fg, [:x0;:x1], odo, graphinit=false)
 ##
 
 meas = (reshape(rand(odo.Dx,N),1,N),)
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=VARS)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], VARS, :null, nothing)
 ccw = CommonConvWrapper(odo, VARS[1], 1, VARS, fmd, measurement=meas, varidx=2)
 
 ##

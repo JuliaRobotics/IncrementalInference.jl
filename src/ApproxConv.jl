@@ -68,7 +68,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
-  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, solvefor, nothing)
 
   #  get variable node data
   vnds = Xi
@@ -312,9 +312,8 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
-  # FIXME FMD is not always just ()
   if needFreshMeasurements
-    fmd = _defaultFactorMetadata(Xi, solvefor=solvefor)
+    fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
     freshSamples!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized

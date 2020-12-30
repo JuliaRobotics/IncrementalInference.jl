@@ -40,8 +40,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   N = size(vars[1])[2]
   
   # generate default fmd
-  ud = _defaultFactorMetadata(getVariable.(dfg,varsyms) )
-    # ud = FactorMetadata()
+  fmd = FactorMetadata(getVariable.(dfg,varsyms), varsyms, Vector{Matrix{Float64}}(), :null, nothing )
   meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
@@ -53,7 +52,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
     return meas
   end
 
-  ggo = (i, dm) -> fcttype(res,ud,i,makemeas!(i, meas, dm),vars...)
+  ggo = (i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
   # ggo(1, [0.0;0.0])
 
   for idx in 1:N
@@ -71,7 +70,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
           break
         end
       elseif isa(fcttype, AbstractRelativeRoots)
-        ggnl = (rs, dm) -> fcttype(rs,ud,idx,makemeas!(idx, meas, dm),vars...)
+        ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
         r = nlsolve(ggnl, meas[1][:,idx])
         break
       elseif isa(fcttype, AbstractPrior)

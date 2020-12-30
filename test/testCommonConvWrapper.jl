@@ -106,7 +106,7 @@ X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 
 addFactor!(fg, [:x0;:x1], tst2, graphinit=false)
 
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1],t, :null, nothing)
 
 ##
 
@@ -178,7 +178,7 @@ fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
 ccw = CommonConvWrapper(odo, t[1], 1, t, fmd, measurement=getSample(odo, N))
 
@@ -242,7 +242,7 @@ fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
 ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, fmd, measurement=measurement)
 @show ccw.varidx = solvefor
@@ -316,7 +316,7 @@ f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
 
-tree = resetBuildTree!(fg)
+tree = buildTreeReset!(fg)
 
 pts = getVal(getVariable(fg,:x1))
 @test abs(Statistics.mean(pts)-0.0) < 10.0

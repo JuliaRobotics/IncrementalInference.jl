@@ -253,10 +253,10 @@ tree, smt, hist = solveTree!(fg [,tree])
 
 Related
 
-[`solveCliq!`](@ref), [`resetBuildTree!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
+[`solveCliq!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
 function solveTree!(dfgl::AbstractDFG,
-                    oldtree::AbstractBayesTree=emptyBayesTree();
+                    oldtree::AbstractBayesTree=BayesTree();
                     timeout::Union{Nothing, <:Real}=nothing,
                     storeOld::Bool=false,
                     verbose::Bool=false,
@@ -417,13 +417,13 @@ Perform inference over one clique in the Bayes tree according to `opt::SolverPar
 
 Example
 ```julia
-tree = resetBuildTree!(fg)
+tree = buildTreeReset!(fg)
 smt, hist = solveCliq!(fg, tree, :x1 [,cliqHistories=hist] )
 ```
 
 Related
 
-solveTree!, resetBuildTree!
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref)
 """
 function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,

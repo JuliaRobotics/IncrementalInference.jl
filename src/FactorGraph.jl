@@ -605,7 +605,7 @@ Notes
 """
 function calcZDim(usrfnc::T, 
                   Xi::Vector{<:DFGVariable}, 
-                  fmd::FactorMetadata=_defaultFactorMetadata(Xi)) where {T <: FunctorInferenceType}
+                  fmd::FactorMetadata=FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing) ) where {T <: FunctorInferenceType}
   #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
@@ -630,7 +630,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
-  fmd = _defaultFactorMetadata(Xi, solvefor=:null, arrRef=ARR)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, :null, nothing)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
@@ -946,7 +946,7 @@ function initManual!( dfg::AbstractDFG,
                       belief::BallTreeDensity)
   #
   variable = getVariable(dfg, label)
-  initManual!(dfg, variable, belief)
+  initManual!(variable, belief)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
@@ -965,7 +965,7 @@ end
 function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  initManual!(dfg,sym,pp)
+  initManual!(var,pp)
 end
 
 const initVariableManual! = initManual!
@@ -1147,8 +1147,8 @@ function addFactor!(dfg::AbstractDFG,
   # depcrecation
 
   # basic sanity check for unary vs n-ary
-  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
-    @warn "Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))"
+  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior) && !(usrfnc isa Mixture)
+    @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
   end
 
   variables = getVariable.(dfg, xisyms)
@@ -1282,7 +1282,7 @@ function rmVarFromMarg( dfg::AbstractDFG,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, suppressChecks=true )
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end

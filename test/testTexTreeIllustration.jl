@@ -40,7 +40,7 @@ addFactor!(fg, [:x4;:l2], LinearRelative(Normal()))
 # Let's take a peek to see how our factor graph looks like.
 # drawGraph(fg, show=true)
 # As well as our tree (AMD ordering)
-tree = resetBuildTree!(fg)
+tree = buildTreeReset!(fg)
 # drawTree(tree, show=true, imgs=false)
 
 # Now, let's generate the corresponding `.dot` and `.tex`.

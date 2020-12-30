@@ -30,7 +30,7 @@ addFactor!(dfg, [VAR1], Prior(Normal()))
 # drawGraph(dfg, show=true)
 
 
-# tree = resetBuildTree!(dfg)
+# tree = buildTreeReset!(dfg)
 # # drawTree(tree, show=true)
 #
 # getCliqFactors(tree, VAR3)

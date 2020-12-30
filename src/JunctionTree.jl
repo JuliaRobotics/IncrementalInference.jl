@@ -625,22 +625,29 @@ end
 Build Bayes/Junction/Elimination tree from a given variable ordering.
 
 DevNotes
-- FIXME deprecate and use only [`buildTreeReset!`](@ref) instead
+- TODO use `solvable` filter during local graph copy step
+- TODO review `buildCliquePotentials` and rather incorporate into CSM, see #1083
+
+Related
+
+[`buildTreeReset!`](@ref)
 """
-function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
+function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                solvable::Int=1 )
+                                solvable::Int=1  )
   #
-
+  @debug "Building Bayes tree with local DFG copy"
   t0 =time_ns()
-  println()
-  fge = deepcopy(dfg)
-  # depcrecation
-  @info "Building Bayes net..."
+  fge = InMemDFGType(solverParams=getSolverParams(dfg))
+
+  #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
+  # copy required for both remote and local graphs
+  DFG.deepcopyGraph!(fge, dfg)
+
+  println("Building Bayes net...")
   buildBayesNet!(fge, p, solvable=solvable)
 
-  @info "Staring the Bayes tree construction from Bayes net"
   tree = BayesTree()
   tree.eliminationOrder = p
   buildTree!(tree, fge, p)
@@ -653,45 +660,18 @@ function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
     close(fid)
   end
 
-  @debug "Find potential functions for each clique"
+  println("Find potential functions for each clique")
   for cliqIds in getCliqueIds(tree)
+    # start at the root, of which there could be multiple disconnected trees
     if isRoot(tree, cliqIds)
-      cliq = getClique(tree, cliqIds) # start at the root
-      buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+      cliq = getClique(tree, cliqIds) 
+      # fg does not have the marginals as fge does
+      buildCliquePotentials(dfg, tree, cliq, solvable=solvable)
     end
   end
-  tree.buildTime = (time_ns()-t0)/1e9
-  return tree
-end
 
-function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
-                                p::Vector{Symbol};
-                                drawbayesnet::Bool=false )
-  #
-  @debug "Copying to a local DFG"
-  fge = InMemDFGType(solverParams=getSolverParams(dfg))
-    #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
-  DFG.deepcopyGraph!(fge, dfg)
-  # depcrecation
-
-  println("Building Bayes net from cloud...")
-  buildBayesNet!(fge, p)
-
-  tree = BayesTree()
-  tree.variableOrder = p
-  buildTree!(tree, fge, p)
-
-  if drawbayesnet
-    println("Bayes Net")
-    sleep(0.1)
-    fid = open("bn.dot","w+")
-    write(fid,_to_dot(fge.bn))
-    close(fid)
-  end
-
-  println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root
-  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+  # also store the build time
+  tree.buildTime = (time_ns()-t0)*1e-9
 
   return tree
 end
@@ -704,6 +684,9 @@ Build Bayes/Junction/Elimination tree.
 
 Notes
 - Default to free qr factorization for variable elimination order.
+
+DevNotes
+- TODO deprecate and update to better name than `drawpdf`
 """
 function prepBatchTreeOLD!( dfg::AbstractDFG;
                             eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
@@ -713,7 +696,7 @@ function prepBatchTreeOLD!( dfg::AbstractDFG;
                             ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                             drawpdf::Bool=false,
                             show::Bool=false,
-                            filepath::String="/tmp/caesar/bt.dot",
+                            filepath::String="/tmp/caesar/random/bt.dot",
                             viewerapp::String="xdot",
                             imgs::Bool=false )
                             # drawbayesnet::Bool=false )
@@ -1158,9 +1141,9 @@ Get variable ids`::Int` with prior factors associated with this `cliq`.
 Notes:
 - does not include any singleton messages from upward or downward message passing.
 """
-function getCliqVarIdsPriors(cliq::TreeClique,
-                             allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                             partials::Bool=true  )::Vector{Symbol}
+function getCliqVarIdsPriors( cliq::TreeClique,
+                              allids::Vector{Symbol}=getCliqAllVarIds(cliq),
+                              partials::Bool=true  )
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
   prfcts = sum(amat, dims=2) .== 1
@@ -1170,7 +1153,7 @@ function getCliqVarIdsPriors(cliq::TreeClique,
 
   # return variable ids in `mask`
   mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
-  return allids[mask]
+  return allids[mask]::Vector{Symbol}
 end
 
 
@@ -1181,7 +1164,7 @@ Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and
 """
 function getCliqVarSingletons(cliq::TreeClique,
                               allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                              partials::Bool=true  )::Vector{Symbol}
+                              partials::Bool=true  )
   # get incoming upward messages (known singletons)
   mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
   upmsgids = allids[mask]
@@ -1190,7 +1173,7 @@ function getCliqVarSingletons(cliq::TreeClique,
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
 
   # return union of both lists
-  return union(upmsgids, prids)
+  return union(upmsgids, prids)::Vector{Symbol}
 end
 
 

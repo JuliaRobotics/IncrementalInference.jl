@@ -155,7 +155,7 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   # calculate the projection
   varmask = (1:2)[varSyms .== trgsym][1]
 
-  fmd = _defaultFactorMetadata(Xi)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
   pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
 
   # return the result
