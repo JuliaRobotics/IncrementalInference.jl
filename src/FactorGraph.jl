@@ -946,7 +946,7 @@ function initManual!( dfg::AbstractDFG,
                       belief::BallTreeDensity)
   #
   variable = getVariable(dfg, label)
-  initManual!(dfg, variable, belief)
+  initManual!(variable, belief)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
@@ -965,7 +965,7 @@ end
 function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  initManual!(dfg,sym,pp)
+  initManual!(var,pp)
 end
 
 const initVariableManual! = initManual!
