@@ -256,7 +256,7 @@ Related
 [`solveCliq!`](@ref), [`resetBuildTree!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
 function solveTree!(dfgl::AbstractDFG,
-                    oldtree::AbstractBayesTree=emptyBayesTree();
+                    oldtree::AbstractBayesTree=BayesTree();
                     timeout::Union{Nothing, <:Real}=nothing,
                     storeOld::Bool=false,
                     verbose::Bool=false,

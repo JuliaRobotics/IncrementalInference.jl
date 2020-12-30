@@ -106,7 +106,7 @@ X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 
 addFactor!(fg, [:x0;:x1], tst2, graphinit=false)
 
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1],t, :null, nothing)
 
 ##
 
@@ -178,7 +178,7 @@ fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
 ccw = CommonConvWrapper(odo, t[1], 1, t, fmd, measurement=getSample(odo, N))
 
@@ -242,7 +242,7 @@ fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
-fmd = IIF._defaultFactorMetadata([X0;X1], arrRef=t)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
 ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, fmd, measurement=measurement)
 @show ccw.varidx = solvefor

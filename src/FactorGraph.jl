@@ -605,7 +605,7 @@ Notes
 """
 function calcZDim(usrfnc::T, 
                   Xi::Vector{<:DFGVariable}, 
-                  fmd::FactorMetadata=_defaultFactorMetadata(Xi)) where {T <: FunctorInferenceType}
+                  fmd::FactorMetadata=FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing) ) where {T <: FunctorInferenceType}
   #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
@@ -630,7 +630,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
-  fmd = _defaultFactorMetadata(Xi, solvefor=:null, arrRef=ARR)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, :null, nothing)
   zdim = calcZDim(usrfnc, Xi, fmd)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))

@@ -45,7 +45,7 @@ global fge = deepcopy(fg)
 println("Building Bayes net...")
 buildBayesNet!(fge, p)
 
-global tree = emptyBayesTree()
+global tree = BayesTree()
 buildTree!(tree, fge, p)
 
 
