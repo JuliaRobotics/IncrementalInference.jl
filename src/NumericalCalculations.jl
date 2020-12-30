@@ -2,14 +2,6 @@
 
 export numericSolutionCCW!
 
-# Also see #467 on API consolidation
-# function (cf::CalcResidual{<:LinearRelative})(res::Vector, z, xi, xj)
-#   # cf.metadata.variablelist...
-#   # cf.metadata.targetvariable
-#   # cf.metadata.usercache
-#   # generic on-manifold residual function 
-#   res .= distance(z, distance(xj, xi))
-# end
 
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
@@ -33,10 +25,15 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                         view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
                         fmd.solvefor,
                         fmd.cachedata  )
+  #
+  # new dev work on CalcFactor
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement)
 
   # build static lambda
     # ccwl.cpt[thrid].factormetadata
-  unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  unrollHypo = () -> cf(ccwl.cpt[thrid].res, ccwl.measurement..., ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+
   # broadcast updates original view memory location
   _hypoObj = (x) -> (target.=x; unrollHypo())
   
