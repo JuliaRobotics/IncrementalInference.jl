@@ -265,6 +265,7 @@ addVariable!(fg, :x0, ContinuousEuclid{1})
 addVariable!(fg, :x1a, ContinuousEuclid{1})
 addVariable!(fg, :x1b, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.4999999999999])
+addFactor!(fg, [:x0;:x1a;:x1b], LinearRelative(Normal()), multihypo=[1; 0.5;0.5000000000001])
 
 
 end
