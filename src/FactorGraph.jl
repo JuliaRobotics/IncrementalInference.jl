@@ -1147,8 +1147,8 @@ function addFactor!(dfg::AbstractDFG,
   # depcrecation
 
   # basic sanity check for unary vs n-ary
-  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior)
-    @warn "Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))"
+  if !suppressChecks && length(xisyms) == 1 && !(usrfnc isa AbstractPrior) && !(usrfnc isa Mixture)
+    @warn("Listing only one variable $xisyms for non-unary factor type $(typeof(usrfnc))")
   end
 
   variables = getVariable.(dfg, xisyms)
@@ -1282,7 +1282,7 @@ function rmVarFromMarg( dfg::AbstractDFG,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false )
+          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, suppressChecks=true )
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end

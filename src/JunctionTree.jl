@@ -636,7 +636,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 drawbayesnet::Bool=false,
                                 solvable::Int=1  )
   #
-  @debug "Copying to a local DFG"
+  @debug "Building Bayes tree with local DFG copy"
   t0 =time_ns()
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
 
@@ -644,7 +644,7 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   # copy required for both remote and local graphs
   DFG.deepcopyGraph!(fge, dfg)
 
-  println("Building Bayes net from cloud...")
+  println("Building Bayes net...")
   buildBayesNet!(fge, p, solvable=solvable)
 
   tree = BayesTree()
@@ -660,14 +660,14 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   end
 
   println("Find potential functions for each clique")
-  for cliqIds in getCliqueIds(tree)
-    if isRoot(tree, cliqIds)
-      cliq = getClique(tree, cliqIds) # start at the root
-      buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-    end
-  end
-  # cliq = getClique(tree, 1) # start at the root
-  # buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+  cliq = getClique(tree, 1) # start at the root
+  buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+  # for cliqIds in getCliqueIds(tree)
+  #   if isRoot(tree, cliqIds)
+  #     cliq = getClique(tree, cliqIds) # start at the root
+  #     buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
+  #   end
+  # end
 
   # also store the build time
   tree.buildTime = (time_ns()-t0)/1e9
