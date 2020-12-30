@@ -17,7 +17,7 @@ Start tasks (@async or Threads.@spawn threads if multithread=true) to solve the 
 function taskSolveTree!(dfg::AbstractDFG,
                           treel::AbstractBayesTree,
                           timeout::Union{Nothing, <:Real}=nothing;
-                          oldtree::AbstractBayesTree=emptyBayesTree(),
+                          oldtree::AbstractBayesTree=BayesTree(),
                           drawtree::Bool=false,
                           verbose::Bool=false,
                           verbosefid=stdout,
@@ -35,7 +35,7 @@ function taskSolveTree!(dfg::AbstractDFG,
   # revert DOWNSOLVED status to INITIALIZED in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
 
-  drawtree ? drawTree(treel, show=true, filepath=joinpath(getSolverParams(dfg).logpath,"bt.pdf")) : nothing
+  drawtree ? drawTree(treel, show=false, filepath=joinLogPath(dfg,"bt.dot")) : nothing
 
   cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}()
   
@@ -266,7 +266,6 @@ function solveTree!(dfgl::AbstractDFG,
                     limititercliqs::Vector{Pair{Symbol, Int}}=Pair{Symbol, Int}[],
                     injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
-                    maxparallel::Union{Nothing, Int}=nothing,
                     variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     variableConstraints::Vector{Symbol}=Symbol[],
                     smtasks::Vector{Task}=Task[],
@@ -279,12 +278,11 @@ function solveTree!(dfgl::AbstractDFG,
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
 
-  # depcrecation
-  if maxparallel !== nothing
-    @warn "`maxparallel` keyword is deprecated, use `getSolverParams(fg).maxincidence` instead."
-    opt.maxincidence = maxparallel
-  end
+  # showtree should force drawtree
+  opt.showtree && !opt.drawtree ? @info("Since .showtree=true, also bumping .drawtree=true") : nothing
+  opt.drawtree |= opt.showtree
 
+  # depcrecation
   # update worker pool incase there are more or less
   setWorkerPool!()
   if opt.multiproc && nprocs() == 1
@@ -326,7 +324,7 @@ function solveTree!(dfgl::AbstractDFG,
   orderMethod = 0 < length(variableConstraints) ? :ccolamd : :qr
 
   # current incremental solver builds a new tree and matches against old tree for recycling.
-  tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=opt.drawtree, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
+  tree = resetBuildTree!(dfgl, variableOrder=variableOrder, drawpdf=false, show=opt.showtree,ensureSolvable=false,filepath=joinpath(opt.logpath,"bt.pdf"), variableConstraints=variableConstraints, ordering=orderMethod)
   # setAllSolveFlags!(tree, false)
   
   initTreeMessageChannels!(tree)
@@ -341,11 +339,21 @@ function solveTree!(dfgl::AbstractDFG,
     @error "Under development, do not use, see #539"
     storeOld && @error("parametric storeOld keyword not wired up yet.") 
     # alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
-    smtasks, hist = taskSolveTree!(dfgl, tree, timeout; algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+    smtasks, hist = taskSolveTree!( dfgl, tree, timeout; algorithm=algorithm, 
+                                    multithread=multithread, smtasks=smtasks, oldtree=oldtree,          
+                                    verbose=verbose, verbosefid=verbosefid, 
+                                    drawtree=opt.drawtree, recordcliqs=recordcliqs, 
+                                    limititers=opt.limititers, downsolve=opt.downsolve, 
+                                    incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     @info "Finished tree based Parametric inference"
   else # fall back is :default with take CSM
     if opt.async
-      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree,          verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
+      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, 
+                                            multithread=multithread, smtasks=smtasks, oldtree=oldtree,
+                                            verbose=verbose, verbosefid=verbosefid, 
+                                            drawtree=opt.drawtree, recordcliqs=recordcliqs, 
+                                            limititers=opt.limititers, downsolve=opt.downsolve, 
+                                            incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
     else
       smtasks, hist = taskSolveTree!( dfgl, tree, timeout; 
                                       algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree, 
