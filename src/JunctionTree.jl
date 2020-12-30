@@ -442,12 +442,10 @@ end
 """
     $SIGNATURES
 
-Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
+Draw the Bayes (Junction) tree by means of graphviz `.dot` files.  Ensure Linux packages 
+are installed `sudo apt-get install graphviz xdot`.
 
 Notes
-- To view, make sure you install `sudo apt-get install xdot`
-- Uses system install of graphviz.org.
-- Can also use Linux tool `xdot`.
 - `xlabels` is optional `cliqid=>xlabel`.
 """
 function drawTree(treel::AbstractBayesTree;
@@ -486,9 +484,9 @@ function drawTree(treel::AbstractBayesTree;
     write(fid,_to_dot(btc.bt))
     close(fid)
     if string(fext) == "png"
-      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(filepath)`)
+      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(fpwoext).pdf`)
     else
-      run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+      run(`dot $(fpwoext).dot -T $(fext) -o $(fpwoext).pdf`)
     end
   catch ex
     @warn ex
@@ -520,13 +518,14 @@ drawTree, drawGraph
 """
 function drawTreeAsyncLoop( tree::AbstractBayesTree,
                             opt::SolverParams;
-                            filepath=joinLogPath(opt,"bt.pdf"),
+                            filepath=joinLogPath(opt,"bt.dot"),
                             dotreedraw = Int[1;]  )
   #
   # single drawtreerate
   treetask = if opt.drawtree
     @async begin
       xlabels = Dict{Int,String}()
+      @info("Solve is drawing the Bayes tree")
       while dotreedraw[1] == 1 && 0 < opt.drawtreerate
         # actually draw the tree
         drawTree(tree,show=false,filepath=filepath)
