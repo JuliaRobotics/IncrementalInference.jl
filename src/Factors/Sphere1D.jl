@@ -71,10 +71,10 @@ mutable struct PackedPriorSphere1  <: IncrementalInference.PackedInferenceType
   PackedPriorSphere1(x::String) = new(x)
 end
 function convert(::Type{PackedPriorSphere1}, d::PriorSphere1)
-  return PackedPriorSphere1(string(d.Z))
+  return PackedPriorSphere1(convert(PackedSamplableBelief, d.Z))
 end
 function convert(::Type{PriorSphere1}, d::PackedPriorSphere1)
-  distr = extractdistribution(d.datastr)
+  distr = convert(SamplableBelief, d.datastr)
   return PriorSphere1{typeof(distr)}(distr)
 end
 
@@ -97,10 +97,10 @@ mutable struct PackedSphere1Sphere1  <: IncrementalInference.PackedInferenceType
   PackedSphere1Sphere1(x::String) = new(x)
 end
 function convert(::Type{Sphere1Sphere1}, d::PackedSphere1Sphere1)
-  return Sphere1Sphere1(extractdistribution(d.datastr))
+  return Sphere1Sphere1(convert(SamplableBelief, d.datastr))
 end
 function convert(::Type{PackedSphere1Sphere1}, d::Sphere1Sphere1)
-  return PackedSphere1Sphere1(string(d.Z))
+  return PackedSphere1Sphere1(convert(PackedSamplableBelief, d.Z))
 end
 
 
