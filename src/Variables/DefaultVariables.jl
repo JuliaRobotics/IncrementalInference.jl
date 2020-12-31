@@ -6,6 +6,9 @@ export ContinuousEuclid
 $(TYPEDEF)
 
 Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
+
+DevNotes
+- TODO Consolidate with ContinuousEuclid{1}
 """
 @defVariable ContinuousScalar 1 (:Euclid,)
 

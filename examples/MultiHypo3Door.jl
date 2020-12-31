@@ -71,7 +71,7 @@ ensureAllInitialized!(fg)
 
 drawGraph(fg, show=true)
 
-tree = resetBuildTree!(fg, drawpdf=true, show=true)
+tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
 
 ## Solve graph
@@ -240,7 +240,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(x2-x1, odom_noise)),graphinit=f
 
 drawGraph(fg, show=true)
 
-tree = resetBuildTree!(fg, drawpdf=true, show=true)
+tree = buildTreeReset!(fg, drawpdf=true, show=true)
 
 spyCliqMat(tree, :l0)
 spyCliqMat(tree, :x2)
@@ -301,7 +301,7 @@ stuff = treeProductUp(fg, tree, :x2, :x2)
 ensureAllInitialized!(fg)
 
 
-tree = resetBuildTree!(fg, drawpdf=true, show=true)
+tree = buildTreeReset!(fg, drawpdf=true, show=true)
 cliqorder = getEliminationOrder(tree)
 
 

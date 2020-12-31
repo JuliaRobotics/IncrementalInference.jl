@@ -5,6 +5,8 @@ export hasClique
 export setCliqueDrawColor!, getCliqueDrawColor
 export appendSeparatorToClique!
 
+export buildTreeFromOrdering! # TODO make internal and deprecate external use to only `buildTreeReset!``
+
 """
     $SIGNATURES
 
@@ -193,7 +195,10 @@ end
 
 Add the separator for the newly created clique.
 """
-function appendSeparatorToClique!(bt::AbstractBayesTree, clqID::CliqueId, seprIDs::Array{Symbol,1})
+function appendSeparatorToClique!(bt::AbstractBayesTree, 
+                                  clqID::CliqueId, 
+                                  seprIDs::Array{Symbol,1} )
+  #
   union!(getCliqueData(bt, clqID).separatorIDs, seprIDs)
   nothing
 end
@@ -206,11 +211,11 @@ Add a new frontal variable to clique.
 DevNotes
 - TODO, define what "conditionals" are CLEARLY!!
 """
-function appendClique!(bt::AbstractBayesTree,
-                       clqID::CliqueId,
-                       dfg::AbstractDFG,
-                       varID::Symbol,
-                       seprIDs::Array{Symbol,1}=Symbol[] )::Nothing
+function appendClique!( bt::AbstractBayesTree,
+                        clqID::CliqueId,
+                        dfg::AbstractDFG,
+                        varID::Symbol,
+                        seprIDs::Array{Symbol,1}=Symbol[] )
   #
   clq = getClique(bt, clqID)
   var = DFG.getVariable(dfg, varID)
@@ -223,7 +228,7 @@ function appendClique!(bt::AbstractBayesTree,
 
   # TODO - confirm this, append to cliq separator ??
   # @info "going for: appendSeparatorToClique on (clqID, seprIDs)=($clqID, $seprIDs)"
-  appendSeparatorToClique(bt, clqID, seprIDs)
+  appendSeparatorToClique!(bt, clqID, seprIDs)
   makeCliqueLabel(dfg, bt, clqID)
   return nothing
 end
@@ -233,24 +238,22 @@ end
 
 Instantiate a new child clique in the tree.
 """
-function newChildClique!(bt::AbstractBayesTree, dfg::AbstractDFG, CpID::CliqueId, varID::Symbol, Sepj::Array{Symbol,1})
-  #TODO this is too manual, replace with just addClique that takes as argument the parent
-        # addClique!(bt, dfg, CpID, varID, Sepj)
+function newChildClique!( bt::AbstractBayesTree, 
+                          dfg::AbstractDFG, 
+                          CpID::CliqueId, 
+                          varID::Symbol, 
+                          Sepj::Array{Symbol,1})
+  #
   # physically create the new clique
   chclq = addClique!(bt, dfg, varID, Sepj)
   parent = getClique(bt, CpID)
 
-  # if isa(bt.bt,GenericIncidenceList)
-  #   # Staying with Graphs.jl for tree in first stage
-  #   edge = Graphs.make_edge(bt.bt, parent, chclq)
-  #   Graphs.add_edge!(bt.bt, edge)
   if isa(bt.bt, MetaDiGraph)
     # TODO EDGE properties here
     @assert MetaGraphs.add_edge!(bt.bt, bt.bt[:cliqId][CpID], bt.bt[:cliqId][chclq.id]) "Add edge failed"
   else
     error("Oops, something went wrong when adding a new child clique to the tree")
   end
-
 
   return chclq
 end
@@ -440,11 +443,10 @@ end
 """
     $SIGNATURES
 
-Draw the Bayes (Junction) tree by means of `.dot` files and `pdf` reader.
+Draw the Bayes (Junction) tree by means of graphviz `.dot` files.  Ensure Linux packages 
+are installed `sudo apt-get install graphviz xdot`.
 
 Notes
-- Uses system install of graphviz.org.
-- Can also use Linux tool `xdot`.
 - `xlabels` is optional `cliqid=>xlabel`.
 """
 function drawTree(treel::AbstractBayesTree;
@@ -483,9 +485,9 @@ function drawTree(treel::AbstractBayesTree;
     write(fid,_to_dot(btc.bt))
     close(fid)
     if string(fext) == "png"
-      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(filepath)`)
+      run(`dot $(fpwoext).dot -T $(fext) -Gdpi=$dpi -o $(fpwoext).pdf`)
     else
-      run(`dot $(fpwoext).dot -T $(fext) -o $(filepath)`)
+      run(`dot $(fpwoext).dot -T $(fext) -o $(fpwoext).pdf`)
     end
   catch ex
     @warn ex
@@ -517,13 +519,14 @@ drawTree, drawGraph
 """
 function drawTreeAsyncLoop( tree::AbstractBayesTree,
                             opt::SolverParams;
-                            filepath=joinLogPath(opt,"bt.pdf"),
+                            filepath=joinLogPath(opt,"bt.dot"),
                             dotreedraw = Int[1;]  )
   #
   # single drawtreerate
   treetask = if opt.drawtree
     @async begin
       xlabels = Dict{Int,String}()
+      @info("Solve is drawing the Bayes tree")
       while dotreedraw[1] == 1 && 0 < opt.drawtreerate
         # actually draw the tree
         drawTree(tree,show=false,filepath=filepath)
@@ -615,79 +618,38 @@ function generateTexTree( treel::AbstractBayesTree;
   return btc
 end
 
-"""
-    $SIGNATURES
-
-Build Bayes/Junction/Elimination tree from a given variable ordering.
-"""
-function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
-                                p::Vector{Symbol};
-                                drawbayesnet::Bool=false,
-                                maxparallel::Union{Nothing, Int}=nothing,
-                                solvable::Int=1 )
-  #
-
-  t0 =time_ns()
-  println()
-  fge = deepcopy(dfg)
-  # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(fge).maxincidence = maxparallel
-  end
-  @info "Building Bayes net..."
-  buildBayesNet!(fge, p, solvable=solvable)
-
-  @info "Staring the Bayes tree construction from Bayes net"
-  tree = emptyBayesTree()
-  tree.variableOrder = p
-  buildTree!(tree, fge, p)
-
-  if drawbayesnet
-    println("Bayes Net")
-    sleep(0.1)
-    fid = open("bn.dot","w+")
-    write(fid,_to_dot(fge.bn))
-    close(fid)
-  end
-
-  @debug "Find potential functions for each clique"
-  for cliqIds in getCliqueIds(tree)
-    if isRoot(tree, cliqIds)
-      cliq = getClique(tree, cliqIds) # start at the root
-      buildCliquePotentials(dfg, tree, cliq, solvable=solvable); # fg does not have the marginals as fge does
-    end
-  end
-  tree.buildTime = (time_ns()-t0)/1e9
-  return tree
-end
-
 
 """
     $SIGNATURES
 
 Build Bayes/Junction/Elimination tree from a given variable ordering.
+
+DevNotes
+- TODO use `solvable` filter during local graph copy step
+- TODO review `buildCliquePotentials` and rather incorporate into CSM, see #1083
+
+Related
+
+[`buildTreeReset!`](@ref)
 """
 function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
                                 p::Vector{Symbol};
                                 drawbayesnet::Bool=false,
-                                maxparallel::Union{Nothing, Int}=nothing  )
+                                solvable::Int=1  )
   #
-  @debug "Copying to a local DFG"
+  @debug "Building Bayes tree with local DFG copy"
+  t0 =time_ns()
   fge = InMemDFGType(solverParams=getSolverParams(dfg))
-    #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
+
+  #TODO JT - I think an optional solvable filter is needed in buildTreeFromOrdering!
+  # copy required for both remote and local graphs
   DFG.deepcopyGraph!(fge, dfg)
-  # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(fge).maxincidence = maxparallel
-  end
 
-  println("Building Bayes net from cloud...")
-  buildBayesNet!(fge, p)
+  println("Building Bayes net...")
+  buildBayesNet!(fge, p, solvable=solvable)
 
-  tree = emptyBayesTree()
-  tree.variableOrder = p
+  tree = BayesTree()
+  tree.eliminationOrder = p
   buildTree!(tree, fge, p)
 
   if drawbayesnet
@@ -699,8 +661,17 @@ function buildTreeFromOrdering!(dfg::DFG.AbstractDFG,
   end
 
   println("Find potential functions for each clique")
-  cliq = getClique(tree, 1) # start at the root
-  buildCliquePotentials(dfg, tree, cliq); # fg does not have the marginals as fge does
+  for cliqIds in getCliqueIds(tree)
+    # start at the root, of which there could be multiple disconnected trees
+    if isRoot(tree, cliqIds)
+      cliq = getClique(tree, cliqIds) 
+      # fg does not have the marginals as fge does
+      buildCliquePotentials(dfg, tree, cliq, solvable=solvable)
+    end
+  end
+
+  # also store the build time
+  tree.buildTime = (time_ns()-t0)*1e-9
 
   return tree
 end
@@ -713,6 +684,9 @@ Build Bayes/Junction/Elimination tree.
 
 Notes
 - Default to free qr factorization for variable elimination order.
+
+DevNotes
+- TODO deprecate and update to better name than `drawpdf`
 """
 function prepBatchTreeOLD!( dfg::AbstractDFG;
                             eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
@@ -722,11 +696,10 @@ function prepBatchTreeOLD!( dfg::AbstractDFG;
                             ordering::Symbol= 0==length(variableConstraints) ? :qr : :ccolamd,
                             drawpdf::Bool=false,
                             show::Bool=false,
-                            filepath::String="/tmp/caesar/bt.dot",
+                            filepath::String="/tmp/caesar/random/bt.dot",
                             viewerapp::String="xdot",
-                            imgs::Bool=false,
-                            # drawbayesnet::Bool=false,
-                            maxparallel::Union{Nothing, Int}=nothing )
+                            imgs::Bool=false )
+                            # drawbayesnet::Bool=false )
   #
 
   # deprecations on keywords
@@ -765,7 +738,7 @@ end
 
 Partial reset of basic data fields in `::VariableNodeData` of `::FunctionNode` structures.
 """
-function resetData!(vdata::VariableNodeData)::Nothing
+function resetData!(vdata::VariableNodeData)
   vdata.eliminated = false
   vdata.BayesNetOutVertIDs = Symbol[]
   # vdata.BayesNetVertID = :_null # TODO dont use nothing, see DFG issue #16
@@ -773,7 +746,7 @@ function resetData!(vdata::VariableNodeData)::Nothing
   nothing
 end
 
-function resetData!(vdata::FunctionNodeData)::Nothing
+function resetData!(vdata::FunctionNodeData)
   vdata.eliminated = false
   vdata.potentialused = false
   nothing
@@ -810,27 +783,22 @@ Related:
 buildTreeFromOrdering!, 
 """
 function buildTreeReset!( dfg::AbstractDFG,
-                          eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing;
-                          variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
+                          eliminationOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing;
+                          variableOrder::Union{Nothing, <:AbstractVector{Symbol}}=nothing,
                           ordering::Symbol=:qr,
                           drawpdf::Bool=false,
                           show::Bool=false,
                           filepath::String="/tmp/caesar/random/bt.dot",
                           viewerapp::String="xdot",
                           imgs::Bool=false,
-                          maxparallel::Union{Nothing, Int}=nothing,
                           ensureSolvable::Bool=true,
-                          eliminationConstraints::Vector{Symbol}=Symbol[],
+                          eliminationConstraints::AbstractVector{Symbol}=Symbol[],
                           variableConstraints=nothing  )
   #
   if ensureSolvable
     ensureSolvable!(dfg)
   end
   # depcrecation
-  if maxparallel !== nothing
-    @warn "maxparallel keyword is deprecated, use getSolverParams(fg).maxincidence instead."
-    getSolverParams(dfg).maxincidence = maxparallel
-  end
   if variableOrder !== nothing
     @warn "variableOrder keyword is deprecated, use buildTreeReset!(dfg, vo; kwargs...) instead."
     eliminationOrder = variableOrder
@@ -978,7 +946,7 @@ function setCliqPotentials!(dfg::G,
   nothing
 end
 
-getCliquePotentials(cliq::TreeBelief) = getCliqueData(cliq).potentials
+getCliquePotentials(cliq::TreeClique) = getCliqueData(cliq).potentials
 
 function cliqPotentialIDs(cliq::TreeClique)
   potIDs = Symbol[]
@@ -1173,9 +1141,9 @@ Get variable ids`::Int` with prior factors associated with this `cliq`.
 Notes:
 - does not include any singleton messages from upward or downward message passing.
 """
-function getCliqVarIdsPriors(cliq::TreeClique,
-                             allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                             partials::Bool=true  )::Vector{Symbol}
+function getCliqVarIdsPriors( cliq::TreeClique,
+                              allids::Vector{Symbol}=getCliqAllVarIds(cliq),
+                              partials::Bool=true  )
   # get ids with prior factors associated with this cliq
   amat = getCliqAssocMat(cliq)
   prfcts = sum(amat, dims=2) .== 1
@@ -1185,7 +1153,7 @@ function getCliqVarIdsPriors(cliq::TreeClique,
 
   # return variable ids in `mask`
   mask = sum(amat[prfcts[:],:], dims=1)[:] .> 0
-  return allids[mask]
+  return allids[mask]::Vector{Symbol}
 end
 
 
@@ -1196,7 +1164,7 @@ Get `cliq` variable IDs with singleton factors -- i.e. both in clique priors and
 """
 function getCliqVarSingletons(cliq::TreeClique,
                               allids::Vector{Symbol}=getCliqAllVarIds(cliq),
-                              partials::Bool=true  )::Vector{Symbol}
+                              partials::Bool=true  )
   # get incoming upward messages (known singletons)
   mask = sum(getCliqMsgMat(cliq),dims=1)[:] .>= 1
   upmsgids = allids[mask]
@@ -1205,7 +1173,7 @@ function getCliqVarSingletons(cliq::TreeClique,
   prids = getCliqVarIdsPriors(cliq, getCliqAllVarIds(cliq), partials)
 
   # return union of both lists
-  return union(upmsgids, prids)
+  return union(upmsgids, prids)::Vector{Symbol}
 end
 
 
@@ -1561,16 +1529,12 @@ function getTreeAllFrontalSyms(::AbstractDFG, tree::AbstractBayesTree)
 end
 
 
-# import DistributedFactorGraphs: getVariableOrder
-#
-# getVariableOrder(treel::AbstractBayesTree)::Vector{Symbol} = treel.variableOrder
-
 """
     $SIGNATURES
 
 Return the variable elimination order stored in a tree object.
 """
-getEliminationOrder(treel::AbstractBayesTree) = treel.variableOrder
+getEliminationOrder(treel::AbstractBayesTree) = treel.eliminationOrder
 
 
 """

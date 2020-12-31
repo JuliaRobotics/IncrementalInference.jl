@@ -1,46 +1,66 @@
 
 
+export numericSolutionCCW!
 
-function numericRoot(residFnc::Function, measurement, parameters, x0::Vector{Float64})
-  # function is being deprecated
-  @warn "numericRoot is likely to be deprected, switch to using approxConv, evalFactor, or numericSolutionCCW!"
-  return (nlsolve(   (res, X) -> residFnc(res, measurement, parameters, X), x0, inplace=true )).zero
-end
-
-
+# Also see #467 on API consolidation
+# function (cf::CalcResidual{<:LinearRelative})(res::Vector, z, xi, xj)
+#   # cf.metadata.variablelist...
+#   # cf.metadata.targetvariable
+#   # cf.metadata.usercache
+#   # generic on-manifold residual function 
+#   res .= distance(z, distance(xj, xi))
+# end
 
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
   #
-  # fnc::InstanceType{AbstractRelativeMinimize}, 
+  thrid = Threads.threadid()
+  
+  # reset the residual vector
+  fill!(ccwl.cpt[thrid].res, 0.0) # 1:frl.xDim
+  
+  # which elements of the variable dimension should be used as decision variables
+  ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]  
+  # build a view to the decision variable memory
+  target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx)
 
-  # @show fnc
+  # prepare fmd according to hypo selection
+  # FIXME must refactor (memory waste)
+  fmd = ccwl.cpt[thrid].factormetadata
+  fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
+                        view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        fmd.solvefor,
+                        fmd.cachedata  )
 
-  fill!(ccwl.cpt[Threads.threadid()].res, 0.0) # 1:frl.xDim
-
-  # r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] ) # ccw.gg
-  # TODO -- clearly lots of optmization to be done here
-  if !ccwl.partial
-    r = if length(ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx]) == 1
-      optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx], BFGS() )
-    else
-      optimize( ccwl, ccwl.cpt[Threads.threadid()].X[:, ccwl.cpt[Threads.threadid()].particleidx] )
-    end
-    ccwl.cpt[Threads.threadid()].Y .= r.minimizer
-    ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+  # build static lambda
+    # ccwl.cpt[thrid].factormetadata
+  unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  # broadcast updates original view memory location
+  _hypoObj = (x) -> (target.=x; unrollHypo())
+  
+  # cannot Nelder-Mead on 1dim
+  islen1 = length(ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx]) == 1 || ccwl.partial
+  # do the parameter search over defined decision variables using Minimization
+  r = if islen1
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx], BFGS() )
   else
-    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...]
-    # ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx]
-    r = optimize( ccwl, ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p,
-                                                        ccwl.cpt[Threads.threadid()].particleidx] )
-    #
-    ccwl.cpt[Threads.threadid()].Y = r.minimizer
-    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p,ccwl.cpt[Threads.threadid()].particleidx] .= ccwl.cpt[Threads.threadid()].Y
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx] )
   end
+  
+  # insert result back at the correct variable element location
+  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= r.minimizer
   
   nothing
 end
+# brainstorming
+# should only be calling a new arg list according to activehypo at start of particle
+# Try calling an existing lambda
+# sensitive to which hypo of course , see #1024
+# need to shuffle content inside .cpt.fmd as well as .params accordingly
+#
+
 
 
 """
@@ -54,78 +74,59 @@ ccw.X must be set to memory ref the param[varidx] being solved, at creation of c
 
 Notes
 - Assumes only `ccw.particleidx` will be solved for
+
+DevNotes
+- TODO perhaps consolidate perturbation with inflation or nullhypo
 """
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
+  thrid = Threads.threadid()
 
-  ## TODO desperately needs cleaning up and refactoring
-  # ststr = "thrid=$(Threads.threadid()), zDim=$(ccwl.zDim), xDim=$(ccwl.xDim)\n"
-  # ccall(:jl_, Nothing, (Any,), ststr)
-  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle
-    # less measurement dimensions than variable dimensions -- i.e. shuffle
-    shuffle!(ccwl.cpt[Threads.threadid()].p)
-    for i in 1:ccwl.xDim
-      ccwl.cpt[Threads.threadid()].perturb[1:ccwl.zDim] = perturb*randn(ccwl.zDim)
-      ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb
-      r = nlsolve(  ccwl,
-                    ccwl.cpt[Threads.threadid()].X[ccwl.cpt[Threads.threadid()].p[1:ccwl.zDim], ccwl.cpt[Threads.threadid()].particleidx], # this is x0
-                    inplace=true
-                  )
-      if r.f_converged
-        shuffleXAltD!( ccwl, r.zero )
-        break;
-      else
-        # TODO -- report on this bottleneck, useful for optimization of code
-        # @show i, ccwl.p, ccwl.xDim, ccwl.zDim
-        temp = ccwl.cpt[Threads.threadid()].p[end]
-        ccwl.cpt[Threads.threadid()].p[2:end] = ccwl.cpt[Threads.threadid()].p[1:(end-1)]
-        ccwl.cpt[Threads.threadid()].p[1] = temp
-        if i == ccwl.xDim
-          error("numericSolutionCCW! could not converge, i=$(i), ccwl.usrfnc!=$(typeof(ccwl.usrfnc!))")
-        end
-      end
-    end
-    #shuffleXAltD!( ccwl, r.zero ) # moved up
-  elseif ccwl.zDim >= ccwl.xDim && !ccwl.partial
-    # equal or more measurement dimensions than variable dimensions -- i.e. don't shuffle
-    ccwl.cpt[Threads.threadid()].perturb[1:ccwl.xDim] = perturb*randn(ccwl.xDim)
-    ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim, ccwl.cpt[Threads.threadid()].particleidx] += ccwl.cpt[Threads.threadid()].perturb[1:ccwl.xDim] # moved up
-
-    # str = "nlsolve, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx), X=$(ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx])"
-    # ccall(:jl_, Nothing, (Any,), str)
-    r = nlsolve( ccwl, ccwl.cpt[Threads.threadid()].X[1:ccwl.xDim,ccwl.cpt[Threads.threadid()].particleidx], inplace=true )
-    # ccall(:jl_, Nothing, (Any,), "nlsolve.zero=$(r.zero)")
-    if sum(isnan.(( r ).zero)) == 0
-      ccwl.cpt[Threads.threadid()].Y[1:ccwl.xDim] = ( r ).zero
-    else
-      # TODO print this output as needed
-      str = "ccw.thrid_=$(Threads.threadid()), got NaN, ccwl.cpt[Threads.threadid()].particleidx = $(ccwl.cpt[Threads.threadid()].particleidx), r=$(r)\n"
-      @info str
-      ccall(:jl_, Nothing, (Any,), str)
-      ccall(:jl_, Nothing, (Any,), ccwl.usrfnc!)
-      for thatlen in 1:length(ccwl.params)
-        str = "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[Threads.threadid()].particleidx])\n"
-        ccall(:jl_, Nothing, (Any,), str)
-        @warn str
-      end
-    end
-  elseif ccwl.partial
-    # improve memory management in this function
-    # TODO -- move this line up and out of inner loop
-    ccwl.cpt[Threads.threadid()].p = Int[ccwl.usrfnc!.partial...] # [1:length(ccwl.usrfnc!.partial)]
-    r = nlsolve(  ccwl,
-                  ccwl.cpt[Threads.threadid()].X[ ccwl.cpt[Threads.threadid()].p,
-                                                  ccwl.cpt[Threads.threadid()].particleidx],  # p[1:ccwl.zDim]# this is x0
-                  inplace=true
-                )
-    shuffleXAltD!( ccwl, r.zero )
-  else
-    ccall(:jl_, Nothing, (Any,), "ERROR: Unresolved numeric solve case")
-    error("Unresolved numeric solve case")
+  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
+    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
+  elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
+    error("Unresolved numeric <:AbstractRelativeRoots solve case")
   end
-  ccwl.cpt[Threads.threadid()].X[:,ccwl.cpt[Threads.threadid()].particleidx] = ccwl.cpt[Threads.threadid()].Y
+  
+  # NOTE ignoring small perturbation from manifold as numerical workaround only
+  # use all element dimensions : ==> 1:ccwl.xDim
+  ccwl.cpt[thrid].perturb[:] = perturb*randn(ccwl.xDim)
+  ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
+
+  # build a view to the decision variable memory
+  target = view(ccwl.params[ccwl.varidx], :, ccwl.cpt[Threads.threadid()].particleidx )
+  
+  # prepare fmd according to hypo selection
+  # FIXME must refactor (memory waste)
+  fmd = ccwl.cpt[thrid].factormetadata
+  fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
+                        view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        fmd.solvefor,
+                        fmd.cachedata  )
+  #
+
+  # build static lambda
+    # ccwl.cpt[thrid].factormetadata
+  unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  # broadcast updates original view memory location
+  _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
+
+  # do the parameter search over defined decision variables using Root finding
+  r = NLsolve.nlsolve( _hypoObj, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
+  
+  # Check for NaNs
+  if sum(isnan.(( r ).zero)) != 0
+    @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
+    for thatlen in 1:length(ccwl.params)
+      @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
+    end
+  end
+
+  # insert result back at the correct variable element location
+  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ( r ).zero
 
   nothing
 end

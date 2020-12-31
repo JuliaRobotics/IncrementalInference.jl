@@ -2,18 +2,22 @@
 using IncrementalInference
 using Test
 
+import IncrementalInference: getSample
 
+##
 
-mutable struct LineResidual <: AbstractRelativeFactor
+mutable struct LineResidual <: AbstractRelativeRoots
   m::Float64
   c::Float64
 end
+
+getSample(lr::LineResidual, N::Int=1) = (reshape(rand(Normal(),N),1,N),)
 
 # y = mx + c
 # res = y      -      m*x  -  c
 #       meas          variables and fixed values
 function (lr::LineResidual)(res::AbstractVector{<:Real},
-                            userdata,
+                            fmd::FactorMetadata,
                             idx::Int,
                             z::Tuple,
                             x::AbstractArray{<:Real,2},
@@ -23,11 +27,19 @@ function (lr::LineResidual)(res::AbstractVector{<:Real},
   nothing
 end
 
+##
+
 
 @testset "test CommonConvWrapper{T}, solve of residual functions..." begin
 
+##
 
-function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T <: AbstractRelativeFactor}
+function assembleConvType(dfgvrs::Vector{<:DFGVariable}, 
+                          functor::T, 
+                          xDim::Int, 
+                          zDim::Int, 
+                          nvars::Int) where {T <: AbstractRelativeRoots}
+  #
   # @info "assembleConvType -- development testing function only, not intended for production."
   N = 3
 
@@ -36,15 +48,23 @@ function assembleConvType(functor::T, xDim::Int, zDim::Int, nvars::Int) where {T
     push!(vars, zeros(xDim, N))
   end
 
-  CommonConvWrapper(functor,vars[1],zDim,vars, measurement=(zeros(zDim,N),))
+  fmd = FactorMetadata(dfgvrs, getLabel.(dfgvrs), vars, :null, nothing)
+
+  CommonConvWrapper(functor,vars[1],zDim,vars, fmd, measurement=(zeros(zDim,N),))
 end
 
 
-
+##
 
 # TODO -- expand testing to include subcomponent tests from numericSolutionCCW!
 lr1 = LineResidual(2.0, 3.0)
-ccw = assembleConvType(lr1, 1, 1, 2)
+
+fg = initfg()
+X0 = addVariable!(fg, :x0, ContinuousScalar)
+X1 = addVariable!(fg, :x1, ContinuousScalar)
+addFactor!(fg, [:x0,:x1], lr1, graphinit=false)
+
+ccw = assembleConvType([X0;X1], lr1, 1, 1, 2)
 
 res = zeros(1)
 ccw(res, zeros(1))
@@ -55,6 +75,8 @@ numericSolutionCCW!( ccw )
 
 @test abs(ccw.cpt[1].Y[1] + 1.50) < 1e-5
 
+
+##
 
 end
 

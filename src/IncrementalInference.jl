@@ -79,7 +79,7 @@ export AbstractDFG,
   InMemDFGType,
   getSolverParams,
   LightDFG,
-  findShortestPathDijkstra,
+  findShortestPathDijkstra, isPathFactorsHomogeneous,
   getSolvedCount, isSolved, setSolvedCount!,
   listSupersolves, listSolveKeys,
   deepcopySolvekeys!, deepcopySupersolve!,
@@ -177,6 +177,7 @@ export *,
   deepcopyGraph,
   deepcopyGraph!,
   copyGraph!,
+  getSolverData,
 
   # using either dictionary or cloudgraphs
   FactorMetadata,
@@ -232,18 +233,6 @@ export *,
   setBW!,
   setValKDE!,
   buildCliqSubgraph,
-  # cliqInitSolveUpByStateMachine!,
-
-  # state machine functions
-  # checkUpsolveFinished_StateMachine,
-  # determineCliqNeedDownMsg_StateMachine,
-  # blockSiblingStatus_StateMachine,
-  # trafficRedirectConsolidate459_StateMachine,
-  # slowIfChildrenNotUpSolved_StateMachine,
-  # buildCliqSubgraph_StateMachine,
-  # isCliqUpSolved_StateMachine,
-  # canCliqMargRecycle_StateMachine,
-  # buildCliqSubgraphForDown_StateMachine,
 
   #
   isPartial,
@@ -253,15 +242,11 @@ export *,
   isCliqInitialized,
   isCliqUpSolved,
   areCliqVariablesAllInitialized,
-  # doAnyChildrenNeedDwnMsg,
-  # areCliqChildrenAllUpSolved,
   ensureSolvable!,
   ensureAllInitialized!,
-  # doCliqInitDown!,
   cycleInitByVarOrder!,
-  # prepCliqInitMsgsUp,
   getOutNeighbors,
-  BayesTree,
+  BayesTree, MetaBayesTree,
   TreeBelief,
   LikelihoodMessage,
   initfg,
@@ -271,8 +256,6 @@ export *,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,
-  buildTreeFromOrdering!, # TODO obsolete? deprecate?
-  BayesTree,
   buildTree!,
   buildTreeReset!,
   buildCliquePotentials,
@@ -323,10 +306,6 @@ export *,
   isMultihypo,
   getMultihypoDistribution,
   getHypothesesVectors,
-  # isCliqMarginalizedFromVars,
-  # isCliqParentNeedDownMsg,
-  # setCliqAsMarginalized!,
-  # updateTreeCliquesAsMarginalizedFromVars!,
 
   # weiged sampling
   AliasingScalarSampler,
@@ -344,11 +323,6 @@ export *,
   setThreadModel!,
   SingleThreaded,
   MultiThreaded,
-
-  # Solving utils
-  shuffleXAltD!,
-  numericRoot,
-  numericSolutionCCW!,
 
   # user functions
   predictbelief,
@@ -375,7 +349,6 @@ export *,
   # factor graph operating system utils (fgos)
   saveTree,
   loadTree,
-  # landmarks,
 
   # Temp placeholder for evaluating string types to real types
   saveDFG,
@@ -406,39 +379,8 @@ export *,
   Ranged,
   PackedRanged
 
-# CSM Exports
-# export  doCliqDownSolve_StateMachine,
-#         cleanupAfterDownSolve_StateMachine,
-#         specialCaseRootDownSolve_StateMachine,
-#         canCliqDownSolve_StateMachine,
-#         checkUpsolveFinished_StateMachine,
-#         prepInitUp_StateMachine,
-#         doCliqUpSolveInitialized_StateMachine,
-#         rmUpLikeliSaveSubFg_StateMachine,
-#         waitChangeOnParentCondition_StateMachine,
-#         towardUpOrDwnSolve_StateMachine,
-#         canCliqMargSkipUpSolve_StateMachine,
-#         tryDwnInitCliq_StateMachine,
-#         rmMsgLikelihoodsAfterDwn_StateMachine,
-#         blockSiblingStatus_StateMachine,
-#         slowIfChildrenNotUpSolved_StateMachine,
-#         blockUntilChildrenHaveStatus_StateMachine,
-#         dwnInitSiblingWaitOrder_StateMachine,
-#         trafficRedirectConsolidate459_StateMachine,
-#         doAllSiblingsNeedDwn_StateMachine,
-#         maybeNeedDwnMsg_StateMachine,
-#         determineCliqNeedDownMsg_StateMachine,
-#         tryUpInitCliq_StateMachine,
-#         slowWhileInit_StateMachine,
-#         decideUpMsgOrInit_StateMachine,
-#         attemptCliqInitUp_StateMachine,
-#         sendCurrentUpMsg_StateMachine,
+
 export  buildCliqSubgraph_StateMachine
-        # buildCliqSubgraphForDown_StateMachine,
-        # isCliqUpSolved_StateMachine,
-        # checkChildrenAllUpRecycled_StateMachine,
-        # canCliqIncrRecycle_StateMachine,
-        # canCliqMargRecycle_StateMachine
 
 
 const NothingUnion{T} = Union{Nothing, T}
@@ -457,7 +399,12 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 include("AliasScalarSampling.jl")
 include("Flux/entities.jl")
 include("BeliefTypes.jl")
+
+# Refactoring in progress
+include("Factors/MsgLikelihoods.jl")
+
 include("CliqueTypes.jl")
+
 include("JunctionTreeTypes.jl")
 include("FactorGraph.jl")
 include("SerializingDistributions.jl")
@@ -468,6 +415,7 @@ include("Variables/DefaultVariables.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 include("NeedsResolution.jl")
+
 
 # tree and init related functions
 include("SubGraphFunctions.jl")
@@ -484,6 +432,7 @@ include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
 include("Factors/Sphere1D.jl")
 include("Variables/Sphere1D.jl")
+include("Factors/PartialPrior.jl")
 include("DefaultNodeTypes.jl") # older file
 
 # solving graphs
@@ -534,12 +483,6 @@ function __init__()
   end
 end
 
-# Old code that might be used again
-# function getType(typestring::AS) where {AS <: AbstractString}
-#  # eval(Meta.parse(typestring))()
-#  # getfield(Main, Symbol(typestring))
-#  getfield(@__MODULE__, Symbol(typestring))
-# end
 
 export setSerializationNamespace!, getSerializationModule, getSerializationModules
 

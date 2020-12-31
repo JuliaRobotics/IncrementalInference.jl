@@ -78,9 +78,9 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFacto
   #... Copying neighbor data into the factor?
   # JT TODO it looks like this is already updated in getDefaultFactorData -> prepgenericconvolution
   # factormetadata.variableuserdata is deprecated, remove when removing deprecation
-  for i in 1:Threads.nthreads()
-    ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
-  end
+  # for i in 1:Threads.nthreads()
+  #   ccw_new.fnc.cpt[i].factormetadata.variableuserdata = deepcopy(neighborUserData)
+  # end
 
   return factor
 end

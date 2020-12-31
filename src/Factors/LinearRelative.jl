@@ -10,16 +10,9 @@ Default linear offset between two scalar variables.
 """
 struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
   Z::T
-
-  # # Julia 1.5.2 still requires this inner constructor given all default helpers below?
-  # LinearRelative{N, T}(z0::T) where {N, T <: SamplableBelief} = new{N,T}(z0)
 end
 
-# function LinearRelative{N, T}(::UniformScaling=LinearAlgebra.I,
-#                               z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
-#   #
-#   LinearRelative{N,T}(z0)
-# end
+
 
 function LinearRelative{N}( z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
   #
@@ -31,11 +24,11 @@ LinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = LinearRelat
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
 LinearRelative(nm::BallTreeDensity) = LinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-getDimension(::Type{LinearRelative{N,<:SamplableBelief}}) where {N} = N
-getManifolds(::Type{LinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+getDimension(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = N
+getManifolds(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
-getDomain(::InstanceType{LinearRelative}) = ContinuousScalar
-getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
+getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = ContinuousEuclid{N}
+# getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
 
 
 getSample(s::LinearRelative, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
@@ -75,7 +68,7 @@ function (s::LinearRelative{N,<:ParametricTypes})(
 
   else
     #this should not happen
-    @error("$s not suported, please use non-parametric")
+    @error("$s not supported, please use non-parametric")
   end
 end
 

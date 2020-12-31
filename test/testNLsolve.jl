@@ -5,6 +5,10 @@ using Distributions
 
 using IncrementalInference
 
+import IncrementalInference: getSample
+
+
+##
 
 @testset "Ensure lambda's work with NLsolve" begin
 
@@ -22,12 +26,15 @@ end
 
 
 
-# abstract functional defintion
-mutable struct OneDimensionTest{T} <: AbstractRelativeFactor
+## abstract functional defintion
+
+mutable struct OneDimensionTest{T} <: AbstractRelativeRoots
   Dx::T
   OneDimensionTest{T}(a::T) where T = new(a)
 end
 OneDimensionTest(a::T) where T = OneDimensionTest{T}(a)
+
+getSample(od::OneDimensionTest, N::Int=1) = (reshape(rand(od.Dx,N),1,:),)
 
 # standardized parameter list used by IIF
 function (Dp::OneDimensionTest)(res::AbstractArray{<:Real},
@@ -41,23 +48,41 @@ function (Dp::OneDimensionTest)(res::AbstractArray{<:Real},
   nothing
 end
 
+##
 
 
 @testset "minimalistic pattern on how NLsolve is used in IIF." begin
 
+##
+
+fg = initfg()
+X0 = addVariable!(fg, :x0, ContinuousScalar)
+X1 = addVariable!(fg, :x1, ContinuousScalar)
+
 N = 10
-global p1 = rand(1,N)
-global p2 = rand(1,N)
-global VARS = Array{Array{Float64,2},1}()
+p1 = rand(1,N)
+p2 = rand(1,N)
+VARS = Array{Array{Float64,2},1}()
 push!(VARS,p1)
 push!(VARS,p2)
 
-global odo = OneDimensionTest(Normal(10.0,1.0))
-global meas = (reshape(rand(odo.Dx,N),1,N),)
-global ccw = CommonConvWrapper(odo, VARS[1], 1, VARS, measurement=meas, varidx=2)
+odo = OneDimensionTest(Normal(10.0,1.0))
+
+addFactor!(fg, [:x0;:x1], odo, graphinit=false)
+
+
+##
+
+meas = (reshape(rand(odo.Dx,N),1,N),)
+fmd = FactorMetadata([X0;X1], [:x0; :x1], VARS, :null, nothing)
+ccw = CommonConvWrapper(odo, VARS[1], 1, VARS, fmd, measurement=meas, varidx=2)
+
+##
 
 # Find definition of (::ccw)(res, x) here:
 nlsolve(  ccw, [0.0], inplace=true )
+
+##
 
 end
 

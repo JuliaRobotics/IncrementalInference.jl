@@ -13,7 +13,6 @@ Notes:
 Future work:
 - once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
 - improve handling of n and particleidx, especially considering future multithreading support
-
 """
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -28,44 +27,19 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   nothing
 end
 
-"""
-    $(SIGNATURES)
 
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccwl ) # numericRootGenericRandomizedFnc!
+    numericSolutionCCW!( ccwl )
   end
   nothing
 end
 
 
-"""
-    $(SIGNATURES)
-
-Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
-
-Notes:
-- remember this is a deepcopy of original sfidx, since we are generating a proposal distribution and not directly replacing the existing variable belief estimate
-
-Future work:
-- once Threads.@threads have been optmized JuliaLang/julia#19967, also see area4 branch
-- improve handling of n and particleidx, especially considering future multithreading support
-
-"""
 function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}} )  where {N_,F<:AbstractRelative,S,T}
@@ -94,7 +68,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
-  fmd = _defaultFactorMetadata(Xi, solvefor=solvefor, arrRef=ARR, dbg=false)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, solvefor, nothing)
 
   #  get variable node data
   vnds = Xi
@@ -117,9 +91,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
-    ccwl.cpt[i].Y = zeros(ccwl.xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeFactorMinimize
+    ccwl.cpt[i].p = Int[1:ccwl.xDim;] # collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
+    # ccwl.cpt[i].Y = zeros(ccwl.zDim) # zeros(xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
+    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
     # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
   end
@@ -218,7 +192,7 @@ end
 """
     $(SIGNATURES)
 
-Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeFactor` and `AbstractRelativeFactorMinimize` factors.
+Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -239,12 +213,6 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       approxConvOnElements!(ccwl, allelements[count])
-    # elseif hypoidx == sfidx
-    #   # multihypo, do conv case, hypoidx == sfidx
-    #   ah = sort(union([sfidx;], certainidx))
-    #   @assert norm(ah - vars) < 1e-10
-    #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
-    #   approxConvOnElements!(ccwl, allelements[count])
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
@@ -272,13 +240,18 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
   end
   nothing
 end
-
+  # elseif hypoidx == sfidx
+  #   # multihypo, do conv case, hypoidx == sfidx
+  #   ah = sort(union([sfidx;], certainidx))
+  #   @assert norm(ah - vars) < 1e-10
+  #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
+  #   approxConvOnElements!(ccwl, allelements[count])
 
 
 """
     $(SIGNATURES)
 
-Multiple dispatch wrapper for `<:AbstractRelativeFactor` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
+Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and execute the general approximate convolution with user defined factor residual functions.  This method also supports multihypothesis operations as one mechanism to introduce new modality into the proposal beliefs.
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
@@ -339,9 +312,8 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
-  # FIXME FMD is not always just ()
   if needFreshMeasurements
-    fmd = _defaultFactorMetadata(Xi, solvefor=solvefor)
+    fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
     freshSamples!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized
@@ -594,10 +566,10 @@ end
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
                           outdims::Int,
+                          fmd::FactorMetadata,
                           measurement::Tuple=(zeros(0,size(arr,2)),);
                           varidx::Int=2,
                           N::Int=size(arr,2),
-                          fmd::FactorMetadata=FactorMetadata(),
                           vnds=DFGVariable[] )
   #
   # N = N == 0 ? size(arr,2) : N
@@ -606,10 +578,12 @@ function approxConvBinary(arr::Array{Float64,2},
   push!(t,arr)
   push!(t,pts)
 
+  fmd.arrRef = t
+
   measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
-  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n

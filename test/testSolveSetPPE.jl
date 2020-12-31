@@ -21,7 +21,7 @@ end
 # do the solve
 # getSolverParams(fg).dbg = true
 
-# tree = resetBuildTree!(fg)
+# tree = buildTreeReset!(fg)
 # drawTree(tree, show=true)
 
 # solveCliq!(fg, tree, :l2)

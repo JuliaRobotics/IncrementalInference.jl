@@ -18,7 +18,7 @@ mutable struct MetaBayesTree <: AbstractBayesTree
   bt::MetaDiGraph{Int,Float64}
   btid::Int
   frontals::Dict{Symbol,CliqueId{Int}}
-  variableOrder::Vector{Symbol}
+  eliminationOrder::Vector{Symbol}
   buildTime::Float64
 end
 
@@ -36,6 +36,9 @@ Base.getproperty(x::MetaBayesTree,f::Symbol) = begin
         d[k] = v[:clique]
       end
       return d
+    elseif f == :variableOrder
+      @warn "MetaBayesTree.variableOrder has been deprecated in favor of .eliminationOrder"
+      return getfield(x,:eliminationOrder)
     else
       getfield(x,f)
     end

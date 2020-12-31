@@ -71,7 +71,7 @@ function testDirectDwnInit_StateMachine(csmc::CliqStateMachineContainer)
   dwinmsgs = fetchDwnMsgConsolidated(prnt)
   dwnkeys_ = collect(keys(dwinmsgs.belief))
   # NOTE, only use separators, not all parent variables (DF ???)
-  # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:DOWNWARD_COMMON;]) .|> x->ls(csmc.cliqSubFg, x)[1]
+  # dwnkeys_ = lsf(csmc.cliqSubFg, tags=[:__DOWNWARD_COMMON__;]) .|> x->ls(csmc.cliqSubFg, x)[1]
   # @assert length(intersect(dwnkeys, dwnkeys_)) == length(dwnkeys) "split dwnkeys_ is not the same, $dwnkeys, and $dwnkeys_, separators: $(getCliqSeparatorVarIds(csmc.cliq))"
 
   # priorize solve order for mustinitdown with lowest dependency first
@@ -359,7 +359,7 @@ function sibsDwnPriorityInit_StateMachine(csmc::CliqStateMachineContainer)
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, must wait on change.")
     # remove all message factors
     # remove msg factors previously added
-    fctstorm = deleteMsgFactors!(csmc.cliqSubFg, [:DOWNWARD_COMMON])
+    fctstorm = deleteMsgFactors!(csmc.cliqSubFg, [:__DOWNWARD_COMMON__])
     infocsm(csmc, "8j, dwnInitSiblingWaitOrder_StateMachine, removing factors $fctstorm")
 
     # go to 8c

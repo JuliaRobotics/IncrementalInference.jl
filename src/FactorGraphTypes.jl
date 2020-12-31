@@ -5,14 +5,28 @@ import Base: ==
 
 const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
+
+"""
+$(TYPEDEF)
+"""
+struct SingleThreaded
+end
+"""
+$(TYPEDEF)
+"""
+struct MultiThreaded
+end
+
+
 """
 $(TYPEDEF)
 
 Solver parameters for the DistributedFactoGraph.
 
 Dev Notes
-- # TODO remove NothingUnion
-- # TODO Upgrade to common @kwargs struct approach
+- FIXME change to using kwargs from Parameters.jl
+- TODO remove NothingUnion
+- TODO Upgrade to common @kwargs struct approach
 """
 mutable struct SolverParams <: DFG.AbstractParams
   dimID::Int
@@ -46,197 +60,128 @@ mutable struct SolverParams <: DFG.AbstractParams
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
-  SolverParams(;dimID::Int=0,
-                registeredModuleFunctions=nothing,
-                reference=nothing,
-                stateless::Bool=false,
-                qfl::Int=99999999999,
-                isfixedlag::Bool=false,
-                limitfixeddown::Bool=false,
-                incremental::Bool=true,
-                useMsgLikelihoods::Bool=false,
-                upsolve::Bool=true,
-                downsolve::Bool=true,
-                drawtree::Bool=false,
-                drawCSMIters::Bool=true,
-                showtree::Bool=false,
-                drawtreerate::Float64=0.5,
-                dbg::Bool=false,
-                async::Bool=false,
-                limititers::Int=500,
-                N::Int=100,
-                multiproc::Bool=1 < nprocs(),
-                logpath::String="/tmp/caesar/$(now())",
-                graphinit::Bool=true,
-                treeinit::Bool=false,
-                limittreeinit_iters::Int=10,
-                algorithms::Vector{Symbol}=[:default],
-                spreadNH::Float64=3.0,
-                maxincidence::Int=500,
-                alwaysFreshMeasurements::Bool=true,
-                devParams::Dict{Symbol,String}=Dict{Symbol,String}()
-              ) = new(dimID,
-                      registeredModuleFunctions,
-                      reference,
-                      stateless,
-                      qfl,
-                      isfixedlag,
-                      limitfixeddown,
-                      incremental,
-                      useMsgLikelihoods,
-                      upsolve,
-                      downsolve,
-                      drawtree,
-                      drawCSMIters,
-                      showtree,
-                      drawtreerate,
-                      dbg,
-                      async,
-                      limititers,
-                      N,
-                      multiproc,
-                      logpath,
-                      graphinit,
-                      treeinit,
-                      limittreeinit_iters,
-                      algorithms,
-                      spreadNH,
-                      maxincidence,
-                      alwaysFreshMeasurements,
-                      devParams )
   #
 end
 
+SolverParams(;dimID::Int=0,
+              registeredModuleFunctions=nothing,
+              reference=nothing,
+              stateless::Bool=false,
+              qfl::Int=99999999999,
+              isfixedlag::Bool=false,
+              limitfixeddown::Bool=false,
+              incremental::Bool=true,
+              useMsgLikelihoods::Bool=true,
+              upsolve::Bool=true,
+              downsolve::Bool=true,
+              drawtree::Bool=false,
+              drawCSMIters::Bool=true,
+              showtree::Bool=false,
+              drawtreerate::Float64=0.5,
+              dbg::Bool=false,
+              async::Bool=false,
+              limititers::Int=500,
+              N::Int=100,
+              multiproc::Bool=1 < nprocs(),
+              logpath::String="/tmp/caesar/$(now())",
+              graphinit::Bool=true,
+              treeinit::Bool=false,
+              limittreeinit_iters::Int=10,
+              algorithms::Vector{Symbol}=[:default],
+              spreadNH::Float64=3.0,
+              maxincidence::Int=500,
+              alwaysFreshMeasurements::Bool=true,
+              devParams::Dict{Symbol,String}=Dict{Symbol,String}()
+            ) = SolverParams( dimID,
+                              registeredModuleFunctions,
+                              reference,
+                              stateless,
+                              qfl,
+                              isfixedlag,
+                              limitfixeddown,
+                              incremental,
+                              useMsgLikelihoods,
+                              upsolve,
+                              downsolve,
+                              drawtree,
+                              drawCSMIters,
+                              showtree,
+                              drawtreerate,
+                              dbg,
+                              async,
+                              limititers,
+                              N,
+                              multiproc,
+                              logpath,
+                              graphinit,
+                              treeinit,
+                              limittreeinit_iters,
+                              algorithms,
+                              spreadNH,
+                              maxincidence,
+                              alwaysFreshMeasurements,
+                              devParams )
+#
+
 
 """
-    $SIGNATURES
+$(TYPEDEF)
 
-Initialize an empty in-memory DistributedFactorGraph `::DistributedFactorGraph` object.
+Notes
+- type-stable `usercache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
+
+DevNotes
+- TODO why not just a NamedTuple? Perhaps part of #467
+- TODO standardize -- #927, #1025, #784, #692, #640
+- TODO make immutable #825
 """
-function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
-                                    sessionname="NA",
-                                    robotname="",
-                                    username="",
-                                    cloudgraph=nothing) where T <: AbstractDFG
-  #
-  return dfg
-end
-
-
-#init an empty fg with a provided type and SolverParams
-function initfg(::Type{T};solverParams=SolverParams(),
-                          sessionname="NA",
-                          robotname="",
-                          username="",
-                          cloudgraph=nothing) where T <: AbstractDFG
-  return T(solverParams=solverParams)
-end
-
-function initfg(::Type{T},solverParams::SolverParams;
-                          sessionname="NA",
-                          robotname="",
-                          username="",
-                          cloudgraph=nothing) where T <: AbstractDFG
-  return T{SolverParams}(solverParams=solverParams)
+mutable struct FactorMetadata{FV<:AbstractVector{<:DFGVariable}, 
+                              VL<:AbstractVector{Symbol}, 
+                              AR<:AbstractVector{<:AbstractArray}, 
+                              CD}
+  # full list of Vector{DFGVariable} connected to the factor
+  fullvariables::FV # Vector{<:DFGVariable}
+  #TODO full variable can perhaps replace this
+  variablelist::VL # Vector{Symbol} 
+  # TODO consolidate, same as ARR used in CCW,
+  arrRef::AR # Vector{Matrix{Float64}}
+  # label of which variable is being solved for
+  solvefor::Symbol       
+  # for type specific user data, see (? #784)
+  cachedata::CD
 end
 
 """
 $(TYPEDEF)
 
 DevNotes
-- TODO remove Union types -- issue #383
-- TODO standardize -- #927
-- FIXME standardize inner constructors
-- TODO for type-stable `cache`, see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/783#issuecomment-665080114 
-"""
-mutable struct FactorMetadata{T}
-  factoruserdata # TODO maybe deprecate, not in use in RoME or IIF
-  variableuserdata::Union{Vector, Tuple} # TODOO deprecate, to be replaced by cachedata
-  variablesmalldata::Union{Vector, Tuple} # TODO deprecate, not in use in RoME or IIF
-  solvefor::Union{Symbol, Nothing} # Change to Symbol? Nothing Union might still be ok
-  variablelist::Union{Nothing, Vector{Symbol}} # Vector{Symbol} #TODO look to deprecate? Full variable can perhaps replace this
-  dbg::Bool #
-  # for type specific user data, see (? #784)
-  cachedata::Vector{T}
-  # full list of Vector{DFGVariable} connected to the factor
-  fullvariables::Vector{DFGVariable}
-  # TODO consolidate, same as ARR used in CCW,
-  arrRef::Vector{Matrix{Float64}}
-
-  # # inner constructors (delete?)
-  FactorMetadata{T}() where T = new{T}()
-  FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef) where T = new{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arrRef)
-end
-FactorMetadata() = FactorMetadata{Any}()
-FactorMetadata(fud, vud, vsm, sf=nothing, vl=nothing, dbg=false, cd::AbstractVector{T}=Vector{Any}(), fv=DFGVariable[], arr=Vector{Matrix{Float64}}()) where T =
-                FactorMetadata{T}(fud, vud, vsm, sf, vl, dbg, cd, fv, arr)
-
-function _defaultFactorMetadata(Xi::AbstractVector{<:DFGVariable};
-                                solvefor=nothing,
-                                arrRef=Vector{Matrix{Float64}}(),
-                                dbg::Bool=false,
-                                cachedata::AbstractVector{T}=Vector{Any}() ) where T
-  # FIXME standardize fmd, see #927
-  FactorMetadata(nothing,[],[],solvefor,map(x->x.label,Xi),dbg,cachedata,copy(Xi), arrRef)
-end
-
-"""
-$(TYPEDEF)
-"""
-struct SingleThreaded
-end
-"""
-$(TYPEDEF)
-"""
-struct MultiThreaded
-end
-
-"""
-$(TYPEDEF)
+- FIXME remove inner constructor
 """
 mutable struct ConvPerThread
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
-  # additional data passed to user function -- optionally used by user function
+  # additional/optional data passed to user function
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (AbstractRelativeFactor only)
+  # a permutation vector for low-dimension solves (AbstractRelativeRoots only)
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   X::Array{Float64,2}
-  Y::Vector{Float64}
+  # Y::Vector{Float64}
   res::Vector{Float64}
-  ConvPerThread() = new()
-end
 
-function ConvPerThread( X::Array{Float64,2},
-                        zDim::Int;
-                        factormetadata::FactorMetadata=FactorMetadata(),
-                        particleidx::Int=1,
-                        activehypo= 1:length(params),
-                        p=collect(1:size(X,1)),
-                        perturb=zeros(zDim),
-                        Y=zeros(size(X,1)),
-                        res=zeros(zDim)  )
-  #
-  cpt = ConvPerThread()
-  cpt.thrid_ = 0
-  cpt.X = X
-  cpt.factormetadata = factormetadata
-  cpt.particleidx = particleidx
-  cpt.activehypo = activehypo
-  cpt.p = p
-  cpt.perturb = perturb
-  cpt.Y = Y
-  cpt.res = res
-  return cpt
+  # remove
+  ConvPerThread() = new()
 end
 
 """
 $(TYPEDEF)
+
+DevNotes
+- FIXME remove inner constructor
 """
 mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMemory
   ### Values consistent across all threads during approx convolution
@@ -259,15 +204,41 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{ConvPerThread}
 
+  # remove
   CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
+end
+
+
+
+function ConvPerThread( X::Array{Float64,2},
+                        zDim::Int,
+                        factormetadata::FactorMetadata;
+                        particleidx::Int=1,
+                        activehypo= 1:length(params),
+                        p=collect(1:size(X,1)),
+                        perturb=zeros(zDim),
+                        # Y=zeros(zDim), #zeros(size(X,1)),
+                        res=zeros(zDim)  )
+  #
+  cpt = ConvPerThread()
+  cpt.thrid_ = 0
+  cpt.X = X
+  cpt.factormetadata = factormetadata
+  cpt.particleidx = particleidx
+  cpt.activehypo = activehypo
+  cpt.p = p
+  cpt.perturb = perturb
+  # cpt.Y = Y
+  cpt.res = res
+  return cpt
 end
 
 
 function CommonConvWrapper( fnc::T,
                             X::Array{Float64,2},
                             zDim::Int,
-                            params::Vector{Array{Float64,2}};
-                            factormetadata::FactorMetadata=FactorMetadata(),
+                            params::Vector{Array{Float64,2}},
+                            factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
                             hypotheses=nothing,
@@ -279,7 +250,7 @@ function CommonConvWrapper( fnc::T,
                             particleidx::Int=1,
                             p=collect(1:size(X,1)),
                             perturb=zeros(zDim),
-                            Y=zeros(size(X,1)),
+                            # Y=zeros(zDim), # zeros(size(X,1)),
                             xDim=size(X,1),
                             res=zeros(zDim),
                             threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
@@ -303,12 +274,12 @@ function CommonConvWrapper( fnc::T,
   ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
   for i in 1:Threads.nthreads()
     ccw.cpt[i] = ConvPerThread(X, zDim,
-                    factormetadata=factormetadata,
+                    factormetadata,
                     particleidx=particleidx,
                     activehypo=activehypo,
                     p=p,
                     perturb=perturb,
-                    Y=Y,
+                    # Y=Y,
                     res=res )
   end
 
