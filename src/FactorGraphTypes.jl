@@ -132,6 +132,7 @@ Notes
 
 DevNotes
 - TODO why not just a NamedTuple? Perhaps part of #467
+- TODO better consolidate with CCW, CPT, CalcFactor
 - TODO standardize -- #927, #1025, #784, #692, #640
 - TODO make immutable #825
 """
@@ -156,6 +157,9 @@ $(TYPEDEF)
 
 DevNotes
 - FIXME remove inner constructor
+- TODO consolidate with CCW, FMd, CalcFactor
+- TODO make static params {THRID, XDIM, ZDIM, P}
+- TODO make immutable
 """
 mutable struct ConvPerThread
   thrid_::Int
@@ -165,7 +169,7 @@ mutable struct ConvPerThread
   factormetadata::FactorMetadata
   # subsection indices to select which params should be used for this hypothesis evaluation
   activehypo::Union{UnitRange{Int},Vector{Int}}
-  # a permutation vector for low-dimension solves (AbstractRelativeRoots only)
+  # Select which decision variables to include in a particular optimization run
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
@@ -218,19 +222,18 @@ function ConvPerThread( X::Array{Float64,2},
                         p=collect(1:size(X,1)),
                         perturb=zeros(zDim),
                         # Y=zeros(zDim), #zeros(size(X,1)),
-                        res=zeros(zDim)  )
+                        res=zeros(zDim),
+                        thrid_ = 0  )
   #
-  cpt = ConvPerThread()
-  cpt.thrid_ = 0
-  cpt.X = X
-  cpt.factormetadata = factormetadata
-  cpt.particleidx = particleidx
-  cpt.activehypo = activehypo
-  cpt.p = p
-  cpt.perturb = perturb
-  # cpt.Y = Y
-  cpt.res = res
-  return cpt
+  # cpt = ConvPerThread()
+  return ConvPerThread( thrid_,
+                        particleidx,
+                        factormetadata,
+                        activehypo,
+                        p,
+                        perturb,
+                        X,
+                        res)
 end
 
 
