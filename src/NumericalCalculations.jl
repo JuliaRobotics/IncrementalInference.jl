@@ -2,52 +2,62 @@
 
 export numericSolutionCCW!
 
+# internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
+_viewdim1or2(arr::AbstractVector, ind1, ind2) = view(arr, ind2)
+_viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
+
 
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
   #
   thrid = Threads.threadid()
+  smpid = ccwl.cpt[thrid].particleidx
   
   # reset the residual vector
   fill!(ccwl.cpt[thrid].res, 0.0) # 1:frl.xDim
   
   # which elements of the variable dimension should be used as decision variables
-  ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]  
+  ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
+
   # build a view to the decision variable memory
-  target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx)
+  varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
+  target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, smpid)
 
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste)
   fmd = ccwl.cpt[thrid].factormetadata
   fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
                         view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
-                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo), # FIXME arrRef is likely duplicate of varParams
                         fmd.solvefor,
                         fmd.cachedata  )
   #
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement, view(ccwl.params, ccwl.cpt[thrid].activehypo))
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, smpid, 
+                  length(ccwl.measurement), ccwl.measurement, varParams)
+  #
 
   # build static lambda
-  # unrollHypo = () -> cf( ccwl.cpt[thrid].res )
-  # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,ccwl.cpt[thrid].particleidx,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
+  # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,smpid,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
   
   # broadcast updates original view memory location
-   # using CalcFactor legacy path
-  _hypoObj = (x) -> (target.=x; cf( ccwl.cpt[thrid].res ) )
+  ## using CalcFactor legacy path
+  _hypoObj = (x) -> (target.=x; unrollHypo() )
+  # _hypoObj = (x) -> (target.=x; cf( ccwl.cpt[thrid].res ) )
   
   # cannot Nelder-Mead on 1dim
-  islen1 = length(ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx]) == 1 || ccwl.partial
+  islen1 = length(ccwl.cpt[thrid].X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Minimization
   r = if islen1
-    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx], BFGS() )
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, smpid], BFGS() )
   else
-    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, ccwl.cpt[thrid].particleidx] )
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, smpid] )
   end
   
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,ccwl.cpt[thrid].particleidx] .= r.minimizer
+  ccwl.cpt[thrid].X[ccwl.cpt[thrid].p,smpid] .= r.minimizer
   
   nothing
 end

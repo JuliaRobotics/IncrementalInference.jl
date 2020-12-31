@@ -3,7 +3,7 @@
 export CalcFactor
 
 # Also see #467 on API consolidation
-# function (cf::CalcFactor{<:LinearRelative})(res::Vector, z, xi, xj)
+# function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
 #   # cf.metadata.variablelist...
 #   # cf.metadata.targetvariable
 #   # cf.metadata.usercache
