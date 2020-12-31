@@ -3,6 +3,7 @@
 export numericSolutionCCW!
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
+_viewdim1or2(other, ind1, ind2) = other
 _viewdim1or2(arr::AbstractVector, ind1, ind2) = view(arr, ind2)
 _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
@@ -43,7 +44,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # unrollHypo = () -> ccwl.usrfnc!(ccwl.cpt[thrid].res,fmd_,smpid,ccwl.measurement,ccwl.params[ccwl.cpt[thrid].activehypo]...)
   
   # broadcast updates original view memory location
-  ## using CalcFactor legacy path
+  ## using CalcFactor legacy path inside (::CalcFactor)
   _hypoObj = (x) -> (target.=x; unrollHypo() )
   # _hypoObj = (x) -> (target.=x; cf( ccwl.cpt[thrid].res ) )
   
@@ -51,9 +52,10 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   islen1 = length(ccwl.cpt[thrid].X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Minimization
   r = if islen1
-    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, smpid], BFGS() )
+    # init value must also be permuted according to .p
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ccwl.cpt[thrid].p, smpid], BFGS() )
   else
-    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ ccwl.cpt[thrid].p, smpid] )
+    Optim.optimize( _hypoObj, ccwl.cpt[thrid].X[ccwl.cpt[thrid].p, smpid] )
   end
   
   # insert result back at the correct variable element location
@@ -90,6 +92,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
                               testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
   thrid = Threads.threadid()
+  smpid = ccwl.cpt[thrid].particleidx
 
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
@@ -100,9 +103,10 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # NOTE ignoring small perturbation from manifold as numerical workaround only
   # use all element dimensions : ==> 1:ccwl.xDim
   ccwl.cpt[thrid].perturb[:] = perturb*randn(ccwl.xDim)
-  ccwl.cpt[thrid].X[:, ccwl.cpt[thrid].particleidx] += ccwl.cpt[thrid].perturb
+  ccwl.cpt[thrid].X[:, smpid] += ccwl.cpt[thrid].perturb
 
   # build a view to the decision variable memory
+  varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
   target = view(ccwl.params[ccwl.varidx], :, ccwl.cpt[Threads.threadid()].particleidx )
   
   # prepare fmd according to hypo selection
@@ -110,33 +114,35 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   fmd = ccwl.cpt[thrid].factormetadata
   fmd_ = FactorMetadata(view(fmd.fullvariables, ccwl.cpt[thrid].activehypo), 
                         view(fmd.variablelist, ccwl.cpt[thrid].activehypo),
-                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo),
+                        view(fmd.arrRef, ccwl.cpt[thrid].activehypo), # FIXME likely duplicate of varParams
                         fmd.solvefor,
                         fmd.cachedata  )
   #
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, fmd_, ccwl.cpt[thrid].particleidx, length(ccwl.measurement), ccwl.measurement, view(ccwl.params, ccwl.cpt[thrid].activehypo))
+  cf = CalcFactor(ccwl.usrfnc!, fmd_, smpid, 
+                  length(ccwl.measurement), ccwl.measurement, varParams)
 
   # build static lambda
-  # unrollHypo! = (res) -> cf(res )
-  # unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, ccwl.cpt[thrid].particleidx, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
+  unrollHypo! = (res) -> cf( res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
   # broadcast updates original view memory location
-   # using CalcFactor legacy path
-  _hypoObj = (res,x) -> (target.=x; cf(res))
+  ## using CalcFactor legacy path inside (::CalcFactor)
+  _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
+  # unrollHypo! = (res) -> cf( res )
+  # unrollHypo! = (res) -> ccwl.usrfnc!(res, fmd_, smpid, ccwl.measurement, ccwl.params[ccwl.cpt[thrid].activehypo]...)
 
   # do the parameter search over defined decision variables using Root finding
-  r = NLsolve.nlsolve( _hypoObj, ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx], inplace=true )
+  r = NLsolve.nlsolve( _hypoObj, ccwl.cpt[thrid].X[:,smpid], inplace=true )
   
   # Check for NaNs
   if sum(isnan.(( r ).zero)) != 0
-    @info "ccw.thrid_=$(thrid), got NaN, ccwl.cpt[thrid].particleidx = $(ccwl.cpt[thrid].particleidx), r=$(r)\n"
+    @info "ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
     for thatlen in 1:length(ccwl.params)
-      @warn "thatlen=$thatlen, ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx]=$(ccwl.params[thatlen][:, ccwl.cpt[thrid].particleidx])\n"
+      @warn "thatlen=$thatlen, ccwl.params[thatlen][:, smpid]=$(ccwl.params[thatlen][:, smpid])\n"
     end
   end
 
   # insert result back at the correct variable element location
-  ccwl.cpt[thrid].X[:,ccwl.cpt[thrid].particleidx] = ( r ).zero
+  ccwl.cpt[thrid].X[:,smpid] = ( r ).zero
 
   nothing
 end
