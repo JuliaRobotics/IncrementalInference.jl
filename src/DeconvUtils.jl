@@ -52,7 +52,12 @@ function solveFactorMeasurements( dfg::AbstractDFG,
     return meas
   end
 
-  ggo = (i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
+    # ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
+    # varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
+    # target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, smpid)
+    # unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
+    # _hypoObj = (x) -> (target.=x; unrollHypo() )
+  ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
   # ggo(1, [0.0;0.0])
 
   for idx in 1:N
@@ -82,7 +87,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
     # @assert meas[1][:,idx] == r.minimizer
   end
 
-  # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
+  # return (deconv-prediction-result, independent-measurement)
   return meas[1], meas0
 end
 

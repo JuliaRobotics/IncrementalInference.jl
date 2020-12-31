@@ -74,6 +74,8 @@ end
 ## Deprecate code below before v0.20
 ##==============================================================================
 
+# export shuffleXAltD
+
 
 # function buildTreeFromOrdering!(dfg::InMemoryDFGTypes,
 #                                 p::Vector{Symbol};
