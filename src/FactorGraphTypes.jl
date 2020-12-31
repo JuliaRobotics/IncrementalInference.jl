@@ -158,7 +158,8 @@ $(TYPEDEF)
 DevNotes
 - FIXME remove inner constructor
 - TODO consolidate with CCW, FMd, CalcFactor
-- TODO make static params {THRID, XDIM, ZDIM, P}
+- TODO figure out if we want static parameter THRID
+- TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
 mutable struct ConvPerThread
@@ -178,7 +179,7 @@ mutable struct ConvPerThread
   res::Vector{Float64}
 
   # remove
-  ConvPerThread() = new()
+  # ConvPerThread() = new()
 end
 
 """
