@@ -577,16 +577,12 @@ function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
     multihypo2 = multihypo
     multihypo2[1-1e-10 .< multihypo] .= 0.0
     # check that terms sum to full probability
-    @assert sum(multihypo2) % 1 ≈ 0
+    @assert abs(sum(multihypo2) % 1) < 1e-10  || 1-1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
     # check that only one variable broken into fractions
     @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
-    # multihypo2 = Float64[multihypo...]
-    # verts = Symbol.(multihypo[1,:])
-    # for i in 1:length(multihypo)
-    #   if multihypo[i] > 0.999999
-    #     multihypo2[i] = 0.0
-    #   end
-    # end
+    # force normalize something that is now known to be close
+    multihypo2 ./= sum(multihypo2)
+
     mh = Categorical(Float64[multihypo2...] )
   end
   return mh, nullhypo
