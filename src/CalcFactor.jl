@@ -11,13 +11,26 @@ export CalcFactor
 #   res .= distance(z, distance(xj, xi))
 # end
 
+"""
+    $TYPEDEF
 
+New generation user factor interface method for computing the residual values of factors.
+
+Notes
+- Under development and still experimental.  Expected to become default method in IIF v0.20.0
+"""
 struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple, X <: AbstractVector}
+  # the interface compliant user object functor containing the data and logic
   factor::T
+  # the metadata to be passed to the user residual function
   metadata::M
+  # what is the sample (particle) id for which the residual is being calculated
   _sampleIdx::Int
+  # legacy support when concerned with how many measurement tuple elements are used by user 
   _measCount::Int
+  # legacy suport for measurement sample values of old functor residual functions
   _legacyMeas::P
+  # legacy support for variable values old functor residual functions
   _legacyParams::X
 end
 
