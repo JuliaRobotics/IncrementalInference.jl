@@ -7,13 +7,17 @@ export LinearRelative, PackedLinearRelative
 $(TYPEDEF)
 
 Default linear offset between two scalar variables.
+
+```math
+X_2 = X_1 + η_Z
+```
 """
 struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
   Z::T
 end
 
 
-
+# need several helper constructors since the dimension over which LinearRelative will be used is unknown at this point
 function LinearRelative{N}( z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
   #
   LinearRelative{N, T}(z0)
@@ -44,13 +48,25 @@ function (s::LinearRelative)( res::AbstractArray{<:Real},
   nothing
 end
 
+# # new and simplified interface
+# function (s::CalcFactor{T,M,P,X})(res::AbstractVector{<:Real},
+#                                   noise_z,
+#                                   x1::AbstractVector{<:Real},
+#                                   x2::AbstractVector{<:Real} ) where {T<:LinearRelative,M,P<:Tuple,X<:AbstractVector}
+#   #
+#   res[:] = noise_z - (x2 - x1)
+#   nothing
+# end
+
+
+
 # parametric specific functor
 function (s::LinearRelative{N,<:ParametricTypes})(
                                 X1::AbstractArray{<:Real},
                                 X2::AbstractArray{<:Real};
                                 userdata::Union{Nothing,FactorMetadata}=nothing ) where N
   #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
+  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation, #467
   # FIXME, replace if with dispatch
   if isa(s.Z, Normal)
     meas = mean(s.Z)

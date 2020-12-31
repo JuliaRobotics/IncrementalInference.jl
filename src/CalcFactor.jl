@@ -52,14 +52,11 @@ Example
 # TBD
 ```
 """
-function (cf::CalcFactor{T,M})( res::AbstractVector{<:Real},
-                                measparams... ) where {T<:FunctorInferenceType,M}
+function (cf::CalcFactor)( res, measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
   #
   # NOTE this is a legacy interface
   cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
 end
-
-
 
 
 
