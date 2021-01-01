@@ -1268,7 +1268,7 @@ function rmVarFromMarg( dfg::AbstractDFG,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, suppressChecks=true )
+          addFactor!(dfg, remvars, _getCCW(m).usrfnc!, graphinit=false, suppressChecks=true )
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1314,7 +1314,7 @@ function buildBayesNet!(dfg::AbstractDFG,
         getSolverData(fct).eliminated = true
       end
 
-      if typeof(getSolverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
+      if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}
         push!(gm, fct)
       end
     end

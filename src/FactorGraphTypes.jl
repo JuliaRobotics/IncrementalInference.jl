@@ -156,7 +156,8 @@ end
 $(TYPEDEF)
 
 DevNotes
-- FIXME remove inner constructor
+- FIXME rm ::Union on `.activehypo`
+- TODO consider renaming `.p` to `.decisionDims`
 - TODO consolidate with CCW, FMd, CalcFactor
 - TODO figure out if we want static parameter THRID
 - TODO make static params {XDIM, ZDIM, P}
@@ -174,12 +175,10 @@ mutable struct ConvPerThread
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
+  # working memory location for optimization routines on target decision variables
   X::Array{Float64,2}
-  # Y::Vector{Float64}
+  # working memory to store residual for optimization routines
   res::Vector{Float64}
-
-  # remove
-  # ConvPerThread() = new()
 end
 
 """

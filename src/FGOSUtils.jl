@@ -15,14 +15,39 @@ export setMarginalized!
 
 """
     $SIGNATURES
+Get the CommonConvWrapper for this factor.
+"""
+_getCCW(gfnd::GenericFunctionNodeData) = gfnd.fnc
+_getCCW(fct::DFGFactor) = getSolverData(fct) |> _getCCW
+_getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
+
+_getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.inferdim : Int(ccw.zDim)
+_getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
+_getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
+
+"""
+    $SIGNATURES
 
 Get graph node (variable or factor) dimension.
 """
 getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
 getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
 getDimension(var::DFGVariable) = getDimension(getVariableType(var))
-getDimension(fct::DFGFactor) = getSolverData(fct).fnc.zDim
+getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
+getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
 
+
+"""
+    $TYPEDSIGNATURES
+
+Return the number of dimensions this factor vertex `fc` influences.
+"""
+getFactorDim(w...) = getDimension(w...)
+# getFactorDim(fcd::GenericFunctionNodeData) = isa(_getCCW(fcd).usrfnc!, MsgPrior) ? _getCCW(fcd).usrfnc!.inferdim : Int(_getCCW(fcd).zDim)
+# getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
+function getFactorDim(fg::AbstractDFG, fctid::Symbol)
+  getFactorDim(getFactor(fg, fctid))
+end
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
 
@@ -210,7 +235,7 @@ function setThreadModel!( fgl::AbstractDFG;
                           model=IIF.SingleThreaded )
   #
   for (key, id) in fgl.fIDs
-    getSolverData(getFactor(fgl, key)).fnc.threadmodel = model
+    _getCCW(fgl, key).threadmodel = model
   end
   nothing
 end
@@ -224,7 +249,7 @@ Related
 
 getMultihypoDistribution
 """
-isMultihypo(fct::DFGFactor) = isa(getSolverData(fct).fnc.hypotheses, Distribution)
+isMultihypo(fct::DFGFactor) = isa(_getCCW(fct).hypotheses, Distribution)
 
 """
     $SIGNATURES
@@ -235,7 +260,7 @@ Related
 
 isMultihypo
 """
-getMultihypoDistribution(fct::DFGFactor) = getSolverData(fct).fnc.hypotheses
+getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
 
 """
     $SIGNATURES

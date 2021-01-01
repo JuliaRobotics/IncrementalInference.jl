@@ -28,10 +28,10 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
 @test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone])
 
-@test DFG.getSolverData(f1).fnc.usrfnc!.components.naive == DFG.getSolverData(f1).fnc.usrfnc!.components.naive
+@test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 
-A = ManifoldBelief(Euclid, DFG.getSolverData(f1).fnc.usrfnc!.components.fancy )
-B = ManifoldBelief(Euclid, DFG.getSolverData(f1_).fnc.usrfnc!.components.fancy )
+A = ManifoldBelief(Euclid, IIF._getCCW(f1).usrfnc!.components.fancy )
+B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
 
 @test mmd(A,B) < 1e-6
 

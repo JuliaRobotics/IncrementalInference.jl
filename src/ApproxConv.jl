@@ -440,6 +440,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                         spreadNH=spreadNH )
 end
 
+
 """
     $(SIGNATURES)
 
@@ -455,7 +456,7 @@ function evalFactor(dfg::AbstractDFG,
                     dbg::Bool=false  )
   #
 
-  ccw = getSolverData(fct).fnc
+  ccw = _getCCW(fct)
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0

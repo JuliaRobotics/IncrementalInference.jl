@@ -12,45 +12,67 @@ _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 Internal function to build lambda pre-objective function for finding factor residuals. 
 
 Notes  
-- assumes already valid `cpt_.p`
+- Unless passed in as separate arguments, this assumes already valid:
+  - `cpt_.p`
+  - `cpt_.activehypo`
+  - `cpt_.factormetadata`
+  - `ccwl.params`
+  - `ccwl.measurement`
 
 DevNotes
 - TODO refactor relationship and common fields between (CCW, FMd, CPT, CalcFactor)
 """
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
-                                      cpt_::ConvPerThread,
-                                      smpid::Int  )
+                                      smpid::Int,
+                                      cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
+                                      fmd_::FactorMetadata = cpt_.factormetadata,
+                                      measurement_ = ccwl.measurement,
+                                      target::AbstractVector = view(ccwl.params[ccwl.varidx], cpt_.p, smpid)  )
   #
 
   # build a view to the decision variable memory
   varParams = view(ccwl.params, cpt_.activehypo)
-  target = view(ccwl.params[ccwl.varidx], cpt_.p, smpid)
   
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste)
-  fmd = cpt_.factormetadata
-  fmd_ = FactorMetadata(view(fmd.fullvariables, cpt_.activehypo), 
-                        view(fmd.variablelist, cpt_.activehypo),
-                        view(fmd.arrRef, cpt_.activehypo), # FIXME arrRef is likely duplicate of varParams
-                        fmd.solvefor,
-                        fmd.cachedata  )
+  _fmd_ = FactorMetadata(view(fmd_.fullvariables, cpt_.activehypo), 
+                        view(fmd_.variablelist, cpt_.activehypo),
+                        varParams, # view(fmd_.arrRef, cpt_.activehypo),
+                        fmd_.solvefor,
+                        fmd_.cachedata  )
   #
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, fmd_, smpid, 
-                  length(ccwl.measurement), ccwl.measurement, varParams)
+  cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
+                  length(measurement_), measurement_, varParams)
   #
 
   # reset the residual vector
   fill!(cpt_.res, 0.0) # 1:frl.xDim
 
   # build static lambda
-  unrollHypo! = (res) -> cf( res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
+  unrollHypo! = (res) -> cf( res, (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... )
 
   return unrollHypo!, target
 end
 
 
+"""
+    $(SIGNATURES)
 
+Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`
+
+ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
+
+Notes
+- Assumes `cpt_.p` is already set to desired X decision variable dimensions and size. 
+- Assumes only `ccw.particleidx` will be solved for
+- small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
+- Also incorporates the active hypo lookup
+
+DevNotes
+- TODO testshuffle is now obsolete, should be removed
+- TODO perhaps consolidate perturbation with inflation or nullhypo
+"""
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
@@ -59,13 +81,8 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   smpid = ccwl.cpt[thrid].particleidx
   cpt_ = ccwl.cpt[thrid]
   
-  # FIXME, can/should do this at the creation of CPT
-  # indices should be permuted for Minimize
-  # which elements of the variable dimension should be used as decision variables
-  # cpt_.p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
-  
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, cpt_, smpid)
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -81,6 +98,12 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
     Optim.optimize( _hypoObj, cpt_.X[cpt_.p, smpid] )
   end
   
+  # Check for NaNs
+  if sum(isnan.(( r ).minimizer)) != 0
+    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
+    return nothing
+  end
+
   # insert result back at the correct variable element location
   cpt_.X[cpt_.p,smpid] .= r.minimizer
   
@@ -95,22 +118,6 @@ end
 
 
 
-"""
-    $(SIGNATURES)
-
-Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`
-
-ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
-
-Notes
-- Assumes only `ccw.particleidx` will be solved for
-- small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
-- Also incorporates the active hypo lookup
-
-DevNotes
-- TODO testshuffle is now obsolete, should be removed
-- TODO perhaps consolidate perturbation with inflation or nullhypo
-"""
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
@@ -127,14 +134,8 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   smpid = ccwl.cpt[thrid].particleidx
   cpt_ = ccwl.cpt[thrid]
 
-  # FIXME, can/should do this at the creation of CPT
-  # indices should NOT be permuted for Roots
-  # which elements of the variable dimension should be used as decision variables
-  # TODO perhaps rename `.p` to `.decisionVarDims`
-  # cpt_.p = Int[ 1:ccwl.xDim; ] # change to `:`, type stability concern
-
   # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, cpt_, smpid)
+  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
 
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
@@ -150,13 +151,11 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # Check for NaNs
   if sum(isnan.(( r ).zero)) != 0
     @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
-    # for thatlen in 1:length(ccwl.params)
-    #   @warn "thatlen=$thatlen, ccwl.params[thatlen][:, smpid]=$(ccwl.params[thatlen][:, smpid])\n"
-    # end
+    return nothing
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[:,smpid] = ( r ).zero
+  cpt_.X[:,smpid] .= ( r ).zero
 
   nothing
 end

@@ -59,10 +59,10 @@ tree, smt, hist = solveTree!(fg)
 
 ## Singleton (Prior)
 
-fcm, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement |> deepcopy
+fcm, = IIF._getCCW(fg, :x0f1).measurement |> deepcopy
 pts = approxConv(fg, :x0f1, :x1)
-fcm2, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement
-fcm3, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement |> deepcopy
+fcm2, = IIF._getCCW(fg, :x0f1).measurement
+fcm3, = IIF._getCCW(fg, :x0f1).measurement |> deepcopy
 
 @test 0.1 < norm(fcm - fcm2)
 @test norm(fcm2 - fcm3) < 1e-5
@@ -70,17 +70,17 @@ fcm3, = getSolverData(getFactor(fg, :x0f1)).fnc.measurement |> deepcopy
 ## Pairwise
 
 # forward direction
-fcm, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement |> deepcopy
+fcm, = IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy
 pts = approxConv(fg, :x0x1f1, :x1)
-fcm2, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement
+fcm2, = IIF._getCCW(fg, :x0x1f1).measurement
 
 @test 0.1 < norm(fcm - fcm2)
 
 
 # reverse direction
-fcm, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement |> deepcopy
+fcm, = IIF._getCCW(fg, :x0x1f1).measurement |> deepcopy
 pts = approxConv(fg, :x0x1f1, :x0)
-fcm2, = getSolverData(getFactor(fg, :x0x1f1)).fnc.measurement
+fcm2, = IIF._getCCW(fg, :x0x1f1).measurement
 
 @test 0.1 < norm(fcm - fcm2)
 
