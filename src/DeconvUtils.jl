@@ -33,6 +33,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                   solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
+  # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
   fcttype = getFactorType(fcto)

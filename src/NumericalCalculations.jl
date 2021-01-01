@@ -53,7 +53,7 @@ end
 
 function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
-                              testshuffle::Bool=false  )where {N_,F<:AbstractRelativeMinimize,S,T}
+                              testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
   #
   thrid = Threads.threadid()
   smpid = ccwl.cpt[thrid].particleidx
@@ -62,7 +62,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # FIXME, can/should do this at the creation of CPT
   # indices should be permuted for Minimize
   # which elements of the variable dimension should be used as decision variables
-  cpt_.p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
+  # cpt_.p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
   
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, cpt_, smpid)
@@ -131,7 +131,7 @@ function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper
   # indices should NOT be permuted for Roots
   # which elements of the variable dimension should be used as decision variables
   # TODO perhaps rename `.p` to `.decisionVarDims`
-  cpt_.p = Int[ 1:ccwl.xDim; ] # change to `:`, type stability concern
+  # cpt_.p = Int[ 1:ccwl.xDim; ] # change to `:`, type stability concern
 
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, cpt_, smpid)
