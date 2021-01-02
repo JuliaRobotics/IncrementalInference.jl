@@ -73,9 +73,9 @@ global ppMH = DevelopLikelihood(Normal(90.0,1.0))
 global f3 = addFactor!(fg, [:x2;:x3;:x4], ppMH, multihypo=[1.0;0.5;0.5])
 
 
-# @test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
+# @test IIIF._getCCW(f3).hypoverts == [:x3, :x4]
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[2:3] .- 0.5)) < 0.1
 
 
 initManual!(fg, :x2, 1*ones(1,100))
@@ -138,8 +138,8 @@ end
   global dd = convert(PackedFunctionNodeData{PackedDevelopPrior},topack)
   global unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
-  @test abs(unpacked.fnc.usrfnc!.x.μ - 10.0) < 1e-10
-  @test abs(unpacked.fnc.usrfnc!.x.σ - 1.0) < 1e-10
+  @test abs(IIF._getCCW(unpacked).usrfnc!.x.μ - 10.0) < 1e-10
+  @test abs(IIF._getCCW(unpacked).usrfnc!.x.σ - 1.0) < 1e-10
 
 
 
@@ -147,9 +147,9 @@ end
   global dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
   global unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)
 
-  # @test unpacked.fnc.hypoverts == Symbol[:x3; :x4]
-  @test sum(abs.(unpacked.fnc.hypotheses.p[1] .- 0.0)) < 0.1
-  @test sum(abs.(unpacked.fnc.hypotheses.p[2:3] .- 0.5)) < 0.1
+  # @test IIF._getCCW(unpacked).hypoverts == Symbol[:x3; :x4]
+  @test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[1] .- 0.0)) < 0.1
+  @test sum(abs.(IIF._getCCW(unpacked).hypotheses.p[2:3] .- 0.5)) < 0.1
   # str = "Symbol[:x3, :x4];[0.5, 0.5]"
   # IncrementalInference.parsemultihypostr(str)
 
@@ -202,11 +202,11 @@ global f3 = addFactor!(fg, [:x2;:x3;:x4;:x5], ppMH, multihypo=[1.0,0.333,0.333,0
 
 
 
-# @test getData(f3).fnc.hypoverts == [:x3, :x4]
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[2] .- 0.333)) < 0.001
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[3] .- 0.333)) < 0.001
-@test sum(abs.(getSolverData(f3).fnc.hypotheses.p[4] .- 0.334)) < 0.001
+# @test IIF._getCCW(f3).hypoverts == [:x3, :x4]
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[1] .- 0.0)) < 0.1  # 1.0 becomes 0.0 for computational convenience
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[2] .- 0.333)) < 0.001
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[3] .- 0.333)) < 0.001
+@test sum(abs.(IIF._getCCW(f3).hypotheses.p[4] .- 0.334)) < 0.001
 
 
 initManual!(fg, :x2 ,1*ones(1,100))

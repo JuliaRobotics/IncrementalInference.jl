@@ -33,18 +33,22 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                   solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
+  # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
   fcttype = getFactorType(fcto)
 
   N = size(vars[1])[2]
   
+  # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
+  fmd = _getFMdThread(fcto)
   # generate default fmd
-  fmd = FactorMetadata(getVariable.(dfg,varsyms), varsyms, Vector{Matrix{Float64}}(), :null, nothing )
+  # fmd = FactorMetadata( getVariable.(dfg,varsyms), varsyms, 
+  #                       Vector{Matrix{Float64}}(), :null, nothing )
   meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
-  zDim = getSolverData(fcto).fnc.zDim
+  zDim = _getZDim(fcto)
   res = zeros(zDim)
 
   function makemeas!(i, meas, dm)
@@ -52,11 +56,13 @@ function solveFactorMeasurements( dfg::AbstractDFG,
     return meas
   end
 
+    # some code snippets to help identify
     # ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
     # varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
     # target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, smpid)
     # unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
     # _hypoObj = (x) -> (target.=x; unrollHypo() )
+
   ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
   # ggo(1, [0.0;0.0])
 

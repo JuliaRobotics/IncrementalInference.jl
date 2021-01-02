@@ -3,6 +3,36 @@ export findRelatedFromPotential
 
 
 """
+    $SIGNATURES
+Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
+"""
+function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeMinimize,S,T}
+  #
+  p = if ccwl.partial
+    Int[ccwl.usrfnc!.partial...]
+  else
+    Int[1:ccwl.xDim...]
+  end
+
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
+    ccwl.cpt[thrid].p .= p
+  end
+  nothing
+end
+
+function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
+  #
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
+    ccwl.cpt[thrid].p .= Int[1:ccwl.xDim;]
+  end
+  nothing
+end
+
+"""
     $(SIGNATURES)
 
 Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
@@ -18,9 +48,13 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {N_,F<:AbstractRelative,S,T}
   #
+  # which elements of the variable dimension should be used as decision variables
+  _setCCWDecisionDimsConv!(ccwl)
+
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
+    
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
     numericSolutionCCW!( ccwl )
   end
@@ -32,8 +66,10 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
+  # which elements of the variable dimension should be used as decision variables
+  _setCCWDecisionDimsConv!(ccwl)
   for n in elements
-    ccwl.cpt[Threads.threadid()].particleidx = n
+    ccwl.cpt[Threads.threadid()].particleidx = n    
     numericSolutionCCW!( ccwl )
   end
   nothing
@@ -404,6 +440,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                         spreadNH=spreadNH )
 end
 
+
 """
     $(SIGNATURES)
 
@@ -419,7 +456,7 @@ function evalFactor(dfg::AbstractDFG,
                     dbg::Bool=false  )
   #
 
-  ccw = getSolverData(fct).fnc
+  ccw = _getCCW(fct)
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0

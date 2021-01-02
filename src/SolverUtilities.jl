@@ -16,8 +16,13 @@ Sample the factor stochastic model `N::Int` times and store the samples in the p
 
 DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
+- TODO only works on `.threadid()==1` at present, see #1094
 """
-function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
+function freshSamples(usrfnc::T, 
+                      N::Int, 
+                      fmd::FactorMetadata, 
+                      vnd::Vector=[]) where { T <: FunctorInferenceType }
+  #
   if !hasfield(T, :specialSampler)
     getSample(usrfnc, N)
   else
@@ -26,12 +31,18 @@ function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) wh
 end
 
 
-function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
+function freshSamples(dfg::AbstractDFG, 
+                      sym::Symbol, 
+                      N::Int=1 )
+  #
   fct = getFactor(dfg, sym)
   usrfnc = getFactorType(fct)
   variables = getVariable.(dfg, getVariableOrder(fct))
 
+  # FIXME why not use ccwl.cpt[thrid].fmd rather than building a new one 
+    # fmd = _getFMdThread() # what about shared mem concurrancy?
   # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
+   # also deconv?
    # not really, because that would imply stochastic dependency on association before noise process??
   fmd = FactorMetadata(variables, getLabel.(variables), Vector{Matrix{Float64}}(), :null, nothing)
   # if hasfield(typeof(usrfnc), :specialSampler)

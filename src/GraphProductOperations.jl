@@ -163,8 +163,8 @@ function proposalbeliefs!(dfg::AbstractDFG,
     count += 1
     data = getSolverData(fct)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    if data.fnc.partial   # partial density
-      pardims = data.fnc.usrfnc!.partial
+    if _getCCW(data).partial   # partial density
+      pardims = _getCCW(data).usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
           push!(partials[dimnum], marginal(p,[dimnum]))
