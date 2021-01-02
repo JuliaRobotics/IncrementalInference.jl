@@ -25,17 +25,20 @@ end
 """
     $(SIGNATURES)
 
-This function explicitly encodes the marginalization of a discrete categorical selection variable for ambiguous data association situations.  This function populates `allelements` with particle indices associated with particular multihypothesis selection while `activehypo` simultaneously contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
+This function explicitly encodes the marginalization of a discrete categorical selection variable 
+for ambiguous data association situations.  This function populates `allelements` with particle 
+indices associated with particular multihypothesis selection while `activehypo` simultaneously 
+contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
 
 Output:
-- certainidx:   non fractional variables
-- allelements:  list of which particles go with which hypothesis selection
-- activehypo:   list of which hypotheses go with which certain + fractional variables
-- mhidx:        multihypothesis selection per particle idx
+- `certainidx`:   non fractional variables
+- `allelements`:  list of which particles go with which hypothesis selection
+- `activehypo`:   list of which hypotheses go with which certain + fractional variables
+- `mhidx`:        multihypothesis selection per particle idx
 
 Example:
 ```julia
-      idx=(1,2,3)
+idx=(1,2,3)
 multihypo=[1.0;0.5;0.5]
 sfidx=2 # example specific
 certainidx=
@@ -110,12 +113,12 @@ sfidx=3, allelements=allidx[nhidx.==0], activehypo=(0,[3;])
 
 TODO still need to compensate multihypo case for user nullhypo addition.
 """
-function assembleHypothesesElements!(mh::Categorical,
-                                     maxlen::Int,
-                                     sfidx::Int,
-                                     lenXi::Int,
-                                     isinit::Vector{Bool}=ones(Bool, lenXi),
-                                     nullhypo::Real=0  )
+function assembleHypothesesElements!( mh::Categorical,
+                                      maxlen::Int,
+                                      sfidx::Int,
+                                      lenXi::Int,
+                                      isinit::Vector{Bool}=ones(Bool, lenXi),
+                                      nullhypo::Real=0  )
   #
   allelements = []
   activehypo = []
@@ -198,12 +201,12 @@ function assembleHypothesesElements!(mh::Categorical,
 end
 
 
-function assembleHypothesesElements!(mh::Nothing,
-                                     maxlen::Int,
-                                     sfidx::Int,
-                                     lenXi::Int,
-                                     isinit::Vector{Bool}=ones(Bool, lenXi),
-                                     nullhypo::Real=0  )
+function assembleHypothesesElements!( mh::Nothing,
+                                      maxlen::Int,
+                                      sfidx::Int,
+                                      lenXi::Int,
+                                      isinit::Vector{Bool}=ones(Bool, lenXi),
+                                      nullhypo::Real=0  )
   #
   # FIXME, consolidate with the general multihypo case
 

@@ -18,13 +18,15 @@ Notes
 - "measured" is used as starting point for the "predicted" values solve.
 - Not all factor evaluation cases are support yet.
 - NOTE only works on `.threadid()==1` at present, see #1094
+- This function is still part of the initial implementation and needs a lot of generalization improvements.
 
 DevNotes
-- This function is still part of the initial implementation and needs a lot of generalization improvements.
-- FIXME FactorMetadata object for all use-cases, not just empty object.
-- Test for various cases with multiple variables.
-- Test for cases with `nullhypo` and `multihypo`.
+- TODO Test for various cases with multiple variables.
 - TODO make multithread-safe, and able, see #1094
+- TODO Test for cases with `nullhypo`
+- FIXME FactorMetadata object for all use-cases, not just empty object.
+- TODO resolve #1096 (multihypo)
+- TODO Test cases for `multihypo`.
 
 Related
 
@@ -34,6 +36,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                   fctsym::Symbol,
                                   solveKey::Symbol=:default  )
   #
+  thrid = Threads.threadid()
   fcto = getFactor(dfg, fctsym)
   ccw = _getCCW(fcto)
   fmd = _getFMdThread(ccw)
@@ -51,6 +54,8 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   meas0 = deepcopy(meas[1])
   # get measurement dimension
   zDim = _getZDim(fcto)
+
+  # TODO consider using ccw.cpt[thrid].res # likely needs resizing
   res_ = zeros(zDim)
 
   # TODO assuming vector on only first container in meas::Tuple
@@ -58,14 +63,18 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   
   for idx in 1:N
     targeti_ = makeTarget(idx)
-    
-    # build a lambda that incorporates multihypo -- but where?
+
+    # NOTE Deferred as #1096
+    # TODO must first resolve hypothesis selection before unrolling them
+    # build a lambda that incorporates the multihypo selections
     # unrollHypo, _ = _buildCalcFactorLambdaSample( ccw,
     #                                               idx,
+    #                                               ccw.cpt[thrid],
     #                                               targeti_,
-    #                                               meas )
+    #                                               meas  )
     #
     
+    # ggo = (res, dm) -> (targeti_.=dm; unrollHypo(res))
     ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
 
     retry = 10
