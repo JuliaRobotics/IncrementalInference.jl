@@ -34,7 +34,8 @@ Related
 """
 function solveFactorMeasurements( dfg::AbstractDFG,
                                   fctsym::Symbol,
-                                  solveKey::Symbol=:default  )
+                                  solveKey::Symbol=:default;
+                                  retries::Int=3  )
   #
   thrid = Threads.threadid()
   fcto = getFactor(dfg, fctsym)
@@ -61,32 +62,42 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   # TODO assuming vector on only first container in meas::Tuple
   makeTarget = (i) -> view(meas[1], :, i)
   
+  
   for idx in 1:N
     targeti_ = makeTarget(idx)
-
-    # NOTE Deferred as #1096
-    # TODO must first resolve hypothesis selection before unrolling them
+    lent = length(targeti_)
+    
+    # NOTE 
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     # build a lambda that incorporates the multihypo selections
-    # unrollHypo, _ = _buildCalcFactorLambdaSample( ccw,
-    #                                               idx,
-    #                                               ccw.cpt[thrid],
-    #                                               targeti_,
-    #                                               meas  )
+    # set these first
+    # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
+    certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+    cpt_ = ccw.cpt[thrid]
+    # only doing the current active hypo
+    @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+    cpt_.activehypo = activehypo[2][2]
+    resize!(cpt_.p, lent)
+    cpt_.p .= Int[1:lent;]
+    onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
+                                                idx,
+                                                cpt_,
+                                                targeti_,
+                                                meas  )
     #
     
-    # ggo = (res, dm) -> (targeti_.=dm; unrollHypo(res))
-    ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
+    # lambda with which to find best measurement values
+    ggo = (res, dm) -> (targeti_.=dm; onehypo!(res) )
 
-    retry = 10
-    # FIXME remove the retry steps
-    while 0 < retry
+    # a few retries allowed
+    while 0 < retries
       if isa(fcttype, AbstractRelativeMinimize)
         r = if size(targeti_,1) == 1
           optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() )
         else
           optimize((x) -> ggo(res_, x), meas[1][:,idx])
         end
-        retry -= 1
+        retries -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
           for count in 1:length(meas)
@@ -198,37 +209,6 @@ function deconvSolveKey(dfg::AbstractDFG,
   # return result
   return pts, fctType
 end
-
-
-"""
-    $TYPEDSIGNATURES
-
-Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
-
-Notes
-- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
-
-Related
-
-`KDE.kld`
-"""
-function mmd( p1::AbstractMatrix{<:Real}, 
-              p2::AbstractMatrix{<:Real}, 
-              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;] )
-  #
-  manis = convert(AMP.Manifold, varType)
-  mmd(p1, p2, manis, bw=bw)  
-end
-
-function mmd( p1::BallTreeDensity, 
-              p2::BallTreeDensity, 
-              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;])
-  #
-  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
-end
-
 
 
 #
