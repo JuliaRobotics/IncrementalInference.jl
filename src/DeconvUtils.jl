@@ -17,12 +17,14 @@ Inverse solve of predicted noise value and returns tuple of (newly predicted, an
 Notes
 - "measured" is used as starting point for the "predicted" values solve.
 - Not all factor evaluation cases are support yet.
+- NOTE only works on `.threadid()==1` at present, see #1094
 
 DevNotes
 - This function is still part of the initial implementation and needs a lot of generalization improvements.
 - FIXME FactorMetadata object for all use-cases, not just empty object.
 - Test for various cases with multiple variables.
 - Test for cases with `nullhypo` and `multihypo`.
+- TODO make multithread-safe, and able, see #1094
 
 Related
 
@@ -45,32 +47,44 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   # generate default fmd
   # fmd = FactorMetadata( getVariable.(dfg,varsyms), varsyms, 
   #                       Vector{Matrix{Float64}}(), :null, nothing )
-  meas = getSample(fcttype, N)
+  meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
   zDim = _getZDim(fcto)
-  res = zeros(zDim)
+  res_ = zeros(zDim)
 
-  function makemeas!(i, meas, dm)
-    meas[1][:,i] = dm
-    return meas
-  end
+  # TODO assuming vector on only first container in meas::Tuple
+  makeTarget = (i) -> view(meas[1], :, i)
 
+  # function makemeas!(i, meas, dm)
+  #   meas[1][:,i] = dm
+  #   return meas
+  # end  
+  
     # some code snippets to help identify
     # ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
-    # varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
-    # target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, smpid)
     # unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
     # _hypoObj = (x) -> (target.=x; unrollHypo() )
-
-  ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
+  
+  # ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
   # ggo(1, [0.0;0.0])
-
+  
   for idx in 1:N
+    targeti_ = makeTarget(idx)
+    
+    # unrollHypo, _ = _buildCalcFactorLambdaSample( _getCCW(fcto),
+    #                                               idx,
+    #                                               targeti_
+    #                                               meas )
+    #
+    
+    ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
+
     retry = 10
     while 0 < retry
       if isa(fcttype, AbstractRelativeMinimize)
-        r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
+        r = optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() ) # meas[1][:,idx])
+        # r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
         retry -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
@@ -81,12 +95,13 @@ function solveFactorMeasurements( dfg::AbstractDFG,
           break
         end
       elseif isa(fcttype, AbstractRelativeRoots)
-        ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
-        r = nlsolve(ggnl, meas[1][:,idx])
+
+        # ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
+
+        r = nlsolve(ggo, meas[1][:,idx]) # ggnl, meas[1][:,idx]
         break
       elseif isa(fcttype, AbstractPrior)
-        # assuming no partials at this point
-        meas[1][:,:] .= vars[1][:,:]
+        # return trivial case of meas == meas0
         break
       end
     end

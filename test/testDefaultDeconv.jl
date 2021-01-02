@@ -3,6 +3,7 @@
 using Test
 using IncrementalInference
 
+
 ##
 
 @testset "basic deconvolution test" begin
@@ -12,6 +13,14 @@ using IncrementalInference
 fg = generateCanonicalFG_lineStep(2)
 
 # drawGraph(fg, show=true)
+
+## test trivial Prior
+
+pred, meas = approxDeconv(fg, :x0f1)
+
+@test mmd(pred, meas) < 1e-8
+
+##
 
 doautoinit!.(fg, [:x0; :x2])
 
@@ -97,7 +106,41 @@ addLikelihoodsDifferential!.(tfg, values(msg))
 end
 
 
+@testset "deconv on <:AbstractRelativeMinimize" begin
 
+##
+
+fg = initfg()
+
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+addFactor!(fg, [:x0], Prior(Normal()))
+addFactor!(fg, [:x0;:x1], EuclidDistance(Normal(10,1)))
+
+solveTree!(fg);
+
+## make sure result is in the right place
+
+@test abs(getPPE(fg, :x0).suggested[1]) < 1.0
+
+X1 = getBelief(fg, :x1) |> getPoints
+N = size(X1,2)
+@test sum(-5 .< X1 .< 5) < 0.1*N
+@test sum(X1 .< -15) < 0.1*N
+@test sum(15 .< X1) < 0.1*N
+@test 0.2*N .< sum(-15 .< X1 .< -5)
+@test 0.2*N .< sum(5 .< X1 .< 15)
+
+## not check deconv
+
+pred, meas = approxDeconv(fg, :x0x1f1)
+
+@test mmd(pred, meas)< 1e-3
+
+
+##
+
+end
 
 
 #
