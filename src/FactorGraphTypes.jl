@@ -158,6 +158,7 @@ $(TYPEDEF)
 DevNotes
 - FIXME rm ::Union on `.activehypo`
 - TODO consider renaming `.p` to `.decisionDims`
+  - TODO `.decisionDims::DD where DD <: Union{<:AbstractVector{Int},Colon}` -- ensure type stability
 - TODO consolidate with CCW, FMd, CalcFactor
 - TODO figure out if we want static parameter THRID
 - TODO make static params {XDIM, ZDIM, P}

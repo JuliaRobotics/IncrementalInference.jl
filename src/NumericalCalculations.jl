@@ -25,9 +25,9 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Int,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      fmd_::FactorMetadata = cpt_.factormetadata,
+                                      target::AbstractVector = view(ccwl.params[ccwl.varidx], cpt_.p, smpid),
                                       measurement_ = ccwl.measurement,
-                                      target::AbstractVector = view(ccwl.params[ccwl.varidx], cpt_.p, smpid)  )
+                                      fmd_::FactorMetadata = cpt_.factormetadata  )
   #
 
   # build a view to the decision variable memory
