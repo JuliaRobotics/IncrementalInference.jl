@@ -226,11 +226,11 @@ end
 #   return Y
 # end
 
-function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
-  error("freshSamples API changing, use freshSamples!( ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[] ) instead")
-  # could maybe use default to reduce member functions
-  freshSamples!(ccwl, N, FactorMetadata(),)
-end
+# function freshSamples!(ccwl::CommonConvWrapper, N::Int=1)
+#   error("freshSamples API changing, use freshSamples!( ccwl::CommonConvWrapper, N::Int, fmd::FactorMetadata, vnd::Vector=[] ) instead")
+#   # could maybe use default to reduce member functions
+#   freshSamples!(ccwl, N, FactorMetadata(),)
+# end
 
 function freshSamples(usrfnc::T, N::Int=1) where {T<:FunctorInferenceType}
   error("freshSamples API changing, use freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int) instead")

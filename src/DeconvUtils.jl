@@ -35,6 +35,9 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                   solveKey::Symbol=:default  )
   #
   fcto = getFactor(dfg, fctsym)
+  ccw = _getCCW(fcto)
+  fmd = _getFMdThread(ccw)
+
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
@@ -43,10 +46,7 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   N = size(vars[1])[2]
   
   # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
-  fmd = _getFMdThread(fcto)
-  # generate default fmd
-  # fmd = FactorMetadata( getVariable.(dfg,varsyms), varsyms, 
-  #                       Vector{Matrix{Float64}}(), :null, nothing )
+
   meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
@@ -55,36 +55,28 @@ function solveFactorMeasurements( dfg::AbstractDFG,
 
   # TODO assuming vector on only first container in meas::Tuple
   makeTarget = (i) -> view(meas[1], :, i)
-
-  # function makemeas!(i, meas, dm)
-  #   meas[1][:,i] = dm
-  #   return meas
-  # end  
-  
-    # some code snippets to help identify
-    # ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
-    # unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
-    # _hypoObj = (x) -> (target.=x; unrollHypo() )
-  
-  # ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
-  # ggo(1, [0.0;0.0])
   
   for idx in 1:N
     targeti_ = makeTarget(idx)
     
-    # unrollHypo, _ = _buildCalcFactorLambdaSample( _getCCW(fcto),
+    # build a lambda that incorporates multihypo -- but where?
+    # unrollHypo, _ = _buildCalcFactorLambdaSample( ccw,
     #                                               idx,
-    #                                               targeti_
+    #                                               targeti_,
     #                                               meas )
     #
     
     ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
 
     retry = 10
+    # FIXME remove the retry steps
     while 0 < retry
       if isa(fcttype, AbstractRelativeMinimize)
-        r = optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() ) # meas[1][:,idx])
-        # r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
+        r = if size(targeti_,1) == 1
+          optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() )
+        else
+          optimize((x) -> ggo(res_, x), meas[1][:,idx])
+        end
         retry -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
@@ -95,17 +87,13 @@ function solveFactorMeasurements( dfg::AbstractDFG,
           break
         end
       elseif isa(fcttype, AbstractRelativeRoots)
-
-        # ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
-
-        r = nlsolve(ggo, meas[1][:,idx]) # ggnl, meas[1][:,idx]
+        r = nlsolve(ggo, meas[1][:,idx])
         break
       elseif isa(fcttype, AbstractPrior)
         # return trivial case of meas == meas0
         break
       end
     end
-    # @assert meas[1][:,idx] == r.minimizer
   end
 
   # return (deconv-prediction-result, independent-measurement)
