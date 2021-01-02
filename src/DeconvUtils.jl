@@ -71,13 +71,9 @@ function solveFactorMeasurements( dfg::AbstractDFG,
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     # build a lambda that incorporates the multihypo selections
     # set these first
-    # ccw.cpt[].activehypo
-    # ccw.cpt[].p
-    # ccw.cpt[].params # should already be set
+    # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
     certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
     cpt_ = ccw.cpt[thrid]
-      # @show typeof(activehypo)
-      # @show activehypo
     # only doing the current active hypo
     @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
     cpt_.activehypo = activehypo[2][2]
@@ -90,10 +86,8 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                                 meas  )
     #
     
-    # ggo = (res, dm) -> (targeti_.=dm; unrollHypo(res))
-    # onehypo! = (res) -> cf( res, (_viewdim1or2.(meas, :, idx))..., (view.(vars, :, idx))... )
+    # lambda with which to find best measurement values
     ggo = (res, dm) -> (targeti_.=dm; onehypo!(res) )
-    # ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
 
     # a few retries allowed
     while 0 < retries
@@ -215,37 +209,6 @@ function deconvSolveKey(dfg::AbstractDFG,
   # return result
   return pts, fctType
 end
-
-
-"""
-    $TYPEDSIGNATURES
-
-Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
-
-Notes
-- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
-
-Related
-
-`KDE.kld`
-"""
-function mmd( p1::AbstractMatrix{<:Real}, 
-              p2::AbstractMatrix{<:Real}, 
-              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;] )
-  #
-  manis = convert(AMP.Manifold, varType)
-  mmd(p1, p2, manis, bw=bw)  
-end
-
-function mmd( p1::BallTreeDensity, 
-              p2::BallTreeDensity, 
-              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;])
-  #
-  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
-end
-
 
 
 #
