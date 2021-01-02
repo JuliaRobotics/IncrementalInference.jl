@@ -51,12 +51,15 @@ getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid)
     $SIGNATURES
 Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
 """
+_getFMdThread(ccw::CommonConvWrapper, 
+              thrid::Int=Threads.threadid()) = ccw.cpt[thrid].factormetadata
+#
 _getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
-              thrid::Int=Threads.threadid()) = _getCCW(fc).cpt[thrid].factormetadata
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(fc), thrid)
 #
 _getFMdThread(dfg::AbstractDFG,
               lbl::Symbol,
-              thrid::Int=Threads.threadid()) = _getCCW(dfg, lbl).cpt[thrid].factormetadata
+              thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
 #
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]

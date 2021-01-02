@@ -49,7 +49,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {N_,F<:AbstractRelative,S,T}
   #
   # which elements of the variable dimension should be used as decision variables
-  _setCCWDecisionDimsConv!(ccwl)
+  # _setCCWDecisionDimsConv!(ccwl)
 
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
@@ -67,7 +67,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   # which elements of the variable dimension should be used as decision variables
-  _setCCWDecisionDimsConv!(ccwl)
+  # _setCCWDecisionDimsConv!(ccwl)
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n    
     numericSolutionCCW!( ccwl )
@@ -232,7 +232,7 @@ Common function to compute across a single user defined multi-hypothesis ambigui
 """
 function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                  allelements,
+                                  allelements::AbstractVector,
                                   activehypo,
                                   certainidx::Vector{Int},
                                   sfidx::Int,
@@ -241,6 +241,11 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                   spreadNH::Real=3.0 ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
+
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl)
+
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
@@ -310,18 +315,18 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
   end
-
+  
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
-
+  
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
-
+  
   # assemble how hypotheses should be computed
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
-
+  
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH)

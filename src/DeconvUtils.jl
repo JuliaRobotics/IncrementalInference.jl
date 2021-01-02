@@ -17,12 +17,16 @@ Inverse solve of predicted noise value and returns tuple of (newly predicted, an
 Notes
 - "measured" is used as starting point for the "predicted" values solve.
 - Not all factor evaluation cases are support yet.
+- NOTE only works on `.threadid()==1` at present, see #1094
+- This function is still part of the initial implementation and needs a lot of generalization improvements.
 
 DevNotes
-- This function is still part of the initial implementation and needs a lot of generalization improvements.
+- TODO Test for various cases with multiple variables.
+- TODO make multithread-safe, and able, see #1094
+- TODO Test for cases with `nullhypo`
 - FIXME FactorMetadata object for all use-cases, not just empty object.
-- Test for various cases with multiple variables.
-- Test for cases with `nullhypo` and `multihypo`.
+- TODO resolve #1096 (multihypo)
+- TODO Test cases for `multihypo`.
 
 Related
 
@@ -32,7 +36,11 @@ function solveFactorMeasurements( dfg::AbstractDFG,
                                   fctsym::Symbol,
                                   solveKey::Symbol=:default  )
   #
+  thrid = Threads.threadid()
   fcto = getFactor(dfg, fctsym)
+  ccw = _getCCW(fcto)
+  fmd = _getFMdThread(ccw)
+
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
@@ -41,36 +49,43 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   N = size(vars[1])[2]
   
   # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
-  fmd = _getFMdThread(fcto)
-  # generate default fmd
-  # fmd = FactorMetadata( getVariable.(dfg,varsyms), varsyms, 
-  #                       Vector{Matrix{Float64}}(), :null, nothing )
-  meas = getSample(fcttype, N)
+
+  meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
   zDim = _getZDim(fcto)
-  res = zeros(zDim)
 
-  function makemeas!(i, meas, dm)
-    meas[1][:,i] = dm
-    return meas
-  end
+  # TODO consider using ccw.cpt[thrid].res # likely needs resizing
+  res_ = zeros(zDim)
 
-    # some code snippets to help identify
-    # ccwl.cpt[thrid].p = Int[ (ccwl.partial ? ccwl.usrfnc!.partial : 1:ccwl.xDim)... ]
-    # varParams = view(ccwl.params, ccwl.cpt[thrid].activehypo)
-    # target = view(ccwl.params[ccwl.varidx], ccwl.cpt[thrid].p, smpid)
-    # unrollHypo = () -> cf( ccwl.cpt[thrid].res, (_viewdim1or2.(ccwl.measurement, :, smpid))..., (view.(varParams, :, smpid))... )
-    # _hypoObj = (x) -> (target.=x; unrollHypo() )
-
-  ggo = ( i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
-  # ggo(1, [0.0;0.0])
-
+  # TODO assuming vector on only first container in meas::Tuple
+  makeTarget = (i) -> view(meas[1], :, i)
+  
   for idx in 1:N
+    targeti_ = makeTarget(idx)
+
+    # NOTE Deferred as #1096
+    # TODO must first resolve hypothesis selection before unrolling them
+    # build a lambda that incorporates the multihypo selections
+    # unrollHypo, _ = _buildCalcFactorLambdaSample( ccw,
+    #                                               idx,
+    #                                               ccw.cpt[thrid],
+    #                                               targeti_,
+    #                                               meas  )
+    #
+    
+    # ggo = (res, dm) -> (targeti_.=dm; unrollHypo(res))
+    ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
+
     retry = 10
+    # FIXME remove the retry steps
     while 0 < retry
       if isa(fcttype, AbstractRelativeMinimize)
-        r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
+        r = if size(targeti_,1) == 1
+          optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() )
+        else
+          optimize((x) -> ggo(res_, x), meas[1][:,idx])
+        end
         retry -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
@@ -81,16 +96,13 @@ function solveFactorMeasurements( dfg::AbstractDFG,
           break
         end
       elseif isa(fcttype, AbstractRelativeRoots)
-        ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
-        r = nlsolve(ggnl, meas[1][:,idx])
+        r = nlsolve(ggo, meas[1][:,idx])
         break
       elseif isa(fcttype, AbstractPrior)
-        # assuming no partials at this point
-        meas[1][:,:] .= vars[1][:,:]
+        # return trivial case of meas == meas0
         break
       end
     end
-    # @assert meas[1][:,idx] == r.minimizer
   end
 
   # return (deconv-prediction-result, independent-measurement)

@@ -55,7 +55,7 @@ end
 # TODO, add Xi::Vector{DFGVariable} if possible
 function freshSamples!( ccwl::CommonConvWrapper, 
                         N::Int, 
-                        fmd::FactorMetadata, 
+                        fmd::FactorMetadata=_getFMdThread(ccwl), 
                         vnd::Vector=[] )
   #
   # if size(ccwl.measurement, 2) == N
