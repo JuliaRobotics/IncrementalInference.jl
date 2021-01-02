@@ -30,6 +30,9 @@ for ambiguous data association situations.  This function populates `allelements
 indices associated with particular multihypothesis selection while `activehypo` simultaneously 
 contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
 
+Input:
+- `maxlen` is the max number of samples across all variables
+
 Output:
 - `certainidx`:   non fractional variables
 - `allelements`:  list of which particles go with which hypothesis selection
@@ -65,6 +68,7 @@ Notes:
 DevNotes
 - Improved implementations should implicitly induce the same behaviour through summation (integration) when marginalizing any number of discrete variables.
 - TODO add nullhypo cases to returning result
+- FIXME make type-stable `activehypo` and others
 
 ```
 # `allelements` example BearingRange [:x1, 0.5:l1a, 0.5:l1b]

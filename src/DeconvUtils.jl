@@ -34,7 +34,8 @@ Related
 """
 function solveFactorMeasurements( dfg::AbstractDFG,
                                   fctsym::Symbol,
-                                  solveKey::Symbol=:default  )
+                                  solveKey::Symbol=:default;
+                                  retries::Int=3  )
   #
   thrid = Threads.threadid()
   fcto = getFactor(dfg, fctsym)
@@ -61,32 +62,48 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   # TODO assuming vector on only first container in meas::Tuple
   makeTarget = (i) -> view(meas[1], :, i)
   
+  
   for idx in 1:N
     targeti_ = makeTarget(idx)
-
-    # NOTE Deferred as #1096
-    # TODO must first resolve hypothesis selection before unrolling them
+    lent = length(targeti_)
+    
+    # NOTE 
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     # build a lambda that incorporates the multihypo selections
-    # unrollHypo, _ = _buildCalcFactorLambdaSample( ccw,
-    #                                               idx,
-    #                                               ccw.cpt[thrid],
-    #                                               targeti_,
-    #                                               meas  )
+    # set these first
+    # ccw.cpt[].activehypo
+    # ccw.cpt[].p
+    # ccw.cpt[].params # should already be set
+    certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+    cpt_ = ccw.cpt[thrid]
+      # @show typeof(activehypo)
+      # @show activehypo
+    # only doing the current active hypo
+    @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+    cpt_.activehypo = activehypo[2][2]
+    resize!(cpt_.p, lent)
+    cpt_.p .= Int[1:lent;]
+    onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
+                                                idx,
+                                                cpt_,
+                                                targeti_,
+                                                meas  )
     #
     
     # ggo = (res, dm) -> (targeti_.=dm; unrollHypo(res))
-    ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
+    # onehypo! = (res) -> cf( res, (_viewdim1or2.(meas, :, idx))..., (view.(vars, :, idx))... )
+    ggo = (res, dm) -> (targeti_.=dm; onehypo!(res) )
+    # ggo = (res, dm) -> (targeti_.=dm; fcttype(res, fmd, idx, meas, vars...))
 
-    retry = 10
-    # FIXME remove the retry steps
-    while 0 < retry
+    # a few retries allowed
+    while 0 < retries
       if isa(fcttype, AbstractRelativeMinimize)
         r = if size(targeti_,1) == 1
           optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() )
         else
           optimize((x) -> ggo(res_, x), meas[1][:,idx])
         end
-        retry -= 1
+        retries -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
           for count in 1:length(meas)
