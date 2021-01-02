@@ -12,7 +12,8 @@ function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                 username="",
                                 cloudgraph=nothing) where T <: AbstractDFG
 #
-return dfg
+  #
+  return dfg
 end
 
 
@@ -22,7 +23,8 @@ function initfg(::Type{T};solverParams=SolverParams(),
                       robotname="",
                       username="",
                       cloudgraph=nothing) where T <: AbstractDFG
-return T(solverParams=solverParams)
+  #
+  return T(solverParams=solverParams)
 end
 
 function initfg(::Type{T},solverParams::SolverParams;
@@ -30,7 +32,8 @@ function initfg(::Type{T},solverParams::SolverParams;
                       robotname="",
                       username="",
                       cloudgraph=nothing) where T <: AbstractDFG
-return T{SolverParams}(solverParams=solverParams)
+  #
+  return T{SolverParams}(solverParams=solverParams)
 end
 
 
@@ -234,8 +237,8 @@ end
 
 Set variable initialized status.
 """
-function setVariableInitialized!(varid::VariableNodeData,
-                                 status::Bool)
+function setVariableInitialized!( varid::VariableNodeData,
+                                  status::Bool)
   #
   varid.initialized = status
 end

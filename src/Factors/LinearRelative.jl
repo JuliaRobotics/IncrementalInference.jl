@@ -51,8 +51,8 @@ end
 # # new and simplified interface
 # function (s::CalcFactor{T,M,P,X})(res::AbstractVector{<:Real},
 #                                   noise_z,
-#                                   x1::AbstractVector{<:Real},
-#                                   x2::AbstractVector{<:Real} ) where {T<:LinearRelative,M,P<:Tuple,X<:AbstractVector}
+#                                   x1,
+#                                   x2  ) where {T<:LinearRelative,M,P<:Tuple,X<:AbstractVector}
 #   #
 #   res[:] = noise_z - (x2 - x1)
 #   nothing

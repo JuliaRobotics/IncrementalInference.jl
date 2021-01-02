@@ -45,9 +45,19 @@ Return the number of dimensions this factor vertex `fc` influences.
 getFactorDim(w...) = getDimension(w...)
 # getFactorDim(fcd::GenericFunctionNodeData) = isa(_getCCW(fcd).usrfnc!, MsgPrior) ? _getCCW(fcd).usrfnc!.inferdim : Int(_getCCW(fcd).zDim)
 # getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
-function getFactorDim(fg::AbstractDFG, fctid::Symbol)
-  getFactorDim(getFactor(fg, fctid))
-end
+getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
+
+"""
+    $SIGNATURES
+Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 
+"""
+_getFMdThread(fc::Union{GenericFunctionNodeData,DFGFactor}, 
+              thrid::Int=Threads.threadid()) = _getCCW(fc).cpt[thrid].factormetadata
+#
+_getFMdThread(dfg::AbstractDFG,
+              lbl::Symbol,
+              thrid::Int=Threads.threadid()) = _getCCW(dfg, lbl).cpt[thrid].factormetadata
+#
 
 clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
 
@@ -57,7 +67,6 @@ function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,l
   for i in len:max-1  st *= " "; end
   return st
 end
-
 
 
 # export setSolvable!

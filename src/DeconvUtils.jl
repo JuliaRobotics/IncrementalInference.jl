@@ -41,12 +41,14 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   N = size(vars[1])[2]
   
   # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
+  fmd = _getFMdThread(fcto)
   # generate default fmd
-  fmd = FactorMetadata(getVariable.(dfg,varsyms), varsyms, Vector{Matrix{Float64}}(), :null, nothing )
+  # fmd = FactorMetadata( getVariable.(dfg,varsyms), varsyms, 
+  #                       Vector{Matrix{Float64}}(), :null, nothing )
   meas = getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
-  zDim = _getCCW(fcto).zDim
+  zDim = _getZDim(fcto)
   res = zeros(zDim)
 
   function makemeas!(i, meas, dm)
