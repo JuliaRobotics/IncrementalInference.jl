@@ -48,9 +48,6 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{MultiThreaded}  ) where {N_,F<:AbstractRelative,S,T}
   #
-  # which elements of the variable dimension should be used as decision variables
-  # _setCCWDecisionDimsConv!(ccwl)
-
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
@@ -66,8 +63,6 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                             CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
-  # which elements of the variable dimension should be used as decision variables
-  # _setCCWDecisionDimsConv!(ccwl)
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n    
     numericSolutionCCW!( ccwl )
@@ -127,11 +122,10 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for i in 1:Threads.nthreads()
     ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = Int[1:ccwl.xDim;] # collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
-    # ccwl.cpt[i].Y = zeros(ccwl.zDim) # zeros(xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeMinimize
+    ccwl.cpt[i].p = Int[1:ccwl.xDim;]
+    # used in ccw functor for AbstractRelativeMinimize
+    ccwl.cpt[i].res = zeros(ccwl.xDim) 
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
-    # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
   end
 
   return sfidx, maxlen, manis
