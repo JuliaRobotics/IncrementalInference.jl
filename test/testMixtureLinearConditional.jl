@@ -1,7 +1,11 @@
 using IncrementalInference
 using Test
 
+##
+
 @testset "test packing of Mixture" begin
+
+##
 
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
@@ -35,12 +39,16 @@ B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
 
 @test mmd(A,B) < 1e-6
 
+##
+
 end
 
 
 
 #
 @testset "test simple Mixture" begin
+
+##
 
 fg = initfg()
 
@@ -72,6 +80,8 @@ addFactor!(fg, [:x0,:x1], mlr)
 
 tree, smt, hist = solveTree!(fg)
 
+##
+
 btd = getBelief(getVariable(fg, :x0))
 @test isapprox(mean(getKDEfit(btd,distribution=Normal)), 0.0; atol=0.1) 
 
@@ -95,5 +105,7 @@ nfit_n = fit(Normal, pts_n)
 #   using RoMEPlotting
 #   plotKDE(fg, ls(fg))
 # end
+
+##
 
 end

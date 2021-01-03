@@ -76,22 +76,24 @@ function getSample( s::Mixture{N_,F,S,T},
   smpls = smplLambda()
     # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
-  (length(s.labels) != N) && resize!(s, N)
+  length(s.labels) != N ? resize!(s, N) : nothing
   s.labels .= rand(s.diversity, N)
   for i in 1:N
     mixComponent = s.components[s.labels[i]]
     smpls[:,i] = rand(mixComponent,1)
   end
-  (smpls, s.labels)
+
+  # TODO only does first element of meas::Tuple at this stage, see #1099
+  (smpls, ) # s.labels
 end
 
 
-# should not be called in case of Prior
-(s::Mixture)( res::AbstractArray{<:Real},
-              fmd::FactorMetadata,
-              idx::Int,
-              meas::Tuple,
-              X... ) = s.mechanics(res, fmd, idx, meas, X...)
+# # should not be called in case of Prior
+# (s::Mixture)( res::AbstractArray{<:Real},
+#               fmd::FactorMetadata,
+#               idx::Int,
+#               meas::Tuple,
+#               X... ) = s.mechanics(res, fmd, idx, meas, X...)
 #
 
 
