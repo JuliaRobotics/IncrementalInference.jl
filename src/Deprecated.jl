@@ -158,6 +158,13 @@ end
 ## Deprecate code below before v0.21
 ##==============================================================================
 
+# # should not be called in case of Prior
+# (s::Mixture)( res::AbstractArray{<:Real},
+#               fmd::FactorMetadata,
+#               idx::Int,
+#               meas::Tuple,
+#               X... ) = s.mechanics(res, fmd, idx, meas, X...)
+#
 
 # function (s::LinearRelative)( res::AbstractArray{<:Real},
 #                               userdata::FactorMetadata,

@@ -88,13 +88,6 @@ function getSample( s::Mixture{N_,F,S,T},
 end
 
 
-# # should not be called in case of Prior
-# (s::Mixture)( res::AbstractArray{<:Real},
-#               fmd::FactorMetadata,
-#               idx::Int,
-#               meas::Tuple,
-#               X... ) = s.mechanics(res, fmd, idx, meas, X...)
-#
 
 
 function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N,F,S,T}

@@ -4,6 +4,12 @@ export Sphere1Sphere1, PriorSphere1, PackedSphere1Sphere1, PackedPriorSphere1
 
 """
 $(TYPEDEF)
+
+Factor between two Sphere1 variables.
+
+Related
+
+[`Polar`](@ref), [`ContinuousEuclid`](@ref)
 """
 mutable struct Sphere1Sphere1{T<: SamplableBelief} <: AbstractRelativeRoots
   Z::T
@@ -14,15 +20,14 @@ Sphere1Sphere1(z::T) where {T <: SamplableBelief} = Sphere1Sphere1{T}(z)
 
 getSample(s::Sphere1Sphere1{<: SamplableBelief}, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-function (s::Sphere1Sphere1{<: SamplableBelief})(res::AbstractVector{<:Real},
-                                                 userdata::FactorMetadata,
-                                                 idx::Int,
-                                                 meas::Tuple,
-                                                 wxi::AbstractArray{<:Real,2},
-                                                 wxj::AbstractArray{<:Real,2}  )
+
+function (cf::CalcFactor{<:Sphere1Sphere1,M,P,X})(res::AbstractVector{<:Real},
+                                                  meas,
+                                                  wxi,
+                                                  wxj  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
-  wXjhat = addtheta(wxi[1,idx], meas[1][1,idx])
-  res[1] = difftheta(wxj[1,idx], wXjhat)  # jXjhat =
+  wXjhat = addtheta(wxi[1], meas[1])
+  res[1] = difftheta(wxj[1], wXjhat)  # jXjhat =
   nothing
 end
 
@@ -39,9 +44,7 @@ PriorSphere1( MvNormal([10; 10; pi/6.0], Matrix(Diagonal([0.1;0.1;0.05].^2))) )
 ```
 """
 mutable struct PriorSphere1{T<: SamplableBelief} <: AbstractPrior
-    Z::T
-    # PriorSphere1{T}() where T = new{T}()
-    # PriorSphere1{T}(x::T) where {T <: IncrementalInference.SamplableBelief}  = new{T}(x)
+  Z::T
 end
 
 
