@@ -26,6 +26,90 @@ end
 ## TODO deprecated  
 ##==============================================================================
 
+# TODO maybe replace X with a type.
+# TODO Replace with _CalcFactorParametric API
+function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
+                    userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = meas - X1[1]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res # + 2*log(1/(  sqrt(det(Σ)*(2pi)^k) )) ## cancel ×1/2 in calling function ## k = dim(μ)
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
+end
+
+
+# parametric specific functor
+# TODO Replace with _CalcFactorParametric API
+function (s::LinearRelative{N,<:ParametricTypes})(
+                                X1::AbstractArray{<:Real},
+                                X2::AbstractArray{<:Real};
+                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
+  #
+  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation, #467
+  # FIXME, replace if with dispatch
+  if isa(s.Z, Normal)
+    meas = mean(s.Z)
+    σ = std(s.Z)
+    # res = similar(X2)
+    res = meas - (X2[1] - X1[1])
+    return (res/σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- (X2 .- X1)
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not supported, please use non-parametric")
+  end
+end
+
+
+# parametric specific functor
+# TODO Replace with _CalcFactorParametric API
+function (s::EuclidDistance{<:ParametricTypes})(X1::AbstractArray{<:Real},
+                                                X2::AbstractArray{<:Real};
+                                                userdata::Union{Nothing,FactorMetadata}=nothing )
+  #
+  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
+  #
+  # FIXME, replace if with dispatch
+  if isa(s.Z, Normal)
+    meas = mean(s.Z)
+    σ = std(s.Z)
+    # res = similar(X2)
+    res = meas - norm(X2 - X1)
+    res *= res
+    return res/(σ^2)
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- (X2 .- X1)
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end
+end
 
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
@@ -71,8 +155,42 @@ mutable struct DebugCliqMCMC
 end
 
 ##==============================================================================
+## Deprecate code below before v0.21
+##==============================================================================
+
+
+# function (s::LinearRelative)( res::AbstractArray{<:Real},
+#                               userdata::FactorMetadata,
+#                               idx::Int,
+#                               meas::Tuple,
+#                               X1::AbstractArray{<:Real,2},
+#                               X2::AbstractArray{<:Real,2}  )
+#   #
+#   res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
+#   nothing
+# end
+
+
+
+# function (s::EuclidDistance)( res::AbstractArray{<:Real},
+#                               fmd::FactorMetadata,
+#                               idx::Int,
+#                               meas::Tuple,
+#                               X1::AbstractArray{<:Real,2},
+#                               X2::AbstractArray{<:Real,2}  )
+#   #
+#   res[1] = meas[1][1,idx] - norm(X2[:,idx] - X1[:,idx])
+#   res[1] ^= 2
+#   return res[1]
+# end
+
+
+
+
+##==============================================================================
 ## Deprecate code below before v0.20
 ##==============================================================================
+
 
 # export shuffleXAltD
 
