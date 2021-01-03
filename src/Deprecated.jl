@@ -191,7 +191,10 @@ end
 #   return res[1]
 # end
 
-
+function PriorSphere1(mu::Array{Float64}, cov::Array{Float64,2}, W::Vector{Float64})
+  @warn "PriorSphere1(mu,cov,W) is deprecated in favor of PriorSphere1(T(...)) -- use for example PriorSphere1(MvNormal(mu, cov))"
+  PriorSphere1(MvNormal(mu[:], cov))
+end
 
 
 ##==============================================================================
