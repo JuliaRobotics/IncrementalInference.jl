@@ -117,6 +117,12 @@ addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal()))
 addFactor!(fg, [:x0;:x1], EuclidDistance(Normal(10,1)))
 
+##
+
+pts = approxConv(fg, :x0x1f1, :x1)
+
+##
+
 solveTree!(fg);
 
 ## make sure result is in the right place

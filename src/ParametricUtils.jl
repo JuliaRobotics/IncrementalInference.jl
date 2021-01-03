@@ -30,6 +30,100 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
+
+function _getParametricCov(Z::FunctorInferenceType)
+  error("$Z not supported, please use non-parametric or open an issue if it should be")
+end
+
+function _getParametricCov(Z::Normal)
+  meas = mean(Z)
+  σ = 1/std(Z)^2
+  return (Float64[meas;], reshape(Float64[σ;],1,1))
+end
+
+function _getParametricCov(Z::MvNormal)
+  meas = mean(Z)
+  iΣ = invcov(Z)
+  return (meas, iΣ)
+end
+
+"""
+    $SIGNATURES
+
+Which field of a user factor type should be used for parametric inference (assumign Gaussian).
+
+Notes
+- Users should overload this method should their factor not default to `.Z<:ParametricType`
+"""
+function getParametricField(s::FunctorInferenceType)
+  # flat out assumption
+  s.Z
+end
+
+function _getParametricMeasurement(s::FunctorInferenceType)
+  Z = getParametricField(s)
+  return _getParametricCov(Z)
+end
+
+
+"""
+    $TYPEDEF
+
+Internal parametric extension to [`CalcFactor`](@ref) 
+"""
+struct _CalcFactorParametric{CF}
+  calcfactor!::CF
+  meanVal::Vector{Float64}
+  informationMat::Matrix{Float64}
+end
+
+
+# pass in residual for consolidation with nonparametric
+# userdata is now at `cfp.cf.cachedata`
+function (cfp::_CalcFactorParametric)(variables...)
+  # call the user function (be careful to call the new CalcFactor version only!!!)
+  res = zeros(length(cfp.meanVal))
+  cfp.calcfactor!(res, cfp.meanVal, variables...)
+  
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  return 0.5 * (res' * cfp.informationMat * res)
+end
+
+
+
+# build the cost function
+function _totalCost(fg::AbstractDFG, 
+                    flatvar, 
+                    X )
+  #
+  obj = 0
+  for fct in getFactors(fg)
+
+    cf = getFactorType(fct)
+    varOrder = getVariableOrder(fct)
+    
+    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+    meanval, covariance = _getParametricMeasurement(cf)
+
+    calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
+                      1, (meanval,), Xparams)
+    #
+    # NOTE the inverse to informationMat
+    cfp! = _CalcFactorParametric(calcf_, meanval, covariance )
+
+    # call the user function
+    # retval = cfp!(Xparams...)  # WHY DOES THIS NOT WORK WITH TwiceDifferentiable??
+    retval = cf(Xparams...) # DOES WORK
+    
+    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+    obj += 1/2*retval 
+  end
+
+  return obj
+end
+
+
+
 """
     $SIGNATURES
 
@@ -67,30 +161,12 @@ function solveFactorGraphParametric(fg::AbstractDFG;
 
   initValues = flatvar.X
 
-  function totalCost(X)
-
-    res = 0
-    for fct in getFactors(fg)
-
-      cf = getFactorType(fct)
-      varOrder = getVariableOrder(fct)
-
-      Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-
-      retval = cf(Xparams...)
-      # @assert retVal |> typeof == Float64
-      res += 1/2*retval # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    end
-    return res
-
-  end
-
 
   mc_mani = IIF.MixedCircular(fg, varIds)
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
+  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
   result = optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
@@ -144,25 +220,6 @@ function solveConditionalsParametric(fg::AbstractDFG,
   frontalsLength = sum(map(v->getDimension(getVariable(fg, v)), frontals))
 
 
-  #build the cost function
-  function totalCost(X)
-
-    res = 0
-    for fct in getFactors(fg)
-
-      cf = getFactorType(fct)
-      varOrder = getVariableOrder(fct)
-
-      Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-
-      retval = cf(Xparams...)
-      # @assert retVal |> typeof == Float64
-      res += 1/2*retval # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    end
-    return res
-
-  end
-
   # build variables for frontals and seperators
   # fX = view(initValues, 1:frontalsLength)
   fX = initValues[1:frontalsLength]
@@ -172,9 +229,10 @@ function solveConditionalsParametric(fg::AbstractDFG,
   mc_mani = MixedCircular(fg, varIds)
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable(totalCost, initValues, autodiff = autodiff)
+  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar,x), initValues, autodiff = autodiff)
 
-  result = optimize(x->totalCost([x;sX]), fX, alg, options)
+  result = optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
+  # result = optimize(x->totalCost([x;sX]), fX, alg, options)
 
   rv = Optim.minimizer(result)
 

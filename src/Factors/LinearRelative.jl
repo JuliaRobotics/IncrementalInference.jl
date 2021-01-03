@@ -37,56 +37,19 @@ getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = Continu
 
 getSample(s::LinearRelative, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-# function (s::LinearRelative)( res::AbstractArray{<:Real},
-#                               userdata::FactorMetadata,
-#                               idx::Int,
-#                               meas::Tuple,
-#                               X1::AbstractArray{<:Real,2},
-#                               X2::AbstractArray{<:Real,2}  )
-#   #
-#   res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
-#   nothing
-# end
 
-# new and simplified interface
-function (s::CalcFactor{<:LinearRelative,M,P,X})(res::AbstractVector{<:Real},
-                                  noise_z,
-                                  x1,
-                                  x2  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+
+# new and simplified interface for both nonparametric and parametric
+function (s::CalcFactor{<:LinearRelative})( res::AbstractVector{<:Real},
+                                                  z,
+                                                  x1,
+                                                  x2  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
-  res .= noise_z - (x2 - x1)
+  # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`
+  res .= z - (x2 - x1)
   nothing
 end
 
-
-
-# parametric specific functor
-function (s::LinearRelative{N,<:ParametricTypes})(
-                                X1::AbstractArray{<:Real},
-                                X2::AbstractArray{<:Real};
-                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation, #467
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - (X2[1] - X1[1])
-    return (res/σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not supported, please use non-parametric")
-  end
-end
 
 
 

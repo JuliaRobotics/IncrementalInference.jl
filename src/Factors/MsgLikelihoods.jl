@@ -27,6 +27,15 @@ const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vecto
 const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
 
 
+function (s::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
+                                            z,
+                                            x1  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+  #
+  res .= z .- x1
+  nothing
+end
+
+
 function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
                         userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
 
