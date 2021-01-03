@@ -9,6 +9,42 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
+
+
+
+"""
+    $TYPEDSIGNATURES
+
+Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
+
+Notes
+- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+
+Related
+
+`KDE.kld`
+"""
+function mmd( p1::AbstractMatrix{<:Real}, 
+              p2::AbstractMatrix{<:Real}, 
+              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;] )
+  #
+  manis = convert(AMP.Manifold, varType)
+  mmd(p1, p2, manis, bw=bw)  
+end
+
+function mmd( p1::BallTreeDensity, 
+              p2::BallTreeDensity, 
+              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;])
+  #
+  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
+end
+
+
+
+
+
 """
     $SIGNATURES
 
