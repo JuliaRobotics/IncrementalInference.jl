@@ -82,8 +82,8 @@ end
 # userdata is now at `cfp.cf.cachedata`
 function (cfp::_CalcFactorParametric)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = zeros(length(meanval))
-  cfp.calcfactor!(res, meanval, variables...)
+  res = zeros(length(cfp.meanVal))
+  cfp.calcfactor!(res, cfp.meanVal, variables...)
   
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
   return 0.5 * (res' * cfp.informationMat * res)
