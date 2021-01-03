@@ -21,10 +21,10 @@ Sphere1Sphere1(z::T) where {T <: SamplableBelief} = Sphere1Sphere1{T}(z)
 getSample(s::Sphere1Sphere1{<: SamplableBelief}, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
-function (cf::CalcFactor{<:Sphere1Sphere1,M,P,X})(res::AbstractVector{<:Real},
-                                                  meas,
-                                                  wxi,
-                                                  wxj  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+function (cf::CalcFactor{<:Sphere1Sphere1})(res::AbstractVector{<:Real},
+                                            meas,
+                                            wxi,
+                                            wxj  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
   wXjhat = addtheta(wxi[1], meas[1])
   res[1] = difftheta(wxj[1], wXjhat)  # jXjhat =

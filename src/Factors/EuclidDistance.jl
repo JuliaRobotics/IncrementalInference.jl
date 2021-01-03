@@ -25,10 +25,10 @@ getSample(s::EuclidDistance, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
 
 # new and simplified interface for both nonparametric and parametric
-function (s::CalcFactor{<:EuclidDistance,M,P,X})( res::AbstractVector{<:Real},
+function (s::CalcFactor{<:EuclidDistance})( res::AbstractVector{<:Real},
                                                   z,
                                                   x1,
-                                                  x2  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+                                                  x2  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
   res .= z .- norm(x2 .- x1)
   res[1] ^= 2
