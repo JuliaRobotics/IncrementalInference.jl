@@ -7,6 +7,28 @@ _viewdim1or2(other, ind1, ind2) = other
 _viewdim1or2(arr::AbstractVector, ind1, ind2) = view(arr, ind2)
 _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
+
+function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
+                                  _fmd_,
+                                  smpid,
+                                  measurement_,
+                                  varParams )
+  #
+  CalcFactor( ccwl.usrfnc!, _fmd_, smpid, 
+              length(measurement_), measurement_, varParams)
+end
+
+
+function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
+                                  _fmd_,
+                                  smpid,
+                                  measurement_,
+                                  varParams ) where {N_,F <: FunctorInferenceType,S,T}
+  #
+  CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 
+              length(measurement_), measurement_, varParams)
+end
+
 """
     $SIGNATURES
 Internal function to build lambda pre-objective function for finding factor residuals. 
@@ -35,15 +57,17 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   
   # prepare fmd according to hypo selection
   # FIXME must refactor (memory waste)
-  _fmd_ = FactorMetadata(view(fmd_.fullvariables, cpt_.activehypo), 
-                        view(fmd_.variablelist, cpt_.activehypo),
-                        varParams, # view(fmd_.arrRef, cpt_.activehypo),
-                        fmd_.solvefor,
-                        fmd_.cachedata  )
+  _fmd_ = FactorMetadata( view(fmd_.fullvariables, cpt_.activehypo), 
+                          view(fmd_.variablelist, cpt_.activehypo),
+                          varParams, # view(fmd_.arrRef, cpt_.activehypo),
+                          fmd_.solvefor,
+                          fmd_.cachedata  )
   #
+  # get the operational CalcFactor object
+  cf = _buildCalcFactorMixture(ccwl, _fmd_, smpid, measurement_, varParams)
   # new dev work on CalcFactor
-  cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
-                  length(measurement_), measurement_, varParams)
+  # cf = CalcFactor(ccwl.usrfnc!, _fmd_, smpid, 
+  #                 length(measurement_), measurement_, varParams)
   #
 
   # reset the residual vector
@@ -73,7 +97,8 @@ DevNotes
 - TODO testshuffle is now obsolete, should be removed
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
-function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
+function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},
+                                          CommonConvWrapper{Mixture{N_,F,S,T}}};
                               perturb::Float64=1e-10,
                               testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
   #

@@ -37,26 +37,26 @@ getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = Continu
 
 getSample(s::LinearRelative, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
 
-function (s::LinearRelative)( res::AbstractArray{<:Real},
-                              userdata::FactorMetadata,
-                              idx::Int,
-                              meas::Tuple,
-                              X1::AbstractArray{<:Real,2},
-                              X2::AbstractArray{<:Real,2}  )
-  #
-  res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
-  nothing
-end
-
-# # new and simplified interface
-# function (s::CalcFactor{T,M,P,X})(res::AbstractVector{<:Real},
-#                                   noise_z,
-#                                   x1,
-#                                   x2  ) where {T<:LinearRelative,M,P<:Tuple,X<:AbstractVector}
+# function (s::LinearRelative)( res::AbstractArray{<:Real},
+#                               userdata::FactorMetadata,
+#                               idx::Int,
+#                               meas::Tuple,
+#                               X1::AbstractArray{<:Real,2},
+#                               X2::AbstractArray{<:Real,2}  )
 #   #
-#   res[:] = noise_z - (x2 - x1)
+#   res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
 #   nothing
 # end
+
+# new and simplified interface
+function (s::CalcFactor{<:LinearRelative,M,P,X})(res::AbstractVector{<:Real},
+                                  noise_z,
+                                  x1,
+                                  x2  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+  #
+  res .= noise_z - (x2 - x1)
+  nothing
+end
 
 
 
