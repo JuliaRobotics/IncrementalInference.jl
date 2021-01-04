@@ -301,11 +301,11 @@ end
 
 
 
-function DefaultNodeDataParametric(dodims::Int,
-                                   dims::Int,
-                                   variableType::InferenceVariable;
-                                   initialized::Bool=true,
-                                   dontmargin::Bool=false)::VariableNodeData
+function DefaultNodeDataParametric( dodims::Int,
+                                    dims::Int,
+                                    variableType::InferenceVariable;
+                                    initialized::Bool=true,
+                                    dontmargin::Bool=false)::VariableNodeData
 
   # this should be the only function allocating memory for the node points
   if false && initialized
@@ -336,14 +336,14 @@ function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVa
   return nothing
 end
 
-function setDefaultNodeData!(v::DFGVariable,
-                             dodims::Int,
-                             N::Int,
-                             dims::Int;
-                             gt=Dict(),
-                             initialized::Bool=true,
-                             dontmargin::Bool=false,
-                             varType=nothing)::Nothing
+function setDefaultNodeData!( v::DFGVariable,
+                              dodims::Int,
+                              N::Int,
+                              dims::Int;
+                              gt=Dict(),
+                              initialized::Bool=true,
+                              dontmargin::Bool=false,
+                              varType=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -389,28 +389,28 @@ Reference data can be stored in the factor graph as a super-solve.
 Notes
 - Intended as a mechanism to store reference data alongside the numerical computations.
 """
-function setVariableRefence!(dfg::AbstractDFG,
-                             sym::Symbol,
-                             val::Array{Float64,2};
-                             refKey::Symbol=:reference)
+function setVariableRefence!( dfg::AbstractDFG,
+                              sym::Symbol,
+                              val::Array{Float64,2};
+                              refKey::Symbol=:reference)
   #
   # which variable to update
   var = getVariable(dfg, sym)
 
   # Construct an empty VND object
-  vnd = VariableNodeData(val,
-                         zeros(getDimension(var),1),
-                         Symbol[],
-                         Int[0;],
-                         getDimension(var),
-                         false,
-                         :_null,
-                         Symbol[],
-                         getVariableType(var),
-                         true,
-                         0.0,
-                         false,
-                         true  )
+  vnd = VariableNodeData( val,
+                          zeros(getDimension(var),1),
+                          Symbol[],
+                          Int[0;],
+                          getDimension(var),
+                          false,
+                          :_null,
+                          Symbol[],
+                          getVariableType(var),
+                          true,
+                          0.0,
+                          false,
+                          true  )
   #
   # set the value in the DFGVariable
   setSolverData!(var, vnd, refKey)
@@ -527,11 +527,11 @@ Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
 Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-                             Xi::Vector{<:DFGVariable},
-                             solvefor::Union{Nothing, Symbol},
-                             N::Int=0;
-                             solveKey::Symbol=:default  )
+function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
+                              Xi::Vector{<:DFGVariable},
+                              solvefor::Union{Nothing, Symbol},
+                              N::Int=0;
+                              solveKey::Symbol=:default  )
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -602,14 +602,13 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(usrfnc::T, 
-                  Xi::Vector{<:DFGVariable}, 
-                  fmd::FactorMetadata=FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing) ) where {T <: FunctorInferenceType}
+function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
-    vnds = Xi # (x->getSolverData(x)).(Xi)
-    smpls = freshSamples(usrfnc, 2, fmd, vnds)[1]
+    # vnds = Xi # (x->getSolverData(x)).(Xi)
+    # NOTE try to make sure we get matrix back (not a vector)
+    smpls = freshSamples(cf, 2)[1]
     size(smpls,1)
   else
     0
@@ -630,7 +629,9 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   # standard factor metadata
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, :null, nothing)
-  zdim = calcZDim(usrfnc, Xi, fmd)
+  cf = CalcFactor( usrfnc, fmd, 0, 1, (Matrix{Float64}(undef,0,0),), ARR)
+
+  zdim = calcZDim(cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   

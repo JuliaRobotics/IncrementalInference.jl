@@ -9,3 +9,4 @@ The list below highlights major breaking changes, and please note that significa
 # Major changes in IIF v0.20
 
 - The user factor API call strategy has been simplified via `CalcResidual`, see #467 for details.
+- User factor API for `getSample` and `.specialsampler` has been standardized via `CalcResidual` (#927) -- for ongoing work please follow #1099 and #1094 and #1069.

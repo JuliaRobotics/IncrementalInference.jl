@@ -182,7 +182,6 @@ fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
 ccw = CommonConvWrapper(odo, t[1], 1, t, fmd, measurement=getSample(odo, N))
 
-
 freshSamples!(ccw, N, fmd)
 x, res = zeros(1), zeros(1)
 

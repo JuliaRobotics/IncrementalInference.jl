@@ -83,7 +83,9 @@ end
 """
     $(SIGNATURES)
 
-Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
+Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing 
+the user factor functor along with additional variables and information using during 
+approximate convolution computations.
 """
 function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     ccwl::CommonConvWrapper{F},
@@ -93,23 +95,31 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     needFreshMeasurements::Bool=true,
                                     solveKey::Symbol=:default  ) where {F <: FunctorInferenceType}
   #
+
+  # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   ARR = Array{Array{Float64,2},1}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N, solveKey=solveKey)
-  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
+  # TODO should be selecting for the correct multihypothesis mode
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, solvefor, nothing)
+
+  # TODO consolidate with ccwl??
+  # FIXME do not divert Mixture for sampling
+  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ARR)
 
   #  get variable node data
   vnds = Xi
 
   # option to disable fresh samples
   if needFreshMeasurements
-    freshSamples!(ccwl, maxlen, fmd, vnds)
+    # TODO refactor
+    ccwl.measurement = freshSamples(cf, maxlen)
+    # freshSamples!(ccwl, maxlen, fmd, vnds)
   end
 
-  # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
@@ -120,12 +130,16 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   ccwl.xDim = size(ccwl.params[sfidx],1)
   # ccwl.xDim = size(ccwl.cpt[1].X,1)
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
-  for i in 1:Threads.nthreads()
-    ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = Int[1:ccwl.xDim;]
+  for thrid in 1:Threads.nthreads()
+    cpt_ = ccwl.cpt[thrid] 
+    cpt_.X = ccwl.params[sfidx]
+    resize!(cpt_.p, ccwl.xDim) 
+    cpt_.p .= 1:ccwl.xDim
     # used in ccw functor for AbstractRelativeMinimize
-    ccwl.cpt[i].res = zeros(ccwl.xDim) 
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
+    resize!(cpt_.res, ccwl.zDim) 
+    fill!(cpt_.res, 0.0)
+    # cpt_.res = zeros(ccwl.xDim) 
   end
 
   return sfidx, maxlen, manis
@@ -348,8 +362,10 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
-    fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-    freshSamples!(ccwl, nn, fmd, vnds)
+    cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+    ccwl.measurement = freshSamples(cf, nn)
+    # fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
+    # freshSamples!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)

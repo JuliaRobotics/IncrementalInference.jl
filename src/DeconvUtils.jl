@@ -51,7 +51,8 @@ function solveFactorMeasurements( dfg::AbstractDFG,
   
   # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
 
-  meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
+  meas = freshSamples(ccw, N)
+  # meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
   zDim = _getZDim(fcto)

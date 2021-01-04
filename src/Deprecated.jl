@@ -111,8 +111,55 @@ function (s::EuclidDistance{<:ParametricTypes})(X1::AbstractArray{<:Real},
   end
 end
 
-# see DFG #590
-@deprecate extractdistribution(x) convert(SamplableBelief, x)
+
+## Ummm ?
+
+"""
+$(TYPEDEF)
+
+MUST BE DEPRECATED IN FAVOR OF EuclidDistance
+"""
+mutable struct Ranged <: AbstractRelativeRoots
+    Zij::Array{Float64,1}
+    Cov::Array{Float64,1}
+    W::Array{Float64,1}
+    Ranged() = new()
+    Ranged(x...) = new(x[1], x[2], x[3])
+end
+"""
+$(TYPEDEF)
+"""
+mutable struct PackedRanged <: PackedInferenceType
+    Zij::Array{Float64,1}
+    Cov::Array{Float64,1}
+    W::Array{Float64,1}
+    PackedRanged() = new()
+    PackedRanged(x...) = new(x[1], x[2], x[3])
+end
+function convert(::Type{Ranged}, r::PackedRanged)
+  return Ranged(r.Zij, r.Cov, r.W)
+end
+function convert(::Type{PackedRanged}, r::Ranged)
+  return PackedRanged(r.Zij, r.Cov, r.W)
+end
+function (ra::Ranged)(res::AbstractVector{<:Real},
+    userdata::FactorMetadata,
+    idx::Int,
+    meas::Tuple{<:AbstractArray{<:Real,2}},
+    p1::AbstractArray{<:Real},
+    l1::AbstractArray{<:Real})
+
+  res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
+  nothing
+end
+function getSample(ra::Ranged, N::Int=1)
+  ret = zeros(1,N)
+  for i in 1:N
+    ret[1,i] = ra.Cov[1]*randn()+ra.Zij[1]
+  end
+  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+  return (ret,)
+end
 
 
 """
@@ -157,6 +204,64 @@ end
 ##==============================================================================
 ## Deprecate code below before v0.21
 ##==============================================================================
+
+# see DFG #590
+@deprecate extractdistribution(x) convert(SamplableBelief, x)
+
+function freshSamples(usrfnc::T, 
+                      N::Int, 
+                      fmd::FactorMetadata, 
+                      vnd::Vector=[]) where { T <: FunctorInferenceType }
+  #
+  @warn("freshSamples(::FunctorInferenceType, ::Int, ::FactorMetadata) has been deprecated, use freshSamples!(::CommonConvWrapper, ::Int) instead.")
+  if !hasfield(T, :specialSampler)
+    getSample(usrfnc, N)
+  else
+    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
+  end
+end
+
+
+
+function calcZDim(usrfnc::T, 
+                  Xi::Vector{<:DFGVariable}, 
+                  fmd::FactorMetadata=FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing) ) where {T <: FunctorInferenceType}
+  #
+  # # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
+  zdim = if T != GenericMarginal
+    error("this version of calcZDim has been made obsolete, use calcZDim(::CalcFactor) instead.")
+  #   vnds = Xi # (x->getSolverData(x)).(Xi)
+  #   smpls = freshSamples(usrfnc, 2, fmd, vnds)[1]
+  #   size(smpls,1)
+  else
+    0
+  end
+  return zdim
+end
+
+# # TODO make in-place memory version
+# function getSample( s::Mixture{N_,F,S,T}, 
+#                     N::Int=1,
+#                     special...;
+#                     kw...  ) where {N_,F<:FunctorInferenceType,S,T}
+#   #
+#   # TODO consolidate #927, case if mechanics has a special sampler
+#   # TODO slight bit of waste in computation, but easiest way to ensure special tricks in s.mechanics::F are included
+#   ## example case is old FluxModelsPose2Pose2 requiring velocity
+#   smplLambda = hasfield(typeof(s.mechanics), :specialSampler) ? ()->s.specialSampler(s.mechanics, N, special...; kw...)[1] : ()->getSample(s.mechanics, N)[1]
+#   smpls = smplLambda()
+#     # smpls = Array{Float64,2}(undef,s.dims,N)
+#   #out memory should be right size first
+#   length(s.labels) != N ? resize!(s, N) : nothing
+#   s.labels .= rand(s.diversity, N)
+#   for i in 1:N
+#     mixComponent = s.components[s.labels[i]]
+#     smpls[:,i] = rand(mixComponent,1)
+#   end
+
+#   # TODO only does first element of meas::Tuple at this stage, see #1099
+#   (smpls, ) # s.labels
+# end
 
 # # should not be called in case of Prior
 # (s::Mixture)( res::AbstractArray{<:Real},
@@ -278,7 +383,7 @@ export   shuffleXAltD!, numericRoot
 
 function (ccw::CommonConvWrapper)(res::AbstractVector{<:Real}, x::AbstractVector{<:Number})
   # <: AbstractRelativeRoots case
-  @error("calling on (::CCW)(::Vector, ::Vector) is obsolete, use higher level API instead.  See #1025 for details.")
+  @error("calling on (::CCW)(::Vector, ::Vector) is obsolete, use CalcFactor API instead.  See #467 and #1025 for details.")
   
   # use of Y is excessive since #1072
   # target = view(ccw.params[ccw.varidx], :, ccw.cpt[Threads.threadid()].particleidx )
@@ -299,7 +404,7 @@ end
 function (ccw::CommonConvWrapper)(x::AbstractVector{<:Number} )
   #
   # AbstractRelativeMinimize case
-  @error("calling on (::CCW)(::Vector) is obsolete, use higher level API instead.  See #1025 for details.")
+  @error("calling on (::CCW)(::Vector) is obsolete, use CalcFactor API instead.  See #467 and #1025 for details.")
 
   # set internal memory to that of external caller value `x`, special care if partial
   # trying to use view instead
