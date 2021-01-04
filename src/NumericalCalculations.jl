@@ -25,6 +25,7 @@ function _buildCalcFactorMixture( ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                   measurement_,
                                   varParams ) where {N_,F <: FunctorInferenceType,S,T}
   #
+  # just a passthrough similar to pre-v0.20
   CalcFactor( ccwl.usrfnc!.mechanics, _fmd_, smpid, 
               length(measurement_), measurement_, varParams)
 end

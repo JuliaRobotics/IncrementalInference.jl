@@ -1,7 +1,71 @@
+##
+
+
 using IncrementalInference
 using Test
 
 ##
+
+@testset "test Mixture sampling" begin
+
+##
+
+fg = initfg()
+addVariable!(fg, :x0, ContinuousScalar)
+
+mp = Mixture(Prior, (Normal(), Normal(10,1)),(1/2,1/2) )
+addFactor!(fg, [:x0], mp)
+
+##
+
+pts = approxConv(fg, :x0f1, :x0)
+
+N = size(pts,2)
+@test 0.2*N < sum( -5 .< pts .< 5 )
+@test 0.2*N < sum( 5 .< pts .< 15 )
+@test sum( 15 .< pts  ) < 0.1*N
+@test sum( pts .< -5 ) < 0.1*N
+@test sum( 3 .< pts .< 7 ) < 0.1*N
+
+
+# using KernelDensityEstimatePlotting, Gadfly
+# Gadfly.set_default_plot_size(25cm,20cm)
+
+# plotKDE(kde!(pts))
+
+##
+
+fg = initfg()
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+
+addFactor!(fg, [:x0], Prior(Normal()), graphinit=false)
+initManual!(fg, :x0, zeros(1,100))
+
+mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)),(1/2,1/2) )
+addFactor!(fg, [:x0;:x1], mlr, graphinit=false)
+
+##
+
+pts = approxConv(fg, :x0x1f1, :x1)
+
+# plotKDE(kde!(pts))
+
+##
+
+N = size(pts,2)
+@test 0.2*N < sum( -5 .< pts .< 5 )
+@test 0.2*N < sum( 5 .< pts .< 15 )
+@test sum( 15 .< pts  ) < 0.1*N
+@test sum( pts .< -5 ) < 0.1*N
+@test sum( 3 .< pts .< 7 ) < 0.1*N
+
+
+##
+
+end
+
+
 
 @testset "test packing of Mixture" begin
 
@@ -44,8 +108,6 @@ B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
 end
 
 
-
-#
 @testset "test simple Mixture" begin
 
 ##

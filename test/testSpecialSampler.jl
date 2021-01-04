@@ -37,6 +37,8 @@ end
 
 @testset "test specialSampler functionality..." begin
 
+##
+
 fg = initfg()
 
 addVariable!(fg, :x0, ContinuousScalar)

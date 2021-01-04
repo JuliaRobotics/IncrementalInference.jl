@@ -39,8 +39,9 @@ f1 = addFactor!(fg, [:x0], Prior0)
 saveDFG("/tmp/test_fg_bss", fg)
 
 
-# check numerics
-smpls, = getSample(Prior0, N) # ,lb=
+# check numerics -- replaced by CalcFactor{<:Mixture}, 
+smpls = approxConv(fg, :x0f1, :x0)
+# smpls, = getSample(Prior0, N) # ,lb=
 
 # should be a balance of particles
 # @test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
