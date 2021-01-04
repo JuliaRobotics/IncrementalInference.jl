@@ -12,7 +12,7 @@ struct Prior{T <: SamplableBelief} <: AbstractPrior
 end
 Prior(::UniformScaling) = Prior(Normal())
 
-getSample(s::Prior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:Prior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
 function (s::CalcFactor{<:Prior,M,P,X})(res::AbstractVector{<:Real},

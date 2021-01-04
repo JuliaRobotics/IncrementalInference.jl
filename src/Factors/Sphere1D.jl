@@ -18,7 +18,7 @@ end
 Sphere1Sphere1(::UniformScaling) = Sphere1Sphere1()
 
 
-getSample(s::Sphere1Sphere1, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:Sphere1Sphere1}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
 function (cf::CalcFactor{<:Sphere1Sphere1})(res::AbstractVector{<:Real},
@@ -56,8 +56,8 @@ end
 PriorSphere1(::UniformScaling) = PriorSphere1(Normal())
 
 
-function getSample(p2::PriorSphere1, N::Int=1)
-  return (reshape(rand(p2.Z,N),:,N), )
+function getSample(cf::CalcFactor{<:PriorSphere1}, N::Int=1)
+  return (reshape(rand(cf.factor.Z,N),:,N), )
 end
 
 

@@ -35,7 +35,7 @@ getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = Continu
 # getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
 
 
-getSample(s::LinearRelative, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
 

@@ -301,11 +301,11 @@ end
 
 
 
-function DefaultNodeDataParametric(dodims::Int,
-                                   dims::Int,
-                                   variableType::InferenceVariable;
-                                   initialized::Bool=true,
-                                   dontmargin::Bool=false)::VariableNodeData
+function DefaultNodeDataParametric( dodims::Int,
+                                    dims::Int,
+                                    variableType::InferenceVariable;
+                                    initialized::Bool=true,
+                                    dontmargin::Bool=false)::VariableNodeData
 
   # this should be the only function allocating memory for the node points
   if false && initialized
@@ -336,14 +336,14 @@ function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVa
   return nothing
 end
 
-function setDefaultNodeData!(v::DFGVariable,
-                             dodims::Int,
-                             N::Int,
-                             dims::Int;
-                             gt=Dict(),
-                             initialized::Bool=true,
-                             dontmargin::Bool=false,
-                             varType=nothing)::Nothing
+function setDefaultNodeData!( v::DFGVariable,
+                              dodims::Int,
+                              N::Int,
+                              dims::Int;
+                              gt=Dict(),
+                              initialized::Bool=true,
+                              dontmargin::Bool=false,
+                              varType=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -389,28 +389,28 @@ Reference data can be stored in the factor graph as a super-solve.
 Notes
 - Intended as a mechanism to store reference data alongside the numerical computations.
 """
-function setVariableRefence!(dfg::AbstractDFG,
-                             sym::Symbol,
-                             val::Array{Float64,2};
-                             refKey::Symbol=:reference)
+function setVariableRefence!( dfg::AbstractDFG,
+                              sym::Symbol,
+                              val::Array{Float64,2};
+                              refKey::Symbol=:reference)
   #
   # which variable to update
   var = getVariable(dfg, sym)
 
   # Construct an empty VND object
-  vnd = VariableNodeData(val,
-                         zeros(getDimension(var),1),
-                         Symbol[],
-                         Int[0;],
-                         getDimension(var),
-                         false,
-                         :_null,
-                         Symbol[],
-                         getVariableType(var),
-                         true,
-                         0.0,
-                         false,
-                         true  )
+  vnd = VariableNodeData( val,
+                          zeros(getDimension(var),1),
+                          Symbol[],
+                          Int[0;],
+                          getDimension(var),
+                          false,
+                          :_null,
+                          Symbol[],
+                          getVariableType(var),
+                          true,
+                          0.0,
+                          false,
+                          true  )
   #
   # set the value in the DFGVariable
   setSolverData!(var, vnd, refKey)
@@ -527,11 +527,11 @@ Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
 Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-                             Xi::Vector{<:DFGVariable},
-                             solvefor::Union{Nothing, Symbol},
-                             N::Int=0;
-                             solveKey::Symbol=:default  )
+function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
+                              Xi::Vector{<:DFGVariable},
+                              solvefor::Union{Nothing, Symbol},
+                              N::Int=0;
+                              solveKey::Symbol=:default  )
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
