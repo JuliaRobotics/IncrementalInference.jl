@@ -144,18 +144,16 @@ mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
 end
 Pose1Pose1Test(a::T) where T = Pose1Pose1Test{T}(a)
 
-getSample(pp1t::Pose1Pose1Test{T}, N::Int=1) where T = (reshape(rand(pp1t.Dx,N),1,N),)
+getSample(cf::CalcFactor{<:Pose1Pose1Test}, N::Int=1) = (reshape(rand(cf.factor.Dx,N),1,N),)
 
 
 #proposed standardized parameter list, does not have to be functor
-function (Dp::Pose1Pose1Test)(res::AbstractArray{<:Real},
-                              userdata::FactorMetadata,
-                              idx::Int,
-                              meas::Tuple{<:AbstractArray{<:Real,2}},
-                              p1::AbstractArray{<:Real,2},
-                              p2::AbstractArray{<:Real,2} )
+function (cf::CalcFactor{<:Pose1Pose1Test})(res::AbstractVector{<:Real},
+                                            Dx,
+                                            p1,
+                                            p2 )
   #
-  res[1] = meas[1][1,idx] - (p2[1,idx] - p1[1,idx])
+  res[1] = Dx[1] - (p2[1] - p1[1])
   nothing
 end
 
@@ -232,58 +230,46 @@ push!(t,p2)
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 # varidx=2 means we are solving for p2 relative to p1
 
-measurement = getSample(odo, N)
-@show zDim = size(measurement[1],1)
+# tfg_ = initfg()
+# addVariable!(tfg_, :x0, ContinuousScalar)
+# addFactor!(tfg_, [:x0], odo)
 
-solvefor = 2
+# measurement = freshSamples(tfg_, :x0, N)
+# @show zDim = size(measurement[1],1)
+
+# solvefor = 2
 
 fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
+initManual!(fg, :x0, zeros(1,100))
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
-fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
 
-ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, fmd, measurement=measurement)
-@show ccw.varidx = solvefor
-# gwp = GenericWrapParam{Pose1Pose1Test}(odo, t, 2, 1, (zeros(0,1),) , getSample) #getSample(odo, N)
+# fmd = FactorMetadata([X0;X1], [:x0; :x1], t, :null, nothing)
+# ccw = CommonConvWrapper(odo, t[solvefor], zDim, t, fmd, measurement=measurement)
+# @show ccw.varidx = solvefor
 
-freshSamples!(ccw, N, fmd)
-# and return complete fr/gwp
-@time for n in 1:N
-  # gwp(x, res)
-  ccw.cpt[Threads.threadid()].particleidx = n
-  numericSolutionCCW!( ccw )
-end
+pts = approxConv(fg, getFactor(fg, :x0x1f1), :x1)
 
-# @show gwp.params
+## Now check the contents of internal CCW
+
+ccw = IIF._getCCW(fg, :x0x1f1)
 
 @test 90.0 < Statistics.mean(ccw.params[ccw.varidx]) < 110.0
 @test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
 
-println("and in the reverse direction, achieved by simply changing CommonConvWrapper.varidx to 1...")
+##
 
-solvefor = 1
-@show ccw.varidx = solvefor
-ccw.params[solvefor][:,:] = -100.0*ones(size(ccw.params[solvefor]))
-ccw.cpt[Threads.threadid()].X = ccw.params[solvefor]
+println("and in the reverse direction")
 
-# @show gwp.params
+initManual!(fg, :x1, 100*ones(1,100))
 
-# fr = FastRootGenericWrapParam{Pose1Pose1Test}(gwp.params[gwp.varidx], zDim, gwp)
-
-freshSamples!(ccw, N, fmd)
-@time for n in 1:N
-  # gwp(x, res)
-  ccw.cpt[Threads.threadid()].particleidx = n
-  numericSolutionCCW!( ccw )
-end
-
-# @show gwp.params
+pts = approxConv(fg, getFactor(fg, :x0x1f1), :x0)
 
 @test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
 @test 90.0 < Statistics.mean(ccw.params[2]) < 110.0
 
-##
+# ##
 
 end
 
