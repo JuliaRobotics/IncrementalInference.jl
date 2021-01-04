@@ -208,6 +208,19 @@ end
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
 
+
+function getSample( cf::CalcFactor, 
+                    N::Int=1)
+  #
+  if !hasfield(typeof(cf.factor), :specialSampler)
+    @warn "`getSample(::MyFactor, ::Int)` API is being deprecated, use `getSample(cf::CalcFactor{<:MyFactor}, ::Int=1) = cf.factor...` instead"
+    getSample(cf.factor, N)
+  else
+    @warn "`myfactor.specialSampler` API is being deprecated, use `getSample(cf::CalcFactor{<:MyFactor}, ::Int=1) = cf.metadata.___` instead"
+    cf.factor.specialSampler(cf.factor, N, cf.metadata, cf.metadata.fullvariables...)
+  end
+end
+
 function freshSamples(usrfnc::T, 
                       N::Int, 
                       fmd::FactorMetadata, 
