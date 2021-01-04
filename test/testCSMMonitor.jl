@@ -6,19 +6,18 @@ struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
 
-IncrementalInference.getSample(s::BrokenFactor, N::Int=1) = (reshape(rand(s.Z, N),:,N), )
+IncrementalInference.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1) = (reshape(rand(cf.factor.Z, N),:,N), )
 
-function (s::BrokenFactor{<: SamplableBelief})(res::AbstractVector{<:Real},
-                                               userdata::FactorMetadata,
-                                               idx::Int,
-                                               meas::Tuple,
-                                               wxi::AbstractArray{<:Real,2},
-                                               wxj::AbstractArray{<:Real,2}  )
+function (s::CalcFactor{<:BrokenFactor})(res::AbstractVector{<:Real},
+                                        z,
+                                        wxi,
+                                        wxj  )
     #
     error("User factor has a bug.")
     nothing
 end
 
+# FIXME consolidate with CalcFactor according to #467
 function (s::BrokenFactor{<:IIF.ParametricTypes})(X1::AbstractArray{<:Real},
                                                   X2::AbstractArray{<:Real};
                                                   userdata::Union{Nothing,FactorMetadata}=nothing )
