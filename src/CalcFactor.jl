@@ -60,16 +60,6 @@ end
 
 
 
-function getSample( cf::CalcFactor, 
-                    N::Int=1)
-  #
-  if !hasfield(typeof(cf.factor), :specialSampler)
-    getSample(cf.factor, N)
-  else
-    cf.factor.specialSampler(cf.factor, N, cf.metadata, cf.metadata.fullvariables...)
-  end
-end
-
 """
     $SIGNATURES
 

@@ -628,7 +628,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, :null, nothing)
+  sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
   cf = CalcFactor( usrfnc, fmd, 0, 1, (Matrix{Float64}(undef,0,0),), ARR)
 
   zdim = calcZDim(cf)

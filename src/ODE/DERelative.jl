@@ -3,6 +3,8 @@
 
 using .DifferentialEquations
 
+import .DifferentialEquations: solve
+
 import IncrementalInference: getSample
 
 export DERelative
@@ -56,7 +58,7 @@ end
 # - Can change numerical data return type using an additional first argument, `_calcTimespan(Float32, Xi)`.
 # _calcTimespan(Xi::AbstractVector{<:DFGVariable}) = _calcTimespan(Float64, Xi)
 
-# performance helper function
+# performance helper function, FIXME not compatible with all multihypo cases
 _maketuplebeyond2args = (w1=nothing,w2=nothing,w3_...) -> (w3_...,)
 
 
@@ -85,7 +87,7 @@ function DERelative( Xi::AbstractVector{<:DFGVariable},
 end
 
 
-DERelative(dfg::AbstractDFG,
+DERelative( dfg::AbstractDFG,
             labels::AbstractVector{Symbol},
             domain::Type{<:InferenceVariable},
             f::Function,
@@ -101,49 +103,54 @@ DERelative(dfg::AbstractDFG,
 
 
 # Xtra splat are variable points (X3::Matrix, X4::Matrix,...)
-function _solveFactorODE!(measArr, prob, u0pts, i, Xtra...)
+function _solveFactorODE!(measArr, prob, u0pts, Xtra...)
   # should more variables be included in calculation
   for (xid, xtra) in enumerate(Xtra)
     # update the data register before ODE solver calls the function
-    prob.p[xid+1][:] = Xtra[xid][:,i]
+    prob.p[xid+1][:] = Xtra[xid][:]
   end
   
   # set the initial condition
-  prob.u0[:] = u0pts[:,i]
+  prob.u0[:] = u0pts[:]
   sol = DifferentialEquations.solve(prob)
   
   # extract solution from solved ode
-  measArr[:,i] = sol.u[end]
+  measArr[:] = sol.u[end]
   sol
 end
 
 # FIXME see #1025, `multihypo=` will not work properly yet
-function getSample( oder::DERelative, 
-                    N::Int=1, 
-                    fmd_...)
+function getSample( cf::CalcFactor{<:DERelative}, 
+                    N::Int=1 )
   #
 
+  oder = cf.factor
+  fmd_ = cf.metadata
+
   # how many trajectories to propagate?
-  meas = zeros(getDimension(fmd_[1].fullvariables[2]), N)
+  # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
+  meas = zeros(getDimension(fmd_.fullvariables[2]), N)
   
   # pick forward or backward direction
   prob = oder.forwardProblem
   # buffer manifold operations for use during factor evaluation
-  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[2]) )
+  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_.fullvariables[2]) )
   # set boundary condition
-  u0pts = if fmd_[1].solvefor == DFG.getLabel(fmd_[1].fullvariables[1])
+  u0pts = if fmd_.solvefor == DFG.getLabel(fmd_.fullvariables[1])
     # backward direction
     prob = oder.backwardProblem
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_[1].fullvariables[1]) )
-    getBelief( fmd_[1].fullvariables[2] ) |> getPoints
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_.fullvariables[1]) )
+    getBelief( fmd_.fullvariables[2] ) |> getPoints
   else
     # forward backward
-    getBelief( fmd_[1].fullvariables[1] ) |> getPoints
+    getBelief( fmd_.fullvariables[1] ) |> getPoints
   end
 
   # solve likely elements
   for i in 1:N
-    _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_[1].arrRef...)...)
+    idxArr = view.(fmd_.arrRef,:,i)
+    _solveFactorODE!(view(meas, :,i), prob, view(u0pts, :,i), _maketuplebeyond2args(idxArr...)...)
+    # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end
 
   return (meas, diffOp)
@@ -151,38 +158,40 @@ end
 # getDimension(oderel.domain)
 
 
-# FIXME see #1025, `multihypo=` will not work properly yet
-function (oderel::DERelative)( res::AbstractVector{<:Real},
-                                fmd::FactorMetadata,
-                                idx::Int,
-                                meas::Tuple,
-                                X...)
+# NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.metadata` fields
+function (cf::CalcFactor{<:DERelative})(res::AbstractVector{<:Real},
+                                        meas1,
+                                        diffOp,
+                                        X...)
   #
   
+  oderel = cf.factor
+  
   # work on-manifold
-  diffOp = meas[2]
+  # diffOp = meas[2]
   # if backwardSolve else forward
   
   # check direction
   # TODO put solveforIdx in FMD?
   solveforIdx = 1
-  if fmd.solvefor == DFG.getLabel(fmd.fullvariables[2])
+  if cf.metadata.solvefor == DFG.getLabel(cf.metadata.fullvariables[2])
     solveforIdx = 2
-  elseif fmd.solvefor in _maketuplebeyond2args(fmd.variablelist...)
+  elseif cf.metadata.solvefor in _maketuplebeyond2args(cf.metadata.variablelist...)
     # need to recalculate new ODE (forward) for change in parameters (solving for 3rd or higher variable)
     solveforIdx = 2
     # use forward solve for all solvefor not in [1;2]
-    u0pts = getBelief(fmd.fullvariables[1]) |> getPoints
+    u0pts = getBelief(cf.metadata.fullvariables[1]) |> getPoints
     # update parameters for additional variables
-    _solveFactorODE!(meas[1], oderel.forwardProblem, u0pts, idx, _maketuplebeyond2args(X...)...)
+    _solveFactorODE!(meas1, oderel.forwardProblem, u0pts[:,cf._sampleIdx], _maketuplebeyond2args(X...)...)
   end
 
   # find the difference between measured and predicted.
-  ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas[1][:,idx]`)
+  ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas1[:,idx]`)
   ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
+  # @show cf._sampleIdx, solveforIdx, meas1
   for i in 1:size(X[2],1)
     # diffop( test, reference )   <===>   ΔX = test \ reference
-    res[i] = diffOp[i]( X[solveforIdx][i,idx], meas[1][i,idx] )
+    res[i] = diffOp[i]( X[solveforIdx][i], meas1[i] )
   end
   res
 end
