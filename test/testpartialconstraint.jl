@@ -76,7 +76,7 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
 end
-getSample(dpl::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
+getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
 function (dp::CalcFactor{<:DevelopPartialPairwise})(res::AbstractVector{<:Real},
                                                     meas,
