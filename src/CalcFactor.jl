@@ -112,7 +112,7 @@ function testFactorResidualBinary(fct,
   fg_ = initfg()
   X0 = addVariable!(fg_, :x0, T1)
   X1 = addVariable!(fg_, :x1, T2)
-  addFactor!(fg_, [:x0;:x1], fct)
+  addFactor!(fg_, [:x0;:x1], fct, graphinit=false)
 
   ccw = IIF._getCCW(fg_, :x0x1f1)
   

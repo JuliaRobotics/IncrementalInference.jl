@@ -233,15 +233,15 @@ end
 
 
 
-function getSample( cf::CalcFactor, 
+function getSample( cfo::CalcFactor, 
                     N::Int=1)
   #
-  if !hasfield(typeof(cf.factor), :specialSampler)
-    @warn "`getSample(::MyFactor, ::Int)` API is being deprecated, use `getSample(cf::CalcFactor{<:MyFactor}, ::Int=1) = cf.factor...` instead"
-    getSample(cf.factor, N)
+  if !hasfield(typeof(cfo.factor), :specialSampler)
+    @warn "`getSample(::MyFactor, ::Int)` API is being deprecated, use `getSample(cf::CalcFactor{<:$(typeof(cfo.factor).name)}, ::Int=1) = cf.factor...` instead.  Similarly for residual factor calculations, see IIF #467."
+    getSample(cfo.factor, N)
   else
-    @warn "`myfactor.specialSampler` API is being deprecated, use `getSample(cf::CalcFactor{<:MyFactor}, ::Int=1) = cf.metadata.___` instead"
-    cf.factor.specialSampler(cf.factor, N, cf.metadata, cf.metadata.fullvariables...)
+    @warn "`myfactor.specialSampler` API is being deprecated, use `getSample(cf::CalcFactor{<:$(typeof(cfo.factor).name)}, ::Int=1) = cf.metadata.___` instead.  Similarly for residual factor calculations, see IIF #467."
+    cfo.factor.specialSampler(cfo.factor, N, cfo.metadata, cfo.metadata.fullvariables...)
   end
 end
 
