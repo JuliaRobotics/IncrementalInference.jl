@@ -1,6 +1,7 @@
 # New factor interface, something perhaps like this
 
 export CalcFactor
+export testFactorResidualBinary
 
 # Also see #467 on API consolidation
 # function (cf::CalcFactor{<:LinearRelative})(res::AbstractVector{<:Real}, z, xi, xj)
@@ -77,8 +78,6 @@ end
 
 
 
-
-
 function Base.show(io::IO, x::CalcFactor)
   println(io, )
   printstyled(io, " CalcFactor:\n", color=:blue)
@@ -86,4 +85,54 @@ function Base.show(io::IO, x::CalcFactor)
 end
 
 Base.show(io::IO, ::MIME"text/plain", x::CalcFactor) = show(io, x)
+
+
+
+
+"""
+    $SIGNATURES
+
+Evaluate the residual function for a single sample.
+
+Notes
+- Binary factors only at this stage, and `multihypo` does not have to be considered in this test
+
+Related
+
+[`approxConv`](@ref), [`CalcResidual`](@ref)
+"""
+function testFactorResidualBinary(fct, 
+                                  T1,
+                                  T2,
+                                  param1,
+                                  param2, 
+                                  meas::Tuple = ())
+  #
+
+  fg_ = initfg()
+  X0 = addVariable!(fg_, :x0, T1)
+  X1 = addVariable!(fg_, :x1, T2)
+  addFactor!(fg_, [:x0;:x1], fct)
+
+  ccw = IIF._getCCW(fg_, :x0x1f1)
+  
+  ARR = getPoints.(getBelief.(fg_, [:x0;:x1]))
+  fmd = FactorMetadata([X0;X1],[:x0;:x1],ARR,:x1,nothing)
+  cfo = CalcFactor(fct, fmd, 1, 1, meas, ARR)
+
+  # get a fresh measurement if needed
+  meas = length(meas) != 0 ? meas : getSample(cfo, 1)
+  cfo = CalcFactor(fct, fmd, 1, 1, meas, ARR)
+
+  # residual vector
+  zdim = IIF._getZDim(ccw)
+  res = zeros(zdim)
+
+  # calc the residual
+  @time cfo(res, meas..., param1, param2)
+
+  return res
+end
+
+
 #
