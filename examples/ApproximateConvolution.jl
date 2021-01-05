@@ -5,30 +5,31 @@ using RoMEPlotting
 # import getSample to be extended for user factor MultiModalConditional 
 import IncrementalInference: getSample
 
+
+
 ## create a new facor type MultiModalConditional
+## FIXME, this approach is unnecessary, see `::Mixture` instead.  See Caesar.jl documentation for details.
 mutable struct MultiModalConditional <: AbstractRelativeRoots
   x::Vector{Distribution}
   hypo::Categorical
   MultiModalConditional(x::Vector{<:Distribution}, p::Categorical) = new(x, p)
 end
-function getSample(dpl::MultiModalConditional, N::Int=1)
-  d = length(dpl.hypo.p)
-  p = rand(dpl.hypo, N)
+function getSample(cf::CalcFactor{<:MultiModalConditional}, N::Int=1)
+  d = length(cf.factor.hypo.p)
+  p = rand(cf.factor.hypo, N)
   ret = zeros(1,N)
   for i in 1:N
-    ret[i] = rand(dpl.x[p[i]])
+    ret[i] = rand(cf.factor.x[p[i]])
   end
   return (ret, p)
 end
 
-function (dp::MultiModalConditional)(res::AbstractVector{<:Real},
-                                    userdata::FactorMetadata,
-                                    idx::Int,
-                                    meas::Tuple{<:AbstractArray{<:Real,2},<:AbstractVector{Int64}},
-                                    x1::AbstractArray{<:Real},
-                                    x2::AbstractArray{<:Real}  )
+function (cf::CalcFactor{<:MultiModalConditional})( res::AbstractVector{<:Real},
+                                                    meas,
+                                                    x1,
+                                                    x2  )
   #
-  res[1] = meas[1][1,idx] - (x2[1,idx]-x1[1,idx])
+  res[1] = meas[1] - (x2[1]-x1[1])
   nothing
 end
 
@@ -55,7 +56,8 @@ f2 = addFactor!(fg, [:x1; :x2], mmc )
 pts = approxConv(fg, :x1x2f1, :x2)
 
 ## do some plotting
-q2 = kde!(getSample(mmc,2000)[1])
+meas = freshSamples(f2,2000)
+q2 = kde!(meas)
 h1 = plotKDE([getBelief(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")
 

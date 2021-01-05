@@ -9,7 +9,7 @@ struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
-getSample(s::PartialPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
 
