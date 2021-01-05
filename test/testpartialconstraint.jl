@@ -10,13 +10,13 @@ mutable struct DevelopPartial <: AbstractPrior
   x::Distribution
   partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
 end
-getSample(dpl::DevelopPartial, N::Int=1) = (rand(dpl.x, N)', )
+getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
 
 mutable struct DevelopDim2 <: AbstractPrior
   x::Distribution
 end
-getSample(dpl::DevelopDim2, N::Int=1) = (rand(dpl.x, N), )
+getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = (rand(cf.factor.x, N), )
 
 
 
@@ -76,16 +76,14 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   partial::Tuple
   DevelopPartialPairwise(x::Distribution) = new(x, (2,))
 end
-getSample(dpl::DevelopPartialPairwise, N::Int=1) = (rand(dpl.x, N)', )
+getSample(dpl::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
-function (dp::DevelopPartialPairwise)(res::AbstractVector{<:Real},
-                                      userdata::FactorMetadata,
-                                      idx::Int,
-                                      meas::Tuple, #{RowVector{<:Real,Array{<:Real,1}}}, #Tuple{Array{<:Real,2}},
-                                      x1::AbstractArray{<:Real},
-                                      x2::AbstractArray{<:Real}  )
+function (dp::CalcFactor{<:DevelopPartialPairwise})(res::AbstractVector{<:Real},
+                                                    meas,
+                                                    x1,
+                                                    x2  )
   #
-  res[1] = meas[1][1,idx] - (x2[2,idx]-x1[2,idx])
+  res[1] = meas[1] - (x2[2]-x1[2])
   res[1] ^= 2
   res[1]
 end

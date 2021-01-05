@@ -21,18 +21,16 @@ end
 struct AreEqual <: AbstractRelativeRoots
   z::Distributions.Normal
 end
-function getSample(s::AreEqual, N::Int=1)
-  return (reshape(rand(s.z,N),1,:), )
+function getSample(cf::CalcFactor{<:AreEqual}, N::Int=1)
+  return (reshape(rand(cf.factor.z,N),1,:), )
 end
 
-function (s::AreEqual)(res::AbstractArray{<:Real},
-                       userdata::FactorMetadata,
-                       idx::Int,
-                       meas::Tuple{<:AbstractArray{<:Real,2}},
-                       X::AbstractArray{<:Real,2},
-                       Y::AbstractArray{<:Real,2}  )
+function (cf::CalcFactor{<:AreEqual})( res::AbstractVector{<:Real},
+                                      meas,
+                                      X,
+                                      Y  )
   #
-  res[1] = X[1,idx]-Y[1,idx] + meas[1][1,idx]
+  res[1] = X[1]-Y[1] + meas[1]
   nothing
 end
 
@@ -41,16 +39,14 @@ end
 struct Square <: AbstractRelativeRoots
   z::Distributions.Normal
 end
-getSample(s::Square, N::Int=1) = (reshape(rand(s.z,N),1,:), )
+getSample(cf::CalcFactor{<:Square}, N::Int=1) = (reshape(rand(cf.factor.z,N),1,:), )
 
-function (s::Square)(res::AbstractArray{<:Real},
-      userdata::FactorMetadata,
-      idx::Int,
-      meas::Tuple{<:AbstractArray{<:Real,2}},
-      X::AbstractArray{<:Real,2},
-      XX::AbstractArray{<:Real,2}  )
+function (cf::CalcFactor{<:Square})( res::AbstractVector{<:Real},
+                                    meas,
+                                    X,
+                                    XX  )
   #
-  res[1] = XX[1,idx] - X[1,idx]*X[1,idx] + meas[1][1,idx]
+  res[1] = XX[1] - X[1]*X[1] + meas[1]
   nothing
 end
 
@@ -58,4 +54,4 @@ end
 mutable struct NumbersPrior <: AbstractPrior
   z::BallTreeDensity
 end
-getSample(s::NumbersPrior, N::Int=1) = (reshape(rand(s.z,N),1,:), )
+getSample(cf::CalcFactor{<:NumbersPrior}, N::Int=1) = (reshape(rand(cf.factor.z,N),1,:), )
