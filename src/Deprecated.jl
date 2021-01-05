@@ -26,8 +26,31 @@ end
 ## TODO deprecated  
 ##==============================================================================
 
-# TODO maybe replace X with a type.
 # TODO Replace with _CalcFactorParametric API
+function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
+                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
+
+  if isa(s.Z, Normal)
+    meas = s.Z.μ
+    σ = s.Z.σ
+    #TODO confirm signs
+    res = meas - X1[1]
+    return (res./σ) .^ 2
+
+  elseif isa(s.Z, MvNormal)
+    meas = mean(s.Z)
+    iΣ = invcov(s.Z)
+    #TODO confirm math : Σ^(1/2)*X
+    res = meas .- X1
+    return res' * iΣ * res
+
+  else
+    #this should not happen
+    @error("$s not suported, please use non-parametric")
+  end                    #
+end
+
+# maybe replace X with a type.
 function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
                     userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
 
@@ -112,55 +135,6 @@ function (s::EuclidDistance{<:ParametricTypes})(X1::AbstractArray{<:Real},
 end
 
 
-## Ummm ?
-
-"""
-$(TYPEDEF)
-
-MUST BE DEPRECATED IN FAVOR OF EuclidDistance
-"""
-mutable struct Ranged <: AbstractRelativeRoots
-    Zij::Array{Float64,1}
-    Cov::Array{Float64,1}
-    W::Array{Float64,1}
-    Ranged() = new()
-    Ranged(x...) = new(x[1], x[2], x[3])
-end
-"""
-$(TYPEDEF)
-"""
-mutable struct PackedRanged <: PackedInferenceType
-    Zij::Array{Float64,1}
-    Cov::Array{Float64,1}
-    W::Array{Float64,1}
-    PackedRanged() = new()
-    PackedRanged(x...) = new(x[1], x[2], x[3])
-end
-function convert(::Type{Ranged}, r::PackedRanged)
-  return Ranged(r.Zij, r.Cov, r.W)
-end
-function convert(::Type{PackedRanged}, r::Ranged)
-  return PackedRanged(r.Zij, r.Cov, r.W)
-end
-function (ra::Ranged)(res::AbstractVector{<:Real},
-    userdata::FactorMetadata,
-    idx::Int,
-    meas::Tuple{<:AbstractArray{<:Real,2}},
-    p1::AbstractArray{<:Real},
-    l1::AbstractArray{<:Real})
-
-  res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
-  nothing
-end
-function getSample(ra::Ranged, N::Int=1)
-  ret = zeros(1,N)
-  for i in 1:N
-    ret[1,i] = ra.Cov[1]*randn()+ra.Zij[1]
-  end
-  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
-  return (ret,)
-end
-
 
 """
 $(TYPEDEF)
@@ -207,6 +181,56 @@ end
 
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
+
+
+"""
+$(TYPEDEF)
+
+MUST BE DEPRECATED IN FAVOR OF EuclidDistance
+"""
+mutable struct Ranged <: AbstractRelativeRoots
+    Zij::Array{Float64,1}
+    Cov::Array{Float64,1}
+    W::Array{Float64,1}
+    Ranged() = new()
+    Ranged(x...) = new(x[1], x[2], x[3])
+end
+"""
+$(TYPEDEF)
+"""
+mutable struct PackedRanged <: PackedInferenceType
+    Zij::Array{Float64,1}
+    Cov::Array{Float64,1}
+    W::Array{Float64,1}
+    PackedRanged() = new()
+    PackedRanged(x...) = new(x[1], x[2], x[3])
+end
+function convert(::Type{Ranged}, r::PackedRanged)
+  return Ranged(r.Zij, r.Cov, r.W)
+end
+function convert(::Type{PackedRanged}, r::Ranged)
+  return PackedRanged(r.Zij, r.Cov, r.W)
+end
+function (ra::Ranged)(res::AbstractVector{<:Real},
+    userdata::FactorMetadata,
+    idx::Int,
+    meas::Tuple{<:AbstractArray{<:Real,2}},
+    p1::AbstractArray{<:Real},
+    l1::AbstractArray{<:Real})
+
+  res[1] = meas[1][1,idx] - abs(l1[1,idx] - p1[1,idx])
+  nothing
+end
+function getSample(ra::Ranged, N::Int=1)
+  @warn("`::Ranged` is being deprecated in favor of `::EuclidDistance`")
+  ret = zeros(1,N)
+  for i in 1:N
+    ret[1,i] = ra.Cov[1]*randn()+ra.Zij[1]
+  end
+  # rand(Distributions.Normal(odo.Zij[1],odo.Cov[1]), N)'
+  return (ret,)
+end
+
 
 
 function getSample( cf::CalcFactor, 

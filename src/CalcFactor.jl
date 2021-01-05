@@ -76,4 +76,14 @@ function freshSamples(cf::CalcFactor{<:FunctorInferenceType},
 end
 
 
+
+
+
+function Base.show(io::IO, x::CalcFactor)
+  println(io, )
+  printstyled(io, " CalcFactor:\n", color=:blue)
+  println(io, "  .factor: ", typeof(x.factor))
+end
+
+Base.show(io::IO, ::MIME"text/plain", x::CalcFactor) = show(io, x)
 #
