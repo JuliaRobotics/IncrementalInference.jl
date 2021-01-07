@@ -5,8 +5,11 @@
 using IncrementalInference
 using Test
 
+##
 
 @testset "test mixture prior" begin
+
+##
 
 # init graph
 fg = initfg()
@@ -36,11 +39,12 @@ f1 = addFactor!(fg, [:x0], Prior0)
 saveDFG("/tmp/test_fg_bss", fg)
 
 
-# check numerics
-smpls, lb = getSample(Prior0, N)
+# check numerics -- replaced by CalcFactor{<:Mixture}, 
+smpls = approxConv(fg, :x0f1, :x0)
+# smpls, = getSample(Prior0, N) # ,lb=
 
 # should be a balance of particles
-@test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
+# @test sum(lb .== 1) - sum(lb .== 2) |> abs < 0.3*N
 @test sum(smpls .< -2.5) - sum(-2.5 .< smpls) |> abs < 0.3*N
 
 # solve
@@ -51,6 +55,7 @@ marginalPts = getBelief(fg, :x0) |> getPoints
 # check solver solution consistent too
 @test sum(marginalPts .< -2.5) - sum(-2.5 .< marginalPts) |> abs < 0.3*N
 
+##
 
 end
 
@@ -58,6 +63,7 @@ end
 
 @testset "Serialization of Mixture(Prior,..) including a AliasingScalarSampler" begin
 
+##
 
 fg_ = loadDFG("/tmp/test_fg_bss")
 
@@ -75,6 +81,8 @@ marginalPts = getBelief(fg_, :x0) |> getPoints
 
 # cleanup
 Base.rm("/tmp/test_fg_bss.tar.gz")
+
+##
 
 end
 

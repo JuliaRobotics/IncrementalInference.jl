@@ -74,18 +74,7 @@ end
 ## Factors
 
 """
-    $TYPEDSIGNATURES
-
-Return the number of dimensions this factor vertex `fc` influences.
-"""
-getFactorDim(fcd::GenericFunctionNodeData)::Int = isa(fcd.fnc.usrfnc!, MsgPrior) ? fcd.fnc.usrfnc!.inferdim : Int(fcd.fnc.zDim)
-getFactorDim(fc::DFGFactor)::Int = getFactorDim(getSolverData(fc))
-function getFactorDim(fg::AbstractDFG, fctid::Symbol)::Int
-  getFactorDim(getFactor(fg, fctid))
-end
-
-"""
-   $SIGNATURES
+    $SIGNATURES
 
 Return the sum of factor dimensions connected to variable as per the factor graph `fg`.
 

@@ -47,12 +47,12 @@ for i in 1:3
 
   # another point in the trajectory 5 seconds later
   addVariable!(fg, nextSym, ContinuousScalar, timestamp=DateTime(2000,1,1,0,0,5*i))
-  oder = IIF.DERelative( fg, [prev; nextSym], 
-                          ContinuousEuclid{1}, 
-                          firstOrder!,
-                          tstForce,
-                          dt=0.05, 
-                          problemType=ODEProblem )
+  oder = IIF.DERelative(fg, [prev; nextSym], 
+                        ContinuousEuclid{1}, 
+                        firstOrder!,
+                        tstForce,
+                        dt=0.05, 
+                        problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], oder, graphinit=false )
   initManual!(fg, nextSym, zeros(1,100))
@@ -69,19 +69,20 @@ meas = freshSamples(fg, :x0x1f1, 10)
 
 
 ## do all forward solutions
+
 pts, = freshSamples(fg, :x0f1, 100)
 initManual!(fg, :x0, pts)
 pts = approxConv(fg, :x0x1f1, :x1)
 @test 0.3 < Statistics.mean(pts) < 0.4
 
 
-# check that the reverse solve also works
+## check that the reverse solve also works
 
 initManual!(fg, :x1, pts)
 pts = approxConv(fg, :x0x1f1, :x0)
 
 # check the reverse solve to be relatively accurate
-@test pts - (getBelief(fg, :x0) |> getPoints) |> norm < 1e-4
+@test (pts - (getBelief(fg, :x0) |> getPoints)) |> norm < 1e-4
 
 
 ##
@@ -283,7 +284,7 @@ end
 
 ##
 
-@error "Disabling useMsgLikelihood for DERelative test, must fix"
+@error "Disabling useMsgLikelihood for DERelative test, follow fix on #1010 as rough guide"
 getSolverParams(fg).useMsgLikelihoods = false
 
 solveTree!(fg);
@@ -518,7 +519,7 @@ pts = approxConv(fg, :x0x1ωβf1, :ωβ)
 # end
 
 
-#
+##
 
 end
 

@@ -18,7 +18,7 @@ end
 #     MsgPrior{T}(z, infd)
 # end
 
-getSample(s::MsgPrior, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
 # this is a developmental type, will be standardized after conclusion of #1010
@@ -27,28 +27,15 @@ const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vecto
 const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
 
 
-function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
-                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
-
-  if isa(s.Z, Normal)
-    meas = s.Z.μ
-    σ = s.Z.σ
-    #TODO confirm signs
-    res = meas - X1[1]
-    return (res./σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- X1
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end                    #
+function (s::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
+                                            z,
+                                            x1  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+  #
+  res .= z .- x1
+  nothing
 end
+
+
 
 struct PackedMsgPrior <: PackedInferenceType
   Z::String

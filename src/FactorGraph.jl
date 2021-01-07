@@ -12,7 +12,8 @@ function initfg(dfg::T=InMemDFGType(solverParams=SolverParams());
                                 username="",
                                 cloudgraph=nothing) where T <: AbstractDFG
 #
-return dfg
+  #
+  return dfg
 end
 
 
@@ -22,7 +23,8 @@ function initfg(::Type{T};solverParams=SolverParams(),
                       robotname="",
                       username="",
                       cloudgraph=nothing) where T <: AbstractDFG
-return T(solverParams=solverParams)
+  #
+  return T(solverParams=solverParams)
 end
 
 function initfg(::Type{T},solverParams::SolverParams;
@@ -30,7 +32,8 @@ function initfg(::Type{T},solverParams::SolverParams;
                       robotname="",
                       username="",
                       cloudgraph=nothing) where T <: AbstractDFG
-return T{SolverParams}(solverParams=solverParams)
+  #
+  return T{SolverParams}(solverParams=solverParams)
 end
 
 
@@ -234,8 +237,8 @@ end
 
 Set variable initialized status.
 """
-function setVariableInitialized!(varid::VariableNodeData,
-                                 status::Bool)
+function setVariableInitialized!( varid::VariableNodeData,
+                                  status::Bool)
   #
   varid.initialized = status
 end
@@ -298,11 +301,11 @@ end
 
 
 
-function DefaultNodeDataParametric(dodims::Int,
-                                   dims::Int,
-                                   variableType::InferenceVariable;
-                                   initialized::Bool=true,
-                                   dontmargin::Bool=false)::VariableNodeData
+function DefaultNodeDataParametric( dodims::Int,
+                                    dims::Int,
+                                    variableType::InferenceVariable;
+                                    initialized::Bool=true,
+                                    dontmargin::Bool=false)::VariableNodeData
 
   # this should be the only function allocating memory for the node points
   if false && initialized
@@ -333,14 +336,14 @@ function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVa
   return nothing
 end
 
-function setDefaultNodeData!(v::DFGVariable,
-                             dodims::Int,
-                             N::Int,
-                             dims::Int;
-                             gt=Dict(),
-                             initialized::Bool=true,
-                             dontmargin::Bool=false,
-                             varType=nothing)::Nothing
+function setDefaultNodeData!( v::DFGVariable,
+                              dodims::Int,
+                              N::Int,
+                              dims::Int;
+                              gt=Dict(),
+                              initialized::Bool=true,
+                              dontmargin::Bool=false,
+                              varType=nothing)::Nothing
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -386,28 +389,28 @@ Reference data can be stored in the factor graph as a super-solve.
 Notes
 - Intended as a mechanism to store reference data alongside the numerical computations.
 """
-function setVariableRefence!(dfg::AbstractDFG,
-                             sym::Symbol,
-                             val::Array{Float64,2};
-                             refKey::Symbol=:reference)
+function setVariableRefence!( dfg::AbstractDFG,
+                              sym::Symbol,
+                              val::Array{Float64,2};
+                              refKey::Symbol=:reference)
   #
   # which variable to update
   var = getVariable(dfg, sym)
 
   # Construct an empty VND object
-  vnd = VariableNodeData(val,
-                         zeros(getDimension(var),1),
-                         Symbol[],
-                         Int[0;],
-                         getDimension(var),
-                         false,
-                         :_null,
-                         Symbol[],
-                         getVariableType(var),
-                         true,
-                         0.0,
-                         false,
-                         true  )
+  vnd = VariableNodeData( val,
+                          zeros(getDimension(var),1),
+                          Symbol[],
+                          Int[0;],
+                          getDimension(var),
+                          false,
+                          :_null,
+                          Symbol[],
+                          getVariableType(var),
+                          true,
+                          0.0,
+                          false,
+                          true  )
   #
   # set the value in the DFGVariable
   setSolverData!(var, vnd, refKey)
@@ -524,11 +527,11 @@ Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
 Note `Xi` is order sensitive.
 Note for initialization, solveFor = Nothing.
 """
-function prepareparamsarray!(ARR::Array{Array{Float64,2},1},
-                             Xi::Vector{<:DFGVariable},
-                             solvefor::Union{Nothing, Symbol},
-                             N::Int=0;
-                             solveKey::Symbol=:default  )
+function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
+                              Xi::Vector{<:DFGVariable},
+                              solvefor::Union{Nothing, Symbol},
+                              N::Int=0;
+                              solveKey::Symbol=:default  )
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -577,16 +580,12 @@ function parseusermultihypo(multihypo::Vector{Float64}, nullhypo::Float64)
     multihypo2 = multihypo
     multihypo2[1-1e-10 .< multihypo] .= 0.0
     # check that terms sum to full probability
-    @assert sum(multihypo2) % 1 ≈ 0
+    @assert abs(sum(multihypo2) % 1) < 1e-10  || 1-1e-10 < sum(multihypo2) % 1 "ensure multihypo sums to a (or nearly, 1e-10) interger, see #1086"
     # check that only one variable broken into fractions
     @assert sum(multihypo2[1e-10 .< multihypo2]) ≈ 1
-    # multihypo2 = Float64[multihypo...]
-    # verts = Symbol.(multihypo[1,:])
-    # for i in 1:length(multihypo)
-    #   if multihypo[i] > 0.999999
-    #     multihypo2[i] = 0.0
-    #   end
-    # end
+    # force normalize something that is now known to be close
+    multihypo2 ./= sum(multihypo2)
+
     mh = Categorical(Float64[multihypo2...] )
   end
   return mh, nullhypo
@@ -603,14 +602,13 @@ Notes
 - Will not work in all situations, but good enough so far.
   - # TODO standardize via domain or manifold definition...??
 """
-function calcZDim(usrfnc::T, 
-                  Xi::Vector{<:DFGVariable}, 
-                  fmd::FactorMetadata=FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing) ) where {T <: FunctorInferenceType}
+function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   #
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   zdim = if T != GenericMarginal
-    vnds = Xi # (x->getSolverData(x)).(Xi)
-    smpls = freshSamples(usrfnc, 2, fmd, vnds)[1]
+    # vnds = Xi # (x->getSolverData(x)).(Xi)
+    # NOTE try to make sure we get matrix back (not a vector)
+    smpls = freshSamples(cf, 2)[1]
     size(smpls,1)
   else
     0
@@ -630,20 +628,13 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, :null, nothing)
-  zdim = calcZDim(usrfnc, Xi, fmd)
+  sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
+  cf = CalcFactor( usrfnc, fmd, 0, 1, (Matrix{Float64}(undef,0,0),), ARR)
+
+  zdim = calcZDim(cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
-  
-    # for i in 1:Threads.nthreads()
-    #   # TODO JT - Confirm it should be updated here. Also testing in prepareCommonConvWrapper!
-    #   ccw.cpt[i].factormetadata.fullvariables = copy(Xi)
-    #   ccw.cpt[i].factormetadata.variableuserdata = []
-    #   ccw.cpt[i].factormetadata.solvefor = :null
-    #   for xi in Xi
-    #     push!(ccw.cpt[i].factormetadata.variableuserdata, getVariableType(xi))
-    #   end
-    # end
   
   ccw = CommonConvWrapper(
           usrfnc,
@@ -1282,7 +1273,7 @@ function rmVarFromMarg( dfg::AbstractDFG,
         DFG.deleteFactor!(dfg, m) # Remove it
         if length(remvars) > 0
           @debug "$(m.label) still has links to other variables, readding it back..."
-          addFactor!(dfg, remvars, getSolverData(m).fnc.usrfnc!, graphinit=false, suppressChecks=true )
+          addFactor!(dfg, remvars, _getCCW(m).usrfnc!, graphinit=false, suppressChecks=true )
         else
           @debug "$(m.label) doesn't have any other links, not adding it back..."
         end
@@ -1328,7 +1319,7 @@ function buildBayesNet!(dfg::AbstractDFG,
         getSolverData(fct).eliminated = true
       end
 
-      if typeof(getSolverData(fct).fnc) == CommonConvWrapper{GenericMarginal}
+      if typeof(_getCCW(fct)) == CommonConvWrapper{GenericMarginal}
         push!(gm, fct)
       end
     end

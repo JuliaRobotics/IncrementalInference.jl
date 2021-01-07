@@ -17,12 +17,16 @@ Inverse solve of predicted noise value and returns tuple of (newly predicted, an
 Notes
 - "measured" is used as starting point for the "predicted" values solve.
 - Not all factor evaluation cases are support yet.
+- NOTE only works on `.threadid()==1` at present, see #1094
+- This function is still part of the initial implementation and needs a lot of generalization improvements.
 
 DevNotes
-- This function is still part of the initial implementation and needs a lot of generalization improvements.
+- TODO Test for various cases with multiple variables.
+- TODO make multithread-safe, and able, see #1094
+- TODO Test for cases with `nullhypo`
 - FIXME FactorMetadata object for all use-cases, not just empty object.
-- Test for various cases with multiple variables.
-- Test for cases with `nullhypo` and `multihypo`.
+- TODO resolve #1096 (multihypo)
+- TODO Test cases for `multihypo`.
 
 Related
 
@@ -30,37 +34,71 @@ Related
 """
 function solveFactorMeasurements( dfg::AbstractDFG,
                                   fctsym::Symbol,
-                                  solveKey::Symbol=:default  )
+                                  solveKey::Symbol=:default;
+                                  retries::Int=3  )
   #
+  thrid = Threads.threadid()
   fcto = getFactor(dfg, fctsym)
+  ccw = _getCCW(fcto)
+  fmd = _getFMdThread(ccw)
+
+  # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   vars = map(x->getPoints(getBelief(dfg,x,solveKey)), varsyms)
   fcttype = getFactorType(fcto)
 
   N = size(vars[1])[2]
   
-  # generate default fmd
-  fmd = FactorMetadata(getVariable.(dfg,varsyms), varsyms, Vector{Matrix{Float64}}(), :null, nothing )
-  meas = getSample(fcttype, N)
+  # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
+
+  meas = freshSamples(ccw, N)
+  # meas = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
   meas0 = deepcopy(meas[1])
   # get measurement dimension
-  zDim = getSolverData(fcto).fnc.zDim
-  res = zeros(zDim)
+  zDim = _getZDim(fcto)
 
-  function makemeas!(i, meas, dm)
-    meas[1][:,i] = dm
-    return meas
-  end
+  # TODO consider using ccw.cpt[thrid].res # likely needs resizing
+  res_ = zeros(zDim)
 
-  ggo = (i, dm) -> fcttype(res,fmd,i,makemeas!(i, meas, dm),vars...)
-  # ggo(1, [0.0;0.0])
-
+  # TODO assuming vector on only first container in meas::Tuple
+  makeTarget = (i) -> view(meas[1], :, i)
+  
+  
   for idx in 1:N
-    retry = 10
-    while 0 < retry
+    targeti_ = makeTarget(idx)
+    lent = length(targeti_)
+    
+    # NOTE 
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
+    # build a lambda that incorporates the multihypo selections
+    # set these first
+    # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
+    certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+    cpt_ = ccw.cpt[thrid]
+    # only doing the current active hypo
+    @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+    cpt_.activehypo = activehypo[2][2]
+    resize!(cpt_.p, lent)
+    cpt_.p .= Int[1:lent;]
+    onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
+                                                idx,
+                                                cpt_,
+                                                targeti_,
+                                                meas  )
+    #
+    
+    # lambda with which to find best measurement values
+    ggo = (res, dm) -> (targeti_.=dm; onehypo!(res) )
+
+    # a few retries allowed
+    while 0 < retries
       if isa(fcttype, AbstractRelativeMinimize)
-        r = optimize((x) -> ggo(idx,x), meas[1][:,idx]) # zeros(zDim)
-        retry -= 1
+        r = if size(targeti_,1) == 1
+          optimize((x) -> ggo(res_, x), meas[1][:,idx], BFGS() )
+        else
+          optimize((x) -> ggo(res_, x), meas[1][:,idx])
+        end
+        retries -= 1
         if !r.g_converged
           nsm = getSample(fcttype, 1)
           for count in 1:length(meas)
@@ -70,19 +108,16 @@ function solveFactorMeasurements( dfg::AbstractDFG,
           break
         end
       elseif isa(fcttype, AbstractRelativeRoots)
-        ggnl = (rs, dm) -> fcttype(rs,fmd,idx,makemeas!(idx, meas, dm),vars...)
-        r = nlsolve(ggnl, meas[1][:,idx])
+        r = nlsolve(ggo, meas[1][:,idx])
         break
       elseif isa(fcttype, AbstractPrior)
-        # assuming no partials at this point
-        meas[1][:,:] .= vars[1][:,:]
+        # return trivial case of meas == meas0
         break
       end
     end
-    # @assert meas[1][:,idx] == r.minimizer
   end
 
-  # Gadfly.plot(z=(x,y)->ggo(1,[x;y]), xmin=[-pi],xmax=[pi],ymin=[-100.0],ymax=[100.0], Geom.contour)
+  # return (deconv-prediction-result, independent-measurement)
   return meas[1], meas0
 end
 
@@ -175,37 +210,6 @@ function deconvSolveKey(dfg::AbstractDFG,
   # return result
   return pts, fctType
 end
-
-
-"""
-    $TYPEDSIGNATURES
-
-Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
-
-Notes
-- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
-
-Related
-
-`KDE.kld`
-"""
-function mmd( p1::AbstractMatrix{<:Real}, 
-              p2::AbstractMatrix{<:Real}, 
-              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;] )
-  #
-  manis = convert(AMP.Manifold, varType)
-  mmd(p1, p2, manis, bw=bw)  
-end
-
-function mmd( p1::BallTreeDensity, 
-              p2::BallTreeDensity, 
-              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;])
-  #
-  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
-end
-
 
 
 #

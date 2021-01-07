@@ -11,19 +11,17 @@ mutable struct LineResidual <: AbstractRelativeRoots
   c::Float64
 end
 
-getSample(lr::LineResidual, N::Int=1) = (reshape(rand(Normal(),N),1,N),)
+getSample(cf::CalcFactor{<:LineResidual}, N::Int=1) = (reshape(rand(Normal(),N),1,N),)
 
 # y = mx + c
 # res = y      -      m*x  -  c
 #       meas          variables and fixed values
-function (lr::LineResidual)(res::AbstractVector{<:Real},
-                            fmd::FactorMetadata,
-                            idx::Int,
-                            z::Tuple,
-                            x::AbstractArray{<:Real,2},
-                            y::AbstractArray{<:Real,2}  )
+function (cr::CalcFactor{<:LineResidual})(res::AbstractVector{<:Real},
+                                          z,
+                                          x,
+                                          y  )
   #
-  res[1] = z[1][idx] - (y[1,idx] - (lr.m*x[1,idx] + lr.c))
+  res[1] = z[1] - (y[1] - (cf.factor.m*x[1] + cf.factor.c))
   nothing
 end
 

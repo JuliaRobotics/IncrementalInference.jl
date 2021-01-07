@@ -2,13 +2,13 @@
 
 function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
   @warn "packmultihypo is deprecated in favor of Vector only operations"
-  fnc.hypotheses != nothing ? string(fnc.hypotheses) : ""
+  fnc.hypotheses !== nothing ? string(fnc.hypotheses) : ""
 end
 function parsemultihypostr(str::AS) where {AS <: AbstractString}
   @warn "parsemultihypostr is deprecated in favor of Vector only operations"
   mhcat=nothing
   if length(str) > 0
-    mhcat = extractdistribution(str)
+    mhcat = convert(SamplableBelief, str)
   end
   return mhcat
 end
@@ -21,8 +21,8 @@ end
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FactorOperationalMemory}
   # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
-          convert(P, d.fnc.usrfnc!),
-          d.multihypo, d.fnc.certainhypo, d.nullhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
+          convert(P, _getCCW(d).usrfnc!),
+          d.multihypo, _getCCW(d).certainhypo, d.nullhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
 end
 
 

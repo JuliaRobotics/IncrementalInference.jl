@@ -9,52 +9,82 @@ function fastnorm(u)
   @fastmath @inbounds return sqrt(s)
 end
 
-"""
-    $SIGNATURES
 
-Sample the factor stochastic model `N::Int` times and store the samples in the preallocated `ccw.measurement` container.
 
-DevNotes
-- Use in place operations where possible and remember `measurement` is a `::Tuple`.
+
 """
-function freshSamples(usrfnc::T, N::Int, fmd::FactorMetadata, vnd::Vector=[]) where { T <: FunctorInferenceType }
-  if !hasfield(T, :specialSampler)
-    getSample(usrfnc, N)
-  else
-    usrfnc.specialSampler(usrfnc, N, fmd, vnd...)
-  end
+    $TYPEDSIGNATURES
+
+Calculate the Kernel Embedding MMD 'distance' between sample points (or kernel density estimates).
+
+Notes
+- `bw::Vector=[0.001;]` controls the mmd kernel bandwidths.
+
+Related
+
+`KDE.kld`
+"""
+function mmd( p1::AbstractMatrix{<:Real}, 
+              p2::AbstractMatrix{<:Real}, 
+              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;] )
+  #
+  manis = convert(AMP.Manifold, varType)
+  mmd(p1, p2, manis, bw=bw)  
 end
 
-
-function freshSamples(dfg::AbstractDFG, sym::Symbol, N::Int=1)
-  fct = getFactor(dfg, sym)
-  usrfnc = getFactorType(fct)
-  variables = getVariable.(dfg, getVariableOrder(fct))
-
-  # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
-   # not really, because that would imply stochastic dependency on association before noise process??
-  fmd = FactorMetadata(variables, getLabel.(variables), Vector{Matrix{Float64}}(), :null, nothing)
-  # if hasfield(typeof(usrfnc), :specialSampler)
-    freshSamples(usrfnc, N, fmd, variables )
-  # else
-  #   freshSamples(usrfnc, N, fmd)
-  # end
+function mmd( p1::BallTreeDensity, 
+              p2::BallTreeDensity, 
+              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+              bw::AbstractVector{<:Real}=[0.001;])
+  #
+  mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)
 end
 
-# TODO, add Xi::Vector{DFGVariable} if possible
+# moved to CalcFactor.jl
+
+
+function freshSamples(ccwl::CommonConvWrapper,
+                      N::Int  )
+  #
+  cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  freshSamples(cf, N)
+end
+
+# part of consolidation, see #927
 function freshSamples!( ccwl::CommonConvWrapper, 
                         N::Int, 
-                        fmd::FactorMetadata, 
-                        vnd::Vector=[] )
+                        fmd::FactorMetadata=_getFMdThread(ccwl), 
+                        vnd=nothing )
   #
-  # if size(ccwl.measurement, 2) == N
-  # DOESNT WORK DUE TO TUPLE, not so quick and easy
-  #   ccwl.measurement .= getSample(ccwl.usrfnc!, N)
-  # else
-    ccwl.measurement = freshSamples(ccwl.usrfnc!, N, fmd, vnd)
-  # end
+  # depr warning added before IIF v0.20
+  vnd !== nothing ? @warn("freshSamples! no longer accepts vnd::Vector as meaningful input.") : nothing
+  
+  # build a CalcFactor object and get fresh samples.
+  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  ccwl.measurement = freshSamples(cf, N)    
   nothing
 end
+
+
+function freshSamples(dfg::AbstractDFG, 
+                      sym::Symbol, 
+                      N::Int=1 )
+  #
+  # fct = getFactor(dfg, sym)
+  return freshSamples(_getCCW(dfg, sym), N)
+  # usrfnc = getFactorType(fct)
+  # variables = getVariable.(dfg, getVariableOrder(fct))
+  
+  # FIXME why not use ccwl.cpt[thrid].fmd rather than building a new one 
+  # fmd = _getFMdThread() # what about shared mem concurrancy?
+  # FIXME fix/avoid getSample issue in testMultihypoFMD.jl: ummm, can we sample without knowing the hypotheses?
+  # also deconv?
+  # not really, because that would imply stochastic dependency on association before noise process??
+  # fmd = FactorMetadata(variables, getLabel.(variables), Vector{Matrix{Float64}}(), :null, nothing)
+  # freshSamples(usrfnc, N, fmd )
+end
+
 
 
 

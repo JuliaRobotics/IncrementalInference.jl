@@ -14,6 +14,9 @@ Notes
 - The internal data representation is a `::NamedTuple`, which allows total type-stability for all component types.
 - Various construction helpers can accept a variety of inputs, including `<: AbstractArray` and `Tuple`.
 
+DevNotes
+- TODO on sampling see #1099 and #1094 and #1069 
+
 Example
 ```juila
 # prior factor
@@ -64,35 +67,29 @@ function Base.resize!(mp::Mixture, s::Int)
 end
 
 # TODO make in-place memory version
-function getSample( s::Mixture{N_,F,S,T}, 
-                    N::Int=1,
-                    special...;
-                    kw...  ) where {N_,F<:FunctorInferenceType,S,T}
+function getSample( cf::CalcFactor{<:Mixture}, 
+                    N::Int=1  )
   #
   # TODO consolidate #927, case if mechanics has a special sampler
   # TODO slight bit of waste in computation, but easiest way to ensure special tricks in s.mechanics::F are included
   ## example case is old FluxModelsPose2Pose2 requiring velocity
-  smplLambda = hasfield(typeof(s.mechanics), :specialSampler) ? ()->s.specialSampler(s.mechanics, N, special...; kw...)[1] : ()->getSample(s.mechanics, N)[1]
-  smpls = smplLambda()
+  # FIXME better consolidation of when to pass down .mechanics, also see #1099 and #1094 and #1069
+  cf_ = CalcFactor( cf.factor.mechanics, cf.metadata, 0, length(cf._legacyMeas), cf._legacyMeas, cf._legacyParams)
+  smpls = getSample(cf_, N)
     # smpls = Array{Float64,2}(undef,s.dims,N)
   #out memory should be right size first
-  (length(s.labels) != N) && resize!(s, N)
-  s.labels .= rand(s.diversity, N)
+  length(cf.factor.labels) != N ? resize!(cf.factor.labels, N) : nothing
+  cf.factor.labels .= rand(cf.factor.diversity, N)
   for i in 1:N
-    mixComponent = s.components[s.labels[i]]
-    smpls[:,i] = rand(mixComponent,1)
+    mixComponent = cf.factor.components[cf.factor.labels[i]]
+    smpls[1][:,i] = rand(mixComponent,1)
   end
-  (smpls, s.labels)
+
+  # TODO only does first element of meas::Tuple at this stage, see #1099
+  smpls
 end
 
 
-# should not be called in case of Prior
-(s::Mixture)( res::AbstractArray{<:Real},
-              fmd::FactorMetadata,
-              idx::Int,
-              meas::Tuple,
-              X... ) = s.mechanics(res, fmd, idx, meas, X...)
-#
 
 
 function DistributedFactorGraphs.isPrior(::Mixture{N, F, S, T}) where {N,F,S,T}

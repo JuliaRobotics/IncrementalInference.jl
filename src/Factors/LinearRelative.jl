@@ -7,13 +7,17 @@ export LinearRelative, PackedLinearRelative
 $(TYPEDEF)
 
 Default linear offset between two scalar variables.
+
+```math
+X_2 = X_1 + η_Z
+```
 """
 struct LinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
   Z::T
 end
 
 
-
+# need several helper constructors since the dimension over which LinearRelative will be used is unknown at this point
 function LinearRelative{N}( z0::T=MvNormal(zeros(N), diagm(ones(N))) ) where {N, T <: SamplableBelief}
   #
   LinearRelative{N, T}(z0)
@@ -31,46 +35,21 @@ getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = Continu
 # getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
 
 
-getSample(s::LinearRelative, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
+getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
-function (s::LinearRelative)( res::AbstractArray{<:Real},
-                              userdata::FactorMetadata,
-                              idx::Int,
-                              meas::Tuple,
-                              X1::AbstractArray{<:Real,2},
-                              X2::AbstractArray{<:Real,2}  )
+
+
+# new and simplified interface for both nonparametric and parametric
+function (s::CalcFactor{<:LinearRelative})( res::AbstractVector{<:Real},
+                                                  z,
+                                                  x1,
+                                                  x2  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
-  res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
+  # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`
+  res .= z - (x2 - x1)
   nothing
 end
 
-# parametric specific functor
-function (s::LinearRelative{N,<:ParametricTypes})(
-                                X1::AbstractArray{<:Real},
-                                X2::AbstractArray{<:Real};
-                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - (X2[1] - X1[1])
-    return (res/σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not supported, please use non-parametric")
-  end
-end
 
 
 

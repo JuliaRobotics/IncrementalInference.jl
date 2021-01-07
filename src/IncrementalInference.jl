@@ -155,6 +155,8 @@ export *,
   listFactors,
   exists,
   sortDFG,
+  getLabel,
+  getVariables,
   getVariableOrder,
   getPPE,
   getPPEDict,
@@ -370,7 +372,6 @@ export *,
   addDownVariableFactors!,
   getDimension,
   setVariableRefence!,
-  shuffleXAltD,
   reshapeVec2Mat,
   accumulateFactorChain,
 
@@ -399,6 +400,7 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 include("AliasScalarSampling.jl")
 include("Flux/entities.jl")
 include("BeliefTypes.jl")
+include("CalcFactor.jl")
 
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
@@ -415,7 +417,6 @@ include("Variables/DefaultVariables.jl")
 include("FGOSUtils.jl")
 include("CompareUtils.jl")
 include("NeedsResolution.jl")
-
 
 # tree and init related functions
 include("SubGraphFunctions.jl")

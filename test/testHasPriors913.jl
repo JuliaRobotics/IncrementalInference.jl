@@ -2,7 +2,11 @@ using IncrementalInference
 using Test
 
 
+##
+
 @testset "Only do UPWARD_COMMON message likelihoods if hasPriors" begin
+
+##
 
 
 fg = generateCanonicalFG_lineStep(4; 
@@ -41,6 +45,8 @@ for i = 0:4
   @test isapprox(ppe, i; atol=0.7)
 end 
 
+
+##
 
 end
 

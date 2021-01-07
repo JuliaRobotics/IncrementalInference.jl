@@ -23,15 +23,13 @@ MutableLinearConditional(nm::BallTreeDensity) = MutableLinearConditional{Ndim(nm
 getDimension(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = N
 getManifolds(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
-IIF.getSample(s::MutableLinearConditional, N::Int=1) = (reshape(rand(s.Z,N),:,N), )
-function (s::MutableLinearConditional)(res::AbstractArray{<:Real},
-                                userdata::FactorMetadata,
-                                idx::Int,
-                                meas::Tuple{<:AbstractArray{<:Real, 2}},
-                                X1::AbstractArray{<:Real,2},
-                                X2::AbstractArray{<:Real,2}  )
+IIF.getSample(cf::CalcFactor{<:MutableLinearConditional}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
+function (s::CalcFactor{<:MutableLinearConditional})(res::AbstractVector{<:Real},
+                                                    meas,
+                                                    X1,
+                                                    X2  )
 #
-res[:] = meas[1][:,idx] - (X2[:,idx] - X1[:,idx])
+res[:] .= meas .- (X2 .- X1)
 nothing
 end
 

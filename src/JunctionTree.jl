@@ -907,7 +907,7 @@ Return `::Bool` on whether factor is a partial constraint.
 """
 isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
 function isPartial(fct::DFGFactor)  #fct::TreeClique
-  fcf = getSolverData(fct).fnc.usrfnc!
+  fcf = _getCCW(fct).usrfnc!
   isPartial(fcf)
 end
 
@@ -1206,7 +1206,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
       idfct = getCliqueData(cliq).potentials[i]
       if idfct == potIDs[i] # sanity check on clique potentials ordering
         # TODO int and symbol compare is no good
-        for vertidx in getVariableOrder(DFG.getFactor(dfg, idfct)) #.fncargvID
+        for vertidx in getVariableOrder(DFG.getFactor(dfg, idfct))
           if vertidx == cols[j]
             cliqAssocMat[i,j] = true
           end

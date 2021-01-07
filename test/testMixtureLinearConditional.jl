@@ -1,7 +1,75 @@
+##
+
+
 using IncrementalInference
 using Test
 
+##
+
+@testset "test Mixture sampling" begin
+
+##
+
+fg = initfg()
+addVariable!(fg, :x0, ContinuousScalar)
+
+mp = Mixture(Prior, (Normal(), Normal(10,1)),(1/2,1/2) )
+addFactor!(fg, [:x0], mp)
+
+##
+
+pts = approxConv(fg, :x0f1, :x0)
+
+N = size(pts,2)
+@test 0.2*N < sum( -5 .< pts .< 5 )
+@test 0.2*N < sum( 5 .< pts .< 15 )
+@test sum( 15 .< pts  ) < 0.1*N
+@test sum( pts .< -5 ) < 0.1*N
+@test sum( 3 .< pts .< 7 ) < 0.1*N
+
+
+# using KernelDensityEstimatePlotting, Gadfly
+# Gadfly.set_default_plot_size(25cm,20cm)
+
+# plotKDE(kde!(pts))
+
+##
+
+fg = initfg()
+addVariable!(fg, :x0, ContinuousScalar)
+addVariable!(fg, :x1, ContinuousScalar)
+
+addFactor!(fg, [:x0], Prior(Normal()), graphinit=false)
+initManual!(fg, :x0, zeros(1,100))
+
+mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)),(1/2,1/2) )
+addFactor!(fg, [:x0;:x1], mlr, graphinit=false)
+
+##
+
+pts = approxConv(fg, :x0x1f1, :x1)
+
+# plotKDE(kde!(pts))
+
+##
+
+N = size(pts,2)
+@test 0.2*N < sum( -5 .< pts .< 5 )
+@test 0.2*N < sum( 5 .< pts .< 15 )
+@test sum( 15 .< pts  ) < 0.1*N
+@test sum( pts .< -5 ) < 0.1*N
+@test sum( 3 .< pts .< 7 ) < 0.1*N
+
+
+##
+
+end
+
+
+
 @testset "test packing of Mixture" begin
+
+##
 
 fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
@@ -28,19 +96,21 @@ f1_ = DFG.unpackFactor(fg_, pf1)
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
 @test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone])
 
-@test DFG.getSolverData(f1).fnc.usrfnc!.components.naive == DFG.getSolverData(f1).fnc.usrfnc!.components.naive
+@test IIF._getCCW(f1).usrfnc!.components.naive == IIF._getCCW(f1).usrfnc!.components.naive
 
-A = ManifoldBelief(Euclid, DFG.getSolverData(f1).fnc.usrfnc!.components.fancy )
-B = ManifoldBelief(Euclid, DFG.getSolverData(f1_).fnc.usrfnc!.components.fancy )
+A = ManifoldBelief(Euclid, IIF._getCCW(f1).usrfnc!.components.fancy )
+B = ManifoldBelief(Euclid, IIF._getCCW(f1_).usrfnc!.components.fancy )
 
 @test mmd(A,B) < 1e-6
+
+##
 
 end
 
 
-
-#
 @testset "test simple Mixture" begin
+
+##
 
 fg = initfg()
 
@@ -72,6 +142,8 @@ addFactor!(fg, [:x0,:x1], mlr)
 
 tree, smt, hist = solveTree!(fg)
 
+##
+
 btd = getBelief(getVariable(fg, :x0))
 @test isapprox(mean(getKDEfit(btd,distribution=Normal)), 0.0; atol=0.1) 
 
@@ -95,5 +167,7 @@ nfit_n = fit(Normal, pts_n)
 #   using RoMEPlotting
 #   plotKDE(fg, ls(fg))
 # end
+
+##
 
 end

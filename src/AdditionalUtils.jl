@@ -17,12 +17,12 @@ function drawCliqSubgraphUpMocking(fgl::G,
                                    treel::AbstractBayesTree,
                                    frontalSym::Symbol;
                                    show::Bool=true,
-                                   filepath::String="/tmp/cliq_sfg.pdf",
+                                   filepath::String="/tmp/caesar/random/cliq_sfg.dot",
                                    engine::AS1="sfdp",
-                                   viewerapp::AS2="evince"  )::Nothing where {G <: AbstractDFG, AS1 <: AbstractString, AS2 <: AbstractString}
+                                   viewerapp::AS2="xdot"  ) where {G <: AbstractDFG, AS1 <: AbstractString, AS2 <: AbstractString}
   #
   sfg = buildCliqSubgraphUp(fgl, treel, frontalSym)
-  writeGraphPdf(sfg, show=show, viewerapp=viewerapp, engine=engine, filepath=filepath)
+  drawGraph(sfg, show=show, viewerapp=viewerapp, engine=engine, filepath=filepath)
   nothing
 end
 

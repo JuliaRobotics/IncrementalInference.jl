@@ -3,6 +3,36 @@ export findRelatedFromPotential
 
 
 """
+    $SIGNATURES
+Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
+"""
+function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeMinimize,S,T}
+  #
+  p = if ccwl.partial
+    Int[ccwl.usrfnc!.partial...]
+  else
+    Int[1:ccwl.xDim...]
+  end
+
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
+    ccwl.cpt[thrid].p .= p
+  end
+  nothing
+end
+
+function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
+  #
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
+    ccwl.cpt[thrid].p .= Int[1:ccwl.xDim;]
+  end
+  nothing
+end
+
+"""
     $(SIGNATURES)
 
 Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
@@ -21,6 +51,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   Threads.@threads for n in elements
     # ccwl.thrid_ = Threads.threadid()
     ccwl.cpt[Threads.threadid()].particleidx = n
+    
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
     numericSolutionCCW!( ccwl )
   end
@@ -33,7 +64,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
                                 elements::Union{Vector{Int}, UnitRange{Int}}, ::Type{SingleThreaded}) where {N_,F<:AbstractRelative,S,T}
   #
   for n in elements
-    ccwl.cpt[Threads.threadid()].particleidx = n
+    ccwl.cpt[Threads.threadid()].particleidx = n    
     numericSolutionCCW!( ccwl )
   end
   nothing
@@ -52,7 +83,9 @@ end
 """
     $(SIGNATURES)
 
-Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing the user factor functor along with additional variables and information using during approximate convolution computations.
+Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing 
+the user factor functor along with additional variables and information using during 
+approximate convolution computations.
 """
 function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     ccwl::CommonConvWrapper{F},
@@ -62,23 +95,31 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     needFreshMeasurements::Bool=true,
                                     solveKey::Symbol=:default  ) where {F <: FunctorInferenceType}
   #
+
+  # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   ARR = Array{Array{Float64,2},1}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N, solveKey=solveKey)
-  # should be selecting for the correct multihypothesis mode here with `gwp.params=ARR[??]`
+  # TODO should be selecting for the correct multihypothesis mode
   ccwl.params = ARR
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, solvefor, nothing)
+
+  # TODO consolidate with ccwl??
+  # FIXME do not divert Mixture for sampling
+  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ARR)
 
   #  get variable node data
   vnds = Xi
 
   # option to disable fresh samples
   if needFreshMeasurements
-    freshSamples!(ccwl, maxlen, fmd, vnds)
+    # TODO refactor
+    ccwl.measurement = freshSamples(cf, maxlen)
+    # freshSamples!(ccwl, maxlen, fmd, vnds)
   end
 
-  # ccwl.measurement = getSample(ccwl.usrfnc!, maxlen) # ccwl.samplerfnc
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
@@ -89,13 +130,16 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   ccwl.xDim = size(ccwl.params[sfidx],1)
   # ccwl.xDim = size(ccwl.cpt[1].X,1)
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
-  for i in 1:Threads.nthreads()
-    ccwl.cpt[i].X = ccwl.params[sfidx]
-    ccwl.cpt[i].p = Int[1:ccwl.xDim;] # collect(1:size(ccwl.cpt[i].X,1)) # collect(1:length(ccwl.cpt[i].Y))
-    # ccwl.cpt[i].Y = zeros(ccwl.zDim) # zeros(xDim)  # zeros(ccwl.partial ? length(ccwl.usrfnc!.partial) : ccwl.xDim )
-    ccwl.cpt[i].res = zeros(ccwl.xDim) # used in ccw functor for AbstractRelativeMinimize
+  for thrid in 1:Threads.nthreads()
+    cpt_ = ccwl.cpt[thrid] 
+    cpt_.X = ccwl.params[sfidx]
+    resize!(cpt_.p, ccwl.xDim) 
+    cpt_.p .= 1:ccwl.xDim
+    # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
-    # ccwl.cpt[i].factormetadata.fullvariables = copy(Xi)
+    resize!(cpt_.res, ccwl.zDim) 
+    fill!(cpt_.res, 0.0)
+    # cpt_.res = zeros(ccwl.xDim) 
   end
 
   return sfidx, maxlen, manis
@@ -196,7 +240,7 @@ Common function to compute across a single user defined multi-hypothesis ambigui
 """
 function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                  allelements,
+                                  allelements::AbstractVector,
                                   activehypo,
                                   certainidx::Vector{Int},
                                   sfidx::Int,
@@ -205,6 +249,11 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
                                   spreadNH::Real=3.0 ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
+
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl)
+
   # TODO remove assert once all GenericWrapParam has been removed
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
@@ -274,18 +323,18 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
   end
-
+  
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
-
+  
   # get manifold add operations
   # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
-
+  
   # assemble how hypotheses should be computed
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
-
+  
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH)
@@ -313,8 +362,10 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
-    fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-    freshSamples!(ccwl, nn, fmd, vnds)
+    cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+    ccwl.measurement = freshSamples(cf, nn)
+    # fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
+    # freshSamples!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
@@ -404,6 +455,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
                         spreadNH=spreadNH )
 end
 
+
 """
     $(SIGNATURES)
 
@@ -419,7 +471,7 @@ function evalFactor(dfg::AbstractDFG,
                     dbg::Bool=false  )
   #
 
-  ccw = getSolverData(fct).fnc
+  ccw = _getCCW(fct)
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
   Xi = DFGVariable[]
   count = 0
