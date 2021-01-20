@@ -81,6 +81,44 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 end
 
 
+# internal use only, and selected out from approxDeconv functions
+_solveLambdaNumericDeconv(fcttype::AbstractPrior,
+                    objResX::Function,
+                    residual::AbstractVector{<:Real},
+                    u0::AbstractVector{<:Real}; islen1::Bool=false ) = u0
+#
+
+function _solveLambdaNumericDeconv( fcttype::AbstractRelativeRoots,
+                              objResX::Function,
+                              residual::AbstractVector{<:Real},
+                              u0::AbstractVector{<:Real};
+                              islen1::Bool=false )
+  #
+  r = nlsolve(objResX, u0)
+
+  #
+  return r.zero
+end
+
+function _solveLambdaNumericDeconv( fcttype::AbstractRelativeMinimize,
+                              objResX::Function,
+                              residual::AbstractVector{<:Real},
+                              u0::AbstractVector{<:Real};
+                              islen1::Bool=false )
+                              # retries::Int=3 )
+  #
+  r = if islen1
+    optimize((x) -> objResX(residual, x), u0, BFGS() )
+  else
+    optimize((x) -> objResX(residual, x), u0)
+  end
+
+  # 
+  return r.minimizer
+end
+
+
+
 """
     $(SIGNATURES)
 

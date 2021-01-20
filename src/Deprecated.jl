@@ -175,6 +175,19 @@ mutable struct DebugCliqMCMC
   DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
 end
 
+
+
+##==============================================================================
+## Deprecate code below before v0.22
+##==============================================================================
+
+
+@deprecate solveFactorMeasurements( dfg::AbstractDFG,fctsym::Symbol,solveKey::Symbol=:default;retries::Int=3 ) approxDeconv(dfg,fctsym,solveKey,retries=retries)
+
+
+
+
+
 ##==============================================================================
 ## Deprecate code below before v0.21
 ##==============================================================================

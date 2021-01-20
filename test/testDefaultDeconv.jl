@@ -141,7 +141,15 @@ N = size(X1,2)
 
 pred, meas = approxDeconv(fg, :x0x1f1)
 
-@test mmd(pred, meas) < 1e-3
+@test mmd(pred, meas) < 1e-2
+
+
+##
+
+# using KernelDensityEstimatePlotting, Gadfly
+# Gadfly.set_default_plot_size(25cm,20cm)
+
+# plotKDE([kde!(pred); kde!(meas)], c=["red"; "green"])
 
 
 ##

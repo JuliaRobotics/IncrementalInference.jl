@@ -677,7 +677,7 @@ function accumulateFactorChain( dfg::AbstractDFG,
     nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
     @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
     nextvar = nextvars[1]
-    meas, pred = solveFactorMeasurements(dfg, nextfct)
+    meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
     pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
     pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
     initManual!(tfg_meas, nextvar, pts_meas)
