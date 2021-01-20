@@ -82,30 +82,30 @@ end
 
 
 # internal use only, and selected out from approxDeconv functions
-_solveLambdaNumericDeconv(fcttype::AbstractPrior,
+_solveLambdaNumeric(fcttype::AbstractPrior,
                     objResX::Function,
                     residual::AbstractVector{<:Real},
                     u0::AbstractVector{<:Real}; islen1::Bool=false ) = u0
 #
 
-function _solveLambdaNumericDeconv( fcttype::AbstractRelativeRoots,
-                              objResX::Function,
-                              residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real};
-                              islen1::Bool=false )
+function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                                    objResX::Function,
+                                    residual::AbstractVector{<:Real},
+                                    u0::AbstractVector{<:Real};
+                                    islen1::Bool=false )  where {N_,F<:AbstractRelativeRoots,S,T}
   #
-  r = nlsolve(objResX, u0)
+  r = nlsolve(objResX, u0, inplace=true)
 
   #
   return r.zero
 end
 
-function _solveLambdaNumericDeconv( fcttype::AbstractRelativeMinimize,
-                              objResX::Function,
-                              residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real};
-                              islen1::Bool=false )
-                              # retries::Int=3 )
+function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                                    objResX::Function,
+                                    residual::AbstractVector{<:Real},
+                                    u0::AbstractVector{<:Real};
+                                    islen1::Bool=false )  where {N_,F<:AbstractRelativeMinimize,S,T}
+                                    # retries::Int=3 )
   #
   r = if islen1
     optimize((x) -> objResX(residual, x), u0, BFGS() )
@@ -150,26 +150,21 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (x) -> (target.=x; unrollHypo!(cpt_.res) )
+  _hypoObj = (res, x) -> (target.=x; unrollHypo!(res) )
   
-  # cannot Nelder-Mead on 1dim
+  # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Minimization
-  r = if islen1
-    # init value must also be permuted according to .p
-    Optim.optimize( _hypoObj, cpt_.X[cpt_.p, smpid], BFGS() )
-  else
-    Optim.optimize( _hypoObj, cpt_.X[cpt_.p, smpid] )
-  end
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1=islen1)
   
   # Check for NaNs
-  if sum(isnan.(( r ).minimizer)) != 0
+  if sum(isnan.(retval)) != 0
     @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
     return nothing
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[cpt_.p,smpid] .= r.minimizer
+  cpt_.X[cpt_.p,smpid] .= retval
   
   nothing
 end
@@ -179,7 +174,6 @@ end
 # sensitive to which hypo of course , see #1024
 # need to shuffle content inside .cpt.fmd as well as .params accordingly
 #
-
 
 
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
@@ -205,21 +199,23 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{M
   ## using CalcFactor legacy path inside (::CalcFactor)
   _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
 
-  # NOTE small off-manifold perturbation is a numerical workaround only
+  # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= perturb*randn(length(target))
 
+  # just added for symmetry with Minimize case (likely un-used)
+  islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Root finding
-  r = NLsolve.nlsolve( _hypoObj, cpt_.X[:,smpid], inplace=true )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[:,smpid], islen1=islen1)
   
   # Check for NaNs
-  if sum(isnan.(( r ).zero)) != 0
+  if sum(isnan.(retval)) != 0
     @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
     return nothing
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[:,smpid] .= ( r ).zero
+  cpt_.X[:,smpid] .= retval
 
   nothing
 end

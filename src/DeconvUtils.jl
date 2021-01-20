@@ -91,7 +91,7 @@ function approxDeconv(fcto::DFGFactor,
     hypoObj = (res, tgt) -> (targeti_.=tgt; onehypo!(res) )
 
     # find solution via SubArray view pointing to original memory location
-    targeti_ .= _solveLambdaNumericDeconv(fcttype, hypoObj, res_, measurement[1][:,idx], islen1=islen1)
+    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][:,idx], islen1=islen1)
   end
 
   # return (deconv-prediction-result, independent-measurement)
