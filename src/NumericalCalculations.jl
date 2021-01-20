@@ -1,6 +1,6 @@
 
 
-export numericSolutionCCW!
+# export _solveCCWNumeric!
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 _viewdim1or2(other, ind1, ind2) = other
@@ -136,10 +136,10 @@ DevNotes
 - TODO testshuffle is now obsolete, should be removed
 - TODO perhaps consolidate perturbation with inflation or nullhypo
 """
-function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},
-                                          CommonConvWrapper{Mixture{N_,F,S,T}}};
-                              perturb::Float64=1e-10,
-                              testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
+function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
+                                        CommonConvWrapper{Mixture{N_,F,S,T}}};
+                            perturb::Float64=1e-10,
+                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
   #
   thrid = Threads.threadid()
   smpid = ccwl.cpt[thrid].particleidx
@@ -182,9 +182,9 @@ end
 
 
 
-function numericSolutionCCW!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
-                              perturb::Float64=1e-10,
-                              testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
+function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
+                            perturb::Float64=1e-10,
+                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
   
   # FIXME, move this check higher and out of smpid loop

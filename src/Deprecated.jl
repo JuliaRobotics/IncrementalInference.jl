@@ -182,9 +182,9 @@ end
 ##==============================================================================
 
 
+@deprecate numericSolutionCCW!(w...;kw...) _solveCCWNumeric!(w...;kw...)
+
 @deprecate solveFactorMeasurements( dfg::AbstractDFG,fctsym::Symbol,solveKey::Symbol=:default;retries::Int=3 ) approxDeconv(dfg,fctsym,solveKey,retries=retries)
-
-
 
 
 

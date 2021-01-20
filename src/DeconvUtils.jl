@@ -34,7 +34,7 @@ DevNotes
 
 Related
 
-[`approxDeconv`](@ref)
+[`approxDeconv`](@ref), [`_solveCCWNumeric!`](@ref)
 """
 function approxDeconv(fcto::DFGFactor,
                       ccw = _getCCW(fcto);
@@ -92,32 +92,6 @@ function approxDeconv(fcto::DFGFactor,
 
     # find solution via SubArray view pointing to original memory location
     targeti_ .= _solveLambdaNumericDeconv(fcttype, hypoObj, res_, measurement[1][:,idx], islen1=islen1)
-
-    # # a few retries allowed
-    # while 0 < retries
-    #   if isa(fcttype, AbstractRelativeMinimize)
-    #     r = if islen1
-    #       optimize((x) -> hypoObj(res_, x), measurement[1][:,idx], BFGS() )
-    #     else
-    #       optimize((x) -> hypoObj(res_, x), measurement[1][:,idx])
-    #     end
-    #     retries -= 1
-    #     if !r.g_converged
-    #       nsm = getSample(fcttype, 1)
-    #       for count in 1:length(measurement)
-    #         measurement[count][:,idx] = nsm[count][:,1]
-    #       end
-    #     else
-    #       break
-    #     end
-    #   elseif isa(fcttype, AbstractRelativeRoots)
-    #     r = nlsolve(hypoObj, measurement[1][:,idx])
-    #     break
-    #   elseif isa(fcttype, AbstractPrior)
-    #     # return trivial case of measurement == fctSmpls
-    #     break
-    #   end
-    # end
   end
 
   # return (deconv-prediction-result, independent-measurement)

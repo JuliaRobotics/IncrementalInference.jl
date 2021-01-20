@@ -53,7 +53,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
     ccwl.cpt[Threads.threadid()].particleidx = n
     
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-    numericSolutionCCW!( ccwl )
+    _solveCCWNumeric!( ccwl )
   end
   nothing
 end
@@ -65,7 +65,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n    
-    numericSolutionCCW!( ccwl )
+    _solveCCWNumeric!( ccwl )
   end
   nothing
 end
@@ -639,7 +639,7 @@ function approxConvBinary(arr::Array{Float64,2},
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccw )
+    _solveCCWNumeric!( ccw )
   end
   return pts
 end

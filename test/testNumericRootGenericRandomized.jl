@@ -54,7 +54,7 @@ end
 
 ##
 
-# TODO -- expand testing to include subcomponent tests from numericSolutionCCW!
+# TODO -- expand testing to include subcomponent tests from _solveCCWNumeric!
 lr1 = LineResidual(2.0, 3.0)
 
 fg = initfg()
@@ -69,7 +69,7 @@ ccw(res, zeros(1))
 
 # gwp(x, res)
 ccw.cpt[1].particleidx = 1
-numericSolutionCCW!( ccw )
+_solveCCWNumeric!( ccw )
 
 @test abs(ccw.cpt[1].Y[1] + 1.50) < 1e-5
 
