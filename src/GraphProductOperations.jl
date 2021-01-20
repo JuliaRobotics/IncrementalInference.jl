@@ -5,6 +5,9 @@
     $(SIGNATURES)
 
 Multiply different dimensions from partial constraints individually.
+
+DevNotes
+- FIXME Integrate with `manifoldProduct`, see #1010
 """
 function productpartials!(pGM::Array{Float64,2},
                           dummy::BallTreeDensity,
