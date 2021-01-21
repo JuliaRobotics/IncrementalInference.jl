@@ -1,6 +1,78 @@
 
 
-# export _solveCCWNumeric!
+# TODO deprecate testshuffle
+_checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, testshuffle::Bool=false)  where {N_,F<:AbstractRelativeMinimize,S,T} = nothing
+
+function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
+                                testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
+  #
+  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
+    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
+  elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
+    error("Unresolved numeric <:AbstractRelativeRoots solve case")
+  end
+  nothing
+end
+
+
+_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                    len::Int=1,
+                    perturbation::Real=1e-10 ) where {N_,F<:AbstractRelativeMinimize,S,T} = 0
+#
+
+_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                    len::Int=1,
+                    perturbation::Real=1e-10 ) where {N_,F<:AbstractRelativeRoots,S,T} = perturbation*randn(len)
+#
+
+
+# internal use only, and selected out from approxDeconv functions
+_solveLambdaNumeric(fcttype::AbstractPrior,
+                    objResX::Function,
+                    residual::AbstractVector{<:Real},
+                    u0::AbstractVector{<:Real}; 
+                    islen1::Bool=false,
+                    perturb::Real=1e-14 ) = u0
+#
+
+function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                              objResX::Function,
+                              residual::AbstractVector{<:Real},
+                              u0::AbstractVector{<:Real};
+                              islen1::Bool=false )  where {N_,F<:AbstractRelativeRoots,S,T}
+  #
+
+  #
+  r = nlsolve(objResX, u0, inplace=true)
+
+  #
+  return r.zero
+end
+
+function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                              objResX::Function,
+                              residual::AbstractVector{<:Real},
+                              u0::AbstractVector{<:Real};
+                              islen1::Bool=false  )  where {N_,F<:AbstractRelativeMinimize,S,T}
+                              # retries::Int=3 )
+  #
+  r = if islen1
+    optimize((x) -> objResX(residual, x), u0, BFGS() )
+  else
+    optimize((x) -> objResX(residual, x), u0)
+  end
+
+  # 
+  return r.minimizer
+end
+
+
+
+## ================================================================================================
+## Heavy dispatch for all AbstractFactor / Mixture cases below
+## ================================================================================================
+
+
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 _viewdim1or2(other, ind1, ind2) = other
@@ -81,44 +153,6 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
 end
 
 
-# internal use only, and selected out from approxDeconv functions
-_solveLambdaNumeric(fcttype::AbstractPrior,
-                    objResX::Function,
-                    residual::AbstractVector{<:Real},
-                    u0::AbstractVector{<:Real}; islen1::Bool=false ) = u0
-#
-
-function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                                    objResX::Function,
-                                    residual::AbstractVector{<:Real},
-                                    u0::AbstractVector{<:Real};
-                                    islen1::Bool=false )  where {N_,F<:AbstractRelativeRoots,S,T}
-  #
-  r = nlsolve(objResX, u0, inplace=true)
-
-  #
-  return r.zero
-end
-
-function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
-                                    objResX::Function,
-                                    residual::AbstractVector{<:Real},
-                                    u0::AbstractVector{<:Real};
-                                    islen1::Bool=false )  where {N_,F<:AbstractRelativeMinimize,S,T}
-                                    # retries::Int=3 )
-  #
-  r = if islen1
-    optimize((x) -> objResX(residual, x), u0, BFGS() )
-  else
-    optimize((x) -> objResX(residual, x), u0)
-  end
-
-  # 
-  return r.minimizer
-end
-
-
-
 """
     $(SIGNATURES)
 
@@ -138,8 +172,12 @@ DevNotes
 """
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
-                            perturb::Float64=1e-10,
+                            perturb::Float64=1e-14,
                             testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
+  #
+    # FIXME, move this check higher and out of smpid loop
+  _checkErrorCCWNumerics(ccwl, testshuffle)
+
   #
   thrid = Threads.threadid()
   smpid = ccwl.cpt[thrid].particleidx
@@ -152,10 +190,15 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   ## using CalcFactor legacy path inside (::CalcFactor)
   _hypoObj = (res, x) -> (target.=x; unrollHypo!(res) )
   
+  # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
+  # use all element dimensions : ==> 1:ccwl.xDim
+  # target .+= perturb*randn(length(target))
+  target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
+
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Minimization
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1=islen1)
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1=islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -176,18 +219,15 @@ end
 #
 
 
+# NOTE DIFFERENCE ON `cpt_.p` vs `:`
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
                             perturb::Float64=1e-10,
                             testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
-  
   # FIXME, move this check higher and out of smpid loop
-  if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
-    error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
-  elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
-    error("Unresolved numeric <:AbstractRelativeRoots solve case")
-  end
-
+  _checkErrorCCWNumerics(ccwl, testshuffle)
+  
+  #
   thrid = Threads.threadid()
   smpid = ccwl.cpt[thrid].particleidx
   cpt_ = ccwl.cpt[thrid]
@@ -201,12 +241,13 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{M
 
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
-  target .+= perturb*randn(length(target))
+  # target .+= perturb*randn(length(target))
+  target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # just added for symmetry with Minimize case (likely un-used)
   islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Root finding
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[:,smpid], islen1=islen1)
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[:,smpid], islen1=islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0

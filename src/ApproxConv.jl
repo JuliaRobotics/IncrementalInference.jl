@@ -613,7 +613,7 @@ function approxConv(dfg::AbstractDFG,
   return getBelief(tfg, target) |> getPoints
 end
 
-
+# TODO should this be consolidated with regular approxConv?
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
