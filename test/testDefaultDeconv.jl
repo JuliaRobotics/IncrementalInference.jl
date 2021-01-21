@@ -86,8 +86,10 @@ fg = generateCanonicalFG_CaesarRing1D()
 # # TEMPORARY MUST COMMENT ON TRAVIS
 # getSolverParams(fg).drawtree = true
 
+vo = [:x3,:x5,:x1,:l1,:x4,:x2,:x6,:x0]
+
 mkpath(getLogPath(fg))
-tree, smt, hists = solveTree!(fg, timeout=40, verbose=true) 
+tree, smt, hists = solveTree!(fg, eliminationOrder=vo, timeout=40, verbose=true) 
 
 # msg = getMsgUpThis(tree.cliques[2])
 msg = IIF.getMessageBuffer(tree.cliques[2]).upRx
@@ -97,6 +99,7 @@ addLikelihoodsDifferential!.(tfg, values(msg))
 
 # drawGraph(tfg, show=true)
 
+@show ls(tfg)
 @test issetequal(ls(tfg), [:x2,:x4,:x6])
 @test lsf(tfg) |> length == 2
 @test lsf(tfg, tags=[:__UPWARD_DIFFERENTIAL__]) |> length == 2
