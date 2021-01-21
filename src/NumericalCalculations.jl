@@ -204,7 +204,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
+    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(retval)\n"
     return nothing
   end
 
