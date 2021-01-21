@@ -71,11 +71,7 @@ end
 # This is what the internmediate user would be contributing
 mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
   Dx::T
-  # Pose1Pose1Test{T}() where T = new()
-  # Pose1Pose1Test{T}(a::T) where T = new(a)
-  # Pose1Pose1Test(a::T) where T = new(a)
 end
-# Pose1Pose1Test(a::T) where T = Pose1Pose1Test{T}(a)
 
 getSample(cf::CalcFactor{<:Pose1Pose1Test}, N::Int=1) = (reshape(rand(cf.factor.Dx,N),1,N),)
 

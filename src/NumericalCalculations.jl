@@ -156,7 +156,9 @@ end
 """
     $(SIGNATURES)
 
-Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`
+Solve free variable x by root finding residual function `fgr.usrfnc(res, x)`.  This is the 
+penultimate step before calling numerical operations to move actual estimates, which is 
+done by an internally created lambda function.
 
 ccw.X must be set to memory ref the param[varidx] being solved, at creation of ccw
 
@@ -164,6 +166,7 @@ Notes
 - Assumes `cpt_.p` is already set to desired X decision variable dimensions and size. 
 - Assumes only `ccw.particleidx` will be solved for
 - small random (off-manifold) perturbation used to prevent trivial solver cases, div by 0 etc.
+  - perturb is necessary for NLsolve cases, and smaller than 1e-10 will result in test failure
 - Also incorporates the active hypo lookup
 
 DevNotes
@@ -172,16 +175,16 @@ DevNotes
 """
 function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
                                         CommonConvWrapper{Mixture{N_,F,S,T}}};
-                            perturb::Float64=1e-14,
-                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeMinimize,S,T}
+                            perturb::Real=1e-10,
+                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelative,S,T}
   #
     # FIXME, move this check higher and out of smpid loop
   _checkErrorCCWNumerics(ccwl, testshuffle)
 
   #
   thrid = Threads.threadid()
-  smpid = ccwl.cpt[thrid].particleidx
   cpt_ = ccwl.cpt[thrid]
+  smpid = cpt_.particleidx
   
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
@@ -192,7 +195,6 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim
-  # target .+= perturb*randn(length(target))
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
@@ -217,51 +219,6 @@ end
 # sensitive to which hypo of course , see #1024
 # need to shuffle content inside .cpt.fmd as well as .params accordingly
 #
-
-
-# NOTE DIFFERENCE ON `cpt_.p` vs `:`
-function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}};
-                            perturb::Float64=1e-10,
-                            testshuffle::Bool=false  ) where {N_,F<:AbstractRelativeRoots,S,T}
-  #
-  # FIXME, move this check higher and out of smpid loop
-  _checkErrorCCWNumerics(ccwl, testshuffle)
-  
-  #
-  thrid = Threads.threadid()
-  smpid = ccwl.cpt[thrid].particleidx
-  cpt_ = ccwl.cpt[thrid]
-
-  # build the pre-objective function for this sample's hypothesis selection
-  unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
-
-  # broadcast updates original view memory location
-  ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (res,x) -> (target.=x; unrollHypo!(res))
-
-  # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
-  # use all element dimensions : ==> 1:ccwl.xDim
-  # target .+= perturb*randn(length(target))
-  target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
-
-  # just added for symmetry with Minimize case (likely un-used)
-  islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
-  # do the parameter search over defined decision variables using Root finding
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[:,smpid], islen1=islen1 )
-  
-  # Check for NaNs
-  if sum(isnan.(retval)) != 0
-    @error "$(ccwl.usrfnc!), ccw.thrid_=$(thrid), got NaN, smpid = $(smpid), r=$(r)\n"
-    return nothing
-  end
-
-  # insert result back at the correct variable element location
-  cpt_.X[:,smpid] .= retval
-
-  nothing
-end
-
-
 
 
 
