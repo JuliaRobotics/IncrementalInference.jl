@@ -53,7 +53,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
     ccwl.cpt[Threads.threadid()].particleidx = n
     
     # ccall(:jl_, Nothing, (Any,), "starting loop, thrid_=$(Threads.threadid()), partidx=$(ccwl.cpt[Threads.threadid()].particleidx)")
-    numericSolutionCCW!( ccwl )
+    _solveCCWNumeric!( ccwl )
   end
   nothing
 end
@@ -65,7 +65,7 @@ function approxConvOnElements!( ccwl::Union{CommonConvWrapper{F},
   #
   for n in elements
     ccwl.cpt[Threads.threadid()].particleidx = n    
-    numericSolutionCCW!( ccwl )
+    _solveCCWNumeric!( ccwl )
   end
   nothing
 end
@@ -613,7 +613,7 @@ function approxConv(dfg::AbstractDFG,
   return getBelief(tfg, target) |> getPoints
 end
 
-
+# TODO should this be consolidated with regular approxConv?
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
                           meas::FunctorInferenceType,
@@ -639,7 +639,7 @@ function approxConvBinary(arr::Array{Float64,2},
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n
-    numericSolutionCCW!( ccw )
+    _solveCCWNumeric!( ccw )
   end
   return pts
 end
@@ -677,7 +677,7 @@ function accumulateFactorChain( dfg::AbstractDFG,
     nextvars = setdiff(ls(tfg_meas,nextfct),[nextvar])
     @assert length(nextvars) == 1 "accumulateFactorChain requires each factor pair to separated by a single variable"
     nextvar = nextvars[1]
-    meas, pred = solveFactorMeasurements(dfg, nextfct)
+    meas, pred = approxDeconv(dfg, nextfct) # solveFactorMeasurements
     pts_meas = approxConv(tfg_meas, nextfct, nextvar, (meas,ones(Int,100),collect(1:100)))
     pts_pred = approxConv(tfg_pred, nextfct, nextvar, (pred,ones(Int,100),collect(1:100)))
     initManual!(tfg_meas, nextvar, pts_meas)
