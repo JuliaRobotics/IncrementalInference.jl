@@ -22,15 +22,16 @@ getSample(cf::CalcFactor{<:MsgPrior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:
 
 
 # this is a developmental type, will be standardized after conclusion of #1010
+# TODO resolve type instability
 const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vector{Symbol},DFG.AbstractRelative}}}
 
 const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
 
 
-function (s::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
-                                            z,
-                                            x1  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
-  #
+function (cfo::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
+                                        z,
+                                        x1  )
+#
   res .= z .- x1
   nothing
 end
@@ -40,8 +41,6 @@ end
 struct PackedMsgPrior <: PackedInferenceType
   Z::String
   inferdim::Float64
-  # PackedMsgPrior() = new()
-  # PackedMsgPrior(z::S, infd::R) where {S <: AbstractString, R <: Real} = new(string(z), infd)
 end
 
 function convert(::Type{PackedMsgPrior}, d::MsgPrior)

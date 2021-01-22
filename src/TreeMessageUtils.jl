@@ -181,7 +181,8 @@ function _findSubgraphsFactorType(dfg_::AbstractDFG,
         defaultFct = selectFactorType(dfg_, key1, key2)
         # @show key1, key2, defaultFct
         # TODO validate getfield Main here
-        resname = defaultFct isa UnionAll ? getfield(Main, defaultFct.body.name |> Symbol) : defaultFct
+        # resname = defaultFct isa UnionAll ? getfield(Main, defaultFct.body.name |> Symbol) : defaultFct
+        resname = defaultFct isa UnionAll ? getfield(Main, nameof(defaultFct.body)) : defaultFct
         pth = findShortestPathDijkstra(dfg_, key1, key2, typeFactors=[resname;], initialized=true)
         # check if connected to existing subClass
         if 0 == length(pth)
