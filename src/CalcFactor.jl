@@ -38,9 +38,9 @@ end
 
 
 """
-(cf::CalcFactor{T,M})( res::AbstractVector{<:Real}, meas..., params...)
+(cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
 
-Standard interface for calling a factor calculation, as if `cf.factor(residual, noise_process, parameters)`,
+Default fallback for the standard factor calculation interface, as in `cf.factor(residual, noise_process, parameters)`,
 where factors are either library standard or user out-of-library factor definitions.  See documentation for
 more details and tutorials on using your own factors (designed to be as easy as possible).
 
@@ -96,6 +96,9 @@ Evaluate the residual function for a single sample.
 
 Notes
 - Binary factors only at this stage, and `multihypo` does not have to be considered in this test
+
+DevNotes
+- TODO generalize for n-ary factors
 
 Related
 

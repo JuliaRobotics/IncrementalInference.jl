@@ -3,6 +3,8 @@
 # of convert in their namespace
 
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
+import DistributedFactorGraphs: getFactorType
+
 
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
@@ -20,6 +22,10 @@ Get the CommonConvWrapper for this factor.
 _getCCW(gfnd::GenericFunctionNodeData) = gfnd.fnc
 _getCCW(fct::DFGFactor) = getSolverData(fct) |> _getCCW
 _getCCW(dfg::AbstractDFG, lbl::Symbol) = getFactor(dfg, lbl) |> _getCCW
+
+
+DFG.getFactorType(ccw::CommonConvWrapper) = ccw.usrfnc!
+
 
 _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.inferdim : Int(ccw.zDim)
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
