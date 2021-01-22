@@ -56,10 +56,11 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               islen1::Bool=false  )  where {N_,F<:AbstractRelativeMinimize,S,T}
                               # retries::Int=3 )
   #
+  # wrt #467 allow residual to be standardize for Roots and Minimize and Parametric cases.
   r = if islen1
-    optimize((x) -> objResX(residual, x), u0, BFGS() )
+    optimize((x) -> (objResX(residual, x); sum(residual.^2)), u0, BFGS() )
   else
-    optimize((x) -> objResX(residual, x), u0)
+    optimize((x) -> (objResX(residual, x); sum(residual.^2)), u0)
   end
 
   # 

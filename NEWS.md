@@ -11,6 +11,10 @@ Alternatively, either use the Github Blame, or the Github `/compare/v0.18.0...v0
 
 The list below highlights major breaking changes, and please note that significant efforts are made to properly deprecate old code/APIs according to normal semver workflow -- i.e. breaking changes go through at least one deprecatation (via warnings) on the dominant number in the version number.  E.g. v0.18 -> v0.19 (warnings) -> v0.20 (breaking).
 
+# Major changes in IIF v0.21
+
+- `AbstractRelativeMinimize` should in-place populate `residual` not return scalar cost as previously done, see #1132.
+
 # Major changes in IIF v0.20
 
 - The user factor API call strategy has been simplified via `CalcResidual`, see #467 for details.
