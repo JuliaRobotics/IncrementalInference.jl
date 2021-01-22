@@ -84,8 +84,9 @@ function (dp::CalcFactor{<:DevelopPartialPairwise})(res::AbstractVector{<:Real},
                                                     x2  )
   #
   res[1] = meas[1] - (x2[2]-x1[2])
-  res[1] ^= 2
-  res[1]
+
+  # v0.21+
+  nothing
 end
 
 
