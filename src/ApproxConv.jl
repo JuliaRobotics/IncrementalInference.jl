@@ -89,7 +89,7 @@ approximate convolution computations.
 """
 function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     ccwl::CommonConvWrapper{F},
-                                    Xi::Vector{DFGVariable},
+                                    Xi::AbstractVector{<:DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
                                     needFreshMeasurements::Bool=true,
@@ -148,7 +148,7 @@ end
 
 function prepareCommonConvWrapper!( ccwl::Union{CommonConvWrapper{F},
                                                 CommonConvWrapper{Mixture{N_,F,S,T}}},
-                                    Xi::Vector{DFGVariable},
+                                    Xi::AbstractVector{<:DFGVariable},
                                     solvefor::Symbol,
                                     N::Int;
                                     needFreshMeasurements::Bool=true,
@@ -304,7 +304,7 @@ Multiple dispatch wrapper for `<:AbstractRelativeRoots` types, to prepare and ex
 
 Planned changes will fold null hypothesis in as a standard feature and no longer appear as a separate `InferenceType`.
 """
-function evalPotentialSpecific( Xi::Vector{DFGVariable},
+function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractRelative},
@@ -343,7 +343,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
 end
 
 # TODO `measurement` might not be properly wired up yet
-function evalPotentialSpecific( Xi::Vector{DFGVariable},
+function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
@@ -410,7 +410,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
 end
 
 
-function evalPotentialSpecific( Xi::Vector{DFGVariable},
+function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
                                 measurement::Tuple=(zeros(0,0),);
@@ -433,7 +433,7 @@ function evalPotentialSpecific( Xi::Vector{DFGVariable},
 end
 
 
-function evalPotentialSpecific( Xi::Vector{DFGVariable},
+function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
                                 measurement::Tuple=(zeros(0,0),);
@@ -473,27 +473,14 @@ function evalFactor(dfg::AbstractDFG,
 
   ccw = _getCCW(fct)
   # TODO -- this build up of Xi is excessive and could happen at addFactor time
-  Xi = DFGVariable[]
-  count = 0
-  variablelist = Vector{Symbol}(undef, length(getVariableOrder(fct)))
-  for id in getVariableOrder(fct)
-    count += 1
-    xi = DFG.getVariable(dfg, id)
-    push!(Xi, xi )
+  variablelist = getVariableOrder(fct)
+  Xi = getVariable.(dfg, variablelist)
 
-    # TODO do only once at construction time -- staring it here to be sure the code is calling factors correctly
-    variablelist[count] = xi.label
-
-    # TODO bad way to search for `solvefor`
-    if xi.label == solvefor
-      for i in 1:Threads.nthreads()
-        ccw.cpt[i].factormetadata.solvefor = xi.label
-      end
-    end
-  end
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
+    ccw.cpt[i].factormetadata.solvefor = solvefor
   end
+
   return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
                                 solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH )
   #

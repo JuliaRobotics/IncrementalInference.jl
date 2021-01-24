@@ -64,6 +64,7 @@ function sampleFactor!( ccwl::CommonConvWrapper,
   cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
   # TODO make this an in-place operation as far possible
   ccwl.measurement = sampleFactor(cf, N)    
+
   nothing
 end
 
