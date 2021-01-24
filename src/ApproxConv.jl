@@ -116,8 +116,8 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # option to disable fresh samples
   if needFreshMeasurements
     # TODO refactor
-    ccwl.measurement = freshSamples(cf, maxlen)
-    # freshSamples!(ccwl, maxlen, fmd, vnds)
+    ccwl.measurement = sampleFactor(cf, maxlen)
+    # sampleFactor!(ccwl, maxlen, fmd, vnds)
   end
 
   if ccwl.specialzDim
@@ -363,9 +363,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-    ccwl.measurement = freshSamples(cf, nn)
+    ccwl.measurement = sampleFactor(cf, nn)
     # fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-    # freshSamples!(ccwl, nn, fmd, vnds)
+    # sampleFactor!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
@@ -619,7 +619,7 @@ function approxConvBinary(arr::Array{Float64,2},
 
   fmd.arrRef = t
 
-  measurement = size(measurement[1],2) == 0 ? freshSamples(meas, N, fmd, vnds) : measurement
+  measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

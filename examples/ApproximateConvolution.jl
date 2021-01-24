@@ -56,7 +56,7 @@ f2 = addFactor!(fg, [:x1; :x2], mmc )
 pts = approxConv(fg, :x1x2f1, :x2)
 
 ## do some plotting
-meas = freshSamples(f2,2000)
+meas = sampleFactor(f2,2000)
 q2 = kde!(meas)
 h1 = plotKDE([getBelief(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")

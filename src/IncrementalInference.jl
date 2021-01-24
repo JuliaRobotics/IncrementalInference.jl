@@ -282,8 +282,8 @@ export *,
 
   #functors need
   getSample,
-  freshSamples!,
-  freshSamples,
+  sampleFactor!,
+  sampleFactor,
 
   #Visualization
   drawGraph,

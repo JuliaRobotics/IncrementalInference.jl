@@ -62,7 +62,7 @@ addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
 
 ##
 
-meas = freshSamples(fg, :x0x1_ax1_bf1, 10)
+meas = sampleFactor(fg, :x0x1_ax1_bf1, 10)
 
 ##
 

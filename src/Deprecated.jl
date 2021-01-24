@@ -181,6 +181,8 @@ end
 ## Deprecate code below before v0.22
 ##==============================================================================
 
+@deprecate freshSamples!(w...;kw...) sampleFactor!(w...;kw...)
+@deprecate freshSamples(w...;kw...) sampleFactor(w...;kw...)
 
 @deprecate numericSolutionCCW!(w...;kw...) _solveCCWNumeric!(w...;kw...)
 

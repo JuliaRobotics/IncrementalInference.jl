@@ -44,36 +44,37 @@ end
 # moved to CalcFactor.jl
 
 
-function freshSamples(ccwl::CommonConvWrapper,
+function sampleFactor(ccwl::CommonConvWrapper,
                       N::Int  )
   #
   cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
-  freshSamples(cf, N)
+  sampleFactor(cf, N)
 end
 
 # part of consolidation, see #927
-function freshSamples!( ccwl::CommonConvWrapper, 
+function sampleFactor!( ccwl::CommonConvWrapper, 
                         N::Int, 
                         fmd::FactorMetadata=_getFMdThread(ccwl), 
                         vnd=nothing )
   #
   # depr warning added before IIF v0.20
-  vnd !== nothing ? @warn("freshSamples! no longer accepts vnd::Vector as meaningful input.") : nothing
+  vnd !== nothing ? @warn("sampleFactor! no longer accepts vnd::Vector as meaningful input.") : nothing
   
   # build a CalcFactor object and get fresh samples.
   cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
   # TODO make this an in-place operation as far possible
-  ccwl.measurement = freshSamples(cf, N)    
+  ccwl.measurement = sampleFactor(cf, N)    
+
   nothing
 end
 
 
-function freshSamples(dfg::AbstractDFG, 
+function sampleFactor(dfg::AbstractDFG, 
                       sym::Symbol, 
                       N::Int=1 )
   #
   # fct = getFactor(dfg, sym)
-  return freshSamples(_getCCW(dfg, sym), N)
+  return sampleFactor(_getCCW(dfg, sym), N)
   # usrfnc = getFactorType(fct)
   # variables = getVariable.(dfg, getVariableOrder(fct))
   
@@ -83,7 +84,7 @@ function freshSamples(dfg::AbstractDFG,
   # also deconv?
   # not really, because that would imply stochastic dependency on association before noise process??
   # fmd = FactorMetadata(variables, getLabel.(variables), Vector{Matrix{Float64}}(), :null, nothing)
-  # freshSamples(usrfnc, N, fmd )
+  # sampleFactor(usrfnc, N, fmd )
 end
 
 
