@@ -63,14 +63,14 @@ end
 
 ## basic sample test
 
-meas = freshSamples(fg, :x0x1f1, 10)
+meas = sampleFactor(fg, :x0x1f1, 10)
 @test size(meas[1],1) == 1
 @test size(meas[1],2) == 10
 
 
 ## do all forward solutions
 
-pts, = freshSamples(fg, :x0f1, 100)
+pts, = sampleFactor(fg, :x0f1, 100)
 initManual!(fg, :x0, pts)
 pts = approxConv(fg, :x0x1f1, :x1)
 @test 0.3 < Statistics.mean(pts) < 0.4

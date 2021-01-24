@@ -70,7 +70,7 @@ DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 - TODO only works on `.threadid()==1` at present, see #1094
 """
-function freshSamples(cf::CalcFactor{<:FunctorInferenceType}, 
+function sampleFactor(cf::CalcFactor{<:FunctorInferenceType}, 
                       N::Int=1  )
   #
   getSample(cf, N)

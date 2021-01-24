@@ -608,7 +608,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   zdim = if T != GenericMarginal
     # vnds = Xi # (x->getSolverData(x)).(Xi)
     # NOTE try to make sure we get matrix back (not a vector)
-    smpls = freshSamples(cf, 2)[1]
+    smpls = sampleFactor(cf, 2)[1]
     size(smpls,1)
   else
     0

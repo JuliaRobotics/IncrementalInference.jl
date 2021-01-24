@@ -39,7 +39,7 @@ Related
 function approxDeconv(fcto::DFGFactor,
                       ccw = _getCCW(fcto);
                       N::Int=100,
-                      measurement::Tuple=freshSamples(ccw, N),
+                      measurement::Tuple=sampleFactor(ccw, N),
                       retries::Int=3  )
   #
   thrid = Threads.threadid()
@@ -50,9 +50,9 @@ function approxDeconv(fcto::DFGFactor,
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
   fcttype = getFactorType(fcto)
   
-  # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
-
-  # measurement = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
+  # TODO, consolidate this fmd with getSample/sampleFactor and _buildLambda
+  
+  # measurement = sampleFactor(fcttype, N, fmd) # getSample(fcttype, N)
   fctSmpls = deepcopy(measurement[1])
   # get measurement dimension
   zDim = _getZDim(fcto)
