@@ -62,6 +62,7 @@ function freshSamples!( ccwl::CommonConvWrapper,
   
   # build a CalcFactor object and get fresh samples.
   cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+  # TODO make this an in-place operation as far possible
   ccwl.measurement = freshSamples(cf, N)    
   nothing
 end
