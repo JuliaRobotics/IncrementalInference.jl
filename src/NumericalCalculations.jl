@@ -30,15 +30,15 @@ _perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
 _solveLambdaNumeric(fcttype::AbstractPrior,
                     objResX::Function,
                     residual::AbstractVector{<:Real},
-                    u0::AbstractVector{<:Real}; 
-                    islen1::Bool=false,
+                    u0::AbstractVector{<:Real},
+                    islen1::Bool=false;
                     perturb::Real=1e-14 ) = u0
 #
 
 function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               objResX::Function,
                               residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real};
+                              u0::AbstractVector{<:Real},
                               islen1::Bool=false )  where {N_,F<:AbstractRelativeRoots,S,T}
   #
 
@@ -52,7 +52,7 @@ end
 function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
                               objResX::Function,
                               residual::AbstractVector{<:Real},
-                              u0::AbstractVector{<:Real};
+                              u0::AbstractVector{<:Real},
                               islen1::Bool=false  )  where {N_,F<:AbstractRelativeMinimize,S,T}
                               # retries::Int=3 )
   #
@@ -108,7 +108,7 @@ end
 Internal function to build lambda pre-objective function for finding factor residuals. 
 
 Notes  
-- Unless passed in as separate arguments, this assumes already valid:
+- Unless passed in as separate arguments, this assumes already valid in `cpt_`:
   - `cpt_.p`
   - `cpt_.activehypo`
   - `cpt_.factormetadata`
@@ -145,7 +145,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   #
 
   # reset the residual vector
-  fill!(cpt_.res, 0.0) # 1:frl.xDim
+  fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
   unrollHypo! = (res) -> cf( res, (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... )
@@ -186,7 +186,10 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   thrid = Threads.threadid()
   cpt_ = ccwl.cpt[thrid]
   smpid = cpt_.particleidx
-  
+  # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
+  islen1 = length(cpt_.p) == 1 || ccwl.partial
+  # islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
+
   # build the pre-objective function for this sample's hypothesis selection
   unrollHypo!, target = _buildCalcFactorLambdaSample(ccwl, smpid, cpt_)
   
@@ -198,10 +201,8 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   # use all element dimensions : ==> 1:ccwl.xDim
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
-  # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
-  islen1 = length(cpt_.X[:, smpid]) == 1 || ccwl.partial
   # do the parameter search over defined decision variables using Minimization
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1=islen1 )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
