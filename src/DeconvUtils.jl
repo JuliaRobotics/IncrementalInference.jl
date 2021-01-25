@@ -37,27 +37,26 @@ Related
 [`approxDeconv`](@ref), [`_solveCCWNumeric!`](@ref)
 """
 function approxDeconv(fcto::DFGFactor,
-                      ccw = _getCCW(fcto);
+                      ccw::CommonConvWrapper = _getCCW(fcto);
                       N::Int=100,
                       measurement::Tuple=sampleFactor(ccw, N),
                       retries::Int=3  )
   #
-  fmd = _getFMdThread(ccw)
+  # but what if this is a partial factor -- is that important for general cases in deconv?
+  _setCCWDecisionDimsConv!(ccw)
   
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
   fcttype = getFactorType(fcto)
-
-  # TODO, consolidate this fmd with getSample/sampleFactor and _buildLambda
-  # measurement = sampleFactor(fcttype, N, fmd) # getSample(fcttype, N)
-
-  fctSmpls = deepcopy(measurement[1])
+  
   # get measurement dimension
   zDim = _getZDim(fcto)
-  
   # TODO consider using ccw.cpt[thrid].res # likely needs resizing
   res_ = zeros(zDim)
+  # TODO, consolidate fmd with getSample/sampleFactor and _buildLambda
+  fctSmpls = deepcopy(measurement[1])
+  fmd = _getFMdThread(ccw)
   
   # TODO assuming vector on only first container in measurement::Tuple
   makeTarget = (i) -> view(measurement[1], :, i)
@@ -73,15 +72,12 @@ function approxDeconv(fcto::DFGFactor,
   lent = length(makeTarget(1))
   islen1 = size(makeTarget(1),1) == 1
   
+
   for idx in 1:N
     # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
     thrid = Threads.threadid()
     cpt_ = ccw.cpt[thrid]
     targeti_ = makeTarget(idx)
-    # 
-    resize!(cpt_.p, lent)
-    # but what if this is a partial factor -- is that important for general cases in deconv?
-    cpt_.p .= Int[1:lent;] 
     
     # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     cpt_.activehypo = activehypo[2][2]

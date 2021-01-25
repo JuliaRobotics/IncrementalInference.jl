@@ -7,7 +7,7 @@ export findRelatedFromPotential
 Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
 """
 function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeMinimize,S,T}
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractPrior},S,T}
   #
   p = if ccwl.partial
     Int[ccwl.usrfnc!.partial...]
@@ -313,7 +313,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
-                                dbg::Bool=false  ) where {T <: FunctorInferenceType}
+                                dbg::Bool=false  ) where {T <: AbstractFactor}
   #
 
   # Prep computation variables
@@ -352,7 +352,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
-                                spreadNH::Real=3.0 ) where {T <: FunctorInferenceType}
+                                spreadNH::Real=3.0 ) where {T <: AbstractFactor}
   #
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
@@ -476,6 +476,7 @@ function evalFactor(dfg::AbstractDFG,
   variablelist = getVariableOrder(fct)
   Xi = getVariable.(dfg, variablelist)
 
+  # setup operational values before compute (likely to be refactored) 
   for i in 1:Threads.nthreads()
     ccw.cpt[i].factormetadata.variablelist = variablelist
     ccw.cpt[i].factormetadata.solvefor = solvefor
@@ -533,9 +534,9 @@ function approxConv(dfg::AbstractDFG,
                     N::Int = size(measurement[1],2),
                     solveKey::Symbol=:default,
                     tfg::AbstractDFG = initfg(),
-                    setPPEmethod::Union{Nothing, <:AbstractPointParametricEst}=nothing,
-                    setPPE::Bool= setPPEmethod!==nothing,
-                    path::Vector{Symbol}=Symbol[]  )
+                    setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
+                    setPPE::Bool= setPPEmethod !== nothing,
+                    path::AbstractVector{Symbol}=Symbol[]  )
   #
   @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -581,7 +582,7 @@ function approxConv(dfg::AbstractDFG,
   # didn't return early so shift focus to using `tfg` more intensely
   initManual!(tfg, varLbls[1], pts)
   # use in combination with setPPE and setPPEmethod keyword arguments
-  ppemethod = setPPEmethod === nothing ? MeanMaxPPE : ppemethod
+  ppemethod = setPPEmethod === nothing ? MeanMaxPPE : setPPEmethod
   !setPPE ? nothing : setPPE!(tfg, varLbls[1], solveKey, ppemethod)
 
   # do chain of convolutions
