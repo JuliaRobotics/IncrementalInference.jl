@@ -883,7 +883,7 @@ function doautoinit!( dfg::T,
                       xsyms::Vector{Symbol};
                       singles::Bool=true,
                       N::Int=100,
-                      logger=SimpleLogger(logger)  )::Bool where T <: AbstractDFG
+                      logger=SimpleLogger()  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)
