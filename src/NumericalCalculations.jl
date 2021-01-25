@@ -32,7 +32,7 @@ _solveLambdaNumeric(fcttype::AbstractPrior,
                     residual::AbstractVector{<:Real},
                     u0::AbstractVector{<:Real},
                     islen1::Bool=false;
-                    perturb::Real=1e-14 ) = u0
+                    perturb::Real=1e-10 ) = u0
 #
 
 function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},

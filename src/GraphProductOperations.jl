@@ -30,6 +30,9 @@ end
     $(SIGNATURES)
 
 Multiply various full and partial dimension constraints.
+
+DevNotes
+- FIXME consolidate partial and full product AMP API, relates to #1010
 """
 function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
                                   partials::Dict{Int, Vector{BallTreeDensity}},
@@ -54,6 +57,9 @@ end
     $(SIGNATURES)
 
 Multiply a single full and several partial dimension constraints.
+
+DevNotes
+- FIXME consolidate partial and full product AMP API, relates to #1010
 """
 function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
                                       partials::Dict{Int, Vector{BallTreeDensity}},
