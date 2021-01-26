@@ -82,7 +82,9 @@ end
 # userdata is now at `cfp.cf.cachedata`
 function (cfp::_CalcFactorParametric)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = zeros(length(cfp.meanVal))
+  res = zeros(Real, length(cfp.meanVal))
+  # res = Vector{eltype(variables)}(undef, length(cfp.meanVal))
+
   cfp.calcfactor!(res, cfp.meanVal, variables...)
   
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
@@ -103,17 +105,22 @@ function _totalCost(fg::AbstractDFG,
     varOrder = getVariableOrder(fct)
     
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-    meanval, covariance = _getParametricMeasurement(cf)
 
-    calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
-                      1, (meanval,), Xparams)
-    #
-    # NOTE the inverse to informationMat
-    cfp! = _CalcFactorParametric(calcf_, meanval, covariance )
+    if false
+      #WIP currenly poor performance
+      meas, iΣ = _getParametricMeasurement(cf)
 
-    # call the user function
-    # retval = cfp!(Xparams...)  # WHY DOES THIS NOT WORK WITH TwiceDifferentiable??
-    retval = cf(Xparams...) # DOES WORK
+      calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
+                        1, (meas,), Xparams)
+      #
+      # NOTE the inverse to informationMat
+      cfp! = _CalcFactorParametric(calcf_, meas, iΣ )
+
+      # call the user function
+      retval = cfp!(Xparams...) 
+    else
+      retval = cf(Xparams...)
+    end
     
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
     obj += 1/2*retval 
@@ -328,7 +335,7 @@ end
 
 Initialize the parametric solver data from a different solution in `fromkey`.
 """
-function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
+function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
   for var in getVariables(fg)
       #TODO only supports Normal now
       # expand to MvNormal
@@ -406,4 +413,42 @@ function createMvNormal(v::DFGVariable, key=:parametric)
         @warn "Trying MvNormal Fit, replace with PPE fits in future"
         return fit(MvNormal,getSolverData(v, key).val)
     end
+end
+
+
+
+
+## SANDBOX of usefull development functions to be cleaned up
+"""
+Add the parametric solveKey to all the variables in fg if it doesn't exists.
+"""
+function addParametricSolver!(fg; init=true)
+  if !(:parametric in fg.solverParams.algorithms)
+      push!(fg.solverParams.algorithms, :parametric)
+      foreach(v->IIF.setDefaultNodeDataParametric!(v, getVariableType(v), initialized=false), getVariables(fg))
+      if init
+        initParametricFrom!(fg)
+      end
+  else
+      error("parametric solvekey already exists")
+  end
+  nothing
+end
+
+
+"""
+Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
+"""
+function updateParametricSolution(sfg, vardict)
+
+  for (v,val) in vardict
+      vnd = getSolverData(getVariable(sfg, v), :parametric)
+      # fill in the variable node data value
+      vnd.val .= val.val
+      #calculate and fill in covariance
+      vnd.bw = val.cov
+      #fill in ppe as mean
+      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val) 
+      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
+  end
 end
