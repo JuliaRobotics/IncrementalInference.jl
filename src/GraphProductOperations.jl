@@ -319,7 +319,7 @@ function localProductAndUpdate!(dfg::AbstractDFG,
   # calculate new points for sym using existing structure around sym in dfg
   newPts, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
   # maybe update dfg sym with newly calculated points
-  setkde && 0 < size(getPoints(newPts),2) ? setValKDE!(dfg, sym, newPts, false, infdim) : nothing
+  ( setkde && 0 < length(getPoints(newPts)) ) ? setValKDE!(dfg, sym, newPts, false, infdim) : nothing
 
   return newPts, infdim, lbl
 end
