@@ -30,39 +30,42 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
-
-function _getParametricCov(Z::FunctorInferenceType)
-  error("$Z not supported, please use non-parametric or open an issue if it should be")
-end
-
-function _getParametricCov(Z::Normal)
-  meas = mean(Z)
-  σ = 1/std(Z)^2
-  return (Float64[meas;], reshape(Float64[σ;],1,1))
-end
-
-function _getParametricCov(Z::MvNormal)
-  meas = mean(Z)
-  iΣ = invcov(Z)
-  return (meas, iΣ)
-end
-
 """
     $SIGNATURES
 
-Which field of a user factor type should be used for parametric inference (assumign Gaussian).
-
+Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assumign Gaussian).
+Defaults to find the parametric measurement at field `Z` followed by `z`.  
+  
 Notes
-- Users should overload this method should their factor not default to `.Z<:ParametricType`
+- Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
 """
-function getParametricField(s::FunctorInferenceType)
-  # flat out assumption
-  s.Z
+function getParametricMeasurement end
+
+function getParametricMeasurement(Z)
+  error("$Z not supported, please use non-parametric or open an issue if it should be")
 end
 
-function _getParametricMeasurement(s::FunctorInferenceType)
-  Z = getParametricField(s)
-  return _getParametricCov(Z)
+function getParametricMeasurement(Z::Normal)
+  meas = mean(Z)
+  σ = 1/std(Z)^2
+  return [meas], reshape([σ],1,1)
+end
+
+function getParametricMeasurement(Z::MvNormal)
+  meas = mean(Z)
+  iΣ = invcov(Z)
+  return meas, iΣ
+end
+
+function getParametricMeasurement(s::FunctorInferenceType)
+  if hasfield(typeof(s), :Z)
+    Z = s.Z
+  elseif hasfield(typeof(s), :z)
+    Z = s.z
+  else
+    error("$s not supported, please use non-parametric or open an issue if it should be")
+  end
+  return getParametricMeasurement(Z)
 end
 
 
@@ -92,6 +95,65 @@ function (cfp::_CalcFactorParametric)(variables...)
 end
 
 
+struct CalcFactorParametric{CF, T}
+  calcfactor!::CF
+  varOrder::Vector{Symbol}
+  res::T# TODO figure type out
+  meas::Vector{Float64}
+  iΣ::Matrix{Float64}
+end
+
+function CalcFactorParametric(fct::DFGFactor)
+  cf = getFactorType(fct)
+  varOrder = getVariableOrder(fct)
+  meas, iΣ = getParametricMeasurement(cf)
+  calcf = CalcFactor(cf, _getFMdThread(fct), 0, 0, (), [])
+  # TODO figure a way out for type.
+  res = zeros(Real, length(meas))
+  return CalcFactorParametric(calcf, varOrder, res, meas, iΣ)
+end
+
+# pass in residual for consolidation with nonparametric
+# userdata is now at `cfp.cf.cachedata`
+function (cfp::CalcFactorParametric)(variables...)
+  # call the user function (be careful to call the new CalcFactor version only!!!)
+  res = cfp.res
+  iΣ = cfp.iΣ
+  cfp.calcfactor!(res, cfp.meas, variables...)
+  
+  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+  return 0.5 * (res' * iΣ * res)
+end
+
+function calcFactorDict(fg)
+  calcFactors = Dict{Symbol, CalcFactorParametric}()
+  for fct in getFactors(fg)
+    calcFactors[fct.label] = CalcFactorParametric(fct)
+  end
+  return calcFactors
+end
+
+function _totalCost(cfdict::Dict{Symbol, CalcFactorParametric}, 
+                    flatvar, 
+                    X )
+  #
+  obj = 0
+  for (fid, cfp) in cfdict
+
+    varOrder = cfp.varOrder
+    
+    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+
+    # call the user function
+    retval = cfp(Xparams...) 
+
+    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+    obj += 1/2*retval 
+  end
+
+  return obj
+end
+
 
 # build the cost function
 function _totalCost(fg::AbstractDFG, 
@@ -108,12 +170,12 @@ function _totalCost(fg::AbstractDFG,
 
     if false
       #WIP currenly poor performance
-      meas, iΣ = _getParametricMeasurement(cf)
+      meas, iΣ = getParametricMeasurement(cf)
 
       calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
                         1, (meas,), Xparams)
       #
-      # NOTE the inverse to informationMat
+      # NOTE the inverse to measurement covariance matrix
       cfp! = _CalcFactorParametric(calcf_, meas, iΣ )
 
       # call the user function
@@ -128,7 +190,6 @@ function _totalCost(fg::AbstractDFG,
 
   return obj
 end
-
 
 
 """
@@ -173,7 +234,13 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  if false
+    cfd = calcFactorDict(fg)
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+  else
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  end
+
   result = optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
