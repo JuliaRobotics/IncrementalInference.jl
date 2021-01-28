@@ -164,7 +164,7 @@ DevNotes
 - TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
-mutable struct ConvPerThread
+mutable struct ConvPerThread{T}
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
@@ -179,7 +179,7 @@ mutable struct ConvPerThread
   # working memory location for optimization routines on target decision variables
   X::Array{Float64,2}
   # working memory to store residual for optimization routines
-  res::Vector{Float64}
+  res::T # was Vector{Float64}
 end
 
 """
