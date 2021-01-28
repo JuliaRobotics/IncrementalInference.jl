@@ -40,14 +40,11 @@ getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1) = (reshape(rand(cf.factor.
 
 
 # new and simplified interface for both nonparametric and parametric
-function (s::CalcFactor{<:LinearRelative})( res::AbstractVector{<:Real},
-                                                  z,
-                                                  x1,
-                                                  x2  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
+function (s::CalcFactor{<:LinearRelative})(z, x1, x2) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
   # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`
-  res .= z - (x2 - x1)
-  nothing
+  res = z - (x2 - x1)
+  return res
 end
 
 

@@ -15,12 +15,10 @@ Prior(::UniformScaling) = Prior(Normal())
 getSample(cf::CalcFactor{<:Prior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
-function (s::CalcFactor{<:Prior,M,P,X})(res::AbstractVector{<:Real},
-                                        z,
+function (s::CalcFactor{<:Prior,M,P,X})(z,
                                         x1  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
-  res .= z .- x1
-  nothing
+  return res = z .- x1
 end
 
 
