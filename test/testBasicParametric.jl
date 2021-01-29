@@ -38,7 +38,7 @@ end
 ########
 fg = generateCanonicalFG_lineStep(2, graphinit=true, vardims=1, poseEvery=1, landmarkEvery=0, posePriorsAt=Int[0], sightDistance=3, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
-IIF.initParametricFrom(fg)
+IIF.initParametricFrom!(fg)
 
 #
 v0 = getVariable(fg,:x0)
