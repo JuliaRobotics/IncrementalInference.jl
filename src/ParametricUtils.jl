@@ -74,10 +74,9 @@ end
 
 Internal parametric extension to [`CalcFactor`](@ref) 
 """
-struct CalcFactorMahalanobis{CF, T}
+struct CalcFactorMahalanobis{CF}
   calcfactor!::CF
   varOrder::Vector{Symbol}
-  res::T
   meas::Vector{Float64}
   iΣ::Matrix{Float64}
 end
@@ -87,16 +86,14 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   varOrder = getVariableOrder(fct)
   meas, iΣ = getParametricMeasurement(cf)
   calcf = CalcFactor(cf, _getFMdThread(fct), 0, 0, (), [])
-  # TODO figure a way out for type or return residual from factor, see 467
-  res = zeros(Real, length(meas))
-  return CalcFactorMahalanobis(calcf, varOrder, res, meas, iΣ)
+  return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ)
 end
 
 # pass in residual for consolidation with nonparametric
 # userdata is now at `cfp.cf.cachedata`
 function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = cfp.res
+  res = Vector{eltype(variables[1])}(undef, length(cfp.meas))
   iΣ = cfp.iΣ
   cfp.calcfactor!(res, cfp.meas, variables...)
   
