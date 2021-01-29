@@ -47,8 +47,8 @@ end
 
 function getParametricMeasurement(Z::Normal)
   meas = mean(Z)
-  σ = 1/std(Z)^2
-  return [meas], reshape([σ],1,1)
+  iσ = 1/std(Z)^2
+  return [meas], reshape([iσ],1,1)
 end
 
 function getParametricMeasurement(Z::MvNormal)
@@ -74,48 +74,27 @@ end
 
 Internal parametric extension to [`CalcFactor`](@ref) 
 """
-struct _CalcFactorParametric{CF}
-  calcfactor!::CF
-  meanVal::Vector{Float64}
-  informationMat::Matrix{Float64}
-end
-
-
-# pass in residual for consolidation with nonparametric
-# userdata is now at `cfp.cf.cachedata`
-function (cfp::_CalcFactorParametric)(variables...)
-  # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = zeros(Real, length(cfp.meanVal))
-  # res = Vector{eltype(variables)}(undef, length(cfp.meanVal))
-
-  cfp.calcfactor!(res, cfp.meanVal, variables...)
-  
-  # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return 0.5 * (res' * cfp.informationMat * res)
-end
-
-
-struct CalcFactorParametric{CF, T}
+struct CalcFactorMahalanobis{CF, T}
   calcfactor!::CF
   varOrder::Vector{Symbol}
-  res::T# TODO figure type out
+  res::T
   meas::Vector{Float64}
   iΣ::Matrix{Float64}
 end
 
-function CalcFactorParametric(fct::DFGFactor)
+function CalcFactorMahalanobis(fct::DFGFactor)
   cf = getFactorType(fct)
   varOrder = getVariableOrder(fct)
   meas, iΣ = getParametricMeasurement(cf)
   calcf = CalcFactor(cf, _getFMdThread(fct), 0, 0, (), [])
-  # TODO figure a way out for type.
+  # TODO figure a way out for type or return residual from factor, see 467
   res = zeros(Real, length(meas))
-  return CalcFactorParametric(calcf, varOrder, res, meas, iΣ)
+  return CalcFactorMahalanobis(calcf, varOrder, res, meas, iΣ)
 end
 
 # pass in residual for consolidation with nonparametric
 # userdata is now at `cfp.cf.cachedata`
-function (cfp::CalcFactorParametric)(variables...)
+function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
   res = cfp.res
   iΣ = cfp.iΣ
@@ -125,15 +104,15 @@ function (cfp::CalcFactorParametric)(variables...)
   return 0.5 * (res' * iΣ * res)
 end
 
-function calcFactorDict(fg)
-  calcFactors = Dict{Symbol, CalcFactorParametric}()
+function calcFactorMahalanobisDict(fg)
+  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
   for fct in getFactors(fg)
-    calcFactors[fct.label] = CalcFactorParametric(fct)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
   end
   return calcFactors
 end
 
-function _totalCost(cfdict::Dict{Symbol, CalcFactorParametric}, 
+function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis}, 
                     flatvar, 
                     X )
   #
@@ -168,22 +147,8 @@ function _totalCost(fg::AbstractDFG,
     
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
 
-    if false
-      #WIP currenly poor performance
-      meas, iΣ = getParametricMeasurement(cf)
+    retval = cf(Xparams...)
 
-      calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
-                        1, (meas,), Xparams)
-      #
-      # NOTE the inverse to measurement covariance matrix
-      cfp! = _CalcFactorParametric(calcf_, meas, iΣ )
-
-      # call the user function
-      retval = cfp!(Xparams...) 
-    else
-      retval = cf(Xparams...)
-    end
-    
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
     obj += 1/2*retval 
   end
@@ -198,6 +163,7 @@ end
 Solve a Gaussian factor graph.
 """
 function solveFactorGraphParametric(fg::AbstractDFG;
+                                    useCalcFactor::Bool=false, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
                                     algorithm=BFGS,
@@ -234,8 +200,8 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
 
-  if false
-    cfd = calcFactorDict(fg)
+  if useCalcFactor
+    cfd = calcFactorMahalanobisDict(fg)
     tdtotalCost = TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
   else
     tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)

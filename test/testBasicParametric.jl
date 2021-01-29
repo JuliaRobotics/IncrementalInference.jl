@@ -4,6 +4,22 @@ using DistributedFactorGraphs
 using IncrementalInference
 
 ##
+@testset "Test consolidation of factors #467" begin
+  fg = generateCanonicalFG_lineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
+
+  d,st = IIF.solveFactorGraphParametric(fg)
+  for i in 0:10
+    sym = Symbol("x",i)
+    @test isapprox(d[sym].val[1], i, atol=1e-6)
+  end
+  
+  d,st = IIF.solveFactorGraphParametric(fg; useCalcFactor=true)
+  for i in 0:10
+    sym = Symbol("x",i)
+    @test isapprox(d[sym].val[1], i, atol=1e-6)
+  end
+  
+end
 
 @testset "Parametric Tests" begin
 
