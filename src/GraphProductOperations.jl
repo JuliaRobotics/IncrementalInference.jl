@@ -4,31 +4,6 @@
 """
     $(SIGNATURES)
 
-Multiply different dimensions from partial constraints individually.
-
-DevNotes
-- FIXME Integrate with `manifoldProduct`, see #1010
-"""
-function productpartials!(pGM::Array{Float64,2},
-                          dummy::BallTreeDensity,
-                          partials::Dict{Int, Vector{BallTreeDensity}},
-                          manis::T  ) where {T <: Tuple}
-  #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manis)
-  for (dimnum,pp) in partials
-    dummy2 = marginal(dummy,[dimnum])
-    if length(pp) > 1
-      pGM[dimnum,:], = prodAppxMSGibbsS(dummy2, pp, nothing, nothing, Niter=5, addop=(addopT[dimnum],), diffop=(diffopT[dimnum],), getMu=(getManiMu[dimnum],))
-    else
-      pGM[dimnum,:] = getPoints(pp[1])
-    end
-  end
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
 Multiply various full and partial dimension constraints.
 
 DevNotes
@@ -38,18 +13,23 @@ function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
                                   partials::Dict{Int, Vector{BallTreeDensity}},
                                   Ndims::Int,
                                   N::Int,
-                                  manis::T ) where {T <: Tuple}
+                                  manis::Tuple )
   #
   # TODO -- reuse memory rather than rand here
-  pq = AMP.manifoldProduct(dens, manis, Niter=5)
-  # pGM, = prodAppxMSGibbsS(dummy, dens, nothing, nothing, 5)
+  pq = AMP.manifoldProduct(dens, manis, Niter=1)
+
   for (dimnum,pp) in partials
-    push!(pp, marginal(pq, [dimnum] ) )
-    # push!(pp, AMP.manikde!(pGM[dimnum,:] ))
+    push!(pp, marginal(pq, [dimnum;] ) )
   end
-  dummy = AMP.manikde!(rand(Ndims,N),[1.0], manis);
+
   pGM = getPoints(pq)
-  productpartials!(pGM, dummy, partials, manis)
+
+  # do each partial dimension individually
+  # TODO better consolidate with full dimension product
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
+
   return pGM
 end
 
@@ -69,14 +49,16 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   #
   # TODO -- reuse memory rather than rand here
   # TODO -- should this be [1.0] or ones(Ndims)
-  dummy = AMP.manikde!(rand(Ndims,N), [1.0], manis)
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
-    # @show (manis[dimnum],)
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
-  productpartials!(pGM, dummy, partials, manis)
+  
+  # do each partial dimension individually
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
   return pGM
 end
 
@@ -93,8 +75,8 @@ Notes
 """
 function productbelief( dfg::AbstractDFG,
                         vertlabel::Symbol,
-                        dens::Vector{BallTreeDensity},
-                        partials::Dict{Int, Vector{BallTreeDensity}},
+                        dens::Vector{<:BallTreeDensity},
+                        partials::Dict{Int, <:AbstractVector{<:BallTreeDensity}},
                         N::Int;
                         dbg::Bool=false,
                         logger=ConsoleLogger()  )
@@ -103,36 +85,40 @@ function productbelief( dfg::AbstractDFG,
   manis = getVariableType(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
-  if lennonp > 1
+  if 1 < lennonp
     # multiple non-partials
     Ndims = Ndim(dens[1])
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
     pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
-  elseif lennonp == 1 && lenpart >= 1
+  elseif lennonp == 1 && 0 < lenpart
     # one non partial and one or more partials
     Ndims = Ndim(dens[1])
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
-  elseif lennonp == 0 && lenpart >= 1
+  elseif lennonp == 0 && 0 < lenpart
     # only partials
     denspts = getPoints(getBelief(dfg, vertlabel))
     Ndims = size(denspts,1)
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
-    dummy = AMP.manikde!(rand(Ndims,N), ones(Ndims), manis) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
-    productpartials!(pGM, dummy, partials, manis)
+      # do each partial dimension individually
+    for (dimnum,pp) in partials
+      pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+    end
+
   # elseif lennonp == 0 && lenpart == 1
   #   info("[prtl]")
   #   pGM = deepcopy(getVal(fg,vertid,api=localapi) )
   #   for (dimnum,pp) in partials
   #     pGM[dimnum,:] = getPoints(pp)
   #   end
+
   elseif lennonp == 1 && lenpart == 0
     # @info "[drct]"
     pGM = getPoints(dens[1])
@@ -146,48 +132,6 @@ function productbelief( dfg::AbstractDFG,
   return pGM
 end
 
-"""
-    $SIGNATURES
-
-Compute the proposals of a destination vertex for each of `factors` and place the result
-as belief estimates in both `dens` and `partials` respectively.
-
-Notes
-- TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
-"""
-function proposalbeliefs!(dfg::AbstractDFG,
-                          destvertlabel::Symbol,
-                          factors::AbstractVector{<:DFGFactor},
-                          # inferddimproposal::Vector{Float64},
-                          dens::Vector{BallTreeDensity},
-                          partials::Dict{Int, Vector{BallTreeDensity}},
-                          measurement::Tuple=(zeros(0,0),);
-                          solveKey::Symbol=:default,
-                          N::Int=100,
-                          dbg::Bool=false  )
-  #
-  inferddimproposal = Vector{Float64}()
-  count = 0
-  for fct in factors
-    count += 1
-    data = getSolverData(fct)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    if _getCCW(data).partial   # partial density
-      pardims = _getCCW(data).usrfnc!.partial
-      for dimnum in pardims
-        if haskey(partials, dimnum)
-          push!(partials[dimnum], marginal(p,[dimnum]))
-        else
-          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
-        end
-      end
-    else # add onto full density list
-      push!(dens, p)
-    end
-    push!(inferddimproposal, inferd)
-  end
-  inferddimproposal::Vector{Float64}
-end
 
 """
     $SIGNATURES
@@ -200,22 +144,20 @@ Notes
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
                         factors::Vector{<:DFGFactor};
+                        solveKey::Symbol=:defaul,
                         needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
-                        logger=ConsoleLogger()  )
+                        logger=ConsoleLogger(),
+                        dens = Array{BallTreeDensity,1}(),
+                        partials = Dict{Int, Vector{BallTreeDensity}}()  )
   #
-  destvertlabel = destvert.label
-  dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
-
+  
   # determine number of particles to draw from the marginal
   nn = N != 0 ? N : size(getVal(destvert),2)
-
-  # memory for if proposals are full dimension
-  # inferdim = Float64[0.0;]
-
+  
   # get proposal beliefs
+  destvertlabel = destvert.label
   inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
 
   # take the product
@@ -226,39 +168,44 @@ end
 
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
-                        factorsyms::Vector{Symbol};
+                        factorsyms::AbstractVector{Symbol};
+                        solveKey::Symbol=:default,
                         needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
-                        logger=ConsoleLogger()  )
+                        logger=ConsoleLogger(),
+                        dens = Array{BallTreeDensity,1}(),
+                        partials = Dict{Int, Vector{BallTreeDensity}}()  )
   #
-  factors = map(fsym -> DFG.getFactor(dfg, fsym), factorsyms)
-
-  vert = DFG.getVariable(dfg, destvertsym)
+  factors = getFactor.(dfg, factorsyms)
+  vert = getVariable(dfg, destvertsym)
 
   # determine the number of particles to draw from the marginal
-  nn = N != 0 ? N : size(getVal(vert),2)
+  nn = N != 0 ? N : size(getVal(vert, solveKey=solveKey),2)
 
   # do the belief prediction
-  predictbelief(dfg, vert, factors, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger)
+  predictbelief(dfg, vert, factors, solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger, dens=dens, partials=partials)
 end
 
 function predictbelief( dfg::AbstractDFG,
                         destvertsym::Symbol,
-                        factorsyms::Colon;
+                        ::Colon;
+                        solveKey::Symbol=:default,
                         needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
-                        logger=ConsoleLogger() )
+                        logger=ConsoleLogger(),
+                        dens = Array{BallTreeDensity,1}(),
+                        partials = Dict{Int, Vector{BallTreeDensity}}() )
   #
-  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger, dens=dens, partials=partials )
 end
 
 """
     $(SIGNATURES)
 
 Using factor graph object `dfg`, project belief through connected factors
-(convolution with conditional) to variable `sym` followed by a approximate functional product.
+(convolution with likelihood) to variable `sym` followed by a approximate functional product.
 
 Return: product belief, full proposals, partial dimension proposals, labels
 """
@@ -269,31 +216,19 @@ function localProduct(dfg::AbstractDFG,
                       dbg::Bool=false,
                       logger=ConsoleLogger() )
   #
-  # TODO -- converge this function with predictbelief for this node
-  dens = Array{BallTreeDensity,1}()
-  partials = Dict{Int, Vector{BallTreeDensity}}()
-  fcts = Vector{DFGFactor}()
   # vector of all neighbors as Symbols
   lb = getNeighbors(dfg, sym)
-  for f in lb
-    gfct = DFG.getFactor(dfg, f)
-    push!(fcts, gfct)
-  end
 
-  # memory for if proposals are full dimension
-  # inferdim = Vector{Float64}(undef, length(fcts))
+  # # get proposal beliefs
+  dens = Array{BallTreeDensity,1}()
+  partials = Dict{Int, Vector{BallTreeDensity}}()
+  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, partials=partials)
 
-  # get proposal beliefs
-  inferdim = proposalbeliefs!(dfg, sym, fcts, dens, partials, solveKey=solveKey, N=N, dbg=dbg)
-
-  # take the product
-  # @show sym, lb, length(dens), length(partials)
-  pGM = productbelief(dfg, sym, dens, partials, N, dbg=dbg, logger=logger )
-  vari = DFG.getVariable(dfg, sym)
-  # @show size(pGM)
+  # make manifold belief from product
+  vari = getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifolds )
 
-  return pp, dens, partials, lb, sum(inferdim)
+  return pp, dens, partials, lb, sinfd
 end
 localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
 

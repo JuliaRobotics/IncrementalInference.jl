@@ -2,6 +2,8 @@
 export findRelatedFromPotential
 
 
+
+
 """
     $SIGNATURES
 Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
@@ -531,8 +533,8 @@ function approxConv(dfg::AbstractDFG,
                     from::Symbol, 
                     target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
-                    N::Int = size(measurement[1],2),
                     solveKey::Symbol=:default,
+                    N::Int = size(measurement[1],2),
                     tfg::AbstractDFG = initfg(),
                     setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
                     setPPE::Bool= setPPEmethod !== nothing,
@@ -600,6 +602,15 @@ function approxConv(dfg::AbstractDFG,
   # return target variable values
   return getBelief(tfg, target) |> getPoints
 end
+
+
+
+## ====================================================================================
+## TODO better consolidate below with existing functions
+## ====================================================================================
+
+
+
 
 # TODO should this be consolidated with regular approxConv?
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
@@ -719,6 +730,48 @@ function findRelatedFromPotential(dfg::AbstractDFG,
       proposal = resample(proposal,N)
   end
   return (proposal, inferdim)
+end
+
+
+
+"""
+    $SIGNATURES
+
+Compute the proposals of a destination vertex for each of `factors` and place the result
+as belief estimates in both `dens` and `partials` respectively.
+
+Notes
+- TODO: also return if proposals were "dimension-deficient" (aka ~rank-deficient).
+"""
+function proposalbeliefs!(dfg::AbstractDFG,
+                          destvertlabel::Symbol,
+                          factors::AbstractVector{<:DFGFactor},
+                          dens::Vector{BallTreeDensity},
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          measurement::Tuple=(zeros(0,0),);
+                          solveKey::Symbol=:default,
+                          N::Int=100,
+                          dbg::Bool=false  )
+  #
+  inferddimproposal = Vector{Float64}(undef, length(factors))
+  for (count,fct) in enumerate(factors)
+    data = getSolverData(fct)
+    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    if _getCCW(data).partial   # partial density
+      pardims = _getCCW(data).usrfnc!.partial
+      for dimnum in pardims
+        if haskey(partials, dimnum)
+          push!(partials[dimnum], marginal(p,[dimnum]))
+        else
+          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+        end
+      end
+    else # add onto full density list
+      push!(dens, p)
+    end
+    inferddimproposal[count] = inferd
+  end
+  inferddimproposal
 end
 
 
