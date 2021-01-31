@@ -4,26 +4,6 @@
 """
     $(SIGNATURES)
 
-Multiply different dimensions from partial constraints individually.
-
-DevNotes
-- FIXME Integrate with `manifoldProduct`, see #1010
-"""
-function productpartials!(pGM::Array{Float64,2},
-                          dummy::BallTreeDensity,
-                          partials::Dict{Int, Vector{BallTreeDensity}},
-                          manis::Tuple  )
-  #
-  # do each partial dimension individually
-  for (dimnum,pp) in partials
-    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
-  end
-  nothing
-end
-
-"""
-    $(SIGNATURES)
-
 Multiply various full and partial dimension constraints.
 
 DevNotes
@@ -41,9 +21,15 @@ function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
   for (dimnum,pp) in partials
     push!(pp, marginal(pq, [dimnum;] ) )
   end
-  dummy = AMP.manikde!(rand(Ndims,N),[1.0], manis);
+
   pGM = getPoints(pq)
-  productpartials!(pGM, dummy, partials, manis)
+
+  # do each partial dimension individually
+  # TODO better consolidate with full dimension product
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
+
   return pGM
 end
 
@@ -63,14 +49,16 @@ function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
   #
   # TODO -- reuse memory rather than rand here
   # TODO -- should this be [1.0] or ones(Ndims)
-  dummy = AMP.manikde!(rand(Ndims,N), [1.0], manis)
   denspts = getPoints(dens[1])
   pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
-    # @show (manis[dimnum],)
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
-  productpartials!(pGM, dummy, partials, manis)
+  
+  # do each partial dimension individually
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
   return pGM
 end
 
@@ -97,36 +85,40 @@ function productbelief( dfg::AbstractDFG,
   manis = getVariableType(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
-  if lennonp > 1
+  if 1 < lennonp
     # multiple non-partials
     Ndims = Ndim(dens[1])
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
     pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
-  elseif lennonp == 1 && lenpart >= 1
+  elseif lennonp == 1 && 0 < lenpart
     # one non partial and one or more partials
     Ndims = Ndim(dens[1])
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
     pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
-  elseif lennonp == 0 && lenpart >= 1
+  elseif lennonp == 0 && 0 < lenpart
     # only partials
     denspts = getPoints(getBelief(dfg, vertlabel))
     Ndims = size(denspts,1)
     with_logger(logger) do
       @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
     end
-    dummy = AMP.manikde!(rand(Ndims,N), ones(Ndims), manis) # [1.0] # TODO -- reuse memory rather than rand here
     pGM = deepcopy(denspts)
-    productpartials!(pGM, dummy, partials, manis)
+      # do each partial dimension individually
+    for (dimnum,pp) in partials
+      pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+    end
+
   # elseif lennonp == 0 && lenpart == 1
   #   info("[prtl]")
   #   pGM = deepcopy(getVal(fg,vertid,api=localapi) )
   #   for (dimnum,pp) in partials
   #     pGM[dimnum,:] = getPoints(pp)
   #   end
+
   elseif lennonp == 1 && lenpart == 0
     # @info "[drct]"
     pGM = getPoints(dens[1])

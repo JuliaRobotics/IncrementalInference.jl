@@ -181,6 +181,28 @@ end
 ## Deprecate code below before v0.22
 ##==============================================================================
 
+
+"""
+    $(SIGNATURES)
+
+Multiply different dimensions from partial constraints individually.
+
+DevNotes
+- FIXME Integrate with `manifoldProduct`, see #1010
+"""
+function productpartials!(pGM::Array{Float64,2},
+                          dummy::BallTreeDensity,
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          manis::Tuple  )
+  #
+  @warn "productpartials! is being deprecated without direct replacement, see future versions of AMP.manifoldProduct instead."
+  # do each partial dimension individually
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
+  nothing
+end
+
 @deprecate freshSamples!(w...;kw...) sampleFactor!(w...;kw...)
 @deprecate freshSamples(w...;kw...) sampleFactor(w...;kw...)
 
