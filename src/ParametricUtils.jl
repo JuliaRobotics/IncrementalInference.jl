@@ -30,39 +30,42 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
-
-function _getParametricCov(Z::FunctorInferenceType)
-  error("$Z not supported, please use non-parametric or open an issue if it should be")
-end
-
-function _getParametricCov(Z::Normal)
-  meas = mean(Z)
-  σ = 1/std(Z)^2
-  return (Float64[meas;], reshape(Float64[σ;],1,1))
-end
-
-function _getParametricCov(Z::MvNormal)
-  meas = mean(Z)
-  iΣ = invcov(Z)
-  return (meas, iΣ)
-end
-
 """
     $SIGNATURES
 
-Which field of a user factor type should be used for parametric inference (assumign Gaussian).
-
+Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assumign Gaussian).
+Defaults to find the parametric measurement at field `Z` followed by `z`.  
+  
 Notes
-- Users should overload this method should their factor not default to `.Z<:ParametricType`
+- Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
 """
-function getParametricField(s::FunctorInferenceType)
-  # flat out assumption
-  s.Z
+function getParametricMeasurement end
+
+function getParametricMeasurement(Z)
+  error("$Z not supported, please use non-parametric or open an issue if it should be")
 end
 
-function _getParametricMeasurement(s::FunctorInferenceType)
-  Z = getParametricField(s)
-  return _getParametricCov(Z)
+function getParametricMeasurement(Z::Normal)
+  meas = mean(Z)
+  iσ = 1/std(Z)^2
+  return [meas], reshape([iσ],1,1)
+end
+
+function getParametricMeasurement(Z::MvNormal)
+  meas = mean(Z)
+  iΣ = invcov(Z)
+  return meas, iΣ
+end
+
+function getParametricMeasurement(s::FunctorInferenceType)
+  if hasfield(typeof(s), :Z)
+    Z = s.Z
+  elseif hasfield(typeof(s), :z)
+    Z = s.z
+  else
+    error("$s not supported, please use non-parametric or open an issue if it should be")
+  end
+  return getParametricMeasurement(Z)
 end
 
 
@@ -71,24 +74,61 @@ end
 
 Internal parametric extension to [`CalcFactor`](@ref) 
 """
-struct _CalcFactorParametric{CF}
+struct CalcFactorMahalanobis{CF}
   calcfactor!::CF
-  meanVal::Vector{Float64}
-  informationMat::Matrix{Float64}
+  varOrder::Vector{Symbol}
+  meas::Vector{Float64}
+  iΣ::Matrix{Float64}
 end
 
+function CalcFactorMahalanobis(fct::DFGFactor)
+  cf = getFactorType(fct)
+  varOrder = getVariableOrder(fct)
+  meas, iΣ = getParametricMeasurement(cf)
+  calcf = CalcFactor(cf, _getFMdThread(fct), 0, 0, (), [])
+  return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ)
+end
 
 # pass in residual for consolidation with nonparametric
 # userdata is now at `cfp.cf.cachedata`
-function (cfp::_CalcFactorParametric)(variables...)
+function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = zeros(length(cfp.meanVal))
-  cfp.calcfactor!(res, cfp.meanVal, variables...)
+  res = Vector{eltype(variables[1])}(undef, length(cfp.meas))
+  iΣ = cfp.iΣ
+  cfp.calcfactor!(res, cfp.meas, variables...)
   
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return 0.5 * (res' * cfp.informationMat * res)
+  return 0.5 * (res' * iΣ * res)
 end
 
+function calcFactorMahalanobisDict(fg)
+  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
+  for fct in getFactors(fg)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
+  end
+  return calcFactors
+end
+
+function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis}, 
+                    flatvar, 
+                    X )
+  #
+  obj = 0
+  for (fid, cfp) in cfdict
+
+    varOrder = cfp.varOrder
+    
+    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+
+    # call the user function
+    retval = cfp(Xparams...) 
+
+    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+    obj += 1/2*retval 
+  end
+
+  return obj
+end
 
 
 # build the cost function
@@ -103,18 +143,9 @@ function _totalCost(fg::AbstractDFG,
     varOrder = getVariableOrder(fct)
     
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-    meanval, covariance = _getParametricMeasurement(cf)
 
-    calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
-                      1, (meanval,), Xparams)
-    #
-    # NOTE the inverse to informationMat
-    cfp! = _CalcFactorParametric(calcf_, meanval, covariance )
+    retval = cf(Xparams...)
 
-    # call the user function
-    # retval = cfp!(Xparams...)  # WHY DOES THIS NOT WORK WITH TwiceDifferentiable??
-    retval = cf(Xparams...) # DOES WORK
-    
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
     obj += 1/2*retval 
   end
@@ -123,13 +154,13 @@ function _totalCost(fg::AbstractDFG,
 end
 
 
-
 """
     $SIGNATURES
 
 Solve a Gaussian factor graph.
 """
 function solveFactorGraphParametric(fg::AbstractDFG;
+                                    useCalcFactor::Bool=false, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
                                     algorithm=BFGS,
@@ -166,7 +197,13 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  if useCalcFactor
+    cfd = calcFactorMahalanobisDict(fg)
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+  else
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  end
+
   result = optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
@@ -328,7 +365,7 @@ end
 
 Initialize the parametric solver data from a different solution in `fromkey`.
 """
-function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
+function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
   for var in getVariables(fg)
       #TODO only supports Normal now
       # expand to MvNormal
@@ -406,4 +443,42 @@ function createMvNormal(v::DFGVariable, key=:parametric)
         @warn "Trying MvNormal Fit, replace with PPE fits in future"
         return fit(MvNormal,getSolverData(v, key).val)
     end
+end
+
+
+
+
+## SANDBOX of usefull development functions to be cleaned up
+"""
+Add the parametric solveKey to all the variables in fg if it doesn't exists.
+"""
+function addParametricSolver!(fg; init=true)
+  if !(:parametric in fg.solverParams.algorithms)
+      push!(fg.solverParams.algorithms, :parametric)
+      foreach(v->IIF.setDefaultNodeDataParametric!(v, getVariableType(v), initialized=false), getVariables(fg))
+      if init
+        initParametricFrom!(fg)
+      end
+  else
+      error("parametric solvekey already exists")
+  end
+  nothing
+end
+
+
+"""
+Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
+"""
+function updateParametricSolution(sfg, vardict)
+
+  for (v,val) in vardict
+      vnd = getSolverData(getVariable(sfg, v), :parametric)
+      # fill in the variable node data value
+      vnd.val .= val.val
+      #calculate and fill in covariance
+      vnd.bw = val.cov
+      #fill in ppe as mean
+      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val) 
+      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
+  end
 end
