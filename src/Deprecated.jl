@@ -182,6 +182,39 @@ end
 ##==============================================================================
 
 
+@deprecate prodmultipleonefullpartials(w...;kw...) prodmultiplefullpartials(w...;kw...)
+
+# """
+#     $(SIGNATURES)
+
+# Multiply a single full and several partial dimension constraints.
+
+# DevNotes
+# - FIXME consolidate partial and full product AMP API, relates to #1010
+# - TODO -- reuse memory rather than rand here
+# """
+# function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
+#                                       partials::Dict{Int, Vector{BallTreeDensity}},
+#                                       Ndims::Int,
+#                                       N::Int,
+#                                       manis::Tuple  )
+#   #
+
+#   # TODO -- should this be [1.0] or ones(Ndims)
+#   denspts = getPoints(dens[1])
+#   pGM = deepcopy(denspts)
+
+#   for (dimnum,pp) in partials
+#     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
+#   end
+  
+#   # do each partial dimension individually
+#   for (dimnum,pp) in partials
+#     pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+#   end
+#   return pGM
+# end
+
 """
     $(SIGNATURES)
 
