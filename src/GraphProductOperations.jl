@@ -4,10 +4,11 @@
 """
     $(SIGNATURES)
 
-Multiply various full and partial dimension constraints.
+Multiply various full and partial dimension proposal densities.
 
 DevNotes
 - FIXME consolidate partial and full product AMP API, relates to #1010
+- TODO better consolidate with full dimension product
 """
 function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
                                   partials::Dict{Int, Vector{BallTreeDensity}},
@@ -18,49 +19,21 @@ function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
   # TODO -- reuse memory rather than rand here
   pq = AMP.manifoldProduct(dens, manis, Niter=1)
 
-  for (dimnum,pp) in partials
-    push!(pp, marginal(pq, [dimnum;] ) )
-  end
-
   pGM = getPoints(pq)
 
-  # do each partial dimension individually
-  # TODO better consolidate with full dimension product
-  for (dimnum,pp) in partials
-    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
-  end
-
-  return pGM
-end
-
-"""
-    $(SIGNATURES)
-
-Multiply a single full and several partial dimension constraints.
-
-DevNotes
-- FIXME consolidate partial and full product AMP API, relates to #1010
-"""
-function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
-                                      partials::Dict{Int, Vector{BallTreeDensity}},
-                                      Ndims::Int,
-                                      N::Int,
-                                      manis::T  ) where {T <: Tuple}
-  #
-  # TODO -- reuse memory rather than rand here
-  # TODO -- should this be [1.0] or ones(Ndims)
-  denspts = getPoints(dens[1])
-  pGM = deepcopy(denspts)
   for (dimnum,pp) in partials
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
-  
+
   # do each partial dimension individually
   for (dimnum,pp) in partials
     pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
   end
+
   return pGM
 end
+
+
 
 """
     $SIGNATURES
