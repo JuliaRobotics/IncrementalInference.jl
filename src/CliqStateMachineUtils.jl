@@ -501,13 +501,13 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
         with_logger(logger) do
             @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, key=$(fr), infdim=$(downresult[fr][2]), lbls=$(downresult[fr][3])"
         end
-      setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
+      length(getPoints(downresult[fr][1])) > 0 && setValKDE!(subfg, fr, downresult[fr][1], false, downresult[fr][2])
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
         result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
         # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
-        setValKDE!(subfg, fr, result[1], false, result[2])
+        length(getPoints(result[1])) > 0 && setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
           @info "cliq $(cliq.id), solveCliqDownFrontalProducts!, iter key=$(fr), infdim=$(result[2]), lbls=$(result[3])"
         end
