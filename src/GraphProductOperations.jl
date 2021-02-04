@@ -9,6 +9,7 @@ Multiply various full and partial dimension proposal densities.
 DevNotes
 - FIXME consolidate partial and full product AMP API, relates to #1010
 - TODO better consolidate with full dimension product
+- TODO -- reuse memory rather than rand here
 """
 function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
                                   partials::Dict{Int, Vector{BallTreeDensity}},
@@ -16,11 +17,10 @@ function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
                                   N::Int,
                                   manis::Tuple )
   #
-  # TODO -- reuse memory rather than rand here
-  pq = AMP.manifoldProduct(dens, manis, Niter=1)
+  # calculate products over all dimensions, legacy proposals held in `dens` vector
+  pGM = AMP.manifoldProduct(dens, manis, Niter=1) |> getPoints
 
-  pGM = getPoints(pq)
-
+  # whats up with this?
   for (dimnum,pp) in partials
     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
   end
@@ -58,43 +58,24 @@ function productbelief( dfg::AbstractDFG,
   manis = getVariableType(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
-  if 1 < lennonp
+  denspts = getPoints(getBelief(vert))
+  Ndims = size(denspts,1)
+  with_logger(logger) do
+    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
+  end
+
+  dens_ = 0 < lennonp ? dens : [deepcopy(getBelief(vert));]
+
+  if 0 < lennonp # || (lennonp == 0 && 0 < lenpart)
     # multiple non-partials
-    Ndims = Ndim(dens[1])
-    with_logger(logger) do
-      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    end
-    pGM = prodmultiplefullpartials(dens, partials, Ndims, N, manis)
-  elseif lennonp == 1 && 0 < lenpart
-    # one non partial and one or more partials
-    Ndims = Ndim(dens[1])
-    with_logger(logger) do
-      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    end
-    pGM = prodmultipleonefullpartials(dens, partials, Ndims, N, manis)
+    pGM = prodmultiplefullpartials(dens_, partials, Ndims, N, manis)
   elseif lennonp == 0 && 0 < lenpart
-    # only partials
-    denspts = getPoints(getBelief(dfg, vertlabel))
-    Ndims = size(denspts,1)
-    with_logger(logger) do
-      @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-    end
+    # only partials, must get other existing values for vertlabel from dfg
     pGM = deepcopy(denspts)
       # do each partial dimension individually
     for (dimnum,pp) in partials
       pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
     end
-
-  # elseif lennonp == 0 && lenpart == 1
-  #   info("[prtl]")
-  #   pGM = deepcopy(getVal(fg,vertid,api=localapi) )
-  #   for (dimnum,pp) in partials
-  #     pGM[dimnum,:] = getPoints(pp)
-  #   end
-
-  elseif lennonp == 1 && lenpart == 0
-    # @info "[drct]"
-    pGM = getPoints(dens[1])
   else
     with_logger(logger) do
       @warn "Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)"
