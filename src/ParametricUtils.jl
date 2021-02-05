@@ -1,4 +1,6 @@
-
+## ================================================================================================
+## FlatVariables - used for packing variables for optimization
+## ================================================================================================
 
 struct FlatVariables{T<:Real}
   X::Vector{T}
@@ -30,6 +32,10 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
+## ================================================================================================
+## Parametric Factors
+## ================================================================================================
+
 """
     $SIGNATURES
 
@@ -60,19 +66,24 @@ end
 function getParametricMeasurement(s::FunctorInferenceType)
   if hasfield(typeof(s), :Z)
     Z = s.Z
+    @info "getParametricMeasurement falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
     Z = s.z
+    @info "getParametricMeasurement falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
   else
     error("$s not supported, please use non-parametric or open an issue if it should be")
   end
   return getParametricMeasurement(Z)
 end
 
+## ================================================================================================
+## Parametric solve with Mahalanobis distance - CalcFactor
+## ================================================================================================
 
 """
     $TYPEDEF
 
-Internal parametric extension to [`CalcFactor`](@ref) 
+Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance 
 """
 struct CalcFactorMahalanobis{CF}
   calcfactor!::CF
@@ -89,10 +100,9 @@ function CalcFactorMahalanobis(fct::DFGFactor)
   return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ)
 end
 
-# pass in residual for consolidation with nonparametric
-# userdata is now at `cfp.cf.cachedata`
+# This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
 function (cfp::CalcFactorMahalanobis)(variables...)
-  # call the user function (be careful to call the new CalcFactor version only!!!)
+  #TODO res might be removed see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/467#issuecomment-772987921
   res = Vector{eltype(variables[1])}(undef, length(cfp.meas))
   iΣ = cfp.iΣ
   cfp.calcfactor!(res, cfp.meas, variables...)
@@ -154,10 +164,13 @@ function _totalCost(fg::AbstractDFG,
 end
 
 
+export solveFactorGraphParametric
 """
     $SIGNATURES
 
-Solve a Gaussian factor graph.
+Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.  
+Notes:  
+  - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveFactorGraphParametric(fg::AbstractDFG;
                                     useCalcFactor::Bool=false, #TODO dev param will be removed
@@ -287,6 +300,39 @@ function solveConditionalsParametric(fg::AbstractDFG,
   return d, result, flatvar.idx, Σ
 end
 
+## ================================================================================================
+## MixedCircular Manifold for Optim.jl
+## ================================================================================================
+
+"""
+    MixedCircular
+Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
+"""
+struct MixedCircular <: Optim.Manifold
+  isCircular::BitArray
+end
+
+function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
+  circMask = Bool[]
+  for k = varIds
+    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
+  end
+  MixedCircular(circMask)
+end
+
+function Optim.retract!(c::MixedCircular, x)
+  for (i,v) = enumerate(x)
+    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
+  end
+  return x
+end
+Optim.project_tangent!(S::MixedCircular,g,x) = g
+
+
+## ================================================================================================
+## UNDER DEVELOPMENT Parametric solveTree utils
+## ================================================================================================
+
 """
     $SIGNATURES
 Get the indexes for labels in FlatVariables
@@ -360,21 +406,44 @@ function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
   end
 end
 
+
+
+## ================================================================================================
+## Parametric utils
+## ================================================================================================
+
+## SANDBOX of usefull development functions to be cleaned up
+
 """
     $SIGNATURES
+Add parametric solver to fg, batch solve using [`solveFactorGraphParametric`](@ref) and update fg.
+"""
+function solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
+  if !(:parametric in fg.solverParams.algorithms)
+    addParametricSolver!(fg; init=init)
+  elseif init
+    initParametricFrom!(fg)
+  end
 
+  vardict, result, varIds, Σ = solveFactorGraphParametric(fg; kwargs...)
+
+  updateParametricSolution!(fg, vardict)
+  
+  return vardict, result, varIds, Σ
+end
+
+
+"""
+    $SIGNATURES
 Initialize the parametric solver data from a different solution in `fromkey`.
 """
 function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
   for var in getVariables(fg)
-      #TODO only supports Normal now
-      # expand to MvNormal
       fromvnd = getSolverData(var, fromkey)
       if fromvnd.dims == 1
         nf = fit(Normal, fromvnd.val)
         getSolverData(var, parkey).val[1,1] = nf.μ
         getSolverData(var, parkey).bw[1,1] = nf.σ
-        # @show nf
         # m = var.estimateDict[:default].mean
       else
         #FIXME circular will not work correctly with MvNormal
@@ -383,6 +452,23 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
         getSolverData(var, parkey).bw = cov(nf)
       end
   end
+end
+
+"""
+    $SIGNATURES
+Add the parametric solveKey to all the variables in fg if it doesn't exists.
+"""
+function addParametricSolver!(fg; init=true)
+  if !(:parametric in fg.solverParams.algorithms)
+      push!(fg.solverParams.algorithms, :parametric)
+      foreach(v->IIF.setDefaultNodeDataParametric!(v, getVariableType(v), initialized=false), getVariables(fg))
+      if init
+        initParametricFrom!(fg)
+      end
+  else
+      error("parametric solvekey already exists")
+  end
+  nothing
 end
 
 function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
@@ -397,31 +483,23 @@ function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
   end
 end
 
-
 """
-    MixedCircular
-Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
+    $SIGNATURES
+Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
 """
-struct MixedCircular <: Optim.Manifold
-  isCircular::BitArray
-end
+function updateParametricSolution!(sfg, vardict)
 
-function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
-  circMask = Bool[]
-  for k = varIds
-    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
+  for (v,val) in vardict
+      vnd = getSolverData(getVariable(sfg, v), :parametric)
+      # fill in the variable node data value
+      vnd.val .= val.val
+      #calculate and fill in covariance
+      vnd.bw = val.cov
+      #fill in ppe as mean
+      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val) 
+      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
-  MixedCircular(circMask)
 end
-
-function Optim.retract!(c::MixedCircular, x)
-  for (i,v) = enumerate(x)
-    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
-  end
-  return x
-end
-Optim.project_tangent!(S::MixedCircular,g,x) = g
-
 
 function createMvNormal(val,cov)
     #TODO do something better for properly formed covariance, but for now just a hack...FIXME
@@ -443,42 +521,4 @@ function createMvNormal(v::DFGVariable, key=:parametric)
         @warn "Trying MvNormal Fit, replace with PPE fits in future"
         return fit(MvNormal,getSolverData(v, key).val)
     end
-end
-
-
-
-
-## SANDBOX of usefull development functions to be cleaned up
-"""
-Add the parametric solveKey to all the variables in fg if it doesn't exists.
-"""
-function addParametricSolver!(fg; init=true)
-  if !(:parametric in fg.solverParams.algorithms)
-      push!(fg.solverParams.algorithms, :parametric)
-      foreach(v->IIF.setDefaultNodeDataParametric!(v, getVariableType(v), initialized=false), getVariables(fg))
-      if init
-        initParametricFrom!(fg)
-      end
-  else
-      error("parametric solvekey already exists")
-  end
-  nothing
-end
-
-
-"""
-Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
-"""
-function updateParametricSolution(sfg, vardict)
-
-  for (v,val) in vardict
-      vnd = getSolverData(getVariable(sfg, v), :parametric)
-      # fill in the variable node data value
-      vnd.val .= val.val
-      #calculate and fill in covariance
-      vnd.bw = val.cov
-      #fill in ppe as mean
-      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val) 
-      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
-  end
 end
