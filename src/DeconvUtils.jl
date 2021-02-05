@@ -90,7 +90,7 @@ function approxDeconv(fcto::DFGFactor,
     #
     
     # lambda with which to find best measurement values
-    hypoObj = (res, tgt) -> (targeti_.=tgt; onehypo!(res) )
+    hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
 
     # find solution via SubArray view pointing to original memory location
     targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][:,idx], islen1)

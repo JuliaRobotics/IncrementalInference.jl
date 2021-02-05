@@ -21,14 +21,13 @@ Sphere1Sphere1(::UniformScaling) = Sphere1Sphere1()
 getSample(cf::CalcFactor{<:Sphere1Sphere1}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
-function (cf::CalcFactor{<:Sphere1Sphere1})(res::AbstractVector{<:Real},
-                                            meas,
+function (cf::CalcFactor{<:Sphere1Sphere1})(meas,
                                             wxi,
                                             wxj  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
   #
   wXjhat = addtheta(wxi[1], meas[1])
-  res[1] = difftheta(wxj[1], wXjhat)  # jXjhat =
-  nothing
+  res = difftheta(wxj[1], wXjhat)  # jXjhat =
+  return res
 end
 
 

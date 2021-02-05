@@ -24,13 +24,9 @@ function getSample(cf::CalcFactor{<:MultiModalConditional}, N::Int=1)
   return (ret, p)
 end
 
-function (cf::CalcFactor{<:MultiModalConditional})( res::AbstractVector{<:Real},
-                                                    meas,
-                                                    x1,
-                                                    x2  )
+function (cf::CalcFactor{<:MultiModalConditional})(meas, x1, x2)
   #
-  res[1] = meas[1] - (x2[1]-x1[1])
-  nothing
+  return meas[1] - (x2[1]-x1[1])
 end
 
 

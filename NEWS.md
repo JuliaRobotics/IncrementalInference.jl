@@ -13,7 +13,7 @@ The list below highlights major breaking changes, and please note that significa
 
 # Major changes in IIF v0.21
 
-- `AbstractRelativeMinimize` should in-place populate `residual` not return scalar cost as previously done, see #1132.
+- `CalcResidual` no longer takes a `residual` as input parameter and should return `residual`, see #467 .
 
 # Major changes in IIF v0.20
 

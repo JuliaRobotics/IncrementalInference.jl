@@ -8,13 +8,11 @@ end
 
 IncrementalInference.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1) = (reshape(rand(cf.factor.Z, N),:,N), )
 
-function (s::CalcFactor{<:BrokenFactor})(res::AbstractVector{<:Real},
-                                        z,
-                                        wxi,
-                                        wxj  )
+function (s::CalcFactor{<:BrokenFactor})(z,
+                                         wxi,
+                                         wxj)
     #
     error("User factor has a bug.")
-    nothing
 end
 
 # FIXME consolidate with CalcFactor according to #467

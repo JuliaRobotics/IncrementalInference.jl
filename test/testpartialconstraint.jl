@@ -79,15 +79,12 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
 end
 getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
-function (dp::CalcFactor{<:DevelopPartialPairwise})(res::AbstractVector{<:Real},
-                                                    meas,
+function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x1,
                                                     x2  )
   #
-  res[1] = meas[1] - (x2[2]-x1[2])
-
   # v0.21+
-  nothing
+  return meas[1] - (x2[2]-x1[2])
 end
 
 
