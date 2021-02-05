@@ -21,13 +21,9 @@ mutable struct DevelopLikelihood{T <: SamplableBelief} <: AbstractRelativeRoots
 end
 
 getSample(cf::CalcFactor{<:DevelopLikelihood}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
-function (cf::CalcFactor{<:DevelopLikelihood})( res::AbstractVector{<:Real},
-                                                meas,
-                                                wXi,
-                                                wXj  )
+function (cf::CalcFactor{<:DevelopLikelihood})(meas, wXi, wXj)
   #
-  res .= meas - (wXj - wXi)
-  nothing
+  return meas - (wXj - wXi)
 end
 
 

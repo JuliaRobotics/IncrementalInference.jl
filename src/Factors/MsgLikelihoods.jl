@@ -28,12 +28,8 @@ const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vecto
 const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
 
 
-function (cfo::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
-                                        z,
-                                        x1  )
-#
-  res .= z .- x1
-  nothing
+function (cfo::CalcFactor{<:MsgPrior})(z, x1)
+  return  z .- x1
 end
 
 

@@ -40,8 +40,8 @@ end
     $SIGNATURES
 
 Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assumign Gaussian).
-Defaults to find the parametric measurement at field `Z` followed by `z`.  
-  
+Defaults to find the parametric measurement at field `Z` followed by `z`.
+
 Notes
 - Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
 """
@@ -83,7 +83,7 @@ end
 """
     $TYPEDEF
 
-Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance 
+Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
 """
 struct CalcFactorMahalanobis{CF}
   calcfactor!::CF
@@ -102,13 +102,10 @@ end
 
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
 function (cfp::CalcFactorMahalanobis)(variables...)
-  #TODO res might be removed see https://github.com/JuliaRobotics/IncrementalInference.jl/issues/467#issuecomment-772987921
-  res = Vector{eltype(variables[1])}(undef, length(cfp.meas))
-  iΣ = cfp.iΣ
-  cfp.calcfactor!(res, cfp.meas, variables...)
-  
+  # call the user function (be careful to call the new CalcFactor version only!!!)
+  res = cfp.calcfactor!(cfp.meas, variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return 0.5 * (res' * iΣ * res)
+  return res' * cfp.iΣ * res
 end
 
 function calcFactorMahalanobisDict(fg)
@@ -119,22 +116,22 @@ function calcFactorMahalanobisDict(fg)
   return calcFactors
 end
 
-function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis}, 
-                    flatvar, 
+function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},
+                    flatvar,
                     X )
   #
   obj = 0
   for (fid, cfp) in cfdict
 
     varOrder = cfp.varOrder
-    
+
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
 
     # call the user function
-    retval = cfp(Xparams...) 
+    retval = cfp(Xparams...)
 
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1/2*retval 
+    obj += 1/2*retval
   end
 
   return obj
@@ -142,8 +139,8 @@ end
 
 
 # build the cost function
-function _totalCost(fg::AbstractDFG, 
-                    flatvar, 
+function _totalCost(fg::AbstractDFG,
+                    flatvar,
                     X )
   #
   obj = 0
@@ -151,13 +148,13 @@ function _totalCost(fg::AbstractDFG,
 
     cf = getFactorType(fct)
     varOrder = getVariableOrder(fct)
-    
+
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
 
     retval = cf(Xparams...)
 
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1/2*retval 
+    obj += 1/2*retval
   end
 
   return obj
@@ -168,12 +165,12 @@ export solveFactorGraphParametric
 """
     $SIGNATURES
 
-Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.  
-Notes:  
+Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.
+Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveFactorGraphParametric(fg::AbstractDFG;
-                                    useCalcFactor::Bool=false, #TODO dev param will be removed
+                                    useCalcFactor::Bool=true, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
                                     algorithm=BFGS,
@@ -428,7 +425,7 @@ function solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...
   vardict, result, varIds, Σ = solveFactorGraphParametric(fg; kwargs...)
 
   updateParametricSolution!(fg, vardict)
-  
+
   return vardict, result, varIds, Σ
 end
 
@@ -496,7 +493,7 @@ function updateParametricSolution!(sfg, vardict)
       #calculate and fill in covariance
       vnd.bw = val.cov
       #fill in ppe as mean
-      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val) 
+      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val)
       getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
 end

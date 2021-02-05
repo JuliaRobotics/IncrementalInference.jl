@@ -53,9 +53,10 @@ Example
 # TBD
 ```
 """
-function (cf::CalcFactor)( res, measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
+function (cf::CalcFactor)(measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
   #
   # NOTE this is a legacy interface
+  res = zeros(size(cf._legacyMeas,1))
   cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
 end
 
@@ -132,7 +133,7 @@ function testFactorResidualBinary(fct,
   res = zeros(zdim)
 
   # calc the residual
-  @time cfo(res, meas..., param1, param2)
+  @time res = cfo(meas..., param1, param2)
 
   return res
 end
