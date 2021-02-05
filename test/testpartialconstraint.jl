@@ -6,6 +6,8 @@ import IncrementalInference: getSample
 using Statistics
 
 
+##
+
 mutable struct DevelopPartial <: AbstractPrior
   x::Distribution
   partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
@@ -19,7 +21,7 @@ end
 getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = (rand(cf.factor.x, N), )
 
 
-
+##
 
 
 N=100 # 50
@@ -70,7 +72,6 @@ end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
-
 mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   x::Distribution
   partial::Tuple
@@ -104,6 +105,8 @@ doautoinit!(fg, :x2)
 
 # drawGraph(fg, show=true)
 
+
+##
 
 @testset "test evaluation of multiple simultaneous partial constraints" begin
 global fg
