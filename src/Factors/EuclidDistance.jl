@@ -25,14 +25,9 @@ getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.
 
 
 # new and simplified interface for both nonparametric and parametric
-function (s::CalcFactor{<:EuclidDistance})( res::AbstractVector{<:Real},
-                                                  z,
-                                                  x1,
-                                                  x2  ) # where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
-  #
-  res .= z .- norm(x2 .- x1)
-  res[1] ^= 2
-  res[1]
+function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
+  # v0.21+, should return residual and not have residual parameter
+  return z .- norm(x2 .- x1)
 end
 
 

@@ -101,8 +101,8 @@ function getMeasurements(dfg::AbstractDFG, fsym::Symbol, N::Int=100)
   # fnc = getFactorFunction(dfg, fsym)
   ## getSample(fnc, N)
   # Xi = (v->getVariable(dfg, v)).(getVariableOrder(dfg, fsym))
-  # freshSamples(fnc, N)
-  freshSamples(dfg, fsym, N)
+  # sampleFactor(fnc, N)
+  sampleFactor(dfg, fsym, N)
 end
 
 

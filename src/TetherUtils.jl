@@ -133,9 +133,12 @@ Notes
 - Expected uses are for user analysis of factors and estimates.
 - real-time dead reckoning chain prediction.
 
+DevNotes
+- FIXME consolidate with `approxConv`
+
 Related:
 
-approxConv, accumulateFactorMeans, MutablePose2Pose2Gaussian
+[`approxConv`](@ref), accumulateFactorMeans, MutablePose2Pose2Gaussian
 """
 function solveBinaryFactorParameteric(dfg::AbstractDFG,
                                       fct::DFGFactor,
@@ -174,7 +177,7 @@ Notes
 - real-time dead reckoning chain prediction.
 
 DevNotes
-- # TODO consolidate with similar `approxConvChain`
+- # TODO consolidate with similar `approxConv`
 
 Related:
 

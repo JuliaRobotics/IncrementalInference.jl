@@ -608,7 +608,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   zdim = if T != GenericMarginal
     # vnds = Xi # (x->getSolverData(x)).(Xi)
     # NOTE try to make sure we get matrix back (not a vector)
-    smpls = freshSamples(cf, 2)[1]
+    smpls = sampleFactor(cf, 2)[1]
     size(smpls,1)
   else
     0
@@ -883,7 +883,7 @@ function doautoinit!( dfg::T,
                       xsyms::Vector{Symbol};
                       singles::Bool=true,
                       N::Int=100,
-                      logger=SimpleLogger(logger)  )::Bool where T <: AbstractDFG
+                      logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
   return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)

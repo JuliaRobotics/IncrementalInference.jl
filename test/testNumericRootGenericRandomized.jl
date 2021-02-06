@@ -16,13 +16,11 @@ getSample(cf::CalcFactor{<:LineResidual}, N::Int=1) = (reshape(rand(Normal(),N),
 # y = mx + c
 # res = y      -      m*x  -  c
 #       meas          variables and fixed values
-function (cr::CalcFactor{<:LineResidual})(res::AbstractVector{<:Real},
-                                          z,
+function (cr::CalcFactor{<:LineResidual})(z,
                                           x,
                                           y  )
   #
-  res[1] = z[1] - (y[1] - (cf.factor.m*x[1] + cf.factor.c))
-  nothing
+  return z[1] - (y[1] - (cf.factor.m*x[1] + cf.factor.c))
 end
 
 ##

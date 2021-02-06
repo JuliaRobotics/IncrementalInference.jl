@@ -25,13 +25,11 @@ function getSample(cf::CalcFactor{<:AreEqual}, N::Int=1)
   return (reshape(rand(cf.factor.z,N),1,:), )
 end
 
-function (cf::CalcFactor{<:AreEqual})( res::AbstractVector{<:Real},
-                                      meas,
+function (cf::CalcFactor{<:AreEqual})(meas,
                                       X,
                                       Y  )
   #
-  res[1] = X[1]-Y[1] + meas[1]
-  nothing
+  return X[1]-Y[1] + meas[1]
 end
 
 
@@ -41,13 +39,11 @@ struct Square <: AbstractRelativeRoots
 end
 getSample(cf::CalcFactor{<:Square}, N::Int=1) = (reshape(rand(cf.factor.z,N),1,:), )
 
-function (cf::CalcFactor{<:Square})( res::AbstractVector{<:Real},
-                                    meas,
+function (cf::CalcFactor{<:Square})(meas,
                                     X,
                                     XX  )
   #
-  res[1] = XX[1] - X[1]*X[1] + meas[1]
-  nothing
+  return XX[1] - X[1]*X[1] + meas[1]
 end
 
 

@@ -14,15 +14,8 @@ Prior(::UniformScaling) = Prior(Normal())
 
 getSample(cf::CalcFactor{<:Prior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
-
-function (s::CalcFactor{<:Prior,M,P,X})(res::AbstractVector{<:Real},
-                                        z,
-                                        x1  ) where {M<:FactorMetadata,P<:Tuple,X<:AbstractVector}
-  #
-  res .= z .- x1
-  nothing
-end
-
+# basic default
+(s::CalcFactor{<:Prior})(z, x1) = z .- x1
 
 ## packed types are still developed by hand.  Future versions would likely use a @packable macro to write Protobuf safe versions of factors
 

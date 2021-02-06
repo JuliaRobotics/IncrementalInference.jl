@@ -26,12 +26,11 @@ function getSample(cf::CalcFactor{<:MyFactor}, N::Int=1)
 end
 
 
-function (cf::CalcFactor{<:MyFactor})(res, z, X1, X2)
+function (cf::CalcFactor{<:MyFactor})(z, X1, X2)
   @assert DFG.getLabel.(cf.metadata.fullvariables) |> length < 3 "this factor is only between two variables"
 
   # just a linear difference to complete the test
-  res .= X2 - (X1 + z)
-  nothing
+  return X2 - (X1 + z)
 end
 
 ##
@@ -62,7 +61,7 @@ addFactor!(fg, [:x0;:x1_a;:x1_b], mf, multihypo=[1;1/2;1/2])
 
 ##
 
-meas = freshSamples(fg, :x0x1_ax1_bf1, 10)
+meas = sampleFactor(fg, :x0x1_ax1_bf1, 10)
 
 ##
 

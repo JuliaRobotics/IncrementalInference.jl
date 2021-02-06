@@ -37,49 +37,51 @@ Related
 [`approxDeconv`](@ref), [`_solveCCWNumeric!`](@ref)
 """
 function approxDeconv(fcto::DFGFactor,
-                      ccw = _getCCW(fcto);
+                      ccw::CommonConvWrapper = _getCCW(fcto);
                       N::Int=100,
-                      measurement::Tuple=freshSamples(ccw, N),
+                      measurement::Tuple=sampleFactor(ccw, N),
                       retries::Int=3  )
   #
-  thrid = Threads.threadid()
-  fmd = _getFMdThread(ccw)
-
+  # but what if this is a partial factor -- is that important for general cases in deconv?
+  _setCCWDecisionDimsConv!(ccw)
+  
   # FIXME This does not incorporate multihypo??
   varsyms = getVariableOrder(fcto)
   # vars = getPoints.(getBelief.(dfg, varsyms, solveKey) )
   fcttype = getFactorType(fcto)
   
-  # TODO, consolidate this fmd with getSample/freshSamples and _buildLambda
-
-  # measurement = freshSamples(fcttype, N, fmd) # getSample(fcttype, N)
-  fctSmpls = deepcopy(measurement[1])
   # get measurement dimension
   zDim = _getZDim(fcto)
-
   # TODO consider using ccw.cpt[thrid].res # likely needs resizing
   res_ = zeros(zDim)
-
+  # TODO, consolidate fmd with getSample/sampleFactor and _buildLambda
+  fctSmpls = deepcopy(measurement[1])
+  fmd = _getFMdThread(ccw)
+  
   # TODO assuming vector on only first container in measurement::Tuple
   makeTarget = (i) -> view(measurement[1], :, i)
   
+  # NOTE 
+  # build a lambda that incorporates the multihypo selections
+  # set these first
+  # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
+  certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+  # only doing the current active hypo
+  @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+  
+  lent = length(makeTarget(1))
+  islen1 = size(makeTarget(1),1) == 1
+  
+
   for idx in 1:N
-    targeti_ = makeTarget(idx)
-    lent = length(targeti_)
-    islen1 = size(targeti_,1) == 1
-    
-    # NOTE 
-    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
-    # build a lambda that incorporates the multihypo selections
-    # set these first
-    # ccw.cpt[].activehypo / .p / .params  # params should already be set from construction
-    certainidx, allelements, activehypo, mhidx = assembleHypothesesElements!(nothing, N, 0, length(varsyms))
+    # towards each particle in their own thread (not 100% ready yet, factors should be separate memory)
+    thrid = Threads.threadid()
     cpt_ = ccw.cpt[thrid]
-    # only doing the current active hypo
-    @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
+    targeti_ = makeTarget(idx)
+    
+    # TODO must first resolve hypothesis selection before unrolling them -- deferred #1096
     cpt_.activehypo = activehypo[2][2]
-    resize!(cpt_.p, lent)
-    cpt_.p .= Int[1:lent;]
+
     onehypo!, _ = _buildCalcFactorLambdaSample( ccw,
                                                 idx,
                                                 cpt_,
@@ -88,10 +90,10 @@ function approxDeconv(fcto::DFGFactor,
     #
     
     # lambda with which to find best measurement values
-    hypoObj = (res, tgt) -> (targeti_.=tgt; onehypo!(res) )
+    hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
 
     # find solution via SubArray view pointing to original memory location
-    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][:,idx], islen1=islen1)
+    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][:,idx], islen1)
   end
 
   # return (deconv-prediction-result, independent-measurement)

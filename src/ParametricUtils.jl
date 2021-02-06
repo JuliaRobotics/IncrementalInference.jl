@@ -1,4 +1,6 @@
-
+## ================================================================================================
+## FlatVariables - used for packing variables for optimization
+## ================================================================================================
 
 struct FlatVariables{T<:Real}
   X::Vector{T}
@@ -30,70 +32,115 @@ function Base.getindex(flatVar::FlatVariables{T}, vId::Symbol) where T<:Real
   return flatVar.X[flatVar.idx[vId]]
 end
 
-
-function _getParametricCov(Z::FunctorInferenceType)
-  error("$Z not supported, please use non-parametric or open an issue if it should be")
-end
-
-function _getParametricCov(Z::Normal)
-  meas = mean(Z)
-  σ = 1/std(Z)^2
-  return (Float64[meas;], reshape(Float64[σ;],1,1))
-end
-
-function _getParametricCov(Z::MvNormal)
-  meas = mean(Z)
-  iΣ = invcov(Z)
-  return (meas, iΣ)
-end
+## ================================================================================================
+## Parametric Factors
+## ================================================================================================
 
 """
     $SIGNATURES
 
-Which field of a user factor type should be used for parametric inference (assumign Gaussian).
+Returns the parametric measurement for a factor as a tuple (measurement, inverse covariance) for parametric inference (assumign Gaussian).
+Defaults to find the parametric measurement at field `Z` followed by `z`.
 
 Notes
-- Users should overload this method should their factor not default to `.Z<:ParametricType`
+- Users should overload this method should their factor not default to `.Z<:ParametricType` or `.z<:ParametricType`
 """
-function getParametricField(s::FunctorInferenceType)
-  # flat out assumption
-  s.Z
+function getParametricMeasurement end
+
+function getParametricMeasurement(Z)
+  error("$Z not supported, please use non-parametric or open an issue if it should be")
 end
 
-function _getParametricMeasurement(s::FunctorInferenceType)
-  Z = getParametricField(s)
-  return _getParametricCov(Z)
+function getParametricMeasurement(Z::Normal)
+  meas = mean(Z)
+  iσ = 1/std(Z)^2
+  return [meas], reshape([iσ],1,1)
 end
 
+function getParametricMeasurement(Z::MvNormal)
+  meas = mean(Z)
+  iΣ = invcov(Z)
+  return meas, iΣ
+end
+
+function getParametricMeasurement(s::FunctorInferenceType)
+  if hasfield(typeof(s), :Z)
+    Z = s.Z
+    @info "getParametricMeasurement falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
+  elseif hasfield(typeof(s), :z)
+    Z = s.z
+    @info "getParametricMeasurement falls back to using field `.z` by default. Extend it for more complex factors." maxlog=1
+  else
+    error("$s not supported, please use non-parametric or open an issue if it should be")
+  end
+  return getParametricMeasurement(Z)
+end
+
+## ================================================================================================
+## Parametric solve with Mahalanobis distance - CalcFactor
+## ================================================================================================
 
 """
     $TYPEDEF
 
-Internal parametric extension to [`CalcFactor`](@ref) 
+Internal parametric extension to [`CalcFactor`](@ref) used for buffering measurement and calculating Mahalanobis distance
 """
-struct _CalcFactorParametric{CF}
+struct CalcFactorMahalanobis{CF}
   calcfactor!::CF
-  meanVal::Vector{Float64}
-  informationMat::Matrix{Float64}
+  varOrder::Vector{Symbol}
+  meas::Vector{Float64}
+  iΣ::Matrix{Float64}
 end
 
+function CalcFactorMahalanobis(fct::DFGFactor)
+  cf = getFactorType(fct)
+  varOrder = getVariableOrder(fct)
+  meas, iΣ = getParametricMeasurement(cf)
+  calcf = CalcFactor(cf, _getFMdThread(fct), 0, 0, (), [])
+  return CalcFactorMahalanobis(calcf, varOrder, meas, iΣ)
+end
 
-# pass in residual for consolidation with nonparametric
-# userdata is now at `cfp.cf.cachedata`
-function (cfp::_CalcFactorParametric)(variables...)
+# This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
+function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = zeros(length(cfp.meanVal))
-  cfp.calcfactor!(res, cfp.meanVal, variables...)
-  
+  res = cfp.calcfactor!(cfp.meas, variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return 0.5 * (res' * cfp.informationMat * res)
+  return res' * cfp.iΣ * res
 end
 
+function calcFactorMahalanobisDict(fg)
+  calcFactors = Dict{Symbol, CalcFactorMahalanobis}()
+  for fct in getFactors(fg)
+    calcFactors[fct.label] = CalcFactorMahalanobis(fct)
+  end
+  return calcFactors
+end
+
+function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},
+                    flatvar,
+                    X )
+  #
+  obj = 0
+  for (fid, cfp) in cfdict
+
+    varOrder = cfp.varOrder
+
+    Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
+
+    # call the user function
+    retval = cfp(Xparams...)
+
+    # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+    obj += 1/2*retval
+  end
+
+  return obj
+end
 
 
 # build the cost function
-function _totalCost(fg::AbstractDFG, 
-                    flatvar, 
+function _totalCost(fg::AbstractDFG,
+                    flatvar,
                     X )
   #
   obj = 0
@@ -101,35 +148,29 @@ function _totalCost(fg::AbstractDFG,
 
     cf = getFactorType(fct)
     varOrder = getVariableOrder(fct)
-    
+
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
-    meanval, covariance = _getParametricMeasurement(cf)
 
-    calcf_ = CalcFactor(cf, _getFMdThread(fct), 0, 
-                      1, (meanval,), Xparams)
-    #
-    # NOTE the inverse to informationMat
-    cfp! = _CalcFactorParametric(calcf_, meanval, covariance )
+    retval = cf(Xparams...)
 
-    # call the user function
-    # retval = cfp!(Xparams...)  # WHY DOES THIS NOT WORK WITH TwiceDifferentiable??
-    retval = cf(Xparams...) # DOES WORK
-    
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-    obj += 1/2*retval 
+    obj += 1/2*retval
   end
 
   return obj
 end
 
 
-
+export solveFactorGraphParametric
 """
     $SIGNATURES
 
-Solve a Gaussian factor graph.
+Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed directly to optim.
+Notes:
+  - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
 function solveFactorGraphParametric(fg::AbstractDFG;
+                                    useCalcFactor::Bool=true, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
                                     algorithm=BFGS,
@@ -166,7 +207,13 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
   # alg = algorithm(; algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  if useCalcFactor
+    cfd = calcFactorMahalanobisDict(fg)
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+  else
+    tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+  end
+
   result = optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
@@ -250,6 +297,39 @@ function solveConditionalsParametric(fg::AbstractDFG,
   return d, result, flatvar.idx, Σ
 end
 
+## ================================================================================================
+## MixedCircular Manifold for Optim.jl
+## ================================================================================================
+
+"""
+    MixedCircular
+Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
+"""
+struct MixedCircular <: Optim.Manifold
+  isCircular::BitArray
+end
+
+function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
+  circMask = Bool[]
+  for k = varIds
+    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
+  end
+  MixedCircular(circMask)
+end
+
+function Optim.retract!(c::MixedCircular, x)
+  for (i,v) = enumerate(x)
+    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
+  end
+  return x
+end
+Optim.project_tangent!(S::MixedCircular,g,x) = g
+
+
+## ================================================================================================
+## UNDER DEVELOPMENT Parametric solveTree utils
+## ================================================================================================
+
 """
     $SIGNATURES
 Get the indexes for labels in FlatVariables
@@ -323,21 +403,44 @@ function calculateCoBeliefMessage(soldict, Σ, flatvars, separators, frontals)
   end
 end
 
+
+
+## ================================================================================================
+## Parametric utils
+## ================================================================================================
+
+## SANDBOX of usefull development functions to be cleaned up
+
 """
     $SIGNATURES
+Add parametric solver to fg, batch solve using [`solveFactorGraphParametric`](@ref) and update fg.
+"""
+function solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
+  if !(:parametric in fg.solverParams.algorithms)
+    addParametricSolver!(fg; init=init)
+  elseif init
+    initParametricFrom!(fg)
+  end
 
+  vardict, result, varIds, Σ = solveFactorGraphParametric(fg; kwargs...)
+
+  updateParametricSolution!(fg, vardict)
+
+  return vardict, result, varIds, Σ
+end
+
+
+"""
+    $SIGNATURES
 Initialize the parametric solver data from a different solution in `fromkey`.
 """
-function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
+function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey::Symbol = :parametric)
   for var in getVariables(fg)
-      #TODO only supports Normal now
-      # expand to MvNormal
       fromvnd = getSolverData(var, fromkey)
       if fromvnd.dims == 1
         nf = fit(Normal, fromvnd.val)
         getSolverData(var, parkey).val[1,1] = nf.μ
         getSolverData(var, parkey).bw[1,1] = nf.σ
-        # @show nf
         # m = var.estimateDict[:default].mean
       else
         #FIXME circular will not work correctly with MvNormal
@@ -346,6 +449,23 @@ function initParametricFrom(fg::AbstractDFG, fromkey::Symbol = :default; parkey:
         getSolverData(var, parkey).bw = cov(nf)
       end
   end
+end
+
+"""
+    $SIGNATURES
+Add the parametric solveKey to all the variables in fg if it doesn't exists.
+"""
+function addParametricSolver!(fg; init=true)
+  if !(:parametric in fg.solverParams.algorithms)
+      push!(fg.solverParams.algorithms, :parametric)
+      foreach(v->IIF.setDefaultNodeDataParametric!(v, getVariableType(v), initialized=false), getVariables(fg))
+      if init
+        initParametricFrom!(fg)
+      end
+  else
+      error("parametric solvekey already exists")
+  end
+  nothing
 end
 
 function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
@@ -360,31 +480,23 @@ function updateVariablesFromParametricSolution!(fg::AbstractDFG, vardict)
   end
 end
 
-
 """
-    MixedCircular
-Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
+    $SIGNATURES
+Update the fg from solution in vardict and add MeanMaxPPE (all just mean). Usefull for plotting
 """
-struct MixedCircular <: Optim.Manifold
-  isCircular::BitArray
-end
+function updateParametricSolution!(sfg, vardict)
 
-function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
-  circMask = Bool[]
-  for k = varIds
-    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
+  for (v,val) in vardict
+      vnd = getSolverData(getVariable(sfg, v), :parametric)
+      # fill in the variable node data value
+      vnd.val .= val.val
+      #calculate and fill in covariance
+      vnd.bw = val.cov
+      #fill in ppe as mean
+      ppe = MeanMaxPPE(:parametric, val.val, val.val, val.val)
+      getPPEDict(getVariable(sfg, v))[:parametric] = ppe
   end
-  MixedCircular(circMask)
 end
-
-function Optim.retract!(c::MixedCircular, x)
-  for (i,v) = enumerate(x)
-    c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
-  end
-  return x
-end
-Optim.project_tangent!(S::MixedCircular,g,x) = g
-
 
 function createMvNormal(val,cov)
     #TODO do something better for properly formed covariance, but for now just a hack...FIXME

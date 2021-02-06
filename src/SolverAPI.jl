@@ -307,7 +307,7 @@ function solveTree!(dfgl::AbstractDFG,
     ensureAllInitialized!(dfgl)
     if algorithm==:parametric
       @warn "Parametric is using default graphinit"
-      initParametricFrom(dfgl)
+      initParametricFrom!(dfgl)
     end
   end
   # construct tree

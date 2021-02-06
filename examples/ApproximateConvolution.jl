@@ -24,13 +24,9 @@ function getSample(cf::CalcFactor{<:MultiModalConditional}, N::Int=1)
   return (ret, p)
 end
 
-function (cf::CalcFactor{<:MultiModalConditional})( res::AbstractVector{<:Real},
-                                                    meas,
-                                                    x1,
-                                                    x2  )
+function (cf::CalcFactor{<:MultiModalConditional})(meas, x1, x2)
   #
-  res[1] = meas[1] - (x2[1]-x1[1])
-  nothing
+  return meas[1] - (x2[1]-x1[1])
 end
 
 
@@ -56,7 +52,7 @@ f2 = addFactor!(fg, [:x1; :x2], mmc )
 pts = approxConv(fg, :x1x2f1, :x2)
 
 ## do some plotting
-meas = freshSamples(f2,2000)
+meas = sampleFactor(f2,2000)
 q2 = kde!(meas)
 h1 = plotKDE([getBelief(v1), q2],c=["red";"green"],fill=true, xlbl="")
 h2 = plotKDE(kde!(pts),fill=true,xlbl="", title="N = 100")
