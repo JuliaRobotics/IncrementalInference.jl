@@ -58,9 +58,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #
   # wrt #467 allow residual to be standardize for Roots and Minimize and Parametric cases.
   r = if islen1
-    optimize((x) -> (residual = objResX(x); sum(residual.^2)), u0, BFGS() )
+    optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0, BFGS() )
   else
-    optimize((x) -> (residual = objResX(x); sum(residual.^2)), u0)
+    optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0)
   end
 
   # 
