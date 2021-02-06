@@ -39,7 +39,7 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
-ApproxManifoldProducts = "0.1.5"
+ApproxManifoldProducts = "0.1.5, 0.2"
 BSON = "0.2"
 Combinatorics = "1.0"
 DataStructures = "0.16, 0.17, 0.18"

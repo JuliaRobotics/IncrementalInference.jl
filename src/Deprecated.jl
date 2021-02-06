@@ -177,9 +177,36 @@ end
 
 
 
+
 ##==============================================================================
 ## Deprecate code below before v0.22
 ##==============================================================================
+
+
+
+"""
+(cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
+
+Default fallback for the standard factor calculation interface, as in `cf.factor(residual, noise_process, parameters)`,
+where factors are either library standard or user out-of-library factor definitions.  See documentation for
+more details and tutorials on using your own factors (designed to be as easy as possible).
+
+Notes
+- These residual calculations use used to find non-Gaussian / multimodal (incl. PPE) and conventional Gaussian estimates. 
+- `cf.legacyMeas == (measparams[1:cf._measCount]...,)`
+
+Example
+```julia
+# TBD
+```
+"""
+function (cf::CalcFactor)(measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
+  #
+  # NOTE this is a legacy interface
+  res = zeros(size(cf._legacyMeas,1))
+  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
+end
+
 
 
 @deprecate prodmultipleonefullpartials(w...;kw...) prodmultiplefullpartials(w...;kw...)
