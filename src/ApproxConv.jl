@@ -631,7 +631,14 @@ function approxConvBinary(arr::Array{Float64,2},
 
   fmd.arrRef = t
 
-  measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
+  # TODO consolidate with ccwl??
+  # FIXME do not divert Mixture for sampling
+  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+  # FIXME 0, 0, ()
+  cf = CalcFactor( meas, fmd, 0, 0, (), t)
+
+  measurement = size(measurement[1],2) == 0 ? sampleFactor(cf, N) : measurement
+  # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
