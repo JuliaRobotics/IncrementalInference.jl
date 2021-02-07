@@ -173,7 +173,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
                                     useCalcFactor::Bool=true, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
-                                    algorithm=BFGS,
+                                    algorithm=Optim.Optim.BFGS,
                                     algorithmkwargs=(), # add manifold to overwrite computed one
                                     options = Optim.Options(allow_f_increases=true,
                                                             time_limit = 100,
@@ -209,15 +209,15 @@ function solveFactorGraphParametric(fg::AbstractDFG;
 
   if useCalcFactor
     cfd = calcFactorMahalanobisDict(fg)
-    tdtotalCost = TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
+    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(cfd, flatvar, x), initValues, autodiff = autodiff)
   else
-    tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
+    tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar, x), initValues, autodiff = autodiff)
   end
 
-  result = optimize(tdtotalCost, initValues, alg, options)
+  result = Optim.optimize(tdtotalCost, initValues, alg, options)
   rv = Optim.minimizer(result)
 
-  H = hessian!(tdtotalCost, rv)
+  H = Optim.hessian!(tdtotalCost, rv)
 
   Σ = pinv(H)
 
@@ -241,7 +241,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
                                     frontals::Vector{Symbol};
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
-                                    algorithm=BFGS,
+                                    algorithm=Optim.BFGS,
                                     algorithmkwargs=(), # add manifold to overwrite computed one
                                     options = Optim.Options(allow_f_increases=true,
                                                             time_limit = 100,
@@ -276,14 +276,14 @@ function solveConditionalsParametric(fg::AbstractDFG,
   mc_mani = MixedCircular(fg, varIds)
   alg = algorithm(;manifold=mc_mani, algorithmkwargs...)
 
-  tdtotalCost = TwiceDifferentiable((x)->_totalCost(fg, flatvar,x), initValues, autodiff = autodiff)
+  tdtotalCost = Optim.TwiceDifferentiable((x)->_totalCost(fg, flatvar,x), initValues, autodiff = autodiff)
 
-  result = optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
+  result = Optim.optimize((x)->_totalCost(fg, flatvar, [x;sX]), fX, alg, options)
   # result = optimize(x->totalCost([x;sX]), fX, alg, options)
 
   rv = Optim.minimizer(result)
 
-  H = hessian!(tdtotalCost, [rv; sX])
+  H = Optim.hessian!(tdtotalCost, [rv; sX])
 
   Σ = pinv(H)
 

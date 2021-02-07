@@ -12,6 +12,10 @@ using Reexport
 # @reexport using Graphs
 @reexport using LinearAlgebra
 
+import NLsolve
+import NLSolversBase
+import Optim
+
 using
   Dates,
   TimeZones,
@@ -19,9 +23,6 @@ using
   DelimitedFiles,
   Statistics,
   Random,
-  NLsolve,
-  NLSolversBase,
-  Optim,
   StatsBase,
   JLD2,
   BSON,
