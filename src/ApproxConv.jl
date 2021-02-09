@@ -345,6 +345,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 end
 
 # TODO `measurement` might not be properly wired up yet
+# TODO consider 1051 here to inflate proposals as general behaviour
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
