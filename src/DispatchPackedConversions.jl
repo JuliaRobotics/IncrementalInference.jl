@@ -41,6 +41,7 @@ function convert(
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
+  # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
   ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
   ccw.certainhypo = packed.certainhypo
 
