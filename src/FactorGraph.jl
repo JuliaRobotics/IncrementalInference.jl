@@ -1104,7 +1104,7 @@ function addFactor!(dfg::AbstractDFG,
   #
   # depcrecation
 
-  varOrderLabels = [v.label for v=Xi]
+  varOrderLabels = Symbol[v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi)
   solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, nullhypo=nullhypo, threadmodel=threadmodel)
   newFactor = DFGFactor(Symbol(namestring),
@@ -1123,17 +1123,17 @@ function addFactor!(dfg::AbstractDFG,
   return newFactor
 end
 
-function addFactor!(dfg::AbstractDFG,
-                    xisyms::Vector{Symbol},
-                    usrfnc::FunctorInferenceType;
-                    multihypo::Vector{<:Real}=Float64[],
-                    nullhypo::Float64=0.0,
-                    solvable::Int=1,
-                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    tags::Vector{Symbol}=Symbol[],
-                    graphinit::Bool=getSolverParams(dfg).graphinit,
-                    threadmodel=SingleThreaded,
-                    suppressChecks::Bool=false  )
+function DFG.addFactor!(dfg::AbstractDFG,
+                        xisyms::Vector{Symbol},
+                        usrfnc::FunctorInferenceType;
+                        multihypo::Vector{<:Real}=Float64[],
+                        nullhypo::Float64=0.0,
+                        solvable::Int=1,
+                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        tags::Vector{Symbol}=Symbol[],
+                        graphinit::Bool=getSolverParams(dfg).graphinit,
+                        threadmodel=SingleThreaded,
+                        suppressChecks::Bool=false  )
   #
   # depcrecation
 

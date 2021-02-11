@@ -205,13 +205,11 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
+  # FIXME make type stable
   measurement::Tuple # user defined measurement values for each approxConv operation
   threadmodel::Type{<:_AbstractThreadModel} # Union{Type{SingleThreaded}, Type{MultiThreaded}}
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{<:ConvPerThread}
-
-  # remove
-  # CommonConvWrapper{T,H}() where {T<:FunctorInferenceType,H} = new{T,H}()
 end
 
 
@@ -223,11 +221,9 @@ function ConvPerThread( X::Array{Float64,2},
                         activehypo= 1:length(params),
                         p=collect(1:size(X,1)),
                         perturb=zeros(zDim),
-                        # Y=zeros(zDim), #zeros(size(X,1)),
                         res=zeros(zDim),
                         thrid_ = 0  )
   #
-  # cpt = ConvPerThread()
   return ConvPerThread( thrid_,
                         particleidx,
                         factormetadata,
@@ -255,41 +251,26 @@ function CommonConvWrapper( fnc::T,
                             particleidx::Int=1,
                             p=collect(1:size(X,1)),
                             perturb=zeros(zDim),
-                            # Y=zeros(zDim), # zeros(size(X,1)),
                             xDim=size(X,1),
                             res=zeros(zDim),
                             threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType,H}
   #
-  ccw = CommonConvWrapper(fnc,
-                          xDim,
-                          zDim,
-                          specialzDim,
-                          partial,
-                          hypotheses,
-                          certainhypo,
-                          Float64(nullhypo),
-                          params,
-                          varidx,
-                          measurement,
-                          threadmodel,
-                          (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
-                                            activehypo=activehypo, p=p, 
-                                            perturb=perturb, res=res )).(1:Threads.nthreads())
-                          )
-  #
-  # ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
-  # for i in 1:Threads.nthreads()
-  #   ccw.cpt[i] = ConvPerThread(X, zDim,
-  #                   factormetadata,
-  #                   particleidx=particleidx,
-  #                   activehypo=activehypo,
-  #                   p=p,
-  #                   perturb=perturb,
-  #                   # Y=Y,
-  #                   res=res )
-  # end
-
-  return ccw
+  return  CommonConvWrapper(fnc,
+                            xDim,
+                            zDim,
+                            specialzDim,
+                            partial,
+                            hypotheses,
+                            certainhypo,
+                            Float64(nullhypo),
+                            params,
+                            varidx,
+                            measurement,
+                            threadmodel,
+                            (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
+                                              activehypo=activehypo, p=p, 
+                                              perturb=perturb, res=res )).(1:Threads.nthreads())
+                            )
 end
 
 
