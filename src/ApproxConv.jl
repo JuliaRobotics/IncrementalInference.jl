@@ -344,7 +344,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   return ccwl.params[ccwl.varidx]
 end
 
+
 # TODO `measurement` might not be properly wired up yet
+# TODO consider 1051 here to inflate proposals as general behaviour
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
@@ -364,7 +366,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
-    cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+    cf = CalcFactor( ccwl ) # ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
     ccwl.measurement = sampleFactor(cf, nn)
     # fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
     # sampleFactor!(ccwl, nn, fmd, vnds)
