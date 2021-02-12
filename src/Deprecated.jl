@@ -274,7 +274,7 @@ end
 # figure out how to deprecate (not critical at the moment)
 # used in RoMEPlotting 
 # NOTE: TempUpMsgPlotting will be removed.
-# Replaced with: UpMsgPlotting = @NamedTuple{clidId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+# Replaced with: UpMsgPlotting = @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
 const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 ##==============================================================================

@@ -733,7 +733,6 @@ end
 ## Multimessage assemblies from multiple cliques 
 ## =============================================================================
 
-#TODO add test coverage
 """
     $SIGNATURES
 
@@ -749,10 +748,9 @@ function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   return allUpMsgs
 end
 
-# TODO @NamedTuple{clidId::CliqueId{Int}, depth::Int, belief::TreeBelief}
-const UpMsgPlotting = NamedTuple{(:clidId, :depth, :belief), Tuple{CliqueId{Int}, Int, TreeBelief}}
+# TODO @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+const UpMsgPlotting = NamedTuple{(:cliqId, :depth, :belief), Tuple{CliqueId{Int}, Int, TreeBelief}}
 
-#TODO add test coverage
 """
     $SIGNATURES
 
