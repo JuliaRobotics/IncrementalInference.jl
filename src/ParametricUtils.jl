@@ -138,7 +138,7 @@ function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},
 end
 
 
-# build the cost function
+# DEPRECATED slower version
 function _totalCost(fg::AbstractDFG,
                     flatvar,
                     X )
@@ -146,12 +146,12 @@ function _totalCost(fg::AbstractDFG,
   obj = 0
   for fct in getFactors(fg)
 
-    cf = getFactorType(fct)
     varOrder = getVariableOrder(fct)
 
     Xparams = [view(X, flatvar.idx[varId]) for varId in varOrder]
 
-    retval = cf(Xparams...)
+    cfp = CalcFactorMahalanobis(fct)
+    retval = cfp(Xparams...)
 
     # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
     obj += 1/2*retval
