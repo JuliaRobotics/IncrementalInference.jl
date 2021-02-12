@@ -271,6 +271,11 @@ end
 @deprecate solveFactorMeasurements( dfg::AbstractDFG,fctsym::Symbol,solveKey::Symbol=:default;retries::Int=3 ) approxDeconv(dfg,fctsym,solveKey,retries=retries)
 
 
+# figure out how to deprecate (not critical at the moment)
+# used in RoMEPlotting 
+# NOTE: TempUpMsgPlotting will be removed.
+# Replaced with: UpMsgPlotting = @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 ##==============================================================================
 ## Deprecate code below before v0.21

@@ -160,16 +160,3 @@ end
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
 
 
-
-## =========================================================================================
-## DEPRECATE BELOW AS ABLE
-## =========================================================================================
-
-
-# figure out how to deprecate (not critical at the moment)
-# used in RoMEPlotting
-const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
-
-
-
-
