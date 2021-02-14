@@ -108,6 +108,8 @@ doautoinit!(fg, :x2)
 @testset "test evaluation of multiple simultaneous partial constraints" begin
 global fg
 
+##
+
 ensureAllInitialized!(fg)
 valx2 = getVal(fg, :x2)
 pts = approxConv(fg, :x1x2f1, :x2, N=N) # evalFactor(fg, f3, v2.index, N=N)
@@ -120,13 +122,18 @@ pts = approxConv(fg, :x2f1, :x2, N=N) # evalFactor(fg, f4, v2.index, N=N)
 @test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 0.75
 @test (Statistics.std(pts,dims=2)[1] .- 1.0) < 0.4
 
+##
+
 end
+
+##
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
 @warn "restore findRelatedFromPotential as testset!"
 # @testset "test findRelatedFromPotential..." begin
 # global v2, fg, f3, f4, N
+
 
 thefac = getFactor(fg, :x1x2f1)
 
@@ -161,8 +168,12 @@ memcheck = getVal(v2)
 
 # end
 
+##
+
 
 @testset "test belief prediction with partials..." begin
+
+##
 
 global v2, fg
 
@@ -205,6 +216,8 @@ pts = getVal(fg, :x2)
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 2.0
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0
 @test (Statistics.std(pts,dims=2)[2]-1.0) < 3.0
+
+##
 
 end
 

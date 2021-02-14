@@ -19,10 +19,10 @@ end
 
 
 function convert(::Type{PackedFunctionNodeData{P}}, d::FunctionNodeData{T}) where {P <: PackedInferenceType, T <: FactorOperationalMemory}
-  # mhstr = packmultihypo(d.fnc)  # this is where certainhypo error occurs
   return PackedFunctionNodeData(d.eliminated, d.potentialused, d.edgeIDs,
-          convert(P, _getCCW(d).usrfnc!),
-          d.multihypo, _getCCW(d).certainhypo, d.nullhypo, d.solveInProgress)  # extract two values from ccw for storage -- ccw thrown away
+                                convert(P, _getCCW(d).usrfnc!),
+                                d.multihypo, _getCCW(d).certainhypo, d.nullhypo, 
+                                d.solveInProgress, d.inflation)  # extract two values from ccw for storage -- ccw thrown away
 end
 
 
@@ -31,8 +31,8 @@ end
 
 
 function convert(
-            ::Type{IncrementalInference.GenericFunctionNodeData{IncrementalInference.CommonConvWrapper{F}}},
-            packed::IncrementalInference.GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
+            packed::GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, packed.fnc)
@@ -41,11 +41,13 @@ function convert(
   # TODO -- improve prepgenericconvolution for hypotheses and certainhypo field recovery when deserializing
   # reconstitute from stored data
   # FIXME, add threadmodel=threadmodel
-  ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh)
+  # FIXME https://github.com/JuliaRobotics/DistributedFactorGraphs.jl/issues/590#issuecomment-776838053
+  ccw = prepgenericconvolution(DFG.DFGVariable[], usrfnc, multihypo=mhcat, nullhypo=nh, inflation=packed.inflation)
   ccw.certainhypo = packed.certainhypo
 
   ret = FunctionNodeData{CommonConvWrapper{typeof(usrfnc)}}(packed.eliminated, packed.potentialused, packed.edgeIDs, ccw,
-                                                            packed.multihypo, packed.certainhypo, packed.nullhypo, packed.solveInProgress)
+                                                            packed.multihypo, packed.certainhypo, packed.nullhypo, 
+                                                            packed.solveInProgress, packed.inflation )
   #
   return ret
 end
@@ -66,13 +68,15 @@ function rebuildFactorMetadata!(dfg::AbstractDFG{SolverParams}, factor::DFGFacto
 
   # Rebuilding the CCW
   fsd = getSolverData(factor)
-  ccw_new = getDefaultFactorData(dfg, neighbors, getFactorType(factor), 
-                                 multihypo=fsd.multihypo,
-                                 nullhypo=fsd.nullhypo,
-                                 eliminated=fsd.eliminated,
-                                 potentialused=fsd.potentialused,
-                                 edgeIDs=fsd.edgeIDs,
-                                 solveInProgress=fsd.solveInProgress)
+  ccw_new = getDefaultFactorData( dfg, neighbors, getFactorType(factor), 
+                                  multihypo=fsd.multihypo,
+                                  nullhypo=fsd.nullhypo,
+                                  # special inflation override 
+                                  inflation=fsd.inflation,
+                                  eliminated=fsd.eliminated,
+                                  potentialused=fsd.potentialused,
+                                  edgeIDs=fsd.edgeIDs,
+                                  solveInProgress=fsd.solveInProgress)
   setSolverData!(factor, ccw_new)
 
   #... Copying neighbor data into the factor?
@@ -92,8 +96,8 @@ veeCategorical(val::Categorical) = val.p
 veeCategorical(val::Union{Nothing, Vector{Float64}}) = val
 
 
-function convert(::Type{Tuple{BallTreeDensity,Float64}},
-                 p::TreeBelief )
+function convert( ::Type{Tuple{BallTreeDensity,Float64}},
+                  p::TreeBelief )
   # @show size(p.val), size(p.bw), p.manifolds
   # (AMP.manikde!(p.val, p.bw[:,1], p.manifolds), p.inferdim)
   (convert(BallTreeDensity, p), p.inferdim)

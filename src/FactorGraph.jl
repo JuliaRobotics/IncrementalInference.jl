@@ -621,7 +621,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 usrfnc::T;
                                 multihypo::Union{Nothing, Distributions.Categorical}=nothing,
                                 nullhypo::Real=0.0,
-                                threadmodel=MultiThreaded  ) where {T <: FunctorInferenceType}
+                                threadmodel=MultiThreaded,
+                                inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
   ARR = Array{Array{Float64,2},1}()
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
@@ -647,7 +648,8 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           hypotheses=multihypo,
           certainhypo=certainhypo,
           nullhypo=nullhypo,
-          threadmodel=threadmodel
+          threadmodel=threadmodel,
+          inflation=inflation
         )
   #
   return ccw
@@ -659,17 +661,17 @@ $SIGNATURES
 
 Generate the default factor data for a new DFGFactor.
 """
-function getDefaultFactorData(
-      dfg::AbstractDFG,
-      Xi::Vector{<:DFGVariable},
-      usrfnc::T;
-      multihypo::Vector{<:Real}=Float64[],
-      nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded,
-      eliminated::Bool = false,
-      potentialused::Bool = false,
-      edgeIDs = Int[],
-      solveInProgress = 0 ) where T <: FunctorInferenceType
+function getDefaultFactorData(dfg::AbstractDFG,
+                              Xi::Vector{<:DFGVariable},
+                              usrfnc::T;
+                              multihypo::Vector{<:Real}=Float64[],
+                              nullhypo::Float64=0.0,
+                              threadmodel=SingleThreaded,
+                              eliminated::Bool = false,
+                              potentialused::Bool = false,
+                              edgeIDs = Int[],
+                              solveInProgress = 0,
+                              inflation::Real=getSolverParams(dfg).inflation ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars
@@ -677,11 +679,10 @@ function getDefaultFactorData(
   mhcat, nh = parseusermultihypo(multihypo, nullhypo)
 
   # allocate temporary state for convolutional operations (not stored)
-  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel)
+  ccw = prepgenericconvolution(Xi, usrfnc, multihypo=mhcat, nullhypo=nh, threadmodel=threadmodel, inflation=inflation)
 
   # and the factor data itself
-  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress)
-
+  return FunctionNodeData{CommonConvWrapper{T}}(eliminated, potentialused, edgeIDs, ccw, multihypo, ccw.certainhypo, nullhypo, solveInProgress, inflation)
 end
 
 
@@ -1088,6 +1089,9 @@ Add factor with user defined type <: FunctorInferenceType to the factor graph
 object. Define whether the automatic initialization of variables should be
 performed.  Use order sensitive `multihypo` keyword argument to define if any
 variables are related to data association uncertainty.
+
+Experimental
+- `inflation`, to better disperse kernels before convolution solve, see IIF #1051.
 """
 function addFactor!(dfg::AbstractDFG,
                     Xi::Vector{<:DFGVariable},
@@ -1099,14 +1103,21 @@ function addFactor!(dfg::AbstractDFG,
                     timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
                     graphinit::Bool=getSolverParams(dfg).graphinit,
                     threadmodel=SingleThreaded,
-                    suppressChecks::Bool=false  ) where
+                    suppressChecks::Bool=false,
+                    inflation::Real=getSolverParams(dfg).inflation  ) where
                       {R <: FunctorInferenceType}
   #
   # depcrecation
 
-  varOrderLabels = [v.label for v=Xi]
+  varOrderLabels = Symbol[v.label for v=Xi]
   namestring = assembleFactorName(dfg, Xi)
-  solverData = getDefaultFactorData(dfg, Xi, deepcopy(usrfnc), multihypo=multihypo, nullhypo=nullhypo, threadmodel=threadmodel)
+  solverData = getDefaultFactorData(dfg, 
+                                    Xi, 
+                                    deepcopy(usrfnc), 
+                                    multihypo=multihypo, 
+                                    nullhypo=nullhypo, 
+                                    threadmodel=threadmodel,
+                                    inflation=inflation)
   newFactor = DFGFactor(Symbol(namestring),
                         varOrderLabels,
                         solverData;
@@ -1123,17 +1134,18 @@ function addFactor!(dfg::AbstractDFG,
   return newFactor
 end
 
-function addFactor!(dfg::AbstractDFG,
-                    xisyms::Vector{Symbol},
-                    usrfnc::FunctorInferenceType;
-                    multihypo::Vector{<:Real}=Float64[],
-                    nullhypo::Float64=0.0,
-                    solvable::Int=1,
-                    timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
-                    tags::Vector{Symbol}=Symbol[],
-                    graphinit::Bool=getSolverParams(dfg).graphinit,
-                    threadmodel=SingleThreaded,
-                    suppressChecks::Bool=false  )
+function DFG.addFactor!(dfg::AbstractDFG,
+                        xisyms::Vector{Symbol},
+                        usrfnc::FunctorInferenceType;
+                        multihypo::Vector{<:Real}=Float64[],
+                        nullhypo::Float64=0.0,
+                        solvable::Int=1,
+                        timestamp::Union{DateTime,ZonedDateTime}=now(localzone()),
+                        tags::Vector{Symbol}=Symbol[],
+                        graphinit::Bool=getSolverParams(dfg).graphinit,
+                        threadmodel=SingleThreaded,
+                        inflation::Real=getSolverParams(dfg).inflation,
+                        suppressChecks::Bool=false  )
   #
   # depcrecation
 
@@ -1144,7 +1156,7 @@ function addFactor!(dfg::AbstractDFG,
 
   variables = getVariable.(dfg, xisyms)
   # verts = map(vid -> DFG.getVariable(dfg, vid), xisyms)
-  addFactor!(dfg, variables, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp )
+  addFactor!(dfg, variables, usrfnc, multihypo=multihypo, nullhypo=nullhypo, solvable=solvable, tags=tags, graphinit=graphinit, threadmodel=threadmodel, timestamp=timestamp, inflation=inflation )
 end
 
 

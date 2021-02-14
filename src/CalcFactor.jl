@@ -36,6 +36,8 @@ struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple, X <: AbstractVector}
 end
 
 
+CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+
 
 
 """
