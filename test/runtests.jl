@@ -9,6 +9,8 @@ include("testHasPriors913.jl")
 
 include("testInitVariableOrder.jl")
 
+include("testTreeMessageUtils.jl")
+
 include("testExpXstroke.jl")
 
 include("testBasicRecycling.jl")

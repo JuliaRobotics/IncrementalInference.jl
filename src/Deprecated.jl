@@ -21,121 +21,6 @@ function _evalType(pt::String)::Type
 end
 
 
-
-##==============================================================================
-## TODO deprecated  
-##==============================================================================
-
-# TODO Replace with _CalcFactorParametric API
-function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
-                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
-
-  if isa(s.Z, Normal)
-    meas = s.Z.μ
-    σ = s.Z.σ
-    #TODO confirm signs
-    res = meas - X1[1]
-    return (res./σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- X1
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end                    #
-end
-
-# maybe replace X with a type.
-function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
-                    userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
-
-  if isa(s.Z, Normal)
-    meas = s.Z.μ
-    σ = s.Z.σ
-    #TODO confirm signs
-    res = meas - X1[1]
-    return (res./σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- X1
-    return res' * iΣ * res # + 2*log(1/(  sqrt(det(Σ)*(2pi)^k) )) ## cancel ×1/2 in calling function ## k = dim(μ)
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end
-end
-
-
-# parametric specific functor
-# TODO Replace with _CalcFactorParametric API
-function (s::LinearRelative{N,<:ParametricTypes})(
-                                X1::AbstractArray{<:Real},
-                                X2::AbstractArray{<:Real};
-                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation, #467
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - (X2[1] - X1[1])
-    return (res/σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not supported, please use non-parametric")
-  end
-end
-
-
-# parametric specific functor
-# TODO Replace with _CalcFactorParametric API
-function (s::EuclidDistance{<:ParametricTypes})(X1::AbstractArray{<:Real},
-                                                X2::AbstractArray{<:Real};
-                                                userdata::Union{Nothing,FactorMetadata}=nothing )
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
-  #
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - norm(X2 - X1)
-    res *= res
-    return res/(σ^2)
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end
-end
-
-
-
 """
 $(TYPEDEF)
 
@@ -177,9 +62,36 @@ end
 
 
 
+
 ##==============================================================================
 ## Deprecate code below before v0.22
 ##==============================================================================
+
+
+
+"""
+(cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
+
+Default fallback for the standard factor calculation interface, as in `cf.factor(residual, noise_process, parameters)`,
+where factors are either library standard or user out-of-library factor definitions.  See documentation for
+more details and tutorials on using your own factors (designed to be as easy as possible).
+
+Notes
+- These residual calculations use used to find non-Gaussian / multimodal (incl. PPE) and conventional Gaussian estimates. 
+- `cf.legacyMeas == (measparams[1:cf._measCount]...,)`
+
+Example
+```julia
+# TBD
+```
+"""
+function (cf::CalcFactor)(measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
+  #
+  # NOTE this is a legacy interface
+  res = zeros(size(cf._legacyMeas,1))
+  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
+end
+
 
 
 @deprecate prodmultipleonefullpartials(w...;kw...) prodmultiplefullpartials(w...;kw...)
@@ -244,6 +156,11 @@ end
 @deprecate solveFactorMeasurements( dfg::AbstractDFG,fctsym::Symbol,solveKey::Symbol=:default;retries::Int=3 ) approxDeconv(dfg,fctsym,solveKey,retries=retries)
 
 
+# figure out how to deprecate (not critical at the moment)
+# used in RoMEPlotting 
+# NOTE: TempUpMsgPlotting will be removed.
+# Replaced with: UpMsgPlotting = @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 ##==============================================================================
 ## Deprecate code below before v0.21

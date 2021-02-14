@@ -15,12 +15,12 @@ function (s::CalcFactor{<:BrokenFactor})(z,
     error("User factor has a bug.")
 end
 
-# FIXME consolidate with CalcFactor according to #467
-function (s::BrokenFactor{<:IIF.ParametricTypes})(X1::AbstractArray{<:Real},
-                                                  X2::AbstractArray{<:Real};
-                                                  userdata::Union{Nothing,FactorMetadata}=nothing )
-    error("User factor has a bug.")
-end
+# # FIXME consolidate with CalcFactor according to #467
+# function (s::BrokenFactor{<:IIF.ParametricTypes})(X1::AbstractArray{<:Real},
+#                                                   X2::AbstractArray{<:Real};
+#                                                   userdata::Union{Nothing,FactorMetadata}=nothing )
+#     error("User factor has a bug -- USE NEW CalcFactor API INSTEAD, v0.21.")
+# end
 
 @testset "Test CSM monitor/watchdog on errors" begin
 

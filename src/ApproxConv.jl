@@ -225,11 +225,14 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   return kappa*maximum(dists)
 end
 
-function addEntropyOnManifoldHack!(addEntr::Union{AbstractMatrix{<:Real},SubArray}, maniAddOps, spreadDist::Real)
+function addEntropyOnManifoldHack!( addEntr::Union{AbstractMatrix{<:Real},SubArray}, 
+                                    maniAddOps, 
+                                    spreadDist::Real,
+                                    p::Union{Colon, <:AbstractVector}=: )
   # add 1σ "noise" level to max distance as control
-  for i in 1:size(addEntr, 1)
-    for j in 1:size(addEntr,2)
-      addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
+  for dim in 1:size(addEntr, 1), idx in 1:size(addEntr,2)
+    if (p === :) || dim in p
+      addEntr[dim,idx] = maniAddOps[dim](addEntr[dim,idx], spreadDist*(rand()-0.5))
     end
   end
   nothing
@@ -239,9 +242,12 @@ end
     $(SIGNATURES)
 
 Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
+
+DevNotes
+- TODO consolidate with fix for 1051
 """
-function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}},
+function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
+                                              <:CommonConvWrapper{Mixture{N_,F,S,T}}},
                                   allelements::AbstractVector,
                                   activehypo,
                                   certainidx::Vector{Int},
@@ -252,39 +258,51 @@ function computeAcrossHypothesis!(ccwl::Union{CommonConvWrapper{F},
   #
   count = 0
 
+  cpt_ = ccwl.cpt[Threads.threadid()]
+
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   _setCCWDecisionDimsConv!(ccwl)
 
-  # TODO remove assert once all GenericWrapParam has been removed
+  
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
     count += 1
+
+    
+    # now do hypothesis specific
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
+      
+      # do proposal inflation step, see #1051
+      addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
+      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
+      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist, cpt_.p)
+
+      # no calculate new proposal belief on kernels `allelements[count]`
       approxConvOnElements!(ccwl, allelements[count])
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
-        # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
+      # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
-      # inject lots of entropy in nullhypo case
+      # noise was already added earlier
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
-      # make spread (1σ) equal to mean distance of other fractionals
+      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-      # ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist) # TODO
-      # add 1σ "noise" level to max distance as control
       addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
-      # for i in 1:size(addEntr, 1)
-      #   for j in 1:size(addEntr,2)
-      #     # FIXME, should be with ENT
-      #     addEntr[i,j] = maniAddOps[i](addEntr[i,j], spreadDist*(rand()-0.5))
-      #   end
-      # end
+
+      # # inject lots of entropy in nullhypo case
+      # addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      # # make spread (1σ) equal to mean distance of other fractionals
+      # # ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist) # TODO
+      # # add 1σ "noise" level to max distance as control
+      # addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -344,7 +362,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   return ccwl.params[ccwl.varidx]
 end
 
+
 # TODO `measurement` might not be properly wired up yet
+# TODO consider 1051 here to inflate proposals as general behaviour
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
@@ -364,10 +384,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
-    cf = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
+    cf = CalcFactor( ccwl )
     ccwl.measurement = sampleFactor(cf, nn)
-    # fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
-    # sampleFactor!(ccwl, nn, fmd, vnds)
   end
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
@@ -631,7 +649,14 @@ function approxConvBinary(arr::Array{Float64,2},
 
   fmd.arrRef = t
 
-  measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
+  # TODO consolidate with ccwl??
+  # FIXME do not divert Mixture for sampling
+  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
+  # FIXME 0, 0, ()
+  cf = CalcFactor( meas, fmd, 0, 0, (), t)
+
+  measurement = size(measurement[1],2) == 0 ? sampleFactor(cf, N) : measurement
+  # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
 
   zDim = size(measurement[1],1)
   ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)

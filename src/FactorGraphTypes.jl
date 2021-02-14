@@ -5,16 +5,17 @@ import Base: ==
 
 const BeliefArray{T} = Union{Array{T,2}, Adjoint{T, Array{T,2}} }
 
+abstract type _AbstractThreadModel end
 
 """
 $(TYPEDEF)
 """
-struct SingleThreaded
+struct SingleThreaded <: _AbstractThreadModel
 end
 """
 $(TYPEDEF)
 """
-struct MultiThreaded
+struct MultiThreaded <: _AbstractThreadModel
 end
 
 
@@ -57,6 +58,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   limittreeinit_iters::Int
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
+  inflation::Float64 # experimental, how much to disperse particles before convolution solves, #1051
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
@@ -88,7 +90,8 @@ SolverParams(;dimID::Int=0,
               treeinit::Bool=false,
               limittreeinit_iters::Int=10,
               algorithms::Vector{Symbol}=[:default],
-              spreadNH::Float64=3.0,
+              spreadNH::Real=3.0,
+              inflation::Real=0.0,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
@@ -118,6 +121,7 @@ SolverParams(;dimID::Int=0,
                               limittreeinit_iters,
                               algorithms,
                               spreadNH,
+                              inflation,
                               maxincidence,
                               alwaysFreshMeasurements,
                               devParams )
@@ -156,22 +160,22 @@ end
 $(TYPEDEF)
 
 DevNotes
-- FIXME rm ::Union on `.activehypo`
+- FIXME consolidate with CalcFactor
+- TODO consolidate with CCW, FMd, CalcFactor
 - TODO consider renaming `.p` to `.decisionDims`
   - TODO `.decisionDims::DD where DD <: Union{<:AbstractVector{Int},Colon}` -- ensure type stability
-- TODO consolidate with CCW, FMd, CalcFactor
 - TODO figure out if we want static parameter THRID
 - TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
-mutable struct ConvPerThread{T}
+mutable struct ConvPerThread{R,F<:FactorMetadata}
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
   # additional/optional data passed to user function
-  factormetadata::FactorMetadata
+  factormetadata::F
   # subsection indices to select which params should be used for this hypothesis evaluation
-  activehypo::Union{UnitRange{Int},Vector{Int}}
+  activehypo::Vector{Int}
   # Select which decision variables to include in a particular optimization run
   p::Vector{Int}
   # slight numerical perturbation for degenerate solver cases such as division by zero
@@ -179,16 +183,16 @@ mutable struct ConvPerThread{T}
   # working memory location for optimization routines on target decision variables
   X::Array{Float64,2}
   # working memory to store residual for optimization routines
-  res::T # was Vector{Float64}
+  res::R # was Vector{Float64}
 end
 
 """
 $(TYPEDEF)
-
-DevNotes
-- FIXME remove inner constructor
 """
-mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMemory
+mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
+                                  H<:Union{Nothing, Distributions.Categorical},
+                                  C<:Union{Nothing, Vector{Int}} } <: FactorOperationalMemory
+  #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
   # general setup
@@ -198,19 +202,19 @@ mutable struct CommonConvWrapper{T<:FunctorInferenceType} <: FactorOperationalMe
   specialzDim::Bool # is there a special zDim requirement -- defined by user
   partial::Bool # is this a partial constraint -- defined by user
   # multi hypothesis settings
-  hypotheses::Union{Nothing, Distributions.Categorical} # categorical to select which hypothesis is being considered during convolution operation
-  certainhypo::Union{Nothing, Vector{Int}}
+  hypotheses::H # categorical to select which hypothesis is being considered during convolution operation
+  certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
   params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
+  # FIXME make type stable
   measurement::Tuple # user defined measurement values for each approxConv operation
-  threadmodel::Union{Type{SingleThreaded}, Type{MultiThreaded}}
+  threadmodel::Type{<:_AbstractThreadModel} # Union{Type{SingleThreaded}, Type{MultiThreaded}}
   ### particular convolution computation values per particle idx (varies by thread)
-  cpt::Vector{ConvPerThread}
-
-  # remove
-  CommonConvWrapper{T}() where {T<:FunctorInferenceType} = new{T}()
+  cpt::Vector{<:ConvPerThread}
+  # inflationSpread
+  inflation::Float64
 end
 
 
@@ -222,15 +226,13 @@ function ConvPerThread( X::Array{Float64,2},
                         activehypo= 1:length(params),
                         p=collect(1:size(X,1)),
                         perturb=zeros(zDim),
-                        # Y=zeros(zDim), #zeros(size(X,1)),
                         res=zeros(zDim),
                         thrid_ = 0  )
   #
-  # cpt = ConvPerThread()
   return ConvPerThread( thrid_,
                         particleidx,
                         factormetadata,
-                        activehypo,
+                        Int[activehypo;],
                         p,
                         perturb,
                         X,
@@ -245,7 +247,7 @@ function CommonConvWrapper( fnc::T,
                             factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
-                            hypotheses=nothing,
+                            hypotheses::H=nothing,
                             certainhypo=nothing,
                             activehypo= 1:length(params),
                             nullhypo::Real=0,
@@ -254,40 +256,28 @@ function CommonConvWrapper( fnc::T,
                             particleidx::Int=1,
                             p=collect(1:size(X,1)),
                             perturb=zeros(zDim),
-                            # Y=zeros(zDim), # zeros(size(X,1)),
-                            xDim=size(X,1),
-                            res=zeros(zDim),
-                            threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType}
+                            xDim::Int=size(X,1),
+                            res::AbstractVector{<:Real}=zeros(zDim),
+                            threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
+                            inflation::Real=0.0  ) where {T<:FunctorInferenceType,H}
   #
-  ccw = CommonConvWrapper{T}()
-
-  ccw.usrfnc! = fnc
-  ccw.xDim = xDim
-  ccw.zDim = zDim
-  ccw.specialzDim = specialzDim
-  ccw.partial = partial
-  ccw.hypotheses = hypotheses
-  ccw.certainhypo=certainhypo
-  ccw.nullhypo=nullhypo
-  ccw.params = params
-  ccw.varidx = varidx
-  ccw.measurement = measurement
-  ccw.threadmodel = threadmodel
-
-  # thread specific elements
-  ccw.cpt = Vector{ConvPerThread}(undef, Threads.nthreads())
-  for i in 1:Threads.nthreads()
-    ccw.cpt[i] = ConvPerThread(X, zDim,
-                    factormetadata,
-                    particleidx=particleidx,
-                    activehypo=activehypo,
-                    p=p,
-                    perturb=perturb,
-                    # Y=Y,
-                    res=res )
-  end
-
-  return ccw
+  return  CommonConvWrapper(fnc,
+                            xDim,
+                            zDim,
+                            specialzDim,
+                            partial,
+                            hypotheses,
+                            certainhypo,
+                            Float64(nullhypo),
+                            params,
+                            varidx,
+                            measurement,
+                            threadmodel,
+                            (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
+                                              activehypo=activehypo, p=p, 
+                                              perturb=perturb, res=res )).(1:Threads.nthreads()),
+                            inflation
+                            )
 end
 
 
