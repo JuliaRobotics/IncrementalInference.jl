@@ -2,8 +2,12 @@ using Test
 using IncrementalInference
 using Random
 
+##
+
 @testset "test basic multihypo" begin
+
 ## A simple multihypo example
+
 Random.seed!(42) # The answer to reproducable noise
 
 fg = LightDFG(solverParams=SolverParams(graphinit=false))
@@ -47,13 +51,19 @@ p2p = LinearRelative(Normal(rand(p2ln), lm_noise))
 addFactor!(fg, [:x1; :l2; :l1], p2p, multihypo = [1.0, pRight, pWrong])
 # addFactor!(fg, [:x1; :l2], p2p) #this one used for sanity check
 
+##
+
 fg.solverParams.graphinit=true
 solveTree!(fg)
+
+##
 
 @test isapprox(DFG.getPPESuggested(fg, :x0)[], 0, atol = 0.2) 
 @test isapprox(DFG.getPPESuggested(fg, :x1)[], 1, atol = 0.2) 
 @test isapprox(DFG.getPPESuggested(fg, :l1)[], 1, atol = 0.2) 
 @test isapprox(DFG.getPPESuggested(fg, :l2)[], 2, atol = 0.2) 
+
+##
 
 end
 
