@@ -661,18 +661,17 @@ $SIGNATURES
 
 Generate the default factor data for a new DFGFactor.
 """
-function getDefaultFactorData(
-      dfg::AbstractDFG,
-      Xi::Vector{<:DFGVariable},
-      usrfnc::T;
-      multihypo::Vector{<:Real}=Float64[],
-      nullhypo::Float64=0.0,
-      threadmodel=SingleThreaded,
-      eliminated::Bool = false,
-      potentialused::Bool = false,
-      edgeIDs = Int[],
-      solveInProgress = 0,
-      inflation::Real=0.0 ) where T <: FunctorInferenceType
+function getDefaultFactorData(dfg::AbstractDFG,
+                              Xi::Vector{<:DFGVariable},
+                              usrfnc::T;
+                              multihypo::Vector{<:Real}=Float64[],
+                              nullhypo::Float64=0.0,
+                              threadmodel=SingleThreaded,
+                              eliminated::Bool = false,
+                              potentialused::Bool = false,
+                              edgeIDs = Int[],
+                              solveInProgress = 0,
+                              inflation::Real=getSolverParams(dfg).inflation ) where T <: FunctorInferenceType
   #
 
   # prepare multihypo particulars

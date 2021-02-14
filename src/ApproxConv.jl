@@ -1,6 +1,6 @@
 
+export calcFactorResidual
 export findRelatedFromPotential
-
 
 
 
@@ -291,7 +291,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
-      # noise was already added earlier
+      # add noise (entropy) to spread out search in convolution proposals
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
@@ -507,6 +507,23 @@ function evalFactor(dfg::AbstractDFG,
   #
 end
 
+"""
+    $SIGNATURES
+
+Helper function for evaluating factor residual functions, by adding necessary `CalcFactor` wrapper.
+  
+Notes
+- Factor must already be in a factor graph to work
+- Will not yet properly support all multihypo nuances, more a function for testing
+
+Example
+```julia
+fg = generateCanonicalFG_Kaess()
+
+residual = calcFactorResidual(fg, :x1x2f1, [1.0], [0.0], [0.0])
+```
+"""
+calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = CalcFactor(IIF._getCCW(dfg, fctsym))(args...)
 
 
 function approxConv(dfg::AbstractDFG,
@@ -529,6 +546,7 @@ Calculate the sequential series of convolutions in order as listed by `fctLabels
 value already contained in the first variable.  
 
 Notes
+- `target` must be a variable.
 - The ultimate `target` variable must be given to allow path discovery through n-ary factors.
 - Fresh starting point will be used if first element in `fctLabels` is a unary `<:AbstractPrior`.
 - This function will not change any values in `dfg`, and might have slightly less speed performance to meet this requirement.
@@ -558,7 +576,7 @@ function approxConv(dfg::AbstractDFG,
                     setPPE::Bool= setPPEmethod !== nothing,
                     path::AbstractVector{Symbol}=Symbol[]  )
   #
-  @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
+  # @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
   if from in ls(dfg, target)
     # direct request
