@@ -10,7 +10,7 @@ using Random
 
 Random.seed!(42) # The answer to reproducable noise
 
-fg = LightDFG(solverParams=SolverParams(graphinit=false))
+fg = LightDFG(solverParams=SolverParams(graphinit=false,inflation=10.0))
 
 pRight = 0.99
 pWrong = 0.01
@@ -18,10 +18,15 @@ pr_noise = 0.01
 od_noise = 0.2
 lm_noise = 0.01
 
+# true positions
+# x0 at 0
+# x1 at 1
+# l1 at 1
+# l2 at 2
 
 #x0 prior
 addVariable!(fg, :x0, ContinuousScalar)
-prpo = Normal(0., pr_noise)
+prpo = Normal(0.0, pr_noise)
 addFactor!(fg, [:x0], Prior(Normal(rand(prpo), pr_noise)))
 
 #l1 and l2
@@ -53,8 +58,10 @@ addFactor!(fg, [:x1; :l2; :l1], p2p, multihypo = [1.0, pRight, pWrong])
 
 ##
 
-fg.solverParams.graphinit=true
-solveTree!(fg)
+# prescribe an elimination order to get a single clique
+eo = [:l2,:x1,:x0,:l1]
+# fg.solverParams.graphinit=true
+solveTree!(fg, eliminationOrder=eo)
 
 ##
 
