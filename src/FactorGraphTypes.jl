@@ -58,6 +58,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   limittreeinit_iters::Int
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
+  inflation::Float64 # experimental, how much to disperse particles before convolution solves, #1051
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
@@ -89,7 +90,8 @@ SolverParams(;dimID::Int=0,
               treeinit::Bool=false,
               limittreeinit_iters::Int=10,
               algorithms::Vector{Symbol}=[:default],
-              spreadNH::Float64=3.0,
+              spreadNH::Real=3.0,
+              inflation::Real=3.0,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
@@ -119,6 +121,7 @@ SolverParams(;dimID::Int=0,
                               limittreeinit_iters,
                               algorithms,
                               spreadNH,
+                              inflation,
                               maxincidence,
                               alwaysFreshMeasurements,
                               devParams )
@@ -210,6 +213,8 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   threadmodel::Type{<:_AbstractThreadModel} # Union{Type{SingleThreaded}, Type{MultiThreaded}}
   ### particular convolution computation values per particle idx (varies by thread)
   cpt::Vector{<:ConvPerThread}
+  # inflationSpread
+  inflation::Float64
 end
 
 
@@ -251,9 +256,10 @@ function CommonConvWrapper( fnc::T,
                             particleidx::Int=1,
                             p=collect(1:size(X,1)),
                             perturb=zeros(zDim),
-                            xDim=size(X,1),
-                            res=zeros(zDim),
-                            threadmodel=MultiThreaded  ) where {T<:FunctorInferenceType,H}
+                            xDim::Int=size(X,1),
+                            res::AbstractVector{<:Real}=zeros(zDim),
+                            threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
+                            inflation::Real=0.0  ) where {T<:FunctorInferenceType,H}
   #
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -269,7 +275,8 @@ function CommonConvWrapper( fnc::T,
                             threadmodel,
                             (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
                                               activehypo=activehypo, p=p, 
-                                              perturb=perturb, res=res )).(1:Threads.nthreads())
+                                              perturb=perturb, res=res )).(1:Threads.nthreads()),
+                            inflation
                             )
 end
 
