@@ -62,22 +62,17 @@ function doFMCIteration(fgl::AbstractDFG,
                         needFreshMeasurements::Bool=true,
                         logger=ConsoleLogger()  )
   #
-  # global countsolve
+
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
-    if true
-      potprod = nothing
-      densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
-    else
-      # NOTE THIS PART IS DEPRECATED IN v0.16.0
-      # we'd like to do this more pre-emptive and then just execute -- just point and skip up only msgs
-      densPts, potprod, inferdim = cliqGibbs(fgl, cliq, vsym, fmsgs, N, dbg, getVariableType(vert) |> getManifolds, logger)
-    end
+    potprod = nothing
+    densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
 
-    if size(densPts,1)>0
-      updvert = DFG.getVariable(fgl, vsym)  # TODO --  can we remove this duplicate getVert?
-      setValKDE!(updvert, densPts, true, inferdim)
-      # TODO perhpas more debugging inside `predictbelief`?
+    if 0 < size(densPts,1)
+      # TODO --  can we remove this duplicate getVert?
+      # updvert = DFG.getVariable(fgl, vsym)  
+      setValKDE!(vert, densPts, true, inferdim)
+      # TODO perhaps more debugging inside `predictbelief`?
     end
   end
   nothing
@@ -152,13 +147,16 @@ Notes
 - `cliq` which cliq to perform the computation on,
 - `parent` the parent clique to where the upward message will be sent,
 - `childmsgs` is for any incoming messages from child cliques.
+
+DevNotes
+- FIXME total rewrite with AMP #41 and RoME #244 in mind
 """
 function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique, 
                               inmsgs,
                               N::Int=100,
                               dbg::Bool=false,
                               iters::Int=3,
-                              logger=ConsoleLogger()  ) where {T, T2}
+                              logger=ConsoleLogger()  ) # where {T, T2}
   #
   with_logger(logger) do
     @info "up w $(length(inmsgs)) msgs"
@@ -178,7 +176,9 @@ function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique,
     mcmcdbg, d = fmcmc!(dfg, cliq, inmsgs, IDS, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
-    dummy, d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
+    # NOTE -- double up on directs to allow inflation to take proper affect, see #1051
+    dummy, d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 2, dbg, logger, true)
+    
     if length(cliqdata.msgskipIDs) > 0
       dummy, dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
       for md in dd d[md[1]] = md[2]; end
