@@ -98,7 +98,8 @@ tree = buildTreeReset!(fg, eo)
 
 # solveTree!(fg)
 
-stuff = solveCliq!(fg, tree, :x1)
+@error "continue test dev with #1168"
+# stuff = solveCliq!(fg, tree, :x1)
 
 
 ## still need to make sure numerical results are fine..., first must resolve #1168
