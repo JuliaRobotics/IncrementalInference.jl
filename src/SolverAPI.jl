@@ -77,7 +77,7 @@ end
 
 function tryCliqStateMachineSolve!( dfg::G,
                                     treel::AbstractBayesTree,
-                                    cliqKey::Int,
+                                    cliqKey::Union{Int, CliqueId},
                                     timeout::Union{Nothing, <:Real}=nothing;
                                     oldtree::AbstractBayesTree=BayesTree(),
                                     verbose::Bool=false,
@@ -444,10 +444,16 @@ function solveCliq!(dfgl::AbstractDFG,
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = getClique(tree, cliqid)
 
+  # modyfy local copy of the tree
+  tree_ = deepcopy(tree)
+  # isolate clique
+  deleteClique!(tree_, getParent(tree_, cliq)[1])
+  foreach(c->deleteClique!(tree_,c), getChildren(tree_, cliq))
+
   cliqtask = if async
-    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.id.value, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+    @async tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
-    tryCliqStateMachineSolve!(dfgl, tree, cliq.id.value, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+    tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   end
   # end # if
 

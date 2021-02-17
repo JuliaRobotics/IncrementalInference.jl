@@ -98,8 +98,12 @@ tree = buildTreeReset!(fg, eo)
 
 # solveTree!(fg)
 
-@error "continue test dev with #1168"
-# stuff = solveCliq!(fg, tree, :x1)
+# @error "continue test dev with #1168"
+#solve the clique in isolation
+stuff = solveCliq!(fg, tree, :x1; recordcliq=true)
+
+# the belief that would have been sent by this clique:
+belief = IIF.getMessageBuffer(stuff[11].csmc.cliq).upTx
 
 ## still need to make sure numerical results are fine..., first must resolve #1168
 

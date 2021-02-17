@@ -96,12 +96,14 @@ getClique(tree::MetaBayesTree, cIndex::Int) = MetaGraphs.get_prop(tree.bt, cInde
 """
     $(SIGNATURES)
 """
-function deleteClique!(tree::MetaBayesTree, cId::CliqueId)
-  clique = getClique(tree, cId) 
+function deleteClique!(tree::MetaBayesTree, clique::TreeClique)
+  cId = clique.id
   @assert MetaGraphs.rem_vertex!(tree.bt, tree.bt[:cliqId][cId]) "rem_vertex! failed"
   foreach(frt->delete!(tree.frontals,frt), getFrontals(clique))
   return clique
 end
+
+deleteClique!(tree::MetaBayesTree, cId::CliqueId) = deleteClique!(tree, getClique(tree, cId))
 
 isRoot(tree::MetaBayesTree, cliq::TreeClique) = isRoot(tree, cliq.id)
 function isRoot(tree::MetaBayesTree, cliqId::CliqueId)
