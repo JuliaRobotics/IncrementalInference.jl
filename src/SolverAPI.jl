@@ -443,10 +443,11 @@ function solveCliq!(dfgl::AbstractDFG,
 
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = getClique(tree, cliqid)
+
   cliqtask = if async
-    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.id.value, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
-    tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+    tryCliqStateMachineSolve!(dfgl, tree, cliq.id.value, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   end
   # end # if
 
