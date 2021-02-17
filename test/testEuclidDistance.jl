@@ -67,3 +67,48 @@ pts .^= 2
 ##
 
 end
+
+
+
+@testset "test upward clique message range density behavior" begin
+
+##
+
+N=100
+fg = initfg()
+# getSolverParams(fg).inflation=250.0
+
+addVariable!(fg, :x0, ContinuousEuclid{2}, N=N)
+addFactor!(fg, [:x0], Prior(MvNormal([100.0;0], [1;1.0])), graphinit=false)
+
+addVariable!(fg, :x1, ContinuousEuclid{2}, N=N)
+addFactor!(fg, [:x1], Prior(MvNormal([0.0;100.0], [1;1.0])), graphinit=false)
+
+addVariable!(fg, :l1, ContinuousEuclid{2}, N=N)
+addFactor!(fg, [:x0;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
+addFactor!(fg, [:x1;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
+
+## 
+
+eo = [:x1; :x0; :l1]
+
+tree = buildTreeReset!(fg, eo)
+
+## what would clique solution produce as up message
+
+# solveTree!(fg)
+
+@error "continue test dev with #1168"
+# stuff = solveCliq!(fg, tree, :x1)
+
+
+## still need to make sure numerical results are fine..., first must resolve #1168
+
+
+##
+
+end
+
+
+
+#
