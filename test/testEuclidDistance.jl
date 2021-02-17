@@ -101,8 +101,9 @@ tree = buildTreeReset!(fg, eo)
 @error "continue test dev with #1168"
 # stuff = solveCliq!(fg, tree, :x1)
 
-
 ## still need to make sure numerical results are fine..., first must resolve #1168
+
+# L1 = getCliqueData(getClique(tree, :x1)).messages.upTx.belief[:l1] |> manikde!
 
 
 ##
