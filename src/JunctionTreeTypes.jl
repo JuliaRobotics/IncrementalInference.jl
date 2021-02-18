@@ -101,7 +101,7 @@ end
 const CSMHistoryTuple =  NamedTuple{(:timestamp, :id, :f, :csmc), Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 const CSMHistory = Vector{CSMHistoryTuple}
 
-Base.show(io::IO, o::CSMHistoryTuple) = print("$(o[1]), $(o[2]), $(o[3])")
+Base.show(io::IO, o::CSMHistoryTuple) = print(io, "$(o[1]), $(o[2]), $(o[3])")
 
 
 function CliqStateMachineContainer( dfg::G,
