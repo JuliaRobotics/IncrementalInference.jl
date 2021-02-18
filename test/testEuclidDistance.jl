@@ -94,21 +94,54 @@ eo = [:x1; :x0; :l1]
 
 tree = buildTreeReset!(fg, eo)
 
+# drawTree(tree, show=true)
+# drawGraph(fg, show=true)
+
+
 ## what would clique solution produce as up message
 
 # solveTree!(fg)
 
 # @error "continue test dev with #1168"
 #solve the clique in isolation
-stuff = solveCliq!(fg, tree, :x1; recordcliq=true)
+hist = solveCliq!(fg, tree, :x1; recordcliq=true)
+printCliqHistorySummary(hist)
+
 
 # the belief that would have been sent by this clique:
-belief = IIF.getMessageBuffer(stuff[11].csmc.cliq).upTx
+belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
+L1 = belief.belief[:l1] |> manikde!
+
+## debug plotting
+
+using RoMEPlotting
+Gadfly.set_default_plot_size(25cm,20cm)
+
+using Logging
+
+##
+
+plotKDE(L1)
 
 ## still need to make sure numerical results are fine..., first must resolve #1168
 
-# L1 = getCliqueData(getClique(tree, :x1)).messages.upTx.belief[:l1] |> manikde!
+fnc_, csmc_ = repeatCSMStep!(hist, 5);
 
+sfg = csmc_.cliqSubFg
+plotKDE(sfg, :l1)
+
+##
+
+
+IIF._getCCW(sfg, :x1l1f1).inflation = 1000
+pts = approxConv(sfg, :x1l1f1, :l1 , skipSolve=true)
+initManual!(sfg, :l1, pts)
+pts = approxConv(sfg, :x1l1f1, :l1)
+
+# pts = randn(2,100)
+# pts[2,:] .+= 200
+
+plotKDE(manikde!(pts, ContinuousEuclid{2}))
 
 ##
 

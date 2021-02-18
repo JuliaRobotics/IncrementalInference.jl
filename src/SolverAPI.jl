@@ -418,12 +418,18 @@ Perform inference over one clique in the Bayes tree according to `opt::SolverPar
 Example
 ```julia
 tree = buildTreeReset!(fg)
-smt, hist = solveCliq!(fg, tree, :x1 [,cliqHistories=hist] )
+hist = solveCliq!(fg, tree, :x1, recordcliq = true )
+
+# print CSM steps
+printCliqHistorySummary(hist)
 ```
+
+DevNotes
+- on `sandboxStateMachineStep`, see FSM #42
 
 Related
 
-[`solveTree!`](@ref), [`buildTreeReset!`](@ref)
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
 """
 function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,

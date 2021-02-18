@@ -254,7 +254,8 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   sfidx::Int,
                                   maxlen::Int,
                                   maniAddOps::Tuple;
-                                  spreadNH::Real=3.0 ) where {N_,F<:AbstractRelative,S,T}
+                                  spreadNH::Real=3.0,
+                                  skipSolve::Bool=false ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
 
@@ -282,7 +283,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist, cpt_.p)
 
       # no calculate new proposal belief on kernels `allelements[count]`
-      approxConvOnElements!(ccwl, allelements[count])
+      skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
@@ -333,7 +334,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
-                                dbg::Bool=false  ) where {T <: AbstractFactor}
+                                dbg::Bool=false,
+                                skipSolve::Bool=false  ) where {T <: AbstractFactor}
   #
 
   # Prep computation variables
@@ -357,7 +359,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH, skipSolve=skipSolve)
 
   return ccwl.params[ccwl.varidx]
 end
@@ -374,7 +376,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
-                                spreadNH::Real=3.0 ) where {T <: AbstractFactor}
+                                spreadNH::Real=3.0,
+                                skipSolve::Bool=false ) where {T <: AbstractFactor}
   #
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
@@ -438,7 +441,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
-                                spreadNH::Real=3.0 ) where {N_,F<:FunctorInferenceType,S,T}
+                                spreadNH::Real=3.0,
+                                skipSolve::Bool=false ) where {N_,F<:FunctorInferenceType,S,T}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
@@ -449,7 +453,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                         solveKey=solveKey,
                         N=N,
                         dbg=dbg,
-                        spreadNH=spreadNH )
+                        spreadNH=spreadNH,
+                        skipSolve=skipSolve )
 end
 
 
@@ -461,7 +466,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
-                                spreadNH::Real=3.0 ) where {F <: FunctorInferenceType}
+                                spreadNH::Real=3.0,
+                                skipSolve::Bool=false ) where {F <: FunctorInferenceType}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
@@ -472,7 +478,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                         solveKey=solveKey,
                         N=N,
                         dbg=dbg,
-                        spreadNH=spreadNH )
+                        spreadNH=spreadNH,
+                        skipSolve=skipSolve )
 end
 
 
@@ -488,7 +495,8 @@ function evalFactor(dfg::AbstractDFG,
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
                     N::Int=size(measurement[1],2),
-                    dbg::Bool=false  )
+                    dbg::Bool=false,
+                    skipSolve::Bool=false  )
   #
 
   ccw = _getCCW(fct)
@@ -503,7 +511,7 @@ function evalFactor(dfg::AbstractDFG,
   end
 
   return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
-                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH )
+                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, skipSolve=skipSolve )
   #
 end
 
@@ -531,11 +539,12 @@ function approxConv(dfg::AbstractDFG,
                     target::Symbol,
                     measurement::Tuple=(zeros(0,0),);
                     solveKey::Symbol=:default,
-                    N::Int=size(measurement[1],2) )
+                    N::Int=size(measurement[1],2), 
+                    skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
   N = N == 0 ? getNumPts(v1) : N
-  return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N)
+  return evalFactor(dfg, fc, v1.label, measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
 end
 
 
@@ -574,7 +583,8 @@ function approxConv(dfg::AbstractDFG,
                     tfg::AbstractDFG = initfg(),
                     setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
                     setPPE::Bool= setPPEmethod !== nothing,
-                    path::AbstractVector{Symbol}=Symbol[]  )
+                    path::AbstractVector{Symbol}=Symbol[],
+                    skipSolve::Bool=false  )
   #
   # @assert isVariable(dfg, target) "approxConv(dfg, from, target,...) where `target`=$target must be a variable in `dfg`"
   
@@ -614,7 +624,7 @@ function approxConv(dfg::AbstractDFG,
     # get the factor
     fct0 = getFactor(dfg,from)
     # get the Matrix{<:Real} of projected points
-    pts1 = approxConv(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N)
+    pts1 = approxConv(dfg, fct0, path[2], measurement, solveKey=solveKey, N=N, skipSolve=skipSolve)
     length(path) == 2 ? (return pts1) : pts1
   end
   # didn't return early so shift focus to using `tfg` more intensely
@@ -629,7 +639,7 @@ function approxConv(dfg::AbstractDFG,
       # this is a factor path[idx]
       fct = getFactor(dfg, path[idx])
       addFactor!(tfg, fct)
-      pts = approxConv(tfg, fct, path[idx+1], solveKey=solveKey, N=N)
+      pts = approxConv(tfg, fct, path[idx+1], solveKey=solveKey, N=N, skipSolve=skipSolve)
       initManual!(tfg, path[idx+1], pts)
       !setPPE ? nothing : setPPE!(tfg, path[idx+1], solveKey, ppemethod)
     end
