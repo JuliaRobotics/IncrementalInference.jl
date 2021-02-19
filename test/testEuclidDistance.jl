@@ -121,7 +121,7 @@ end
 # using Random
 # Random.seed!(84)
 # N=100
-
+##
 points = [[100.0],]
 fg = IIF.generateCanonicalFG_EuclidDistance(points)
 solveTree!(fg)
@@ -134,6 +134,22 @@ N = size(pts, 2)
 # TODO add similar tests to the rest
 @test_broken 0.3*N < sum(isapprox.(pts,  0, atol=5)) < 0.7*N
 @test_broken 0.3*N < sum(isapprox.(pts,200, atol=5)) < 0.7*N
+
+# Do it manually with a big inflation
+# IIF._getCCW(fg, :x1l1f1).inflation = 100.0 # never gets there
+# IIF._getCCW(fg, :x1l1f1).inflation = 150.0 # few iters gets there
+IIF._getCCW(fg, :x1l1f1).inflation = 200.0 # One almost, second good
+pts = approxConv(fg, :x1l1f1, :l1)
+initManual!(fg, :l1, pts)
+# plotKDE(fg, ls(fg))
+
+pts = approxConv(fg, :x1l1f1, :l1)
+initManual!(fg, :l1, pts)
+# plotKDE(fg, ls(fg))
+
+@test 0.3*N < sum(isapprox.(pts,  0, atol=5)) < 0.7*N
+@test 0.3*N < sum(isapprox.(pts,200, atol=5)) < 0.7*N
+
 
 ## Test zero with x-axis
 points = [[100.0;0.0],]
@@ -179,3 +195,58 @@ eliminationOrder = [:l1; :x2; :x1]
 tree,_ = solveTree!(fg; eliminationOrder)
 
 end
+
+## SolverPlotter debug
+# Random.seed!(84)
+# empty!(IIF.g_u0)
+# empty!(IIF.g_r)
+# Plots.scatter([getindex.(IIF.g_u0,1), getindex.(IIF.g_u0,2)], legend=nothing)
+# Plots.scatter!([getindex.(IIF.g_r,1),getindex.(IIF.g_r,2)], legend=nothing)
+# Plots.scatter([getindex.(IIF.g_r,1),getindex.(IIF.g_r,2)], legend=nothing)
+# x = reshape(getindex.(IIF.g_r,1),100,:)
+# y = reshape(getindex.(IIF.g_r,2),100,:)
+# Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
+# Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
+
+#=
+## what would clique solution produce as up message
+
+# solveTree!(fg)
+
+# @error "continue test dev with #1168"
+#solve the clique in isolation
+hist = solveCliq!(fg, tree, :x1; recordcliq=true)
+printCliqHistorySummary(hist)
+
+
+# the belief that would have been sent by this clique:
+belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
+L1 = belief.belief[:l1] |> manikde!
+
+##
+
+plotKDE(L1)
+
+## still need to make sure numerical results are fine..., first must resolve #1168
+
+fnc_, csmc_ = repeatCSMStep!(hist, 5);
+
+sfg = csmc_.cliqSubFg
+plotKDE(sfg, :l1)
+
+##
+
+
+IIF._getCCW(sfg, :x1l1f1).inflation = 1000
+IIF._getCCW(sfg, :x1l1f1).inflation = 3
+
+
+pts = approxConv(fg, :x1l1f1, :l1 , skipSolve=false)
+initManual!(sfg, :l1, pts)
+pts = approxConv(sfg, :x1l1f1, :l1)
+
+# pts = randn(2,100)
+# pts[2,:] .+= 200
+
+plotKDE(manikde!(pts, ContinuousEuclid{2}))
+=#
