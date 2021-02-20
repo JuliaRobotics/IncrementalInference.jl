@@ -100,7 +100,7 @@ function Base.show(io::IO, cliq::TreeClique)
   println(io, "  frontals:    ", getFrontals(cliq))
   println(io, "  separator:   ", getCliqSeparatorVarIds(cliq))
   println(io, "  status:      ", cliq.data.status)
-  println(io, "  allmarginal: ", cliq.data.allmarginalized)
+  println(io, "  allmarginld: ", cliq.data.allmarginalized)
   println(io, "  potentials:  ", cliq.data.potentials)
   printstyled(io, bold=true, " messages\n")
   0 < length(cliq.data.messages.upTx.belief) ? println(io, "    .upTx:     ", cliq.data.messages.upTx.belief |> keys) : nothing
