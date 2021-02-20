@@ -177,7 +177,7 @@ function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique,
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
     # NOTE -- double up on directs to allow inflation to take proper affect, see #1051
-    dummy, d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 2, dbg, logger, true)
+    dummy, d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 3, dbg, logger, true)
     
     if length(cliqdata.msgskipIDs) > 0
       dummy, dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)

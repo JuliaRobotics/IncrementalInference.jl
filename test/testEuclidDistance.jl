@@ -76,12 +76,13 @@ end
 
 N=100
 ## Test zero with y-axis
-points = [[0.0;100.0],[100.0;0.0]]
+points = [[100.0;0.0],[0.0;100.0]]
 fg = IIF.generateCanonicalFG_EuclidDistance(points)
-# solveTree!(fg)
+getSolverParams(fg).inflation=10.0
+
+tree, _, = solveTree!(fg);
 
 # fg = initfg()
-# # getSolverParams(fg).inflation=250.0
 
 # addVariable!(fg, :x0, ContinuousEuclid{2}, N=N)
 # addFactor!(fg, [:x0], Prior(MvNormal([100.0;0], [1;1.0])), graphinit=false)
@@ -92,6 +93,10 @@ fg = IIF.generateCanonicalFG_EuclidDistance(points)
 # addVariable!(fg, :l1, ContinuousEuclid{2}, N=N)
 # addFactor!(fg, [:x0;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
 # addFactor!(fg, [:x1;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
+
+##
+
+plotKDE(fg, :l1)
 
 ## 
 
@@ -111,23 +116,29 @@ tree = buildTreeReset!(fg, eo)
 #solve the clique in isolation
 hist = solveCliq!(fg, tree, :x2; recordcliq=true)
 printCliqHistorySummary(hist)
+sfg = hist[end].csmc.cliqSubFg
+
+
+##
 
 # the belief that would have been sent by this clique:
-belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
+# belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
 # L1 = getCliqueData(getClique(tree, :x1)).messages.upTx.belief[:l1] |> manikde!
 
-fnc_, csmc_ = repeatCSMStep!(hist, 5);
-sfg = csmc_.cliqSubFg
+# fnc_, csmc_ = repeatCSMStep!(hist, 5);
+# sfg = csmc_.cliqSubFg
+
+##
 
 plotKDE(sfg, :l1)
 
 ##
 
-IIF._getCCW(sfg, :x2l1f1, :l1)
+# IIF._getCCW(sfg, :x2l1f1).inflation = 5.0
 
-pts = approxConv(sfg, :x2l1f1, :l1 , skipSolve=false)
+# pts = approxConv(sfg, :x2l1f1, :l1, skipSolve=true)
 initManual!(sfg, :l1, pts)
-pts = approxConv(sfg, :x1l1f1, :l1)
+pts = approxConv(sfg, :x2l1f1, :l1)
 
 plotKDE(manikde!(pts, ContinuousEuclid{2}))
 
