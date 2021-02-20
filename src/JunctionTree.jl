@@ -119,6 +119,46 @@ end
 Base.show(io::IO, ::MIME"text/plain", cliq::TreeClique) = show(io, cliq)
 
 
+function DFG.ls(tr::AbstractBayesTree)
+  ids = keys(tr.cliques) |> collect |> sort
+  ret = Vector{Pair{Int, Vector{Symbol}}}(undef, length(ids))
+  for (idx,id) in enumerate(ids)
+    ret[idx] = (id=>getFrontals(tr.cliques[id]))
+  end
+  ret
+end
+
+function DFG.ls(tr::AbstractBayesTree, id::Union{Symbol, Int, CliqueId})
+  cliq = getClique(tr, id)
+  prnt = getParent(tr, cliq)
+  chld = getChildren(tr, cliq)
+
+  # build children list
+  chll = Vector{Pair{Int, Vector{Symbol}}}()
+  cp = (x->x.id.value).(chld) |> sortperm
+  for ch in chld[cp]
+    push!(chll, ch.id.value=>getFrontals(ch))
+  end
+
+  # NOTE prnt is Vector{TreeClique}
+  prll = Vector{Pair{Int, Vector{Symbol}}}()
+  for pr in prnt
+    push!(prll, pr.id.value=>getFrontals(pr))
+  end
+
+  # experimental, return a NamedTuple for tree around specific cliques
+  return (;parent=prll, children=chll)
+end
+
+function Base.show(io::IO, ntl::NamedTuple{(:parent, :children), Tuple{Vector{Pair{Int64, Vector{Symbol}}}, Vector{Pair{Int64, Vector{Symbol}}}}})
+  printstyled(io, "IIF.show(::NamedTuple{..})\n", color=:blue)
+  println(io, " (parent   = ", ntl.parent)
+  println(io, "  children = ", ntl.children, ")")
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", ntl::NamedTuple{(:parent, :children), Tuple{Vector{Pair{Int64, Vector{Symbol}}}, Vector{Pair{Int64, Vector{Symbol}}}}}) = show(io, ntl)
+
 """
     $(SIGNATURES)
 """
