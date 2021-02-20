@@ -93,6 +93,72 @@ getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 getClique(tree::MetaBayesTree, cId::CliqueId) = MetaGraphs.get_prop(tree.bt, tree.bt[:cliqId][cId], :clique)
 getClique(tree::MetaBayesTree, cIndex::Int) = MetaGraphs.get_prop(tree.bt, cIndex, :clique)
 
+Base.getindex(tr::AbstractBayesTree, afrontal::Union{Symbol,Int,CliqueId}) = getClique(tr, afrontal)
+
+function Base.show(io::IO, cliq::TreeClique)
+  printstyled(io, "TreeClique (id=$(cliq.id))\n", color=:blue)
+  println(io, "  frontals:    ", getFrontals(cliq))
+  println(io, "  separator:   ", getCliqSeparatorVarIds(cliq))
+  println(io, "  status:      ", cliq.data.status)
+  println(io, "  allmarginld: ", cliq.data.allmarginalized)
+  println(io, "  potentials:  ", cliq.data.potentials)
+  printstyled(io, bold=true, " messages\n")
+  cliq.data.messages.upTx isa Nothing ? nothing : println(io, "    .upTx:     ", cliq.data.messages.upTx.belief |> keys)
+  if 0 != length(cliq.data.messages.upRx)
+    print(io, "    .upRx:     ")
+    for (id, msg) in cliq.data.messages.upRx
+      print(io, id, "=>", msg.belief |> keys)
+    end
+    println(io,)
+  end
+  cliq.data.messages.downTx isa Nothing ? nothing : println(io, "    .downTx:   ", cliq.data.messages.downTx.belief |> keys)
+  cliq.data.messages.downRx isa Nothing ? nothing : println(io, "    .downRx:   ", cliq.data.messages.downRx.belief |> keys)
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", cliq::TreeClique) = show(io, cliq)
+
+
+function DFG.ls(tr::AbstractBayesTree)
+  ids = keys(tr.cliques) |> collect |> sort
+  ret = Vector{Pair{Int, Vector{Symbol}}}(undef, length(ids))
+  for (idx,id) in enumerate(ids)
+    ret[idx] = (id=>getFrontals(tr.cliques[id]))
+  end
+  ret
+end
+
+function DFG.ls(tr::AbstractBayesTree, id::Union{Symbol, Int, CliqueId})
+  cliq = getClique(tr, id)
+  prnt = getParent(tr, cliq)
+  chld = getChildren(tr, cliq)
+
+  # build children list
+  chll = Vector{Pair{Int, Vector{Symbol}}}()
+  cp = (x->x.id.value).(chld) |> sortperm
+  for ch in chld[cp]
+    push!(chll, ch.id.value=>getFrontals(ch))
+  end
+
+  # NOTE prnt is Vector{TreeClique}
+  prll = Vector{Pair{Int, Vector{Symbol}}}()
+  for pr in prnt
+    push!(prll, pr.id.value=>getFrontals(pr))
+  end
+
+  # experimental, return a NamedTuple for tree around specific cliques
+  return (;parent=prll, children=chll)
+end
+
+function Base.show(io::IO, ntl::NamedTuple{(:parent, :children), Tuple{Vector{Pair{Int64, Vector{Symbol}}}, Vector{Pair{Int64, Vector{Symbol}}}}})
+  printstyled(io, "IIF.show(::NamedTuple{..}) for Bayes tree\n", color=:blue)
+  println(io, " (parent   = ", ntl.parent)
+  println(io, "  children = ", ntl.children, ")")
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", ntl::NamedTuple{(:parent, :children), Tuple{Vector{Pair{Int64, Vector{Symbol}}}, Vector{Pair{Int64, Vector{Symbol}}}}}) = show(io, ntl)
+
 """
     $(SIGNATURES)
 """

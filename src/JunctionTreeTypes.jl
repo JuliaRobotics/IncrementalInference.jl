@@ -67,6 +67,18 @@ function getMessageChannels(tree::MetaBayesTree)
 
 end
 
+function Base.show(io::IO, mbt::MetaBayesTree)
+  printstyled(io, "MetaBayesTree\n", color=:blue)
+  println(io, "  Nr cliques:  ", length(mbt.cliques))
+
+  # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
+
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mbt::MetaBayesTree) = show(io, mbt)
+
+
 """
     $TYPEDEF
 
