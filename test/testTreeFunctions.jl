@@ -54,6 +54,8 @@ eo = [:l2; :l1; :x1; :x2; :x3]
 
 tree = buildTreeReset!(fg, eo)
 
+show(tree)
+
 show(tree[:x3])
 show(tree[:x1])
 show(tree[:l2])

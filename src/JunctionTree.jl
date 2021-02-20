@@ -103,7 +103,7 @@ function Base.show(io::IO, cliq::TreeClique)
   println(io, "  allmarginld: ", cliq.data.allmarginalized)
   println(io, "  potentials:  ", cliq.data.potentials)
   printstyled(io, bold=true, " messages\n")
-  0 < length(cliq.data.messages.upTx.belief) ? println(io, "    .upTx:     ", cliq.data.messages.upTx.belief |> keys) : nothing
+  cliq.data.messages.upTx isa Nothing ? nothing : println(io, "    .upTx:     ", cliq.data.messages.upTx.belief |> keys)
   if 0 != length(cliq.data.messages.upRx)
     print(io, "    .upRx:     ")
     for (id, msg) in cliq.data.messages.upRx
@@ -151,7 +151,7 @@ function DFG.ls(tr::AbstractBayesTree, id::Union{Symbol, Int, CliqueId})
 end
 
 function Base.show(io::IO, ntl::NamedTuple{(:parent, :children), Tuple{Vector{Pair{Int64, Vector{Symbol}}}, Vector{Pair{Int64, Vector{Symbol}}}}})
-  printstyled(io, "IIF.show(::NamedTuple{..})\n", color=:blue)
+  printstyled(io, "IIF.show(::NamedTuple{..}) for Bayes tree\n", color=:blue)
   println(io, " (parent   = ", ntl.parent)
   println(io, "  children = ", ntl.children, ")")
   nothing
