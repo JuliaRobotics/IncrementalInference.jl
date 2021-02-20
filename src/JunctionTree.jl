@@ -93,6 +93,32 @@ getClique(bt::AbstractBayesTree, frt::Symbol) = getClique(bt, bt.frontals[frt])
 getClique(tree::MetaBayesTree, cId::CliqueId) = MetaGraphs.get_prop(tree.bt, tree.bt[:cliqId][cId], :clique)
 getClique(tree::MetaBayesTree, cIndex::Int) = MetaGraphs.get_prop(tree.bt, cIndex, :clique)
 
+Base.getindex(tr::AbstractBayesTree, afrontal::Union{Symbol,Int,CliqueId}) = getClique(tr, afrontal)
+
+function Base.show(io::IO, cliq::TreeClique)
+  printstyled(io, "TreeClique (id=$(cliq.id))\n", color=:blue)
+  println(io, "  frontals:    ", getFrontals(cliq))
+  println(io, "  separator:   ", getCliqSeparatorVarIds(cliq))
+  println(io, "  status:      ", cliq.data.status)
+  println(io, "  allmarginal: ", cliq.data.allmarginalized)
+  println(io, "  potentials:  ", cliq.data.potentials)
+  printstyled(io, bold=true, " messages\n")
+  0 < length(cliq.data.messages.upTx.belief) ? println(io, "    .upTx:     ", cliq.data.messages.upTx.belief |> keys) : nothing
+  if 0 != length(cliq.data.messages.upRx)
+    print(io, "    .upRx:     ")
+    for (id, msg) in cliq.data.messages.upRx
+      print(io, id, "=>", msg.belief |> keys)
+    end
+    println(io,)
+  end
+  cliq.data.messages.downTx isa Nothing ? nothing : println(io, "    .downTx:   ", cliq.data.messages.downTx.belief |> keys)
+  cliq.data.messages.downRx isa Nothing ? nothing : println(io, "    .downRx:   ", cliq.data.messages.downRx.belief |> keys)
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", cliq::TreeClique) = show(io, cliq)
+
+
 """
     $(SIGNATURES)
 """
