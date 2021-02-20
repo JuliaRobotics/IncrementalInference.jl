@@ -75,22 +75,27 @@ end
 ##
 
 N=100
-fg = initfg()
-# getSolverParams(fg).inflation=250.0
+## Test zero with y-axis
+points = [[0.0;100.0],[100.0;0.0]]
+fg = IIF.generateCanonicalFG_EuclidDistance(points)
+# solveTree!(fg)
 
-addVariable!(fg, :x0, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x0], Prior(MvNormal([100.0;0], [1;1.0])), graphinit=false)
+# fg = initfg()
+# # getSolverParams(fg).inflation=250.0
 
-addVariable!(fg, :x1, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x1], Prior(MvNormal([0.0;100.0], [1;1.0])), graphinit=false)
+# addVariable!(fg, :x0, ContinuousEuclid{2}, N=N)
+# addFactor!(fg, [:x0], Prior(MvNormal([100.0;0], [1;1.0])), graphinit=false)
 
-addVariable!(fg, :l1, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x0;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
-addFactor!(fg, [:x1;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
+# addVariable!(fg, :x1, ContinuousEuclid{2}, N=N)
+# addFactor!(fg, [:x1], Prior(MvNormal([0.0;100.0], [1;1.0])), graphinit=false)
+
+# addVariable!(fg, :l1, ContinuousEuclid{2}, N=N)
+# addFactor!(fg, [:x0;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
+# addFactor!(fg, [:x1;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
 
 ## 
 
-eo = [:x1; :x0; :l1]
+eo = [:x2; :x1; :l1]
 
 tree = buildTreeReset!(fg, eo)
 
@@ -104,42 +109,25 @@ tree = buildTreeReset!(fg, eo)
 
 # @error "continue test dev with #1168"
 #solve the clique in isolation
-hist = solveCliq!(fg, tree, :x1; recordcliq=true)
+hist = solveCliq!(fg, tree, :x2; recordcliq=true)
 printCliqHistorySummary(hist)
-
 
 # the belief that would have been sent by this clique:
 belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
-L1 = belief.belief[:l1] |> manikde!
-
-## debug plotting
-
-using RoMEPlotting
-Gadfly.set_default_plot_size(25cm,20cm)
-
-using Logging
-
-##
-
-plotKDE(L1)
-
-## still need to make sure numerical results are fine..., first must resolve #1168
+# L1 = getCliqueData(getClique(tree, :x1)).messages.upTx.belief[:l1] |> manikde!
 
 fnc_, csmc_ = repeatCSMStep!(hist, 5);
-
 sfg = csmc_.cliqSubFg
+
 plotKDE(sfg, :l1)
 
 ##
 
+IIF._getCCW(sfg, :x2l1f1, :l1)
 
-IIF._getCCW(sfg, :x1l1f1).inflation = 1000
-pts = approxConv(sfg, :x1l1f1, :l1 , skipSolve=true)
+pts = approxConv(sfg, :x2l1f1, :l1 , skipSolve=false)
 initManual!(sfg, :l1, pts)
 pts = approxConv(sfg, :x1l1f1, :l1)
-
-# pts = randn(2,100)
-# pts[2,:] .+= 200
 
 plotKDE(manikde!(pts, ContinuousEuclid{2}))
 
@@ -241,45 +229,5 @@ end
 # Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
 # Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
 
-#=
+
 ## what would clique solution produce as up message
-
-# solveTree!(fg)
-
-# @error "continue test dev with #1168"
-#solve the clique in isolation
-hist = solveCliq!(fg, tree, :x1; recordcliq=true)
-printCliqHistorySummary(hist)
-
-
-# the belief that would have been sent by this clique:
-belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
-L1 = belief.belief[:l1] |> manikde!
-
-##
-
-plotKDE(L1)
-
-## still need to make sure numerical results are fine..., first must resolve #1168
-
-fnc_, csmc_ = repeatCSMStep!(hist, 5);
-
-sfg = csmc_.cliqSubFg
-plotKDE(sfg, :l1)
-
-##
-
-
-IIF._getCCW(sfg, :x1l1f1).inflation = 1000
-IIF._getCCW(sfg, :x1l1f1).inflation = 3
-
-
-pts = approxConv(fg, :x1l1f1, :l1 , skipSolve=false)
-initManual!(sfg, :l1, pts)
-pts = approxConv(sfg, :x1l1f1, :l1)
-
-# pts = randn(2,100)
-# pts[2,:] .+= 200
-
-plotKDE(manikde!(pts, ContinuousEuclid{2}))
-=#
