@@ -254,7 +254,8 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   sfidx::Int,
                                   maxlen::Int,
                                   maniAddOps::Tuple;
-                                  spreadNH::Real=3.0,
+                                  spreadNH::Real=5.0,
+                                  inflateCycles::Int=3,
                                   skipSolve::Bool=false ) where {N_,F<:AbstractRelative,S,T}
   #
   count = 0
@@ -264,12 +265,10 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
   # setup the partial or complete decision variable dimensions for this ccwl object
   # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
   _setCCWDecisionDimsConv!(ccwl)
-
   
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
     count += 1
-
     
     # now do hypothesis specific
     if sfidx in certainidx && hypoidx != 0 || hypoidx in certainidx || hypoidx == sfidx
@@ -280,10 +279,14 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
-      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist, cpt_.p)
 
-      # no calculate new proposal belief on kernels `allelements[count]`
-      skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
+      # consider duplicate convolution approximations for inflation off-zero
+      # ultimately set by dfg.params.inflateCycles
+      for iflc in 1:inflateCycles
+        addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist, cpt_.p)
+        # no calculate new proposal belief on kernels `allelements[count]`
+        skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
+      end
     elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
@@ -334,6 +337,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 solveKey::Symbol=:default,
                                 N::Int=size(measurement[1],2),
                                 spreadNH::Real=3.0,
+                                inflateCycles::Int=3,
                                 dbg::Bool=false,
                                 skipSolve::Bool=false  ) where {T <: AbstractFactor}
   #
@@ -354,12 +358,14 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   
   # assemble how hypotheses should be computed
+  # TODO convert to HypothesisRecipeElements result
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
   
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH, skipSolve=skipSolve)
+  # FIXME consider repeat solve as workaround for inflation off-zero 
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH, inflateCycles=inflateCycles, skipSolve=skipSolve)
 
   return ccwl.params[ccwl.varidx]
 end
@@ -377,6 +383,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
+                                inflateCycles::Int=3,
                                 skipSolve::Bool=false ) where {T <: AbstractFactor}
   #
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
@@ -442,6 +449,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
+                                inflateCycles::Int=3,
                                 skipSolve::Bool=false ) where {N_,F<:FunctorInferenceType,S,T}
   #
   evalPotentialSpecific(Xi,
@@ -454,6 +462,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                         N=N,
                         dbg=dbg,
                         spreadNH=spreadNH,
+                        inflateCycles=inflateCycles,
                         skipSolve=skipSolve )
 end
 
@@ -467,6 +476,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 N::Int=size(measurement[1],2),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
+                                inflateCycles::Int=3,
                                 skipSolve::Bool=false ) where {F <: FunctorInferenceType}
   #
   evalPotentialSpecific(Xi,
@@ -479,6 +489,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                         N=N,
                         dbg=dbg,
                         spreadNH=spreadNH,
+                        inflateCycles=inflateCycles,
                         skipSolve=skipSolve )
 end
 
@@ -495,6 +506,7 @@ function evalFactor(dfg::AbstractDFG,
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
                     N::Int=size(measurement[1],2),
+                    inflateCycles::Int=getSolverParams(dfg).inflateCycles,
                     dbg::Bool=false,
                     skipSolve::Bool=false  )
   #
@@ -511,7 +523,8 @@ function evalFactor(dfg::AbstractDFG,
   end
 
   return evalPotentialSpecific( Xi, ccw, solvefor, measurement, needFreshMeasurements=needFreshMeasurements,
-                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, skipSolve=skipSolve )
+                                solveKey=solveKey, N=N, dbg=dbg, spreadNH=getSolverParams(dfg).spreadNH, 
+                                inflateCycles=inflateCycles, skipSolve=skipSolve )
   #
 end
 

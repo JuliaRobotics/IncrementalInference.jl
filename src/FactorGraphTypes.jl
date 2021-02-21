@@ -59,6 +59,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   algorithms::Vector{Symbol} # list of algorithms to run [:default] is mmisam
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
   inflation::Float64 # experimental, how much to disperse particles before convolution solves, #1051
+  inflateCycles::Int
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
@@ -92,6 +93,7 @@ SolverParams(;dimID::Int=0,
               algorithms::Vector{Symbol}=[:default],
               spreadNH::Real=3.0,
               inflation::Real=5.0,
+              inflateCycles::Int=3,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
@@ -122,6 +124,7 @@ SolverParams(;dimID::Int=0,
                               algorithms,
                               spreadNH,
                               inflation,
+                              inflateCycles,
                               maxincidence,
                               alwaysFreshMeasurements,
                               devParams )
