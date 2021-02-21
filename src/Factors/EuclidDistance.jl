@@ -21,7 +21,7 @@ getManifolds(::InstanceType{EuclidDistance{<:SamplableBelief}}) = (:Euclid,)
 getDomain(::InstanceType{EuclidDistance{<:SamplableBelief}}) = ContinuousEuclid{1}
 
 
-getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
+getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),1,N), )
 
 
 # new and simplified interface for both nonparametric and parametric

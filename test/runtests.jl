@@ -3,21 +3,9 @@ using Test
 # using Compat
 # using IncrementalInference
 
-include("testApproxConv.jl")
-
-include("testHasPriors913.jl")
-
-include("testInitVariableOrder.jl")
-
-include("testTreeMessageUtils.jl")
-
-include("testExpXstroke.jl")
-
-include("testBasicRecycling.jl")
-
 include("TestModuleFunctions.jl")
 
-include("testStateMachine.jl")
+include("testApproxConv.jl")
 
 include("testCompareVariablesFactors.jl")
 
@@ -29,16 +17,18 @@ include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
 
-include("testBayesTreeiSAM2Example.jl")
-
-include("testSpecialSampler.jl")
-
 include("testSaveLoadDFG.jl")
 
 include("testJunctionTreeConstruction.jl")
 
+include("testBayesTreeiSAM2Example.jl")
+
+include("testTreeFunctions.jl")
+
 #FIXME fails on MetaBayesTree
 include("testTreeSaveLoad.jl")
+
+include("testSpecialSampler.jl")
 
 include("saveconvertertypes.jl")
 
@@ -46,14 +36,13 @@ include("testgraphpackingconverters.jl")
 
 include("testNLsolve.jl")
 
-# Randomized roots no longer supported, see PR #1075
-# include("testNumericRootGenericRandomized.jl")
-
 include("testCommonConvWrapper.jl")
 
 include("testBasicForwardConvolve.jl")
 
 include("testFactorMetadata.jl")
+
+include("testStateMachine.jl")
 
 include("testBasicCSM.jl")
 
@@ -67,6 +56,16 @@ include("testDefaultDeconv.jl")
 
 include("testJointEnforcement.jl")
 
+include("testHasPriors913.jl")
+
+include("testInitVariableOrder.jl")
+
+include("testTreeMessageUtils.jl")
+
+include("testExpXstroke.jl")
+
+include("testBasicRecycling.jl")
+
 include("testlocalconstraintexamples.jl")
 
 include("testBasicTreeInit.jl")
@@ -78,6 +77,10 @@ include("testSolveSetPPE.jl")
 include("testEuclidDistance.jl")
 
 include("priorusetest.jl")
+
+include("testCSMMonitor.jl")
+
+include("testSkipUpDown.jl")
 
 include("testVariousNSolveSize.jl")
 
@@ -124,11 +127,7 @@ include("testMultiprocess.jl")
 
 include("testDeadReckoningTether.jl")
 
-include("testCSMMonitor.jl")
 
-include("testSkipUpDown.jl")
-
-include("testTreeFunctions.jl")
 
 
 #

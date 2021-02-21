@@ -69,45 +69,63 @@ pts .^= 2
 end
 
 
-
 @testset "test upward clique message range density behavior" begin
+
+## Test zero with on x and y-axis
+
+N=100
+points = [[100.0;0.0],[0.0;100.0]]
+fg = IIF.generateCanonicalFG_EuclidDistance(points)
+
+eo = [:x2; :x1; :l1]
+
+##
+
+fg_ = deepcopy(fg)
+tree = buildTreeReset!(fg_, eo)
+
+hist = solveCliq!(fg_, tree, :x2; recordcliq=true);
+
+sfg = hist[end].csmc.cliqSubFg
+L1_ = getBelief(sfg, :l1) |> getPoints
+
+
+# check for for ring density
+
+@test 0.2*N < sum( 0 .< L1_[1,:] .< 130)
+@test 0.2*N < sum( -130 .< L1_[1,:] .< 0)
+@test 0.2*N < sum( 100 .< L1_[2,:] .< 230)
+@test 0.2*N < sum( -230 .< L1_[2,:] .< 100)
+
+# and must be in a ring
+
+L1_[2,:] .-= 100
+@test 0.95*N < sum( 90 .< sqrt.(sum(L1_.^2, dims=1)) .< 110)
 
 ##
 
 N=100
-fg = initfg()
-# getSolverParams(fg).inflation=250.0
+points = [[100.0;0.0],[0.0;100.0]]
+fg = IIF.generateCanonicalFG_EuclidDistance(points)
 
-addVariable!(fg, :x0, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x0], Prior(MvNormal([100.0;0], [1;1.0])), graphinit=false)
 
-addVariable!(fg, :x1, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x1], Prior(MvNormal([0.0;100.0], [1;1.0])), graphinit=false)
+## check regular full solution produces two modes
 
-addVariable!(fg, :l1, ContinuousEuclid{2}, N=N)
-addFactor!(fg, [:x0;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
-addFactor!(fg, [:x1;:l1], EuclidDistance(Normal(100.0, 1.0)), graphinit=false)
 
-## 
+TP = false
+for i in 1:3
+  # global TP, N
+  tree, _, = solveTree!(fg, eliminationOrder=eo);
 
-eo = [:x1; :x0; :l1]
+  L1 = getBelief(fg, :l1) |> getPoints
+  # check that two modes exist
+  tp = (0.1*N < sum(-50 .< L1[1,:] .< 50)) && (0.1*N < sum(-50 .< L1[2,:] .< 50))
+  tp &= (0.1*N < sum(50 .< L1[1,:] .< 150)) && (0.1*N < sum(50 .< L1[2,:] .< 150))
+  TP |= tp
+end
 
-tree = buildTreeReset!(fg, eo)
-
-## what would clique solution produce as up message
-
-# solveTree!(fg)
-
-# @error "continue test dev with #1168"
-#solve the clique in isolation
-stuff = solveCliq!(fg, tree, :x1; recordcliq=true)
-
-# the belief that would have been sent by this clique:
-belief = IIF.getMessageBuffer(stuff[11].csmc.cliq).upTx
-
-## still need to make sure numerical results are fine..., first must resolve #1168
-
-# L1 = getCliqueData(getClique(tree, :x1)).messages.upTx.belief[:l1] |> manikde!
+# at least one of the 3 solves should produce the right result
+@test TP
 
 
 ##
@@ -208,45 +226,42 @@ end
 # Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
 # Plots.scatter(x[:,1:2:end],y[:,1:2:end], legend=nothing)
 
-#=
+
 ## what would clique solution produce as up message
 
-# solveTree!(fg)
+
+##
+
+# plotKDE(fg, :l1)
+
+##
+
+# pts = approxConv(fg, :x2l1f1, :l1)
+# plotKDE(manikde!(pts, ContinuousEuclid{2}))
+# plotLocalProduct(fg, :l1, levels=3)
+
+
+## what would clique solution produce as up message
+
 
 # @error "continue test dev with #1168"
 #solve the clique in isolation
-hist = solveCliq!(fg, tree, :x1; recordcliq=true)
-printCliqHistorySummary(hist)
-
+# hist = solveCliq!(fg, tree, :x2; recordcliq=true);
+# printCliqHistorySummary(hist)
+# sfg = hist[end].csmc.cliqSubFg
 
 # the belief that would have been sent by this clique:
-belief = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx
-L1 = belief.belief[:l1] |> manikde!
+# L1 = IIF.getMessageBuffer(hist[11].csmc.cliq).upTx.belief[:l1] |> manikde!
+
+# fnc_, csmc_ = repeatCSMStep!(hist, 5);
+# sfg = csmc_.cliqSubFg
 
 ##
 
-plotKDE(L1)
-
-## still need to make sure numerical results are fine..., first must resolve #1168
-
-fnc_, csmc_ = repeatCSMStep!(hist, 5);
-
-sfg = csmc_.cliqSubFg
-plotKDE(sfg, :l1)
+# plotKDE(sfg, :l1)
 
 ##
 
-
-IIF._getCCW(sfg, :x1l1f1).inflation = 1000
-IIF._getCCW(sfg, :x1l1f1).inflation = 3
-
-
-pts = approxConv(fg, :x1l1f1, :l1 , skipSolve=false)
-initManual!(sfg, :l1, pts)
-pts = approxConv(sfg, :x1l1f1, :l1)
-
-# pts = randn(2,100)
-# pts[2,:] .+= 200
-
-plotKDE(manikde!(pts, ContinuousEuclid{2}))
-=#
+# initManual!(sfg, :l1, pts)
+# pts = approxConv(sfg, :x2l1f1, :l1)
+# plotKDE(manikde!(pts, ContinuousEuclid{2}))
