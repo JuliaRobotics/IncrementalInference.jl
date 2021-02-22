@@ -430,10 +430,11 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
     return waitForDown_StateMachine
   end
 
+  # always put up belief message in upTx, only used for debugging isolated cliques
+  getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
   #propagate belief
   for e in getEdgesParent(csmc.tree, csmc.cliq)
     logCSM(csmc, "CSM-2e $(csmc.cliq.id): put! on edge $(e)")
-    getMessageBuffer(csmc.cliq).upTx = deepcopy(beliefMsg)
     putBeliefMessageUp!(csmc.tree, e, beliefMsg)
   end
 

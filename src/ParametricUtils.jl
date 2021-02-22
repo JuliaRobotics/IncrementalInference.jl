@@ -173,7 +173,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
                                     useCalcFactor::Bool=true, #TODO dev param will be removed
                                     solvekey::Symbol=:parametric,
                                     autodiff = :forward,
-                                    algorithm=Optim.Optim.BFGS,
+                                    algorithm=Optim.BFGS,
                                     algorithmkwargs=(), # add manifold to overwrite computed one
                                     options = Optim.Options(allow_f_increases=true,
                                                             time_limit = 100,

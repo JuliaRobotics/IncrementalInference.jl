@@ -166,6 +166,9 @@ const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity,
 ## Deprecate code below before v0.21
 ##==============================================================================
 
+# For 1D example,
+export Ranged, PackedRanged
+
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)
 
