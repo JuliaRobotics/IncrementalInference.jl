@@ -704,6 +704,9 @@ function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
     end
   end
 
+  # Sore the down message for debugging, will be stored even if no children present
+  getMessageBuffer(csmc.cliq).downTx = beliefMsg
+
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
     logCSM(csmc, "CSM-4d $(csmc.cliq.id): put! on edge $(e)")
