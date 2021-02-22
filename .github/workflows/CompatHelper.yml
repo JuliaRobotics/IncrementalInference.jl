@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '20 00 * * *'
   issues:
-    types: [opened, reopened]
+    types: [opened]
 
 jobs:
   CompatHelper:

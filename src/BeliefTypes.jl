@@ -18,7 +18,7 @@ struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
 
-const SamplableBelief = Union{Distributions.Distribution, KernelDensityEstimate.BallTreeDensity, AliasingScalarSampler, FluxModelsDistribution}
+const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution}
 
 abstract type PackedSamplableBelief end
 

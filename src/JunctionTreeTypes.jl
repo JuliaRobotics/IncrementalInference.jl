@@ -67,6 +67,18 @@ function getMessageChannels(tree::MetaBayesTree)
 
 end
 
+function Base.show(io::IO, mbt::MetaBayesTree)
+  printstyled(io, "MetaBayesTree\n", color=:blue)
+  println(io, "  Nr cliques:  ", length(mbt.cliques))
+
+  # TODO ad dmore stats: max depth, widest point, longest chain, max clique size, average nr children
+
+  nothing
+end
+
+Base.show(io::IO, ::MIME"text/plain", mbt::MetaBayesTree) = show(io, mbt)
+
+
 """
     $TYPEDEF
 
@@ -101,7 +113,7 @@ end
 const CSMHistoryTuple =  NamedTuple{(:timestamp, :id, :f, :csmc), Tuple{DateTime, Int, Function, CliqStateMachineContainer}}
 const CSMHistory = Vector{CSMHistoryTuple}
 
-Base.show(io::IO, o::CSMHistoryTuple) = print("$(o[1]), $(o[2]), $(o[3])")
+Base.show(io::IO, o::CSMHistoryTuple) = print(io, "$(o[1]), $(o[2]), $(o[3])")
 
 
 function CliqStateMachineContainer( dfg::G,
