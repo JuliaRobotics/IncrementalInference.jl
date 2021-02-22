@@ -374,12 +374,9 @@ export *,
   getDimension,
   setVariableRefence!,
   reshapeVec2Mat,
-  accumulateFactorChain,
+  accumulateFactorChain
 
-  # For 1D example,
-  # TODO rename to L2 distance
-  Ranged,
-  PackedRanged
+
 
 
 export  buildCliqSubgraph_StateMachine

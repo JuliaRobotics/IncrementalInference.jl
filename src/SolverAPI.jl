@@ -77,7 +77,7 @@ end
 
 function tryCliqStateMachineSolve!( dfg::G,
                                     treel::AbstractBayesTree,
-                                    cliqKey::Int,
+                                    cliqKey::Union{Int, CliqueId},
                                     timeout::Union{Nothing, <:Real}=nothing;
                                     oldtree::AbstractBayesTree=BayesTree(),
                                     verbose::Bool=false,
@@ -418,12 +418,18 @@ Perform inference over one clique in the Bayes tree according to `opt::SolverPar
 Example
 ```julia
 tree = buildTreeReset!(fg)
-smt, hist = solveCliq!(fg, tree, :x1 [,cliqHistories=hist] )
+hist = solveCliq!(fg, tree, :x1, recordcliq = true )
+
+# print CSM steps
+printCliqHistorySummary(hist)
 ```
+
+DevNotes
+- on `sandboxStateMachineStep`, see FSM #42
 
 Related
 
-[`solveTree!`](@ref), [`buildTreeReset!`](@ref)
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
 """
 function solveCliq!(dfgl::AbstractDFG,
                     tree::AbstractBayesTree,
@@ -443,10 +449,17 @@ function solveCliq!(dfgl::AbstractDFG,
 
   # if !isTreeSolved(treel, skipinitialized=true)
   cliq = getClique(tree, cliqid)
+
+  # modyfy local copy of the tree
+  tree_ = deepcopy(tree)
+  # isolate clique
+  deleteClique!(tree_, getParent(tree_, cliq)[1])
+  foreach(c->deleteClique!(tree_,c), getChildren(tree_, cliq))
+
   cliqtask = if async
-    @async tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+    @async tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
   else
-    tryCliqStateMachineSolve!(dfgl, tree, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+    tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
   end
   # end # if
 
