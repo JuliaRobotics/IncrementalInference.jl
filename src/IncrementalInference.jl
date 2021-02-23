@@ -34,6 +34,8 @@ using
   Combinatorics,
   UUIDs
 
+using ManifoldsBase
+
 # for BayesTree
 using MetaGraphs
 
