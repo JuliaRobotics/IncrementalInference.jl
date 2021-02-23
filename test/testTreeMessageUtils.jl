@@ -39,12 +39,7 @@ cliq_depths = map(v->v.cliqId[]=>v.depth, x4stack)
 c3 = getClique(tree, IIF.CliqueId(3))
 c7 = getClique(tree, IIF.CliqueId(7))
 
-#FIXME compare is not working, so just calling it for now
-# @test IIF.compare(IIF.getMessageUpRx(c3)[7], IIF.getMessageUpTx(c7))
-# @test IIF.compare(IIF.getMessageDownTx(c3), IIF.getMessageDownRx(c7))
-IIF.getMessageUpRx(c3) 
-IIF.getMessageUpTx(c7)
-IIF.getMessageDownTx(c3)
-IIF.getMessageDownRx(c7)
+@test IIF.compare(IIF.getMessageUpRx(c3)[7], IIF.getMessageUpTx(c7))
+@test IIF.compare(IIF.getMessageDownTx(c3), IIF.getMessageDownRx(c7))
 
 end
