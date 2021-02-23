@@ -60,6 +60,7 @@ mutable struct SolverParams <: DFG.AbstractParams
   spreadNH::Float64 # experimental, entropy spread adjustment used for both null hypo cases.
   inflation::Float64 # experimental, how much to disperse particles before convolution solves, #1051
   inflateCycles::Int
+  gibbsIters::Int
   maxincidence::Int # maximum incidence to a variable in an effort to enhance sparsity
   alwaysFreshMeasurements::Bool
   devParams::Dict{Symbol,String}
@@ -94,6 +95,7 @@ SolverParams(;dimID::Int=0,
               spreadNH::Real=3.0,
               inflation::Real=5.0,
               inflateCycles::Int=3,
+              gibbsIters::Int=3,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
@@ -125,6 +127,7 @@ SolverParams(;dimID::Int=0,
                               spreadNH,
                               inflation,
                               inflateCycles,
+                              gibbsIters,
                               maxincidence,
                               alwaysFreshMeasurements,
                               devParams )
