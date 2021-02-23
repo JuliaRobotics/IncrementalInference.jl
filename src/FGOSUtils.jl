@@ -562,7 +562,8 @@ const setVariablePosteriorEstimates! = setPPE!
 ## ============================================================================
 
 # FIXME, much consolidation required here
-convert(::Type{<:AMP.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
+convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
+convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar}) = AMP.Euclid
 
 
 
