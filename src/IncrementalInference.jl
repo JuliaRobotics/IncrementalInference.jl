@@ -276,6 +276,7 @@ export *,
   CliqStateMachineContainer,
 
   solveCliq!,
+  solveCliqUp!,
   fifoFreeze!,
 
   # temp const types TODO

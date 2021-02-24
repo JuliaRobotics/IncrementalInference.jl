@@ -469,3 +469,92 @@ function solveCliq!(dfgl::AbstractDFG,
   # cliqHistories
   return cliqtask
 end
+
+
+
+function _buildMessagesUp(fg, tree, cliqid)
+  cliq = getClique(tree, cliqid)
+  beliefMessages = Dict{Int, LikelihoodMessage}()
+  for child in getChildren(tree, cliq)
+    msg = prepCliqueMsgUpConsolidated(fg, child, UPSOLVED)
+    push!(beliefMessages, child.id[]=>msg)
+  end
+  return beliefMessages
+end
+
+"""
+    $SIGNATURES
+
+Perform inference in the upward direction over one clique in the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree = buildTreeReset!(fg)
+hist, upMessageOut = solveCliqUp!(fg, tree, 2)
+```
+
+Notes
+- Modifies fg with new values
+- Calculates up messages from fg if not provided
+
+DevNotes
+- Test isfixedlag
+- Test recordcliq
+
+Related
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
+"""
+function solveCliqUp!(fg::AbstractDFG,
+                      tree::AbstractBayesTree,
+                      cliqid::Union{CliqueId, Int, Symbol},
+                      beliefMessages::Dict{Int, LikelihoodMessage} = _buildMessagesUp(fg, tree, cliqid); # create belief message from fg if needed
+                      verbose::Bool=false,
+                      recordcliq::Bool=false)
+                      # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
+  #
+
+  # hist = Vector{CSMHistoryTuple}()
+  opt = DFG.getSolverParams(fg)
+
+  olddown = opt.downsolve 
+  opt.downsolve = false
+  #TODO test 
+  if opt.isfixedlag
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      fifoFreeze!(fg)
+  end
+
+  cliq = getClique(tree, cliqid)
+
+  # TODO improve, perhaps add to constructor, sommer add all channels here regardless.
+  initTreeMessageChannels!(tree)
+
+  @info "putting messages on channels from $(keys(beliefMessages))"
+  # put message on channels
+  for (id, msg) in pairs(beliefMessages)
+    child = getClique(tree, id)
+    for e in getEdgesParent(tree, child)
+      @async putBeliefMessageUp!(tree, e, msg)
+    end
+  end
+
+  #
+  @info "taking belief message that will be sent up"
+  takeUpTask = @async takeBeliefMessageUp!(tree, getEdgesParent(tree, cliq)[1]) 
+  
+  hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
+                                       verbose=verbose, drawtree=opt.drawtree,
+                                       limititers=opt.limititers, downsolve=false,
+                                       recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+  
+
+
+  #                                       
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  # assignTreeHistory!(tree, cliqHistories)
+  beliefMessageOut = fetch(takeUpTask)
+  #restore downsolve
+  opt.downsolve = olddown
+
+  return hist, beliefMessageOut
+end

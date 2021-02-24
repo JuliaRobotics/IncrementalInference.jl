@@ -3,6 +3,8 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testCliqSolveDbgUtils.jl")
+
 include("TestModuleFunctions.jl")
 
 include("testApproxConv.jl")
