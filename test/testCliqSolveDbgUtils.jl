@@ -1,7 +1,7 @@
 using IncrementalInference
 using Test
 
-@testset "Test SolveCliqueUp!" begin
+@testset "Test solveCliqueUp! and solveCliqDown!" begin
 ##
 N=8
 fg = generateCanonicalFG_lineStep(N; 
@@ -18,6 +18,13 @@ ensureAllInitialized!(fg)
 
 tree = buildTreeReset!(fg)
 
+# for debuggin use 
+# ENV["JULIA_DEBUG"] = :csm_2
+
+# solve clique up tests
 a,b = solveCliqUp!(fg, tree, 2)
+
+# solve clique down tests 
+a,b = solveCliqDown!(fg, tree, 2)
 ##
 end

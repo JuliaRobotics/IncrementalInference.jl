@@ -277,6 +277,7 @@ export *,
 
   solveCliq!,
   solveCliqUp!,
+  solveCliqDown!,
   fifoFreeze!,
 
   # temp const types TODO

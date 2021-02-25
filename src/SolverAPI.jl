@@ -472,6 +472,9 @@ end
 
 
 
+"""
+Internal function used for solveCliqUp!
+"""
 function _buildMessagesUp(fg, tree, cliqid)
   cliq = getClique(tree, cliqid)
   beliefMessages = Dict{Int, LikelihoodMessage}()
@@ -555,6 +558,80 @@ function solveCliqUp!(fg::AbstractDFG,
   beliefMessageOut = fetch(takeUpTask)
   #restore downsolve
   opt.downsolve = olddown
+
+  return hist, beliefMessageOut
+end
+
+"""
+Internal function used for solveCliqDown!
+"""
+function _buildMessageDown(fg, tree, cliqid)
+  cliq = getClique(tree, cliqid)
+  parent = getParent(tree, cliq)[1]
+  return getCliqDownMsgsAfterDownSolve(fg, parent; status=DOWNSOLVED)
+end
+
+function solveCliqDown!(fg::AbstractDFG,
+                        tree::AbstractBayesTree,
+                        cliqid::Union{CliqueId, Int, Symbol},
+                        beliefMessage::LikelihoodMessage = _buildMessageDown(fg, tree, cliqid); # create belief message from fg if needed
+                        verbose::Bool=false,
+                        recordcliq::Bool=false)
+  #
+
+  # hist = Vector{CSMHistoryTuple}()
+  opt = DFG.getSolverParams(fg)
+
+  upsolve = opt.upsolve 
+
+  opt.upsolve = false
+
+  cliq = getClique(tree, cliqid)
+
+  # TODO improve, perhaps add to constructor, sommer add all channels here regardless.
+  initTreeMessageChannels!(tree)
+
+  # # put dummy up messages from children
+  # for e in getEdgesChildren(tree, cliq)
+  #   @async putBeliefMessageUp!(tree, e, LikelihoodMessage())
+  # end
+
+  # put message on channels
+  @info "putting message on up channel from children"
+  for (id, msg) in _buildMessagesUp(fg, tree, cliqid)
+    child = getClique(tree, id)
+    for e in getEdgesParent(tree, child)
+      @async putBeliefMessageUp!(tree, e, msg)
+    end
+  end 
+
+  @info "putting message on down channel from parent, used by this clique"
+  for e in getEdgesParent(tree, cliq)
+      @async putBeliefMessageDown!(tree, e, beliefMessage)
+  end
+
+  @info "taking belief message that will be sent up"
+  @async takeBeliefMessageUp!(tree, getEdgesParent(tree, cliq)[1]) 
+
+  #
+  @info "taking belief message that will be sent down"
+  takeDownTask = @async begin
+    messages = Dict{Int,LikelihoodMessage}()
+    for e in getEdgesChildren(tree, cliq)
+      messages[e.dst] = takeBeliefMessageDown!(tree, e) 
+    end
+    messages
+  end
+
+  hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
+                                   verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers,
+                                   recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+
+  # fetch on down                                  
+  beliefMessageOut = fetch(takeDownTask)
+
+  #restore 
+  opt.upsolve = upsolve
 
   return hist, beliefMessageOut
 end

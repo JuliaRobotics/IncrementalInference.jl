@@ -574,7 +574,7 @@ during clique inference.
 
 DevNotes
 - TODO make `::Vector{Symbol}` version.
-
+- TODO function taking fcts::Vector{DFGFactor} is unused and replace by the tags version, perhaps we can remove it. 
 Related
 
 `addMsgFactors!`
@@ -595,23 +595,6 @@ function deleteMsgFactors!( subfg::AbstractDFG,
   deleteFactor!.(subfg, facs)
   return facs
 end
-
-#TODO JT can be removed, used as sanity check
-function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
-  cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
-  priorIds = Symbol[]
-  for v in cliqSeparatorVarIds
-    facs = getNeighbors(cliqSubFg, v)
-    for f in facs
-      isprior = length(getFactor(cliqSubFg, f)._variableOrderSymbols) == 1
-      isprior && push!(priorIds, f)
-      isprior && DFG.deleteFactor!(cliqSubFg, f)
-    end
-  end
-  return priorIds
-end
-
-
 
 ## =============================================================================
 ## Prepare Clique Up or Down Msgs
@@ -786,8 +769,6 @@ function stackCliqUpMsgsByVariable( tree::AbstractBayesTree,
 end
 
 
-#TODO check as it looks outdated nothing covered after this
-
 """
     $SIGNATURES
 
@@ -797,10 +778,10 @@ Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 - return LikelihoodMessage
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique; status::CliqStatus=NULL)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = LikelihoodMessage() 
+  container = LikelihoodMessage(status=status) 
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
@@ -810,45 +791,3 @@ function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # return the result
   return container
 end
-
-
-
-"""
-    $SIGNATURES
-
-Calculate a new down message from the parent.
-
-DevNotes
-- FIXME should be handled in CSM
-"""
-function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
-                                    logger=SimpleLogger(stdout) )
-  #
-  # check if any msgs should be multiplied together for the same variable
-  
-  # FIXME type instability
-  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
-  for (msgcliqid, msgs) in prntmsgs
-    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
-    for (msgsym, msg) in msgs.belief
-      # re-initialize with new type
-      varType = typeof(msg.variableType)
-      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
-      if !haskey(msgspervar, msgsym)
-        # there will be an entire list...
-        msgspervar[msgsym] = TreeBelief{varType}[]
-      end
-      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
-      push!(msgspervar[msgsym], msg)
-    end
-  end
-
-  return msgspervar
-end
-
-
-
-
-
-
-#

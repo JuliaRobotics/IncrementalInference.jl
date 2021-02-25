@@ -72,6 +72,40 @@ end
 
 sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer) = error("sendCurrentUpMsg_StateMachine is deprecated")
 
+
+"""
+    $SIGNATURES
+
+Calculate a new down message from the parent.
+
+DevNotes
+- FIXME should be handled in CSM
+"""
+function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
+                                    logger=SimpleLogger(stdout) )
+  #
+  # check if any msgs should be multiplied together for the same variable
+  @warn "convertLikelihoodToVector is deprecated"
+  # FIXME type instability
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
+  for (msgcliqid, msgs) in prntmsgs
+    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
+    for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.variableType)
+      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
+      if !haskey(msgspervar, msgsym)
+        # there will be an entire list...
+        msgspervar[msgsym] = TreeBelief{varType}[]
+      end
+      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
+      push!(msgspervar[msgsym], msg)
+    end
+  end
+
+  return msgspervar
+end
+
 """
 (cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
 
