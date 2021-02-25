@@ -10,7 +10,7 @@ using Random
 
 Random.seed!(42) # The answer to reproducable noise
 
-fg = LightDFG(solverParams=SolverParams(graphinit=false, gibbsIters=5))
+fg = LightDFG(solverParams=SolverParams(graphinit=false, gibbsIters=5, spreadNH=5.0))
 
 pRight = 0.99
 pWrong = 0.01
