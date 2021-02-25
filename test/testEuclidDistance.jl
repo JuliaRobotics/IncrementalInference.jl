@@ -84,7 +84,7 @@ eo = [:x2; :x1; :l1]
 fg_ = deepcopy(fg)
 tree = buildTreeReset!(fg_, eo)
 
-hist = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
+hist,upMessage = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
 
 sfg = hist[end].csmc.cliqSubFg
 L1_ = getBelief(sfg, :l1) |> getPoints
