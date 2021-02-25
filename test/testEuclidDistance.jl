@@ -84,7 +84,7 @@ eo = [:x2; :x1; :l1]
 fg_ = deepcopy(fg)
 tree = buildTreeReset!(fg_, eo)
 
-hist = solveCliq!(fg_, tree, :x2; recordcliq=true);
+hist = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
 
 sfg = hist[end].csmc.cliqSubFg
 L1_ = getBelief(sfg, :l1) |> getPoints
@@ -246,7 +246,7 @@ end
 
 # @error "continue test dev with #1168"
 #solve the clique in isolation
-# hist = solveCliq!(fg, tree, :x2; recordcliq=true);
+# hist = solveCliqUp!(fg, tree, :x2; recordcliq=true);
 # printCliqHistorySummary(hist)
 # sfg = hist[end].csmc.cliqSubFg
 

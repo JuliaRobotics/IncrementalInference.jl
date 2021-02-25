@@ -253,7 +253,7 @@ tree, smt, hist = solveTree!(fg [,tree])
 
 Related
 
-[`solveCliq!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
+[`solveCliqUp!`](@ref), [`solveCliqDown!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
 function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=BayesTree();
