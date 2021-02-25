@@ -144,7 +144,7 @@ end
 
 function compare( l1::LikelihoodMessage,
                   l2::LikelihoodMessage;
-                  skip::Vector{Symbol}=[] )
+                  skip::Vector{Symbol}=Symbol[] )
   #
   TP = true
   TP = TP && l1.status == l2.status
@@ -155,6 +155,7 @@ function compare( l1::LikelihoodMessage,
     TP = TP && haskey(l2.belief, k)
     TP = TP && compare(v, l2.belief[k])
   end
+  return TP
 end
 
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)

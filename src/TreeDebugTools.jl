@@ -518,7 +518,7 @@ DevNotes
 
 Related
 
-[`solveTree!`](@ref), [`solveCliq!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
+[`solveTree!`](@ref), [`solveCliqUp!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
 function repeatCSMStep!(hist::AbstractVector{<:CSMHistoryTuple}, 
                         step::Int; 

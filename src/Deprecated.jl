@@ -67,7 +67,106 @@ end
 ## Deprecate code below before v0.22
 ##==============================================================================
 
+@deprecate prepSetCliqueMsgDownConsolidated!(args...; kwargs...) prepCliqueMsgDown(args...; kwargs...) false
+@deprecate prepCliqueMsgUpConsolidated(args...; kwargs...) prepCliqueMsgUp(args...; kwargs...) false
 
+sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer) = error("sendCurrentUpMsg_StateMachine is deprecated")
+
+
+"""
+    $SIGNATURES
+
+Calculate a new down message from the parent.
+
+DevNotes
+- FIXME should be handled in CSM
+"""
+function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
+                                    logger=SimpleLogger(stdout) )
+  #
+  # check if any msgs should be multiplied together for the same variable
+  @warn "convertLikelihoodToVector is deprecated"
+  # FIXME type instability
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
+  for (msgcliqid, msgs) in prntmsgs
+    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
+    for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.variableType)
+      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
+      if !haskey(msgspervar, msgsym)
+        # there will be an entire list...
+        msgspervar[msgsym] = TreeBelief{varType}[]
+      end
+      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
+      push!(msgspervar[msgsym], msg)
+    end
+  end
+
+  return msgspervar
+end
+
+export solveCliq!
+"""
+    $SIGNATURES
+
+Perform inference over one clique in the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree = buildTreeReset!(fg)
+hist = solveCliq!(fg, tree, :x1, recordcliq = true )
+
+# print CSM steps
+printCliqHistorySummary(hist)
+```
+
+DevNotes
+- on `sandboxStateMachineStep`, see FSM #42
+
+Related
+
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
+"""
+function solveCliq!(dfgl::AbstractDFG,
+                    tree::AbstractBayesTree,
+                    cliqid::Symbol;
+                    verbose::Bool=false,
+                    recordcliq::Bool=false,
+                    # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
+                    async::Bool=false )
+  #
+  @warn "solveCliq! is deprecated, use solveCliqUp! or solveCliqDown!" 
+  # hist = Vector{CSMHistoryTuple}()
+  opt = DFG.getSolverParams(dfgl)
+
+  if opt.isfixedlag
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      fifoFreeze!(dfgl)
+  end
+
+  # if !isTreeSolved(treel, skipinitialized=true)
+  cliq = getClique(tree, cliqid)
+
+  # modyfy local copy of the tree
+  tree_ = deepcopy(tree)
+  # isolate clique
+  deleteClique!(tree_, getParent(tree_, cliq)[1])
+  foreach(c->deleteClique!(tree_,c), getChildren(tree_, cliq))
+
+  cliqtask = if async
+    @async tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+  else
+    tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  end
+  # end # if
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  # assignTreeHistory!(tree, cliqHistories)
+
+  # cliqHistories
+  return cliqtask
+end
 
 """
 (cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
