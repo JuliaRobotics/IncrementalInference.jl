@@ -186,6 +186,7 @@ Control the amount of entropy to add to null-hypothesis in multihypo case.
 
 Notes:
 - FIXME, Currently only supports Euclidean domains.
+- FIXME, allow particle subpopulations instead of just all of a variable
 """
 function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
                                                 sfidx::Int,
@@ -241,10 +242,8 @@ end
 """
     $(SIGNATURES)
 
-Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
-
-DevNotes
-- TODO consolidate with fix for 1051
+Common function to compute across a single user defined multi-hypothesis ambiguity per factor.  
+This function dispatches both `AbstractRelativeRoots` and `AbstractRelativeMinimize` factors.
 """
 function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                               <:CommonConvWrapper{Mixture{N_,F,S,T}}},
@@ -275,11 +274,11 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       
-      # do proposal inflation step, see #1051
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
-
+      
+      # do proposal inflation step, see #1051
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
@@ -287,26 +286,27 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
       end
-    elseif hypoidx != sfidx && hypoidx != 0  # sfidx in uncertnidx
+    elseif hypoidx != sfidx && hypoidx != 0
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-      ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
-    elseif hypoidx == 0
-      # basically do nothing since the factor is not active for these allelements[count]
-      # add noise (entropy) to spread out search in convolution proposals
+
+      # ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
+      # NOTE make alternative case only operate as null hypo
       addEntr = view(ccwl.params[sfidx], :, allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
-
-      # # inject lots of entropy in nullhypo case
-      # addEntr = view(ccwl.params[sfidx], :, allelements[count])
+    elseif hypoidx == 0
+      # basically do nothing since the factor is not active for these allelements[count]
+      # inject more entropy in nullhypo case
+      # add noise (entropy) to spread out search in convolution proposals
+      addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
+      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       # # make spread (1σ) equal to mean distance of other fractionals
-      # # ENT = generateNullhypoEntropy(addEntr, maxlen, spreadDist) # TODO
-      # # add 1σ "noise" level to max distance as control
-      # addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end

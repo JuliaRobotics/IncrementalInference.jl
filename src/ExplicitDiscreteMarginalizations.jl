@@ -147,6 +147,7 @@ function assembleHypothesesElements!( mh::Categorical,
     mh
   end
 
+  # FIXME consolidate with addEntropyOnManifolds approach in `computeAcrossHypothesis!`
   # prepend for the mhidx=0, bad-init-null-hypothesis case (if solving a fractional variable)
   mhh = if sfidx in uncertnidx
     nhw = (length(uncertnidx)+1)
