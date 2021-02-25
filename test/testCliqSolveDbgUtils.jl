@@ -23,8 +23,15 @@ tree = buildTreeReset!(fg)
 
 # solve clique up tests
 a,b = solveCliqUp!(fg, tree, 2)
+a,b = solveCliqUp!(fg, tree, 2; recordcliq = true) 
+@test length(a) > 0
 
 # solve clique down tests 
 a,b = solveCliqDown!(fg, tree, 2)
+a,b = solveCliqDown!(fg, tree, 2; recordcliq = true) 
+@test length(a) > 0
 ##
 end
+
+
+

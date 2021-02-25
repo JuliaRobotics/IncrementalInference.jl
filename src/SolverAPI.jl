@@ -545,10 +545,12 @@ function solveCliqUp!(fg::AbstractDFG,
   @info "taking belief message that will be sent up"
   takeUpTask = @async takeBeliefMessageUp!(tree, getEdgesParent(tree, cliq)[1]) 
   
+  recordcliqs = recordcliq ?  [getFrontals(cliq)[1]] : Symbol[]
+  
   hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
                                        verbose=verbose, drawtree=opt.drawtree,
                                        limititers=opt.limititers, downsolve=false,
-                                       recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+                                       recordcliqs=recordcliqs, incremental=opt.incremental)
   
 
 
@@ -623,9 +625,11 @@ function solveCliqDown!(fg::AbstractDFG,
     messages
   end
 
+  recordcliqs = recordcliq ?  [getFrontals(cliq)[1]] : Symbol[]
+
   hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
                                    verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers,
-                                   recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+                                   recordcliqs=recordcliqs, incremental=opt.incremental)
 
   # fetch on down                                  
   beliefMessageOut = fetch(takeDownTask)
