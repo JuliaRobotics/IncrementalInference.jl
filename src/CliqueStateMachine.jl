@@ -405,10 +405,10 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
-  logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated, going for prepCliqueMsgUpConsolidated")
-  beliefMsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
+  logCSM(csmc, "CSM-2e prepCliqueMsgUp, going for prepCliqueMsgUp")
+  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
 
-  logCSM(csmc, "CSM-2e prepCliqueMsgUpConsolidated", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
+  logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
 
   # Done with solve delete factors
   # remove msg factors that were added to the subfg
@@ -703,6 +703,9 @@ function postDownSolve_StateMachine(csmc::CliqStateMachineContainer)
       logCSM(csmc, "CSM-4d adding parent message"; sym=si, msg=downmsg.belief[si])
     end
   end
+
+  # Store the down message for debugging, will be stored even if no children present
+  getMessageBuffer(csmc.cliq).downTx = beliefMsg
 
   #TODO maybe send a specific message to only the child that needs it
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)

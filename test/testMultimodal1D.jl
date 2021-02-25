@@ -1,9 +1,4 @@
 
-# ## For old code -- SKIP THIS FOR NEW CODE
-# using Pkg
-# Pkg.activate(joinpath(@__DIR__,"..","examples","dev"))
-# Pkg.instantiate()
-
 ## Continue with loading packages
 
 using DistributedFactorGraphs
@@ -26,10 +21,10 @@ odom_noise = 1.0
 # initialize mean landmark locations
 l1 = -30.0
 l2 = 30.0
-l3 = -40.0
+# l3 = -40.0
 
-p_meas = 0.5
-p_map = 0.5
+p_meas = 0.4
+p_map = 1 - p_meas
 
 graphinit = false
 
@@ -38,32 +33,36 @@ graphinit = false
 
 @testset "test multihypo 1D..." begin
 
+##
+
 fg = initfg()
+# fg.solverParams.graphinit = graphinit
 fg.solverParams.N = n_samples
-fg.solverParams.spreadNH = 1.0
+fg.solverParams.gibbsIters = 6
+fg.solverParams.spreadNH = 0.3
 
 # lp landmark prior information
 # lm landmark measurement
 
-addVariable!(fg, :lp1, ContinuousScalar, N=n_samples)
+addVariable!(fg, :lp1, ContinuousScalar)
 addFactor!(fg, [:lp1], Prior(Normal(l1, lm_prior_noise)), graphinit=graphinit)
 
-addVariable!(fg, :lp2, ContinuousScalar, N=n_samples)
+addVariable!(fg, :lp2, ContinuousScalar)
 addFactor!(fg, [:lp2], Prior(Normal(l2, lm_prior_noise)), graphinit=graphinit)
 
-addVariable!(fg, :x1, ContinuousScalar, N=n_samples)
+addVariable!(fg, :x1, ContinuousScalar)
 
-addVariable!(fg, :lm2, ContinuousScalar, N=n_samples)
+addVariable!(fg, :lm2, ContinuousScalar)
 addFactor!(fg, [:x1; :lm2; :lp2], LinearRelative(Normal(20., meas_noise)), multihypo=[1.0; p_meas; p_map], graphinit=graphinit)
 
-addVariable!(fg, :lm1, ContinuousScalar, N=n_samples)
+addVariable!(fg, :lm1, ContinuousScalar)
 addFactor!(fg, [:x1; :lm1; :lp1], LinearRelative(Normal(-20., meas_noise)), multihypo=[1.0; p_meas; p_map], graphinit=graphinit)
 
 #weak lp1 lm1 relation to nudge one of two symmetric options
 # addFactor!(fg, [:lp1; :lm1], LinearRelative(Normal(0., 100.)))
 
 
-ensureAllInitialized!(fg)
+# ensureAllInitialized!(fg)
 
 # drawGraph(fg, show=true)
 # getSolverParams(fg).drawtree = false
@@ -71,14 +70,17 @@ ensureAllInitialized!(fg)
 
 # getSolverParams(fg).dbg = true
 # getSolverParams(fg).multiproc = false
-#
+
+##
 
 varor = [:x1, :lm1, :lm2, :lp1, :lp2]
 # tree = buildTreeReset!(fg, varor)
-tree, smt, hist = solveTree!(fg, variableOrder = varor)
-tree, smt, hist = solveTree!(fg, variableOrder = varor)
-tree, smt, hist = solveTree!(fg, variableOrder = varor)
+tree, smt, hist = solveTree!(fg, eliminationOrder = varor);
+# tree, smt, hist = solveTree!(fg, eliminationOrder = varor);
 
+# plotKDE(fg, ls(fg))
+
+##
 
 # X should be at one of two modes
 @test 0.7*getSolverParams(fg).N < sum(-20 .< getPoints(getKDE(fg, :x1))[:] .< 0) + sum(0 .< getPoints(getKDE(fg, :x1))[:] .< 20)
@@ -87,14 +89,15 @@ tree, smt, hist = solveTree!(fg, variableOrder = varor)
 
 @test 0.7*getSolverParams(fg).N < sum(28 .< getPoints(getKDE(fg, :lp2))[:] .< 38)
 
-@test 0.2*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lm1))[:] .< -28)
-@test 0.2*getSolverParams(fg).N < sum(28 .< getPoints(getKDE(fg, :lm2))[:] .< 38)
+@test 0.1*getSolverParams(fg).N < sum(-38 .< getPoints(getKDE(fg, :lm1))[:] .< -25)
+@test 0.1*getSolverParams(fg).N < sum(25 .< getPoints(getKDE(fg, :lm2))[:] .< 38)
 
 # @test 0.2*getSolverParams(fg).N < sum(-18 .< getPoints(getKDE(fg, :lm1))[:] .< -5) ||
       # 0.2*getSolverParams(fg).N < sum(5 .< getPoints(getKDE(fg, :lm2))[:] .< 15)
 
+##
 
-0
+
 end
 
 

@@ -34,6 +34,8 @@ using
   Combinatorics,
   UUIDs
 
+using ManifoldsBase
+
 # for BayesTree
 using MetaGraphs
 
@@ -275,7 +277,8 @@ export *,
   getBelief, getKDE,
   CliqStateMachineContainer,
 
-  solveCliq!,
+  solveCliqUp!,
+  solveCliqDown!,
   fifoFreeze!,
 
   # temp const types TODO
