@@ -106,6 +106,68 @@ function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
   return msgspervar
 end
 
+export solveCliq!
+"""
+    $SIGNATURES
+
+Perform inference over one clique in the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree = buildTreeReset!(fg)
+hist = solveCliq!(fg, tree, :x1, recordcliq = true )
+
+# print CSM steps
+printCliqHistorySummary(hist)
+```
+
+DevNotes
+- on `sandboxStateMachineStep`, see FSM #42
+
+Related
+
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
+"""
+function solveCliq!(dfgl::AbstractDFG,
+                    tree::AbstractBayesTree,
+                    cliqid::Symbol;
+                    verbose::Bool=false,
+                    recordcliq::Bool=false,
+                    # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
+                    async::Bool=false )
+  #
+  @warn "solveCliq! is deprecated, use solveCliqUp! or solveCliqDown!" 
+  # hist = Vector{CSMHistoryTuple}()
+  opt = DFG.getSolverParams(dfgl)
+
+  if opt.isfixedlag
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      fifoFreeze!(dfgl)
+  end
+
+  # if !isTreeSolved(treel, skipinitialized=true)
+  cliq = getClique(tree, cliqid)
+
+  # modyfy local copy of the tree
+  tree_ = deepcopy(tree)
+  # isolate clique
+  deleteClique!(tree_, getParent(tree_, cliq)[1])
+  foreach(c->deleteClique!(tree_,c), getChildren(tree_, cliq))
+
+  cliqtask = if async
+    @async tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+  else
+    tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  end
+  # end # if
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  # assignTreeHistory!(tree, cliqHistories)
+
+  # cliqHistories
+  return cliqtask
+end
+
 """
 (cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
 

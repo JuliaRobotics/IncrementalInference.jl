@@ -275,7 +275,6 @@ export *,
   getBelief, getKDE,
   CliqStateMachineContainer,
 
-  solveCliq!,
   solveCliqUp!,
   solveCliqDown!,
   fifoFreeze!,
