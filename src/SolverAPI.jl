@@ -476,7 +476,7 @@ function _buildMessagesUp(fg, tree, cliqid)
   cliq = getClique(tree, cliqid)
   beliefMessages = Dict{Int, LikelihoodMessage}()
   for child in getChildren(tree, cliq)
-    msg = prepCliqueMsgUpConsolidated(fg, child, UPSOLVED)
+    msg = prepCliqueMsgUp(fg, child, UPSOLVED)
     push!(beliefMessages, child.id[]=>msg)
   end
   return beliefMessages

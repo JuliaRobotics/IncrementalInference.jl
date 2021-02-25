@@ -323,56 +323,6 @@ function specialCaseRootDownSolve_StateMachine(csmc::CliqStateMachineContainer)
 end
 
 
-
-
-## ==================================================================================================================='
-## Old 
-## ==================================================================================================================='
-
-"""
-    $SIGNATURES
-
-Placeholder function part of #459 dwnMsg consolidation to send current up message, part of :needdownmsg downinit cascading.
-
-Notes
-- State machine function nr. 8k
-"""
-function sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer)
-  # set messages if children :needdownmsg
-  infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- must set messages for future down init")
-  # construct init's up msg to place in parent from initialized separator variables
-
-  # consolidated up messaging (#459)
-  infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- putting fake upinitmsg in this cliq")
-  upmsg = prepCliqueMsgUpConsolidated(csmc.cliqSubFg, csmc.cliq, getCliqueStatus(csmc.cliq), logger=csmc.logger)
-  prepPutCliqueStatusMsgUp!(csmc, upmsg=upmsg)
-
-  # also send a down message -- seem weird while doing #459 but okay
-  cliqst = prepPutCliqueStatusMsgDwn!(csmc)
-
-  # Legend: initialized but not solved yet (likely child cliques that depend on downward autoinit msgs),
-  setCliqueDrawColor!(csmc.cliq, "sienna")
-
-  infocsm(csmc, "8k, sendCurrentUpMsg_StateMachine -- near-end down init attempt, $cliqst.")
-
-  # go to 8b
-  return attemptCliqInitUp_StateMachine
-end
-
-
-
-
-
-
-
-
-
-
-## =================================================================================================================
-
-
-
-
 ## ==================================================================================================================='
 ## Can be consolidated/used (mostly used already as copies in X)
 ## ==================================================================================================================='

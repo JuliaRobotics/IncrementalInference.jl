@@ -640,7 +640,6 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
   nothing
 end
 
-#TODO rename to just prepCliqueMsgUp
 """
     $SIGNATURES
 
@@ -653,7 +652,7 @@ Notes
 DevNotes
 - set `msgs.hasPriors=true` only if a prior occurred here or lower down in tree branch. 
 """
-function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
+function prepCliqueMsgUp( subfg::AbstractDFG,
                                       cliq::TreeClique,
                                       status::CliqStatus=getCliqueStatus(cliq);
                                       logger=ConsoleLogger(),
@@ -685,17 +684,16 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   return msg
 end
 
-#TODO rename to just prepCliqueMsgDown
 """
     $SIGNATURES
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
-                                            cliq::TreeClique,
-                                            prntDwnMsgs::LikelihoodMessage,
-                                            logger=ConsoleLogger();
-                                            status::CliqStatus=getCliqueStatus(cliq)  )
+function prepCliqueMsgDown(subfg::AbstractDFG,
+                           cliq::TreeClique,
+                           prntDwnMsgs::LikelihoodMessage,
+                           logger=ConsoleLogger();
+                           status::CliqStatus=getCliqueStatus(cliq)  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))

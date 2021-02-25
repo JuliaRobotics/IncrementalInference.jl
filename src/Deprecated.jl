@@ -67,7 +67,10 @@ end
 ## Deprecate code below before v0.22
 ##==============================================================================
 
+@deprecate prepSetCliqueMsgDownConsolidated!(args...; kwargs...) prepCliqueMsgDown(args...; kwargs...) false
+@deprecate prepCliqueMsgUpConsolidated(args...; kwargs...) prepCliqueMsgUp(args...; kwargs...) false
 
+sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer) = error("sendCurrentUpMsg_StateMachine is deprecated")
 
 """
 (cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
