@@ -412,7 +412,8 @@ const solveGraph! = solveTree!
 
 
 """
-Internal function used for solveCliqUp!
+    $SIGNATURES
+Internal function used for solveCliqUp! to build the incomming upward message (Rx)
 """
 function _buildMessagesUp(fg, tree, cliqid; status=UPSOLVED)
   cliq = getClique(tree, cliqid)
@@ -505,7 +506,8 @@ function solveCliqUp!(fg::AbstractDFG,
 end
 
 """
-Internal function used for solveCliqDown!
+    $SIGNATURES
+Internal function used for solveCliqDown! to build the incomming downward message (Rx)
 """
 function _buildMessageDown(fg, tree, cliqid; status=DOWNSOLVED)
   cliq = getClique(tree, cliqid)
