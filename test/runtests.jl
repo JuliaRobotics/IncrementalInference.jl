@@ -3,7 +3,9 @@ using Test
 # using Compat
 # using IncrementalInference
 
-include("testMultihypoAndChain.jl")
+
+include("testCliqSolveDbgUtils.jl")
+
 include("TestModuleFunctions.jl")
 
 include("testApproxConv.jl")
@@ -95,6 +97,7 @@ include("testMultiHypo2Door.jl")
 
 include("testMultimodal1D.jl")
 
+include("testMultihypoAndChain.jl")
 
 include("testMultithreaded.jl")
 
