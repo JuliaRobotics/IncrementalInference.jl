@@ -173,6 +173,28 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
+function _getKDEMaxPatch(p::BallTreeDensity; N=200, addop=(+,), diffop=(-,)) #TODO use ops
+  pts = getPoints(p)
+  bw = getBW(p)[:,1]
+  r,c = size(pts)
+  bigp = zeros(r, c*3)
+  for (j,i) = enumerate(collect(2:3:size(bigp,2)))
+    bigp[:,i-1] .= pts[:,j] .- bw/2
+    bigp[:,i] .= pts[:,j]
+    bigp[:,i+1] .= pts[:,j] .+ bw/2
+  end
+  
+  # @debug display(Main.Plots.scatter(vec(sort(bigp;dims=2)), vec(p(sort(bigp;dims=2)))))
+  
+  m = zeros(p.bt.dims)
+  for i in 1:p.bt.dims
+    marg = marginal(p,[i])
+    yV = marg(bigp[i,:])
+    m[i] = bigp[argmax(yV)]
+  end
+  return m
+end
+
 """
     $SIGNATURES
 
@@ -194,7 +216,8 @@ function calcPPE( var::DFGVariable,
   manis = getManifolds(varType) # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
   Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  # Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  Pma = _getKDEMaxPatch(P, addop=ops[1], diffop=ops[2])
   suggested = zeros(getDimension(var))
   # TODO standardize after AMP3D
   @assert length(manis) == getDimension(var)
