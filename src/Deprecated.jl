@@ -61,6 +61,17 @@ mutable struct DebugCliqMCMC
 end
 
 
+##==============================================================================
+## Deprecate as part of Manifolds.jl consolidation
+##==============================================================================
+
+
+# FIXME, much consolidation required here
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = AMP.Euclid
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1}}) = AMP.Euclid
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2}}) = AMP.Euclid2
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
 
 
 ##==============================================================================
@@ -235,7 +246,7 @@ DevNotes
 - FIXME Integrate with `manifoldProduct`, see #1010
 """
 function productpartials!(pGM::Array{Float64,2},
-                          dummy::BallTreeDensity,
+                          dummy::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
                           partials::Dict{Int, Vector{BallTreeDensity}},
                           manis::Tuple  )
   #

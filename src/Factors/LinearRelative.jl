@@ -26,7 +26,7 @@ end
 LinearRelative(::UniformScaling=LinearAlgebra.I) = LinearRelative{1}(MvNormal(zeros(1), diagm(ones(1))))
 LinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = LinearRelative{1, typeof(nm)}(nm)
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
-LinearRelative(nm::BallTreeDensity) = LinearRelative{Ndim(nm), typeof(nm)}(nm)
+LinearRelative(nm::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = LinearRelative{Ndim(nm), typeof(nm)}(nm)
 
 getDimension(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = N
 getManifolds(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
@@ -42,10 +42,14 @@ getSample(cf::CalcFactor{<:LinearRelative}, N::Int=1) = (reshape(rand(cf.factor.
 # new and simplified interface for both nonparametric and parametric
 function (s::CalcFactor{<:LinearRelative})(z, x1, x2) 
   # TODO convert to distance(distance(x2,x1),z) # or use dispatch on `-` -- what to do about `.-`
-   # v0.21+, should return residual
+  # v0.21+, should return residual
   return z .- (x2 .- x1)
 end
 
+
+
+convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{1}}) = AMP.Euclid
+convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{2}}) = AMP.Euclid2
 
 
 
