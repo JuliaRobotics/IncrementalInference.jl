@@ -221,7 +221,8 @@ addFactor!(fg, [:x1;:x2;], LinearRelative(Normal(0.0,1.0)))
 addFactor!(fg, [:x2;:x3;], LinearRelative(Normal(0.0,1.0)))
 addFactor!(fg, [:x3;:x4;], LinearRelative(Normal(0.0,1.0)))
 
-# drawGraph(fg, show=true)
+# #1196
+drawGraph(fg, filepath="testgraphplot/myfg.dot", show=false)
 
 tree, smt, hist = solveTree!(fg, storeOld=true)
 
