@@ -75,7 +75,7 @@ SolverParams(;dimID::Int=0,
               isfixedlag::Bool=false,
               limitfixeddown::Bool=false,
               incremental::Bool=true,
-              useMsgLikelihoods::Bool=true,
+              useMsgLikelihoods::Bool=false,
               upsolve::Bool=true,
               downsolve::Bool=true,
               drawtree::Bool=false,
@@ -99,7 +99,8 @@ SolverParams(;dimID::Int=0,
               maxincidence::Int=500,
               alwaysFreshMeasurements::Bool=true,
               devParams::Dict{Symbol,String}=Dict{Symbol,String}()
-            ) = SolverParams( dimID,
+            ) = begin useMsgLikelihoods==true && @warn "useMsgLikelihoods is under development, use with care, see #1010"
+                SolverParams( dimID,
                               registeredModuleFunctions,
                               reference,
                               stateless,
@@ -131,6 +132,7 @@ SolverParams(;dimID::Int=0,
                               maxincidence,
                               alwaysFreshMeasurements,
                               devParams )
+            end
 #
 
 

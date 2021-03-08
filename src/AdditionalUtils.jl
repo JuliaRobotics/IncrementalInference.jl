@@ -53,7 +53,8 @@ function drawGraph( fgl::AbstractDFG;
                     engine::AbstractString="neato", #sfdp
                     show::Bool=true )
   #
-  mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )
+  mkpath(dirname(filepath))
+  #   mkpath(joinpath( "/", (split(filepath, '/')[1:(end-1)])...) )  
 
   @debug "Writing factor graph file"
   fext = split(filepath, '.')[end]
