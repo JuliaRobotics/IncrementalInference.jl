@@ -1,8 +1,94 @@
 using Test
 using IncrementalInference
+using Random
 
+##
+
+@testset "test basic multihypo" begin
+
+## A simple multihypo example
+
+Random.seed!(42) # The answer to reproducable noise
+
+fg = LightDFG(solverParams=SolverParams(graphinit=false, gibbsIters=5, spreadNH=5.0))
+
+pRight = 0.99
+pWrong = 0.01
+pr_noise = 0.01
+od_noise = 0.1
+lm_noise = 0.01
+
+# true positions
+# x0 at 0
+# x1 at 1
+# l1 at 1
+# l2 at 2
+
+#x0 prior
+addVariable!(fg, :x0, ContinuousScalar)
+prpo = Normal(0.0, pr_noise)
+addFactor!(fg, [:x0], Prior(Normal(rand(prpo), pr_noise)))
+
+#l1 and l2
+addVariable!(fg, :l1, ContinuousScalar, tags=[:LANDMARK])
+addVariable!(fg, :l2, ContinuousScalar, tags=[:LANDMARK])
+
+#x0 to l1 or l2
+p2ln = Normal(1.0, lm_noise)
+p2p = LinearRelative(Normal(rand(p2ln), lm_noise))
+addFactor!(fg, [:x0; :l1; :l2], p2p, multihypo = [1, pRight, pWrong])
+# addFactor!(fg, [:x0; :l1], p2p) #this one used for sanity check
+
+#x0 to x1
+addVariable!(fg, :x1, ContinuousScalar)
+pp = Normal(1.0, od_noise)
+addFactor!(fg, [:x0,:x1], LinearRelative(Normal(rand(pp), od_noise)))
+
+#x1 to l1 or l2
+p2ln = Normal(0.0, lm_noise)
+p2p = LinearRelative(Normal(rand(p2ln), lm_noise))
+addFactor!(fg, [:x1; :l1; :l2], p2p, multihypo = [1, pRight, pWrong])
+# addFactor!(fg, [:x1; :l1], p2p) #this one used for sanity check
+
+#x1 to l2 or l1
+p2ln = Normal(1.0, lm_noise)
+p2p = LinearRelative(Normal(rand(p2ln), lm_noise))
+addFactor!(fg, [:x1; :l2; :l1], p2p, multihypo = [1, pRight, pWrong])
+# addFactor!(fg, [:x1; :l2], p2p) #this one used for sanity check
+
+##
+
+# prescribe an elimination order to get a single clique
+eo = [:l2,:x1,:x0,:l1]
+# fg.solverParams.graphinit=true
+smtasks = Task[]
+tree, _, = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=ls(fg));
+
+
+# hists = fetchCliqHistoryAll!(smtasks)
+
+# plotKDE(fg, ls(fg))
+
+##
+
+@test isapprox(DFG.getPPESuggested(fg, :x0)[], 0, atol = 0.2) 
+@test isapprox(DFG.getPPESuggested(fg, :x1)[], 1, atol = 0.2) 
+@test isapprox(DFG.getPPESuggested(fg, :l1)[], 1, atol = 0.2) 
+
+L2 = getBelief(fg, :l2)
+L2_ = manikde!(2 .+ 0.1*randn(size(getPoints(L2),2)), ContinuousScalar)
+
+# test that there is at least a mode present
+@test mmd(L2_, L2, ContinuousScalar) < 1e-3
+# @test isapprox(DFG.getPPESuggested(fg, :l2)[], 2, atol = 0.2) 
+
+##
+
+end
 
 @testset "test multihypo chain example (see #462)..." begin
+
+##
 
 l1 = -10.0
 l2 = +10.0
@@ -45,6 +131,7 @@ tree, smt, hist = solveTree!(fg)
 @test getPPE(fg, :l1_0).suggested[1] - l1 |> abs < 10
 @test getPPE(fg, :l2_0).suggested[1] - l2 |> abs < 10
 
+##
 
 end
 

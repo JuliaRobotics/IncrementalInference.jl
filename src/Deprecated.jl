@@ -21,121 +21,6 @@ function _evalType(pt::String)::Type
 end
 
 
-
-##==============================================================================
-## TODO deprecated  
-##==============================================================================
-
-# TODO Replace with _CalcFactorParametric API
-function (s::MsgPrior{<:ParametricTypes})(X1::AbstractVector{T};
-                        userdata::Union{Nothing,FactorMetadata}=nothing) where T<:Real
-
-  if isa(s.Z, Normal)
-    meas = s.Z.μ
-    σ = s.Z.σ
-    #TODO confirm signs
-    res = meas - X1[1]
-    return (res./σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- X1
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end                    #
-end
-
-# maybe replace X with a type.
-function (s::Prior{<:ParametricTypes})(X1::AbstractVector{T};
-                    userdata::Union{Nothing,FactorMetadata}=nothing) where T <: Real
-
-  if isa(s.Z, Normal)
-    meas = s.Z.μ
-    σ = s.Z.σ
-    #TODO confirm signs
-    res = meas - X1[1]
-    return (res./σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- X1
-    return res' * iΣ * res # + 2*log(1/(  sqrt(det(Σ)*(2pi)^k) )) ## cancel ×1/2 in calling function ## k = dim(μ)
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end
-end
-
-
-# parametric specific functor
-# TODO Replace with _CalcFactorParametric API
-function (s::LinearRelative{N,<:ParametricTypes})(
-                                X1::AbstractArray{<:Real},
-                                X2::AbstractArray{<:Real};
-                                userdata::Union{Nothing,FactorMetadata}=nothing ) where N
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation, #467
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - (X2[1] - X1[1])
-    return (res/σ) .^ 2
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not supported, please use non-parametric")
-  end
-end
-
-
-# parametric specific functor
-# TODO Replace with _CalcFactorParametric API
-function (s::EuclidDistance{<:ParametricTypes})(X1::AbstractArray{<:Real},
-                                                X2::AbstractArray{<:Real};
-                                                userdata::Union{Nothing,FactorMetadata}=nothing )
-  #
-  # can I change userdata to a keyword arg, DF, No will be resolved with consolidation
-  #
-  # FIXME, replace if with dispatch
-  if isa(s.Z, Normal)
-    meas = mean(s.Z)
-    σ = std(s.Z)
-    # res = similar(X2)
-    res = meas - norm(X2 - X1)
-    res *= res
-    return res/(σ^2)
-
-  elseif isa(s.Z, MvNormal)
-    meas = mean(s.Z)
-    iΣ = invcov(s.Z)
-    #TODO confirm math : Σ^(1/2)*X
-    res = meas .- (X2 .- X1)
-    return res' * iΣ * res
-
-  else
-    #this should not happen
-    @error("$s not suported, please use non-parametric")
-  end
-end
-
-
-
 """
 $(TYPEDEF)
 
@@ -177,9 +62,190 @@ end
 
 
 
+
 ##==============================================================================
 ## Deprecate code below before v0.22
 ##==============================================================================
+
+@deprecate prepSetCliqueMsgDownConsolidated!(args...; kwargs...) prepCliqueMsgDown(args...; kwargs...) false
+@deprecate prepCliqueMsgUpConsolidated(args...; kwargs...) prepCliqueMsgUp(args...; kwargs...) false
+
+sendCurrentUpMsg_StateMachine(csmc::CliqStateMachineContainer) = error("sendCurrentUpMsg_StateMachine is deprecated")
+
+
+"""
+    $SIGNATURES
+
+Calculate a new down message from the parent.
+
+DevNotes
+- FIXME should be handled in CSM
+"""
+function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
+                                    logger=SimpleLogger(stdout) )
+  #
+  # check if any msgs should be multiplied together for the same variable
+  @warn "convertLikelihoodToVector is deprecated"
+  # FIXME type instability
+  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
+  for (msgcliqid, msgs) in prntmsgs
+    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
+    for (msgsym, msg) in msgs.belief
+      # re-initialize with new type
+      varType = typeof(msg.variableType)
+      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
+      if !haskey(msgspervar, msgsym)
+        # there will be an entire list...
+        msgspervar[msgsym] = TreeBelief{varType}[]
+      end
+      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
+      push!(msgspervar[msgsym], msg)
+    end
+  end
+
+  return msgspervar
+end
+
+export solveCliq!
+"""
+    $SIGNATURES
+
+Perform inference over one clique in the Bayes tree according to `opt::SolverParams`.
+
+Example
+```julia
+tree = buildTreeReset!(fg)
+hist = solveCliq!(fg, tree, :x1, recordcliq = true )
+
+# print CSM steps
+printCliqHistorySummary(hist)
+```
+
+DevNotes
+- on `sandboxStateMachineStep`, see FSM #42
+
+Related
+
+[`solveTree!`](@ref), [`buildTreeReset!`](@ref), [`printCliqHistorySummary`](@ref), [`repeatCSMStep!`](@ref), `sandboxStateMachineStep`
+"""
+function solveCliq!(dfgl::AbstractDFG,
+                    tree::AbstractBayesTree,
+                    cliqid::Symbol;
+                    verbose::Bool=false,
+                    recordcliq::Bool=false,
+                    # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
+                    async::Bool=false )
+  #
+  @warn "solveCliq! is deprecated, use solveCliqUp! or solveCliqDown!" 
+  # hist = Vector{CSMHistoryTuple}()
+  opt = DFG.getSolverParams(dfgl)
+
+  if opt.isfixedlag
+      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      fifoFreeze!(dfgl)
+  end
+
+  # if !isTreeSolved(treel, skipinitialized=true)
+  cliq = getClique(tree, cliqid)
+
+  # modyfy local copy of the tree
+  tree_ = deepcopy(tree)
+  # isolate clique
+  deleteClique!(tree_, getParent(tree_, cliq)[1])
+  foreach(c->deleteClique!(tree_,c), getChildren(tree_, cliq))
+
+  cliqtask = if async
+    @async tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental)
+  else
+    tryCliqStateMachineSolve!(dfgl, tree_, cliq.id, verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers, downsolve=opt.downsolve,recordcliqs=(recordcliq ? [cliqid] : Symbol[]), incremental=opt.incremental) # N=N
+  end
+  # end # if
+
+  # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
+  # assignTreeHistory!(tree, cliqHistories)
+
+  # cliqHistories
+  return cliqtask
+end
+
+"""
+(cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
+
+Default fallback for the standard factor calculation interface, as in `cf.factor(residual, noise_process, parameters)`,
+where factors are either library standard or user out-of-library factor definitions.  See documentation for
+more details and tutorials on using your own factors (designed to be as easy as possible).
+
+Notes
+- These residual calculations use used to find non-Gaussian / multimodal (incl. PPE) and conventional Gaussian estimates. 
+- `cf.legacyMeas == (measparams[1:cf._measCount]...,)`
+
+Example
+```julia
+# TBD
+```
+"""
+function (cf::CalcFactor)(measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
+  #
+  # NOTE this is a legacy interface
+  res = zeros(size(cf._legacyMeas,1))
+  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
+end
+
+
+
+@deprecate prodmultipleonefullpartials(w...;kw...) prodmultiplefullpartials(w...;kw...)
+
+# """
+#     $(SIGNATURES)
+
+# Multiply a single full and several partial dimension constraints.
+
+# DevNotes
+# - FIXME consolidate partial and full product AMP API, relates to #1010
+# - TODO -- reuse memory rather than rand here
+# """
+# function prodmultipleonefullpartials( dens::Vector{BallTreeDensity},
+#                                       partials::Dict{Int, Vector{BallTreeDensity}},
+#                                       Ndims::Int,
+#                                       N::Int,
+#                                       manis::Tuple  )
+#   #
+
+#   # TODO -- should this be [1.0] or ones(Ndims)
+#   denspts = getPoints(dens[1])
+#   pGM = deepcopy(denspts)
+
+#   for (dimnum,pp) in partials
+#     push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
+#   end
+  
+#   # do each partial dimension individually
+#   for (dimnum,pp) in partials
+#     pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+#   end
+#   return pGM
+# end
+
+"""
+    $(SIGNATURES)
+
+Multiply different dimensions from partial constraints individually.
+
+DevNotes
+- FIXME Integrate with `manifoldProduct`, see #1010
+"""
+function productpartials!(pGM::Array{Float64,2},
+                          dummy::BallTreeDensity,
+                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          manis::Tuple  )
+  #
+  @warn "productpartials! is being deprecated without direct replacement, see future versions of AMP.manifoldProduct instead."
+  # do each partial dimension individually
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
+  nothing
+end
 
 @deprecate freshSamples!(w...;kw...) sampleFactor!(w...;kw...)
 @deprecate freshSamples(w...;kw...) sampleFactor(w...;kw...)
@@ -189,10 +255,18 @@ end
 @deprecate solveFactorMeasurements( dfg::AbstractDFG,fctsym::Symbol,solveKey::Symbol=:default;retries::Int=3 ) approxDeconv(dfg,fctsym,solveKey,retries=retries)
 
 
+# figure out how to deprecate (not critical at the moment)
+# used in RoMEPlotting 
+# NOTE: TempUpMsgPlotting will be removed.
+# Replaced with: UpMsgPlotting = @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
 
 ##==============================================================================
 ## Deprecate code below before v0.21
 ##==============================================================================
+
+# For 1D example,
+export Ranged, PackedRanged
 
 # see DFG #590
 @deprecate extractdistribution(x) convert(SamplableBelief, x)

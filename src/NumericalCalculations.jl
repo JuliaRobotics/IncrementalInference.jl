@@ -43,7 +43,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #
 
   #
-  r = nlsolve(objResX, u0, inplace=true)
+  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true)
 
   #
   return r.zero
@@ -58,9 +58,9 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #
   # wrt #467 allow residual to be standardize for Roots and Minimize and Parametric cases.
   r = if islen1
-    optimize((x) -> (objResX(residual, x); sum(residual.^2)), u0, BFGS() )
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0, Optim.BFGS() )
   else
-    optimize((x) -> (objResX(residual, x); sum(residual.^2)), u0)
+    Optim.optimize((x) -> (residual .= objResX(x); sum(residual.^2)), u0)
   end
 
   # 
@@ -148,7 +148,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
-  unrollHypo! = (res) -> cf( res, (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... )
+  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... )
 
   return unrollHypo!, target
 end
@@ -195,7 +195,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   
   # broadcast updates original view memory location
   ## using CalcFactor legacy path inside (::CalcFactor)
-  _hypoObj = (res, x) -> (target.=x; unrollHypo!(res) )
+  _hypoObj = (x) -> (target.=x; unrollHypo!())
   
   # TODO small off-manifold perturbation is a numerical workaround only, make on-manifold requires RoME.jl #244
   # use all element dimensions : ==> 1:ccwl.xDim

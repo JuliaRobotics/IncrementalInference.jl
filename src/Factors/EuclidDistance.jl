@@ -21,19 +21,13 @@ getManifolds(::InstanceType{EuclidDistance{<:SamplableBelief}}) = (:Euclid,)
 getDomain(::InstanceType{EuclidDistance{<:SamplableBelief}}) = ContinuousEuclid{1}
 
 
-getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
+getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),1,N), )
 
 
 # new and simplified interface for both nonparametric and parametric
-function (s::CalcFactor{<:EuclidDistance})( residual::AbstractVector{<:Real},
-                                            z,
-                                            x1,
-                                            x2 )
-  #
-  residual .= z .- norm(x2 .- x1)
-
-  # v0.21+, should not return cost, but rather populate residual
-  nothing
+function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
+  # v0.21+, should return residual and not have residual parameter
+  return z .- norm(x2 .- x1)
 end
 
 

@@ -24,9 +24,9 @@ end
 # tree = buildTreeReset!(fg)
 # drawTree(tree, show=true)
 
-# solveCliq!(fg, tree, :l2)
-# solveCliq!(fg, tree, :x3)
-# solveCliq!(fg, tree, :x2)
+# solveCliqUp!(fg, tree, :l2)
+# solveCliqUp!(fg, tree, :x3)
+# solveCliqUp!(fg, tree, :x2)
 
 solveTree!(fg)
 

@@ -6,6 +6,8 @@ import IncrementalInference: getSample
 using Statistics
 
 
+##
+
 mutable struct DevelopPartial <: AbstractPrior
   x::Distribution
   partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
@@ -19,7 +21,7 @@ end
 getSample(cf::CalcFactor{<:DevelopDim2}, N::Int=1) = (rand(cf.factor.x, N), )
 
 
-
+##
 
 
 N=100 # 50
@@ -70,7 +72,6 @@ end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
 
-
 mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   x::Distribution
   partial::Tuple
@@ -78,15 +79,12 @@ mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
 end
 getSample(cf::CalcFactor{<:DevelopPartialPairwise}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
-function (dp::CalcFactor{<:DevelopPartialPairwise})(res::AbstractVector{<:Real},
-                                                    meas,
+function (dp::CalcFactor{<:DevelopPartialPairwise})(meas,
                                                     x1,
                                                     x2  )
   #
-  res[1] = meas[1] - (x2[2]-x1[2])
-
   # v0.21+
-  nothing
+  return meas[1] - (x2[2]-x1[2])
 end
 
 
@@ -105,8 +103,12 @@ doautoinit!(fg, :x2)
 # drawGraph(fg, show=true)
 
 
+##
+
 @testset "test evaluation of multiple simultaneous partial constraints" begin
 global fg
+
+##
 
 ensureAllInitialized!(fg)
 valx2 = getVal(fg, :x2)
@@ -120,13 +122,18 @@ pts = approxConv(fg, :x2f1, :x2, N=N) # evalFactor(fg, f4, v2.index, N=N)
 @test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 0.75
 @test (Statistics.std(pts,dims=2)[1] .- 1.0) < 0.4
 
+##
+
 end
+
+##
 
 # keep previous values to ensure funciton evaluation is modifying correct data fields
 
 @warn "restore findRelatedFromPotential as testset!"
 # @testset "test findRelatedFromPotential..." begin
 # global v2, fg, f3, f4, N
+
 
 thefac = getFactor(fg, :x1x2f1)
 
@@ -161,8 +168,12 @@ memcheck = getVal(v2)
 
 # end
 
+##
+
 
 @testset "test belief prediction with partials..." begin
+
+##
 
 global v2, fg
 
@@ -205,6 +216,8 @@ pts = getVal(fg, :x2)
 @test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 2.0
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0
 @test (Statistics.std(pts,dims=2)[2]-1.0) < 3.0
+
+##
 
 end
 

@@ -31,7 +31,6 @@ function (s::SpecialLinearOffset)(res::Array{Float64},
                                   X2::Array{Float64,2}  )
   #
   res[1] = meas[1][idx] - (X2[1,idx] - X1[1,idx])
-  nothing
 end
 
 

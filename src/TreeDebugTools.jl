@@ -513,10 +513,31 @@ repeatCSMStep!(hists_, 1, 5, duplicate=false)
 repeatCSMStep!(hists_, 1, 6, duplicate=false)
 ```
 
+DevNotes
+- TODO consolidate upstream with `FSM.sandboxStateMachineStep`
+
 Related
 
-[`solveTree!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
+[`solveTree!`](@ref), [`solveCliqUp!`](@ref), [`fetchCliqHistoryAll`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref), cliqHistFilterTransitions
 """
+function repeatCSMStep!(hist::AbstractVector{<:CSMHistoryTuple}, 
+                        step::Int; 
+                        duplicate::Bool=true,
+                        enableLogging::Bool=false )
+  #
+  
+  # the function at steo 
+  fnc_ = hist[step].f
+  # the data before step
+  csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hist[step].csmc )
+  csmc_.enableLogging = enableLogging
+  csmc_.logger = enableLogging ? SimpleLogger() : SimpleLogger(Base.devnull)
+  
+  # run the step
+  newfnc_ = fnc_(csmc_)
+  newfnc_, csmc_
+end
+
 function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}}, 
                         csmid::Int, 
                         step::Int; 
@@ -524,16 +545,7 @@ function repeatCSMStep!(hists::Dict{Int,<:AbstractVector{CSMHistoryTuple}},
                         enableLogging::Bool=false )
   #
   
-  # the function at steo 
-  fnc_ = hists[csmid][step].f
-  # the data before step
-  csmc_ = (duplicate ? x->deepcopy(x) : x->x)( hists[csmid][step].csmc )
-  csmc_.enableLogging = enableLogging
-  csmc_.logger = enableLogging ? SimpleLogger() : SimpleLogger(Base.devnull)
-  
-  # run the step
-  newfnc_ = fnc_(csmc_)
-  newfnc_, csmc_
+  repeatCSMStep!(hists[csmid], step, duplicate=duplicate, enableLogging=enableLogging)
 end
 
 
@@ -546,7 +558,7 @@ MIGHT BE OBSOLETE
 function attachCSM!(csmc::CliqStateMachineContainer,
                     dfg::AbstractDFG,
                     tree::MetaBayesTree;
-                    logger = SimpleLogger(stdout))
+                    logger = SimpleLogger())
   #
   # csmc = csmc__
 

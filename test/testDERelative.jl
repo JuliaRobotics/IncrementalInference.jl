@@ -373,7 +373,7 @@ for i in 1:7
                       # dt=0.05, 
                       problemType=ODEProblem )
   #
-  addFactor!( fg, [prev; nextSym; :ωβ], oder, graphinit=false )
+  addFactor!( fg, [prev; nextSym; :ωβ], oder, graphinit=false, inflation=0.01 )
 
   prev = nextSym
 end
@@ -495,6 +495,7 @@ pts = approxConv(fg, :x0x1ωβf1, :ωβ)
 
 @test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
+##
 
 # repeat with more difficult starting point
 

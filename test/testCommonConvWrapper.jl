@@ -77,13 +77,11 @@ getSample(cf::CalcFactor{<:Pose1Pose1Test}, N::Int=1) = (reshape(rand(cf.factor.
 
 
 #proposed standardized parameter list, does not have to be functor
-function (cf::CalcFactor{<:Pose1Pose1Test})(res::AbstractVector{<:Real},
-                                            Dx,
+function (cf::CalcFactor{<:Pose1Pose1Test})(Dx,
                                             p1,
                                             p2 )
   #
-  res[1] = Dx[1] - (p2[1] - p1[1])
-  nothing
+  return Dx[1] - (p2[1] - p1[1])
 end
 
 ##

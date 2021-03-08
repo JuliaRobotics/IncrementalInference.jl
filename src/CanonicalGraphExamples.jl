@@ -169,3 +169,36 @@ function generateCanonicalFG_lineStep(  lineLength::Int;
 
     return fg
 end
+
+export generateCanonicalFG_EuclidDistance
+"""
+    $SIGNATURES
+Generate a EuclidDistance test graph where 1 landmark position is unknown. 
+"""
+function generateCanonicalFG_EuclidDistance(points::Vector{Vector{Float64}} = [[100.,0],[0.,100]];
+                                            dist = 100.0, 
+                                            σ_prior=1.0, σ_dist=1.0,
+                                            N=100,
+                                            graphinit=false)
+    #
+    dims = length(points[1])
+    fg = initfg()
+    fg.solverParams.N = N
+    fg.solverParams.graphinit = graphinit
+
+
+    for (i,p) in enumerate(points)
+    xlbl = Symbol("x",i)
+    addVariable!(fg, xlbl, ContinuousEuclid{dims})
+    addFactor!(fg, [xlbl], Prior(MvNormal(p, σ_prior*ones(dims))))
+    end
+
+    addVariable!(fg, :l1, ContinuousEuclid{dims})
+
+    for i=1:length(points)
+    xlbl = Symbol("x",i)
+    addFactor!(fg, [xlbl;:l1], EuclidDistance(Normal(dist, σ_dist)))
+    end
+
+    return fg
+end

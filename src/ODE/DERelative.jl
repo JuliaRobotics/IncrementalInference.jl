@@ -159,8 +159,7 @@ end
 
 
 # NOTE see #1025, CalcFactor should fix `multihypo=` in `cf.metadata` fields
-function (cf::CalcFactor{<:DERelative})(res::AbstractVector{<:Real},
-                                        meas1,
+function (cf::CalcFactor{<:DERelative})(meas1,
                                         diffOp,
                                         X...)
   #
@@ -189,6 +188,9 @@ function (cf::CalcFactor{<:DERelative})(res::AbstractVector{<:Real},
   ## assuming the ODE integrated from current X1 through to predicted X2 (ie `meas1[:,idx]`)
   ## FIXME, obviously this is not going to work for more compilcated groups/manifolds -- must fix this soon!
   # @show cf._sampleIdx, solveforIdx, meas1
+
+  #FIXME 
+  res = zeros(size(X[2],1))
   for i in 1:size(X[2],1)
     # diffop( test, reference )   <===>   ΔX = test \ reference
     res[i] = diffOp[i]( X[solveforIdx][i], meas1[i] )

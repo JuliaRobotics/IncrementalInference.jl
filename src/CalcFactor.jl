@@ -36,28 +36,7 @@ struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple, X <: AbstractVector}
 end
 
 
-
-"""
-(cf::CalcFactor)( res::AbstractVector{<:Real}, meas..., params...)
-
-Default fallback for the standard factor calculation interface, as in `cf.factor(residual, noise_process, parameters)`,
-where factors are either library standard or user out-of-library factor definitions.  See documentation for
-more details and tutorials on using your own factors (designed to be as easy as possible).
-
-Notes
-- These residual calculations use used to find non-Gaussian / multimodal (incl. PPE) and conventional Gaussian estimates. 
-- `cf.legacyMeas == (measparams[1:cf._measCount]...,)`
-
-Example
-```julia
-# TBD
-```
-"""
-function (cf::CalcFactor)( res, measparams... ) #where {T<:FunctorInferenceType,M,P<:Tuple,X<:AbstractVector} {T,M,P,X}
-  #
-  # NOTE this is a legacy interface
-  cf.factor(res, cf.metadata, cf._sampleIdx, cf._legacyMeas, cf._legacyParams...)
-end
+CalcFactor(ccwl::CommonConvWrapper) = CalcFactor( ccwl.usrfnc!, _getFMdThread(ccwl), 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
 
 
 
@@ -132,7 +111,7 @@ function testFactorResidualBinary(fct,
   res = zeros(zdim)
 
   # calc the residual
-  @time cfo(res, meas..., param1, param2)
+  @time res = cfo(meas..., param1, param2)
 
   return res
 end

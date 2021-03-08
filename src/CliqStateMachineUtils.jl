@@ -26,8 +26,10 @@ function __doCliqUpSolveInitialized!(csmc::CliqStateMachineContainer)
   logCSM(csmc, "8g, doCliqUpSolveInitialized_StateMachine -- clique status = $(status)")
 
   setCliqueDrawColor!(csmc.cliq, "red")
+
+  opt = getSolverParams(csmc.cliqSubFg)
   # get Dict{Symbol, TreeBelief} of all updated variables in csmc.cliqSubFg
-  retdict = approxCliqMarginalUp!(csmc, logger=csmc.logger)
+  retdict = approxCliqMarginalUp!(csmc, iters=opt.gibbsIters, logger=csmc.logger)
   # retdict = approxCliqMarginalUp!(csmc, LikelihoodMessage[]; iters=4, logger=csmc.logger)
   logCSM(csmc, "aproxCliqMarginalUp!"; retdict=retdict)
 

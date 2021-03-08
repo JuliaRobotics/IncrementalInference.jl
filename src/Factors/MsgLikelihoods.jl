@@ -28,12 +28,8 @@ const MsgRelativeType = Vector{NamedTuple{(:variables, :likelihood), Tuple{Vecto
 const MsgPriorType = Dict{Symbol, MsgPrior{BallTreeDensity}}
 
 
-function (cfo::CalcFactor{<:MsgPrior})( res::AbstractVector{<:Real},
-                                        z,
-                                        x1  )
-#
-  res .= z .- x1
-  nothing
+function (cfo::CalcFactor{<:MsgPrior})(z, x1)
+  return  z .- x1
 end
 
 
@@ -148,7 +144,7 @@ end
 
 function compare( l1::LikelihoodMessage,
                   l2::LikelihoodMessage;
-                  skip::Vector{Symbol}=[] )
+                  skip::Vector{Symbol}=Symbol[] )
   #
   TP = true
   TP = TP && l1.status == l2.status
@@ -159,21 +155,9 @@ function compare( l1::LikelihoodMessage,
     TP = TP && haskey(l2.belief, k)
     TP = TP && compare(v, l2.belief[k])
   end
+  return TP
 end
 
 ==(l1::LikelihoodMessage,l2::LikelihoodMessage) = compare(l1,l2)
-
-
-
-## =========================================================================================
-## DEPRECATE BELOW AS ABLE
-## =========================================================================================
-
-
-# figure out how to deprecate (not critical at the moment)
-# used in RoMEPlotting
-const TempUpMsgPlotting = Dict{Symbol,Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}}
-
-
 
 

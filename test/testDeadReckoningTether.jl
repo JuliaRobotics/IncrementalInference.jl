@@ -24,13 +24,11 @@ getDimension(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = 
 getManifolds(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
 IIF.getSample(cf::CalcFactor{<:MutableLinearConditional}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-function (s::CalcFactor{<:MutableLinearConditional})(res::AbstractVector{<:Real},
-                                                    meas,
-                                                    X1,
-                                                    X2  )
+function (s::CalcFactor{<:MutableLinearConditional})(meas,
+                                                     X1,
+                                                     X2  )
 #
-res[:] .= meas .- (X2 .- X1)
-nothing
+    return meas .- (X2 .- X1)
 end
 
 

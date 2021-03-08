@@ -8,21 +8,19 @@ end
 
 IncrementalInference.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1) = (reshape(rand(cf.factor.Z, N),:,N), )
 
-function (s::CalcFactor{<:BrokenFactor})(res::AbstractVector{<:Real},
-                                        z,
-                                        wxi,
-                                        wxj  )
+function (s::CalcFactor{<:BrokenFactor})(z,
+                                         wxi,
+                                         wxj)
     #
     error("User factor has a bug.")
-    nothing
 end
 
-# FIXME consolidate with CalcFactor according to #467
-function (s::BrokenFactor{<:IIF.ParametricTypes})(X1::AbstractArray{<:Real},
-                                                  X2::AbstractArray{<:Real};
-                                                  userdata::Union{Nothing,FactorMetadata}=nothing )
-    error("User factor has a bug.")
-end
+# # FIXME consolidate with CalcFactor according to #467
+# function (s::BrokenFactor{<:IIF.ParametricTypes})(X1::AbstractArray{<:Real},
+#                                                   X2::AbstractArray{<:Real};
+#                                                   userdata::Union{Nothing,FactorMetadata}=nothing )
+#     error("User factor has a bug -- USE NEW CalcFactor API INSTEAD, v0.21.")
+# end
 
 @testset "Test CSM monitor/watchdog on errors" begin
 

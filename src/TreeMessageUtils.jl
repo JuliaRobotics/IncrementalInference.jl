@@ -574,7 +574,7 @@ during clique inference.
 
 DevNotes
 - TODO make `::Vector{Symbol}` version.
-
+- TODO function taking fcts::Vector{DFGFactor} is unused and replace by the tags version, perhaps we can remove it. 
 Related
 
 `addMsgFactors!`
@@ -595,23 +595,6 @@ function deleteMsgFactors!( subfg::AbstractDFG,
   deleteFactor!.(subfg, facs)
   return facs
 end
-
-#TODO JT can be removed, used as sanity check
-function removeSeparatorPriorsFromSubgraph!(cliqSubFg::AbstractDFG, cliq::TreeClique)
-  cliqSeparatorVarIds = getCliqSeparatorVarIds(cliq)
-  priorIds = Symbol[]
-  for v in cliqSeparatorVarIds
-    facs = getNeighbors(cliqSubFg, v)
-    for f in facs
-      isprior = length(getFactor(cliqSubFg, f)._variableOrderSymbols) == 1
-      isprior && push!(priorIds, f)
-      isprior && DFG.deleteFactor!(cliqSubFg, f)
-    end
-  end
-  return priorIds
-end
-
-
 
 ## =============================================================================
 ## Prepare Clique Up or Down Msgs
@@ -640,7 +623,6 @@ function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
   nothing
 end
 
-#TODO rename to just prepCliqueMsgUp
 """
     $SIGNATURES
 
@@ -653,7 +635,7 @@ Notes
 DevNotes
 - set `msgs.hasPriors=true` only if a prior occurred here or lower down in tree branch. 
 """
-function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
+function prepCliqueMsgUp( subfg::AbstractDFG,
                                       cliq::TreeClique,
                                       status::CliqStatus=getCliqueStatus(cliq);
                                       logger=ConsoleLogger(),
@@ -685,17 +667,16 @@ function prepCliqueMsgUpConsolidated( subfg::AbstractDFG,
   return msg
 end
 
-#TODO rename to just prepCliqueMsgDown
 """
     $SIGNATURES
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function prepSetCliqueMsgDownConsolidated!( subfg::AbstractDFG,
-                                            cliq::TreeClique,
-                                            prntDwnMsgs::LikelihoodMessage,
-                                            logger=ConsoleLogger();
-                                            status::CliqStatus=getCliqueStatus(cliq)  )
+function prepCliqueMsgDown(subfg::AbstractDFG,
+                           cliq::TreeClique,
+                           prntDwnMsgs::LikelihoodMessage,
+                           logger=ConsoleLogger();
+                           status::CliqStatus=getCliqueStatus(cliq)  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
@@ -732,43 +713,24 @@ end
 ## =============================================================================
 ## Multimessage assemblies from multiple cliques 
 ## =============================================================================
-#TODO check as it looks outdated nothing covered after this
 
-
-#TODO function is currently broken as getUpMsgs does not exist, possibly deprecated?
-# DF, I did some digging and got this far
-# v0.14 @deprecate getUpMsgs(x...) getMsgsUpThis(x...)
-#       @deprecate getMsgsUpThis(x...) getMsgUpThis(x...)
-#         getMsgUpThis(cdat::BayesTreeNodeData) = fetch(getMsgUpChannel(cdat))
-# v0.16 @deprecate getMsgUpThis(x...;kw...) fetchMsgUpThis(x...;kw...)
-# fetchMsgUpThis was never properly deprecated, see #1053
 """
     $SIGNATURES
 
 Return dictionary of all up belief messages currently in a Bayes `tree`.
 
-Notes
-- Returns `::Dict{Int,LikelihoodMessage}`
-
-DevNotes
-- see #1053, `getUpMsgs` --> `fetchMsgUpThis` v0.16
-
-Related
-
-getUpMsgs
 """
 function getTreeCliqUpMsgsAll(tree::AbstractBayesTree)
   allUpMsgs = Dict{Int,LikelihoodMessage}()
   for (idx,cliq) in getCliques(tree)
-    msgs = getUpMsgs(cliq)
-    allUpMsgs[cliq.id] = LikelihoodMessage()
-    for (lbl,msg) in msgs
-      # TODO capture the inferred dimension as part of the upward propagation
-      allUpMsgs[cliq.id].belief[lbl] = msg
-    end
+    msgs = getMessageBuffer(cliq).upRx
+    merge!(allUpMsgs, msgs)
   end
   return allUpMsgs
 end
+
+# TODO @NamedTuple{cliqId::CliqueId{Int}, depth::Int, belief::TreeBelief}
+const UpMsgPlotting = NamedTuple{(:cliqId, :depth, :belief), Tuple{CliqueId{Int}, Int, TreeBelief}}
 
 """
     $SIGNATURES
@@ -777,41 +739,34 @@ Convert tree up messages dictionary to a new dictionary relative to variables sp
 
 Notes
 - Used in RoMEPlotting
-- Return data in `TempUpMsgPlotting` format:
-    Dict{Symbol,   -- is for variable label
-      Vector{       -- multiple msgs for the same variable
-        Symbol,      -- Clique index
-        Int,         -- Depth in tree
-        BTD          -- Belief estimate
-        inferredDim  -- Information count
-      }
+- Return data in `UpMsgPlotting` format.
 """
 function stackCliqUpMsgsByVariable( tree::AbstractBayesTree,
                                     tmpmsgs::Dict{Int, LikelihoodMessage}  )
   #
   # start of the return data structure
-  stack = TempUpMsgPlotting()
+  stack = Dict{Symbol,Vector{UpMsgPlotting}}()  
 
   # look at all the clique level data
   for (cidx,tmpmsg) in tmpmsgs
     # look at all variables up msg from each clique
-    for (sym,msgdim) in tmpmsg.belief
+    for (sym, belief) in tmpmsg.belief
       # create a new object for a particular variable if hasnt been seen before
       if !haskey(stack,sym)
         # FIXME this is an old message type
-        stack[sym] = Vector{Tuple{Symbol, Int, BallTreeDensity, Float64}}()
+        stack[sym] = Vector{UpMsgPlotting}()
       end
       # assemble metadata
       cliq = getClique(tree,cidx)
-      frt = getCliqFrontalVarIds(cliq)[1]
+      #TODO why was the first frontal used? i changed to clique id (unique)
+      # frt = getCliqFrontalVarIds(cliq)[1]
       # add this belief msg and meta data to vector of variable entry
-      push!(stack[sym], (frt, getCliqDepth(tree, cliq),msgdim[1], msgdim[2]))
+      push!(stack[sym], IIF.UpMsgPlotting((cliq.id, getCliqDepth(tree, cliq), belief)))
     end
   end
 
   return stack
 end
-
 
 
 """
@@ -823,10 +778,10 @@ Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 - return LikelihoodMessage
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
+function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique; status::CliqStatus=NULL)
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = LikelihoodMessage() 
+  container = LikelihoodMessage(status=status) 
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
@@ -836,45 +791,3 @@ function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique)
   # return the result
   return container
 end
-
-
-
-"""
-    $SIGNATURES
-
-Calculate a new down message from the parent.
-
-DevNotes
-- FIXME should be handled in CSM
-"""
-function convertLikelihoodToVector( prntmsgs::Dict{Int, LikelihoodMessage};
-                                    logger=SimpleLogger(stdout) )
-  #
-  # check if any msgs should be multiplied together for the same variable
-  
-  # FIXME type instability
-  msgspervar = Dict{Symbol, Vector{TreeBelief}}()
-  for (msgcliqid, msgs) in prntmsgs
-    # with_logger(logger) do  #   @info "convertLikelihoodToVector -- msgcliqid=$msgcliqid, msgs.belief=$(collect(keys(msgs.belief)))"  # end
-    for (msgsym, msg) in msgs.belief
-      # re-initialize with new type
-      varType = typeof(msg.variableType)
-      # msgspervar = msgspervar !== nothing ? msgspervar : Dict{Symbol, Vector{TreeBelief{varType}}}()
-      if !haskey(msgspervar, msgsym)
-        # there will be an entire list...
-        msgspervar[msgsym] = TreeBelief{varType}[]
-      end
-      # with_logger(logger) do  @info "convertLikelihoodToVector -- msgcliqid=$(msgcliqid), msgsym $(msgsym), inferdim=$(msg.inferdim)"  # end
-      push!(msgspervar[msgsym], msg)
-    end
-  end
-
-  return msgspervar
-end
-
-
-
-
-
-
-#

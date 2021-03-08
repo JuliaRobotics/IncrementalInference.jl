@@ -12,6 +12,10 @@ using Reexport
 # @reexport using Graphs
 @reexport using LinearAlgebra
 
+import NLsolve
+import NLSolversBase
+import Optim
+
 using
   Dates,
   TimeZones,
@@ -19,9 +23,6 @@ using
   DelimitedFiles,
   Statistics,
   Random,
-  NLsolve,
-  NLSolversBase,
-  Optim,
   StatsBase,
   JLD2,
   BSON,
@@ -32,6 +33,8 @@ using
   JSON2,
   Combinatorics,
   UUIDs
+
+using ManifoldsBase
 
 # for BayesTree
 using MetaGraphs
@@ -274,7 +277,8 @@ export *,
   getBelief, getKDE,
   CliqStateMachineContainer,
 
-  solveCliq!,
+  solveCliqUp!,
+  solveCliqDown!,
   fifoFreeze!,
 
   # temp const types TODO
@@ -373,12 +377,9 @@ export *,
   getDimension,
   setVariableRefence!,
   reshapeVec2Mat,
-  accumulateFactorChain,
+  accumulateFactorChain
 
-  # For 1D example,
-  # TODO rename to L2 distance
-  Ranged,
-  PackedRanged
+
 
 
 export  buildCliqSubgraph_StateMachine

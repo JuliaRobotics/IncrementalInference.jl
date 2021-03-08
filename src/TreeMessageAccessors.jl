@@ -120,15 +120,35 @@ end
 ##==============================================================================
 ## Clique Message Buffers
 ##==============================================================================
+"""
+    $SIGNATURES
+Get the message buffer that is used to store messages in the clique between state machine steps.
+Tx messages are currently used for debugging only and messages are recalculated on each pass. 
+"""
 function getMessageBuffer(btnd::BayesTreeNodeData)
   btnd.messages
 end
 getMessageBuffer(clique::TreeClique) = getCliqueData(clique).messages
 
-# getMessageUpRx(clique::TreeClique) = getMessageBuffer(clique).upRx
-# getMessageDownRx(clique::TreeClique) = getMessageBuffer(clique).downRx
-
-# getMessageUpTx(clique::TreeClique) = getMessageBuffer(clique).upTx
-# getMessageDownTx(clique::TreeClique) = getMessageBuffer(clique).downTx
+"""
+    $SIGNATURES
+The up message received on the clique.
+"""
+getMessageUpRx(clique::TreeClique) = getMessageBuffer(clique).upRx
+"""
+    $SIGNATURES
+The down message received on the clique.
+"""
+getMessageDownRx(clique::TreeClique) = getMessageBuffer(clique).downRx
+"""
+    $SIGNATURES
+Used for debugging only, the up message that was sent by the clique
+"""
+getMessageUpTx(clique::TreeClique) = getMessageBuffer(clique).upTx
+"""
+    $SIGNATURES
+Used for debugging only, the down message that was sent by the clique
+"""
+getMessageDownTx(clique::TreeClique) = getMessageBuffer(clique).downTx
 
 
