@@ -13,9 +13,11 @@ Related
 """
 mutable struct Sphere1Sphere1{T<: SamplableBelief} <: AbstractRelativeRoots
   Z::T
-  Sphere1Sphere1(z::T=Normal()) where {T <: SamplableBelief} = new{T}(z)
+  # Sphere1Sphere1(z::T=Normal()) where {T <: SamplableBelief} = new{T}(z)
 end
-Sphere1Sphere1(::UniformScaling) = Sphere1Sphere1()
+
+Sphere1Sphere1(::UniformScaling) = Sphere1Sphere1(Normal())
+# Sphere1Sphere1()
 
 
 getSample(cf::CalcFactor{<:Sphere1Sphere1}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )

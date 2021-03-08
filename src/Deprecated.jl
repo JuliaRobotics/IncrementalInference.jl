@@ -73,6 +73,7 @@ Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
 
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{<:Sphere1Sphere1}) = AMP.Sphere1
 
 ##==============================================================================
 ## Deprecate code below before v0.22

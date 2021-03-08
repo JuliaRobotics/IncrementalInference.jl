@@ -83,7 +83,7 @@ function manikde!(pts::AbstractArray{Float64,2},
                   bws::Vector{Float64},
                   variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(manifolds)
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(variableType))
   bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
   ampmani = convert(Manifold, variableType)
   return ManifoldKernelDensity(ampmani, bel)
