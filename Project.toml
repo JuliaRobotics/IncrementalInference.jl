@@ -1,7 +1,7 @@
 name = "IncrementalInference"
 uuid = "904591bb-b899-562f-9e6f-b8df64c7d480"
-keywords = ["MM-iSAM", "MM-iSAMv2", "Bayes tree", "junction tree", "Bayes network", "variable elimination", "graphical models", "SLAM", "inference", "sum-product", "belief-propagation"]
-desc = "Implements the Multimodal iSAM algorithm."
+keywords = ["MM-iSAMv2", "Bayes tree", "junction tree", "Bayes network", "variable elimination", "graphical models", "SLAM", "inference", "sum-product", "belief-propagation"]
+desc = "Implements the Multimodal-iSAMv2 algorithm."
 version = "0.22.0"
 
 [deps]
