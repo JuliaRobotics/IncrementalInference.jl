@@ -1362,9 +1362,10 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) |> getManifolds)
-getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
-getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
+getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) ) # getVariableType(vnd) |> getManifolds
+
+getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
+getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)
 
 const getKDE = getBelief
 
