@@ -287,17 +287,18 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
       end
     elseif hypoidx != sfidx && hypoidx != 0
+      # snap together case
       # multihypo, take other value case
       # sfidx=2, hypoidx=3:  2 should take a value from 3
       # sfidx=3, hypoidx=2:  3 should take a value from 2
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
-
       # ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
-      # NOTE make alternative case only operate as null hypo
-      addEntr = view(ccwl.params[sfidx], :, allelements[count])
-      # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
-      spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+        # NOTE make alternative case only operate as null hypo
+        addEntr = view(ccwl.params[sfidx], :, allelements[count])
+        # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
+        spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
+        addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
       # inject more entropy in nullhypo case
