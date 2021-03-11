@@ -160,7 +160,7 @@ function setValKDE!(vd::VariableNodeData,
 end
 
 function setValKDE!(vd::VariableNodeData,
-                    p::BallTreeDensity,
+                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0 )
   #
@@ -212,7 +212,7 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    p::BallTreeDensity,
+                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
@@ -222,7 +222,7 @@ function setValKDE!(v::DFGVariable,
 end
 function setValKDE!(dfg::G,
                     sym::Symbol,
-                    p::BallTreeDensity,
+                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  ) where G <: AbstractDFG
@@ -928,14 +928,14 @@ DevNotes
 - TODO better document graphinit and treeinit.
 """
 function initManual!( variable::DFGVariable, 
-                      ptsArr::BallTreeDensity)
+                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
   #
   setValKDE!(variable, ptsArr, true)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      belief::BallTreeDensity)
+                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
   #
   variable = getVariable(dfg, label)
   initManual!(variable, belief)
@@ -1362,9 +1362,10 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = AMP.manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) |> getManifolds)
-getBelief(v::DFGVariable, solvekey::Symbol=:default) = getKDE(getSolverData(v, solvekey))
-getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getKDE(getVariable(dfg, lbl), solvekey)
+getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) ) # getVariableType(vnd) |> getManifolds
+
+getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
+getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)
 
 const getKDE = getBelief
 

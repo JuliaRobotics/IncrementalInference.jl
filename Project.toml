@@ -1,8 +1,8 @@
 name = "IncrementalInference"
 uuid = "904591bb-b899-562f-9e6f-b8df64c7d480"
-keywords = ["MM-iSAM", "MM-iSAMv2", "Bayes tree", "junction tree", "Bayes network", "variable elimination", "graphical models", "SLAM", "inference", "sum-product", "belief-propagation"]
-desc = "Implements the Multimodal iSAM algorithm."
-version = "0.21.4"
+keywords = ["MM-iSAMv2", "Bayes tree", "junction tree", "Bayes network", "variable elimination", "graphical models", "SLAM", "inference", "sum-product", "belief-propagation"]
+desc = "Implements the Multimodal-iSAMv2 algorithm."
+version = "0.22.0"
 
 [deps]
 ApproxManifoldProducts = "9bbbb610-88a1-53cd-9763-118ce10c1f89"
@@ -40,7 +40,7 @@ TimeZones = "f269a46b-ccf7-5d73-abea-4c690281aa53"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
-ApproxManifoldProducts = "0.2"
+ApproxManifoldProducts = "0.2.3"
 BSON = "0.2, 0.3"
 Combinatorics = "1.0"
 DataStructures = "0.16, 0.17, 0.18"

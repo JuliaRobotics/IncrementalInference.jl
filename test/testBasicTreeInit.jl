@@ -96,7 +96,7 @@ solveTree!(fg; smtasks=smtasks, verbose=true)
 for var in good_vars
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.15)
 end
 
 

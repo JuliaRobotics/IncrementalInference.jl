@@ -18,7 +18,7 @@ struct NonparametricMessage <: MessageType end
 struct ParametricMessage <: MessageType end
 
 
-const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution}
+const SamplableBelief = Union{Distributions.Distribution, KDE.BallTreeDensity, AMP.ManifoldKernelDensity, AMP.ManifoldKernelDensity, AliasingScalarSampler, FluxModelsDistribution}
 
 abstract type PackedSamplableBelief end
 
@@ -48,7 +48,7 @@ struct TreeBelief{T <: InferenceVariable}
   # only populated during up as solvableDims for each variable in clique, #910
   solvableDim::Float64 
 end
-TreeBelief( p::BallTreeDensity,
+TreeBelief( p::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
             inferdim::Real=0,
             variableType::T=ContinuousScalar(),
             manifolds=getManifolds(variableType),
