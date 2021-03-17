@@ -185,6 +185,13 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
+
+function calcMean(mkd::ManifoldKernelDensity)
+  error("not implemented yet")
+  
+end
+
+
 """
     $SIGNATURES
 
