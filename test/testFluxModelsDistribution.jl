@@ -145,7 +145,7 @@ data = randn(10)
 # Flux models
 models = [Flux.Chain(softmax, Dense(10,5,σ), Dense(5,1, tanh)) for i in 1:20]
 # mixture with user defined names (optional) -- could also just pass Vector or Tuple of components
-mix = MixtureFluxModels(PriorSphere1, models, (10,), data, (1,), 
+mix = MixtureFluxModels(PriorCircular, models, (10,), data, (1,), 
                         (naiveNorm=Normal(),naiveUnif=Uniform()),
                         [0.7; 0.2; 0.1],
                         shuffle=false )
@@ -153,7 +153,7 @@ mix = MixtureFluxModels(PriorSphere1, models, (10,), data, (1,),
 
 # test by add to simple graph
 fg = initfg()
-addVariable!(fg, :testmix, Sphere1)
+addVariable!(fg, :testmix, Circular)
 addFactor!(fg, [:testmix;], mix)
 
 
