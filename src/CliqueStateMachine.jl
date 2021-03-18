@@ -277,7 +277,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     setCliqueDrawColor!(csmc.cliq, "green")
 
     logCSM(csmc, "CSM-2b Trying up init -- all not initialized"; c=csmc.cliqId)
-     
+    
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)

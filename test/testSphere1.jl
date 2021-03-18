@@ -1,3 +1,4 @@
+
 using IncrementalInference
 using Test
 
@@ -24,6 +25,7 @@ sppes = map(var->getPPE(var).suggested[1], sortDFG(getVariables(fg),by=getLabel)
 gt = rem2pi.(collect(0:4), RoundNearest)
 
 @show sppes
+@show gt
 @test all(isapprox.(sppes, gt, atol=0.35))
 
 # test packing converters also

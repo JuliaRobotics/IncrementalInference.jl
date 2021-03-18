@@ -1,9 +1,10 @@
 
-export Sphere1
+export Circular
 
 """
 $(TYPEDEF)
 
 Sphere1 is a S1 mechanization of one Circular rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Sphere1 1 (:Circular,)
+@defVariable Circular 1 (:Circular,)
+

@@ -72,11 +72,23 @@ Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2}}) = AMP.Euclid2
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{<:Sphere1}) = AMP.Sphere1
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = AMP.Circle1
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{<:Sphere1Sphere1}) = AMP.Sphere1
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{<:EuclidDistance}) = AMP.Euclid
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{<:LinearRelative{N}}) where N = convert(Manifold, ContinuousEuclid{N})
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{CircularCircular}) = AMP.Circle1
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{EuclidDistance}) = AMP.Euclid
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}) where N = convert(Manifold, ContinuousEuclid{N})
+
+
+
+##==============================================================================
+## Deprecate code below before v0.22
+##==============================================================================
+
+export Sphere1
+
+@warn "Deprecating old use of Sphere1, being replaced by Cicular instead"
+const Sphere1 = Circular
+# @deprecate Sphere1(w...;kw...) Circular(w...;kw...)
 
 
 ##==============================================================================
