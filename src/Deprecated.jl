@@ -21,31 +21,6 @@ function _evalType(pt::String)::Type
 end
 
 
-"""
-$(TYPEDEF)
-
-TODO TO BE DEPRECATED
-"""
-mutable struct PotProd
-    Xi::Symbol # Int
-    prev::Array{Float64,2}
-    product::Array{Float64,2}
-    potentials::Array{BallTreeDensity,1}
-    potentialfac::Vector{Symbol}
-end
-
-"""
-$(TYPEDEF)
-
-TODO TO BE DEPRECATED
-"""
-mutable struct CliqGibbsMC
-    prods::Array{PotProd,1}
-    lbls::Vector{Symbol}
-    CliqGibbsMC() = new()
-    CliqGibbsMC(a,b) = new(a,b)
-end
-
 
 
 ##==============================================================================
@@ -86,6 +61,33 @@ const Sphere1 = Circular
 @deprecate Sphere1Sphere1(w...;kw...) CircularCircular(w...;kw...)
 @deprecate PackedPriorSphere1(w...;kw...) PackedPriorCircular(w...;kw...)
 @deprecate PackedSphere1Sphere1(w...;kw...) PackedCircularCircular(w...;kw...)
+
+
+
+# """
+# $(TYPEDEF)
+
+# TODO TO BE DEPRECATED
+# """
+# mutable struct PotProd
+#     Xi::Symbol # Int
+#     prev::Array{Float64,2}
+#     product::Array{Float64,2}
+#     potentials::Array{BallTreeDensity,1}
+#     potentialfac::Vector{Symbol}
+# end
+
+# """
+# $(TYPEDEF)
+
+# TODO TO BE DEPRECATED
+# """
+# mutable struct CliqGibbsMC
+#     prods::Array{PotProd,1}
+#     lbls::Vector{Symbol}
+#     CliqGibbsMC() = new()
+#     CliqGibbsMC(a,b) = new(a,b)
+# end
 
 
 # """
