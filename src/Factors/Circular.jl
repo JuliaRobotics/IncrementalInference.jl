@@ -19,7 +19,6 @@ end
 const Sphere1Sphere1 = CircularCircular
 
 CircularCircular(::UniformScaling) = CircularCircular(Normal())
-# Sphere1Sphere1()
 
 
 getSample(cf::CalcFactor{<:CircularCircular}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
@@ -33,6 +32,9 @@ function (cf::CalcFactor{<:CircularCircular})(meas,
   res = difftheta(wxj[1], wXjhat)  # jXjhat =
   return res
 end
+
+
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{CircularCircular}) = Manifolds.Circle{ℝ}
 
 
 """
@@ -62,6 +64,7 @@ function getSample(cf::CalcFactor{<:PriorCircular}, N::Int=1)
 end
 
 
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{PriorCircular}) = Manifolds.Circle{ℝ}
 
 
 
@@ -72,8 +75,8 @@ Serialized object for storing PriorCircular.
 """
 mutable struct PackedPriorCircular  <: IncrementalInference.PackedInferenceType
   datastr::String
-  PackedPriorCircular() = new()
-  PackedPriorCircular(x::String) = new(x)
+  # PackedPriorCircular() = new()
+  # PackedPriorCircular(x::String) = new(x)
 end
 function convert(::Type{PackedPriorCircular}, d::PriorCircular)
   return PackedPriorCircular(convert(PackedSamplableBelief, d.Z))
@@ -97,8 +100,8 @@ Serialized object for storing CircularCircular.
 """
 mutable struct PackedCircularCircular  <: IncrementalInference.PackedInferenceType
   datastr::String
-  PackedCircularCircular() = new()
-  PackedCircularCircular(x::String) = new(x)
+  # PackedCircularCircular() = new()
+  # PackedCircularCircular(x::String) = new(x)
 end
 function convert(::Type{CircularCircular}, d::PackedCircularCircular)
   return CircularCircular(convert(SamplableBelief, d.datastr))

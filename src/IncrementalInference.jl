@@ -12,6 +12,8 @@ using Reexport
 # @reexport using Graphs
 @reexport using LinearAlgebra
 
+using Manifolds
+
 import NLsolve
 import NLSolversBase
 import Optim

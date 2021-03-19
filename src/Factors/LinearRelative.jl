@@ -48,8 +48,8 @@ end
 
 
 
-convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{1}}) = AMP.Euclid
-convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{2}}) = AMP.Euclid2
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}) where N = Manifolds.Euclidean{Tuple{N}, ℝ} 
+# convert(Manifold, ContinuousEuclid{N})
 
 
 
@@ -59,8 +59,8 @@ Serialization type for `LinearRelative` binary factor.
 """
 mutable struct PackedLinearRelative <: PackedInferenceType
   Z::String
-  PackedLinearRelative() = new()
-  PackedLinearRelative(z::AS) where {AS <: AbstractString} = new(z)
+  # PackedLinearRelative() = new()
+  # PackedLinearRelative(z::AS) where {AS <: AbstractString} = new(z)
 end
 function convert(::Type{PackedLinearRelative}, d::LinearRelative)
   PackedLinearRelative(convert(PackedSamplableBelief, d.Z))
