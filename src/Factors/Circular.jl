@@ -22,8 +22,6 @@ CircularCircular(::UniformScaling) = CircularCircular(Normal())
 # Sphere1Sphere1()
 
 
-@deprecate Sphere1Sphere1(w...;kw...) CircularCircular(w...;kw...)
-
 getSample(cf::CalcFactor{<:CircularCircular}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
 
@@ -56,8 +54,6 @@ mutable struct PriorCircular{T<: SamplableBelief} <: AbstractPrior
   Z::T
 end
 
-@deprecate PriorSphere1(w...;kw...) PriorCircular(w...;kw...)
-
 PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
 
@@ -87,7 +83,6 @@ function convert(::Type{PriorCircular}, d::PackedPriorCircular)
   return PriorCircular{typeof(distr)}(distr)
 end
 
-@deprecate PackedPriorSphere1(w...;kw...) PackedPriorCircular(w...;kw...)
 
 # --------------------------------------------
 
@@ -112,8 +107,6 @@ function convert(::Type{PackedCircularCircular}, d::CircularCircular)
   return PackedCircularCircular(convert(PackedSamplableBelief, d.Z))
 end
 
-
-@deprecate PackedSphere1Sphere1(w...;kw...) PackedCircularCircular(w...;kw...)
 
 
 # --------------------------------------------
