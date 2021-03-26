@@ -44,6 +44,6 @@ getDimension(::ContinuousEuclid{N}) where N = N::Int
 getManifolds(::ContinuousEuclid{N}) where N = ntuple(i -> :Euclid, N)
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean{Tuple{N}, ℝ}
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean{Tuple{1}, ℝ} # AMP.Euclid
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N) # {Tuple{N}, ℝ}
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)         # {Tuple{1}, ℝ} # AMP.Euclid
 

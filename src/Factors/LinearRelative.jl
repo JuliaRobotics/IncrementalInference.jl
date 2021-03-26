@@ -48,7 +48,7 @@ end
 
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}) where N = Manifolds.Euclidean{Tuple{N}, ℝ} 
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}) where N = Manifolds.Euclidean(N) 
 # convert(Manifold, ContinuousEuclid{N})
 
 

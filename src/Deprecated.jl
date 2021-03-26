@@ -34,7 +34,6 @@ getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
 
 
-
 ##==============================================================================
 ## Deprecate code below before v0.23
 ##==============================================================================
@@ -53,7 +52,7 @@ getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
 export Sphere1
 
-@warn "Deprecating old use of Sphere1, being replaced by Cicular instead"
+@warn "Deprecating old use of Sphere1, being replaced by Circular instead"
 const Sphere1 = Circular
 # @deprecate Sphere1(w...;kw...) Circular(w...;kw...)
 

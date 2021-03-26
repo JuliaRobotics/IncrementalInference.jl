@@ -31,7 +31,7 @@ function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
 end
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{EuclidDistance}) = Manifolds.Euclidean{Tuple{1}, ℝ}
+Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{EuclidDistance}) = Manifolds.Euclidean(1)
 
 
 """

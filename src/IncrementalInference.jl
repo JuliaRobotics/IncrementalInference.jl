@@ -14,6 +14,8 @@ using Reexport
 
 using Manifolds
 
+export ℝ, Manifold, Euclidean, Circle
+
 import NLsolve
 import NLSolversBase
 import Optim

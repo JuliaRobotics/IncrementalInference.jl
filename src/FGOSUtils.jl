@@ -81,7 +81,7 @@ end
 # extend convenience function
 function manikde!(pts::AbstractArray{Float64,2},
                   bws::Vector{Float64},
-                  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+                  variableType::Union{<:InstanceType{InferenceVariable}, <:InstanceType{FunctorInferenceType}}  )
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(variableType))
   bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
@@ -186,12 +186,6 @@ end
 
 
 
-function calcMean(mkd::ManifoldKernelDensity)
-  error("not implemented yet")
-  
-end
-
-
 """
     $SIGNATURES
 
@@ -199,6 +193,7 @@ Get the ParametricPointEstimates---based on full marginal belief estimates---of 
 
 DevNotes
 - TODO update for manifold subgroups.
+- TODO standardize after AMP3D
 
 Related
 
@@ -210,24 +205,26 @@ function calcPPE( var::DFGVariable,
                   solveKey::Symbol=:default  )
   #
   P = getBelief(var, solveKey)
-  manis = getManifolds(varType) # getManifolds(vnd)
+  maniDef = convert(Manifold, varType)
+  manis = getManifolds(maniDef) # varType # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
-  Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
+  Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-  suggested = zeros(getDimension(var))
-  # TODO standardize after AMP3D
-  @assert length(manis) == getDimension(var)
-  for i in 1:length(manis)
-    mani = manis[i]
-    if mani == :Euclid
-      suggested[i] = Pme[i]
-    elseif mani == :Circular
-      suggested[i] = Pma[i]
-    else
-      error("Unknown manifold to find PPE, $varType, $mani")
-    end
-  end
-  MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
+  # suggested = zeros(getDimension(var))
+  # @assert length(manis) == getDimension(var)
+  # for i in 1:length(manis)
+  #   mani = manis[i]
+  #   if mani == :Euclid
+  #     suggested[i] = Pme[i]
+  #   elseif mani == :Circular
+  #     suggested[i] = Pma[i]
+  #   else
+  #     error("Unknown manifold to find PPE, $varType, $mani")
+  #   end
+  # end
+
+  # suggested, max, mean, current time
+  MeanMaxPPE(solveKey, Pme, Pma, Pme, now())
 end
 
 
