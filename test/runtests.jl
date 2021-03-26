@@ -109,7 +109,7 @@ include("testmultihypothesisapi.jl")
 
 include("fourdoortest.jl")
 
-include("testSphere1.jl")
+include("testCircular.jl")
 
 include("testMixtureLinearConditional.jl")
 
