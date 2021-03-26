@@ -21,44 +21,6 @@ function _evalType(pt::String)::Type
 end
 
 
-"""
-$(TYPEDEF)
-
-TODO TO BE DEPRECATED
-"""
-mutable struct PotProd
-    Xi::Symbol # Int
-    prev::Array{Float64,2}
-    product::Array{Float64,2}
-    potentials::Array{BallTreeDensity,1}
-    potentialfac::Vector{Symbol}
-end
-
-"""
-$(TYPEDEF)
-
-TODO TO BE DEPRECATED
-"""
-mutable struct CliqGibbsMC
-    prods::Array{PotProd,1}
-    lbls::Vector{Symbol}
-    CliqGibbsMC() = new()
-    CliqGibbsMC(a,b) = new(a,b)
-end
-
-"""
-$(TYPEDEF)
-
-TODO TO BE DEPRECATED
-"""
-mutable struct DebugCliqMCMC
-  mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-  outmsg::LikelihoodMessage
-  outmsglbls::Dict{Symbol, Symbol} # Int
-  priorprods::Vector{CliqGibbsMC}
-  DebugCliqMCMC() = new()
-  DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
-end
 
 
 ##==============================================================================
@@ -66,17 +28,9 @@ end
 ##==============================================================================
 
 
-# FIXME, much consolidation required here
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = AMP.Euclid
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1}}) = AMP.Euclid
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2}}) = AMP.Euclid2
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = AMP.Circle1
-
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{CircularCircular}) = AMP.Circle1
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{EuclidDistance}) = AMP.Euclid
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}) where N = convert(Manifold, ContinuousEuclid{N})
+# Legacy support
+getManifolds(::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}}) where N = tuple([:Euclid for i in 1:N]...)
+getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
 
 
@@ -84,9 +38,21 @@ Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{N}}
 ## Deprecate code below before v0.23
 ##==============================================================================
 
+
+# FIXME, much consolidation required here
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1}}) = AMP.Euclid
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2}}) = AMP.Euclid2
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
+
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = AMP.Circle1
+
+# convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{1}}) = AMP.Euclid
+# convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{2}}) = AMP.Euclid2
+
 export Sphere1
 
-@warn "Deprecating old use of Sphere1, being replaced by Cicular instead"
+@warn "Deprecating old use of Sphere1, being replaced by Circular instead"
 const Sphere1 = Circular
 # @deprecate Sphere1(w...;kw...) Circular(w...;kw...)
 
@@ -94,6 +60,48 @@ const Sphere1 = Circular
 @deprecate Sphere1Sphere1(w...;kw...) CircularCircular(w...;kw...)
 @deprecate PackedPriorSphere1(w...;kw...) PackedPriorCircular(w...;kw...)
 @deprecate PackedSphere1Sphere1(w...;kw...) PackedCircularCircular(w...;kw...)
+
+
+
+# """
+# $(TYPEDEF)
+
+# TODO TO BE DEPRECATED
+# """
+# mutable struct PotProd
+#     Xi::Symbol # Int
+#     prev::Array{Float64,2}
+#     product::Array{Float64,2}
+#     potentials::Array{BallTreeDensity,1}
+#     potentialfac::Vector{Symbol}
+# end
+
+# """
+# $(TYPEDEF)
+
+# TODO TO BE DEPRECATED
+# """
+# mutable struct CliqGibbsMC
+#     prods::Array{PotProd,1}
+#     lbls::Vector{Symbol}
+#     CliqGibbsMC() = new()
+#     CliqGibbsMC(a,b) = new(a,b)
+# end
+
+
+# """
+# $(TYPEDEF)
+
+# TODO TO BE DEPRECATED
+# """
+# mutable struct DebugCliqMCMC
+#   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
+#   outmsg::LikelihoodMessage
+#   outmsglbls::Dict{Symbol, Symbol} # Int
+#   priorprods::Vector{CliqGibbsMC}
+#   DebugCliqMCMC() = new()
+#   DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
+# end
 
 
 #

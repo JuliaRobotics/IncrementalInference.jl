@@ -3,6 +3,7 @@
 
 using IncrementalInference
 using Test
+# using Manifolds # should be done within regular exports
 
 ##
 

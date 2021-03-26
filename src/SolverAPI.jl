@@ -345,7 +345,7 @@ function solveTree!(dfgl::AbstractDFG,
   # if desired, drawtree in a loop
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
-  @info "Do tree based init-inference on tree"
+  @info "Do tree based init-ference on tree"
 
   # choose algorithm 
   if algorithm == :parametric
@@ -373,7 +373,7 @@ function solveTree!(dfgl::AbstractDFG,
                                       verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, 
                                       limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, 
                                       skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
-      @info "Finished tree based init-inference"
+      @info "Finished tree based init-ference"
     end
   end
 

@@ -381,39 +381,39 @@ Kaess et al.: iSAM2, IJRR, 2011, [Alg. 3]
 Fourie, D.: mmisam, PhD thesis, 2017. [Chpt. 5]
 """
 function newPotential(tree::AbstractBayesTree, dfg::G, var::Symbol, elimorder::Array{Symbol,1}) where G <: AbstractDFG
-    firvert = DFG.getVariable(dfg,var)
-    # no parent
-    if (length(getSolverData(firvert).separator) == 0)
-      # if (length(getCliques(tree)) == 0)
-        # create new root
-        addClique!(tree, dfg, var)
-      # else
-      #   # add to root
-      #   @warn "root append clique is happening"
-      #   appendClique!(tree, 1, dfg, var)
-      # end
+  firvert = DFG.getVariable(dfg,var)
+  # no parent
+  if (length(getSolverData(firvert).separator) == 0)
+    # if (length(getCliques(tree)) == 0)
+      # create new root
+      addClique!(tree, dfg, var)
+    # else
+    #   # add to root
+    #   @warn "root append clique is happening"
+    #   appendClique!(tree, 1, dfg, var)
+    # end
+  else
+    # find parent clique Cp that containts the first eliminated variable of Sj as frontal
+    Sj = getSolverData(firvert).separator
+    felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
+    # get clique id of first eliminated frontal
+    CpID = tree.frontals[felbl]
+    # look to add this conditional to the tree
+    cliq = getClique(tree, CpID)
+    # clique of the first eliminated frontal
+    unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
+    # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
+    if (sort(unFC) == sort(Sj))
+      # just add new variable as frontal to this clique
+      # insert conditional (p(var|sepr)) into clique CpID -- i.e. just adding a frontal
+      # @info "adding new frontal $var to existing clique $CpID"
+      appendClique!(tree, CpID, dfg, var)
     else
-      # find parent clique Cp that containts the first eliminated variable of Sj as frontal
-      Sj = getSolverData(firvert).separator
-      felbl = identifyFirstEliminatedSeparator(dfg, elimorder, firvert, Sj).label
-      # get clique id of first eliminated frontal
-      CpID = tree.frontals[felbl]
-      # look to add this conditional to the tree
-      cliq = getClique(tree, CpID)
-      # clique of the first eliminated frontal
-      unFC = union(getCliqFrontalVarIds(cliq), getCliqSeparatorVarIds(cliq))
-      # if the separator of this new variable is identical to the (entire) clique of the firstly eliminated frontal.
-      if (sort(unFC) == sort(Sj))
-        # just add new variable as frontal to this clique
-        # insert conditional (p(var|sepr)) into clique CpID -- i.e. just adding a frontal
-        # @info "adding new frontal $var to existing clique $CpID"
-        appendClique!(tree, CpID, dfg, var)
-      else
-        # a new child clique is required here (this becomes parent)
-        # @info "adding new child clique with parent separator."
-        newChildClique!(tree, dfg, CpID, var, Sj)
-      end
+      # a new child clique is required here (this becomes parent)
+      # @info "adding new child clique with parent separator."
+      newChildClique!(tree, dfg, CpID, var, Sj)
     end
+  end
 end
 
 """
@@ -1260,6 +1260,10 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
   cols = [frtl;cond]
   getCliqueData(cliq).inmsgIDs = inmsgIDs
   getCliqueData(cliq).potIDs = potIDs
+
+  @debug "Building cliqAssocMat" cliq
+  @debug "Building cliqAssocMat" cliq.id string(inmsgIDs) string(potIDs) 
+
   cliqAssocMat = Array{Bool,2}(undef, length(potIDs), length(cols))
   cliqMsgMat = Array{Bool,2}(undef, length(inmsgIDs), length(cols))
   fill!(cliqAssocMat, false)
@@ -1284,6 +1288,7 @@ function compCliqAssocMatrices!(dfg::G, bt::AbstractBayesTree, cliq::TreeClique)
       end
     end
   end
+  @debug "Final cliqAssocMat" cliq.id cliqAssocMat
   getCliqueData(cliq).cliqAssocMat = cliqAssocMat
   getCliqueData(cliq).cliqMsgMat = cliqMsgMat
   nothing

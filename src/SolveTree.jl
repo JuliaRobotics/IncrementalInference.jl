@@ -65,7 +65,7 @@ function doFMCIteration(fgl::AbstractDFG,
 
   vert = DFG.getVariable(fgl, vsym)
   if !getSolverData(vert).ismargin
-    potprod = nothing
+    # potprod = nothing
     densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
 
     if 0 < size(densPts,1)
@@ -102,7 +102,7 @@ function fmcmc!(fgl::AbstractDFG,
   if length(lbls) == 1
       MCMCIter=1
   end
-  mcmcdbg = Array{CliqGibbsMC,1}()
+  # mcmcdbg = Array{CliqGibbsMC,1}()
 
   # burn-in loop for outer Gibbs
   for iter in 1:MCMCIter
@@ -110,7 +110,7 @@ function fmcmc!(fgl::AbstractDFG,
     with_logger(logger) do
       @info "#$(iter)\t -- "
     end
-    dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
+    # dbgvals = !dbg ? nothing : CliqGibbsMC([], Symbol[])
 
     needFreshMeasurements = iter == 1 || getSolverParams(fgl).alwaysFreshMeasurements
 
@@ -118,13 +118,13 @@ function fmcmc!(fgl::AbstractDFG,
     for vsym in lbls
         doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, needFreshMeasurements, logger)
     end
-    !dbg ? nothing : push!(mcmcdbg, dbgvals)
+    # !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end
 
   # populate dictionary for return NBPMessage in multiple dispatch
   msgdict = compileFMCMessages(fgl, lbls, logger)
 
-  return mcmcdbg, msgdict
+  return msgdict
 end
 
 
@@ -162,10 +162,10 @@ function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique,
     @info "up w $(length(inmsgs)) msgs"
   end
   # TODO -- some weirdness with: d,. = d = ., nothing
-  mcmcdbg = Array{CliqGibbsMC,1}()
+  # mcmcdbg = Array{CliqGibbsMC,1}()
   d = Dict{Symbol,TreeBelief}()
 
-  priorprods = Vector{CliqGibbsMC}()
+  # priorprods = Vector{CliqGibbsMC}()
 
   cliqdata = getCliqueData(cliq)
 
@@ -173,23 +173,23 @@ function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique,
   # use nested structure for more efficient Chapman-Kolmogorov solution approximation
   if false
     IDS = [cliqdata.frontalIDs;cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
-    mcmcdbg, d = fmcmc!(dfg, cliq, inmsgs, IDS, N, iters, dbg, logger)
+    d = fmcmc!(dfg, cliq, inmsgs, IDS, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
     # NOTE -- double up on directs to allow inflation to take proper affect, see #1051
-    dummy, d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
+    d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
     
     if length(cliqdata.msgskipIDs) > 0
-      dummy, dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
+      dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
       for md in dd d[md[1]] = md[2]; end
     end
     if length(cliqdata.itervarIDs) > 0
-      mcmcdbg, ddd = fmcmc!(dfg, cliq, inmsgs, cliqdata.itervarIDs, N, iters, dbg, logger, false)
+      ddd = fmcmc!(dfg, cliq, inmsgs, cliqdata.itervarIDs, N, iters, dbg, logger, false)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      priorprods, dddd = fmcmc!(dfg, cliq, inmsgs, doids, N, 1, dbg, logger, true)
+      dddd = fmcmc!(dfg, cliq, inmsgs, doids, N, 1, dbg, logger, true)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
