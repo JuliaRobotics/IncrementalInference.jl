@@ -38,6 +38,7 @@ getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 ## Deprecate code below before v0.23
 ##==============================================================================
 
+@deprecate solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...) solveGraphParametric!(fg; init=init, kwargs...)
 
 # FIXME, much consolidation required here
 # Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1}}) = AMP.Euclid
