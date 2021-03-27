@@ -30,6 +30,10 @@ for ambiguous data association situations.  This function populates `allelements
 indices associated with particular multihypothesis selection while `activehypo` simultaneously 
 contains the hypothesis index and factor graph variables associated with that hypothesis selection.  The return value `certainidx` are the hypotheses that are not in question.
 
+This function does not consider whether a unroll hypo lambda can actually exist, it just generates
+a recipe of which options should be considered.  Whoever solves the recipe is responsible for 
+building the right lambda or doing something else.
+
 Input:
 - `maxlen` is the max number of samples across all variables
 
@@ -38,15 +42,20 @@ Output:
 - `allelements`:  list of which particles go with which hypothesis selection
 - `activehypo`:   list of which hypotheses go with which certain + fractional variables
 - `mhidx`:        multihypothesis selection per particle idx
+- `sfidx`:        Solve for idx
 
 Example:
 ```julia
 idx=(1,2,3)
-multihypo=[1.0;0.5;0.5]
-sfidx=2 # example specific
+multihypo=[1.0;0.5;0.5]    # X,La,Lb
+
+# specfic example
+# this is important -- e.g. `pts = approxConv(fg, :XLaLbf1, :La)`
+sfidx=2
+
 certainidx=
 1-element Array{Int64,1}:
- 1
+ 1                         # X
 allelements=
 3-element Array{Any,1}:
  Int64[]
@@ -54,12 +63,21 @@ allelements=
  [3, 4, 5, ...]
 activehypo=
 3-element Array{Any,1}:
- (1, [1, 2])
- (2, [1, 2])
- (3, [2, 3])
-mhidx=
+ (0, [2])     # nullhypo -- forced afterward, likely to be deprecated in this case
+ (1, [1, 2])  # unroll hypo lambda for X,La
+ (2, [1, 2])  # unroll hypo lambda for X,La
+ (3, [2, 3])  # would be (but cannot) unroll hypo La,Lb # almost our nullhypo # wont build a lambda
+
+# now select which lambdas to build based on converted `activehypo`  rand(  Categorical( [0; 0.5;0.5] ) )
+ mhidx=
 100-element Array{Int64,1}:
 2, 2, 3, 3, 3,...
+```
+
+Another example on what is `certainidx`
+```julia
+multihypo=[1;1;0.5;0.5]
+# results in: `certainidx = [1;2]`
 ```
 
 Notes:
@@ -84,8 +102,8 @@ if solvefor 3, then allelem = [mhidx.==3] and ARR[solvefor][:,mhidx.==2]=ARR[2][
 sfidx=1, mhidx=2:  ah = [1;2]
 sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=2, mhidx=2:  ah = [1;2]
-sfidx=2, mhidx=3:  2 should take a value from 3
-sfidx=3, mhidx=2:  3 should take a value from 2
+sfidx=2, mhidx=3:  2 should take a value from 3 or nullhypo
+sfidx=3, mhidx=2:  3 should take a value from 2 or nullhypo
 sfidx=3, mhidx=3:  ah = [1;3]
 
 # `activehypo` in example mh=[1.0;0.33;0.33;0.34]
@@ -94,15 +112,15 @@ sfidx=1, mhidx=3:  ah = [1;3]
 sfidx=1, mhidx=4:  ah = [1;4]
 
 sfidx=2, mhidx=2:  ah = [1;2]
-sfidx=2, mhidx=3:  2 should take a value from 3
-sfidx=2, mhidx=4:  2 should take a value from 4
+sfidx=2, mhidx=3:  2 should take a value from 3 or nullhypo
+sfidx=2, mhidx=4:  2 should take a value from 4 or nullhypo
 
-sfidx=3, mhidx=2:  3 should take a value from 2
+sfidx=3, mhidx=2:  3 should take a value from 2 or nullhypo
 sfidx=3, mhidx=3:  ah = [1;3]
-sfidx=3, mhidx=4:  3 should take a value from 4
+sfidx=3, mhidx=4:  3 should take a value from 4 or nullhypo
 
-sfidx=4, mhidx=2:  4 should take a value from 2
-sfidx=4, mhidx=3:  4 should take a value from 3
+sfidx=4, mhidx=2:  4 should take a value from 2 or nullhypo
+sfidx=4, mhidx=3:  4 should take a value from 3 or nullhypo
 sfidx=4, mhidx=4:  ah = [1;4]
 ```
 

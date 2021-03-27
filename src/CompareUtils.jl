@@ -8,9 +8,17 @@ import DistributedFactorGraphs: compare, compareAllSpecial
 # the functions with IIF-specific parameters.
 # To extend these, import the relevant DFG compareX function and overload it.
 
-function compare(p1::BallTreeDensity, p2::BallTreeDensity)::Bool
-  return compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) &&
-         compareAll(p1,p2, skip=[:calcStatsHandle; :bt])
+function compare( p1::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                  p2::Union{<:BallTreeDensity,<:ManifoldKernelDensity} )
+  #
+  return  compareAll(p1.bt,p2.bt, skip=[:calcStatsHandle; :data]) && 
+          compareAll(p1,p2, skip=[:calcStatsHandle; :bt])
+end
+function Base.isapprox( p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+                        p2::Union{<:BallTreeDensity, <:ManifoldKernelDensity};
+                        atol=1e-6)
+  #
+  mmd(p1,p2) < atol
 end
 
 function compareAllSpecial(A::T1, B::T2;
@@ -22,18 +30,18 @@ end
 
 
 
-function compare(c1::TreeClique,
-  c2::TreeClique )
-#
-TP = true
-TP = TP && c1.id == c2.id
-# data
-@warn "skipping ::TreeClique compare of data"
-# TP = TP && compare(c1.data, c2.data)
+function compare( c1::TreeClique,
+                  c2::TreeClique )
+  #
+  TP = true
+  TP = TP && c1.id == c2.id
+  # data
+  @warn "skipping ::TreeClique compare of data"
+  # TP = TP && compare(c1.data, c2.data)
 
-# attributes
-@warn "only comparing keys of TreeClique attributes"
-TP = TP && collect(keys(c1.attributes)) == collect(keys(c2.attributes))
+  # attributes
+  @warn "only comparing keys of TreeClique attributes"
+  TP = TP && collect(keys(c1.attributes)) == collect(keys(c2.attributes))
 
-return TP
+  return TP
 end

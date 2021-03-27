@@ -60,3 +60,28 @@ function convert(::Type{AliasingScalarSampler}, str::AS) where {AS <: AbstractSt
   AliasingScalarSampler(domain, weight)
 end
 # str = "IncrementalInference.AliasingScalarSampler([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0,24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0], [0.156102, 0.117163, 0.221049, 0.275905, 0.0488494, 0.0731541, 0.107584,0.313848, 0.0309002, 0.0, 0.0384554, 0.155308, 0.276917, 0.0271168, 0.293263, 0.171316, 0.27459, 0.175323, 0.0535772, 0.181663, 0.295042, 0.104593, 0.0472137, 0.326016, 0.055283, 0.0737767, 0.302647, 0.0291257, 0.0206642, 0.223375])"
+
+
+##===================================================================================
+## Notes for beyond 1D sampling
+##===================================================================================
+
+
+# grid = reshape(1:10000, 100,100)
+# intensity = zeros(100,100)
+# mn = MvNormal([50;50],[20;20.0])
+# for i in 1:100, j in 1:100
+#   intensity[i,j] = pdf(mn, [i+0.0;j])
+# end
+# bss = AliasingScalarSampler(grid[:], intensity[:])
+# pts1d = rand(bss, 1000) .|> Int
+# # 1000-element Vector{Int64}:
+# # 7171
+# # 6983
+# # 3632
+# # ...(y->findall(x->x==y,grid)).(pts1d)
+# # 1000-element Vector{Vector{CartesianIndex{2}}}:
+# # [CartesianIndex(71, 72)]
+# # [CartesianIndex(83, 70)]
+# # [CartesianIndex(32, 37)]
+# # ...

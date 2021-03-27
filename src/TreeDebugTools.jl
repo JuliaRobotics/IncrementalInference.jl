@@ -71,15 +71,13 @@ function treeProductUp(fg::AbstractDFG,
   #   end
   #   push!( upmsgssym, LikelihoodMessage(beliefDict=dict) )
   # end
-  upmsgssym = fetchMsgsUpChildren(tree, cliq, TreeBelief)
+  
+  # upmsgssym = fetchMsgsUpChildren(tree, cliq, TreeBelief)
 
   # perform the actual computation
-  potprod = nothing
   pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg )
-  # manis = getVariableType(getVariable(fg, sym)) |> getManifolds
-  # pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, upmsgssym, N, dbg, manis )
 
-  return pGM, potprod
+  return pGM, nothing
 end
 
 
@@ -115,11 +113,9 @@ function treeProductDwn(fg::G,
   dwnmsgssym = LikelihoodMessage[LikelihoodMessage(dict);]
 
   # perform the actual computation
-  potprod = nothing
   pGM, fulldim = predictbelief(fg, sym, :, N=N, dbg=dbg)
-  # pGM, potprod, fulldim = cliqGibbs( fg, cliq, sym, dwnmsgssym, N, dbg ) #vertid
 
-  return pGM, potprod, sym, dwnmsgssym
+  return pGM, nothing, sym, dwnmsgssym
 end
 
 

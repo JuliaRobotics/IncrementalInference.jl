@@ -12,6 +12,10 @@ using Reexport
 # @reexport using Graphs
 @reexport using LinearAlgebra
 
+using Manifolds
+
+export ℝ, Manifold, Euclidean, Circle
+
 import NLsolve
 import NLSolversBase
 import Optim
@@ -432,8 +436,8 @@ include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")
 include("Factors/EuclidDistance.jl")
-include("Factors/Sphere1D.jl")
-include("Variables/Sphere1D.jl")
+include("Factors/Circular.jl")
+include("Variables/Circular.jl")
 include("Factors/PartialPrior.jl")
 include("DefaultNodeTypes.jl") # older file
 

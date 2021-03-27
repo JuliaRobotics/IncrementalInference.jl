@@ -65,6 +65,13 @@ function productbelief( dfg::AbstractDFG,
   end
 
   dens_ = 0 < lennonp ? dens : [deepcopy(getBelief(vert));]
+    # # resize for #1013
+    # if size(denspts,2) < N
+    #   pGM = zeros(size(denspts,1),N)
+    #   pGM[:,1:size(denspts,2)] .= denspts
+    # else
+    #   pGM = deepcopy(denspts)
+    # end
 
   if 0 < lennonp # || (lennonp == 0 && 0 < lenpart)
     # multiple non-partials

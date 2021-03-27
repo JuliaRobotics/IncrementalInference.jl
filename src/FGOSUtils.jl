@@ -78,18 +78,30 @@ function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,l
 end
 
 
-# export setSolvable!
-
-manikde!(pts::AbstractArray{Float64,2}, vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}}) = manikde!(pts, getManifolds(vartype))
-manikde!(pts::AbstractArray{Float64,1}, vartype::Type{ContinuousScalar}) = manikde!(reshape(pts,1,:), getManifolds(vartype))
-
 # extend convenience function
 function manikde!(pts::AbstractArray{Float64,2},
                   bws::Vector{Float64},
-                  variableType::Union{InstanceType{InferenceVariable}, InstanceType{FunctorInferenceType}}  )
+                  variableType::Union{<:InstanceType{InferenceVariable}, <:InstanceType{FunctorInferenceType}}  )
   #
-  manikde!(pts, bws, getManifolds(variableType))
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(variableType))
+  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
+  ampmani = convert(Manifold, variableType)
+  return ManifoldKernelDensity(ampmani, bel)
+  # manikde!(pts, bws, getManifolds(variableType))
 end
+
+function manikde!(pts::AbstractArray{Float64,2}, 
+                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}})
+  # = manikde!(pts, getManifolds(vartype))
+  #
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(vartype))
+  bel = KernelDensityEstimate.kde!(pts, addopT, diffopT)
+  ampmani = convert(Manifold, vartype)
+  return ManifoldKernelDensity(ampmani, bel)
+end
+
+manikde!(pts::AbstractArray{Float64,1}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype) #, getManifolds(vartype))
+
 
 
 """
@@ -173,6 +185,7 @@ function fifoFreeze!(dfg::AbstractDFG)
 end
 
 
+
 """
     $SIGNATURES
 
@@ -180,6 +193,7 @@ Get the ParametricPointEstimates---based on full marginal belief estimates---of 
 
 DevNotes
 - TODO update for manifold subgroups.
+- TODO standardize after AMP3D
 
 Related
 
@@ -191,24 +205,26 @@ function calcPPE( var::DFGVariable,
                   solveKey::Symbol=:default  )
   #
   P = getBelief(var, solveKey)
-  manis = getManifolds(varType) # getManifolds(vnd)
+  maniDef = convert(Manifold, varType)
+  manis = getManifolds(maniDef) # varType # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
-  Pme = getKDEMean(P) #, addop=ops[1], diffop=ops[2]
+  Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-  suggested = zeros(getDimension(var))
-  # TODO standardize after AMP3D
-  @assert length(manis) == getDimension(var)
-  for i in 1:length(manis)
-    mani = manis[i]
-    if mani == :Euclid
-      suggested[i] = Pme[i]
-    elseif mani == :Circular
-      suggested[i] = Pma[i]
-    else
-      error("Unknown manifold to find PPE, $varType, $mani")
-    end
-  end
-  MeanMaxPPE(solveKey, suggested, Pma, Pme, now())
+  # suggested = zeros(getDimension(var))
+  # @assert length(manis) == getDimension(var)
+  # for i in 1:length(manis)
+  #   mani = manis[i]
+  #   if mani == :Euclid
+  #     suggested[i] = Pme[i]
+  #   elseif mani == :Circular
+  #     suggested[i] = Pma[i]
+  #   else
+  #     error("Unknown manifold to find PPE, $varType, $mani")
+  #   end
+  # end
+
+  # suggested, max, mean, current time
+  MeanMaxPPE(solveKey, Pme, Pma, Pme, now())
 end
 
 
@@ -560,10 +576,6 @@ const setVariablePosteriorEstimates! = setPPE!
 ## ============================================================================
 # Starting integration with Manifolds.jl, via ApproxManifoldProducts.jl first
 ## ============================================================================
-
-# FIXME, much consolidation required here
-convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid}) = AMP.Euclid
-convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar}) = AMP.Euclid
 
 
 
