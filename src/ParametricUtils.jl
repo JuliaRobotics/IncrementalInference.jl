@@ -415,7 +415,7 @@ end
     $SIGNATURES
 Add parametric solver to fg, batch solve using [`solveFactorGraphParametric`](@ref) and update fg.
 """
-function solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
+function solveGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
   if !(:parametric in fg.solverParams.algorithms)
     addParametricSolver!(fg; init=init)
   elseif init
