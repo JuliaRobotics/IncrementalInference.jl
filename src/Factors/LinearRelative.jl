@@ -28,10 +28,12 @@ LinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = LinearRelat
 LinearRelative(nm::MvNormal) = LinearRelative{length(nm.μ), typeof(nm)}(nm)
 LinearRelative(nm::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = LinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-getDimension(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = N
-getManifolds(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+getDimension(::InstanceType{LinearRelative{N}}) where {N} = N
+getManifold(::InstanceType{LinearRelative{N}}) where {N} = Euclidean(N)
+getManifolds(::T) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
+getManifolds(::Type{<:T}) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
 
-getDomain(::InstanceType{LinearRelative{N,<:SamplableBelief}}) where N = ContinuousEuclid{N}
+getDomain(::InstanceType{LinearRelative{N}}) where N = ContinuousEuclid{N}
 # getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
 
 

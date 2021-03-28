@@ -60,7 +60,7 @@ import ApproxManifoldProducts: mmd
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
-import DistributedFactorGraphs: getDimension, getManifolds
+import DistributedFactorGraphs: getDimension, getManifolds, getManifold
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable

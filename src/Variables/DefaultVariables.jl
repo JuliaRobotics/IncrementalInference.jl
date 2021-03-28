@@ -20,7 +20,9 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 DevNotes
 - TODO Consolidate with ContinuousEuclid{1}
 """
-@defVariable ContinuousScalar Euclidean(1) #1 (:Euclid,)
+@defVariable ContinuousScalar Euclidean(1)
+
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
 
 ## Euclid N
@@ -34,16 +36,15 @@ struct ContinuousEuclid{N} <: InferenceVariable end
 
 ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
 
-getManifold(::Type{<:ContinuousEuclid{N}}) where N = Euclidean(N)                               # ntuple(i -> :Euclid, N)
-getDimension(val::Type{<:ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))   # N::Int
-getManifolds(val::Type{<:ContinuousEuclid{N}}) where N = convert(Tuple, getManifold(val))       # ntuple(i -> :Euclid, N)
+getManifold(::Type{<:ContinuousEuclid{N}}) where N = Euclidean(N)
+getDimension(val::Type{<:ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))
+getManifolds(val::Type{<:ContinuousEuclid{N}}) where N = convert(Tuple, getManifold(val))
 
-getManifold(::ContinuousEuclid{N}) where N = Euclidean(N)                               # ntuple(i -> :Euclid, N)
-getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))   # N::Int
-getManifolds(val::ContinuousEuclid{N}) where N = convert(Tuple, getManifold(val))       # ntuple(i -> :Euclid, N)
+getManifold(::ContinuousEuclid{N}) where N = Euclidean(N)                               
+getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
+getManifolds(val::ContinuousEuclid{N}) where N = convert(Tuple, getManifold(val))
 
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N)
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
 
 ## Circular
@@ -57,7 +58,7 @@ Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta
 @defVariable Circular Circle()
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = Manifolds.Circle()
+# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = Manifolds.Circle()
 
 
 
