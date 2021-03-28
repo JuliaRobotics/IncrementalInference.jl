@@ -161,7 +161,8 @@ function _totalCost(fg::AbstractDFG,
 end
 
 
-export solveFactorGraphParametric
+export solveGraphParametric
+
 """
     $SIGNATURES
 
@@ -169,17 +170,17 @@ Batch solve a Gaussian factor graph using Optim.jl. Parameters can be passed dir
 Notes:
   - Only :Euclid and :Circular manifolds are currently supported, own manifold are supported with `algorithmkwargs` (code may need updating though)
 """
-function solveFactorGraphParametric(fg::AbstractDFG;
-                                    useCalcFactor::Bool=true, #TODO dev param will be removed
-                                    solvekey::Symbol=:parametric,
-                                    autodiff = :forward,
-                                    algorithm=Optim.BFGS,
-                                    algorithmkwargs=(), # add manifold to overwrite computed one
-                                    options = Optim.Options(allow_f_increases=true,
-                                                            time_limit = 100,
-                                                            # show_trace = true,
-                                                            # show_every = 1,
-                                                            ))
+function solveGraphParametric(fg::AbstractDFG;
+                              useCalcFactor::Bool=true, #TODO dev param will be removed
+                              solvekey::Symbol=:parametric,
+                              autodiff = :forward,
+                              algorithm=Optim.BFGS,
+                              algorithmkwargs=(), # add manifold to overwrite computed one
+                              options = Optim.Options(allow_f_increases=true,
+                                                      time_limit = 100,
+                                                      # show_trace = true,
+                                                      # show_every = 1,
+                                                      ))
 
   #Other options
   # options = Optim.Options(time_limit = 100,
@@ -231,7 +232,7 @@ function solveFactorGraphParametric(fg::AbstractDFG;
   return d, result, flatvar.idx, Σ
 end
 
-#TODO maybe consolidate with solveFactorGraphParametric
+#TODO maybe consolidate with solveGraphParametric
 #TODO WIP
 ```
     $SIGNATURES
@@ -413,7 +414,7 @@ end
 
 """
     $SIGNATURES
-Add parametric solver to fg, batch solve using [`solveFactorGraphParametric`](@ref) and update fg.
+Add parametric solver to fg, batch solve using [`solveGraphParametric`](@ref) and update fg.
 """
 function solveGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
   if !(:parametric in fg.solverParams.algorithms)
@@ -422,7 +423,7 @@ function solveGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...)
     initParametricFrom!(fg)
   end
 
-  vardict, result, varIds, Σ = solveFactorGraphParametric(fg; kwargs...)
+  vardict, result, varIds, Σ = solveGraphParametric(fg; kwargs...)
 
   updateParametricSolution!(fg, vardict)
 
