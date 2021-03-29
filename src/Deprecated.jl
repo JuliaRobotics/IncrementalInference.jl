@@ -24,20 +24,39 @@ end
 
 
 ##==============================================================================
-## Deprecate as part of Manifolds.jl consolidation
+## Deprecate code below before v0.24
 ##==============================================================================
 
 
-# Legacy support
-getManifolds(::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}}) where N = tuple([:Euclid for i in 1:N]...)
-getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
+@deprecate ContinuousMultivariate(N::Int) ContinuousEuclid(N)
 
+# """
+# $(TYPEDEF)
+
+# Continuous variable of dimension `.dims` on manifold `.manifolds`.
+# """
+# struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
+#   dims::Int
+#   manifolds::T1
+# end
+
+# function ContinuousMultivariate(x::Int;
+#                                 manifolds::T1=convert(Tuple, Euclidean(1))  )  where {T1 <: Tuple}
+#   #
+#   maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
+#   ContinuousMultivariate{typeof(maniT)}(x, maniT)
+# end
+
+# # Legacy support
+# getManifolds(::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}}) where N = tuple([:Euclid for i in 1:N]...)
+# getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
 
 ##==============================================================================
 ## Deprecate code below before v0.23
 ##==============================================================================
 
+@deprecate solveFactorGraphParametric(w...; kw...) solveGraphParametric(w...; kw...)
 @deprecate solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...) solveGraphParametric!(fg; init=init, kwargs...)
 
 # FIXME, much consolidation required here

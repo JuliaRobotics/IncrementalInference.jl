@@ -537,6 +537,7 @@ Helper function for evaluating factor residual functions, by adding necessary `C
 Notes
 - Factor must already be in a factor graph to work
 - Will not yet properly support all multihypo nuances, more a function for testing
+- Useful for debugging a factor. 
 
 Example
 ```julia

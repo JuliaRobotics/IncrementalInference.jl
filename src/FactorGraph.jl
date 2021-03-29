@@ -41,17 +41,19 @@ end
 # Should deprecate in favor of TensorCast.jl
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
-"""
-    $SIGNATURES
-Return the manifolds on which variable `sym::Symbol` is defined.
-"""
+# """
+#     $SIGNATURES
+# Return the manifolds on which variable `sym::Symbol` is defined.
+# """
+
 getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
 getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
-function getManifolds(dfg::G, sym::Symbol; solveKey::Symbol=:default) where {G <: AbstractDFG}
+function getManifolds(dfg::AbstractDFG, sym::Symbol; solveKey::Symbol=:default)
   return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
 end
-getManifolds(vartype::InferenceVariable) = vartype.manifolds
-getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
+
+# getManifolds(vartype::InferenceVariable) = vartype.manifolds
+# getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
 
 """
     $(SIGNATURES)
