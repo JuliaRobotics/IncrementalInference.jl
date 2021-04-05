@@ -1,5 +1,16 @@
 
 
+function _partialProducts!(pGM, partials, manis)
+  # whats up with this?
+  for (dimnum,pp) in partials
+    push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
+  end
+
+  # do each partial dimension individually
+  for (dimnum,pp) in partials
+    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
+  end
+end
 
 """
     $(SIGNATURES)
@@ -20,15 +31,7 @@ function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
   # calculate products over all dimensions, legacy proposals held in `dens` vector
   pGM = AMP.manifoldProduct(dens, manis, Niter=1) |> getPoints
 
-  # whats up with this?
-  for (dimnum,pp) in partials
-    push!(pp, AMP.manikde!(pGM[dimnum:dimnum,:], (manis[dimnum],) ))
-  end
-
-  # do each partial dimension individually
-  for (dimnum,pp) in partials
-    pGM[dimnum,:] = AMP.manifoldProduct(pp, (manis[dimnum],), Niter=1) |> getPoints
-  end
+  _partialProducts!(pGM, partials, manis)
 
   return pGM
 end

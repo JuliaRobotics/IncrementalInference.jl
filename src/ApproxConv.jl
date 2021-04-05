@@ -17,21 +17,25 @@ function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
     Int[1:ccwl.xDim...]
   end
 
-  for thrid in 1:Threads.nthreads()
-    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
-    ccwl.cpt[thrid].p .= p
-  end
+  # NOTE should only be done in the constructor
+  # for thrid in 1:Threads.nthreads()
+  #   length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
+  #   ccwl.cpt[thrid].p .= p
+  # end
   nothing
 end
 
 function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
                                               CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
   #
-  for thrid in 1:Threads.nthreads()
-    length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
-    ccwl.cpt[thrid].p .= Int[1:ccwl.xDim;]
-  end
-  nothing
+  return nothing
+
+  # # should be done with constructor only 
+  # for thrid in 1:Threads.nthreads()
+  #   length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
+  #   ccwl.cpt[thrid].p .= Int[1:ccwl.xDim;]
+  # end
+  # nothing
 end
 
 """
@@ -135,8 +139,11 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   for thrid in 1:Threads.nthreads()
     cpt_ = ccwl.cpt[thrid] 
     cpt_.X = ccwl.params[sfidx]
-    resize!(cpt_.p, ccwl.xDim) 
-    cpt_.p .= 1:ccwl.xDim
+
+    # NOTE should be done during constructor for this factor only
+    # resize!(cpt_.p, ccwl.xDim) 
+    # cpt_.p .= 1:ccwl.xDim
+
     # used in ccw functor for AbstractRelativeMinimize
     # TODO JT - Confirm it should be updated here. Testing in prepgenericconvolution
     resize!(cpt_.res, ccwl.zDim) 
