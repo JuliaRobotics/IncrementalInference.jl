@@ -53,6 +53,17 @@ getFactorDim(w...) = getDimension(w...)
 # getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
 
+
+
+function _getDimensionsPartial(ccw::CommonConvWrapper)
+  # @warn "_getDimensionsPartial not ready for use yet"
+  ccw.partialDims
+end
+  _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
+_getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
+
+
 """
     $SIGNATURES
 Get `.factormetadata` for each CPT in CCW for a specific factor in `fg`. 

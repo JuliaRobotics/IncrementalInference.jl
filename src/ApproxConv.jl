@@ -9,34 +9,40 @@ export findRelatedFromPotential
 Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
 """
 function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractPrior},S,T}
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
   #
+  # return nothing
+
   p = if ccwl.partial
-    Int[ccwl.usrfnc!.partial...]
+    Int32[ccwl.usrfnc!.partial...]
   else
-    Int[1:ccwl.xDim...]
+    Int32[1:ccwl.xDim...]
   end
 
+  ccwl.partialDims = (p)
   # NOTE should only be done in the constructor
-  # for thrid in 1:Threads.nthreads()
-  #   length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
-  #   ccwl.cpt[thrid].p .= p
-  # end
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
+    ccwl.cpt[thrid].p .= p # SVector... , see ccw.partialDims
+  end
   nothing
 end
 
-function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
-  #
-  return nothing
+# function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+#                                               CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
+#   #
+#   # return nothing
 
-  # # should be done with constructor only 
-  # for thrid in 1:Threads.nthreads()
-  #   length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
-  #   ccwl.cpt[thrid].p .= Int[1:ccwl.xDim;]
-  # end
-  # nothing
-end
+#   p = Int[1:ccwl.xDim;]
+#   ccwl.partialDims = SVector(Int32.(p)...)
+
+#   # should be done with constructor only 
+#   for thrid in 1:Threads.nthreads()
+#     # length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
+#     ccwl.cpt[thrid].p = p  # SVector(Int32[1:ccwl.xDim;]...)
+#   end
+#   nothing
+# end
 
 """
     $(SIGNATURES)
@@ -833,12 +839,12 @@ function proposalbeliefs!(dfg::AbstractDFG,
     data = getSolverData(fct)
     p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
     if _getCCW(data).partial   # partial density
-      pardims = _getCCW(data).usrfnc!.partial
+      pardims = _getDimensionsPartial(_getCCW(data)) # _getCCW(data).usrfnc!.partial
       for dimnum in pardims
         if haskey(partials, dimnum)
-          push!(partials[dimnum], marginal(p,[dimnum]))
+          push!(partials[dimnum], marginal(p,Int.([dimnum;])))
         else
-          partials[dimnum] = BallTreeDensity[marginal(p,[dimnum])]
+          partials[dimnum] = BallTreeDensity[marginal(p,Int.([dimnum;]))]
         end
       end
     else # add onto full density list

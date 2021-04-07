@@ -639,19 +639,22 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
   certainhypo = multihypo !== nothing ? collect(1:length(multihypo.p))[multihypo.p .== 0.0] : collect(1:length(Xi))
   
+  # sort out partialDims here
+  ispartl = hasfield(T, :partial)
+
   ccw = CommonConvWrapper(
           usrfnc,
           zeros(1,0),
           zdim,
           ARR,
           fmd,
-          specialzDim = sum(fldnms .== :zDim) >= 1,
-          partial = sum(fldnms .== :partial) >= 1,
+          specialzDim = hasfield(T, :zDim),
+          partial = ispartl,
           hypotheses=multihypo,
           certainhypo=certainhypo,
           nullhypo=nullhypo,
           threadmodel=threadmodel,
-          inflation=inflation
+          inflation=inflation,
         )
   #
   return ccw
