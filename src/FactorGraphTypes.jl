@@ -194,6 +194,29 @@ mutable struct ConvPerThread{R,F<:FactorMetadata}
   res::R # was Vector{Float64}
 end
 
+
+function ConvPerThread( X::Array{Float64,2},
+                        zDim::Int,
+                        factormetadata::FactorMetadata;
+                        particleidx::Int=1,
+                        activehypo= 1:length(params),
+                        p::AbstractVector{<:Integer}=collect(1:size(X,1)),
+                        perturb=zeros(zDim),
+                        res=zeros(zDim),
+                        thrid_ = 0  )
+  #
+  return ConvPerThread( thrid_,
+                        particleidx,
+                        factormetadata,
+                        Int[activehypo;],
+                        Int[p...;],
+                        perturb,
+                        X,
+                        res )
+end
+
+
+
 """
 $(TYPEDEF)
 """
@@ -208,7 +231,8 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   zDim::Int
   # special case settings
   specialzDim::Bool # is there a special zDim requirement -- defined by user
-  partial::Bool # is this a partial constraint -- defined by user
+  # is this a partial constraint -- defined by user, see new 
+  partial::Bool 
   # multi hypothesis settings
   hypotheses::H # categorical to select which hypothesis is being considered during convolution operation
   certainhypo::C
@@ -223,28 +247,8 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   cpt::Vector{<:ConvPerThread}
   # inflationSpread
   inflation::Float64
-end
-
-
-
-function ConvPerThread( X::Array{Float64,2},
-                        zDim::Int,
-                        factormetadata::FactorMetadata;
-                        particleidx::Int=1,
-                        activehypo= 1:length(params),
-                        p=collect(1:size(X,1)),
-                        perturb=zeros(zDim),
-                        res=zeros(zDim),
-                        thrid_ = 0  )
-  #
-  return ConvPerThread( thrid_,
-                        particleidx,
-                        factormetadata,
-                        Int[activehypo;],
-                        p,
-                        perturb,
-                        X,
-                        res)
+  # DONT USE THIS YET which dimensions does this factor influence
+  partialDims::Vector{Int} # should become SVector{N, Int32}
 end
 
 
@@ -262,12 +266,12 @@ function CommonConvWrapper( fnc::T,
                             varidx::Int=1,
                             measurement::Tuple=(zeros(0,1),),
                             particleidx::Int=1,
-                            p=collect(1:size(X,1)),
-                            perturb=zeros(zDim),
                             xDim::Int=size(X,1),
+                            partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
+                            perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
-                            inflation::Real=0.0  ) where {T<:FunctorInferenceType,H}
+                            inflation::Real=3.0  ) where {T<:FunctorInferenceType,H}
   #
   return  CommonConvWrapper(fnc,
                             xDim,
@@ -282,9 +286,10 @@ function CommonConvWrapper( fnc::T,
                             measurement,
                             threadmodel,
                             (i->ConvPerThread(X, zDim,factormetadata, particleidx=particleidx,
-                                              activehypo=activehypo, p=p, 
+                                              activehypo=activehypo, p=partialDims, 
                                               perturb=perturb, res=res )).(1:Threads.nthreads()),
-                            inflation
+                            inflation,
+                            partialDims  # SVector(Int32.()...)
                             )
 end
 

@@ -38,6 +38,8 @@ using
   Combinatorics,
   UUIDs
 
+using StaticArrays
+
 using ManifoldsBase
 
 # for BayesTree
