@@ -20,6 +20,8 @@ include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
 
+include("testPartialPrior.jl")
+
 include("testSaveLoadDFG.jl")
 
 include("testJunctionTreeConstruction.jl")

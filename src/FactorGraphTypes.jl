@@ -200,7 +200,7 @@ function ConvPerThread( X::Array{Float64,2},
                         factormetadata::FactorMetadata;
                         particleidx::Int=1,
                         activehypo= 1:length(params),
-                        p=collect(1:size(X,1)),
+                        p::AbstractVector{<:Integer}=collect(1:size(X,1)),
                         perturb=zeros(zDim),
                         res=zeros(zDim),
                         thrid_ = 0  )
@@ -209,7 +209,7 @@ function ConvPerThread( X::Array{Float64,2},
                         particleidx,
                         factormetadata,
                         Int[activehypo;],
-                        [p...;],
+                        Int[p...;],
                         perturb,
                         X,
                         res )
@@ -267,7 +267,7 @@ function CommonConvWrapper( fnc::T,
                             measurement::Tuple=(zeros(0,1),),
                             particleidx::Int=1,
                             xDim::Int=size(X,1),
-                            partialDims=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
+                            partialDims::AbstractVector{<:Integer}=collect(1:size(X,1)), # TODO make this SVector, and name partialDims
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,

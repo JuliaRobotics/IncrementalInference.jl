@@ -641,6 +641,11 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
   
   # sort out partialDims here
   ispartl = hasfield(T, :partial)
+  partialDims = if ispartl
+    Int[usrfnc.partial...]
+  else
+    Int[]
+  end
 
   ccw = CommonConvWrapper(
           usrfnc,
@@ -655,6 +660,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
           nullhypo=nullhypo,
           threadmodel=threadmodel,
           inflation=inflation,
+          partialDims=partialDims
         )
   #
   return ccw

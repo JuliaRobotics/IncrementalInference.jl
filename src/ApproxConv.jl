@@ -105,7 +105,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     solvefor::Symbol,
                                     N::Int;
                                     needFreshMeasurements::Bool=true,
-                                    solveKey::Symbol=:default  ) where {F <: FunctorInferenceType}
+                                    solveKey::Symbol=:default  ) where {F <: AbstractFactor}
   #
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
@@ -273,10 +273,6 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
   count = 0
 
   cpt_ = ccwl.cpt[Threads.threadid()]
-
-  # setup the partial or complete decision variable dimensions for this ccwl object
-  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl)
   
   # @assert norm(ccwl.certainhypo - certainidx) < 1e-6
   for (hypoidx, vars) in activehypo
@@ -363,7 +359,11 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
   end
-  
+
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl)
+
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
   
@@ -375,7 +375,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # TODO convert to HypothesisRecipeElements result
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
-  
+
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
@@ -400,6 +400,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 inflateCycles::Int=3,
                                 skipSolve::Bool=false ) where {T <: AbstractFactor}
   #
+  # setup the partial or complete decision variable dimensions for this ccwl object
+  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+  _setCCWDecisionDimsConv!(ccwl)
+  
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
   sfidx = 1
@@ -464,7 +468,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
-                                skipSolve::Bool=false ) where {N_,F<:FunctorInferenceType,S,T}
+                                skipSolve::Bool=false ) where {N_,F<:AbstractFactor,S,T}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
@@ -491,7 +495,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
-                                skipSolve::Bool=false ) where {F <: FunctorInferenceType}
+                                skipSolve::Bool=false ) where {F <: AbstractFactor}
   #
   evalPotentialSpecific(Xi,
                         ccwl,
@@ -689,7 +693,7 @@ end
 # TODO should this be consolidated with regular approxConv?
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
 function approxConvBinary(arr::Array{Float64,2},
-                          meas::FunctorInferenceType,
+                          meas::AbstractFactor,
                           outdims::Int,
                           fmd::FactorMetadata,
                           measurement::Tuple=(zeros(0,size(arr,2)),);
@@ -814,6 +818,10 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 end
 
 
+function _expandNamedTupleType()
+  
+end
+
 
 """
     $SIGNATURES
@@ -828,27 +836,42 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           destvertlabel::Symbol,
                           factors::AbstractVector{<:DFGFactor},
                           dens::Vector{BallTreeDensity},
-                          partials::Dict{Int, Vector{BallTreeDensity}},
+                          partials::Dict{Any, Vector{BallTreeDensity}}, # TODO change this structure
                           measurement::Tuple=(zeros(0,0),);
                           solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false  )
   #
+  
+
+  # group partial dimension factors by selected dimensions -- i.e. [(1,)], [(1,2),(1,2)], [(2,);(2;)]
+
+
+  # populate the full and partial dim containers
   inferddimproposal = Vector{Float64}(undef, length(factors))
   for (count,fct) in enumerate(factors)
     data = getSolverData(fct)
-    p, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    if _getCCW(data).partial   # partial density
-      pardims = _getDimensionsPartial(_getCCW(data)) # _getCCW(data).usrfnc!.partial
-      for dimnum in pardims
-        if haskey(partials, dimnum)
-          push!(partials[dimnum], marginal(p,Int.([dimnum;])))
-        else
-          partials[dimnum] = BallTreeDensity[marginal(p,Int.([dimnum;]))]
-        end
+    ccwl = _getCCW(data)
+    propBel, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    if isPartial(ccwl)   # partial density  # ccwl.partial
+      pardims = _getDimensionsPartial(ccwl) # _getCCW(data).usrfnc!.partial
+      @assert [getFactorType(fct).partial...] == [pardims...] "partial dims error $(getFactorType(fct).partial) vs $pardims"
+
+      marg_ = marginal(propBel, Int[pardims...])
+      if haskey(partials, pardims)
+        push!(partials[pardims], marg_)
+      else
+        partials[pardims] = BallTreeDensity[marg_;]
       end
+      # for dimnum in pardims
+      #   if haskey(partials, dimnum)
+      #     push!(partials[dimnum], marginal(propBel, Int.([dimnum;])))
+      #   else
+      #     partials[dimnum] = BallTreeDensity[marginal(propBel, Int.([dimnum;]))]
+      #   end
+      # end
     else # add onto full density list
-      push!(dens, p)
+      push!(dens, propBel)
     end
     inferddimproposal[count] = inferd
   end
