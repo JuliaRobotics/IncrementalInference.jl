@@ -180,23 +180,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "$(csmc.cliq.id): Solve completed")
 
-  return updateFromSubgraph_ParametricStateMachine
-
+  return updateFromSubgraph_StateMachine
+  # return updateFromSubgraph_ParametricStateMachine
 end
 
-#TODO Consolidate with updateFromSubgraph_StateMachine
-function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
-
-  # transfer results to main factor graph
-  frontsyms = getFrontals(csmc.cliq)
-  logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frontsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
-
-  #solve finished change color
-  setCliqueDrawColor!(csmc.cliq, "lightblue")
-
-  logCSM(csmc, "Clique $(csmc.cliq.id): Finished", loglevel=Logging.Info)
-  return IncrementalInference.exitStateMachine
-
-end
-
+#

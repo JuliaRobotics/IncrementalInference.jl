@@ -24,7 +24,8 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                     delay::Bool=false,
                                     logger::SimpleLogger=SimpleLogger(Base.stdout),
                                     solve_progressbar=nothing,
-                                    algorithm::Symbol=:default)
+                                    algorithm::Symbol=:default,
+                                    solveKey::Symbol=algorithm )
 
   # NOTE use tree and messages for operations involving children and parents
   # TODO deprecate children and prnt clique copies
@@ -33,11 +34,11 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
 
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
-                                   tree, cliq,
-                                   incremental, drawtree, downsolve, delay,
-                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliq.id, algorithm, 0, true) 
+  csmc = CliqStateMachineContainer( dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                    tree, cliq,
+                                    incremental, drawtree, downsolve, delay,
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
+                                    cliq.id, algorithm, 0, true, solveKey) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
@@ -740,28 +741,23 @@ Notes
 """
 function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   
-  # NOTE possible future use for things like retry on CGDFGs 
-  # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-  # else
-  #   #seems like a nice place to update remote variables here
-  #   return updateRemote_ExpStateMachine
-  # end
-
-  #Update frontal variables here 
+  isParametricSolve = csmc.algorithm == :parametric
 
   # set PPE and solved for all frontals
-  for sym in getCliqFrontalVarIds(csmc.cliq)
-    # set PPE in cliqSubFg
-    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-    # set solved flag
-    vari = getVariable(csmc.cliqSubFg, sym)
-    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+  if !isParametricSolve
+    for sym in getCliqFrontalVarIds(csmc.cliq)
+      # set PPE in cliqSubFg
+      setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+      # set solved flag
+      vari = getVariable(csmc.cliqSubFg, sym)
+      setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+    end
   end
 
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
-  logCSM(csmc, "CSM-5 finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
+  logCSM(csmc, "CSM-5 finishingCliq -- transferUpdateSubGraph! with solveKey=$(csmc.solveKey) on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, solveKey=csmc.solveKey, updatePPE=!isParametricSolve)
 
   #solve finished change color
   setCliqueDrawColor!(csmc.cliq, "lightblue")
