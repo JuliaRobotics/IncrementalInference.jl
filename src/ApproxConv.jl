@@ -5,46 +5,6 @@ export findRelatedFromPotential
 
 
 """
-    $SIGNATURES
-Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
-"""
-function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
-  #
-  # return nothing
-
-  p = if ccwl.partial
-    Int32[ccwl.usrfnc!.partial...]
-  else
-    Int32[1:ccwl.xDim...]
-  end
-
-  ccwl.partialDims = (p)
-  # NOTE should only be done in the constructor
-  for thrid in 1:Threads.nthreads()
-    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
-    ccwl.cpt[thrid].p .= p # SVector... , see ccw.partialDims
-  end
-  nothing
-end
-
-# function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-#                                               CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
-#   #
-#   # return nothing
-
-#   p = Int[1:ccwl.xDim;]
-#   ccwl.partialDims = SVector(Int32.(p)...)
-
-#   # should be done with constructor only 
-#   for thrid in 1:Threads.nthreads()
-#     # length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
-#     ccwl.cpt[thrid].p = p  # SVector(Int32[1:ccwl.xDim;]...)
-#   end
-#   nothing
-# end
-
-"""
     $(SIGNATURES)
 
 Perform the nonlinear numerical operations to approximate the convolution with a particular user defined likelihood function (conditional), which as been prepared in the `frl` object.  This function uses root finding to enforce a non-linear function constraint.
@@ -330,6 +290,30 @@ end
   #   for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = ah; end
   #   approxConvOnElements!(ccwl, allelements[count])
 
+
+"""
+    $SIGNATURES
+Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
+"""
+function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
+  #
+  # return nothing
+
+  p = if ccwl.partial
+    Int32[ccwl.usrfnc!.partial...]
+  else
+    Int32[1:ccwl.xDim...]
+  end
+
+  ccwl.partialDims = (p)
+  # NOTE should only be done in the constructor
+  for thrid in 1:Threads.nthreads()
+    length(ccwl.cpt[thrid].p) != length(p) ? resize!(ccwl.cpt[thrid].p, length(p)) : nothing
+    ccwl.cpt[thrid].p .= p # SVector... , see ccw.partialDims
+  end
+  nothing
+end
 
 """
     $(SIGNATURES)

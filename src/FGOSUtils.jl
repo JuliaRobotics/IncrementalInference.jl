@@ -5,7 +5,6 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 
-
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
@@ -13,6 +12,9 @@ export loadDFG
 export fetchDataJSON
 export setMarginalized!
 
+
+
+KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
 
 """
@@ -31,16 +33,16 @@ _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.infe
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-Get graph node (variable or factor) dimension.
-"""
-getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
-getDimension(var::DFGVariable) = getDimension(getVariableType(var))
-getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
-getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
+# Get graph node (variable or factor) dimension.
+# """
+DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
+DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
+DFG.getDimension(var::DFGVariable) = getDimension(getVariableType(var))
+DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
+DFG.getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
 
 
 """
