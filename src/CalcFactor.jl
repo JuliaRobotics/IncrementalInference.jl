@@ -20,7 +20,7 @@ New generation user factor interface method for computing the residual values of
 Notes
 - Under development and still experimental.  Expected to become default method in IIF v0.20.0
 """
-struct CalcFactor{T <: FunctorInferenceType, M, P <: Tuple, X <: AbstractVector}
+struct CalcFactor{T <: AbstractFactor, M, P <: Tuple, X <: AbstractVector}
   # the interface compliant user object functor containing the data and logic
   factor::T
   # the metadata to be passed to the user residual function
@@ -49,7 +49,7 @@ DevNotes
 - Use in place operations where possible and remember `measurement` is a `::Tuple`.
 - TODO only works on `.threadid()==1` at present, see #1094
 """
-function sampleFactor(cf::CalcFactor{<:FunctorInferenceType}, 
+function sampleFactor(cf::CalcFactor{<:AbstractFactor}, 
                       N::Int=1  )
   #
   getSample(cf, N)

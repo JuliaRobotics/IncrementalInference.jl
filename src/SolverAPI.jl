@@ -267,9 +267,7 @@ function solveTree!(dfgl::AbstractDFG,
                     injectDelayBefore::Union{Nothing,Vector{<:Pair{Int,<:Pair{<:Function, <:Real}}}}=nothing,
                     skipcliqids::Vector{Symbol}=Symbol[],
                     eliminationOrder::Union{Nothing, Vector{Symbol}}=nothing,
-                    variableOrder::Union{Nothing, Vector{Symbol}}=nothing,
                     eliminationConstraints::Vector{Symbol}=Symbol[],
-                    variableConstraints=nothing,
                     smtasks::Vector{Task}=Task[],
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
@@ -279,16 +277,6 @@ function solveTree!(dfgl::AbstractDFG,
   # workaround in case isolated variables occur
   ensureSolvable!(dfgl)
   opt = getSolverParams(dfgl)
-
-  # depcrecation
-  if variableOrder !== nothing
-    @warn "`variableOrder` keyword is deprecated, use `eliminationOrder` instead."
-    eliminationOrder = variableOrder
-  end
-  if variableConstraints !== nothing
-    @warn "`variableConstraints` keyword is deprecated, use `eliminationConstraints` instead."
-    eliminationConstraints = variableConstraints
-  end
   
   # showtree should force drawtree
   opt.showtree && !opt.drawtree ? @info("Since .showtree=true, also bumping .drawtree=true") : nothing

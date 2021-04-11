@@ -8,9 +8,9 @@ using Statistics
 
 ##
 
-mutable struct DevelopPartial <: AbstractPrior
+mutable struct DevelopPartial{P <: Tuple} <: AbstractPrior
   x::Distribution
-  partial::Tuple # should rather be static types or templates for performance Tuple{Int, Int} etc.
+  partial::P 
 end
 getSample(cf::CalcFactor{<:DevelopPartial}, N::Int=1) = (reshape(rand(cf.factor.x, N),1,N), )
 
@@ -71,6 +71,13 @@ end
 end
 # plotKDE(getBelief(fg, :x1),levels=3)
 
+
+##
+
+# @enter predictbelief(fg, :x1, :)
+
+
+##
 
 mutable struct DevelopPartialPairwise <: AbstractRelativeMinimize
   x::Distribution

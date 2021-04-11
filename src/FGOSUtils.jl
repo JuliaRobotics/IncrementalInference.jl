@@ -5,7 +5,6 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 
-
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
@@ -13,6 +12,9 @@ export loadDFG
 export fetchDataJSON
 export setMarginalized!
 
+
+
+KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
 
 """
@@ -31,16 +33,16 @@ _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.infe
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
-"""
-    $SIGNATURES
+# """
+#     $SIGNATURES
 
-Get graph node (variable or factor) dimension.
-"""
-getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
-getDimension(var::DFGVariable) = getDimension(getVariableType(var))
-getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
-getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
+# Get graph node (variable or factor) dimension.
+# """
+DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
+DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
+DFG.getDimension(var::DFGVariable) = getDimension(getVariableType(var))
+DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
+DFG.getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
 
 
 """
@@ -52,6 +54,17 @@ getFactorDim(w...) = getDimension(w...)
 # getFactorDim(fcd::GenericFunctionNodeData) = isa(_getCCW(fcd).usrfnc!, MsgPrior) ? _getCCW(fcd).usrfnc!.inferdim : Int(_getCCW(fcd).zDim)
 # getFactorDim(fc::DFGFactor) = getFactorDim(getSolverData(fc))
 getFactorDim(fg::AbstractDFG, fctid::Symbol) = getFactorDim(getFactor(fg, fctid))
+
+
+
+function _getDimensionsPartial(ccw::CommonConvWrapper)
+  # @warn "_getDimensionsPartial not ready for use yet"
+  ccw.partialDims
+end
+  _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
+_getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
+
 
 """
     $SIGNATURES
