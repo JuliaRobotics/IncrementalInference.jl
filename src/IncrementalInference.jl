@@ -1,6 +1,6 @@
 module IncrementalInference
 
-@info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
+# @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
 using Distributed
 using Requires
@@ -57,6 +57,7 @@ import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
+import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized

@@ -5,7 +5,6 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 
-
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
@@ -13,6 +12,9 @@ export loadDFG
 export fetchDataJSON
 export setMarginalized!
 
+
+
+KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
 
 """
