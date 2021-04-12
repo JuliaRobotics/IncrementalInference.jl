@@ -108,6 +108,18 @@ function getCliqInitVarOrderDown( dfg::AbstractDFG,
 end
 
 
+function _isInitializedOrInitSolveKey(var::DFGVariable, solveKey::Symbol=:default; N::Int=100)
+  isinit = isInitialized(var, solveKey)
+  data = getSolverData(var, solveKey)
+  if data === nothing
+    varType = getVariableType(var)
+    newdata = setDefaultNodeData!(var, 0, N, getDimension(varType), initialized=false, varType=varType, dontmargin=false)
+    setSolverData!(var,newdata,solveKey)
+    return false
+  end
+  return isinit
+end
+
 """
     $SIGNATURES
 
@@ -116,13 +128,16 @@ Return true if clique has completed the local upward direction inference procedu
 isUpInferenceComplete(cliq::TreeClique) = getCliqueData(cliq).upsolved
 
 function areCliqVariablesAllInitialized(dfg::AbstractDFG, 
-                                        cliq::TreeClique  )
+                                        cliq::TreeClique,
+                                        solveKey::Symbol=:default;
+                                        N::Int=getSolverParams(dfg).N  )
   #
   allids = getCliqAllVarIds(cliq)
   isallinit = true
   for vid in allids
     var = DFG.getVariable(dfg, vid)
-    isallinit &= isInitialized(var)
+    isallinit &= _isInitializedOrInitSolveKey(var, solveKey, N=N)
+    # isallinit &= isInitialized(var, solveKey)
   end
   isallinit
 end

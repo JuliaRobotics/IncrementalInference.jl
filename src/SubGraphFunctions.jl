@@ -5,13 +5,15 @@ Specialized subgraph function for cliques to build a deep subgraph copy from the
 Dev notes:
 - TODO Since a clique should already have a list of frontals, seperators, and potentials (factors), this function should just be a light wrapper around copyGraph or buildSubgraph
 - TODO Send in clique and then extract frontals, separators and factors
+- TODO ability to limit which solveKeys to copy.
 """
 function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             frontals::Vector{Symbol},
                             separators::Vector{Symbol};
                             solvable::Int = 0,
-                            verbose::Bool=false )
+                            verbose::Bool=false,
+                            solveKey::Symbol=:NOTUSEDYET )
 
 
   allvars = union(frontals, separators)
@@ -50,7 +52,8 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             cliq::TreeClique;
                             solvable::Int = 0,
-                            verbose::Bool=false )
+                            verbose::Bool=false,
+                            solveKey::Symbol=:NOTUSEDYET )
 
   vars = getCliqVarIdsAll(cliq)
   facs = getCliqFactorIdsAll(cliq)

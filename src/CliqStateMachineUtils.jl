@@ -465,6 +465,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
                                         cliq::TreeClique,
                                         opts::SolverParams,
                                         logger=ConsoleLogger();
+                                        solveKey::Symbol=:default,
                                         MCIters::Int=3 )
   #
   # get frontal variables for this clique
@@ -492,7 +493,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
-        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false)
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false, solveKey=solveKey)
         # downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
@@ -507,7 +508,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
-        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
+        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false, solveKey=solveKey)
         # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
@@ -527,11 +528,11 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
   else
     # do directs first
     for fr in directs
-      localProductAndUpdate!(subfg, fr, true, logger)
+      localProductAndUpdate!(subfg, fr, true, logger, solveKey=solveKey)
     end
     #do iters next
     for mc in 1:MCIters, fr in iterFrtls
-      localProductAndUpdate!(subfg, fr, true, logger)
+      localProductAndUpdate!(subfg, fr, true, logger, solveKey=solveKey)
     end
   end
 

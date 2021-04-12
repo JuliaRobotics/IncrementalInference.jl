@@ -117,6 +117,8 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
 
   frontsyms = getCliqFrontalVarIds(csmc.cliq)
   sepsyms = getCliqSeparatorVarIds(csmc.cliq)
+
+  # TODO optimize by only fetching csmc.solveKey -- upgrades required
   buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, frontsyms, sepsyms)
 
   # store the cliqSubFg for later debugging
@@ -235,7 +237,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # if all(all_child_status .== UPSOLVED) 
   if all_child_finished_up
     return solveUp_StateMachine
-  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey)
     return initUp_StateMachine
   else
     setCliqueDrawColor!(csmc.cliq, "brown")
@@ -321,14 +323,14 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
 
   #Make sure all are initialized
-  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
     logCSM(csmc, "CSM-2c All children upsolved, not init, try init then upsolve"; c=csmc.cliqId)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
   end
 
   # Check again  
-  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
     logCSM(csmc, "CSM-2c doing upSolve -- all initialized")
 
     __doCliqUpSolveInitialized!(csmc)
@@ -749,8 +751,8 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
       # set PPE in cliqSubFg
       setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
       # set solved flag
-      vari = getVariable(csmc.cliqSubFg, sym)
-      setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+      vari = getVariable(csmc.cliqSubFg, sym, csmc.solveKey)
+      setSolvedCount!(vari, getSolvedCount(vari, csmc.solveKey)+1, csmc.solveKey )
     end
   end
 
@@ -762,7 +764,8 @@ function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   #solve finished change color
   setCliqueDrawColor!(csmc.cliq, "lightblue")
 
-  logCSM(csmc, "CSM-5 Clique $(csmc.cliq.id) finished", loglevel=Logging.Info)
+  logCSM(csmc, "CSM-5 Clique $(csmc.cliq.id) finished, solveKey=$(csmc.solveKey)", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine
-
 end
+
+#

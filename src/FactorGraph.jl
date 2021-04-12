@@ -338,6 +338,14 @@ function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVa
   return nothing
 end
 
+"""
+    $SIGNATURES
+
+Create new solverData.
+
+Notes
+- Used during creation of new variable, as well as in CSM unique `solveKey`.
+"""
 function setDefaultNodeData!( v::DFGVariable,
                               dodims::Int,
                               N::Int,
