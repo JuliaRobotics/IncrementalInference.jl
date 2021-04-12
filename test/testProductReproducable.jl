@@ -99,47 +99,47 @@ B_ = getKDE(fg, :b)
 end
 
 
-# @testset "forward backward convolutions and products sequence" begin
+@testset "test solve with unique solveKey, see #1219" begin
 
-# ##
+##
 
-# fg = initfg()
+fg = initfg()
 
-# addVariable!(fg, :a, ContinuousScalar)
-# addVariable!(fg, :b, ContinuousScalar)
-# addVariable!(fg, :c, ContinuousScalar)
-# addVariable!(fg, :d, ContinuousScalar)
-# addVariable!(fg, :e, ContinuousScalar)
+addVariable!(fg, :a, ContinuousScalar)
+addVariable!(fg, :b, ContinuousScalar)
+addVariable!(fg, :c, ContinuousScalar)
+addVariable!(fg, :d, ContinuousScalar)
+addVariable!(fg, :e, ContinuousScalar)
 
-# addFactor!(fg, [:a], Prior(Normal()))
-# addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)))
-# addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
-# addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
-# addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
-
-
-# tree, smt, hist = solveTree!(fg, solveKey=:testSolveKey)
+addFactor!(fg, [:a], Prior(Normal()))
+addFactor!(fg, [:a;:b], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
+addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
 
-# @test (getPPE(fg, :a, :testSolveKey).suggested[1]- 0  |> abs) < 3
-# @test (getPPE(fg, :b, :testSolveKey).suggested[1]-10  |> abs) < 4
-# @test (getPPE(fg, :c, :testSolveKey).suggested[1]-20  |> abs) < 4
-# @test (getPPE(fg, :d, :testSolveKey).suggested[1]-30  |> abs) < 5
-# @test (getPPE(fg, :e, :testSolveKey).suggested[1]-40  |> abs) < 5
-
-# # @test 0.3 < Statistics.std(getPoints(getKDE(fg, :a))) < 2
-# # @test 0.5 < Statistics.std(getPoints(getKDE(fg, :b))) < 4
-# # @test 0.9 < Statistics.std(getPoints(getKDE(fg, :c))) < 6
-# # @test 1.2 < Statistics.std(getPoints(getKDE(fg, :d))) < 7
-# # @test 1.5 < Statistics.std(getPoints(getKDE(fg, :e))) < 8
+tree, smt, hist = solveTree!(fg, solveKey=:testSolveKey)
 
 
-# # using RoMEPlotting
-# # plotKDE(fg, ls(fg))
+@test (getPPE(fg, :a, :testSolveKey).suggested[1]- 0  |> abs) < 3
+@test (getPPE(fg, :b, :testSolveKey).suggested[1]-10  |> abs) < 4
+@test (getPPE(fg, :c, :testSolveKey).suggested[1]-20  |> abs) < 4
+@test (getPPE(fg, :d, :testSolveKey).suggested[1]-30  |> abs) < 5
+@test (getPPE(fg, :e, :testSolveKey).suggested[1]-40  |> abs) < 5
 
-# ##
+# @test 0.3 < Statistics.std(getPoints(getKDE(fg, :a))) < 2
+# @test 0.5 < Statistics.std(getPoints(getKDE(fg, :b))) < 4
+# @test 0.9 < Statistics.std(getPoints(getKDE(fg, :c))) < 6
+# @test 1.2 < Statistics.std(getPoints(getKDE(fg, :d))) < 7
+# @test 1.5 < Statistics.std(getPoints(getKDE(fg, :e))) < 8
 
 
-# end
+# using RoMEPlotting
+# plotKDE(fg, ls(fg))
+
+##
+
+end
+
 
 ##

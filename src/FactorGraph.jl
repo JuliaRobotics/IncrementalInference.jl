@@ -350,10 +350,12 @@ function setDefaultNodeData!( v::DFGVariable,
                               dodims::Int,
                               N::Int,
                               dims::Int;
+                              solveKey::Symbol=:default,
                               gt=Dict(),
                               initialized::Bool=true,
                               dontmargin::Bool=false,
-                              varType=nothing)::Nothing
+                              varType=nothing )
+  #
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -369,12 +371,14 @@ function setDefaultNodeData!( v::DFGVariable,
     #initval, stdev
     setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], varType, true, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], 
+                            varType, true, 0.0, false, dontmargin), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], varType, false, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], 
+                            varType, false, 0.0, false, dontmargin), solveKey)
   end
   return nothing
 end
