@@ -132,7 +132,15 @@ function transferUpdateSubGraph!( dest::AbstractDFG,
   for var in (x->getVariable(src, x)).(syms)
     # copy not required since a broadcast is used internally
     updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim; :solvedCount; :initialized]; warn_if_absent=false)
-    updatePPE && DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
+    if updatePPE 
+      # create ppe on new key using defaults, TODO improve
+      if haskey(getPPEDict(var), solveKey)
+        DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
+      else
+        ppe = calcPPE(var, ppeKey=solveKey)
+        addPPE!(dest, var.label, ppe)
+      end
+    end
   end
 
   nothing

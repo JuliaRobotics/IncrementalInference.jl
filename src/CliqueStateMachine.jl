@@ -283,7 +283,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
     printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
@@ -326,8 +326,10 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
     logCSM(csmc, "CSM-2c All children upsolved, not init, try init then upsolve"; c=csmc.cliqId)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
   end
+
+  logCSM(csmc, "CSM-2c midway")
 
   # Check again  
   if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
@@ -600,7 +602,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
   # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
 
-  someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, logger=csmc.logger)
+  someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, solveKey=csmc.solveKey, logger=csmc.logger)
   # is clique fully upsolved or only partially?
   # print out the partial init status of all vars in clique
   printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)

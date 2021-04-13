@@ -146,8 +146,8 @@ end
 function putErrorDown(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-  logCSM(csmc, "CSM clique $(csmc.cliq.id): propagate down error on edge $(e)")
-  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
+    logCSM(csmc, "CSM clique $(csmc.cliq.id): propagate down error on edge $(e)")
+    @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
   logCSM(csmc, "CSM clique $(csmc.cliq.id): Exit with error state", loglevel=Logging.Error)
   return nothing

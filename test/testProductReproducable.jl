@@ -117,9 +117,19 @@ addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
+# getSolverParams(fg).dbg=true
+getSolverParams(fg).limititers=15
 
-tree, smt, hist = solveTree!(fg, solveKey=:testSolveKey)
+# tree = buildTreeReset!(fg)
+# stuff = solveCliqUp!(fg, tree, 2, solveKey=:testSolveKey)
 
+##
+
+smtasks = Task[]
+solveTree!(fg, solveKey=:testSolveKey, smtasks=smtasks, verbose=true)
+# hists = fetchCliqHistoryAll!(smtasks)
+
+##
 
 @test (getPPE(fg, :a, :testSolveKey).suggested[1]- 0  |> abs) < 3
 @test (getPPE(fg, :b, :testSolveKey).suggested[1]-10  |> abs) < 4

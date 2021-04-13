@@ -226,7 +226,8 @@ Dev Notes
 """
 function cycleInitByVarOrder!(subfg::AbstractDFG,
                               varorder::Vector{Symbol};
-                              logger=ConsoleLogger()  )::Bool
+                              solveKey::Symbol=:default,
+                              logger=ConsoleLogger()  )
   #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
@@ -237,12 +238,12 @@ function cycleInitByVarOrder!(subfg::AbstractDFG,
     count = 0
     for vsym in varorder
       var = DFG.getVariable(subfg, vsym)
-      isinit = isInitialized(var)
+      isinit = isInitialized(var, solveKey)
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;], logger=logger)
-      if isinit != isInitialized(var)
+      doautoinit!(subfg, [var;], solveKey=solveKey, logger=logger)
+      if isinit != isInitialized(var, solveKey)
         count += 1
         retval = true
       end

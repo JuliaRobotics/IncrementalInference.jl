@@ -744,7 +744,8 @@ doautoinit!, initManual!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,
-                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
+                                    loovar::Symbol;
+                                    solveKey::Symbol=:default)
   #
   # all variables attached to this factor
   varsyms = DFG.getNeighbors(dfg, fct)
@@ -752,14 +753,14 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
   # which element is being solved for
   sfidx = (1:length(varsyms))[varsyms .== loovar][1]
   # list of factors to use in init operation
-  fctlist = []
+  fctlist = Symbol[]
   # list fo variables that cannot be used
   faillist = Symbol[]
   isinit = Bool[]
   for vsym in varsyms
     # check each variable one by one
     xi = DFG.getVariable(dfg, vsym)
-    isi = isInitialized(xi)
+    isi = isInitialized(xi, solveKey)
     push!(isinit, isi)
     if !isi
       push!(faillist, vsym)
@@ -791,7 +792,7 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
   end
 
   # return if can use, the factor in an array, and the non-initialized variables attached to the factor
-  return (canuse, fctlist, faillist )
+  return (canuse, fctlist, faillist)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
 end
 
 
@@ -835,13 +836,14 @@ Development Notes:
 """
 function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger() )
   #
   didinit = false
   # don't initialize a variable more than once
-  if !isInitialized(xi)
+  if !isInitialized(xi, solveKey)
     with_logger(logger) do
       @info "try doautoinit! of $(xi.label)"
     end
@@ -868,15 +870,15 @@ function doautoinit!( dfg::AbstractDFG,
         with_logger(logger) do
           @info "do init of $vsym"
         end
-        pts,inferdim = predictbelief(dfg, vsym, useinitfct, logger=logger)
-        setValKDE!(xi, pts, true, inferdim)
+        pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
+        setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
-        setVariablePosteriorEstimates!(dfg, xi.label)
+        setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local
         # TODO perhaps usecopy=false
-        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    
+        updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]; warn_if_absent=false)
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
         didinit = true
       end
     end
@@ -886,6 +888,7 @@ end
 
 function doautoinit!( dfg::T,
                       Xi::Vector{<:DFGVariable};
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger() )::Bool where T <: AbstractDFG
@@ -898,27 +901,29 @@ function doautoinit!( dfg::T,
 
   # loop over all requested variables that must be initialized
   for xi in Xi
-    didinit &= doautoinit!(dfg, xi, singles=singles, N=N, logger=logger)
+    didinit &= doautoinit!(dfg, xi, solveKey=solveKey, singles=singles, N=N, logger=logger)
   end
   return didinit
 end
 
 function doautoinit!( dfg::T,
                       xsyms::Vector{Symbol};
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
-  return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)
+  return doautoinit!(dfg, verts, solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
 function doautoinit!( dfg::T,
                       xsym::Symbol;
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
-  return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N, logger=logger)
+  return doautoinit!(dfg, [getVariable(dfg, xsym);], solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
 
 """

@@ -213,9 +213,10 @@ Related
 [`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref)
 """
 function calcPPE( var::DFGVariable,
-                  varType::InferenceVariable;
+                  varType::InferenceVariable=getVariableType(var);
                   method::Type{MeanMaxPPE}=MeanMaxPPE,
-                  solveKey::Symbol=:default  )
+                  solveKey::Symbol=:default,
+                  ppeKey::Symbol=solveKey  )
   #
   P = getBelief(var, solveKey)
   maniDef = convert(Manifold, varType)
@@ -237,11 +238,11 @@ function calcPPE( var::DFGVariable,
   # end
 
   # suggested, max, mean, current time
-  MeanMaxPPE(solveKey, Pme, Pma, Pme, now())
+  MeanMaxPPE(ppeKey, Pme, Pma, Pme, now())
 end
 
 
-calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
+# calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 
 """
     $TYPEDSIGNATURES
