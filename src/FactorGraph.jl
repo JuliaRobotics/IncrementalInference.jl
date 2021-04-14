@@ -372,13 +372,13 @@ function setDefaultNodeData!( v::DFGVariable,
     setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
                             dims, false, :_null, Symbol[], 
-                            varType, true, 0.0, false, dontmargin), solveKey)
+                            varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
                             dims, false, :_null, Symbol[], 
-                            varType, false, 0.0, false, dontmargin), solveKey)
+                            varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   end
   return nothing
 end

@@ -111,8 +111,8 @@ end
 function _isInitializedOrInitSolveKey(var::DFGVariable, solveKey::Symbol=:default; N::Int=100)
   if !(solveKey in listSolveKeys(var))
     varType = getVariableType(var)
-    newdata = setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
-                                  initialized=false, varType=varType, dontmargin=false)
+    setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
+                        initialized=false, varType=varType, dontmargin=false)
     #
     # data = getSolverData(var, solveKey)
     # if data === nothing
