@@ -117,11 +117,18 @@ addFactor!(fg, [:b;:c], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:c;:d], LinearRelative(Normal(10, 1)))
 addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
-# getSolverParams(fg).dbg=true
-getSolverParams(fg).limititers=15
+getSolverParams(fg).dbg=true
+# error("remember not 15")
+getSolverParams(fg).limititers=20
 
 # tree = buildTreeReset!(fg)
+
+# ##
+
 # stuff = solveCliqUp!(fg, tree, 2, solveKey=:testSolveKey)
+# stuff = solveCliqUp!(fg, tree, 3, solveKey=:testSolveKey)
+# stuff = solveCliqUp!(fg, tree, 1, solveKey=:testSolveKey)
+
 
 ##
 

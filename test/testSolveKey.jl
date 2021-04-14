@@ -31,7 +31,7 @@ addFactor!(fg, [:d;:e], LinearRelative(Normal(10, 1)))
 
 ##
 
-# getSolverParams(fg).dbg=true
+getSolverParams(fg).dbg=true
 # error("remember not 15")
 getSolverParams(fg).limititers=30
 
@@ -53,12 +53,12 @@ solveTree!(fg, solveKey=:testSolveKey, smtasks=smtasks, verbose=true)
 
 ##
 
-# using RoMEPlotting
-# Gadfly.set_default_plot_size(35cm,25cm)
+using RoMEPlotting
+Gadfly.set_default_plot_size(35cm,25cm)
 
-# ##
+##
 
-# plotSLAM2D(fg, solveKey=:testSolveKey)
+plotSLAM2D(fg, solveKey=:testSolveKey)
 
 ##
 

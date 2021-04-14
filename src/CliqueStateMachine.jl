@@ -125,6 +125,34 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   _dbgCSMSaveSubFG(csmc, "fg_build")
 
   # go to 2 wait for up
+  return presolveChecklist_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Check that the csmc container has everything it needs to proceed with init-ference.
+
+DevNotes
+- TODO marginalized flag might be wrong default.
+"""
+function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
+
+  # check if solveKey is available in all variables?
+  for var in getVariable.(csmc.cliqSubFg, ls(csmc.cliqSubFg))
+    if !(csmc.solveKey in listSolveKeys(var))
+      logCSM(csmc, "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.solveKey)")
+      varType = getVariableType(var)
+      # FIXME check the marginalization requirements
+      setDefaultNodeData!(var, 0, getSolverParams(csmc.cliqSubFg).N, getDimension(varType), solveKey=csmc.solveKey, 
+                          initialized=false, varType=varType, dontmargin=false)
+      #
+      @info "create vnd solveKey" csmc.solveKey
+      @info "also" listSolveKeys(var)
+    end
+  end
+
+  # go to 2 wait for up
   return waitForUp_StateMachine
 end
 
@@ -328,11 +356,11 @@ function solveUp_StateMachine(csmc::CliqStateMachineContainer)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
   end
-
-  logCSM(csmc, "CSM-2c midway")
-
+  
+  isinit = areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
+  logCSM(csmc, "CSM-2c midway, isinit=$isinit")
   # Check again  
-  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
+  if isinit
     logCSM(csmc, "CSM-2c doing upSolve -- all initialized")
 
     __doCliqUpSolveInitialized!(csmc)
