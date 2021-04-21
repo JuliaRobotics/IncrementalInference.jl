@@ -636,17 +636,18 @@ DevNotes
 - set `msgs.hasPriors=true` only if a prior occurred here or lower down in tree branch. 
 """
 function prepCliqueMsgUp( subfg::AbstractDFG,
-                                      cliq::TreeClique,
-                                      status::CliqStatus=getCliqueStatus(cliq);
-                                      logger=ConsoleLogger(),
-                                      duplicate::Bool=true )
+                          cliq::TreeClique,
+                          status::CliqStatus=getCliqueStatus(cliq);
+                          logger=ConsoleLogger(),
+                          duplicate::Bool=true,
+                          sender=(;id=0,step=0) )
   #
   # get the current clique status
   sdims = getCliqVariableMoreInitDims(subfg, cliq)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
-  msg = LikelihoodMessage(status=status, hasPriors=hasPriors)
+  msg = LikelihoodMessage(sender=sender, status=status, hasPriors=hasPriors)
 
   _buildTreeBeliefDict!(msg.belief,subfg,cliq,duplicate=duplicate )
 
@@ -672,17 +673,18 @@ end
 
 Calculate new and then set the down messages for a clique in Bayes (Junction) tree.
 """
-function prepCliqueMsgDown(subfg::AbstractDFG,
-                           cliq::TreeClique,
-                           prntDwnMsgs::LikelihoodMessage,
-                           logger=ConsoleLogger();
-                           status::CliqStatus=getCliqueStatus(cliq)  )
+function prepCliqueMsgDown( subfg::AbstractDFG,
+                            cliq::TreeClique,
+                            prntDwnMsgs::LikelihoodMessage,
+                            logger=ConsoleLogger();
+                            status::CliqStatus=getCliqueStatus(cliq),
+                            sender=(;id=0,step=0)  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
   passkeys = intersect(allvars, setdiff(allprntkeys,ls(subfg)))
   remainkeys = setdiff(allvars, passkeys)
-  newDwnMsgs = LikelihoodMessage(status=status)
+  newDwnMsgs = LikelihoodMessage(sender=sender,status=status)
 
   # some msgs are just pass through from parent
   for pk in passkeys

@@ -38,13 +38,13 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                     tree, cliq,
                                     incremental, drawtree, downsolve, delay,
                                     getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                    cliq.id, algorithm, 0, true, solveKey) 
+                                    cliq.id, algorithm, 0, true, solveKey, 0) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
   
-  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
+  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"]=st.iter; csmc._csm_iter=st.iter)) : ((st)->(csmc._csm_iter=st.iter))
   
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(getId(cliq))")
 
@@ -247,6 +247,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
 
   all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
+  logCSM(csmc, "CSM-2a, clique $(csmc.cliqId) all_child_finished_up $(all_child_finished_up)")
 
   #try to skip upsolve 
   if !getSolverParams(csmc.dfg).upsolve 
@@ -346,7 +347,7 @@ Notes
 """
 function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   
-  logCSM(csmc, "CSM-2c Solving Up")
+  logCSM(csmc, "CSM-2c, cliq=$(csmc.cliqId) Solving Up")
 
   setCliqueDrawColor!(csmc.cliq, "red")
 
@@ -439,7 +440,8 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
   logCSM(csmc, "CSM-2e prepCliqueMsgUp, going for prepCliqueMsgUp")
-  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
+  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger, sender=(; id=csmc.cliq.id.value,
+                                                                                                    step=csmc._csm_iter) )
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
 
@@ -544,12 +546,14 @@ end
 function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
 
   #JT TODO maybe use Tx buffer
-  newDwnMsgs = LikelihoodMessage(status=status)
+  newDwnMsgs = LikelihoodMessage( sender=(; id=csmc.cliq.id.value,
+                                            step=csmc._csm_iter),
+                                  status=status)
 
   # create all messages from subfg
   for mk in getCliqFrontalVarIds(csmc.cliq)
     v = getVariable(csmc.cliqSubFg, mk)
-    if isInitialized(v)
+    if isInitialized(v, csmc.solveKey)
       newDwnMsgs.belief[mk] = TreeBelief(v)
     end
   end

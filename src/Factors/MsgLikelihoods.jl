@@ -103,10 +103,11 @@ DevNotes:
 $(TYPEDFIELDS)
 """
 mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
+  sender::NamedTuple{(:id,:step),Tuple{Int,Int}}
   status::CliqStatus
   belief::Dict{Symbol, TreeBelief} # will eventually be deprecated
   variableOrder::Vector{Symbol}
-  cliqueLikelihood::Union{Nothing,SamplableBelief}
+  cliqueLikelihood::Union{Nothing,SamplableBelief}  # TODO drop the Union
   msgType::T
   hasPriors::Bool
   # this is different from belief[].inferdim, as the total available infer dims remaining during down msgs -- see #910
@@ -117,7 +118,8 @@ mutable struct LikelihoodMessage{T <: MessageType} <: AbstractPrior
 end
 
 
-LikelihoodMessage(; status::CliqStatus=NULL,
+LikelihoodMessage(; sender::NamedTuple{(:id,:step),Tuple{Int,Int}}=(;id=0, step=0),
+                    status::CliqStatus=NULL,
                     beliefDict::Dict=Dict{Symbol, TreeBelief}(),
                     variableOrder::Vector{Symbol}=Symbol[],
                     cliqueLikelihood=nothing,
@@ -126,7 +128,7 @@ LikelihoodMessage(; status::CliqStatus=NULL,
                     childSolvDims::Dict{Int, Float64}=Dict{Int, Float64}(), 
                     jointmsg::_MsgJointLikelihood=_MsgJointLikelihood(),
                   ) where {T <: MessageType} =
-        LikelihoodMessage{T}(status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims, jointmsg)
+        LikelihoodMessage{T}(sender, status, beliefDict, variableOrder, cliqueLikelihood, msgType, hasPriors, childSolvDims, jointmsg)
 #
 
 function Base.show(io::IO, ::MIME"text/plain", msg::LikelihoodMessage)

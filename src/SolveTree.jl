@@ -87,7 +87,7 @@ for tree clique `cliq`.
 """
 function fmcmc!(fgl::AbstractDFG,
                 cliq::TreeClique,
-                fmsgs::Vector{LikelihoodMessage},
+                fmsgs::Vector{<:LikelihoodMessage},
                 lbls::Vector{Symbol},
                 N::Int,
                 MCMCIter::Int,

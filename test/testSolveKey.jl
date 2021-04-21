@@ -2,6 +2,7 @@
 using Test
 using IncrementalInference
 
+
 ##
 
 @testset "test solve with unique solveKey, see #1219" begin
@@ -48,8 +49,8 @@ getSolverParams(fg).limititers=30
 ##
 
 smtasks = Task[]
-solveTree!(fg, solveKey=:testSolveKey, smtasks=smtasks, verbose=true)
-# hists = fetchCliqHistoryAll!(smtasks)
+solveTree!(fg, smtasks=smtasks, verbose=true, recordcliqs=ls(fg) )# , solveKey=:testSolveKey )
+hists = fetchCliqHistoryAll!(smtasks)
 
 ##
 
