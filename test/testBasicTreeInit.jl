@@ -17,7 +17,7 @@ tree, smt, hist = solveTree!(fg, recordcliqs=[:x0;]);
 
 @test haskey(hist, 1)
 
-@test hist[1] |> length == 11
+@test hist[1] |> length == 12
 
 end
 
