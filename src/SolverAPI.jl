@@ -401,11 +401,16 @@ const solveGraph! = solveTree!
     $SIGNATURES
 Internal function used for solveCliqUp! to build the incoming upward message (Rx)
 """
-function _buildMessagesUp(fg, tree, cliqid; status=UPSOLVED)
+function _buildMessagesUp(fg::AbstractDFG, 
+                          tree::AbstractBayesTree, 
+                          cliqid, 
+                          solveKey::Symbol; 
+                          status=UPSOLVED )
+  #
   cliq = getClique(tree, cliqid)
   beliefMessages = Dict{Int, LikelihoodMessage}()
   for child in getChildren(tree, cliq)
-    msg = prepCliqueMsgUp(fg, child, status)
+    msg = prepCliqueMsgUp(fg, child, solveKey, status)
     push!(beliefMessages, child.id[]=>msg)
   end
   return beliefMessages
@@ -436,10 +441,10 @@ Related
 function solveCliqUp!(fg::AbstractDFG,
                       tree::AbstractBayesTree,
                       cliqid::Union{CliqueId, Int, Symbol},
-                      beliefMessages::Dict{Int, LikelihoodMessage} = _buildMessagesUp(fg, tree, cliqid); # create belief message from fg if needed
+                      solveKey::Symbol=:default,
+                      beliefMessages::Dict{Int, LikelihoodMessage} = _buildMessagesUp(fg, tree, cliqid, solveKey); # create belief message from fg if needed
                       verbose::Bool=false,
-                      recordcliq::Bool=false,
-                      solveKey::Symbol=:default )
+                      recordcliq::Bool=false )
                       # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
   #
 
@@ -495,19 +500,24 @@ end
     $SIGNATURES
 Internal function used for solveCliqDown! to build the incoming downward message (Rx)
 """
-function _buildMessageDown(fg, tree, cliqid; status=DOWNSOLVED)
+function _buildMessageDown( fg::AbstractDFG, 
+                            tree::AbstractBayesTree, 
+                            cliqid, 
+                            solveKey::Symbol; 
+                            status::CliqStatus=DOWNSOLVED)
+  #
   cliq = getClique(tree, cliqid)
   parent = getParent(tree, cliq)[1]
-  return getCliqDownMsgsAfterDownSolve(fg, parent; status=status)
+  return getCliqDownMsgsAfterDownSolve(fg, parent, solveKey; status=status)
 end
 
 function solveCliqDown!(fg::AbstractDFG,
                         tree::AbstractBayesTree,
                         cliqid::Union{CliqueId, Int, Symbol},
-                        beliefMessage::LikelihoodMessage = _buildMessageDown(fg, tree, cliqid); # create belief message from fg if needed
+                        solveKey::Symbol=:default,
+                        beliefMessage::LikelihoodMessage = _buildMessageDown(fg, tree, cliqid, solveKey); # create belief message from fg if needed
                         verbose::Bool=false,
-                        recordcliq::Bool=false,
-                        solveKey::Symbol=:default )
+                        recordcliq::Bool=false )
   #
 
   # hist = Vector{CSMHistoryTuple}()
@@ -524,7 +534,7 @@ function solveCliqDown!(fg::AbstractDFG,
 
   # Build the cliq up message to populate message factors that is needed for down
   @debug "Putting message on up channel from children"
-  for (id, msg) in _buildMessagesUp(fg, tree, cliqid)
+  for (id, msg) in _buildMessagesUp(fg, tree, cliqid, solveKey)
     child = getClique(tree, id)
     for e in getEdgesParent(tree, child)
       @async putBeliefMessageUp!(tree, e, msg)

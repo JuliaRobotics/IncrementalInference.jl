@@ -376,6 +376,7 @@ Related
 [`_findSubgraphsFactorType`](@ref), [`_calcCandidatePriorBest`](@ref)
 """
 function _generateSubgraphMsgPriors(subfg::AbstractDFG,
+                                    solveKey::Symbol,
                                     allClasses::Dict{Int, Vector{Symbol}},
                                     msgbeliefs::Dict,
                                     msgHasPriors::Bool,
@@ -388,7 +389,7 @@ function _generateSubgraphMsgPriors(subfg::AbstractDFG,
     # if any `jointmsg per variable && !msg.hasPriors`, then dont add a prior
     if (1 == length(syms) || msgHasPriors) && 0 < length(msgbeliefs)
       whichVar = IIF._calcCandidatePriorBest(subfg, msgbeliefs, syms)
-      priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar)), msgType)
+      priorsJoint[whichVar] = IIF.generateMsgPrior(TreeBelief(getVariable(subfg, whichVar), solveKey), msgType)
     end
   end
   
@@ -407,6 +408,7 @@ DevNotes
 - Non-standard relative likelihoods will be populated by TAF factors, removing priors assumption.
 """
 function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
+                                          solveKey::Symbol,
                                           cliq::TreeClique  )
   #
   separators = getCliqSeparatorVarIds(cliq)
@@ -418,7 +420,7 @@ function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
   IIF._buildTreeBeliefDict!(msgbeliefs, cfg, cliq )
 
   # @show cliq.id, ls(cfg), keys(msgbeliefs), allClasses
-  upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
+  upmsgpriors = IIF._generateSubgraphMsgPriors( cfg, solveKey, allClasses, msgbeliefs, hasPriors, IIF.NonparametricMessage())
 
   _MsgJointLikelihood(relatives=jointrelatives, priors=upmsgpriors)
 end
@@ -637,6 +639,7 @@ DevNotes
 """
 function prepCliqueMsgUp( subfg::AbstractDFG,
                           cliq::TreeClique,
+                          solveKey::Symbol,
                           status::CliqStatus=getCliqueStatus(cliq);
                           logger=ConsoleLogger(),
                           duplicate::Bool=true,
@@ -660,7 +663,7 @@ function prepCliqueMsgUp( subfg::AbstractDFG,
   #   end
   # end
 
-  msg.jointmsg = IIF._generateMsgJointRelativesPriors( subfg, cliq )
+  msg.jointmsg = IIF._generateMsgJointRelativesPriors( subfg, solveKey, cliq )
   # FIXME calculate the new DIFFERENTIAL factors
   # retval = addLikelihoodsDifferentialCHILD!(subfg, getCliqSeparatorVarIds(cliq))
   # msg.jointmsg.relatives = retval
@@ -675,10 +678,11 @@ Calculate new and then set the down messages for a clique in Bayes (Junction) tr
 """
 function prepCliqueMsgDown( subfg::AbstractDFG,
                             cliq::TreeClique,
+                            solveKey::Symbol,
                             prntDwnMsgs::LikelihoodMessage,
                             logger=ConsoleLogger();
                             status::CliqStatus=getCliqueStatus(cliq),
-                            sender=(;id=0,step=0)  )
+                            sender=(;id=cliq.id.value,step=0)  )
   #
   allvars = getCliqVarIdsAll(cliq)
   allprntkeys = collect(keys(prntDwnMsgs.belief))
@@ -698,7 +702,7 @@ function prepCliqueMsgDown( subfg::AbstractDFG,
   for mk in remainkeys
     setVari = getVariable(subfg, mk)
     if isInitialized(setVari)
-      newDwnMsgs.belief[mk] = TreeBelief(setVari)  #, solvableDim=sdims[mk] )
+      newDwnMsgs.belief[mk] = TreeBelief(setVari, solveKey)  #, solvableDim=sdims[mk] )
     end
   end
 
@@ -780,14 +784,20 @@ Notes:
 - Fetches numerical results from `subdfg` as dictated in `cliq`.
 - return LikelihoodMessage
 """
-function getCliqDownMsgsAfterDownSolve(subdfg::AbstractDFG, cliq::TreeClique; status::CliqStatus=NULL)
+function getCliqDownMsgsAfterDownSolve( subdfg::AbstractDFG, 
+                                        cliq::TreeClique,
+                                        solveKey::Symbol; 
+                                        status::CliqStatus=NULL,
+                                        sender=(; id=cliq.id.value,
+                                                  step=0))
+  #
   # Dict{Symbol, BallTreeDensity}
   # where the return msgs are contained
-  container = LikelihoodMessage(status=status) 
+  container = LikelihoodMessage(sender=sender, status=status) 
 
   # go through all msgs one by one
   for sym in getCliqAllVarIds(cliq)
-    container.belief[sym] = TreeBelief( getVariable(subdfg, sym) )
+    container.belief[sym] = TreeBelief( getVariable(subdfg, sym), solveKey )
   end
 
   # return the result

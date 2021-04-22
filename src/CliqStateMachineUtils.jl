@@ -368,7 +368,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     # ett.cliq = cliqc
     # TODO create new dedicated file for separate process to log with
     try
-      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), fg_, cliqc, childmsgs, N, dbg, iters)
+      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), fg_, cliqc, csmc.solveKey, childmsgs, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
@@ -384,7 +384,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.id)"
     end
-    retdict = upGibbsCliqueDensity(fg_, cliq, childmsgs, N, dbg, iters, logger)
+    retdict = upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
   end
 
   with_logger(logger) do

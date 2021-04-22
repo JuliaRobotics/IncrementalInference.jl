@@ -440,7 +440,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
   logCSM(csmc, "CSM-2e prepCliqueMsgUp, going for prepCliqueMsgUp")
-  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger, sender=(; id=csmc.cliq.id.value,
+  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, solveStatus, logger=csmc.logger, sender=(; id=csmc.cliq.id.value,
                                                                                                     step=csmc._csm_iter) )
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
@@ -554,7 +554,7 @@ function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
   for mk in getCliqFrontalVarIds(csmc.cliq)
     v = getVariable(csmc.cliqSubFg, mk)
     if isInitialized(v, csmc.solveKey)
-      newDwnMsgs.belief[mk] = TreeBelief(v)
+      newDwnMsgs.belief[mk] = TreeBelief(v, csmc.solveKey)
     end
   end
   
