@@ -49,7 +49,7 @@ getSolverParams(fg).limititers=30
 ##
 
 smtasks = Task[]
-solveTree!(fg, smtasks=smtasks, verbose=true, recordcliqs=ls(fg) )# , solveKey=:testSolveKey )
+solveTree!(fg, smtasks=smtasks, verbose=true, recordcliqs=ls(fg)  , solveKey=:testSolveKey )
 hists = fetchCliqHistoryAll!(smtasks)
 
 ##
