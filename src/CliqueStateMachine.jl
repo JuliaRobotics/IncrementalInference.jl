@@ -445,7 +445,7 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
                               sender=(; id=csmc.cliq.id.value,
                                         step=csmc._csm_iter) )
   #
-  
+
   logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
 
   # Done with solve delete factors

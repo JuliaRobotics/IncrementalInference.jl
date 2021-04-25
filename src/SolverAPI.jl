@@ -278,7 +278,7 @@ function solveTree!(dfgl::AbstractDFG,
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
                     algorithm::Symbol=:default,
-                    solveKey::Symbol=algorithm,
+                    solveKey::Symbol=:default,
                     multithread::Bool=false  )
   #
   # workaround in case isolated variables occur
