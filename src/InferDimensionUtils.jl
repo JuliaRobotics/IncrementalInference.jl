@@ -47,9 +47,14 @@ Related
 getVariableDim, getVariableInferredDimFraction, getVariableInferredDim, getVariableDim
 """
 getVariableInferredDim(vard::VariableNodeData, saturate::Bool=false) = saturate && getVariableDim(vard) < vard.inferdim ? getVariableDim(vard) : vard.inferdim
-getVariableInferredDim(var::DFGVariable, saturate::Bool=false) = getVariableInferredDim(getSolverData(var), saturate)
-function getVariableInferredDim(fg::G, varid::Symbol, saturate::Bool=false) where G <: AbstractDFG
-  getVariableInferredDim(getVariable(fg, varid), saturate)
+getVariableInferredDim(var::DFGVariable, solveKey::Symbol=:default, saturate::Bool=false) = getVariableInferredDim(getSolverData(var, solveKey), saturate)
+
+function getVariableInferredDim(fg::AbstractDFG, 
+                                varid::Symbol, 
+                                solveKey::Symbol=:default, 
+                                saturate::Bool=false)
+  #
+  getVariableInferredDim(getVariable(fg, varid), solveKey, saturate)
 end
 
 """
@@ -64,10 +69,15 @@ Related
 
 getVariableDim, getVariableInferredDim, getVariableDim
 """
-getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false)::Float64 = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
-getVariableInferredDimFraction(var::DFGVariable, saturate::Bool=false)::Float64 = getVariableInferredDim(getSolverData(var), saturate)
-function getVariableInferredDimFraction(dfg::G, varid::Symbol, saturate::Bool=false)::Float64 where G <: AbstractDFG
-  getVariableInferredDimFraction(getVariable(dfg, varid), saturate)
+getVariableInferredDimFraction(vard::VariableNodeData, saturate::Bool=false) = getVariableInferredDim(vard, saturate) / getVariableDim(vard)
+getVariableInferredDimFraction(var::DFGVariable, solveKey::Symbol=:default, saturate::Bool=false) = getVariableInferredDim(getSolverData(var, solveKey), saturate)
+
+function getVariableInferredDimFraction(dfg::AbstractDFG, 
+                                        varid::Symbol, 
+                                        solveKey::Symbol=:default, 
+                                        saturate::Bool=false  )
+  #
+  getVariableInferredDimFraction(getVariable(dfg, varid), solveKey, saturate)
 end
 
 
@@ -82,16 +92,17 @@ Related
 
 getFactorSolvableDim, getVariableDim, getVariableInferredDim, getFactorDim, isCliqFullDim
 """
-function getVariablePossibleDim(fg::G, var::DFGVariable, fcts::Vector{Symbol}=ls(fg, var.label))::Float64 where G <: AbstractDFG
+function getVariablePossibleDim(fg::AbstractDFG, var::DFGVariable, fcts::Vector{Symbol}=ls(fg, var.label))
   alldims = 0.0
   for fc in fcts
     alldims += getFactorDim(fg, fc)
   end
   return alldims
 end
-function getVariablePossibleDim(fg::G,
+
+function getVariablePossibleDim(fg::AbstractDFG,
                                 varid::Symbol,
-                                fcts::Vector{Symbol}=ls(fg, varid)  )::Float64 where G <: AbstractDFG
+                                fcts::Vector{Symbol}=ls(fg, varid)  )
   #
   getVariablePossibleDim(fg, getVariable(fg, varid))
 end
@@ -110,17 +121,19 @@ Related
 
 getVariablePossibleDim, getVariableDim, getVariableInferredDim, getFactorDim, getFactorSolvableDim, isCliqFullDim
 """
-function getFactorInferFraction(dfg::G,
+function getFactorInferFraction(dfg::AbstractDFG,
                                 idfct::Symbol,
                                 varid::Symbol,
-                                saturate::Bool=false  )::Float64 where G <: AbstractDFG
+                                solveKey::Symbol=:default,
+                                saturate::Bool=false  )
+  #
   # get all other variables
   allvars = lsf(dfg, idfct)
   lievars = setdiff(allvars, [varid;])
 
   # get all other var dimensions with saturation
   len = length(lievars)
-  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, true), lievars)
+  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, solveKey, true), lievars)
 
   if length(fracs) == 0
     return 0.0
@@ -145,10 +158,11 @@ Related
 
 getVariablePossibleDim, getVariableDim, getVariableInferredDim, getFactorDim, getFactorInferFraction, isCliqFullDim
 """
-function getFactorSolvableDimFraction(dfg::G,
+function getFactorSolvableDimFraction(dfg::AbstractDFG,
                                       idfct::Symbol,
                                       varid::Symbol,
-                                      saturate::Bool=false  )::Float64 where G <: AbstractDFG
+                                      solveKey::Symbol=:default,
+                                      saturate::Bool=false  )
   #
   # get all other variables
   allvars = lsf(dfg, idfct)
@@ -163,32 +177,36 @@ function getFactorSolvableDimFraction(dfg::G,
 
   # get all other var dimensions with saturation
   len = length(lievars)
-  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, true), lievars)
+  fracs = map(lv->getVariableInferredDimFraction(dfg, lv, solveKey, true), lievars)
 
   # the dimension of leave one out variables dictate if this factor can prodive full information on leave out   variable.
   return cumprod(fracs)[end]
 end
-function getFactorSolvableDimFraction(dfg::G,
+
+function getFactorSolvableDimFraction(dfg::AbstractDFG,
                                       fct::DFGFactor,
                                       varid::Symbol,
-                                      saturate::Bool=false  )::Float64 where G <: AbstractDFG
+                                      solveKey::Symbol=:default,
+                                      saturate::Bool=false  )
   #
-  getFactorSolvableDimFraction(dfg,fct.label,varid,saturate)
+  getFactorSolvableDimFraction(dfg, fct.label, varid, solveKey, saturate)
 end
 
 function getFactorSolvableDim(dfg::AbstractDFG,
                               idfct::Symbol,
                               varid::Symbol,
-                              saturate::Bool=false  )::Float64
+                              solveKey::Symbol=:default,
+                              saturate::Bool=false  )
   #
-  return getFactorSolvableDimFraction(dfg,idfct,varid,saturate)*getFactorDim(dfg, idfct)
+  return getFactorSolvableDimFraction(dfg, idfct, varid, solveKey, saturate)*getFactorDim(dfg, idfct)
 end
 function getFactorSolvableDim(dfg::AbstractDFG,
                               fct::DFGFactor,
                               varid::Symbol,
+                              solveKey::Symbol=:default,
                               saturate::Bool=false  )::Float64
   #
-  return getFactorSolvableDimFraction(dfg,fct,varid,saturate)*getFactorDim(fct)
+  return getFactorSolvableDimFraction(dfg,fct,varid,solveKey,saturate)*getFactorDim(fct)
 end
 
 """
@@ -312,7 +330,8 @@ Related
 getCliqVariableInferredPercent
 """
 function getCliqVariableMoreInitDims( dfg::AbstractDFG,
-                                      cliq::TreeClique  )
+                                      cliq::TreeClique,
+                                      solveKey::Symbol=:default  )
   #
   # cliq variables factors
   vars = getCliqAllVarIds(cliq)
@@ -324,7 +343,7 @@ function getCliqVariableMoreInitDims( dfg::AbstractDFG,
   # current variable infer dim
   for vari in vars
     dict[vari] = getVariableSolvableDim(dfg, vari)
-    dict[vari] -= getVariableInferredDim(dfg, vari)
+    dict[vari] -= getVariableInferredDim(dfg, vari, solveKey)
   end
 
   # return dict with result

@@ -5,6 +5,7 @@ using Test
 using Statistics
 using IncrementalInference
 
+##
 
 @testset "forward backward convolutions and products sequence" begin
 
@@ -93,4 +94,10 @@ B_ = getKDE(fg, :b)
 @test Statistics.std(getPoints(B)) < 2
 @test 3 < Statistics.std(getPoints(B_))
 
+##
+
 end
+
+
+
+##

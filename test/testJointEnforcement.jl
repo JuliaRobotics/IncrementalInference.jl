@@ -84,7 +84,7 @@ cliq2 = getClique(tree,:x3)
 
 cfg2 = buildCliqSubgraph(fg, cliq2)
 
-jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, cliq2)
+jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, :default, cliq2)
 
 
 @info "update these jointmsg test after #1010"
@@ -188,7 +188,7 @@ allClasses = IIF._findSubgraphsFactorType( cfg2, jointrelatives, separators )
 
 ##
 
-jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, cliq2)
+jointmsg = IIF._generateMsgJointRelativesPriors(cfg2, :default, cliq2)
 
 ##
 

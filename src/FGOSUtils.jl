@@ -104,7 +104,7 @@ function manikde!(pts::AbstractArray{Float64,2},
 end
 
 function manikde!(pts::AbstractArray{Float64,2}, 
-                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}})
+                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}})
   # = manikde!(pts, getManifolds(vartype))
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(vartype))
@@ -113,7 +113,7 @@ function manikde!(pts::AbstractArray{Float64,2},
   return ManifoldKernelDensity(ampmani, bel)
 end
 
-manikde!(pts::AbstractArray{Float64,1}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype) #, getManifolds(vartype))
+manikde!(pts::AbstractVector{<:Real}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
 
 
 
@@ -213,9 +213,10 @@ Related
 [`getVariablePPE`](@ref), [`setVariablePosteriorEstimates!`](@ref), [`getVariablePPE!`](@ref)
 """
 function calcPPE( var::DFGVariable,
-                  varType::InferenceVariable;
+                  varType::InferenceVariable=getVariableType(var);
                   method::Type{MeanMaxPPE}=MeanMaxPPE,
-                  solveKey::Symbol=:default  )
+                  solveKey::Symbol=:default,
+                  ppeKey::Symbol=solveKey  )
   #
   P = getBelief(var, solveKey)
   maniDef = convert(Manifold, varType)
@@ -237,11 +238,11 @@ function calcPPE( var::DFGVariable,
   # end
 
   # suggested, max, mean, current time
-  MeanMaxPPE(solveKey, Pme, Pma, Pme, now())
+  MeanMaxPPE(ppeKey, Pme, Pma, Pme, now())
 end
 
 
-calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
+# calcPPE(var::DFGVariable; method::Type{<:AbstractPointParametricEst}=MeanMaxPPE, solveKey::Symbol=:default) = calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
 
 """
     $TYPEDSIGNATURES

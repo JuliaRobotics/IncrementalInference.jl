@@ -25,6 +25,7 @@ Notes
 """
 function productbelief( dfg::AbstractDFG,
                         vertlabel::Symbol,
+                        solveKey::Symbol,
                         dens::Vector{<:BallTreeDensity},
                         partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
                         N::Int;
@@ -35,7 +36,7 @@ function productbelief( dfg::AbstractDFG,
   manis = getVariableType(vert) |> getManifolds
   pGM = Array{Float64,2}(undef, 0,0)
   lennonp, lenpart = length(dens), length(partials)
-  denspts = getPoints(getBelief(vert))
+  denspts = getPoints(getBelief(vert, solveKey))
   Ndims = size(denspts,1)
   with_logger(logger) do
     @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
@@ -94,7 +95,7 @@ Notes
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
                         factors::Vector{<:DFGFactor};
-                        solveKey::Symbol=:defaul,
+                        solveKey::Symbol=:default,
                         needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
@@ -104,14 +105,14 @@ function predictbelief( dfg::AbstractDFG,
   #
   
   # determine number of particles to draw from the marginal
-  nn = N != 0 ? N : size(getVal(destvert),2)
+  nn = N != 0 ? N : size(getVal(destvert, solveKey=solveKey),2)
   
   # get proposal beliefs
   destvertlabel = destvert.label
-  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, N=nn, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, solveKey=solveKey, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(dfg, destvertlabel, dens, partials, nn, dbg=dbg, logger=logger )
+  pGM = productbelief(dfg, destvertlabel, solveKey, dens, partials, nn, dbg=dbg, logger=logger )
 
   return pGM, sum(inferdim)
 end
@@ -199,12 +200,13 @@ DevNotes:
 function localProductAndUpdate!(dfg::AbstractDFG,
                                 sym::Symbol,
                                 setkde::Bool=true,
-                                logger=ConsoleLogger() )
+                                logger=ConsoleLogger();
+                                solveKey::Symbol=:default )
   #
   # calculate new points for sym using existing structure around sym in dfg
-  newPts, dens, parts, lbl, infdim = localProduct(dfg, sym, N=getSolverParams(dfg).N, logger=logger)
+  newPts, dens, parts, lbl, infdim = localProduct(dfg, sym, solveKey=solveKey, N=getSolverParams(dfg).N, logger=logger)
   # maybe update dfg sym with newly calculated points
-  setkde && 0 < size(getPoints(newPts),2) ? setValKDE!(dfg, sym, newPts, false, infdim) : nothing
+  setkde && 0 < size(getPoints(newPts),2) ? setValKDE!(dfg, sym, newPts, false, infdim, solveKey=solveKey) : nothing
 
   return newPts, infdim, lbl
 end

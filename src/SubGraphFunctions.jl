@@ -5,13 +5,15 @@ Specialized subgraph function for cliques to build a deep subgraph copy from the
 Dev notes:
 - TODO Since a clique should already have a list of frontals, seperators, and potentials (factors), this function should just be a light wrapper around copyGraph or buildSubgraph
 - TODO Send in clique and then extract frontals, separators and factors
+- TODO ability to limit which solveKeys to copy.
 """
 function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             frontals::Vector{Symbol},
                             separators::Vector{Symbol};
                             solvable::Int = 0,
-                            verbose::Bool=false )
+                            verbose::Bool=false,
+                            solveKey::Symbol=:NOTUSEDYET )
 
 
   allvars = union(frontals, separators)
@@ -50,7 +52,8 @@ function buildCliqSubgraph!(cliqSubFg::AbstractDFG,
                             dfg::AbstractDFG,
                             cliq::TreeClique;
                             solvable::Int = 0,
-                            verbose::Bool=false )
+                            verbose::Bool=false,
+                            solveKey::Symbol=:NOTUSEDYET )
 
   vars = getCliqVarIdsAll(cliq)
   facs = getCliqFactorIdsAll(cliq)
@@ -128,8 +131,17 @@ function transferUpdateSubGraph!( dest::AbstractDFG,
   # transfer specific fields into dest from src
   for var in (x->getVariable(src, x)).(syms)
     # copy not required since a broadcast is used internally
+    @show solveKey
     updateVariableSolverData!(dest, var, solveKey, false, [:val; :bw; :inferdim; :solvedCount; :initialized]; warn_if_absent=false)
-    updatePPE && DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
+    if updatePPE 
+      # create ppe on new key using defaults, TODO improve
+      if haskey(getPPEDict(var), solveKey)
+        DFG.updatePPE!(dest, var, solveKey; warn_if_absent=false)
+      else
+        ppe = calcPPE(var, ppeKey=solveKey)
+        addPPE!(dest, var.label, ppe)
+      end
+    end
   end
 
   nothing

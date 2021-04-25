@@ -105,6 +105,7 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   init_iter::Int
   enableLogging::Bool
   solveKey::Symbol
+  _csm_iter::Int
 end
 
 #TODO use @NamedTuple if julia compat > 1.5
@@ -131,7 +132,8 @@ function CliqStateMachineContainer( dfg::G,
                                     algorithm::Symbol = :default,
                                     init_iter::Int=0,
                                     enableLogging::Bool=true,
-                                    solveKey::Symbol=:default  ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    solveKey::Symbol=:default,
+                                    _csm_iter::Int=0  ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
@@ -149,7 +151,8 @@ function CliqStateMachineContainer( dfg::G,
                                             algorithm,
                                             init_iter,
                                             enableLogging,
-                                            solveKey )
+                                            solveKey,
+                                            _csm_iter )
   #
 end
 

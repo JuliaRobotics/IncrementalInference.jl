@@ -41,15 +41,13 @@ end
 # Should deprecate in favor of TensorCast.jl
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
-# """
-#     $SIGNATURES
-# Return the manifolds on which variable `sym::Symbol` is defined.
-# """
+
+# FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
 
 getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
-getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
-function getManifolds(dfg::AbstractDFG, sym::Symbol; solveKey::Symbol=:default)
-  return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
+getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
+function getManifolds(dfg::AbstractDFG, sym::Symbol)
+  return getManifolds(getVariable(dfg, sym))
 end
 
 # getManifolds(vartype::InferenceVariable) = vartype.manifolds
@@ -219,6 +217,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
   #
+  # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
   setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
   nothing
 end
@@ -338,14 +337,24 @@ function setDefaultNodeDataParametric!(v::DFGVariable, variableType::InferenceVa
   return nothing
 end
 
+"""
+    $SIGNATURES
+
+Create new solverData.
+
+Notes
+- Used during creation of new variable, as well as in CSM unique `solveKey`.
+"""
 function setDefaultNodeData!( v::DFGVariable,
                               dodims::Int,
                               N::Int,
                               dims::Int;
+                              solveKey::Symbol=:default,
                               gt=Dict(),
                               initialized::Bool=true,
                               dontmargin::Bool=false,
-                              varType=nothing)::Nothing
+                              varType=nothing )
+  #
   # TODO review and refactor this function, exists as legacy from pre-v0.3.0
   # this should be the only function allocating memory for the node points (unless number of points are changed)
   data = nothing
@@ -361,12 +370,14 @@ function setDefaultNodeData!( v::DFGVariable,
     #initval, stdev
     setSolverData!(v, VariableNodeData(pNpts,
                             gbw2, Symbol[], sp,
-                            dims, false, :_null, Symbol[], varType, true, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], 
+                            varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     setSolverData!(v, VariableNodeData(zeros(dims, N),
                             zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], varType, false, 0.0, false, dontmargin))
+                            dims, false, :_null, Symbol[], 
+                            varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   end
   return nothing
 end
@@ -552,10 +563,10 @@ function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
       sfidx = count #xi.index
     end
   end
-  SAMP=LEN.<maxlen
+  SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getKDE(Xi[i], solveKey), maxlen)[1]
+      ARR[i] = KDE.sample(getBelief(Xi[i], solveKey), maxlen)[1]
     end
   end
 
@@ -732,7 +743,8 @@ doautoinit!, initManual!, isInitialized, isMultihypo
 """
 function factorCanInitFromOtherVars(dfg::AbstractDFG,
                                     fct::Symbol,
-                                    loovar::Symbol)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
+                                    loovar::Symbol;
+                                    solveKey::Symbol=:default)
   #
   # all variables attached to this factor
   varsyms = DFG.getNeighbors(dfg, fct)
@@ -740,14 +752,14 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
   # which element is being solved for
   sfidx = (1:length(varsyms))[varsyms .== loovar][1]
   # list of factors to use in init operation
-  fctlist = []
+  fctlist = Symbol[]
   # list fo variables that cannot be used
   faillist = Symbol[]
   isinit = Bool[]
   for vsym in varsyms
     # check each variable one by one
     xi = DFG.getVariable(dfg, vsym)
-    isi = isInitialized(xi)
+    isi = isInitialized(xi, solveKey)
     push!(isinit, isi)
     if !isi
       push!(faillist, vsym)
@@ -779,7 +791,7 @@ function factorCanInitFromOtherVars(dfg::AbstractDFG,
   end
 
   # return if can use, the factor in an array, and the non-initialized variables attached to the factor
-  return (canuse, fctlist, faillist )
+  return (canuse, fctlist, faillist)::Tuple{Bool, Vector{Symbol}, Vector{Symbol}}
 end
 
 
@@ -823,13 +835,14 @@ Development Notes:
 """
 function doautoinit!( dfg::AbstractDFG,
                       xi::DFGVariable;
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger() )
   #
   didinit = false
   # don't initialize a variable more than once
-  if !isInitialized(xi)
+  if !isInitialized(xi, solveKey)
     with_logger(logger) do
       @info "try doautoinit! of $(xi.label)"
     end
@@ -842,7 +855,7 @@ function doautoinit!( dfg::AbstractDFG,
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
-        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym)
+        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym, solveKey=solveKey)
         if canuse
           union!(useinitfct, usefct)
         end
@@ -856,15 +869,15 @@ function doautoinit!( dfg::AbstractDFG,
         with_logger(logger) do
           @info "do init of $vsym"
         end
-        pts,inferdim = predictbelief(dfg, vsym, useinitfct, logger=logger)
-        setValKDE!(xi, pts, true, inferdim)
+        pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
+        setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
-        setVariablePosteriorEstimates!(dfg, xi.label)
+        setVariablePosteriorEstimates!(dfg, xi.label, solveKey)
         # Update the data in the event that it's not local
         # TODO perhaps usecopy=false
-        updateVariableSolverData!(dfg, xi, :default, true; warn_if_absent=false)    
+        updateVariableSolverData!(dfg, xi, solveKey, true; warn_if_absent=false)    
         # deepcopy graphinit value, see IIF #612
-        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, :default), :graphinit, true, Symbol[]; warn_if_absent=false)
+        updateVariableSolverData!(dfg, xi.label, getSolverData(xi, solveKey), :graphinit, true, Symbol[]; warn_if_absent=false)
         didinit = true
       end
     end
@@ -874,6 +887,7 @@ end
 
 function doautoinit!( dfg::T,
                       Xi::Vector{<:DFGVariable};
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger() )::Bool where T <: AbstractDFG
@@ -886,27 +900,29 @@ function doautoinit!( dfg::T,
 
   # loop over all requested variables that must be initialized
   for xi in Xi
-    didinit &= doautoinit!(dfg, xi, singles=singles, N=N, logger=logger)
+    didinit &= doautoinit!(dfg, xi, solveKey=solveKey, singles=singles, N=N, logger=logger)
   end
   return didinit
 end
 
 function doautoinit!( dfg::T,
                       xsyms::Vector{Symbol};
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
   verts = getVariable.(dfg, xsyms)
-  return doautoinit!(dfg, verts, singles=singles, N=N, logger=logger)
+  return doautoinit!(dfg, verts, solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
 function doautoinit!( dfg::T,
                       xsym::Symbol;
+                      solveKey::Symbol=:default,
                       singles::Bool=true,
                       N::Int=100,
                       logger=ConsoleLogger()  )::Bool where T <: AbstractDFG
   #
-  return doautoinit!(dfg, [getVariable(dfg, xsym);], singles=singles, N=N, logger=logger)
+  return doautoinit!(dfg, [getVariable(dfg, xsym);], solveKey=solveKey, singles=singles, N=N, logger=logger)
 end
 
 """
@@ -939,36 +955,56 @@ DevNotes
 - TODO better document graphinit and treeinit.
 """
 function initManual!( variable::DFGVariable, 
-                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
+                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=100 )
   #
-  setValKDE!(variable, ptsArr, true)
+  @debug "initManual! $label"
+  if !(solveKey in listSolveKeys(variable))
+    @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
+    varType = getVariableType(variable)
+    setDefaultNodeData!(variable, 0, N, getDimension(varType), solveKey=solveKey, 
+    initialized=false, varType=varType, dontmargin=dontmargin)
+  end
+  setValKDE!(variable, ptsArr, true, solveKey=solveKey)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
+                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=getSolverParams(dfg).N  )
   #
   variable = getVariable(dfg, label)
-  initManual!(variable, belief)
+  initManual!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      usefcts::Vector{Symbol} )
+                      usefcts::Vector{Symbol},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=getSolverParams(dfg).N )
   #
-  @info "initManual! $label"
-  pts = predictbelief(dfg, label, usefcts)[1]
+  pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = AMP.manikde!(pts, getVariableType(vert) |> getManifolds )
-  setValKDE!(vert, Xpre, true)
-  return nothing
+  initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
+  # setValKDE!(vert, Xpre, true, solveKey=solveKey)
+  # return nothing
 end
 
 
-function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
+function initManual!( dfg::AbstractDFG, 
+                      sym::Symbol, 
+                      pts::Array{Float64,2}, 
+                      solveKey::Symbol=:default)
+  #
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  initManual!(var,pp)
+  initManual!(var,pp, solveKey)
 end
 
 const initVariableManual! = initManual!
@@ -1046,10 +1082,28 @@ Related
 
 ensureSolvable!, (EXPERIMENTAL 'treeinit')
 """
-function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+function ensureAllInitialized!( dfg::AbstractDFG,
+                                solveKey::Symbol=:default; 
+                                solvable::Int=1,
+                                N::Int=getSolverParams(dfg).N )
+  #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
   # syms = ls(dfg, solvable=solvable) # |> sortDFG
+  
+  # May have to first add the solveKey VNDs if they are not yet available
+  for sym in syms
+    var = getVariable(dfg, sym)
+    # does SolverData exist for this solveKey?
+    if !( solveKey in listSolveKeys(var) )
+      varType = getVariableType(var)
+      # accept complete defaults for a novel solveKey
+      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
+                          initialized=false, varType=varType, dontmargin=false)
+    end
+  end
+
+  # do the init
   repeatCount = 0
   repeatFlag = true
   while repeatFlag
@@ -1061,10 +1115,11 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
     end
     for sym in syms
       var = getVariable(dfg, sym)
-      if !isInitialized(var)
+      # is this SolverData initialized?
+      if !isInitialized(var, solveKey)
         @info "$(var.label) is not initialized, and will do so now..."
-        doautoinit!(dfg, [var;], singles=true)
-        !isInitialized(var) ? (repeatFlag = true) : nothing
+        doautoinit!(dfg, [var;], solveKey=solveKey, singles=true)
+        !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end
     end
   end
@@ -1373,7 +1428,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) ) # getVariableType(vnd) |> getManifolds
+getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) )
 
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)
