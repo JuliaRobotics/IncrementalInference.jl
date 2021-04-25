@@ -95,7 +95,7 @@ Notes
 function predictbelief( dfg::AbstractDFG,
                         destvert::DFGVariable,
                         factors::Vector{<:DFGFactor};
-                        solveKey::Symbol=:defaul,
+                        solveKey::Symbol=:default,
                         needFreshMeasurements::Bool=true,
                         N::Int=0,
                         dbg::Bool=false,
