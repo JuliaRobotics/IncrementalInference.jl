@@ -973,11 +973,9 @@ end
 
 Return `::Bool` on whether factor is a partial constraint.
 """
-isPartial(fcf::T) where {T <: FunctorInferenceType} = :partial in fieldnames(T)
-function isPartial(fct::DFGFactor)  #fct::TreeClique
-  fcf = _getCCW(fct).usrfnc!
-  isPartial(fcf)
-end
+isPartial(fcf::T) where {T <: AbstractFactor} = :partial in fieldnames(T)
+isPartial(ccw::CommonConvWrapper) = ccw.usrfnc! |> isPartial
+isPartial(fct::DFGFactor) = _getCCW(fct) |> isPartial
 
 """
     $SIGNATURES

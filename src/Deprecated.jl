@@ -21,6 +21,69 @@ function _evalType(pt::String)::Type
 end
 
 
+##==============================================================================
+## Deprecate code below before v0.25
+##==============================================================================
+
+
+
+# #TODO Consolidate with updateFromSubgraph_StateMachine
+# function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
+
+#   # transfer results to main factor graph
+#   frontsyms = getFrontals(csmc.cliq)
+#   logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frontsyms")
+#   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
+
+#   #solve finished change color
+#   setCliqueDrawColor!(csmc.cliq, "lightblue")
+
+#   logCSM(csmc, "Clique $(csmc.cliq.id): Finished", loglevel=Logging.Info)
+#   return IncrementalInference.exitStateMachine
+
+# end
+
+
+# """
+#     $(SIGNATURES)
+
+# Multiply various full and partial dimension proposal densities.
+
+# DevNotes
+# - FIXME consolidate partial and full product AMP API, relates to #1010
+# - TODO better consolidate with full dimension product
+# - TODO -- reuse memory rather than rand here
+# """
+# function prodmultiplefullpartials(dens::Vector{BallTreeDensity},
+#                                   partials::Dict{Any, Vector{BallTreeDensity}},
+#                                   Ndims::Int,
+#                                   N::Int,
+#                                   manis::Tuple;
+#                                   useExisting::Bool=false )
+#   #
+#   # calculate products over all dimensions, legacy proposals held in `dens` vector
+#   pGM = AMP.manifoldProduct(dens, manis, Niter=1) |> getPoints
+
+#   _partialProducts!(pGM, partials, manis, useExisting=useExisting)
+
+#   return pGM
+# end
+
+# function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
+#                                               CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:AbstractRelativeRoots,S,T}
+#   #
+#   # return nothing
+
+#   p = Int[1:ccwl.xDim;]
+#   ccwl.partialDims = SVector(Int32.(p)...)
+
+#   # should be done with constructor only 
+#   for thrid in 1:Threads.nthreads()
+#     # length(ccwl.cpt[thrid].p) != ccwl.xDim ? resize!(ccwl.cpt[thrid].p, ccwl.xDim) : nothing
+#     ccwl.cpt[thrid].p = p  # SVector(Int32[1:ccwl.xDim;]...)
+#   end
+#   nothing
+# end
 
 
 ##==============================================================================
@@ -52,76 +115,9 @@ end
 # getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
 
-##==============================================================================
-## Deprecate code below before v0.23
-##==============================================================================
-
 @deprecate solveFactorGraphParametric(w...; kw...) solveGraphParametric(w...; kw...)
 @deprecate solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...) solveGraphParametric!(fg; init=init, kwargs...)
 
-# FIXME, much consolidation required here
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{1}}) = AMP.Euclid
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{2}}) = AMP.Euclid2
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{3}}) = AMP.Euclid3
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{4}}) = AMP.Euclid4
-
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = AMP.Circle1
-
-# convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{1}}) = AMP.Euclid
-# convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{LinearRelative{2}}) = AMP.Euclid2
-
-export Sphere1
-
-@warn "Deprecating old use of Sphere1, being replaced by Circular instead"
-const Sphere1 = Circular
-# @deprecate Sphere1(w...;kw...) Circular(w...;kw...)
-
-@deprecate PriorSphere1(w...;kw...) PriorCircular(w...;kw...)
-@deprecate Sphere1Sphere1(w...;kw...) CircularCircular(w...;kw...)
-@deprecate PackedPriorSphere1(w...;kw...) PackedPriorCircular(w...;kw...)
-@deprecate PackedSphere1Sphere1(w...;kw...) PackedCircularCircular(w...;kw...)
-
-
-
-# """
-# $(TYPEDEF)
-
-# TODO TO BE DEPRECATED
-# """
-# mutable struct PotProd
-#     Xi::Symbol # Int
-#     prev::Array{Float64,2}
-#     product::Array{Float64,2}
-#     potentials::Array{BallTreeDensity,1}
-#     potentialfac::Vector{Symbol}
-# end
-
-# """
-# $(TYPEDEF)
-
-# TODO TO BE DEPRECATED
-# """
-# mutable struct CliqGibbsMC
-#     prods::Array{PotProd,1}
-#     lbls::Vector{Symbol}
-#     CliqGibbsMC() = new()
-#     CliqGibbsMC(a,b) = new(a,b)
-# end
-
-
-# """
-# $(TYPEDEF)
-
-# TODO TO BE DEPRECATED
-# """
-# mutable struct DebugCliqMCMC
-#   mcmc::Union{Nothing, Array{CliqGibbsMC,1}}
-#   outmsg::LikelihoodMessage
-#   outmsglbls::Dict{Symbol, Symbol} # Int
-#   priorprods::Vector{CliqGibbsMC}
-#   DebugCliqMCMC() = new()
-#   DebugCliqMCMC(a,b,c,d) = new(a,b,c,d)
-# end
 
 
 #

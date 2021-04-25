@@ -10,7 +10,7 @@ Base.convert(::Type{<:SamplableBelief}, mkd::PackedManifoldKernelDensity) = conv
 
 
 
-function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:FunctorInferenceType}
+function packmultihypo(fnc::CommonConvWrapper{T}) where {T<:AbstractFactor}
   @warn "packmultihypo is deprecated in favor of Vector only operations"
   fnc.hypotheses !== nothing ? string(fnc.hypotheses) : ""
 end
@@ -42,7 +42,7 @@ end
 
 function convert(
             ::Type{GenericFunctionNodeData{CommonConvWrapper{F}}},
-            packed::GenericFunctionNodeData{P} ) where {F <: FunctorInferenceType, P <: PackedInferenceType}
+            packed::GenericFunctionNodeData{P} ) where {F <: AbstractFactor, P <: PackedInferenceType}
   #
   # TODO store threadmodel=MutliThreaded,SingleThreaded in persistence layer
   usrfnc = convert(F, packed.fnc)

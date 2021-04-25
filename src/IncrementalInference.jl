@@ -1,6 +1,6 @@
 module IncrementalInference
 
-@info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
+# @info "Multithreaded  convolutions possible, Threads.nthreads()=$(Threads.nthreads()).  See `addFactor!(.;threadmodel=MultiThreaded)`."
 
 using Distributed
 using Requires
@@ -38,6 +38,8 @@ using
   Combinatorics,
   UUIDs
 
+using StaticArrays
+
 using ManifoldsBase
 
 # for BayesTree
@@ -55,6 +57,7 @@ import Base: convert, ==
 import Distributions: sample
 import Random: rand, rand!
 import KernelDensityEstimate: getBW
+import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
@@ -260,7 +263,6 @@ export *,
   initfg,
   buildSubgraph,
   buildCliqSubgraph!,
-  transferUpdateSubGraph!,
   transferUpdateSubGraph!,
   getEliminationOrder,
   buildBayesNet!,

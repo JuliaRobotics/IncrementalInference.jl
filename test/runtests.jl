@@ -20,6 +20,8 @@ include("testMixturePrior.jl")
 
 include("testPartialFactors.jl")
 
+include("testPartialPrior.jl")
+
 include("testSaveLoadDFG.jl")
 
 include("testJunctionTreeConstruction.jl")
@@ -65,9 +67,13 @@ include("testInitVariableOrder.jl")
 
 include("testTreeMessageUtils.jl")
 
+include("testCSMMonitor.jl")
+
 include("testExpXstroke.jl")
 
 include("testBasicRecycling.jl")
+
+include("testSkipUpDown.jl")
 
 include("testlocalconstraintexamples.jl")
 
@@ -77,13 +83,11 @@ include("testSolveOrphanedFG.jl")
 
 include("testSolveSetPPE.jl")
 
+include("testSolveKey.jl")
+
 include("testEuclidDistance.jl")
 
 include("priorusetest.jl")
-
-include("testCSMMonitor.jl")
-
-include("testSkipUpDown.jl")
 
 include("testVariousNSolveSize.jl")
 

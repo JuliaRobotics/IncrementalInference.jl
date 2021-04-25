@@ -124,7 +124,7 @@ function approxDeconv(dfg::AbstractDFG,
   
   # which factor
   fct = getFactor(dfg, fctsym)
-  N = size(getPoints(getBelief(dfg,getVariableOrder(fct)[1])), 2)
+  N = size(getPoints(getBelief(dfg,getVariableOrder(fct)[1], solveKey)), 2)
   pts = approxDeconv(fct, N=N, retries=retries )
   return pts
 end

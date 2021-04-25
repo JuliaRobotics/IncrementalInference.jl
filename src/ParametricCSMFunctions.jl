@@ -72,7 +72,10 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   #Fil in CliqueLikelihood
   cliqlikelihood = calculateMarginalCliqueLikelihood(vardict, Σ, varIds, cliqSeparatorVarIds)
   # @info "$(csmc.cliq.id) clique likelihood message $(cliqlikelihood)"
-  beliefMsg = LikelihoodMessage(status=UPSOLVED, variableOrder=cliqSeparatorVarIds, cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage())
+  beliefMsg = LikelihoodMessage(sender=(; id=csmc.cliq.id.value,
+                                          step=csmc._csm_iter), 
+                                status=UPSOLVED, variableOrder=cliqSeparatorVarIds, 
+                                cliqueLikelihood=cliqlikelihood, msgType=ParametricMessage() )
 
   #FIXME bit of a hack, only fill in variable beliefs if there are priors or for now more than one seperator
   if length(lsfPriors(csmc.cliqSubFg)) > 0 || length(cliqSeparatorVarIds) > 1
@@ -154,7 +157,9 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
   cliqFrontalVarIds = getCliqFrontalVarIds(csmc.cliq)
   #TODO createBeliefMessageParametric
   # beliefMsg = createBeliefMessageParametric(csmc.cliqSubFg, cliqFrontalVarIds, solvekey=opts.solvekey)
-  beliefMsg = LikelihoodMessage(status=DOWNSOLVED, msgType=ParametricMessage())
+  beliefMsg = LikelihoodMessage(sender=(; id=csmc.cliq.id.value,
+                                          step=csmc._csm_iter),
+                                status=DOWNSOLVED, msgType=ParametricMessage())
   for fi in cliqFrontalVarIds
     vnd = getSolverData(getVariable(csmc.cliqSubFg, fi), :parametric)
     beliefMsg.belief[fi] = TreeBelief(vnd)
@@ -180,23 +185,8 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
 
   logCSM(csmc, "$(csmc.cliq.id): Solve completed")
 
-  return updateFromSubgraph_ParametricStateMachine
-
+  return updateFromSubgraph_StateMachine
+  # return updateFromSubgraph_ParametricStateMachine
 end
 
-#TODO Consolidate with updateFromSubgraph_StateMachine
-function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
-
-  # transfer results to main factor graph
-  frontsyms = getFrontals(csmc.cliq)
-  logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frontsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
-
-  #solve finished change color
-  setCliqueDrawColor!(csmc.cliq, "lightblue")
-
-  logCSM(csmc, "Clique $(csmc.cliq.id): Finished", loglevel=Logging.Info)
-  return IncrementalInference.exitStateMachine
-
-end
-
+#

@@ -24,7 +24,8 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
                                     delay::Bool=false,
                                     logger::SimpleLogger=SimpleLogger(Base.stdout),
                                     solve_progressbar=nothing,
-                                    algorithm::Symbol=:default)
+                                    algorithm::Symbol=:default,
+                                    solveKey::Symbol=algorithm )
 
   # NOTE use tree and messages for operations involving children and parents
   # TODO deprecate children and prnt clique copies
@@ -33,17 +34,17 @@ function initStartCliqStateMachine!(dfg::AbstractDFG,
 
   destType = dfg isa InMemoryDFGTypes ? typeof(dfg) : InMemDFGType
 
-  csmc = CliqStateMachineContainer(dfg, initfg(destType, solverParams=getSolverParams(dfg)),
-                                   tree, cliq,
-                                   incremental, drawtree, downsolve, delay,
-                                   getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
-                                   cliq.id, algorithm, 0, true) 
+  csmc = CliqStateMachineContainer( dfg, initfg(destType, solverParams=getSolverParams(dfg)),
+                                    tree, cliq,
+                                    incremental, drawtree, downsolve, delay,
+                                    getSolverParams(dfg), Dict{Symbol,String}(), oldcliqdata, logger, 
+                                    cliq.id, algorithm, 0, true, solveKey, 0) 
 
   !upsolve && !downsolve && error("must attempt either up or down solve")
   # nxt = buildCliqSubgraph_StateMachine
   nxt = setCliqueRecycling_StateMachine
   
-  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"] = st.iter)) : ((st)->())
+  csmiter_cb = getSolverParams(dfg).drawCSMIters ? ((st::StateMachine)->(cliq.attributes["xlabel"]=st.iter; csmc._csm_iter=st.iter)) : ((st)->(csmc._csm_iter=st.iter))
   
   statemachine = StateMachine{CliqStateMachineContainer}(next=nxt, name="cliq$(getId(cliq))")
 
@@ -116,10 +117,40 @@ function buildCliqSubgraph_StateMachine(csmc::CliqStateMachineContainer)
 
   frontsyms = getCliqFrontalVarIds(csmc.cliq)
   sepsyms = getCliqSeparatorVarIds(csmc.cliq)
+
+  # TODO optimize by only fetching csmc.solveKey -- upgrades required
   buildCliqSubgraph!(csmc.cliqSubFg, csmc.dfg, frontsyms, sepsyms)
 
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_build")
+
+  # go to 2 wait for up
+  return presolveChecklist_StateMachine
+end
+
+"""
+    $SIGNATURES
+
+Check that the csmc container has everything it needs to proceed with init-ference.
+
+DevNotes
+- TODO marginalized flag might be wrong default.
+"""
+function presolveChecklist_StateMachine(csmc::CliqStateMachineContainer)
+
+  # check if solveKey is available in all variables?
+  for var in getVariable.(csmc.cliqSubFg, ls(csmc.cliqSubFg))
+    if !(csmc.solveKey in listSolveKeys(var))
+      logCSM(csmc, "CSM-0b create empty data for $(getLabel(var)) on solveKey=$(csmc.solveKey)")
+      varType = getVariableType(var)
+      # FIXME check the marginalization requirements
+      setDefaultNodeData!(var, 0, getSolverParams(csmc.cliqSubFg).N, getDimension(varType), solveKey=csmc.solveKey, 
+                          initialized=false, varType=varType, dontmargin=false)
+      #
+      @info "create vnd solveKey" csmc.solveKey
+      @info "also" listSolveKeys(var)
+    end
+  end
 
   # go to 2 wait for up
   return waitForUp_StateMachine
@@ -216,6 +247,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
 
 
   all_child_finished_up = all(in.(all_child_status, Ref([UPSOLVED, UPRECYCLED, MARGINALIZED])))
+  logCSM(csmc, "CSM-2a, clique $(csmc.cliqId) all_child_finished_up $(all_child_finished_up)")
 
   #try to skip upsolve 
   if !getSolverParams(csmc.dfg).upsolve 
@@ -234,7 +266,7 @@ function preUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   # if all(all_child_status .== UPSOLVED) 
   if all_child_finished_up
     return solveUp_StateMachine
-  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq)
+  elseif !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey)
     return initUp_StateMachine
   else
     setCliqueDrawColor!(csmc.cliq, "brown")
@@ -260,7 +292,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         linear_on_manifold = false
         init_for_differential = begin
           allvars = getVariables(csmc.cliqSubFg)
-          any_init = any(isInitialized.(allvars))
+          any_init = any(isInitialized.(allvars, csmc.solveKey))
           is_root = isempty(getEdgesParent(csmc.tree, csmc.cliq)) 
           logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId, is_root=is_root, any_init=any_init)
           linear_on_manifold && !is_root && !any_init
@@ -269,7 +301,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         if init_for_differential
           frontal_vars = getVariable.(csmc.cliqSubFg,  getCliqFrontalVarIds(csmc.cliq))
           filter!(!isInitialized, frontal_vars)
-          foreach(fvar->getSolverData(fvar).initialized = true, frontal_vars)
+          foreach(fvar->getSolverData(fvar, csmc.solveKey).initialized = true, frontal_vars)
           logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId,lbl=getLabel.(frontal_vars))
         end
         ## END experimental
@@ -280,10 +312,10 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     
     # structure for all up message densities computed during this initialization procedure.
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
-    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, csmc.logger)
     logCSM(csmc, "CSM-2b solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqId)
   
     someInit ? setCliqueDrawColor!(csmc.cliq, "darkgreen") :  setCliqueDrawColor!(csmc.cliq, "lightgreen")
@@ -293,7 +325,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         ## FIXME init to whatever is in frontals
         # set frontals init back to false
         if init_for_differential #experimental_sommer_init_to_whatever_is_in_frontals
-          foreach(fvar->getSolverData(fvar).initialized = false, frontal_vars)
+          foreach(fvar->getSolverData(fvar, csmc.solveKey).initialized = false, frontal_vars)
           if someInit 
             solveStatus = UPSOLVED
           end
@@ -315,19 +347,21 @@ Notes
 """
 function solveUp_StateMachine(csmc::CliqStateMachineContainer)
   
-  logCSM(csmc, "CSM-2c Solving Up")
+  logCSM(csmc, "CSM-2c, cliq=$(csmc.cliqId) Solving Up")
 
   setCliqueDrawColor!(csmc.cliq, "red")
 
   #Make sure all are initialized
-  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if !areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
     logCSM(csmc, "CSM-2c All children upsolved, not init, try init then upsolve"; c=csmc.cliqId)
     varorder = getCliqVarInitOrderUp(csmc.cliqSubFg)
-    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, logger=csmc.logger)
+    someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
   end
-
+  
+  isinit = areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq, csmc.solveKey) 
+  logCSM(csmc, "CSM-2c midway, isinit=$isinit")
   # Check again  
-  if areCliqVariablesAllInitialized(csmc.cliqSubFg, csmc.cliq) 
+  if isinit
     logCSM(csmc, "CSM-2c doing upSolve -- all initialized")
 
     __doCliqUpSolveInitialized!(csmc)
@@ -406,7 +440,11 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
   logCSM(csmc, "CSM-2e prepCliqueMsgUp, going for prepCliqueMsgUp")
-  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, solveStatus, logger=csmc.logger)
+  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, 
+                              solveStatus, logger=csmc.logger, 
+                              sender=(; id=csmc.cliq.id.value,
+                                        step=csmc._csm_iter) )
+  #
 
   logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
 
@@ -511,13 +549,15 @@ end
 function CliqDownMessage(csmc::CliqStateMachineContainer, status=DOWNSOLVED)
 
   #JT TODO maybe use Tx buffer
-  newDwnMsgs = LikelihoodMessage(status=status)
+  newDwnMsgs = LikelihoodMessage( sender=(; id=csmc.cliq.id.value,
+                                            step=csmc._csm_iter),
+                                  status=status)
 
   # create all messages from subfg
   for mk in getCliqFrontalVarIds(csmc.cliq)
     v = getVariable(csmc.cliqSubFg, mk)
-    if isInitialized(v)
-      newDwnMsgs.belief[mk] = TreeBelief(v)
+    if isInitialized(v, csmc.solveKey)
+      newDwnMsgs.belief[mk] = TreeBelief(v, csmc.solveKey)
     end
   end
   
@@ -597,10 +637,10 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   initorder = getCliqInitVarOrderDown(csmc.cliqSubFg, csmc.cliq, dwnkeys_)
   # initorder = getCliqVarInitOrderUp(csmc.tree, csmc.cliq)
 
-  someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, logger=csmc.logger)
+  someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, solveKey=csmc.solveKey, logger=csmc.logger)
   # is clique fully upsolved or only partially?
   # print out the partial init status of all vars in clique
-  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, csmc.logger)
   logCSM(csmc, "CSM-4b tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
 
   
@@ -740,33 +780,29 @@ Notes
 """
 function updateFromSubgraph_StateMachine(csmc::CliqStateMachineContainer)
   
-  # NOTE possible future use for things like retry on CGDFGs 
-  # if isa(csmc.dfg, DFG.InMemoryDFGTypes)
-  # else
-  #   #seems like a nice place to update remote variables here
-  #   return updateRemote_ExpStateMachine
-  # end
-
-  #Update frontal variables here 
+  isParametricSolve = csmc.algorithm == :parametric
 
   # set PPE and solved for all frontals
-  for sym in getCliqFrontalVarIds(csmc.cliq)
-    # set PPE in cliqSubFg
-    setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
-    # set solved flag
-    vari = getVariable(csmc.cliqSubFg, sym)
-    setSolvedCount!(vari, getSolvedCount(vari, :default)+1, :default )
+  if !isParametricSolve
+    for sym in getCliqFrontalVarIds(csmc.cliq)
+      # set PPE in cliqSubFg
+      setVariablePosteriorEstimates!(csmc.cliqSubFg, sym)
+      # set solved flag
+      vari = getVariable(csmc.cliqSubFg, sym, csmc.solveKey)
+      setSolvedCount!(vari, getSolvedCount(vari, csmc.solveKey)+1, csmc.solveKey )
+    end
   end
 
   # transfer results to main factor graph
   frsyms = getCliqFrontalVarIds(csmc.cliq)
-  logCSM(csmc, "CSM-5 finishingCliq -- going for transferUpdateSubGraph! on $frsyms")
-  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, updatePPE=true)
+  logCSM(csmc, "CSM-5 finishingCliq -- transferUpdateSubGraph! with solveKey=$(csmc.solveKey) on $frsyms")
+  transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frsyms, csmc.logger, solveKey=csmc.solveKey, updatePPE=!isParametricSolve)
 
   #solve finished change color
   setCliqueDrawColor!(csmc.cliq, "lightblue")
 
-  logCSM(csmc, "CSM-5 Clique $(csmc.cliq.id) finished", loglevel=Logging.Info)
+  logCSM(csmc, "CSM-5 Clique $(csmc.cliq.id) finished, solveKey=$(csmc.solveKey)", loglevel=Logging.Info)
   return IncrementalInference.exitStateMachine
-
 end
+
+#
