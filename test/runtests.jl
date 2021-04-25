@@ -67,9 +67,13 @@ include("testInitVariableOrder.jl")
 
 include("testTreeMessageUtils.jl")
 
+include("testCSMMonitor.jl")
+
 include("testExpXstroke.jl")
 
 include("testBasicRecycling.jl")
+
+include("testSkipUpDown.jl")
 
 include("testlocalconstraintexamples.jl")
 
@@ -84,10 +88,6 @@ include("testSolveKey.jl")
 include("testEuclidDistance.jl")
 
 include("priorusetest.jl")
-
-include("testCSMMonitor.jl")
-
-include("testSkipUpDown.jl")
 
 include("testVariousNSolveSize.jl")
 
