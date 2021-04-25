@@ -22,7 +22,11 @@ end
 #     error("User factor has a bug -- USE NEW CalcFactor API INSTEAD, v0.21.")
 # end
 
+##
+
 @testset "Test CSM monitor/watchdog on errors" begin
+
+##
 
 # create a factor graph
 fg = generateCanonicalFG_lineStep(10; 
@@ -34,6 +38,8 @@ fg = generateCanonicalFG_lineStep(10;
                             
 ensureAllInitialized!(fg)
 
+##
+
 #TODO test FSM watchdog
 # add a broken factor - mid
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
@@ -41,29 +47,33 @@ smtasks = Task[]
 @test_throws CompositeException tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks);
 sleep(0.1)
 
-# Test parametric solve also
+## Test parametric solve also
+
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
 @test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x9lm10f2)
-# add a broken factor - leave
+
+## add a broken factor - leave
+
 addFactor!(fg, [:x10, :lm10], BrokenFactor(Normal()); graphinit=false)
 @test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
 deleteFactor!(fg, :x10lm10f2)
-# add a broken factor - root
+
+## add a broken factor - root
 addFactor!(fg, [:x7, :lm10], BrokenFactor(Normal()); graphinit=false)
 @test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+
+
+##
 
 end
 
 
-
-
 @testset "test CSM debug options work" begin
-
 
 ## create a factor graph
 

@@ -92,8 +92,6 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   cliqSubFg::InMemG
   tree::BT
   cliq::TreeClique
-  # parentCliq::Vector{TreeClique} #TODO deprecate
-  # childCliqs::Vector{TreeClique} #TODO deprecate
   incremental::Bool
   drawtree::Bool
   dodownsolve::Bool
@@ -106,6 +104,8 @@ mutable struct CliqStateMachineContainer{BTND, G <: AbstractDFG, InMemG <: InMem
   algorithm::Symbol
   init_iter::Int
   enableLogging::Bool
+  solveKey::Symbol
+  _csm_iter::Int
 end
 
 #TODO use @NamedTuple if julia compat > 1.5
@@ -120,8 +120,6 @@ function CliqStateMachineContainer( dfg::G,
                                     cliqSubFg::M,
                                     tree::T,
                                     cliq::TreeClique,
-                                    # parentCliq::Vector{TreeClique},
-                                    # childCliqs::Vector{TreeClique},
                                     incremental::Bool,
                                     drawtree::Bool,
                                     dodownsolve::Bool,
@@ -133,14 +131,14 @@ function CliqStateMachineContainer( dfg::G,
                                     cliqId::CliqueId = cliq.id,
                                     algorithm::Symbol = :default,
                                     init_iter::Int=0,
-                                    enableLogging::Bool=true ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
+                                    enableLogging::Bool=true,
+                                    solveKey::Symbol=:default,
+                                    _csm_iter::Int=0  ) where {BTND, G <: AbstractDFG, M <: InMemoryDFGTypes, T <: AbstractBayesTree}
   #
   CliqStateMachineContainer{BTND, G, M, T}( dfg,
                                             cliqSubFg,
                                             tree,
                                             cliq,
-                                            # parentCliq,
-                                            # childCliqs,
                                             incremental,
                                             drawtree,
                                             dodownsolve,
@@ -152,14 +150,16 @@ function CliqStateMachineContainer( dfg::G,
                                             cliqId,
                                             algorithm,
                                             init_iter,
-                                            enableLogging )
+                                            enableLogging,
+                                            solveKey,
+                                            _csm_iter )
   #
 end
 
-
-function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
-                 cs2::CliqStateMachineContainer{BTND2, T2, InMemG2, BT2};
-                 skip::Vector{Symbol}=Symbol[] ) where {BTND1, T1 <: AbstractDFG, InMemG1 <: InMemoryDFGTypes, BT1 <: AbstractBayesTree, BTND2, T2 <: AbstractDFG, InMemG2 <: InMemoryDFGTypes, BT2 <: AbstractBayesTree}
+# TODO resolve name conflict
+function DFG.compare( cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
+                      cs2::CliqStateMachineContainer{BTND2, T2, InMemG2, BT2};
+                      skip::Vector{Symbol}=Symbol[] ) where {BTND1, T1 <: AbstractDFG, InMemG1 <: InMemoryDFGTypes, BT1 <: AbstractBayesTree, BTND2, T2 <: AbstractDFG, InMemG2 <: InMemoryDFGTypes, BT2 <: AbstractBayesTree}
   #
   BTND1 == BTND2 ? nothing : @warn("oldcliqdata::$BTND1 != oldcliqdata::$BTND2")
   T1 == T2 ? nothing : @warn("dfg::$T1 != dfg::$T2")
@@ -194,3 +194,6 @@ function compare(cs1::CliqStateMachineContainer{BTND1, T1, InMemG1, BT1},
 
   return TP
 end
+
+
+#

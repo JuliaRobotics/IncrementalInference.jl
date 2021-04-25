@@ -25,6 +25,25 @@ end
 ## Deprecate code below before v0.25
 ##==============================================================================
 
+
+
+# #TODO Consolidate with updateFromSubgraph_StateMachine
+# function updateFromSubgraph_ParametricStateMachine(csmc::CliqStateMachineContainer)
+
+#   # transfer results to main factor graph
+#   frontsyms = getFrontals(csmc.cliq)
+#   logCSM(csmc, "11, finishingCliq -- going for transferUpdateSubGraph! on $frontsyms")
+#   transferUpdateSubGraph!(csmc.dfg, csmc.cliqSubFg, frontsyms, updatePPE=false, solveKey=:parametric)
+
+#   #solve finished change color
+#   setCliqueDrawColor!(csmc.cliq, "lightblue")
+
+#   logCSM(csmc, "Clique $(csmc.cliq.id): Finished", loglevel=Logging.Info)
+#   return IncrementalInference.exitStateMachine
+
+# end
+
+
 # """
 #     $(SIGNATURES)
 

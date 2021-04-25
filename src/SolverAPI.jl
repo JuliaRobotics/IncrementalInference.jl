@@ -30,7 +30,8 @@ function taskSolveTree!(dfg::AbstractDFG,
                           recordcliqs::Vector{Symbol}=Symbol[],
                           delaycliqs::Vector{Symbol}=Symbol[],
                           smtasks=Task[],
-                          algorithm::Symbol=:default)
+                          algorithm::Symbol=:default,
+                          solveKey::Symbol=algorithm )
   #
   # revert DOWNSOLVED status to INITIALIZED in preparation for new upsolve
   resetTreeCliquesForUpSolve!(treel)
@@ -57,9 +58,9 @@ function taskSolveTree!(dfg::AbstractDFG,
           limiter = 0<length(limthiscsm) ? limthiscsm[1][2] : limititers
 
           if multithread
-            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = Threads.@spawn tryCliqStateMachineSolve!(dfg, treel, i, timeout; solveKey=solveKey, algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limititers, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           else
-            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout; algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
+            smtasks[i] = @async tryCliqStateMachineSolve!(dfg, treel, i, timeout; solveKey=solveKey, algorithm=algorithm, oldtree=oldtree, verbose=verbose, verbosefid=verbosefid, drawtree=drawtree, limititers=limiter, downsolve=downsolve, incremental=incremental, delaycliqs=delaycliqs, recordcliqs=recordcliqs, solve_progressbar=solve_progressbar)
           end
         end # if
       end # for
@@ -89,7 +90,8 @@ function tryCliqStateMachineSolve!( dfg::G,
                                     delaycliqs::Vector{Symbol}=Symbol[],
                                     recordcliqs::Vector{Symbol}=Symbol[],
                                     solve_progressbar=nothing,
-                                    algorithm::Symbol=:default) where G <: AbstractDFG
+                                    algorithm::Symbol=:default,
+                                    solveKey::Symbol=algorithm ) where G <: AbstractDFG
   #
   clst = :na
   cliq = getClique(treel, cliqKey) #treel.cliques[cliqKey]
@@ -113,7 +115,7 @@ function tryCliqStateMachineSolve!( dfg::G,
                                           limititers=limititers, downsolve=downsolve,
                                           recordhistory=recordthiscliq, incremental=incremental,
                                           delay=delaythiscliq, logger=logger, solve_progressbar=solve_progressbar,
-                                          algorithm=algorithm )
+                                          algorithm=algorithm, solveKey=solveKey )
     #
     # cliqHistories[cliqKey] = history
     if length(history) >= limititers && limititers != -1
@@ -232,9 +234,10 @@ end
 """
     $SIGNATURES
 
-Perform inference over the Bayes tree according to `opt::SolverParams`.
+Perform inference over the Bayes tree according to `opt::SolverParams` and keyword arguments.
 
 Notes
+- Aliased with `solveGraph!`
 - Variety of options, including fixed-lag solving -- see `getSolverParams(fg)` for details.
   - See online Documentation for more details: https://juliarobotics.org/Caesar.jl/latest/
 - Latest result always stored in `solvekey=:default`.
@@ -245,6 +248,9 @@ Notes
 - keyword `recordcliqs=[:x0; :x7...]` identifies by frontals which cliques to record CSM steps.
   - See [`repeatCSMStep!`](@ref), [`printCSMHistoryLogical`](@ref), [`printCSMHistorySequential`](@ref)
 
+DevNotes
+- TODO Change keyword arguments to new @parameter `SolverOptions` type.
+
 Example
 ```julia
 # pass in old `tree` to enable compute recycling -- see online Documentation for more details
@@ -253,7 +259,7 @@ tree, smt, hist = solveTree!(fg [,tree])
 
 Related
 
-[`solveCliqUp!`](@ref), [`solveCliqDown!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
+`solveGraph!`, [`solveCliqUp!`](@ref), [`solveCliqDown!`](@ref), [`buildTreeReset!`](@ref), [`repeatCSMStep`](@ref), [`printCSMHistoryLogical`](@ref)
 """
 function solveTree!(dfgl::AbstractDFG,
                     oldtree::AbstractBayesTree=BayesTree();
@@ -272,6 +278,7 @@ function solveTree!(dfgl::AbstractDFG,
                     dotreedraw = Int[1;],
                     runtaskmonitor::Bool=true,
                     algorithm::Symbol=:default,
+                    solveKey::Symbol=:default,
                     multithread::Bool=false  )
   #
   # workaround in case isolated variables occur
@@ -292,9 +299,9 @@ function solveTree!(dfgl::AbstractDFG,
 
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    ensureAllInitialized!(dfgl)
+    ensureAllInitialized!(dfgl, solveKey)
     if algorithm==:parametric
-      @warn "Parametric is using default graphinit"
+      @warn "Parametric is using default graphinit (and ignoring solveKey)"
       initParametricFrom!(dfgl)
     end
   end
@@ -304,7 +311,7 @@ function solveTree!(dfgl::AbstractDFG,
   hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
   if opt.isfixedlag
-      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      @info "Quasi fixed-lag is enabled (a feature currently in testing, and ignoring solveKey)!"
       fifoFreeze!(dfgl)
   end
 
@@ -333,36 +340,27 @@ function solveTree!(dfgl::AbstractDFG,
   # if desired, drawtree in a loop
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
-  @info "Do tree based init-ference on tree"
+  @info "Do tree based init-ference"
+  algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
+  !storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.") 
 
-  # choose algorithm 
-  if algorithm == :parametric
-    @error "Under development, do not use, see #539"
-    storeOld && @error("parametric storeOld keyword not wired up yet.") 
-    # alltasks, hist = taskSolveTreeParametric!(dfgl, tree; smtasks=smtasks, oldtree=tree, verbose=verbose, drawtree=opt.drawtree, recordcliqs=recordcliqs, limititers=opt.limititers, incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs, multithread=multithread )
-    smtasks, hist = taskSolveTree!( dfgl, tree, timeout; algorithm=algorithm, 
-                                    multithread=multithread, smtasks=smtasks, oldtree=oldtree,          
-                                    verbose=verbose, verbosefid=verbosefid, 
-                                    drawtree=opt.drawtree, recordcliqs=recordcliqs, 
-                                    limititers=opt.limititers, downsolve=opt.downsolve, 
-                                    incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
-    @info "Finished tree based Parametric inference"
-  else # fall back is :default with take CSM
-    if opt.async
-      @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout;algorithm=algorithm, 
-                                            multithread=multithread, smtasks=smtasks, oldtree=oldtree,
-                                            verbose=verbose, verbosefid=verbosefid, 
-                                            drawtree=opt.drawtree, recordcliqs=recordcliqs, 
-                                            limititers=opt.limititers, downsolve=opt.downsolve, 
-                                            incremental=opt.incremental, skipcliqids=skipcliqids, delaycliqs=delaycliqs)
-    else
-      smtasks, hist = taskSolveTree!( dfgl, tree, timeout; 
-                                      algorithm=algorithm, multithread=multithread, smtasks=smtasks, oldtree=oldtree, 
-                                      verbose=verbose, verbosefid=verbosefid, drawtree=opt.drawtree, recordcliqs=recordcliqs, 
-                                      limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental, 
-                                      skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
-      @info "Finished tree based init-ference"
-    end
+  if opt.async
+    @async smtasks, hist = taskSolveTree!(dfgl, tree, timeout; 
+                                          solveKey=solveKey, algorithm=algorithm,
+                                          multithread=multithread, smtasks=smtasks, oldtree=oldtree,
+                                          verbose=verbose, verbosefid=verbosefid,
+                                          drawtree=opt.drawtree, recordcliqs=recordcliqs,
+                                          limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental,
+                                          skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
+  else
+    smtasks, hist =        taskSolveTree!(dfgl, tree, timeout; 
+                                          solveKey=solveKey, algorithm=algorithm,
+                                          multithread=multithread, smtasks=smtasks, oldtree=oldtree,
+                                          verbose=verbose, verbosefid=verbosefid,
+                                          drawtree=opt.drawtree, recordcliqs=recordcliqs,
+                                          limititers=opt.limititers, downsolve=opt.downsolve, incremental=opt.incremental,
+                                          skipcliqids=skipcliqids, delaycliqs=delaycliqs, limititercliqs=limititercliqs)
+    @info "Finished tree based init-ference"
   end
 
 
@@ -394,7 +392,7 @@ end
 """
     solveGrapn!
 
-See `solveTree!`.
+Just an alias, see documentation for `solveTree!`.
 """
 const solveGraph! = solveTree!
 
@@ -403,11 +401,16 @@ const solveGraph! = solveTree!
     $SIGNATURES
 Internal function used for solveCliqUp! to build the incoming upward message (Rx)
 """
-function _buildMessagesUp(fg, tree, cliqid; status=UPSOLVED)
+function _buildMessagesUp(fg::AbstractDFG, 
+                          tree::AbstractBayesTree, 
+                          cliqid, 
+                          solveKey::Symbol; 
+                          status=UPSOLVED )
+  #
   cliq = getClique(tree, cliqid)
   beliefMessages = Dict{Int, LikelihoodMessage}()
   for child in getChildren(tree, cliq)
-    msg = prepCliqueMsgUp(fg, child, status)
+    msg = prepCliqueMsgUp(fg, child, solveKey, status)
     push!(beliefMessages, child.id[]=>msg)
   end
   return beliefMessages
@@ -438,9 +441,10 @@ Related
 function solveCliqUp!(fg::AbstractDFG,
                       tree::AbstractBayesTree,
                       cliqid::Union{CliqueId, Int, Symbol},
-                      beliefMessages::Dict{Int, LikelihoodMessage} = _buildMessagesUp(fg, tree, cliqid); # create belief message from fg if needed
+                      solveKey::Symbol=:default,
+                      beliefMessages::Dict{Int, LikelihoodMessage} = _buildMessagesUp(fg, tree, cliqid, solveKey); # create belief message from fg if needed
                       verbose::Bool=false,
-                      recordcliq::Bool=false)
+                      recordcliq::Bool=false )
                       # cliqHistories = Dict{Int,Vector{CSMHistoryTuple}}(),
   #
 
@@ -476,14 +480,13 @@ function solveCliqUp!(fg::AbstractDFG,
   
   recordcliqs = recordcliq ?  [getFrontals(cliq)[1]] : Symbol[]
   
-  hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
-                                       verbose=verbose, drawtree=opt.drawtree,
-                                       limititers=opt.limititers, downsolve=false,
-                                       recordcliqs=recordcliqs, incremental=opt.incremental)
-  
+  hist = tryCliqStateMachineSolve!( fg, tree, cliq.id;
+                                    solveKey=solveKey,
+                                    verbose=verbose, drawtree=opt.drawtree,
+                                    limititers=opt.limititers, downsolve=false,
+                                    recordcliqs=recordcliqs, incremental=opt.incremental)
+  #
 
-
-  #                                       
   # post-hoc store possible state machine history in clique (without recursively saving earlier history inside state history)
   # assignTreeHistory!(tree, cliqHistories)
   beliefMessageOut = fetch(takeUpTask)
@@ -497,18 +500,24 @@ end
     $SIGNATURES
 Internal function used for solveCliqDown! to build the incoming downward message (Rx)
 """
-function _buildMessageDown(fg, tree, cliqid; status=DOWNSOLVED)
+function _buildMessageDown( fg::AbstractDFG, 
+                            tree::AbstractBayesTree, 
+                            cliqid, 
+                            solveKey::Symbol; 
+                            status::CliqStatus=DOWNSOLVED)
+  #
   cliq = getClique(tree, cliqid)
   parent = getParent(tree, cliq)[1]
-  return getCliqDownMsgsAfterDownSolve(fg, parent; status=status)
+  return getCliqDownMsgsAfterDownSolve(fg, parent, solveKey; status=status)
 end
 
 function solveCliqDown!(fg::AbstractDFG,
                         tree::AbstractBayesTree,
                         cliqid::Union{CliqueId, Int, Symbol},
-                        beliefMessage::LikelihoodMessage = _buildMessageDown(fg, tree, cliqid); # create belief message from fg if needed
+                        solveKey::Symbol=:default,
+                        beliefMessage::LikelihoodMessage = _buildMessageDown(fg, tree, cliqid, solveKey); # create belief message from fg if needed
                         verbose::Bool=false,
-                        recordcliq::Bool=false)
+                        recordcliq::Bool=false )
   #
 
   # hist = Vector{CSMHistoryTuple}()
@@ -525,7 +534,7 @@ function solveCliqDown!(fg::AbstractDFG,
 
   # Build the cliq up message to populate message factors that is needed for down
   @debug "Putting message on up channel from children"
-  for (id, msg) in _buildMessagesUp(fg, tree, cliqid)
+  for (id, msg) in _buildMessagesUp(fg, tree, cliqid, solveKey)
     child = getClique(tree, id)
     for e in getEdgesParent(tree, child)
       @async putBeliefMessageUp!(tree, e, msg)
@@ -555,9 +564,10 @@ function solveCliqDown!(fg::AbstractDFG,
 
   recordcliqs = recordcliq ?  [getFrontals(cliq)[1]] : Symbol[]
 
-  hist = tryCliqStateMachineSolve!(fg, tree, cliq.id; 
-                                   verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers,
-                                   recordcliqs=recordcliqs, incremental=opt.incremental)
+  hist = tryCliqStateMachineSolve!( fg, tree, cliq.id; 
+                                    solveKey=solveKey,
+                                    verbose=verbose, drawtree=opt.drawtree, limititers=opt.limititers,
+                                    recordcliqs=recordcliqs, incremental=opt.incremental)
 
   # fetch on down                                  
   beliefMessageOut = fetch(takeDownTask)

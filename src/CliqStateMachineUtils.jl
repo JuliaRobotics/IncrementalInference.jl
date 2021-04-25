@@ -146,8 +146,8 @@ end
 function putErrorDown(csmc::CliqStateMachineContainer)
   setCliqueDrawColor!(csmc.cliq, "red")
   @sync for e in getEdgesChildren(csmc.tree, csmc.cliq)
-  logCSM(csmc, "CSM clique $(csmc.cliq.id): propagate down error on edge $(e)")
-  @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
+    logCSM(csmc, "CSM clique $(csmc.cliq.id): propagate down error on edge $(e)")
+    @async putBeliefMessageDown!(csmc.tree, e, LikelihoodMessage(status=ERROR_STATUS))
   end
   logCSM(csmc, "CSM clique $(csmc.cliq.id): Exit with error state", loglevel=Logging.Error)
   return nothing
@@ -368,7 +368,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     # ett.cliq = cliqc
     # TODO create new dedicated file for separate process to log with
     try
-      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), fg_, cliqc, childmsgs, N, dbg, iters)
+      retdict = remotecall_fetch(upGibbsCliqueDensity, getWorkerPool(), fg_, cliqc, csmc.solveKey, childmsgs, N, dbg, iters)
     catch ex
       with_logger(logger) do
         @info ex
@@ -384,7 +384,7 @@ function approxCliqMarginalUp!( csmc::CliqStateMachineContainer,
     with_logger(logger) do
       @info "Single process upsolve clique=$(cliq.id)"
     end
-    retdict = upGibbsCliqueDensity(fg_, cliq, childmsgs, N, dbg, iters, logger)
+    retdict = upGibbsCliqueDensity(fg_, cliq, csmc.solveKey, childmsgs, N, dbg, iters, logger)
   end
 
   with_logger(logger) do
@@ -465,6 +465,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
                                         cliq::TreeClique,
                                         opts::SolverParams,
                                         logger=ConsoleLogger();
+                                        solveKey::Symbol=:default,
                                         MCIters::Int=3 )
   #
   # get frontal variables for this clique
@@ -492,7 +493,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
     downresult = Dict{Symbol, Tuple{BallTreeDensity, Float64, Vector{Symbol}}}()
     @sync for i in 1:length(directs)
       @async begin
-        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false)
+        downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, directs[i], false, solveKey=solveKey)
         # downresult[directs[i]] = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, directs[i], false)
       end
     end
@@ -507,7 +508,7 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
     end
     for mc in 1:MCIters, fr in iterFrtls
       try
-        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false)
+        result = remotecall_fetch(localProductAndUpdate!, getWorkerPool(), subfg, fr, false, solveKey=solveKey)
         # result = remotecall_fetch(localProductAndUpdate!, upp2(), subfg, fr, false)
         setValKDE!(subfg, fr, result[1], false, result[2])
         with_logger(logger) do
@@ -527,11 +528,11 @@ function solveCliqDownFrontalProducts!( subfg::AbstractDFG,
   else
     # do directs first
     for fr in directs
-      localProductAndUpdate!(subfg, fr, true, logger)
+      localProductAndUpdate!(subfg, fr, true, logger, solveKey=solveKey)
     end
     #do iters next
     for mc in 1:MCIters, fr in iterFrtls
-      localProductAndUpdate!(subfg, fr, true, logger)
+      localProductAndUpdate!(subfg, fr, true, logger, solveKey=solveKey)
     end
   end
 

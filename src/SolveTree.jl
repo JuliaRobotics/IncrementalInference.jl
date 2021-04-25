@@ -35,15 +35,16 @@ Dev Notes
 """
 function compileFMCMessages(fgl::AbstractDFG,
                             lbls::Vector{Symbol},
+                            solveKey::Symbol,
                             logger=ConsoleLogger())
   #
   d = Dict{Symbol,TreeBelief}()
   for vsym in lbls
     vari = DFG.getVariable(fgl,vsym)
-    pden = getKDE(vari)
+    pden = getBelief(vari, solveKey)
     bws = vec(getBW(pden)[:,1])
     manis = getVariableType(vari) |> getManifolds
-    d[vsym] = TreeBelief(vari) # getVal(vari), bws, manis, getSolverData(vari).inferdim
+    d[vsym] = TreeBelief(vari, solveKey) # getVal(vari), bws, manis, getSolverData(vari).inferdim
     with_logger(logger) do
       @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
     end
@@ -55,6 +56,7 @@ end
 
 function doFMCIteration(fgl::AbstractDFG,
                         vsym::Symbol,
+                        solveKey::Symbol,
                         cliq::TreeClique,
                         fmsgs,
                         N::Int,
@@ -64,7 +66,7 @@ function doFMCIteration(fgl::AbstractDFG,
   #
 
   vert = DFG.getVariable(fgl, vsym)
-  if !getSolverData(vert).ismargin
+  if !getSolverData(vert, solveKey).ismargin
     # potprod = nothing
     densPts, inferdim = predictbelief(fgl, vsym, :, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger)
 
@@ -87,8 +89,9 @@ for tree clique `cliq`.
 """
 function fmcmc!(fgl::AbstractDFG,
                 cliq::TreeClique,
-                fmsgs::Vector{LikelihoodMessage},
+                fmsgs::Vector{<:LikelihoodMessage},
                 lbls::Vector{Symbol},
+                solveKey::Symbol,
                 N::Int,
                 MCMCIter::Int,
                 dbg::Bool=false,
@@ -116,13 +119,13 @@ function fmcmc!(fgl::AbstractDFG,
 
     # outer Gibbs cycle
     for vsym in lbls
-        doFMCIteration(fgl, vsym, cliq, fmsgs, N, dbg, needFreshMeasurements, logger)
+        doFMCIteration(fgl, vsym, solveKey, cliq, fmsgs, N, dbg, needFreshMeasurements, logger)
     end
     # !dbg ? nothing : push!(mcmcdbg, dbgvals)
   end
 
   # populate dictionary for return NBPMessage in multiple dispatch
-  msgdict = compileFMCMessages(fgl, lbls, logger)
+  msgdict = compileFMCMessages(fgl, lbls, solveKey, logger)
 
   return msgdict
 end
@@ -152,6 +155,7 @@ DevNotes
 - FIXME total rewrite with AMP #41 and RoME #244 in mind
 """
 function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique, 
+                              solveKey::Symbol,
                               inmsgs,
                               N::Int=100,
                               dbg::Bool=false,
@@ -173,23 +177,23 @@ function upGibbsCliqueDensity(dfg::AbstractDFG, cliq::TreeClique,
   # use nested structure for more efficient Chapman-Kolmogorov solution approximation
   if false
     IDS = [cliqdata.frontalIDs;cliqdata.separatorIDs] #inp.cliq.attributes["frontalIDs"]
-    d = fmcmc!(dfg, cliq, inmsgs, IDS, N, iters, dbg, logger)
+    d = fmcmc!(dfg, cliq, inmsgs, IDS, solveKey, N, iters, dbg, logger)
   else
     # NOTE -- previous mistake, must iterate over directsvarIDs also (or incorporate once at the right time)
     # NOTE -- double up on directs to allow inflation to take proper affect, see #1051
-    d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, N, 1, dbg, logger, true)
+    d = fmcmc!(dfg, cliq, inmsgs, cliqdata.directFrtlMsgIDs, solveKey, N, 1, dbg, logger, true)
     
     if length(cliqdata.msgskipIDs) > 0
-      dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, N, 1, dbg, logger, true)
+      dd = fmcmc!(dfg, cliq, inmsgs, cliqdata.msgskipIDs, solveKey, N, 1, dbg, logger, true)
       for md in dd d[md[1]] = md[2]; end
     end
     if length(cliqdata.itervarIDs) > 0
-      ddd = fmcmc!(dfg, cliq, inmsgs, cliqdata.itervarIDs, N, iters, dbg, logger, false)
+      ddd = fmcmc!(dfg, cliq, inmsgs, cliqdata.itervarIDs, solveKey, N, iters, dbg, logger, false)
       for md in ddd d[md[1]] = md[2]; end
     end
     if length(cliqdata.directPriorMsgIDs) > 0
       doids = setdiff(cliqdata.directPriorMsgIDs, cliqdata.msgskipIDs)
-      dddd = fmcmc!(dfg, cliq, inmsgs, doids, N, 1, dbg, logger, true)
+      dddd = fmcmc!(dfg, cliq, inmsgs, doids, solveKey, N, 1, dbg, logger, true)
       for md in dddd d[md[1]] = md[2]; end
     end
   end
@@ -226,7 +230,8 @@ Dev Notes
 """
 function cycleInitByVarOrder!(subfg::AbstractDFG,
                               varorder::Vector{Symbol};
-                              logger=ConsoleLogger()  )::Bool
+                              solveKey::Symbol=:default,
+                              logger=ConsoleLogger()  )
   #
   with_logger(logger) do
     @info "cycleInitByVarOrder! -- varorder=$(varorder)"
@@ -237,12 +242,12 @@ function cycleInitByVarOrder!(subfg::AbstractDFG,
     count = 0
     for vsym in varorder
       var = DFG.getVariable(subfg, vsym)
-      isinit = isInitialized(var)
+      isinit = isInitialized(var, solveKey)
       with_logger(logger) do
         @info "var.label=$(var.label) is initialized=$(isinit)"
       end
-      doautoinit!(subfg, [var;], logger=logger)
-      if isinit != isInitialized(var)
+      doautoinit!(subfg, [var;], solveKey=solveKey, logger=logger)
+      if isinit != isInitialized(var, solveKey)
         count += 1
         retval = true
       end
