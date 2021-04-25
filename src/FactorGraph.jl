@@ -41,15 +41,13 @@ end
 # Should deprecate in favor of TensorCast.jl
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
-# """
-#     $SIGNATURES
-# Return the manifolds on which variable `sym::Symbol` is defined.
-# """
+
+# FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
 
 getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
-getManifolds(v::DFGVariable; solveKey::Symbol=:default) = getManifolds(getSolverData(v, solveKey))
-function getManifolds(dfg::AbstractDFG, sym::Symbol; solveKey::Symbol=:default)
-  return getManifolds(getVariable(dfg, sym), solveKey=solveKey)
+getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
+function getManifolds(dfg::AbstractDFG, sym::Symbol)
+  return getManifolds(getVariable(dfg, sym))
 end
 
 # getManifolds(vartype::InferenceVariable) = vartype.manifolds
@@ -219,6 +217,7 @@ function setValKDE!(v::DFGVariable,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
   #
+  # @error("TESTING setValKDE! ", solveKey, string(listSolveKeys(v)))
   setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
   nothing
 end
@@ -564,10 +563,10 @@ function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
       sfidx = count #xi.index
     end
   end
-  SAMP=LEN.<maxlen
+  SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getKDE(Xi[i], solveKey), maxlen)[1]
+      ARR[i] = KDE.sample(getBelief(Xi[i], solveKey), maxlen)[1]
     end
   end
 
@@ -856,7 +855,7 @@ function doautoinit!( dfg::AbstractDFG,
       useinitfct = Symbol[]
       # Consider factors connected to $vsym...
       for xifct in neinodes
-        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym)
+        canuse, usefct, notusevars = factorCanInitFromOtherVars(dfg, xifct, vsym, solveKey=solveKey)
         if canuse
           union!(useinitfct, usefct)
         end
@@ -956,36 +955,56 @@ DevNotes
 - TODO better document graphinit and treeinit.
 """
 function initManual!( variable::DFGVariable, 
-                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
+                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=100 )
   #
-  setValKDE!(variable, ptsArr, true)
+  @debug "initManual! $label"
+  if !(solveKey in listSolveKeys(variable))
+    @debug "$(getLabel(variable)) needs new VND solveKey=$(solveKey)"
+    varType = getVariableType(variable)
+    setDefaultNodeData!(variable, 0, N, getDimension(varType), solveKey=solveKey, 
+    initialized=false, varType=varType, dontmargin=dontmargin)
+  end
+  setValKDE!(variable, ptsArr, true, solveKey=solveKey)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity})
+                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=getSolverParams(dfg).N  )
   #
   variable = getVariable(dfg, label)
-  initManual!(variable, belief)
+  initManual!(variable, belief, solveKey, dontmargin=dontmargin, N=N)
   return nothing
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      usefcts::Vector{Symbol} )
+                      usefcts::Vector{Symbol},
+                      solveKey::Symbol=:default;
+                      dontmargin::Bool=false,
+                      N::Int=getSolverParams(dfg).N )
   #
-  @info "initManual! $label"
-  pts = predictbelief(dfg, label, usefcts)[1]
+  pts = predictbelief(dfg, label, usefcts, solveKey=solveKey)[1]
   vert = getVariable(dfg, label)
   Xpre = AMP.manikde!(pts, getVariableType(vert) |> getManifolds )
-  setValKDE!(vert, Xpre, true)
-  return nothing
+  initManual!(vert, Xpre, solveKey, dontmargin=dontmargin, N=N )
+  # setValKDE!(vert, Xpre, true, solveKey=solveKey)
+  # return nothing
 end
 
 
-function initManual!(dfg::AbstractDFG, sym::Symbol, pts::Array{Float64,2})
+function initManual!( dfg::AbstractDFG, 
+                      sym::Symbol, 
+                      pts::Array{Float64,2}, 
+                      solveKey::Symbol=:default)
+  #
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifolds(var))
-  initManual!(var,pp)
+  initManual!(var,pp, solveKey)
 end
 
 const initVariableManual! = initManual!
@@ -1063,10 +1082,28 @@ Related
 
 ensureSolvable!, (EXPERIMENTAL 'treeinit')
 """
-function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
+function ensureAllInitialized!( dfg::AbstractDFG,
+                                solveKey::Symbol=:default; 
+                                solvable::Int=1,
+                                N::Int=getSolverParams(dfg).N )
+  #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
   # syms = ls(dfg, solvable=solvable) # |> sortDFG
+  
+  # May have to first add the solveKey VNDs if they are not yet available
+  for sym in syms
+    var = getVariable(dfg, sym)
+    # does SolverData exist for this solveKey?
+    if !( solveKey in listSolveKeys(var) )
+      varType = getVariableType(var)
+      # accept complete defaults for a novel solveKey
+      setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
+                          initialized=false, varType=varType, dontmargin=false)
+    end
+  end
+
+  # do the init
   repeatCount = 0
   repeatFlag = true
   while repeatFlag
@@ -1078,10 +1115,11 @@ function ensureAllInitialized!(dfg::T; solvable::Int=1) where T <: AbstractDFG
     end
     for sym in syms
       var = getVariable(dfg, sym)
-      if !isInitialized(var)
+      # is this SolverData initialized?
+      if !isInitialized(var, solveKey)
         @info "$(var.label) is not initialized, and will do so now..."
-        doautoinit!(dfg, [var;], singles=true)
-        !isInitialized(var) ? (repeatFlag = true) : nothing
+        doautoinit!(dfg, [var;], solveKey=solveKey, singles=true)
+        !isInitialized(var, solveKey) ? (repeatFlag = true) : nothing
       end
     end
   end
@@ -1390,7 +1428,7 @@ end
 
 Get KernelDensityEstimate kde estimate stored in variable node.
 """
-getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) ) # getVariableType(vnd) |> getManifolds
+getBelief(vnd::VariableNodeData) = manikde!(getVal(vnd), getBW(vnd)[:,1], getVariableType(vnd) )
 
 getBelief(v::DFGVariable, solvekey::Symbol=:default) = getBelief(getSolverData(v, solvekey))
 getBelief(dfg::AbstractDFG, lbl::Symbol, solvekey::Symbol=:default) = getBelief(getVariable(dfg, lbl), solvekey)

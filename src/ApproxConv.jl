@@ -782,7 +782,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   
   # # determine if evaluation is "dimension-deficient"
   # solvable dimension
-  inferdim = getFactorSolvableDim(dfg, fct, target)
+  inferdim = getFactorSolvableDim(dfg, fct, target, solveKey)
   # zdim = getFactorDim(fct)
   # vdim = getVariableDim(DFG.getVariable(dfg, target))
 

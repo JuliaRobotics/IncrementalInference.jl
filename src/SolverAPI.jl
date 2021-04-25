@@ -299,9 +299,9 @@ function solveTree!(dfgl::AbstractDFG,
 
   if opt.graphinit
     @info "Ensure variables are all initialized (graphinit)"
-    ensureAllInitialized!(dfgl)
+    ensureAllInitialized!(dfgl, solveKey)
     if algorithm==:parametric
-      @warn "Parametric is using default graphinit"
+      @warn "Parametric is using default graphinit (and ignoring solveKey)"
       initParametricFrom!(dfgl)
     end
   end
@@ -311,7 +311,7 @@ function solveTree!(dfgl::AbstractDFG,
   hist = Dict{Int, Vector{CSMHistoryTuple}}()
 
   if opt.isfixedlag
-      @info "Quasi fixed-lag is enabled (a feature currently in testing)!"
+      @info "Quasi fixed-lag is enabled (a feature currently in testing, and ignoring solveKey)!"
       fifoFreeze!(dfgl)
   end
 

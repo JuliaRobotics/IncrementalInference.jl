@@ -104,7 +104,7 @@ function manikde!(pts::AbstractArray{Float64,2},
 end
 
 function manikde!(pts::AbstractArray{Float64,2}, 
-                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:FunctorInferenceType}})
+                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}})
   # = manikde!(pts, getManifolds(vartype))
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(vartype))
@@ -113,7 +113,7 @@ function manikde!(pts::AbstractArray{Float64,2},
   return ManifoldKernelDensity(ampmani, bel)
 end
 
-manikde!(pts::AbstractArray{Float64,1}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype) #, getManifolds(vartype))
+manikde!(pts::AbstractVector{<:Real}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
 
 
 

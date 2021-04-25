@@ -275,7 +275,8 @@ addLikelihoodsDifferential!(subfg::AbstractDFG, msgs::LikelihoodMessage) = addLi
 # FIXME, must be renamed and standardized
 function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
                                           seps::Vector{Symbol}, 
-                                          tfg::AbstractDFG=initfg() )
+                                          tfg::AbstractDFG=initfg();
+                                          solveKey::Symbol=:default )
   #
   # return list of differential factors the parent should add as part upward partial joint posterior
   retlist = MsgRelativeType()
@@ -286,7 +287,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
       addVariable!(tfg, label, getVariableType(cliqSubFG, label))
       @debug "New variable added to subfg" _group=:check_addLHDiff #TODO JT remove debug. 
     end
-    initManual!(tfg, label, getBelief(cliqSubFG, label))
+    initManual!(tfg, label, getBelief(cliqSubFG, label, solveKey), solveKey)
   end
 
   # list all variables in order of dimension size
@@ -309,7 +310,7 @@ function addLikelihoodsDifferentialCHILD!(cliqSubFG::AbstractDFG,
           # assume default helper function # buildFactorDefault(nfactype)
           afc = addFactor!(tfg, [sym1_;sym2_], sft, graphinit=false, tags=[:DUMMY;])
           # calculate the general deconvolution between variables
-          pts, = approxDeconv(tfg, afc.label)  # solveFactorMeasurements
+          pts, = approxDeconv(tfg, afc.label, solveKey)  # solveFactorMeasurements
           # @show sft
           newBel = manikde!(pts, sft) # getManifolds(sft)
           # replace dummy factor with real deconv factor using manikde approx belief measurement
@@ -412,7 +413,7 @@ function _generateMsgJointRelativesPriors(cfg::AbstractDFG,
                                           cliq::TreeClique  )
   #
   separators = getCliqSeparatorVarIds(cliq)
-  jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators )
+  jointrelatives = addLikelihoodsDifferentialCHILD!( cfg, separators, solveKey=solveKey )
   allClasses = IIF._findSubgraphsFactorType( cfg, jointrelatives, separators )
   hasPriors = 0 < length( intersect(getCliquePotentials(cliq), lsfPriors(cfg)) )
 
@@ -606,7 +607,8 @@ end
 function _buildTreeBeliefDict!( msgdict::Dict{Symbol, TreeBelief},
                                 subfg::AbstractDFG,
                                 cliq::TreeClique,
-                                sdims=getCliqVariableMoreInitDims(subfg, cliq);
+                                solveKey::Symbol=:default,
+                                sdims=getCliqVariableMoreInitDims(subfg, cliq, solveKey);
                                 duplicate::Bool=true )
   #
   # TODO better logging
@@ -646,13 +648,13 @@ function prepCliqueMsgUp( subfg::AbstractDFG,
                           sender=(;id=0,step=0) )
   #
   # get the current clique status
-  sdims = getCliqVariableMoreInitDims(subfg, cliq)
+  sdims = getCliqVariableMoreInitDims(subfg, cliq, solveKey)
 
   # construct init's up msg to place in parent from initialized separator variables
   hasPriors = 0 < (lsfPriors(subfg) |> length)
   msg = LikelihoodMessage(sender=sender, status=status, hasPriors=hasPriors)
 
-  _buildTreeBeliefDict!(msg.belief,subfg,cliq,duplicate=duplicate )
+  _buildTreeBeliefDict!(msg.belief,subfg,cliq,solveKey,duplicate=duplicate )
 
   # seps = getCliqSeparatorVarIds(cliq)
   # for vid in seps

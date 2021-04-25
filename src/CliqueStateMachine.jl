@@ -292,7 +292,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         linear_on_manifold = false
         init_for_differential = begin
           allvars = getVariables(csmc.cliqSubFg)
-          any_init = any(isInitialized.(allvars))
+          any_init = any(isInitialized.(allvars, csmc.solveKey))
           is_root = isempty(getEdgesParent(csmc.tree, csmc.cliq)) 
           logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId, is_root=is_root, any_init=any_init)
           linear_on_manifold && !is_root && !any_init
@@ -301,7 +301,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         if init_for_differential
           frontal_vars = getVariable.(csmc.cliqSubFg,  getCliqFrontalVarIds(csmc.cliq))
           filter!(!isInitialized, frontal_vars)
-          foreach(fvar->getSolverData(fvar).initialized = true, frontal_vars)
+          foreach(fvar->getSolverData(fvar, csmc.solveKey).initialized = true, frontal_vars)
           logCSM(csmc, "CSM-2b init_for_differential: "; c=csmc.cliqId,lbl=getLabel.(frontal_vars))
         end
         ## END experimental
@@ -315,7 +315,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
     someInit = cycleInitByVarOrder!(csmc.cliqSubFg, varorder, solveKey=csmc.solveKey, logger=csmc.logger)
     # is clique fully upsolved or only partially?
     # print out the partial init status of all vars in clique
-    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+    printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, csmc.logger)
     logCSM(csmc, "CSM-2b solveUp try init -- someInit=$someInit, varorder=$varorder"; c=csmc.cliqId)
   
     someInit ? setCliqueDrawColor!(csmc.cliq, "darkgreen") :  setCliqueDrawColor!(csmc.cliq, "lightgreen")
@@ -325,7 +325,7 @@ function initUp_StateMachine(csmc::CliqStateMachineContainer)
         ## FIXME init to whatever is in frontals
         # set frontals init back to false
         if init_for_differential #experimental_sommer_init_to_whatever_is_in_frontals
-          foreach(fvar->getSolverData(fvar).initialized = false, frontal_vars)
+          foreach(fvar->getSolverData(fvar, csmc.solveKey).initialized = false, frontal_vars)
           if someInit 
             solveStatus = UPSOLVED
           end
@@ -440,9 +440,12 @@ function postUpSolve_StateMachine(csmc::CliqStateMachineContainer)
   solveStatus = getCliqueStatus(csmc.cliq)
   # fill in belief
   logCSM(csmc, "CSM-2e prepCliqueMsgUp, going for prepCliqueMsgUp")
-  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, solveStatus, logger=csmc.logger, sender=(; id=csmc.cliq.id.value,
-                                                                                                    step=csmc._csm_iter) )
-
+  beliefMsg = prepCliqueMsgUp(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, 
+                              solveStatus, logger=csmc.logger, 
+                              sender=(; id=csmc.cliq.id.value,
+                                        step=csmc._csm_iter) )
+  #
+  
   logCSM(csmc, "CSM-2e prepCliqueMsgUp", msgon=keys(beliefMsg.belief), beliefMsg=beliefMsg)
 
   # Done with solve delete factors
@@ -637,7 +640,7 @@ function tryDownInit_StateMachine(csmc::CliqStateMachineContainer)
   someInit = cycleInitByVarOrder!(csmc.cliqSubFg, initorder, solveKey=csmc.solveKey, logger=csmc.logger)
   # is clique fully upsolved or only partially?
   # print out the partial init status of all vars in clique
-  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.logger)
+  printCliqInitPartialInfo(csmc.cliqSubFg, csmc.cliq, csmc.solveKey, csmc.logger)
   logCSM(csmc, "CSM-4b tryInitCliq_StateMachine -- someInit=$someInit, varorder=$initorder")
 
   

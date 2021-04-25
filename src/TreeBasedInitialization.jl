@@ -109,6 +109,7 @@ end
 
 
 function _isInitializedOrInitSolveKey(var::DFGVariable, solveKey::Symbol=:default; N::Int=100)
+  # TODO, this solveKey existence test should probably be removed?
   if !(solveKey in listSolveKeys(var))
     varType = getVariableType(var)
     setDefaultNodeData!(var, 0, N, getDimension(varType), solveKey=solveKey, 
@@ -119,6 +120,7 @@ function _isInitializedOrInitSolveKey(var::DFGVariable, solveKey::Symbol=:defaul
     # end
     return false
   end
+  # regular is initialized check, this is fine
   isinit = isInitialized(var, solveKey)
   return isinit
 end
@@ -164,13 +166,13 @@ function areCliqVariablesAllMarginalized( subfg::AbstractDFG,
 end
 
 
-function printCliqInitPartialInfo(subfg, cliq, logger=ConsoleLogger())
+function printCliqInitPartialInfo(subfg, cliq, solveKey::Symbol=:default, logger=ConsoleLogger())
   varids = getCliqAllVarIds(cliq)
   initstatus = Vector{Bool}(undef, length(varids))
   initpartial = Vector{Float64}(undef, length(varids))
   for i in 1:length(varids)
-    initstatus[i] = getSolverData(getVariable(subfg, varids[i])).initialized
-    initpartial[i] = getSolverData(getVariable(subfg, varids[i])).inferdim
+    initstatus[i] = isInitialized(subfg, varids[i], solveKey) # getSolverData(getVariable(subfg, varids[i]), solveKey).initialized
+    initpartial[i] = getSolverData(getVariable(subfg, varids[i]), solveKey).inferdim
   end
   with_logger(logger) do
     tt = split(string(now()),'T')[end]
