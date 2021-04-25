@@ -340,7 +340,7 @@ function solveTree!(dfgl::AbstractDFG,
   # if desired, drawtree in a loop
   treetask, _dotreedraw = drawTreeAsyncLoop(tree, opt; dotreedraw = dotreedraw)
 
-  @info "Do tree based init-ference on tree"
+  @info "Do tree based init-ference"
   algorithm != :parametric ? nothing : @error("Under development, do not use, see #539")
   !storeOld ? nothing : @error("parametric storeOld keyword not wired up yet.") 
 
