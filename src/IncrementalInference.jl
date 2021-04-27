@@ -60,10 +60,12 @@ import KernelDensityEstimate: getBW
 import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
+import ApproxManifoldProducts: getManifolds
+# import ApproxManifoldProducts: getManifold # might be used again later
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
-import DistributedFactorGraphs: getDimension, getManifolds, getManifold
+import DistributedFactorGraphs: getDimension, getManifold
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -235,7 +237,8 @@ export *,
   getVariable,
   getCliqueData,
   setCliqueData!,
-  getManifolds,
+  getManifold,  # new Manifolds.jl based operations
+  # getManifolds, # will be deprecated
   getVal,
   getBW,
   setVal!,

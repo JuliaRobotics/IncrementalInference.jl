@@ -1,88 +1,5 @@
 
 
-function _partialProducts!(pGM, partials, manis; useExisting::Bool=false)
-  for (dimnum,pp) in partials
-    dimv = [dimnum...]
-    # include previous calcs (if full density exists and was done before)
-    !useExisting ? nothing : push!(pp, AMP.manikde!(pGM[dimv,:], (manis[dimv]...,) ))
-    # take product of this partial's subset of dimensions
-    pGM[dimv,:] = AMP.manifoldProduct(pp, (manis[dimv]...,), Niter=1) |> getPoints
-  end
-  nothing
-end
-
-
-"""
-    $SIGNATURES
-
-Take product of `dens` accompanied by optional `partials` proposal belief densities.
-
-Notes
------
-- `d` dimensional product approximation
-- `partials` are treated as one dimensional
-- Incorporate ApproxManifoldProducts to process variables in individual batches.
-"""
-function productbelief( dfg::AbstractDFG,
-                        vertlabel::Symbol,
-                        solveKey::Symbol,
-                        dens::Vector{<:BallTreeDensity},
-                        partials::Dict{Any, <:AbstractVector{<:BallTreeDensity}},
-                        N::Int;
-                        dbg::Bool=false,
-                        logger=ConsoleLogger()  )
-  #
-  vert = DFG.getVariable(dfg, vertlabel)
-  manis = getVariableType(vert) |> getManifolds
-  pGM = Array{Float64,2}(undef, 0,0)
-  lennonp, lenpart = length(dens), length(partials)
-  denspts = getPoints(getBelief(vert, solveKey))
-  Ndims = size(denspts,1)
-  with_logger(logger) do
-    @info "[$(lennonp)x$(lenpart)p,d$(Ndims),N$(N)],"
-  end
-
-  dens_ = 0 < lennonp ? dens : [deepcopy(getBelief(vert));]
-    # # resize for #1013
-    # if size(denspts,2) < N
-    #   pGM = zeros(size(denspts,1),N)
-    #   pGM[:,1:size(denspts,2)] .= denspts
-    # else
-    #   pGM = deepcopy(denspts)
-    # end
-
-  # new, slightly condensed partialProduct operation
-  (pGM, uE) = if 0 < lennonp
-    getPoints(AMP.manifoldProduct(dens, manis, Niter=1)), true
-  elseif lennonp == 0 && 0 < lenpart
-    deepcopy(denspts), false
-  else
-    error("Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)")
-  end
-  _partialProducts!(pGM, partials, manis, useExisting=uE)
-
-
-    # if 0 < lennonp # || (lennonp == 0 && 0 < lenpart)
-    #   # calculate products over all dimensions, legacy proposals held in `dens` vector
-    #   pGM = AMP.manifoldProduct(dens, manis, Niter=1) |> getPoints
-    #   # multiple non-partials
-    #   _partialProducts!(pGM, partials, manis, useExisting=true)
-    #   # pGM = prodmultiplefullpartials(dens_, partials, Ndims, N, manis, useExisting=true)
-    # elseif lennonp == 0 && 0 < lenpart
-    #   # only partials, must get other existing values for vertlabel from dfg
-    #   pGM = deepcopy(denspts)
-    #   _partialProducts!(pGM, partials, manis; useExisting=false)
-
-    # else
-    #   with_logger(logger) do
-    #     @warn "Unknown density product on variable=$(vert.label), lennonp=$(lennonp), lenpart=$(lenpart)"
-    #   end
-    #   pGM = Array{Float64,2}(undef, 0,1)
-    # end
-
-  return pGM
-end
-
 
 """
     $SIGNATURES
@@ -112,7 +29,9 @@ function predictbelief( dfg::AbstractDFG,
   inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, solveKey=solveKey, N=nn, dbg=dbg)
 
   # take the product
-  pGM = productbelief(dfg, destvertlabel, solveKey, dens, partials, nn, dbg=dbg, logger=logger )
+  oldpts = getBelief(dfg, destvertlabel, solveKey) |> getPoints
+  varType = getVariableType(dfg, destvertlabel)
+  pGM = AMP.productbelief(oldpts, getManifold(varType), dens, partials, nn, dbg=dbg, logger=logger )
 
   return pGM, sum(inferdim)
 end

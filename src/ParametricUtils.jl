@@ -305,15 +305,19 @@ end
 """
     MixedCircular
 Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
+
+DevNotes
+- Consolidate around `ManifoldsBase.Manifold` instead, with possible wrapper-type solution for `Optim.Manifold`
 """
 struct MixedCircular <: Optim.Manifold
   isCircular::BitArray
 end
 
+# FIXME getManifolds is being deprecated, use getManifold instead.
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getVariableType(fg, k) |> getManifolds .== :Circular)
+    append!(circMask, getVariableType(fg, k) |> AMP.getManifolds .== :Circular)
   end
   MixedCircular(circMask)
 end
