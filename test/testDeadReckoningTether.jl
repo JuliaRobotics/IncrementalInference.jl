@@ -21,7 +21,7 @@ MutableLinearConditional(nm::MvNormal) = MutableLinearConditional{length(nm.μ),
 MutableLinearConditional(nm::BallTreeDensity) = MutableLinearConditional{Ndim(nm), typeof(nm)}(nm)
 
 getDimension(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = N
-getManifolds(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+# getManifolds(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
 IIF.getSample(cf::CalcFactor{<:MutableLinearConditional}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 function (s::CalcFactor{<:MutableLinearConditional})(meas,

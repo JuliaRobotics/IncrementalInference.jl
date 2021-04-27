@@ -1,4 +1,9 @@
 
+# AMP.getManifolds(::T) where {T <: InferenceVariable} = getManifolds(getManifold(T))
+# AMP.getManifolds(::Type{T}) where {T <: InferenceVariable} = getManifolds(getManifold(T))
+
+getManifolds(::InstanceType{T}) where {T <: Union{InferenceVariable, AbstractFactor}} = getManifolds(getManifold(T))
+
 
 function compare(c1::Channel,
   c2::Channel;

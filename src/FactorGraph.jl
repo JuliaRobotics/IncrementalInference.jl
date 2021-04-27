@@ -46,9 +46,8 @@ reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec
 
 getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
 getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
-function getManifolds(dfg::AbstractDFG, sym::Symbol)
-  return getManifolds(getVariable(dfg, sym))
-end
+getManifolds(dfg::AbstractDFG, sym::Symbol) = getManifolds(getVariable(dfg, sym))
+
 
 # getManifolds(vartype::InferenceVariable) = vartype.manifolds
 # getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
