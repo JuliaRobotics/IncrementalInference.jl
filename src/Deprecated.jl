@@ -22,6 +22,19 @@ end
 
 
 ##==============================================================================
+## Deprecate code below before v0.26
+##==============================================================================
+
+
+# AMP.getManifolds(::T) where {T <: InferenceVariable} = getManifolds(getManifold(T))
+# AMP.getManifolds(::Type{T}) where {T <: InferenceVariable} = getManifolds(getManifold(T))
+
+getManifolds(::InstanceType{T}) where {T <: Union{InferenceVariable, AbstractFactor}} = getManifolds(getManifold(T))
+
+
+
+
+##==============================================================================
 ## Deprecate code below before v0.25
 ##==============================================================================
 
@@ -85,38 +98,6 @@ end
 #   nothing
 # end
 
-
-##==============================================================================
-## Deprecate code below before v0.24
-##==============================================================================
-
-
-@deprecate ContinuousMultivariate(N::Int) ContinuousEuclid(N)
-
-# """
-# $(TYPEDEF)
-
-# Continuous variable of dimension `.dims` on manifold `.manifolds`.
-# """
-# struct ContinuousMultivariate{T1 <: Tuple} <: InferenceVariable
-#   dims::Int
-#   manifolds::T1
-# end
-
-# function ContinuousMultivariate(x::Int;
-#                                 manifolds::T1=convert(Tuple, Euclidean(1))  )  where {T1 <: Tuple}
-#   #
-#   maniT = length(manifolds) < x ? ([manifolds[1] for i in 1:x]...,) : manifolds
-#   ContinuousMultivariate{typeof(maniT)}(x, maniT)
-# end
-
-# # Legacy support
-# getManifolds(::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}}) where N = tuple([:Euclid for i in 1:N]...)
-# getManifolds(::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
-
-
-@deprecate solveFactorGraphParametric(w...; kw...) solveGraphParametric(w...; kw...)
-@deprecate solveFactorGraphParametric!(fg::AbstractDFG; init::Bool=true, kwargs...) solveGraphParametric!(fg; init=init, kwargs...)
 
 
 

@@ -96,7 +96,7 @@ function manikde!(pts::AbstractArray{Float64,2},
                   bws::Vector{Float64},
                   variableType::Union{<:InstanceType{InferenceVariable}, <:InstanceType{FunctorInferenceType}}  )
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(variableType))
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(variableType))
   bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
   ampmani = convert(Manifold, variableType)
   return ManifoldKernelDensity(ampmani, bel)
@@ -107,7 +107,7 @@ function manikde!(pts::AbstractArray{Float64,2},
                   vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}})
   # = manikde!(pts, getManifolds(vartype))
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(getManifolds(vartype))
+  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(vartype))
   bel = KernelDensityEstimate.kde!(pts, addopT, diffopT)
   ampmani = convert(Manifold, vartype)
   return ManifoldKernelDensity(ampmani, bel)

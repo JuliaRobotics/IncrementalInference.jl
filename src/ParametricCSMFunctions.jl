@@ -28,7 +28,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
   # store the cliqSubFg for later debugging
   _dbgCSMSaveSubFG(csmc, "fg_beforeupsolve")
 
-  vardict, result, varIds, Σ = solveFactorGraphParametric(csmc.cliqSubFg)
+  vardict, result, varIds, Σ = solveGraphParametric(csmc.cliqSubFg)
 
   logCSM(csmc, "$(csmc.cliq.id) vars $(keys(varIds))")
   # @info "$(csmc.cliq.id) Σ $(Σ)"
@@ -134,7 +134,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
     frontals = getCliqFrontalVarIds(csmc.cliq)
     vardict, result, flatvars, Σ = solveConditionalsParametric(csmc.cliqSubFg, frontals)
     #TEMP testing difference
-    # vardict, result = solveFactorGraphParametric(csmc.cliqSubFg)
+    # vardict, result = solveGraphParametric(csmc.cliqSubFg)
     # Pack all results in variables
     if result.g_converged || result.f_converged
       logCSM(csmc, "$(csmc.cliq.id): subfg optim converged updating variables"; loglevel=Logging.Info)

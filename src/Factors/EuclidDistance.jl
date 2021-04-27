@@ -17,12 +17,12 @@ EuclidDistance(::UniformScaling=LinearAlgebra.I) = EuclidDistance(Normal())
 getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 # before consolidation, see RoME.jl #244
-getManifold(::T) where{T <:EuclidDistance} = Euclidean(1)
-getManifold(::Type{T}) where{T <:EuclidDistance} = Euclidean(1)
-getManifolds(::T) where {T <:EuclidDistance} = convert(Tuple, T)
-getManifolds(::Type{<:T}) where {T <:EuclidDistance} = convert(Tuple, T)
+# getManifold(::T) where{T <:EuclidDistance} = Euclidean(1)
+# getManifold(::Type{T}) where{T <:EuclidDistance} = Euclidean(1)
+# getManifolds(::T) where {T <:EuclidDistance} = convert(Tuple, T)
+# getManifolds(::Type{<:T}) where {T <:EuclidDistance} = convert(Tuple, T)
 
-getDomain(::InstanceType{<:EuclidDistance}) = ContinuousEuclid{1}
+getManifold(::InstanceType{<:EuclidDistance}) = ContinuousEuclid{1}
 
 getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),1,N), )
 

@@ -38,11 +38,11 @@ ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
 
 getManifold(::Type{<:ContinuousEuclid{N}}) where N = Euclidean(N)
 getDimension(val::Type{<:ContinuousEuclid{N}}) where N = manifold_dimension(getManifold(val))
-getManifolds(val::Type{<:ContinuousEuclid{N}}) where N = convert(Tuple, getManifold(val))
+# getManifolds(val::Type{<:ContinuousEuclid{N}}) where N = convert(Tuple, getManifold(val))
 
 getManifold(::ContinuousEuclid{N}) where N = Euclidean(N)                               
 getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
-getManifolds(val::ContinuousEuclid{N}) where N = convert(Tuple, getManifold(val))
+# getManifolds(val::ContinuousEuclid{N}) where N = convert(Tuple, getManifold(val))
 
 Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N)
 

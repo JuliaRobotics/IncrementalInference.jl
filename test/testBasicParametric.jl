@@ -7,13 +7,13 @@ using IncrementalInference
 @testset "Test consolidation of factors #467" begin
   fg = generateCanonicalFG_lineStep(20, poseEvery=1, landmarkEvery=4, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
-  d,st = IIF.solveFactorGraphParametric(fg)
+  d,st = IIF.solveGraphParametric(fg)
   for i in 0:10
     sym = Symbol("x",i)
     @test isapprox(d[sym].val[1], i, atol=1e-6)
   end
   
-  d,st = IIF.solveFactorGraphParametric(fg; useCalcFactor=true)
+  d,st = IIF.solveGraphParametric(fg; useCalcFactor=true)
   for i in 0:10
     sym = Symbol("x",i)
     @test isapprox(d[sym].val[1], i, atol=1e-6)
@@ -27,7 +27,7 @@ end
 ##
 fg = generateCanonicalFG_lineStep(7, poseEvery=1, landmarkEvery=0, posePriorsAt=collect(0:7), sightDistance=2, solverParams=SolverParams(algorithms=[:default, :parametric]))
 
-d, result = IIF.solveFactorGraphParametric(fg)
+d, result = IIF.solveGraphParametric(fg)
 
 for i in 0:7
   sym = Symbol("x",i)
@@ -54,8 +54,8 @@ fg = generateCanonicalFG_lineStep(10, vardims=2, poseEvery=1, landmarkEvery=3, p
 #to manually check all factors
 # foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
 
-# @profiler d,st = IIF.solveFactorGraphParametric(fg)
-d,st = IIF.solveFactorGraphParametric(fg)
+# @profiler d,st = IIF.solveGraphParametric(fg)
+d,st = IIF.solveGraphParametric(fg)
 
 for i in 0:10
   sym = Symbol("x",i)
@@ -120,7 +120,7 @@ addFactor!(fg, [:x1; :x2], LinearRelative(Normal(0.0, 1e-1)), graphinit=graphini
 
 foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
 
-d,st,vs,Σ = IIF.solveFactorGraphParametric(fg)
+d,st,vs,Σ = IIF.solveGraphParametric(fg)
 
 foreach(println, d)
 @test isapprox(d[:x0].val[1], -0.01, atol=1e-4)
@@ -160,8 +160,8 @@ deleteFactor!(fg, :x5x6f1)
 #check all factors
 # foreach(fct->println(fct.label, ": ", getFactorType(fct).Z), getFactors(fg))
 
-# @profiler d,st = IIF.solveFactorGraphParametric(fg)
-d,st = IIF.solveFactorGraphParametric(fg)
+# @profiler d,st = IIF.solveGraphParametric(fg)
+d,st = IIF.solveGraphParametric(fg)
 
 if false
 foreach(println, d)
