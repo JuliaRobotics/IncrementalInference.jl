@@ -16,7 +16,7 @@ fc = getFactor(fg, :x0f1)
 
 fg = initfg()
 
-addVariable!(fg, :x1, ContinuousMultivariate(2))
+addVariable!(fg, :x1, ContinuousEuclid(2))
 
 addFactor!(fg, [:x1], PartialPrior(Normal(), (1,)) )
 
