@@ -66,6 +66,7 @@ import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold
+import DistributedFactorGraphs: getPPE, getPPEDict
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable

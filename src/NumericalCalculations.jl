@@ -43,7 +43,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #
 
   #
-  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true)
+  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true) #, ftol=1e-14)
 
   #
   return r.zero
