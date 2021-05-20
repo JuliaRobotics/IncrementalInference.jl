@@ -130,7 +130,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
     # if first factor is prior
     @assert !onePrior
     onePrior = true
-    @show val, = getParametricMeasurement(getFactorType(dfg, fctsyms[nextidx]))
+    val, = getParametricMeasurement(getFactorType(dfg, fctsyms[nextidx]))
     # val = getFactorMean(dfg, fctsyms[nextidx])
     currsym = ls(dfg, fctsyms[nextidx])[1] # prior connected to only one variable
     nextidx += 1
@@ -149,7 +149,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
     # varmask = (1:2)[getVariableOrder(fct) .== trgsym][1]
-    @show val = solveBinaryFactorParameteric(dfg,fct,val,srcsym,trgsym)
+    val = solveBinaryFactorParameteric(dfg,fct,val,srcsym,trgsym)
     srcsym = trgsym
   end
 

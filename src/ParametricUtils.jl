@@ -398,12 +398,16 @@ function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   MixedCircular(circMask)
 end
 
+# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L3
+# retract!(m, x): map x back to a point on the manifold m
 function Optim.retract!(c::MixedCircular, x)
   for (i,v) = enumerate(x)
     c.isCircular[i] && (x[i] = rem2pi(v, RoundNearest))
   end
   return x
 end
+# https://github.com/JuliaNLSolvers/Optim.jl/blob/e439de4c997a727f3f724ae76da54b9cc08456b2/src/Manifolds.jl#L2
+# project_tangent!(m, g, x): project g on the tangent space to m at x
 Optim.project_tangent!(S::MixedCircular,g,x) = g
 
 

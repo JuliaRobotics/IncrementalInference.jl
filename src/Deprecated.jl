@@ -25,6 +25,7 @@ end
 ## Deprecate code below before v0.26
 ##==============================================================================
 
+@deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
 
 @deprecate getFactorMean(w...) IIF.getParametricMeasurement(w...)[1]
 
