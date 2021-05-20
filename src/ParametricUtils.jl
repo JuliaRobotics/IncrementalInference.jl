@@ -64,7 +64,10 @@ function getParametricMeasurement(Z::MvNormal)
 end
 
 function getParametricMeasurement(s::FunctorInferenceType)
-  if hasfield(typeof(s), :Z)
+  if hasfield(typeof(s), :Zij)
+    Z = s.Zij
+    @info "getParametricMeasurement falls back to using field `.Zij` by default. Extend it for more complex factors." maxlog=1
+  elseif hasfield(typeof(s), :Z)
     Z = s.Z
     @info "getParametricMeasurement falls back to using field `.Z` by default. Extend it for more complex factors." maxlog=1
   elseif hasfield(typeof(s), :z)
@@ -75,6 +78,56 @@ function getParametricMeasurement(s::FunctorInferenceType)
   end
   return getParametricMeasurement(Z)
 end
+
+
+## ================================================================================================
+## Parametric binary factor utility function, used by DRT
+## ================================================================================================
+
+"""
+    $SIGNATURES
+
+Helper function to propagate a parametric estimate along a factor chain.
+
+Notes
+- Not used during mmisam inference.
+- Expected uses are for user analysis of factors and estimates.
+- real-time dead reckoning chain prediction.
+
+DevNotes
+- FIXME consolidate with `approxConv`
+
+Related:
+
+[`getParametricMeasurement`](@ref), [`approxConv`](@ref), [`accumulateFactorMeans`](@ref), [`MutablePose2Pose2Gaussian`](@ref)
+"""
+function solveBinaryFactorParameteric(dfg::AbstractDFG,
+                                      fct::DFGFactor,
+                                      currval::Vector{Float64},
+                                      srcsym::Symbol,
+                                      trgsym::Symbol  )::Vector{Float64}
+  #
+  outdims = getVariableDim(getVariable(dfg, trgsym))
+  meas = getFactorType(fct)
+  mea, = getParametricMeasurement(meas)
+  # mea = getFactorMean(fct)
+  measT = (reshape(mea,:,1),)
+
+  # upgrade part of #639
+  varSyms = getVariableOrder(fct)
+  Xi = getVariable.(dfg, varSyms)  # (v->getVariable(dfg, v)).(varSyms)
+
+  # calculate the projection
+  varmask = (1:2)[varSyms .== trgsym][1]
+
+  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
+  pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
+
+  # return the result
+  @assert length(pts) == outdims
+  return pts[:]
+end
+
 
 ## ================================================================================================
 ## Parametric solve with Mahalanobis distance - CalcFactor

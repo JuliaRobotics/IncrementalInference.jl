@@ -14,6 +14,7 @@ The list below highlights major breaking changes, and please note that significa
 # Major changes in IIF v0.24
 
 - Transition to only `getManifold` (instead of `getManifolds`), thereby moving towards exclusively using Manifolds.jl, see #1234.
+- Deprecate use of `getFactorMean`, use `IIF.getParametricMeasurement` instead.
 # Major changes in IIF v0.23
 
 - New `@defVariable` only uses `ManifoldsBase.Manifold` as base abstraction for variable types.

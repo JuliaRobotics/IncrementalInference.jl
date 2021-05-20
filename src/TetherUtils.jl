@@ -100,71 +100,7 @@ function rebaseFactorVariable!( dfg::AbstractDFG,
 end
 
 
-"""
-    $SIGNATURES
 
-Recover the mean (Gaussian) or estimate stochastic mean (non-Gaussian) value stored in a factor measurement.
-
-Related
-
-accumulateFactorMeans, solveBinaryFactorParameteric
-"""
-function getFactorMean(fct::FunctorInferenceType)
-  fctt = typeof(fct)
-  error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
-end
-
-getFactorMean(fct::Normal) = [fct.μ]
-getFactorMean(fct::MvNormal) = fct.μ
-getFactorMean(fct::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = getKDEMean(fct)
-getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
-
-getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct))
-
-getFactorMean(dfg::AbstractDFG, fctsym::Symbol) = getFactorMean(getFactor(dfg, fctsym))
-
-"""
-    $SIGNATURES
-
-Helper function to propagate a parametric estimate along a factor chain.
-
-Notes
-- Not used during mmisam inference.
-- Expected uses are for user analysis of factors and estimates.
-- real-time dead reckoning chain prediction.
-
-DevNotes
-- FIXME consolidate with `approxConv`
-
-Related:
-
-[`approxConv`](@ref), accumulateFactorMeans, MutablePose2Pose2Gaussian
-"""
-function solveBinaryFactorParameteric(dfg::AbstractDFG,
-                                      fct::DFGFactor,
-                                      currval::Vector{Float64},
-                                      srcsym::Symbol,
-                                      trgsym::Symbol  )::Vector{Float64}
-  #
-  outdims = getVariableDim(getVariable(dfg, trgsym))
-  meas = getFactorType(fct)
-  mea = getFactorMean(fct)
-  measT = (reshape(mea,:,1),)
-
-  # upgrade part of #639
-  varSyms = getVariableOrder(fct)
-  Xi = (v->getVariable(dfg, v)).(varSyms)
-
-  # calculate the projection
-  varmask = (1:2)[varSyms .== trgsym][1]
-
-  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
-  pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
-
-  # return the result
-  @assert length(pts) == outdims
-  return pts[:]
-end
 
 """
     $SIGNATURES
@@ -181,7 +117,7 @@ DevNotes
 
 Related:
 
-[`approxConv`](@ref), solveBinaryFactorParameteric, `RoME.MutablePose2Pose2Gaussian`
+[`approxConv`](@ref), [`solveBinaryFactorParameteric`](@ref), `RoME.MutablePose2Pose2Gaussian`
 """
 function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
 
@@ -194,8 +130,9 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
     # if first factor is prior
     @assert !onePrior
     onePrior = true
-    val = getFactorMean(dfg, fctsyms[nextidx])
-    currsym = ls(dfg, fctsyms[nextidx])[1]
+    @show val, = getParametricMeasurement(getFactorType(dfg, fctsyms[nextidx]))
+    # val = getFactorMean(dfg, fctsyms[nextidx])
+    currsym = ls(dfg, fctsyms[nextidx])[1] # prior connected to only one variable
     nextidx += 1
   else
     # get first value from current variable estimate
@@ -212,7 +149,7 @@ function accumulateFactorMeans(dfg::AbstractDFG, fctsyms::Vector{Symbol})
     vars = getVariableOrder(fct)
     trgsym = setdiff(vars, [srcsym])[1]
     # varmask = (1:2)[getVariableOrder(fct) .== trgsym][1]
-    val = solveBinaryFactorParameteric(dfg,fct,val,srcsym,trgsym)
+    @show val = solveBinaryFactorParameteric(dfg,fct,val,srcsym,trgsym)
     srcsym = trgsym
   end
 

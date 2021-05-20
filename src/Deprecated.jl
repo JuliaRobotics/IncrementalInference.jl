@@ -26,6 +26,32 @@ end
 ##==============================================================================
 
 
+@deprecate getFactorMean(w...) IIF.getParametricMeasurement(w...)[1]
+
+# """
+#     $SIGNATURES
+
+# Recover the mean (Gaussian) or estimate stochastic mean (non-Gaussian) value stored in a factor measurement.
+
+# Related
+
+# accumulateFactorMeans, solveBinaryFactorParameteric
+# """
+# function getFactorMean(fct::FunctorInferenceType)
+#   fctt = typeof(fct)
+#   error("no getFactorMean defined for $(fctt.name), has fields $(fieldnames(fctt))")
+# end
+
+# getFactorMean(fct::Normal) = [fct.μ]
+# getFactorMean(fct::MvNormal) = fct.μ
+# getFactorMean(fct::Union{<:BallTreeDensity,<:ManifoldKernelDensity}) = getKDEMean(fct)
+# getFactorMean(fct::AliasingScalarSampler) = Statistics.mean(rand(fct,1000))
+
+# getFactorMean(fct::DFGFactor) = getFactorMean(getFactorType(fct))
+
+# getFactorMean(dfg::AbstractDFG, fctsym::Symbol) = getFactorMean(getFactor(dfg, fctsym))
+
+
 # AMP.getManifolds(::T) where {T <: InferenceVariable} = getManifolds(getManifold(T))
 # AMP.getManifolds(::Type{T}) where {T <: InferenceVariable} = getManifolds(getManifold(T))
 
