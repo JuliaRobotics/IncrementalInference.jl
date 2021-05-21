@@ -205,8 +205,8 @@ function _checkVariableByReference( fg::AbstractDFG,
   varLms = ls(fg, destRegex) |> sortDFG
   ppeLms = getPPE.(getVariable.(fg, varLms), refKey) .|> x->x.suggested
   # @show typeof(ppeLms)
-  @show errmask = ppeLms .|> x -> norm(x - ppe.suggested) < atol
-  @show already = any(errmask)
+  errmask = ppeLms .|> x -> norm(x - ppe.suggested) < atol
+  already = any(errmask)
 
   # @assert sum(errmask) <= 1 "There should be only one landmark at $ppe"
   if already

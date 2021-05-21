@@ -69,18 +69,29 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   #
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  ARR = Array{Array{Float64,2},1}()
+  ARR = Vector{Matrix{Float64}}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N, solveKey=solveKey)
+
+  # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
+  ccwl.xDim = size(ARR[sfidx],1) # ccwl.params
   # TODO should be selecting for the correct multihypothesis mode
-  ccwl.params = ARR
+
+    # setup the partial or complete decision variable dimensions for this ccwl object
+    # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
+    # TODO, should this not be part of `prepareCommonConvWrapper` -- only here do we look for .partial
+    _setCCWDecisionDimsConv!(ccwl)
+
+  # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
+  ccwl.params = ARR # map( ar->view(ar, ccwl.partialDims, :), ARR)
+  
   # get factor metadata -- TODO, populate, also see #784
-  fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, solvefor, nothing)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
 
   # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
-  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
-  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ARR)
+  # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ccwl.params) # TODO perhaps 0 is safer
+  cf = CalcFactor( ccwl.usrfnc!, fmd, 0, length(ccwl.measurement), ccwl.measurement, ccwl.params)
 
   #  get variable node data
   vnds = Xi
@@ -95,11 +106,9 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
-    ccwl.zDim = size(ccwl.measurement[1],1) # TODO -- zDim aspect needs to be reviewed
+    ccwl.zDim = size(ccwl.measurement[1],1) # FIXME -- zDim aspect needs to be reviewed
   end
   ccwl.varidx = sfidx
-
-  ccwl.xDim = size(ccwl.params[sfidx],1)
   # ccwl.xDim = size(ccwl.cpt[1].X,1)
   # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
   for thrid in 1:Threads.nthreads()
@@ -337,16 +346,12 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   #
 
   # Prep computation variables
-  # FIXME #1025, should FMD be built here?
+  # NOTE #1025, should FMD be built here...
   sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < size(measurement[1],1)
     ccwl.measurement = measurement
   end
-
-  # setup the partial or complete decision variable dimensions for this ccwl object
-  # NOTE perhaps deconv has changed the decision variable list, so placed here during consolidation phase
-  _setCCWDecisionDimsConv!(ccwl)
 
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)

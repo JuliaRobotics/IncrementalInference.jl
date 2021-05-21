@@ -1081,10 +1081,10 @@ Related
 
 ensureSolvable!, (EXPERIMENTAL 'treeinit')
 """
-function ensureAllInitialized!( dfg::AbstractDFG,
-                                solveKey::Symbol=:default; 
-                                solvable::Int=1,
-                                N::Int=getSolverParams(dfg).N )
+function initAll!(dfg::AbstractDFG,
+                  solveKey::Symbol=:default; 
+                  solvable::Int=1,
+                  N::Int=getSolverParams(dfg).N )
   #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
