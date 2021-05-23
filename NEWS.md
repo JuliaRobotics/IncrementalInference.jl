@@ -13,6 +13,7 @@ The list below highlights major breaking changes, and please note that significa
 
 # Major changes in IIF v0.24
 
+- Update compat for ManifoldsBase.jl v0.11 with `AbstractManifold`.
 - Transition to only `getManifold` (instead of `getManifolds`), thereby moving towards exclusively using Manifolds.jl, see #1234.
 - Deprecate use of `getFactorMean`, use `IIF.getParametricMeasurement` instead.
 # Major changes in IIF v0.23

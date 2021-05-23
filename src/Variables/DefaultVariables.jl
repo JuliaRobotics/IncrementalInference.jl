@@ -7,7 +7,7 @@ export Circular, Circle
 Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Euclidean{Tuple{N}, ℝ}} ) where N = tuple([:Euclid for i in 1:N]...)
 Base.convert(::Type{<:Tuple}, ::InstanceType{Manifolds.Circle{ℝ}})  = (:Circular,)
 
-# Base.convert(::Type{<:Tuple}, mani::ManifoldsBase.Manifold) = getManifolds(mani)
+# Base.convert(::Type{<:Tuple}, mani::MB.AbstractManifold) = getManifolds(mani)
 
 
 ## Euclid 1
@@ -22,7 +22,7 @@ DevNotes
 """
 @defVariable ContinuousScalar Euclidean(1)
 
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
+# Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
 
 ## Euclid N
@@ -44,7 +44,7 @@ getManifold(::ContinuousEuclid{N}) where N = Euclidean(N)
 getDimension(val::ContinuousEuclid{N}) where N = manifold_dimension(getManifold(val))
 # getManifolds(val::ContinuousEuclid{N}) where N = convert(Tuple, getManifold(val))
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N)
+Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousEuclid{N}}) where N = Manifolds.Euclidean(N)
 
 
 ## Circular
@@ -58,7 +58,7 @@ Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta
 @defVariable Circular Circle()
 
 
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = Manifolds.Circle()
+# Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{Circular}) = Manifolds.Circle()
 
 
 

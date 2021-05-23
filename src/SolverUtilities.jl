@@ -29,7 +29,7 @@ function mmd( p1::AbstractMatrix{<:Real},
               varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
               bw::AbstractVector{<:Real}=[0.001;] )
   #
-  manis = convert(ManifoldsBase.Manifold, varType)
+  manis = convert(MB.AbstractManifold, varType)
   mmd(p1, p2, manis, bw=bw)  
 end
 

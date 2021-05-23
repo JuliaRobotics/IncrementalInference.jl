@@ -383,7 +383,7 @@ end
 Mixed Circular Manifold. Simple manifold for circular and cartesian mixed for use in optim
 
 DevNotes
-- Consolidate around `ManifoldsBase.Manifold` instead, with possible wrapper-type solution for `Optim.Manifold`
+- Consolidate around `ManifoldsBase.AbstractManifold` instead, with possible wrapper-type solution for `Optim.Manifold`
 """
 struct MixedCircular <: Optim.Manifold
   isCircular::BitArray
