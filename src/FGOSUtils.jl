@@ -224,18 +224,6 @@ function calcPPE( var::DFGVariable,
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
-  # suggested = zeros(getDimension(var))
-  # @assert length(manis) == getDimension(var)
-  # for i in 1:length(manis)
-  #   mani = manis[i]
-  #   if mani == :Euclid
-  #     suggested[i] = Pme[i]
-  #   elseif mani == :Circular
-  #     suggested[i] = Pma[i]
-  #   else
-  #     error("Unknown manifold to find PPE, $varType, $mani")
-  #   end
-  # end
 
   # suggested, max, mean, current time
   MeanMaxPPE(ppeKey, Pme, Pma, Pme, now())
