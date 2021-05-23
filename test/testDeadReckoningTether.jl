@@ -6,25 +6,25 @@ using Test
 
 ##
 
-mutable struct MutableLinearConditional{N, T <: SamplableBelief} <: AbstractRelativeRoots
+mutable struct MutableLinearRelative{N, T <: SamplableBelief} <: AbstractRelativeRoots
     Z::T
     # timestamp::DateTime
 end
 
-function MutableLinearConditional{N}() where N
+function MutableLinearRelative{N}() where N
     newval = MvNormal(zeros(N), diagm(ones(N)))
-    MutableLinearConditional{N,typeof(newval)}(newval)
+    MutableLinearRelative{N,typeof(newval)}(newval)
 end
-MutableLinearConditional(n::Int=1) = MutableLinearConditional{n}()
-MutableLinearConditional(nm::Distributions.ContinuousUnivariateDistribution) = MutableLinearConditional{1, typeof(nm)}(nm)
-MutableLinearConditional(nm::MvNormal) = MutableLinearConditional{length(nm.μ), typeof(nm)}(nm)
-MutableLinearConditional(nm::BallTreeDensity) = MutableLinearConditional{Ndim(nm), typeof(nm)}(nm)
+MutableLinearRelative(n::Int=1) = MutableLinearRelative{n}()
+MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = MutableLinearRelative{1, typeof(nm)}(nm)
+MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
+MutableLinearRelative(nm::BallTreeDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
-getDimension(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = N
-# getManifolds(::Type{MutableLinearConditional{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
+getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
+# getManifolds(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
-IIF.getSample(cf::CalcFactor{<:MutableLinearConditional}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-function (s::CalcFactor{<:MutableLinearConditional})(meas,
+IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
+function (s::CalcFactor{<:MutableLinearRelative})(meas,
                                                      X1,
                                                      X2  )
 #
@@ -35,10 +35,10 @@ end
 
 @testset "testing dead reckoning tether" begin
 
-# test error message and then define method for MutableLinearConditional
-@test_throws ErrorException getFactorMean(MutableLinearConditional(Normal(0.0,0.1)))
+# test error message and then define method for MutableLinearRelative
+# @test_throws ErrorException getFactorMean(MutableLinearRelative(Normal(0.0,0.1)))
 
-IIF.getFactorMean(fct::MutableLinearConditional) = getFactorMean(fct.Z)
+# IIF.getFactorMean(fct::MutableLinearRelative) = getFactorMean(fct.Z)
 ##
 
 # start with an empty factor graph object
@@ -69,7 +69,7 @@ addFactor!(fg, [:x0; :l1], p2br )
 
 addVariable!(fg, :deadreckon_x0, ContinuousScalar, solvable=0)
 
-drec = MutableLinearConditional(Normal(0.0,0.1))
+drec = MutableLinearRelative(Normal(0.0,0.1))
 
 addFactor!(fg, [:x0; :deadreckon_x0], drec, solvable=0)
 

@@ -43,7 +43,7 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   #
 
   #
-  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true)
+  r = NLsolve.nlsolve( (res, x) -> res .= objResX(x), u0, inplace=true) #, ftol=1e-14)
 
   #
   return r.zero
@@ -148,7 +148,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
-  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... )
+  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... ) # :
 
   return unrollHypo!, target
 end

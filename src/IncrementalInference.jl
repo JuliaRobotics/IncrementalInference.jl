@@ -14,7 +14,7 @@ using Reexport
 
 using Manifolds
 
-export ℝ, Manifold, Euclidean, Circle
+export ℝ, AbsstractManifold, Euclidean, Circle
 
 import NLsolve
 import NLSolversBase
@@ -66,6 +66,7 @@ import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold
+import DistributedFactorGraphs: getPPE, getPPEDict
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
@@ -73,6 +74,7 @@ import DistributedFactorGraphs: isSolvable
 
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
+const MB = ManifoldsBase
 const AMP = ApproxManifoldProducts
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference

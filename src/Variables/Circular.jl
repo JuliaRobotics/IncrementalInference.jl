@@ -9,6 +9,6 @@
 # @defVariable Circular Circle()
 
 
-# Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{Circular}) = Manifolds.Circle()
+# Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{Circular}) = Manifolds.Circle()
 
 #
