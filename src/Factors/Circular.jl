@@ -34,7 +34,7 @@ function (cf::CalcFactor{<:CircularCircular})(meas,
 end
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{CircularCircular}) = Manifolds.Circle()
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{CircularCircular}) = Manifolds.Circle()
 
 
 """
@@ -64,7 +64,7 @@ function getSample(cf::CalcFactor{<:PriorCircular}, N::Int=1)
 end
 
 
-Base.convert(::Type{<:ManifoldsBase.Manifold}, ::InstanceType{PriorCircular}) = Manifolds.Circle()
+Base.convert(::Type{<:MB.AbstractManifold}, ::InstanceType{PriorCircular}) = Manifolds.Circle()
 
 
 

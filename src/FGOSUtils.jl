@@ -98,7 +98,7 @@ function manikde!(pts::AbstractArray{Float64,2},
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(variableType))
   bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
-  ampmani = convert(Manifold, variableType)
+  ampmani = convert(MB.AbstractManifold, variableType)
   return ManifoldKernelDensity(ampmani, bel)
   # manikde!(pts, bws, getManifolds(variableType))
 end
@@ -109,7 +109,7 @@ function manikde!(pts::AbstractArray{Float64,2},
   #
   addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(vartype))
   bel = KernelDensityEstimate.kde!(pts, addopT, diffopT)
-  ampmani = convert(Manifold, vartype)
+  ampmani = convert(MB.AbstractManifold, vartype)
   return ManifoldKernelDensity(ampmani, bel)
 end
 
@@ -219,7 +219,7 @@ function calcPPE( var::DFGVariable,
                   ppeKey::Symbol=solveKey  )
   #
   P = getBelief(var, solveKey)
-  maniDef = convert(Manifold, varType)
+  maniDef = convert(MB.AbstractManifold, varType)
   manis = getManifolds(maniDef) # varType # getManifolds(vnd)
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
