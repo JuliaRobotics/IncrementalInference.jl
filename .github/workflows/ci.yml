@@ -10,6 +10,8 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    env:
+      JULIA_PKG_SERVER: ""
     strategy:
       fail-fast: false
       matrix:
@@ -20,8 +22,6 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
-        env:
-          - JULIA_PKG_SERVER=""
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -53,6 +53,8 @@ jobs:
     #if: github.ref != 'refs/heads/release**'
     name: Upstream Dev
     runs-on: ubuntu-latest
+    env: 
+      JULIA_PKG_SERVER: ""
     steps:
       - uses: actions/checkout@v2
 
@@ -60,7 +62,6 @@ jobs:
         with:
           version: 1.6
           arch: x64
-          env: JULIA_PKG_SERVER=""
 
       - uses: actions/cache@v1
         env:
