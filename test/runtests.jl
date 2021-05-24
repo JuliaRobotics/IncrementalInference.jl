@@ -125,6 +125,8 @@ include("testAnalysisTools.jl")
 
 include("testBasicParametric.jl")
 
+include("testMixtureParametric.jl")
+
 # dont run test on ARM, as per issue #527
 if Base.Sys.ARCH in [:x86_64;]
   include("testTexTreeIllustration.jl")

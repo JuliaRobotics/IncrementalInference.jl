@@ -324,7 +324,7 @@ function DefaultNodeDataParametric( dodims::Int,
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
     return VariableNodeData(zeros(dims, 1),
-                            zeros(dims,1), Symbol[], sp,
+                            zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
 
@@ -1081,10 +1081,10 @@ Related
 
 ensureSolvable!, (EXPERIMENTAL 'treeinit')
 """
-function ensureAllInitialized!( dfg::AbstractDFG,
-                                solveKey::Symbol=:default; 
-                                solvable::Int=1,
-                                N::Int=getSolverParams(dfg).N )
+function initAll!(dfg::AbstractDFG,
+                  solveKey::Symbol=:default; 
+                  solvable::Int=1,
+                  N::Int=getSolverParams(dfg).N )
   #
   # allvarnodes = getVariables(dfg)
   syms = intersect(getAddHistory(dfg), ls(dfg, solvable=solvable) )
