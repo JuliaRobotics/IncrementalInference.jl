@@ -186,18 +186,24 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
                                     atol::Real = 1e-3,
                                     destPrefix::Symbol = match(r"[a-zA-Z]+", destRegex.pattern).match |> Symbol,
-                                    srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x)  )
+                                    srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
+                                    overridePPE=nothing  )
   #
   
-  # calculate and add the reference value
-  tfg = initfg()
-  addVariable!(tfg, :x0, srcType )
-  addFactor!(tfg, [:x0], prior )
-  addVariable!(tfg, :l0, destType )
-  addFactor!( tfg, [:x0; :l0], factor, graphinit=false )
-  
-  # calculate where the landmark reference position is
-  refVal = accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
+  refVal = if overridePPE !== nothing
+    overridePPE
+  else
+    # calculate and add the reference value
+    tfg = initfg()
+    addVariable!(tfg, :x0, srcType )
+    addFactor!(tfg, [:x0], prior )
+    addVariable!(tfg, :l0, destType )
+    addFactor!( tfg, [:x0; :l0], factor, graphinit=false )
+    
+    # calculate where the landmark reference position is
+    accumulateFactorMeans(tfg, [:x0f1; :x0l0f1])
+  end
+
   ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
   # setPPE!(v_n, refKey, DFG.MeanMaxPPE, ppe)
 
