@@ -19,8 +19,8 @@ fg = generateCanonicalFG_lineStep(N;
 
 deleteFactor!.(fg, [Symbol("x$(i)lm0f1") for i=1:(N-1)])
 
-# test the ensureAllInitialized! separately anyway
-ensureAllInitialized!(fg)
+# test the initAll! separately anyway
+initAll!(fg)
 
 tree = buildTreeReset!(fg)
 

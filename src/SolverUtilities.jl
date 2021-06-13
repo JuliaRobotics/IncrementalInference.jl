@@ -174,7 +174,7 @@ end
 
 Related
 
-[`RoME.generateCanonicalFG_Beehive!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
+[`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
                                     srcLabel::Symbol,            # = :x5
@@ -221,6 +221,33 @@ function _checkVariableByReference( fg::AbstractDFG,
     return true, ppe, alrLm
   end
   
+  # Nope does not exist, ppe, generated new variable label only
+  return false, ppe, Symbol(destPrefix, srcNumber)
+end
+
+
+function _checkVariableByReference( fg::AbstractDFG,
+                                    srcLabel::Symbol,            # = :x5
+                                    destRegex::Regex,            # = r"l\d+"
+                                    destType::Type{<:InferenceVariable}, # = Point2
+                                    factor::AbstractPrior;
+                                    srcType::Type{<:InferenceVariable} = getVariableType(fg, srcLabel) |> typeof,
+                                    refKey::Symbol=:simulated,
+                                    prior = typeof(factor)( MvNormal(getParametricMeasurement(factor)...) ),
+                                    atol::Real = 1e-3,
+                                    destPrefix::Symbol = match(r"[a-zA-Z]+", destRegex.pattern).match |> Symbol,
+                                    srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
+                                    overridePPE=nothing  )
+  #
+
+  refVal = if overridePPE !== nothing
+    overridePPE
+  else
+    getParametricMeasurement(factor)[1]
+  end
+
+  ppe = DFG.MeanMaxPPE(refKey, refVal, refVal, refVal)
+
   # Nope does not exist, ppe, generated new variable label only
   return false, ppe, Symbol(destPrefix, srcNumber)
 end
