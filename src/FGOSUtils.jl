@@ -10,11 +10,20 @@ export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
 export fetchDataJSON
-export setMarginalized!
 
 
 
 KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
+
+clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
+
+function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
+  @assert 0 <= max "max must be greater or equal to zero"
+  st = clampStringLength(st, len)
+  for i in len:max-1  st *= " "; end
+  return st
+end
+
 
 
 """
@@ -33,16 +42,9 @@ _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.infe
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
-# """
-#     $SIGNATURES
-
-# Get graph node (variable or factor) dimension.
-# """
-DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
 DFG.getDimension(var::DFGVariable) = getDimension(getVariableType(var))
 DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
-DFG.getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
+DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
 
 """
@@ -61,7 +63,7 @@ function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   ccw.partialDims
 end
-  _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
 _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
 _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
@@ -81,14 +83,6 @@ _getFMdThread(dfg::AbstractDFG,
               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
 #
 
-clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
-
-function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
-  @assert 0 <= max "max must be greater or equal to zero"
-  st = clampStringLength(st, len)
-  for i in len:max-1  st *= " "; end
-  return st
-end
 
 
 # extend convenience function
@@ -259,14 +253,6 @@ end
 const calcVariablePPE = calcPPE
 
 
-"""
-    $SIGNATURES
-
-Return `::Bool` on whether this variable has been marginalized.
-"""
-isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
-isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
-
 function setThreadModel!( fgl::AbstractDFG;
                           model=IIF.SingleThreaded )
   #
@@ -298,16 +284,6 @@ isMultihypo
 """
 getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
 
-"""
-    $SIGNATURES
-
-Mark a variable as marginalized `true` or `false`.
-"""
-function setMarginalized!(vnd::VariableNodeData, val::Bool)
-  vnd.ismargin = val
-end
-setMarginalized!(vari::DFGVariable, val::Bool) = setMarginalized!(getSolverData(vari), val)
-setMarginalized!(dfg::AbstractDFG, sym::Symbol, val::Bool) = setMarginalized!(getVariable(dfg, sym), val)
 
 
 
