@@ -25,6 +25,15 @@ end
 ## Deprecate code below before v0.26
 ##==============================================================================
 
+# """
+#     $SIGNATURES
+
+# Get graph node (variable or factor) dimension.
+# """
+# DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
+# DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
+
+
 @deprecate ensureAllInitialized!(w...;kw...) initAll!(w...;kw...)
 
 @deprecate getFactorMean(w...) IIF.getParametricMeasurement(w...)[1]
