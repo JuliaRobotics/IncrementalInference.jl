@@ -57,7 +57,7 @@ incrSuffix(:x45_4, -1)
 ```
 
 Notes
-- Change `pattern::Regex=r"\d+"` for alternative behaviour.
+- Change `pattern::Regex=r"\\d+"` for alternative behaviour.
 """
 function incrSuffix(lbl::Symbol, val::Integer=+1; pattern::Regex=r"\d+")
   slbl, phrase = _getSuffix(lbl, pattern=pattern)
