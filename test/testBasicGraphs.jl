@@ -10,7 +10,7 @@ using IncrementalInference
 
 @test incrSuffix(:x45_4) == :x45_5
 
-@test incrSuffix(:x45_4, +3) == :x45_7
+@test incrSuffix(:x45, +3) == :x48
 
 @test incrSuffix(:x45_4, -1) == :x45_3
 

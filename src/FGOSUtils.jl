@@ -49,8 +49,8 @@ Utility for incrementing or decrementing suffix numbers in DFG variable labels, 
 incrSuffix(:x45_4)
 # returns :x45_5
 
-incrSuffix(:x45_4, +3)
-# returns :x45_7
+incrSuffix(:x45, +3)
+# returns :x48
 
 incrSuffix(:x45_4, -1)
 # returns :x45_3
