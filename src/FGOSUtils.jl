@@ -5,17 +5,66 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 
+export incrSuffix
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
 export loadDFG
 export fetchDataJSON
-export setMarginalized!
 
 
 
 KDE.getPoints(dfg::AbstractDFG, lbl::Symbol) = getBelief(dfg, lbl) |> getPoints
 
+clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
+
+function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
+  @assert 0 <= max "max must be greater or equal to zero"
+  st = clampStringLength(st, len)
+  for i in len:max-1  st *= " "; end
+  return st
+end
+
+"""
+    $SIGNATURES
+
+Extract contiguous string of numbers at end of a label`::Symbol` -- e.g. `:x45_4` --> "4".  
+Returns `(string, suffix_substring)`
+
+Related
+
+[`incrSuffix`](@ref)
+"""
+function _getSuffix(lbl::Symbol; pattern::Regex=r"\d+")
+  slbl = string(lbl)
+  phrase_ = slbl |> reverse |> x->match(pattern,x).match 
+  slbl, reverse(phrase_)
+end
+
+"""
+    $SIGNATURES
+
+Utility for incrementing or decrementing suffix numbers in DFG variable labels, e.g.
+```julia
+incrSuffix(:x45_4)
+# returns :x45_5
+
+incrSuffix(:x45, +3)
+# returns :x48
+
+incrSuffix(:x45_4, -1)
+# returns :x45_3
+```
+
+Notes
+- Change `pattern::Regex=r"\\d+"` for alternative behaviour.
+"""
+function incrSuffix(lbl::Symbol, val::Integer=+1; pattern::Regex=r"\d+")
+  slbl, phrase = _getSuffix(lbl, pattern=pattern)
+  nint = phrase |> x->(parse(Int,x)+val)
+  prefix = slbl[1:(end-length(phrase))]
+  Symbol(prefix, nint)
+end
 
 """
     $SIGNATURES
@@ -33,16 +82,9 @@ _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.infe
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
-# """
-#     $SIGNATURES
-
-# Get graph node (variable or factor) dimension.
-# """
-DFG.getDimension(vartype::InferenceVariable) = vartype.dims #TODO Deprecate
-DFG.getDimension(vartype::Type{<:InferenceVariable}) = getDimension(vartype())
 DFG.getDimension(var::DFGVariable) = getDimension(getVariableType(var))
 DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
-DFG.getDimension(fct::DFGFactor) = _getZDim(fct) # getSolverData(fct).fnc.zDim
+DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
 
 """
@@ -61,7 +103,7 @@ function _getDimensionsPartial(ccw::CommonConvWrapper)
   # @warn "_getDimensionsPartial not ready for use yet"
   ccw.partialDims
 end
-  _getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
+_getDimensionsPartial(data::GenericFunctionNodeData) = _getCCW(data) |> _getDimensionsPartial
 _getDimensionsPartial(fct::DFGFactor) = _getDimensionsPartial(_getCCW(fct))
 _getDimensionsPartial(fg::AbstractDFG, lbl::Symbol) = _getDimensionsPartial(getFactor(fg, lbl))
 
@@ -81,14 +123,6 @@ _getFMdThread(dfg::AbstractDFG,
               thrid::Int=Threads.threadid()) = _getFMdThread(_getCCW(dfg, lbl), thrid)
 #
 
-clampStringLength(st::AbstractString, len::Int=5) = st[1:minimum([len; length(st)])]
-
-function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,length(st)]))
-  @assert 0 <= max "max must be greater or equal to zero"
-  st = clampStringLength(st, len)
-  for i in len:max-1  st *= " "; end
-  return st
-end
 
 
 # extend convenience function
@@ -259,14 +293,6 @@ end
 const calcVariablePPE = calcPPE
 
 
-"""
-    $SIGNATURES
-
-Return `::Bool` on whether this variable has been marginalized.
-"""
-isMarginalized(vert::DFGVariable) = getSolverData(vert).ismargin
-isMarginalized(dfg::AbstractDFG, sym::Symbol) = isMarginalized(DFG.getVariable(dfg, sym))
-
 function setThreadModel!( fgl::AbstractDFG;
                           model=IIF.SingleThreaded )
   #
@@ -298,16 +324,6 @@ isMultihypo
 """
 getMultihypoDistribution(fct::DFGFactor) = _getCCW(fct).hypotheses
 
-"""
-    $SIGNATURES
-
-Mark a variable as marginalized `true` or `false`.
-"""
-function setMarginalized!(vnd::VariableNodeData, val::Bool)
-  vnd.ismargin = val
-end
-setMarginalized!(vari::DFGVariable, val::Bool) = setMarginalized!(getSolverData(vari), val)
-setMarginalized!(dfg::AbstractDFG, sym::Symbol, val::Bool) = setMarginalized!(getVariable(dfg, sym), val)
 
 
 

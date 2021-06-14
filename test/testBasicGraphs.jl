@@ -4,6 +4,17 @@ using Test
 using Statistics
 using IncrementalInference
 
+##
+
+@testset "test basic utility functions" begin
+
+@test incrSuffix(:x45_4) == :x45_5
+
+@test incrSuffix(:x45, +3) == :x48
+
+@test incrSuffix(:x45_4, -1) == :x45_3
+
+end
 
 @testset "Test basic single variable graph with one prior..." begin
 

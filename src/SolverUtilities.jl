@@ -174,7 +174,7 @@ end
 
 Related
 
-[`RoME.generateCanonicalFG_Beehive!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
+[`RoME.generateCanonicalFG_Honeycomb!`](@ref), [`accumulateFactorMeans`](@ref), [`getPPE`](@ref)
 """
 function _checkVariableByReference( fg::AbstractDFG,
                                     srcLabel::Symbol,            # = :x5
