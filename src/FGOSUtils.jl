@@ -5,6 +5,7 @@
 import DistributedFactorGraphs: AbstractPointParametricEst, loadDFG
 import DistributedFactorGraphs: getFactorType
 
+export incrSuffix
 export calcPPE, calcVariablePPE
 export setPPE!, setVariablePosteriorEstimates!
 export getPPESuggestedAll, findVariablesNear, defaultFixedLagOnTree!
@@ -24,7 +25,46 @@ function clampBufferString(st::AbstractString, max::Int, len::Int=minimum([max,l
   return st
 end
 
+"""
+    $SIGNATURES
 
+Extract contiguous string of numbers at end of a label`::Symbol` -- e.g. `:x45_4` --> "4".  
+Returns `(string, suffix_substring)`
+
+Related
+
+[`incrSuffix`](@ref)
+"""
+function _getSuffix(lbl::Symbol; pattern::Regex=r"\d+")
+  slbl = string(lbl)
+  phrase_ = slbl |> reverse |> x->match(pattern,x).match 
+  slbl, reverse(phrase_)
+end
+
+"""
+    $SIGNATURES
+
+Utility for incrementing or decrementing suffix numbers in DFG variable labels, e.g.
+```julia
+incrSuffix(:x45_4)
+# returns :x45_5
+
+incrSuffix(:x45_4, +3)
+# returns :x45_7
+
+incrSuffix(:x45_4, -1)
+# returns :x45_3
+```
+
+Notes
+- Change `pattern::Regex=r"\d+"` for alternative behaviour.
+"""
+function incrSuffix(lbl::Symbol, val::Integer=+1; pattern::Regex=r"\d+")
+  slbl, phrase = _getSuffix(lbl, pattern=pattern)
+  nint = phrase |> x->(parse(Int,x)+val)
+  prefix = slbl[1:(end-length(phrase))]
+  Symbol(prefix, nint)
+end
 
 """
     $SIGNATURES
