@@ -185,7 +185,7 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     refKey::Symbol=:simulated,
                                     prior = DFG._getPriorType(srcType)( MvNormal(getPPE(fg[srcLabel], refKey).suggested, diagm(ones(getDimension(srcType)))) ),
                                     atol::Real = 1e-3,
-                                    destPrefix::Symbol = match(r"[a-zA-Z]+", destRegex.pattern).match |> Symbol,
+                                    destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
                                     overridePPE=nothing  )
   #
@@ -235,7 +235,7 @@ function _checkVariableByReference( fg::AbstractDFG,
                                     refKey::Symbol=:simulated,
                                     prior = typeof(factor)( MvNormal(getParametricMeasurement(factor)...) ),
                                     atol::Real = 1e-3,
-                                    destPrefix::Symbol = match(r"[a-zA-Z]+", destRegex.pattern).match |> Symbol,
+                                    destPrefix::Symbol = match(r"[a-zA-Z_]+", destRegex.pattern).match |> Symbol,
                                     srcNumber = match(r"\d+", string(srcLabel)).match |> x->parse(Int,x),
                                     overridePPE=nothing  )
   #
