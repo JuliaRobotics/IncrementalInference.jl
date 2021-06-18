@@ -82,7 +82,6 @@ _getZDim(ccw::CommonConvWrapper) = isa(ccw.usrfnc!, MsgPrior) ? ccw.usrfnc!.infe
 _getZDim(fcd::GenericFunctionNodeData) = _getCCW(fcd) |> _getZDim
 _getZDim(fct::DFGFactor) = _getCCW(fct) |> _getZDim
 
-DFG.getDimension(var::DFGVariable) = getDimension(getVariableType(var))
 DFG.getDimension(fct::GenericFunctionNodeData) = _getZDim(fct)
 DFG.getDimension(fct::DFGFactor) = _getZDim(fct)
 
