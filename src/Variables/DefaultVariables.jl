@@ -20,7 +20,7 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 DevNotes
 - TODO Consolidate with ContinuousEuclid{1}
 """
-@defVariable ContinuousScalar Euclidean(1)
+@defVariable ContinuousScalar Euclidean(1) SVector{1}
 
 # Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
@@ -55,7 +55,7 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular Circle()
+@defVariable Circular Circle() SVector{1}
 
 
 # Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{Circular}) = Manifolds.Circle()
