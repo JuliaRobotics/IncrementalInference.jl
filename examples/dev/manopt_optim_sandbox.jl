@@ -57,16 +57,16 @@ PriorPose2(q, q)
 
 
 ## and with matrices
-using LinearAlgebra
+# using LinearAlgebra
 
-ϵSE2 = Matrix(1.0I(3))
-ϵSE3 = Matrix(1.0I(4))
+# ϵSE2 = Matrix(1.0I(3))
+# ϵSE3 = Matrix(1.0I(4))
 
-M = SpecialEuclidean(2)
+# M = SpecialEuclidean(2)
 
-X = hat(M, ϵSE2, [1, 0, pi/4])
-# exp does not work with affine matrix
-p = compose(M, ϵSE2, exp(M, ϵSE2, X))
+# X = hat(M, ϵSE2, [1, 0, pi/4])
+# # exp does not work with affine matrix
+# p = compose(M, ϵSE2, exp(M, ϵSE2, X))
 
 
 ##
@@ -75,6 +75,9 @@ p = compose(M, ϵSE2, exp(M, ϵSE2, X))
 
 X = hat(M, ϵSE2, [1, 0, pi/4])
 priorx1 = compose(M, ϵSE2, exp(M, ϵSE2, X))
+
+X = hat(M, ϵSE2, [0, 0, pi/4])
+priorx2 = compose(M, ϵSE2, exp(M, ϵSE2, X))
 
 measX = hat(M, ϵSE2, [1, 0, pi/4])
 measx1x2 = compose(M, ϵSE2, exp(M, ϵSE2, measX))
@@ -179,14 +182,12 @@ function Optim.project_tangent!(manis::ManifoldsVector, G, x)
 
     for (i, M) = enumerate(manis)
         _x = uncoords(x[:, i])
-        _G = hat(M, identity(M, _x), G)
+        _G = hat(M, identity(M, _x), G[:, i])
         project!(M, _G, _x, _G)
         G[:, i] .= vee(M, identity(M, _x), _G)
     end
     return G
 end
-
-
 
 
 
@@ -213,37 +214,30 @@ options = Optim.Options(allow_f_increases=true,
                         )
 ##
 
-
-
 coords(priorx1 )
 
 function cost(x) 
     # @show "cost" x
-    _x = uncoords(x)
-    return PriorPose2(priorx1, _x)
+    _x1 = uncoords(x[:,1])
+    _x2 = uncoords(x[:,2])
+    return PriorPose2(priorx1, _x1) + PriorPose2(priorx2, _x1) + PriorPose2(priorx2, _x2)
 end
 
-manifold = ManifoldsVector([SpecialEuclidean(2)])
+manifold = ManifoldsVector([SpecialEuclidean(2), SpecialEuclidean(2)])
 alg = algorithm(;manifold, algorithmkwargs...)
 # alg = algorithm(; algorithmkwargs...)
 
 
-initValues = collect([0. 0 0]')
-tdtotalCost = Optim.TwiceDifferentiable((x)->cost(x), initValues; autodiff)
-tdtotalCost = Optim.NonDifferentiable((x)->cost(x), initValues)
-
-
-result = Optim.optimize(tdtotalCost, initValues, alg, options)
+initValues = zeros(3,2)
+# tdtotalCost = Optim.TwiceDifferentiable((x)->cost(x), initValues; autodiff)
+# result = Optim.optimize(tdtotalCost, initValues, alg, options)
 
 result = Optim.optimize(cost, initValues, alg, options)
 
 rv = Optim.minimizer(result)
-uncoords(rv)
+uncoords(rv[:,1])
+uncoords(rv[:,2])
 
-
-
-
-H = Optim.hessian!(tdtotalCost, rv)
-
-Σ = pinv(H)
+# H = Optim.hessian!(tdtotalCost, rv)
+# Σ = pinv(H)
 
