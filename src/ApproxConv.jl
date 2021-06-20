@@ -406,7 +406,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  sfidx = 1
+  @show sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  # sfidx = 1 #  WHY HARDCODED TO 1??
   solveForPts = getVal(Xi[sfidx], solveKey=solveKey)
   nn = maximum([N; length(measurement[1]); length(solveForPts); length(ccwl.params[sfidx])])
   # vnds = Xi # (x->getSolverData(x)).(Xi)
@@ -416,7 +417,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     ccwl.measurement = sampleFactor(cf, nn)
   end
   # Check which variables have been initialized
-  isinit = Xi .|> isInitialized
+  isinit::Vector{Bool} = Xi .|> isInitialized .|> Bool
   _, _, _, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   mani = getManifold(Xi[sfidx])
@@ -427,10 +428,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals
   # FIXME better standardize in-place operations (considering solveKey)
-  addEntr = if size(solveForPts,2) == nn
+  addEntr = if length(solveForPts) == nn
     deepcopy(solveForPts)
   else
-    ret = typeof(solveForPts)(undef, nn)
+    @show ret = typeof(solveForPts)(undef, nn)
     for i in 1:length(solveForPts)
       ret[i] = solveForPts[i]
     end
@@ -445,7 +446,6 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
-      @show sum(ahmask)
       addEntr[ahmask] = ccwl.measurement[1][ahmask]
       # ongoing part of RoME.jl #244
       addEntropyOnManifoldHack!(mani, addEntrNH, 1:getDimension(mani), spreadDist)

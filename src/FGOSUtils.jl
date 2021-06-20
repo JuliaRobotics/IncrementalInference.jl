@@ -148,7 +148,11 @@ end
 
 manikde!(pts::AbstractVector{<:Real}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
 
-
+# TEMPORARY legacy wrapper
+function manikde!(ptsArr::Vector{Vector{Float64}}, manis::Tuple)
+  @cast arr[i,j] := ptsArr[j][i]
+  manikde!(arr, manis)
+end
 
 """
     $SIGNATURES
