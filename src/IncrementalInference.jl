@@ -36,7 +36,8 @@ using
   FunctionalStateMachine,
   JSON2,
   Combinatorics,
-  UUIDs
+  UUIDs,
+  TensorCast
 
 using StaticArrays
 

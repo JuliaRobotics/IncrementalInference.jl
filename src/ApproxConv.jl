@@ -154,8 +154,10 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
 end
 
 # FIXME SWITCH TO ON-MANIFOLD VERSION
-function calcVariableCovarianceBasic(arr::AbstractVector{P}) where P
+function calcVariableCovarianceBasic(ptsArr::Vector{Vector{Float64}})
   # cannot calculate the stdev from uninitialized state
+  # FIXME assume point type is only Vector{Float} at this time
+  @cast arr[i,j] := ptsArr[j][i]
   msst = Statistics.std(arr, dims=2)
   # FIXME use adaptive scale, see #802
   msst_ = 0 < sum(1e-10 .< msst) ? maximum(msst) : 1.0
@@ -209,14 +211,20 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   return kappa*maximum(dists)
 end
 
-function addEntropyOnManifoldHack!( addEntr::Union{AbstractMatrix{<:Real},SubArray}, 
-                                    maniAddOps, 
+function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
+                                    addEntr::Union{<:AbstractVector{<:Real},SubArray}, 
+                                    dimIdx::AbstractVector, 
                                     spreadDist::Real,
                                     p::Union{Colon, <:AbstractVector}=: )
+  #
+  manis = getManifolds(M)
+  # TODO deprecate
+  maniAddOps, _, _, _ = buildHybridManifoldCallbacks(manis)
   # add 1σ "noise" level to max distance as control
-  for dim in 1:size(addEntr, 1), idx in 1:size(addEntr,2)
+  # 1:size(addEntr, 1)
+  for dim in dimIdx, idx in 1:length(addEntr)
     if (p === :) || dim in p
-      addEntr[dim,idx] = maniAddOps[dim](addEntr[dim,idx], spreadDist*(rand()-0.5))
+      addEntr[idx][dim] = maniAddOps[dim](addEntr[idx][dim], spreadDist*(rand()-0.5))
     end
   end
   nothing
@@ -235,7 +243,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   certainidx::Vector{Int},
                                   sfidx::Int,
                                   maxlen::Int,
-                                  maniAddOps::Tuple;
+                                  mani::ManifoldsBase.AbstractManifold, # maniAddOps::Tuple;
                                   spreadNH::Real=5.0,
                                   inflateCycles::Int=3,
                                   skipSolve::Bool=false ) where {N_,F<:AbstractRelative,S,T}
@@ -253,7 +261,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # hypo case hypoidx, sfidx = $hypoidx, $sfidx
       for i in 1:Threads.nthreads()  ccwl.cpt[i].activehypo = vars; end
       
-      addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      addEntr = view(ccwl.params[sfidx], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=ccwl.inflation)
       
@@ -261,7 +269,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
-        addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist, cpt_.p)
+        addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist, cpt_.p)
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
       end
@@ -276,7 +284,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
         addEntr = view(ccwl.params[sfidx], :, allelements[count])
         # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
         spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-        addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+        addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist)
 
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
@@ -286,7 +294,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       # # make spread (1σ) equal to mean distance of other fractionals
-      addEntropyOnManifoldHack!(addEntr, maniAddOps, spreadDist)
+      addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist)
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -350,26 +358,28 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # NOTE #1025, should FMD be built here...
   sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
-  if 0 < size(measurement[1],1)
+  if 0 < length(measurement[1])
     ccwl.measurement = measurement
   end
 
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
   
-  # get manifold add operations
-  # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
-  addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   
   # assemble how hypotheses should be computed
   # TODO convert to HypothesisRecipeElements result
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, maxlen, sfidx, length(Xi), isinit, ccwl.nullhypo )
   certainidx = ccwl.certainhypo
+  
+  # get manifold add operations
+  # TODO, make better use of dispatch, see JuliaRobotics/RoME.jl#244
+  # addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+  mani = getManifold(getVariableType(Xi[sfidx]))
 
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, addOps, spreadNH=spreadNH, inflateCycles=inflateCycles, skipSolve=skipSolve)
+  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, mani, spreadNH=spreadNH, inflateCycles=inflateCycles, skipSolve=skipSolve)
 
   return ccwl.params[ccwl.varidx]
 end
@@ -381,10 +391,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{T},
                                 solvefor::Symbol,
                                 T_::Type{<:AbstractPrior},
-                                measurement::Tuple=(zeros(0,0),);
+                                measurement::Tuple=(Vector{Vector{Float64}}(),);
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int=size(measurement[1],2),
+                                N::Int=length(measurement[1]),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
@@ -398,7 +408,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   fnc = ccwl.usrfnc!
   sfidx = 1
   solveForPts = getVal(Xi[sfidx], solveKey=solveKey)
-  nn = maximum([N; size(measurement[1],2); length(solveForPts); length(ccwl.params[sfidx])])
+  nn = maximum([N; length(measurement[1]); length(solveForPts); length(ccwl.params[sfidx])])
   # vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
@@ -406,11 +416,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
     ccwl.measurement = sampleFactor(cf, nn)
   end
   # Check which variables have been initialized
-  isinit = map(x->isInitialized(x), Xi)
-  _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
+  isinit = Xi .|> isInitialized
+  _, _, _, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
   # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
-  manis = getManifolds(Xi[sfidx])
-  addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
+  mani = getManifold(Xi[sfidx])
   # two cases on how to use the measurement
   nhmask = mhidx .== 0
   ahmask = mhidx .== 1
@@ -433,20 +442,23 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # @show nn, size(addEntr), size(nhmask), size(solveForPts)
   addEntrNH = view(addEntr, nhmask)
   spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
-  # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
+  # partials are treated differently
   if !ccwl.partial
-      addEntr[:,ahmask] = ccwl.measurement[1][:,ahmask]
+      # TODO for now require measurements to be coordinates too
+      @show sum(ahmask)
+      addEntr[ahmask] = ccwl.measurement[1][ahmask]
       # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(addEntrNH, addOps, spreadDist)
-    # return ccwl.measurement[1]
+      addEntropyOnManifoldHack!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
   else
     i = 0
     for dimnum in fnc.partial
       i += 1
-      addEntr[dimnum,ahmask] = ccwl.measurement[1][i,ahmask]
+      for m in ahmask
+        addEntr[m][dimnum] = ccwl.measurement[1][m][i]
+      end
       addEntrNHp = view(addEntr, dimnum, nhmask)
       # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(addEntrNHp, addOps[dimnum:dimnum], spreadDist)
+      addEntropyOnManifoldHack!(mani, addEntrNHp, dimnum:dimnum, spreadDist)
     end
   end
   return addEntr
@@ -456,10 +468,10 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{Mixture{N_,F,S,T}},
                                 solvefor::Symbol,
-                                measurement::Tuple=(zeros(0,0),);
+                                measurement::Tuple=(Vector{Vector{Float64}}(),);
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int=size(measurement[1],2),
+                                N::Int=length(measurement[1]),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
@@ -483,10 +495,10 @@ end
 function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
                                 ccwl::CommonConvWrapper{F},
                                 solvefor::Symbol,
-                                measurement::Tuple=(zeros(0,0),);
+                                measurement::Tuple=(Vector{Vector{Float64}}(),);
                                 needFreshMeasurements::Bool=true,
                                 solveKey::Symbol=:default,
-                                N::Int=size(measurement[1],2),
+                                N::Int=length(measurement[1]),
                                 dbg::Bool=false,
                                 spreadNH::Real=3.0,
                                 inflateCycles::Int=3,
@@ -515,10 +527,10 @@ Single entry point for evaluating factors from factor graph, using multiple disp
 function evalFactor(dfg::AbstractDFG,
                     fct::DFGFactor,
                     solvefor::Symbol,
-                    measurement::Tuple=(zeros(0,100),);
+                    measurement::Tuple=(Vector{Vector{Float64}}(),);
                     needFreshMeasurements::Bool=true,
                     solveKey::Symbol=:default,
-                    N::Int=size(measurement[1],2),
+                    N::Int=length(measurement[1]),
                     inflateCycles::Int=getSolverParams(dfg).inflateCycles,
                     dbg::Bool=false,
                     skipSolve::Bool=false  )
@@ -564,9 +576,9 @@ calcFactorResidual(dfg::AbstractDFG, fctsym::Symbol, args...) = CalcFactor(IIF._
 function approxConv(dfg::AbstractDFG,
                     fc::DFGFactor,
                     target::Symbol,
-                    measurement::Tuple=(zeros(0,0),);
+                    measurement::Tuple=(Vector{Vector{Float64}}(),);
                     solveKey::Symbol=:default,
-                    N::Int=size(measurement[1],2), 
+                    N::Int=length(measurement[1]), 
                     skipSolve::Bool=false )
   #
   v1 = getVariable(dfg, target)
@@ -604,9 +616,9 @@ Related
 function approxConv(dfg::AbstractDFG, 
                     from::Symbol, 
                     target::Symbol,
-                    measurement::Tuple=(zeros(0,0),);
+                    measurement::Tuple=(Vector{Vector{Float64}}(),);
                     solveKey::Symbol=:default,
-                    N::Int = size(measurement[1],2),
+                    N::Int = length(measurement[1]),
                     tfg::AbstractDFG = initfg(),
                     setPPEmethod::Union{Nothing, Type{<:AbstractPointParametricEst}}=nothing,
                     setPPE::Bool= setPPEmethod !== nothing,
@@ -687,34 +699,34 @@ end
 
 # TODO should this be consolidated with regular approxConv?
 # TODO, perhaps pass Xi::Vector{DFGVariable} instead?
-function approxConvBinary(arr::Array{Float64,2},
+function approxConvBinary(arr::Vector{Vector{Float64}},
                           meas::AbstractFactor,
                           outdims::Int,
                           fmd::FactorMetadata,
-                          measurement::Tuple=(zeros(0,size(arr,2)),);
+                          measurement::Tuple=(Vector{Vector{Float64}}(),);
                           varidx::Int=2,
-                          N::Int=size(arr,2),
+                          N::Int=length(arr),
                           vnds=DFGVariable[] )
   #
   # N = N == 0 ? size(arr,2) : N
   pts = zeros(outdims,N);
-  t = Array{Array{Float64,2},1}()
-  push!(t,arr)
-  push!(t,pts)
+  ptsArr = Vector{Vector{Float64}}()
+  push!(ptsArr,arr)
+  push!(ptsArr,pts)
 
-  fmd.arrRef = t
+  fmd.arrRef = ptsArr
 
   # TODO consolidate with ccwl??
   # FIXME do not divert Mixture for sampling
   # cf = _buildCalcFactorMixture(ccwl, fmd, 1, ccwl.measurement, ARR) # TODO perhaps 0 is safer
   # FIXME 0, 0, ()
-  cf = CalcFactor( meas, fmd, 0, 0, (), t)
+  cf = CalcFactor( meas, fmd, 0, 0, (), ptsArr)
 
-  measurement = size(measurement[1],2) == 0 ? sampleFactor(cf, N) : measurement
+  measurement = length(measurement[1]) == 0 ? sampleFactor(cf, N) : measurement
   # measurement = size(measurement[1],2) == 0 ? sampleFactor(meas, N, fmd, vnds) : measurement
 
-  zDim = size(measurement[1],1)
-  ccw = CommonConvWrapper(meas, t[varidx], zDim, t, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
+  zDim = length(measurement[1][1])
+  ccw = CommonConvWrapper(meas, ptsArr[varidx], zDim, ptsArr, fmd, varidx=varidx, measurement=measurement)  # N=> size(measurement[1],2)
 
   for n in 1:N
     ccw.cpt[Threads.threadid()].particleidx = n
@@ -781,8 +793,8 @@ Notes
 function findRelatedFromPotential(dfg::AbstractDFG,
                                   fct::DFGFactor,
                                   target::Symbol,
-                                  measurement::Tuple=(zeros(0,0),);
-                                  N::Int=size(measurement[1],2),
+                                  measurement::Tuple=(Vector{Vector{Float64}}(),);
+                                  N::Int=length(measurement[1]),
                                   solveKey::Symbol=:default,
                                   dbg::Bool=false  )
   #
@@ -832,7 +844,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           factors::AbstractVector{<:DFGFactor},
                           dens::Vector{BallTreeDensity},
                           partials::Dict{Any, Vector{BallTreeDensity}}, # TODO change this structure
-                          measurement::Tuple=(zeros(0,0),);
+                          measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
                           N::Int=100,
                           dbg::Bool=false  )
