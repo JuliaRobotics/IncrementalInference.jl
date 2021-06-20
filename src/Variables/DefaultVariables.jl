@@ -20,7 +20,7 @@ Most basic continuous scalar variable in a `::DFG.AbstractDFG` object.
 DevNotes
 - TODO Consolidate with ContinuousEuclid{1}
 """
-@defVariable ContinuousScalar Euclidean(1) Vector{Float64}
+@defVariable ContinuousScalar Euclidean(1) [0.0;]
 
 # Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{ContinuousScalar})    = Manifolds.Euclidean(1)
 
@@ -36,6 +36,7 @@ struct ContinuousEuclid{N} <: InferenceVariable end
 
 ContinuousEuclid(x::Int) = ContinuousEuclid{x}()
 DFG.getPointType(::Type{ContinuousEuclid{N}}) where N = Vector{Float64}
+DFG.getPointIdentity(::Type{ContinuousEuclid{N}}) where N = zeros(N)
 
 # not sure if these overloads are necessary since DFG 775?
 DFG.getManifold(::Type{<:ContinuousEuclid{N}}) where N = Euclidean(N)
@@ -55,7 +56,7 @@ $(TYPEDEF)
 
 Circular is a `Manifolds.Circle{ℝ}` mechanization of one rotation, with `theta in [-pi,pi)`.
 """
-@defVariable Circular Circle() Vector{Float64}
+@defVariable Circular Circle() [0.0;]
 
 
 # Base.convert(::Type{<:ManifoldsBase.AbstractManifold}, ::InstanceType{Circular}) = Manifolds.Circle()

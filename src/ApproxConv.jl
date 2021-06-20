@@ -153,7 +153,8 @@ function generateNullhypoEntropy( val::AbstractMatrix{<:Real},
   MvNormal( mu, cVar )
 end
 
-function calcVariableCovarianceBasic(arr::AbstractMatrix)
+# FIXME SWITCH TO ON-MANIFOLD VERSION
+function calcVariableCovarianceBasic(arr::AbstractVector{P}) where P
   # cannot calculate the stdev from uninitialized state
   msst = Statistics.std(arr, dims=2)
   # FIXME use adaptive scale, see #802
@@ -396,9 +397,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
   sfidx = 1
-  oldVal = getVal(Xi[sfidx], solveKey=solveKey)
-  nn = maximum([N; size(measurement[1],2); size(oldVal,2); size(ccwl.params[sfidx],2)]) # (N <= 0 ? size(getVal(Xi[1]),2) : N)
-  vnds = Xi # (x->getSolverData(x)).(Xi)
+  solveForPts = getVal(Xi[sfidx], solveKey=solveKey)
+  nn = maximum([N; size(measurement[1],2); length(solveForPts); length(ccwl.params[sfidx])])
+  # vnds = Xi # (x->getSolverData(x)).(Xi)
   # FIXME better standardize in-place operations (considering solveKey)
   if needFreshMeasurements
     cf = CalcFactor( ccwl )
@@ -407,7 +408,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # Check which variables have been initialized
   isinit = map(x->isInitialized(x), Xi)
   _, allelements, activehypo, mhidx = assembleHypothesesElements!(ccwl.hypotheses, nn, sfidx, length(Xi), isinit, ccwl.nullhypo )
-  # get solvefor manifolds
+  # get solvefor manifolds, FIXME ON FIRE, upgrade to new Manifolds.jl
   manis = getManifolds(Xi[sfidx])
   addOps, d1, d2, d3 = buildHybridManifoldCallbacks(manis)
   # two cases on how to use the measurement
@@ -417,15 +418,20 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # inject lots of entropy in nullhypo case
   # make spread (1σ) equal to mean distance of other fractionals
   # FIXME better standardize in-place operations (considering solveKey)
-  addEntr = if size(oldVal,2) == nn
-    deepcopy(oldVal)  #ccwl.params[sfidx])
+  addEntr = if size(solveForPts,2) == nn
+    deepcopy(solveForPts)
   else
-    ret = zeros(size(oldVal,1),nn)
-    ret[:,1:size(oldVal,2)] .= oldVal #ccwl.params[sfidx]
+    ret = typeof(solveForPts)(undef, nn)
+    for i in 1:length(solveForPts)
+      ret[i] = solveForPts[i]
+    end
+    for i in (length(solveForPts)+1):nn
+      ret[i] = getPointIdentity(getVariableType(Xi[sfidx]))
+    end
     ret
   end
-  # @show nn, size(addEntr), size(nhmask), size(oldVal)
-  addEntrNH = view(addEntr, :, nhmask)
+  # @show nn, size(addEntr), size(nhmask), size(solveForPts)
+  addEntrNH = view(addEntr, nhmask)
   spreadDist = spreadNH*calcVariableCovarianceBasic(addEntr)
   # ENT = generateNullhypoEntropy(addEntr, nn, spreadDist)
   if !ccwl.partial

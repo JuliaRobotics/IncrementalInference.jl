@@ -176,7 +176,7 @@ DevNotes
 - TODO make static params {XDIM, ZDIM, P}
 - TODO make immutable
 """
-mutable struct ConvPerThread{R,F<:FactorMetadata}
+mutable struct ConvPerThread{R,F<:FactorMetadata,P}
   thrid_::Int
   # the actual particle being solved at this moment
   particleidx::Int
@@ -189,21 +189,21 @@ mutable struct ConvPerThread{R,F<:FactorMetadata}
   # slight numerical perturbation for degenerate solver cases such as division by zero
   perturb::Vector{Float64}
   # working memory location for optimization routines on target decision variables
-  X::Array{Float64,2}
+  X::Vector{P}
   # working memory to store residual for optimization routines
   res::R # was Vector{Float64}
 end
 
 
-function ConvPerThread( X::Array{Float64,2},
+function ConvPerThread( X::AbstractVector{P},
                         zDim::Int,
                         factormetadata::FactorMetadata;
                         particleidx::Int=1,
                         activehypo= 1:length(params),
-                        p::AbstractVector{<:Integer}=collect(1:size(X,1)),
+                        p::AbstractVector{<:Integer}=collect(1:1),
                         perturb=zeros(zDim),
                         res=zeros(zDim),
-                        thrid_ = 0  )
+                        thrid_ = 0  ) where P
   #
   return ConvPerThread( thrid_,
                         particleidx,
@@ -222,7 +222,8 @@ $(TYPEDEF)
 """
 mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
                                   H<:Union{Nothing, Distributions.Categorical},
-                                  C<:Union{Nothing, Vector{Int}} } <: FactorOperationalMemory
+                                  C<:Union{Nothing, Vector{Int}},
+                                  P } <: FactorOperationalMemory
   #
   ### Values consistent across all threads during approx convolution
   usrfnc!::T # user factor / function
@@ -238,7 +239,7 @@ mutable struct CommonConvWrapper{ T<:FunctorInferenceType,
   certainhypo::C
   nullhypo::Float64
   # values specific to one complete convolution operation
-  params::Vector{Array{Float64,2}} # parameters passed to each hypothesis evaluation event on user function
+  params::Vector{Vector{P}} # parameters passed to each hypothesis evaluation event on user function
   varidx::Int # which index is being solved for in params?
   # FIXME make type stable
   measurement::Tuple # user defined measurement values for each approxConv operation
@@ -253,9 +254,9 @@ end
 
 
 function CommonConvWrapper( fnc::T,
-                            X::Array{Float64,2},
+                            X::AbstractVector{P},
                             zDim::Int,
-                            params::Vector{Array{Float64,2}},
+                            params::AbstractVector{Vector{P}},
                             factormetadata::FactorMetadata;
                             specialzDim::Bool=false,
                             partial::Bool=false,
@@ -271,7 +272,7 @@ function CommonConvWrapper( fnc::T,
                             perturb=zeros(zDim),
                             res::AbstractVector{<:Real}=zeros(zDim),
                             threadmodel::Type{<:_AbstractThreadModel}=MultiThreaded,
-                            inflation::Real=3.0  ) where {T<:FunctorInferenceType,H}
+                            inflation::Real=3.0  ) where {T<:FunctorInferenceType,P,H}
   #
   return  CommonConvWrapper(fnc,
                             xDim,

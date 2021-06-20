@@ -65,7 +65,7 @@ import ApproxManifoldProducts: getManifolds
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
-import DistributedFactorGraphs: getDimension, getManifold
+import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
 
 # will be deprecated in IIF
@@ -386,6 +386,8 @@ export *,
   findFactorsBetweenFrom,
   addDownVariableFactors!,
   getDimension,
+  getPointType, 
+  getPointIdentity,
   setVariableRefence!,
   reshapeVec2Mat,
   accumulateFactorChain

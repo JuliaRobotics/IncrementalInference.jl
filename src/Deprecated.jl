@@ -25,6 +25,31 @@ end
 ## Deprecate code below before v0.26
 ##==============================================================================
 
+function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
+  @error "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
+  # len = length(vA)
+  # vals = Array{Array{Float64,2},1}()
+  # cols = Array{Int,1}()
+  # push!(cols,0)
+  # rows = Array{Int,1}()
+  # for v in vA
+  #     push!(vals, getVal(v, solveKey=solveKey))
+  #     c = size(vals[end],2)
+  #     r = size(vals[end],1)
+  #     push!(cols, floor(Int,c))
+  #     push!(rows, floor(Int,r))
+  # end
+  # cols = cumsum(cols)
+  # sc = cols[end]
+  # rw = floor(Int,rows[1])
+  # val = Array{Float64,2}(undef,rw, sc)
+  # for i in 1:(len-1)
+  #     val[:,(cols[i]+1):cols[i+1]] = vals[i]
+  # end
+  # val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
+  # return val
+end
+
 # """
 #     $SIGNATURES
 

@@ -52,10 +52,11 @@ getManifolds(dfg::AbstractDFG, sym::Symbol) = getManifolds(getVariable(dfg, sym)
 # getManifolds(vartype::InferenceVariable) = vartype.manifolds
 # getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
 
+
 """
     $(SIGNATURES)
 
-Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
+Fetch the variable marginal joint sampled points.  Use [`getBelief`](@ref) to retrieve the full Belief object.
 """
 getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val
 getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
@@ -373,10 +374,16 @@ function setDefaultNodeData!( v::DFGVariable,
                             varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    setSolverData!(v, VariableNodeData(zeros(dims, N),
-                            zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], 
-                            varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    valpts = Vector{getPointType(varType)}(undef,N)
+    for i in 1:length(valpts)
+      valpts[i] = getPointIdentity(varType)
+    end
+    bws = zeros(dims,1)
+    setSolverData!(v, VariableNodeData(valpts, bws,
+                                        Symbol[], sp,
+                                        dims, false, :_null, Symbol[], 
+                                        varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    #
   end
   return nothing
 end
@@ -403,7 +410,7 @@ Notes
 """
 function setVariableRefence!( dfg::AbstractDFG,
                               sym::Symbol,
-                              val::Array{Float64,2};
+                              val::AbstractVector;
                               refKey::Symbol=:reference)
   #
   # which variable to update
@@ -496,36 +503,6 @@ function addVariable!(dfg::AbstractDFG,
 end
 
 
-"""
-    $(SIGNATURES)
-
-Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
-"""
-function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
-  @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
-  len = length(vA)
-  vals = Array{Array{Float64,2},1}()
-  cols = Array{Int,1}()
-  push!(cols,0)
-  rows = Array{Int,1}()
-  for v in vA
-      push!(vals, getVal(v, solveKey=solveKey))
-      c = size(vals[end],2)
-      r = size(vals[end],1)
-      push!(cols, floor(Int,c))
-      push!(rows, floor(Int,r))
-  end
-  cols = cumsum(cols)
-  sc = cols[end]
-  rw = floor(Int,rows[1])
-  val = Array{Float64,2}(undef,rw, sc)
-  for i in 1:(len-1)
-      val[:,(cols[i]+1):cols[i+1]] = vals[i]
-  end
-  val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
-  return val::Array{Float64, 2}
-end
-
 
 """
     $(SIGNATURES)
@@ -534,16 +511,19 @@ Prepare the particle arrays `ARR` to be used for approximate convolution.
 This function ensures that ARR has te same dimensions among all the parameters.
 Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
 existing values in getVal(Xi[.label==solvefor]).
-Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
-`maxlen` is length of all (possibly resampled) `ARR` contained particles.
-Note `Xi` is order sensitive.
-Note for initialization, solveFor = Nothing.
+
+Notes
+- Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
+- `maxlen` is length of all (possibly resampled) `ARR` contained particles.
+- `Xi` is order sensitive.
+- for initialization, solveFor = Nothing.
+- `P = getPointType(<:InferenceVariable)`
 """
-function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
+function prepareparamsarray!( ARR::AbstractVector{Vector{P}},
                               Xi::Vector{<:DFGVariable},
                               solvefor::Union{Nothing, Symbol},
                               N::Int=0;
-                              solveKey::Symbol=:default  )
+                              solveKey::Symbol=:default  ) where P
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -565,7 +545,7 @@ function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
   SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getBelief(Xi[i], solveKey), maxlen)[1]
+      ARR[i] = AMP.sample(getBelief(Xi[i], solveKey), maxlen)[1]
     end
   end
 
@@ -636,7 +616,10 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 threadmodel=MultiThreaded,
                                 inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
-  ARR = Array{Array{Float64,2},1}()
+  pttypes = getVariableType.(Xi) .|> getPointType
+  sametype = all( pttypes[1] .== pttypes )
+  @assert sametype "Current implementation only allows for same point type: $pttypes"
+  ARR = Vector{Vector{pttypes[1]}}()
   maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
   fldnms = fieldnames(T) # typeof(usrfnc)
 
@@ -659,7 +642,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   ccw = CommonConvWrapper(
           usrfnc,
-          zeros(1,0),
+          Vector{pttypes[1]}(),
           zdim,
           ARR,
           fmd,
