@@ -6,7 +6,13 @@ struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
 
-IncrementalInference.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1) = (reshape(rand(cf.factor.Z, N),:,N), )
+function IIF.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z, 1)[:]
+  end
+  return (ret, )
+end
 
 function (s::CalcFactor{<:BrokenFactor})(z,
                                          wxi,

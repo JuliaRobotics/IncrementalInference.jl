@@ -11,7 +11,7 @@ export addLikelihoodsDifferentialCHILD!
 
 
 
-convert(::Type{BallTreeDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], src.variableType)
+convert(::Type{<:ManifoldKernelDensity}, src::TreeBelief) = manikde!(src.val, src.bw[:,1], getManifold(src.variableType))
 
 """
     $(SIGNATURES)
@@ -24,9 +24,9 @@ manikde!, getKDE, getKDEMax, getKDEMean, TreeBelief
 """
 function kde!(em::TreeBelief)
   # return AMP.manikde!(em.val, em.bw, em.manifolds)
-  return convert(BallTreeDensity, em)
+  return convert(ManifoldKernelDensity, em)
 end
-manikde!(em::TreeBelief) = convert(BallTreeDensity, em)
+manikde!(em::TreeBelief) = convert(ManifoldKernelDensity, em)
 
 
 
@@ -95,7 +95,7 @@ function updateSubFgFromDownMsgs!(sfg::G,
   # update specific variables in sfg from msgs
   for (key,beldim) in dwnmsgs.belief
     if key in seps
-      setValKDE!(sfg, key, manikde!(beldim.val,beldim.bw[:,1],getManifolds(beldim.variableType)), false, beldim.inferdim)
+      setValKDE!(sfg, key, manikde!(beldim.val, beldim.bw[:,1], getManifold(beldim.variableType)), false, beldim.inferdim)
     end
   end
 
@@ -589,7 +589,6 @@ function deleteMsgFactors!( subfg::AbstractDFG,
     deleteFactor!(subfg, fc.label)
   end
 end
-# deleteMsgFactors!(::LightDFG{SolverParams,DFGVariable,DFGFactor}, ::Array{DFGFactor{CommonConvWrapper{MsgPrior{BallTreeDensity}},1},1})
 
 function deleteMsgFactors!( subfg::AbstractDFG, 
                             tags::Vector{Symbol}=[:__LIKELIHOODMESSAGE__])
@@ -793,7 +792,7 @@ function getCliqDownMsgsAfterDownSolve( subdfg::AbstractDFG,
                                         sender=(; id=cliq.id.value,
                                                   step=0))
   #
-  # Dict{Symbol, BallTreeDensity}
+  # Dict{Symbol, MKD}
   # where the return msgs are contained
   container = LikelihoodMessage(sender=sender, status=status) 
 

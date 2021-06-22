@@ -17,8 +17,8 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{BallTreeDensity,1}(),
-                        partials = Dict{Any, Vector{BallTreeDensity}}()  )
+                        dens = Array{ManifoldKernelDensity,1}(),
+                        partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
   #
   
   # determine number of particles to draw from the marginal
@@ -44,8 +44,8 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{BallTreeDensity,1}(),
-                        partials = Dict{Any, Vector{BallTreeDensity}}()  )
+                        dens = Array{ManifoldKernelDensity,1}(),
+                        partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
   #
   factors = getFactor.(dfg, factorsyms)
   vert = getVariable(dfg, destvertsym)
@@ -65,8 +65,8 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{BallTreeDensity,1}(),
-                        partials = Dict{Any, Vector{BallTreeDensity}}() )
+                        dens = Array{ManifoldKernelDensity,1}(),
+                        partials = Dict{Any, Vector{ManifoldKernelDensity}}() )
   #
   predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger, dens=dens, partials=partials )
 end
@@ -90,13 +90,13 @@ function localProduct(dfg::AbstractDFG,
   lb = getNeighbors(dfg, sym)
 
   # # get proposal beliefs
-  dens = Array{BallTreeDensity,1}()
-  partials = Dict{Any, Vector{BallTreeDensity}}()
+  dens = Array{ManifoldKernelDensity,1}()
+  partials = Dict{Any, Vector{ManifoldKernelDensity}}()
   pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, partials=partials)
 
   # make manifold belief from product
   vari = getVariable(dfg, sym)
-  pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifolds )
+  pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifold )
 
   return pp, dens, partials, lb, sinfd
 end
@@ -111,7 +111,7 @@ localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N
 Basic wrapper to take local product and then set the value of `sym` in `dfg`.
 
 Notes
-- returns `::Tuple{BallTreeDensity, Float64, Vector{Symbol}}`
+- returns `::Tuple{ManifoldKernelDensity, Float64, Vector{Symbol}}`
 
 DevNotes:
 - Unknown issue first occurred here near IIF v0.8.4 tag, recorded case at 2020-01-17T15:26:17.673

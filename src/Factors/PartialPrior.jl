@@ -9,8 +9,14 @@ struct PartialPrior{T <: SamplableBelief,P <: Tuple} <: AbstractPrior
   Z::T
   partial::P
 end
-getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
 
+function getSample(cf::CalcFactor{<:PartialPrior}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z,1)[:] 
+  end
+  (ret, )
+end
 
 
 """

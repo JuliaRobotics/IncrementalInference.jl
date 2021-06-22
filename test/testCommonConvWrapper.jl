@@ -73,8 +73,13 @@ mutable struct Pose1Pose1Test{T} <: AbstractRelativeRoots
   Dx::T
 end
 
-getSample(cf::CalcFactor{<:Pose1Pose1Test}, N::Int=1) = (reshape(rand(cf.factor.Dx,N),1,N),)
-
+function getSample(cf::CalcFactor{<:Pose1Pose1Test}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Dx,1)[:]
+  end
+  (ret,)
+end
 
 #proposed standardized parameter list, does not have to be functor
 function (cf::CalcFactor{<:Pose1Pose1Test})(Dx,

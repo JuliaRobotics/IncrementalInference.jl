@@ -37,39 +37,43 @@ Notes:
 - we want to send the joint, this is just to resolve consolidation #459 first.
 - Long term objective is single joint definition, likely called `LikelihoodMessage`.
 """
-struct TreeBelief{T <: InferenceVariable, P}
+struct TreeBelief{T <: InferenceVariable, P, M <: MB.AbstractManifold}
   val::Vector{P}
   bw::Array{Float64,2}
   inferdim::Float64
   # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph
   variableType::T
   # TODO -- DEPRECATE
-  manifolds::Tuple{Vararg{Symbol}} # NOTE added during #459 effort
+  manifold::M # Tuple{Vararg{Symbol}} # NOTE added during #459 effort
   # only populated during up as solvableDims for each variable in clique, #910
   solvableDim::Float64 
 end
-TreeBelief( p::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
+
+TreeBelief( p::ManifoldKernelDensity,
             inferdim::Real=0,
             variableType::T=ContinuousScalar(),
-            manifolds=getManifolds(variableType),
-            solvableDim::Real=0) where {T <: InferenceVariable} = TreeBelief{T}(getPoints(p), getBW(p), inferdim, variableType, manifolds, solvableDim)
+            manifold=getManifold(variableType),
+            solvableDim::Real=0) where {T <: InferenceVariable} = TreeBelief(getPoints(p), getBW(p), inferdim, variableType, manifold, solvableDim)
 
-TreeBelief( val::Array{Float64,2},
+TreeBelief( val::AbstractVector{P},
             bw::Array{Float64,2},
             inferdim::Real=0,
             variableType::T=ContinuousScalar(),
-            manifolds=getManifolds(variableType),
-            solvableDim::Real=0) where {T <: InferenceVariable} = TreeBelief{T}(val, bw, inferdim, variableType, manifolds, solvableDim)
+            manifold::M=getManifold(variableType),
+            solvableDim::Real=0) where {P <: AbstractVector, T <: InferenceVariable, M <:MB.AbstractManifold} = TreeBelief{T,P,M}(val, bw, inferdim, variableType, manifold, solvableDim)
 
-function TreeBelief(vnd::VariableNodeData, solvDim::Real=0)
-  TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getVariableType(vnd), getManifolds(vnd), solvDim )
+function TreeBelief(vnd::VariableNodeData{T}, solvDim::Real=0) where T
+  TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getVariableType(vnd), getManifold(T), solvDim )
 end
 
-TreeBelief(vari::DFGVariable, solveKey::Symbol=:default; solvableDim::Real=0) = TreeBelief( getSolverData(vari, solveKey) , solvableDim)
+TreeBelief( vari::DFGVariable, 
+            solveKey::Symbol=:default;
+            solvableDim::Real=0 ) = TreeBelief( getSolverData(vari, solveKey) , solvableDim)
+#
 
 getVariableType(tb::TreeBelief) = tb.variableType
 
-getManifolds(treeb::TreeBelief) = getManifolds(treeb.variableType)
+getManifold(treeb::TreeBelief) = getManifold(treeb.variableType)
 
 function compare(t1::TreeBelief, t2::TreeBelief)
   TP = true

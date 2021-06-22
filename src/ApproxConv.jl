@@ -851,8 +851,8 @@ Notes
 function proposalbeliefs!(dfg::AbstractDFG,
                           destvertlabel::Symbol,
                           factors::AbstractVector{<:DFGFactor},
-                          dens::Vector{BallTreeDensity},
-                          partials::Dict{Any, Vector{BallTreeDensity}}, # TODO change this structure
+                          dens::Vector{<:ManifoldKernelDensity},
+                          partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
                           N::Int=100,
@@ -877,13 +877,13 @@ function proposalbeliefs!(dfg::AbstractDFG,
       if haskey(partials, pardims)
         push!(partials[pardims], marg_)
       else
-        partials[pardims] = BallTreeDensity[marg_;]
+        partials[pardims] = ManifoldKernelDensity[marg_;]
       end
       # for dimnum in pardims
       #   if haskey(partials, dimnum)
       #     push!(partials[dimnum], marginal(propBel, Int.([dimnum;])))
       #   else
-      #     partials[dimnum] = BallTreeDensity[marginal(propBel, Int.([dimnum;]))]
+      #     partials[dimnum] = ManifoldKernelDensity[marginal(propBel, Int.([dimnum;]))]
       #   end
       # end
     else # add onto full density list

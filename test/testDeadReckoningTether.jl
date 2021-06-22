@@ -18,15 +18,23 @@ end
 MutableLinearRelative(n::Int=1) = MutableLinearRelative{n}()
 MutableLinearRelative(nm::Distributions.ContinuousUnivariateDistribution) = MutableLinearRelative{1, typeof(nm)}(nm)
 MutableLinearRelative(nm::MvNormal) = MutableLinearRelative{length(nm.μ), typeof(nm)}(nm)
-MutableLinearRelative(nm::BallTreeDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
+MutableLinearRelative(nm::ManifoldKernelDensity) = MutableLinearRelative{Ndim(nm), typeof(nm)}(nm)
 
 getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
 # getManifolds(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = tuple([:Euclid for i in 1:N]...)
 
-IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-function (s::CalcFactor{<:MutableLinearRelative})(meas,
-                                                     X1,
-                                                     X2  )
+
+function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
+    ret = Vector{Vector{Float64}}(undef, N)
+    for i in 1:N
+        ret[i] = rand(cf.factor.Z,1)[:]
+    end
+    (ret, )
+end
+
+function (s::CalcFactor{<:MutableLinearRelative})(  meas,
+                                                    X1,
+                                                    X2  )
 #
     return meas .- (X2 .- X1)
 end

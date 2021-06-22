@@ -214,7 +214,7 @@ function setValKDE!(v::DFGVariable,
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    p::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
@@ -225,7 +225,7 @@ function setValKDE!(v::DFGVariable,
 end
 function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    p::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
@@ -946,7 +946,7 @@ DevNotes
 - TODO better document graphinit and treeinit.
 """
 function initManual!( variable::DFGVariable, 
-                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=100 )
@@ -963,7 +963,7 @@ function initManual!( variable::DFGVariable,
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      belief::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=getSolverParams(dfg).N  )

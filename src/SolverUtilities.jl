@@ -34,8 +34,8 @@ function mmd( p1::AbstractMatrix{<:Real},
 end
 
 # TODO move to AMP?
-function mmd( p1::Union{<:BallTreeDensity,<:ManifoldKernelDensity}, 
-              p2::Union{<:BallTreeDensity,<:ManifoldKernelDensity}, 
+function mmd( p1::ManifoldKernelDensity, 
+              p2::ManifoldKernelDensity, 
               nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
               bw::AbstractVector{<:Real}=[0.001;])
   #

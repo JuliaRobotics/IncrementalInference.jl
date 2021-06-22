@@ -48,6 +48,6 @@ end
 
 
 mutable struct NumbersPrior <: AbstractPrior
-  z::BallTreeDensity
+  z::ManifoldKernelDensity
 end
 getSample(cf::CalcFactor{<:NumbersPrior}, N::Int=1) = (reshape(rand(cf.factor.z,N),1,:), )
