@@ -17,7 +17,7 @@ end
 function getSample(cf::CalcFactor{<:MultiModalConditional}, N::Int=1)
   d = length(cf.factor.hypo.p)
   p = rand(cf.factor.hypo, N)
-  ret = zeros(1,N)
+  ret = Vector{Vector{Float64}}(undef, N)
   for i in 1:N
     ret[i] = rand(cf.factor.x[p[i]])
   end

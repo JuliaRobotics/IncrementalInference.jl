@@ -6,6 +6,7 @@ _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixtur
 function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
   #
+  @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
   elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )
@@ -76,9 +77,9 @@ end
 
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
-_viewdim1or2(other, ind1, ind2) = other
-_viewdim1or2(arr::AbstractVector, ind1, ind2) = view(arr, ind2)
-_viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
+_viewdim1or2(other, ind...) = other
+_viewdim1or2(arr::AbstractVector, ind1) = view(arr, ind1)
+# _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
 
 function _buildCalcFactorMixture( ccwl::CommonConvWrapper,
@@ -121,7 +122,7 @@ DevNotes
 function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
                                       smpid::Int,
                                       cpt_::ConvPerThread = ccwl.cpt[Threads.threadid()],
-                                      target::AbstractVector = view(ccwl.params[ccwl.varidx], cpt_.p, smpid),
+                                      target::AbstractVector = view(ccwl.params[ccwl.varidx][smpid], cpt_.p),
                                       measurement_ = ccwl.measurement,
                                       fmd_::FactorMetadata = cpt_.factormetadata  )
   #
@@ -148,7 +149,7 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
-  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, :, smpid))..., (view.(varParams, :, smpid))... ) # :
+  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, smpid))..., (view.(varParams, smpid))... ) # :
 
   return unrollHypo!, target
 end
@@ -202,7 +203,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   target .+= _perturbIfNecessary(getFactorType(ccwl), length(target), perturb)
 
   # do the parameter search over defined decision variables using Minimization
-  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[cpt_.p, smpid], islen1 )
+  retval = _solveLambdaNumeric(getFactorType(ccwl), _hypoObj, cpt_.res, cpt_.X[smpid][cpt_.p], islen1 )
   
   # Check for NaNs
   if sum(isnan.(retval)) != 0
@@ -211,7 +212,7 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   end
 
   # insert result back at the correct variable element location
-  cpt_.X[cpt_.p,smpid] .= retval
+  cpt_.X[smpid][cpt_.p] .= retval
   
   nothing
 end

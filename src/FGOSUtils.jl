@@ -124,35 +124,35 @@ _getFMdThread(dfg::AbstractDFG,
 
 
 
-# extend convenience function
-function manikde!(pts::AbstractArray{Float64,2},
-                  bws::Vector{Float64},
-                  variableType::Union{<:InstanceType{InferenceVariable}, <:InstanceType{FunctorInferenceType}}  )
+# extend convenience function (Matrix or Vector{P})
+function manikde!(pts::AbstractVector{P},
+                  bws::Vector{<:Real},
+                  variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}  ) where P
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(variableType))
-  bel = KernelDensityEstimate.kde!(pts, bws, addopT, diffopT)
-  ampmani = convert(MB.AbstractManifold, variableType)
-  return ManifoldKernelDensity(ampmani, bel)
-  # manikde!(pts, bws, getManifolds(variableType))
+  M = getManifold(variableType)
+  return AMP.manikde!(pts, bws, M)
 end
 
-function manikde!(pts::AbstractArray{Float64,2}, 
-                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}})
-  # = manikde!(pts, getManifolds(vartype))
+function manikde!(pts::AbstractVector{P}, 
+                  vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
-  addopT, diffopT, getManiMu, getManiLam = buildHybridManifoldCallbacks(AMP.getManifolds(vartype))
-  bel = KernelDensityEstimate.kde!(pts, addopT, diffopT)
-  ampmani = convert(MB.AbstractManifold, vartype)
-  return ManifoldKernelDensity(ampmani, bel)
+  @show M = getManifold(vartype)
+  return AMP.manikde!(pts, M)
 end
 
-manikde!(pts::AbstractVector{<:Real}, vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
+# manikde!( pts::AbstractVector{<:Real}, 
+#           vartype::Type{<:ContinuousScalar}) = manikde!(reshape(pts,1,:), vartype)
+#
 
 # TEMPORARY legacy wrapper
-function manikde!(ptsArr::Vector{Vector{Float64}}, manis::Tuple)
-  @cast arr[i,j] := ptsArr[j][i]
-  manikde!(arr, manis)
-end
+# function manikde!(ptsArr::Vector{Vector{Float64}}, 
+#                   bw::Vector{Float64}, 
+#                   varType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}} )
+#   #
+#   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+#   @cast arr[i,j] = ptsArr[j][i]
+#   manikde!( arr, bw, varType )  
+# end
 
 """
     $SIGNATURES

@@ -58,6 +58,9 @@ end
 Prepare a common functor computation object `prepareCommonConvWrapper{T}` containing 
 the user factor functor along with additional variables and information using during 
 approximate convolution computations.
+
+DevNotes
+- TODO consolidate with others, see https://github.com/JuliaRobotics/IncrementalInference.jl/projects/6
 """
 function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
                                     ccwl::CommonConvWrapper{F},
@@ -69,12 +72,13 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   #
 
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
-  ARR = Vector{Matrix{Float64}}()
+  vecPtsArr = Vector{Vector{Vector{Float64}}}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, solvefor, N, solveKey=solveKey)
+  maxlen, sfidx, manis = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
 
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
-  ccwl.xDim = size(ARR[sfidx],1) # ccwl.params
+  ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
+  # ccwl.xDim = length(vecPtsArr[sfidx][1])
   # TODO should be selecting for the correct multihypothesis mode
 
     # setup the partial or complete decision variable dimensions for this ccwl object
@@ -83,7 +87,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     _setCCWDecisionDimsConv!(ccwl)
 
   # SHOULD WE SLICE ARR DOWN BY PARTIAL DIMS HERE (OR LATER)?
-  ccwl.params = ARR # map( ar->view(ar, ccwl.partialDims, :), ARR)
+  ccwl.params = vecPtsArr # map( ar->view(ar, ccwl.partialDims, :), vecPtsArr)
   
   # get factor metadata -- TODO, populate, also see #784
   fmd = FactorMetadata(Xi, getLabel.(Xi), ccwl.params, solvefor, nothing)
@@ -106,11 +110,11 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   if ccwl.specialzDim
     ccwl.zDim = ccwl.usrfnc!.zDim[sfidx]
   else
-    ccwl.zDim = size(ccwl.measurement[1],1) # FIXME -- zDim aspect needs to be reviewed
+    ccwl.zDim = length(ccwl.measurement[1][1]) # FIXME -- zDim aspect needs to be reviewed
   end
   ccwl.varidx = sfidx
-  # ccwl.xDim = size(ccwl.cpt[1].X,1)
-  # info("what? sfidx=$(sfidx), ccwl.xDim = size(ccwl.params[sfidx]) = $(ccwl.xDim), size=$(size(ccwl.params[sfidx]))")
+
+  # set each CPT
   for thrid in 1:Threads.nthreads()
     cpt_ = ccwl.cpt[thrid] 
     cpt_.X = ccwl.params[sfidx]
@@ -243,7 +247,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
                                   certainidx::Vector{Int},
                                   sfidx::Int,
                                   maxlen::Int,
-                                  mani::ManifoldsBase.AbstractManifold, # maniAddOps::Tuple;
+                                  mani::ManifoldsBase.AbstractManifold; # maniAddOps::Tuple;
                                   spreadNH::Real=5.0,
                                   inflateCycles::Int=3,
                                   skipSolve::Bool=false ) where {N_,F<:AbstractRelative,S,T}
@@ -269,7 +273,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
-        addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist, cpt_.p)
+        addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
       end
@@ -284,7 +288,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
         addEntr = view(ccwl.params[sfidx], :, allelements[count])
         # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
         spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-        addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist)
+        addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist)
 
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
@@ -294,7 +298,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       # # make spread (1σ) equal to mean distance of other fractionals
-      addEntropyOnManifoldHack!(addEntr, mani, 1:getDimension(mani), spreadDist)
+      addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist)
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -379,8 +383,10 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # perform the numeric solutions on the indicated elements
   # error("ccwl.xDim=$(ccwl.xDim)")
   # FIXME consider repeat solve as workaround for inflation off-zero 
-  computeAcrossHypothesis!(ccwl, allelements, activehypo, certainidx, sfidx, maxlen, mani, spreadNH=spreadNH, inflateCycles=inflateCycles, skipSolve=skipSolve)
-
+  computeAcrossHypothesis!( ccwl, allelements, activehypo, certainidx, 
+                            sfidx, maxlen, mani, spreadNH=spreadNH, 
+                            inflateCycles=inflateCycles, skipSolve=skipSolve )
+  #
   return ccwl.params[ccwl.varidx]
 end
 
@@ -446,14 +452,18 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
-      addEntr[ahmask] = ccwl.measurement[1][ahmask]
+      @show typeof(ccwl.measurement[1])
+      for m in (1:length(ahmask))[ahmask]
+        @show m, addEntr[m], ccwl.measurement[1][m]
+        addEntr[m] .= ccwl.measurement[1][m]
+      end
       # ongoing part of RoME.jl #244
       addEntropyOnManifoldHack!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
   else
     i = 0
     for dimnum in fnc.partial
       i += 1
-      for m in ahmask
+      for m in (1:length(ahmask))[ahmask]
         addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       end
       addEntrNHp = view(addEntr, dimnum, nhmask)
@@ -810,12 +820,11 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   # vdim = getVariableDim(DFG.getVariable(dfg, target))
 
   # TODO -- better to upsample before the projection
-  Ndim = size(pts,1)
-  Npoints = size(pts,2)
+  @show Ndim = length(pts[1])
+  @show Npoints = length(pts) # size(pts,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  manis = getManifolds(dfg, target)
-  # manis = getSofttype(DFG.getVariable(dfg, target)).manifolds # older
-  proposal = AMP.manikde!(pts, manis)
+  @show M = getManifold(getVariableType(dfg, target))
+  proposal = AMP.manikde!(pts, M)
 
   # FIXME consolidate with approxConv method instead
   if Npoints != N # this is where we control the overall particle set size
@@ -825,9 +834,9 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 end
 
 
-function _expandNamedTupleType()
+# function _expandNamedTupleType()
   
-end
+# end
 
 
 """

@@ -37,8 +37,8 @@ Notes:
 - we want to send the joint, this is just to resolve consolidation #459 first.
 - Long term objective is single joint definition, likely called `LikelihoodMessage`.
 """
-struct TreeBelief{T <: InferenceVariable}
-  val::Array{Float64,2}
+struct TreeBelief{T <: InferenceVariable, P}
+  val::Vector{P}
   bw::Array{Float64,2}
   inferdim::Float64
   # see DFG #603, variableType defines the domain and manifold as well as group operations for a variable in the factor graph

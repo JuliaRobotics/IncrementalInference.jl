@@ -24,8 +24,13 @@ getDimension(::InstanceType{<:EuclidDistance}) = 1
 
 getManifold(::InstanceType{<:EuclidDistance}) = ContinuousEuclid{1}
 
-getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1) = (reshape(rand(cf.factor.Z,N),1,N), )
-
+function getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z,1)[:]
+  end
+  (ret, )
+end
 
 # new and simplified interface for both nonparametric and parametric
 function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)

@@ -22,6 +22,18 @@ end
 
 
 ##==============================================================================
+## Deprecate code below before v0.27
+##==============================================================================
+
+
+# function manikde!(ptsArr::Vector{Vector{Float64}}, manis::Tuple)
+#   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
+#   @cast arr[i,j] = ptsArr[j][i]
+#   manikde!(arr, manis)
+# end
+
+
+##==============================================================================
 ## Deprecate code below before v0.26
 ##==============================================================================
 

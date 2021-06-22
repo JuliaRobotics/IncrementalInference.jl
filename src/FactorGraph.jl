@@ -99,42 +99,42 @@ end
 function getBWVal(v::DFGVariable; solveKey::Symbol=:default)
   return getSolverData(v, solveKey).bw
 end
-function setBW!(vd::VariableNodeData, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setBW!(vd::VariableNodeData, bw::Array{Float64,2}; solveKey::Symbol=:default)
   vd.bw = bw
   nothing
 end
-function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)
   setBW!(getSolverData(v, solveKey), bw)
   nothing
 end
 
-function setVal!(vd::VariableNodeData, val::Array{Float64,2})::Nothing
-    vd.val = val
-    nothing
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}) where P <:AbstractVector
+  vd.val = val
+  nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setVal!(v::DFGVariable, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
     setVal!(getSolverData(v, solveKey), val)
     nothing
 end
-function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Array{Float64,2})::Nothing
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Array{Float64,2}) where P <:AbstractVector
     setVal!(vd, val)
     setBW!(vd, bw)
     nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Array{Float64,2}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(v, val, solveKey=solveKey)
   setBW!(v, bw, solveKey=solveKey)
   nothing
 end
-function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(vd, val, reshape(bw,length(bw),1))
   nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(getSolverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -148,10 +148,10 @@ Notes
 - `inferdim` is used to identify if the initialized was only partial.
 """
 function setValKDE!(vd::VariableNodeData,
-                    pts::Array{Float64,2},
+                    pts::AbstractVector{P},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0)::Nothing
+                    inferdim::Float64=0.0 ) where P <:AbstractVector
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -160,33 +160,35 @@ function setValKDE!(vd::VariableNodeData,
 end
 
 function setValKDE!(vd::VariableNodeData,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    p::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0 )
   #
-  pts = getPoints(p)
+  ptsArr = AMP.getPoints(p)
+  @show typeof(ptsArr)
+  # @cast ptsArr[j][i] := pts[i,j]
   bws = getBW(p)[:,1]
-  setValKDE!(vd,pts,bws,setinit,inferdim )
+  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
   nothing
 end
 
 function setValKDE!(vd::VariableNodeData,
-                    val::Array{Float64,2},
+                    val::AbstractVector{P},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0)::Nothing
+                    inferdim::Real=0.0  ) where P <:AbstractVector
   # recover variableType information
-  sty = getVariableType(vd)
-  p = AMP.manikde!(val, getManifolds(sty))
+  varType = getVariableType(vd)
+  p = AMP.manikde!(val, varType)
   setValKDE!(vd, p, setinit, inferdim)
   nothing
 end
 
 function setValKDE!(v::DFGVariable,
-                    val::Array{Float64,2},
-                    bws::Array{Float64,2},
+                    val::AbstractVector{P},
+                    bws::Array{<:Real,2},
                     setinit::Bool=true,
                     inferdim::Float64=0;
-                    solveKey::Symbol=:default)::Nothing
+                    solveKey::Symbol=:default) where P <:AbstractVector
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
@@ -194,10 +196,10 @@ function setValKDE!(v::DFGVariable,
 end
 
 function setValKDE!(v::DFGVariable,
-                    val::Array{Float64,2},
+                    val::AbstractVector{P},
                     setinit::Bool=true,
                     inferdim::Float64=0.0;
-                    solveKey::Symbol=:default)::Nothing
+                    solveKey::Symbol=:default) where P <:AbstractVector
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
   nothing
@@ -206,7 +208,7 @@ function setValKDE!(v::DFGVariable,
                     em::TreeBelief,
                     setinit::Bool=true;
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
-                    solveKey::Symbol=:default  )::Nothing
+                    solveKey::Symbol=:default  )
   #
   setValKDE!(v, em.val, em.bw, setinit, em.inferdim, solveKey=solveKey)
   nothing
@@ -221,15 +223,15 @@ function setValKDE!(v::DFGVariable,
   setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
   nothing
 end
-function setValKDE!(dfg::G,
+function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
                     p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
-                    solveKey::Symbol=:default  ) where G <: AbstractDFG
-    #
-    setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
-    nothing
+                    solveKey::Symbol=:default  )
+  #
+  setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
+  nothing
 end
 
 
@@ -264,11 +266,13 @@ Reset the solve state of a variable to uninitialized/unsolved state.
 function resetVariable!(varid::VariableNodeData;
                         solveKey::Symbol=:default  )::Nothing
   #
-  val = getKDE(varid)
-  pts = getPoints(val)
+  val = getBelief(varid)
+  pts = AMP.getPoints(val)
   # TODO not all manifolds will initialize to zero
-  fill!(pts, 0.0)
-  pn = manikde!(pts, zeros(KDE.Ndim(val)), getManifolds(varid))
+  for pt in pts
+    fill!(pt, 0.0)
+  end
+  pn = manikde!(pts, zeros(AMP.Ndim(val)), getManifolds(varid))
   setValKDE!(varid, pn, false, 0.0)
   # setVariableInferDim!(varid, 0)
   # setVariableInitialized!(vari, false)
@@ -519,11 +523,11 @@ Notes
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
 """
-function prepareparamsarray!( ARR::AbstractVector{Vector{P}},
+function prepareparamsarray!( ARR::AbstractVector{P},
                               Xi::Vector{<:DFGVariable},
                               solvefor::Union{Nothing, Symbol},
                               N::Int=0;
-                              solveKey::Symbol=:default  ) where P
+                              solveKey::Symbol=:default  ) where P <: AbstractVector
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -545,13 +549,18 @@ function prepareparamsarray!( ARR::AbstractVector{Vector{P}},
   SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = AMP.sample(getBelief(Xi[i], solveKey), maxlen)[1]
+      for j in 1:maxlen
+        smp = AMP.sample(getBelief(Xi[i], solveKey), 1)[1]
+        ARR[i][j][:] = smp[:]
+      end
     end
   end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
-  if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
+  if sfidx > 0 
+    ARR[sfidx] = deepcopy(ARR[sfidx]) 
+  end
 
   # get solvefor manifolds
   manis = length(Xi)==0 || sfidx==0 ? (:null,) : getManifolds(Xi[sfidx])

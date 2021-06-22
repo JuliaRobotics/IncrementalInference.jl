@@ -51,7 +51,7 @@ function predictbelief( dfg::AbstractDFG,
   vert = getVariable(dfg, destvertsym)
 
   # determine the number of particles to draw from the marginal
-  nn = N != 0 ? N : size(getVal(vert, solveKey=solveKey),2)
+  nn = N != 0 ? N : length(getVal(vert, solveKey=solveKey))
 
   # do the belief prediction
   predictbelief(dfg, vert, factors, solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger, dens=dens, partials=partials)

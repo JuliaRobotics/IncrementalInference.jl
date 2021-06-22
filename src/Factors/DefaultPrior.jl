@@ -13,10 +13,9 @@ end
 Prior(::UniformScaling) = Prior(Normal())
 
 function getSample(cf::CalcFactor{<:Prior}, N::Int=1)
-  arr = rand(cf.factor.Z,N)
   meas = Vector{Vector{Float64}}(undef, N)
   for i in 1:N
-    meas[i] = [arr[i];]
+    meas[i] = rand(cf.factor.Z,1)[:]
   end
   (meas,)
 end
