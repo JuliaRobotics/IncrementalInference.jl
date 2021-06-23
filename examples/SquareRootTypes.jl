@@ -22,7 +22,7 @@ struct AreEqual <: AbstractRelativeRoots
   z::Distributions.Normal
 end
 function getSample(cf::CalcFactor{<:AreEqual}, N::Int=1)
-  return (reshape(rand(cf.factor.z,N),1,:), )
+  return ([rand(cf.factor.z,1) for _ in 1:N], )
 end
 
 function (cf::CalcFactor{<:AreEqual})(meas,

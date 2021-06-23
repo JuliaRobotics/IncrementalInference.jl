@@ -42,15 +42,10 @@ end
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 
-# FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
 
-getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
-getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
-getManifolds(dfg::AbstractDFG, sym::Symbol) = getManifolds(getVariable(dfg, sym))
-
-
-# getManifolds(vartype::InferenceVariable) = vartype.manifolds
-# getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
+## ==============================================================================================
+## MOVE TO / CONSOLIDATE WITH DFG
+## ==============================================================================================
 
 
 """
@@ -70,26 +65,8 @@ getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default) = getVariable(d
 Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
 """
 function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
-  return size(getSolverData(v, solveKey).val,2)
+  return length(getVal(getSolverData(v, solveKey)))
 end
-
-# import DistributedFactorGraphs: getfnctype
-# # TODO: Refactor - was is das?
-# function getfnctype(data::GenericFunctionNodeData)
-#   if typeof(data).name.name == :VariableNodeData
-#     return VariableNodeData
-#   end
-#   return data.fnc.usrfnc!
-# end
-#
-# function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
-#   data = getData(fact) # TODO , solveKey=solveKey)
-#   return getfnctype(data)
-# end
-#
-# function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
-#   getfnctype(getFactor(dfg, exvertid))
-# end
 
 function getBW(vnd::VariableNodeData)
   return vnd.bw
@@ -156,19 +133,6 @@ function setValKDE!(vd::VariableNodeData,
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
   vd.inferdim = inferdim
-  nothing
-end
-
-function setValKDE!(vd::VariableNodeData,
-                    p::ManifoldKernelDensity,
-                    setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
-  #
-  ptsArr = AMP.getPoints(p)
-  @show typeof(ptsArr)
-  # @cast ptsArr[j][i] := pts[i,j]
-  bws = getBW(p)[:,1]
-  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
   nothing
 end
 
@@ -257,6 +221,22 @@ Set method for the inferred dimension value in a variable.
 setVariableInferDim!(varid::VariableNodeData, val::Real) = varid.inferdim = convert(Float64,val)
 setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSolverData(vari), val)
 
+## ==============================================================================================
+## ==============================================================================================
+
+
+function setValKDE!(vd::VariableNodeData,
+                    p::ManifoldKernelDensity,
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
+  #
+  ptsArr = AMP.getPoints(p)
+  @show typeof(ptsArr)
+  # @cast ptsArr[j][i] := pts[i,j]
+  bws = getBW(p)[:,1]
+  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
+  nothing
+end
 
 """
     $SIGNATURES
@@ -563,11 +543,11 @@ function prepareparamsarray!( ARR::AbstractVector{P},
   end
 
   # get solvefor manifolds
-  manis = length(Xi)==0 || sfidx==0 ? (:null,) : getManifolds(Xi[sfidx])
+  mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, manis
+  return maxlen, sfidx, mani
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -610,7 +590,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
     # vnds = Xi # (x->getSolverData(x)).(Xi)
     # NOTE try to make sure we get matrix back (not a vector)
     smpls = sampleFactor(cf, 2)[1]
-    size(smpls,1)
+    length(smpls[1])
   else
     0
   end
@@ -625,17 +605,18 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 threadmodel=MultiThreaded,
                                 inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
-  pttypes = getVariableType.(Xi) .|> getPointType
-  sametype = all( pttypes[1] .== pttypes )
+  @show pttypes = getVariableType.(Xi) .|> getPointType
+  sametype = 0 < length(pttypes) ? all( pttypes[1] .== pttypes ) : true
+  P_type = 0 < length(pttypes) ? Vector{pttypes[1]} : Vector{Float64}
   @assert sametype "Current implementation only allows for same point type: $pttypes"
-  ARR = Vector{Vector{pttypes[1]}}()
-  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
-  fldnms = fieldnames(T) # typeof(usrfnc)
+  ARR = Vector{P_type}()
+  maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
+  # fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
-  cf = CalcFactor( usrfnc, fmd, 0, 1, (Matrix{Float64}(undef,0,0),), ARR)
+  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{Vector{Float64}}(),), ARR)
 
   zdim = calcZDim(cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
@@ -651,7 +632,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   ccw = CommonConvWrapper(
           usrfnc,
-          Vector{pttypes[1]}(),
+          P_type(),
           zdim,
           ARR,
           fmd,
@@ -990,11 +971,11 @@ end
 
 function initManual!( dfg::AbstractDFG, 
                       sym::Symbol, 
-                      pts::Array{Float64,2}, 
-                      solveKey::Symbol=:default)
+                      pts::AbstractVector{P}, 
+                      solveKey::Symbol=:default ) where {P <: AbstractVector}
   #
   var = getVariable(dfg, sym)
-  pp = manikde!(pts, getManifolds(var))
+  pp = manikde!(pts, getManifold(var))
   initManual!(var,pp, solveKey)
 end
 

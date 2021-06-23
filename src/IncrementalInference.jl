@@ -61,7 +61,7 @@ import KernelDensityEstimate: getBW
 import KernelDensityEstimate: getPoints
 import ApproxManifoldProducts: kde!, manikde!
 import ApproxManifoldProducts: mmd
-import ApproxManifoldProducts: getManifolds
+# import ApproxManifoldProducts: getManifolds # Deprecated
 # import ApproxManifoldProducts: getManifold # might be used again later
 import DistributedFactorGraphs: addVariable!, addFactor!, ls, lsf, isInitialized
 import DistributedFactorGraphs: compare, compareAllSpecial
@@ -241,7 +241,6 @@ export *,
   getCliqueData,
   setCliqueData!,
   getManifold,  # new Manifolds.jl based operations
-  # getManifolds, # will be deprecated
   getVal,
   getBW,
   setVal!,

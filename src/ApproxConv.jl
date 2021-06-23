@@ -74,7 +74,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
   # FIXME, order of fmd ccwl cf are a little weird and should be revised.
   vecPtsArr = Vector{Vector{Vector{Float64}}}()
   # FIXME maxlen should parrot N (barring multi-/nullhypo issues)
-  maxlen, sfidx, manis = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
+  maxlen, sfidx, mani = prepareparamsarray!(vecPtsArr, Xi, solvefor, N, solveKey=solveKey)
 
   # FIXME ON FIRE, what happens if this is a partial dimension factor?  See #1246
   ccwl.xDim = getDimension(getVariableType(Xi[sfidx]))
@@ -130,7 +130,7 @@ function prepareCommonConvWrapper!( F_::Type{<:AbstractRelative},
     # cpt_.res = zeros(ccwl.xDim) 
   end
 
-  return sfidx, maxlen, manis
+  return sfidx, maxlen, mani
 end
 
 
@@ -360,7 +360,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
 
   # Prep computation variables
   # NOTE #1025, should FMD be built here...
-  sfidx, maxlen, manis = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
+  sfidx, maxlen, mani = prepareCommonConvWrapper!(ccwl, Xi, solvefor, N, needFreshMeasurements=needFreshMeasurements, solveKey=solveKey)
   # check for user desired measurement values
   if 0 < length(measurement[1])
     ccwl.measurement = measurement
@@ -466,7 +466,8 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       for m in (1:length(ahmask))[ahmask]
         addEntr[m][dimnum] = ccwl.measurement[1][m][i]
       end
-      addEntrNHp = view(addEntr, dimnum, nhmask)
+      # @show size(addEntr), dimnum, nhmask
+      addEntrNHp = view(view(addEntr, (1:length(ahmask))[ahmask]), dimnum)
       # ongoing part of RoME.jl #244
       addEntropyOnManifoldHack!(mani, addEntrNHp, dimnum:dimnum, spreadDist)
     end
@@ -873,7 +874,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
       pardims = _getDimensionsPartial(ccwl) # _getCCW(data).usrfnc!.partial
       @assert [getFactorType(fct).partial...] == [pardims...] "partial dims error $(getFactorType(fct).partial) vs $pardims"
 
-      marg_ = marginal(propBel, Int[pardims...])
+      marg_ = AMP.marginal(propBel, Int[pardims...])
       if haskey(partials, pardims)
         push!(partials[pardims], marg_)
       else

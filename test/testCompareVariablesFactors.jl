@@ -4,14 +4,18 @@ using DistributedFactorGraphs
 using IncrementalInference
 using Test
 
-@testset "deprecation of old api" begin
+##
 
-LinearRelative(Normal(2.0, 0.1))
+# @testset "deprecation of old api" begin
 
-end
+# LinearRelative(Normal(2.0, 0.1))
+
+# end
 
 
 @testset "testing compare functions for variables and factors..." begin
+
+##
 
 fg = initfg()
 
@@ -25,7 +29,6 @@ v2 = addVariable!(fg, :x1, ContinuousScalar)
 f2 = addFactor!(fg, [:x0;:x1], LinearRelative(Normal(2.0, 0.1)))
 
 fg2 = deepcopy(fg)
-
 
 @test !compareVariable(v1,v2)
 
@@ -56,12 +59,12 @@ x1b = getVariable(fg2, :x0)
 @test !compareVariable(x1a, x1b, skipsamples=false)
 
 @test !compareSimilarVariables(fg, fg2, skipsamples=false)
-@test !compareSimilarFactors(fg, fg2, skipsamples=false)
+@test !compareSimilarFactors(fg, fg2, skipsamples=false, skip=[:measurement;])
 
 @test compareFactorGraphs(fg, fg)
 @test !compareFactorGraphs(fg, fg2, skipsamples=false)
 
-ensureAllInitialized!(fg2)
+initAll!(fg2)
 
 @test compareSimilarVariables(fg, fg2, skipsamples=true, skip=Symbol[:initialized;:inferdim;:ppeDict;:solvedCount])
 # fg2 has been solved, so it should fail on the estimate dictionary
@@ -76,12 +79,14 @@ tree = buildTreeReset!(fg2)
 @error "Suppressing one specific factor graph compare test post DFG v0.6.0 due to unknown (likely false) compare failure"
 # @test compareFactorGraphs(fg, fg2, skipsamples=true, skipcompute=true, skip=[:initialized;:inferdim;:ppeDict; :solvedCount; :fncargvID])
 
+
+##
+
 end
 
-
-
-
 @testset "test subgraph functions..." begin
+
+##
 
 fg = initfg()
 
@@ -105,6 +110,8 @@ sfg = buildSubgraph(fg, [:x0;:x1], 1) # distance=1 to include factors
 @test compareFactorGraphs(fg, sfg, skip=[:labelDict;:addHistory;:logpath;:sessionId])
 
 # drawGraph(sfg)
+
+##
 
 end
 

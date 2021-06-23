@@ -25,6 +25,33 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# # FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
+
+# getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
+# getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
+# getManifolds(dfg::AbstractDFG, sym::Symbol) = getManifolds(getVariable(dfg, sym))
+#
+# getManifolds(vartype::InferenceVariable) = vartype.manifolds
+# getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
+
+
+# import DistributedFactorGraphs: getfnctype
+# # TODO: Refactor - was is das?
+# function getfnctype(data::GenericFunctionNodeData)
+#   if typeof(data).name.name == :VariableNodeData
+#     return VariableNodeData
+#   end
+#   return data.fnc.usrfnc!
+# end
+#
+# function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
+#   data = getData(fact) # TODO , solveKey=solveKey)
+#   return getfnctype(data)
+# end
+#
+# function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
+#   getfnctype(getFactor(dfg, exvertid))
+# end
 
 # function manikde!(ptsArr::Vector{Vector{Float64}}, manis::Tuple)
 #   arr = Matrix{Float64}(undef, length(ptsArr[1]), length(ptsArr))
