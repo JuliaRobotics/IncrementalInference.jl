@@ -17,8 +17,8 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{ManifoldKernelDensity,1}(),
-                        partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
+                        dens = Array{ManifoldKernelDensity,1}()  )
+                        # partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
   #
   
   # determine number of particles to draw from the marginal
@@ -26,12 +26,12 @@ function predictbelief( dfg::AbstractDFG,
   
   # get proposal beliefs
   destvertlabel = destvert.label
-  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, partials, solveKey=solveKey, N=nn, dbg=dbg)
+  inferdim = proposalbeliefs!(dfg, destvertlabel, factors, dens, solveKey=solveKey, N=nn, dbg=dbg)
 
   # take the product
   oldpts = getBelief(dfg, destvertlabel, solveKey) |> getPoints
   varType = getVariableType(dfg, destvertlabel)
-  pGM = AMP.productbelief(oldpts, getManifold(varType), dens, partials, nn, dbg=dbg, logger=logger )
+  pGM = AMP.productbelief(oldpts, getManifold(varType), dens, nn, dbg=dbg, logger=logger )
 
   return pGM, sum(inferdim)
 end
@@ -44,8 +44,8 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{ManifoldKernelDensity,1}(),
-                        partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
+                        dens = Array{ManifoldKernelDensity,1}()  )
+                        # partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
   #
   factors = getFactor.(dfg, factorsyms)
   vert = getVariable(dfg, destvertsym)
@@ -54,7 +54,7 @@ function predictbelief( dfg::AbstractDFG,
   nn = N != 0 ? N : length(getVal(vert, solveKey=solveKey))
 
   # do the belief prediction
-  predictbelief(dfg, vert, factors, solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=nn, dbg=dbg, logger=logger, dens=dens, partials=partials)
+  predictbelief(dfg, vert, factors, solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, dens=dens, N=nn, dbg=dbg, logger=logger )
 end
 
 function predictbelief( dfg::AbstractDFG,
@@ -65,10 +65,10 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{ManifoldKernelDensity,1}(),
-                        partials = Dict{Any, Vector{ManifoldKernelDensity}}() )
+                        dens = Array{ManifoldKernelDensity,1}()  )
+                        # partials = Dict{Any, Vector{ManifoldKernelDensity}}() )
   #
-  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, N=N, dbg=dbg, logger=logger, dens=dens, partials=partials )
+  predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, dens=dens, N=N, dbg=dbg, logger=logger  )
 end
 
 """
@@ -91,14 +91,14 @@ function localProduct(dfg::AbstractDFG,
 
   # # get proposal beliefs
   dens = Array{ManifoldKernelDensity,1}()
-  partials = Dict{Any, Vector{ManifoldKernelDensity}}()
-  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens, partials=partials)
+  # partials = Dict{Any, Vector{ManifoldKernelDensity}}()
+  pGM, sinfd = predictbelief(dfg, sym, lb, solveKey=solveKey, logger=logger, dens=dens )
 
   # make manifold belief from product
   vari = getVariable(dfg, sym)
   pp = AMP.manikde!(pGM, getVariableType(vari) |> getManifold )
 
-  return pp, dens, partials, lb, sinfd
+  return pp, dens, lb, sinfd
 end
 localProduct(dfg::AbstractDFG, lbl::AbstractString; solveKey::Symbol=:default, N::Int=100, dbg::Bool=false) = localProduct(dfg, Symbol(lbl), solveKey=solveKey, N=N, dbg=dbg)
 
@@ -123,7 +123,7 @@ function localProductAndUpdate!(dfg::AbstractDFG,
                                 solveKey::Symbol=:default )
   #
   # calculate new points for sym using existing structure around sym in dfg
-  newPts, dens, parts, lbl, infdim = localProduct(dfg, sym, solveKey=solveKey, N=getSolverParams(dfg).N, logger=logger)
+  newPts, dens, lbl, infdim = localProduct(dfg, sym, solveKey=solveKey, N=getSolverParams(dfg).N, logger=logger)
   # maybe update dfg sym with newly calculated points
   setkde && 0 < size(getPoints(newPts),2) ? setValKDE!(dfg, sym, newPts, false, infdim, solveKey=solveKey) : nothing
 

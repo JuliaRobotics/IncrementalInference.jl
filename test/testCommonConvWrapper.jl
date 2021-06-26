@@ -3,7 +3,9 @@
 using Test
 using NLsolve
 using IncrementalInference
+using Manifolds
 using Statistics
+using TensorCast
 
 import IncrementalInference: getSample
 
@@ -28,8 +30,6 @@ fvar(0.0)
 
 end
 
-
-
 mutable struct FunctorArray{T}
   # This was a tuple, but array will like work better in the long term
   fnc!::Function
@@ -39,6 +39,8 @@ end
 ##
 
 @testset "FunctorArray" begin
+
+##
 
 function testarray!(a1::Array{Float64, 2}, a2::Array{Float64,2})
   a1[1,1] = -1.0
@@ -62,8 +64,9 @@ fvar = FunctorArray(testarray!, t)
 fvar([0.0])
 @test At == A
 
-end
+##
 
+end
 
 ##
 
@@ -108,7 +111,7 @@ odo = Pose1Pose1Test(Normal(100.0,1.0))
 
 fg = initfg()
 X0 = addVariable!(fg, :x0, ContinuousEuclid{1})
-initManual!(fg, :x0, zeros(1,100))
+initManual!(fg, :x0, [zeros(1) for _ in 1:100])
 X1 = addVariable!(fg, :x1, ContinuousEuclid{1})
 addFactor!(fg, [:x0;:x1], odo, graphinit=false)
 
@@ -119,19 +122,27 @@ pts = approxConv(fg, getFactor(fg, :x0x1f1), :x1)
 
 ccw = IIF._getCCW(fg, :x0x1f1)
 
-@test 90.0 < Statistics.mean(ccw.params[ccw.varidx]) < 110.0
-@test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
+ptr_ = ccw.params[ccw.varidx]
+@cast tp1[i,j] := ptr_[j][i]
+@test 90.0 < Statistics.mean(tp1) < 110.0
+ptr_ = ccw.params[1]
+@cast tp2[i,j] := ptr_[j][i]
+@test -10.0 < Statistics.mean(tp2) < 10.0
 
 ##
 
 println("and in the reverse direction")
 
-initManual!(fg, :x1, 100*ones(1,100))
+initManual!(fg, :x1, [100*ones(1) for _ in 1:100])
 
 pts = approxConv(fg, getFactor(fg, :x0x1f1), :x0)
 
-@test -10.0 < Statistics.mean(ccw.params[1]) < 10.0
-@test 90.0 < Statistics.mean(ccw.params[2]) < 110.0
+ptr_ = ccw.params[1]
+@cast tp1[i,j] := ptr_[j][i]
+@test -10.0 < Statistics.mean(tp1) < 10.0
+ptr_ = ccw.params[2]
+@cast tp2[i,j] := ptr_[j][i]
+@test 90.0 < Statistics.mean(tp2) < 110.0
 
 ##
 
@@ -146,10 +157,10 @@ end
 ##
 
 N=100
-p1 = randn(1,N)
-d1 = kde!(p1)
-p2 = randn(1,N)
-t = Array{Array{Float64,2},1}()
+p1 = [randn(1) for _ in 1:N]
+d1 = manikde!(p1, Euclidean(1))
+p2 = [randn(1) for _ in 1:N]
+t = Vector{Vector{Vector{Float64}}}()
 push!(t,p1)
 push!(t,p2)
 
@@ -159,32 +170,32 @@ fg = initfg()
 v1=addVariable!(fg, :x1, ContinuousScalar, N=N)
 v2=addVariable!(fg, :x2, ContinuousScalar, N=N)
 bws = getBW(d1)[:,1]
-f1 = addFactor!(fg, [v1], Prior(kde!(p1, bws)) )
+f1 = addFactor!(fg, [v1], Prior(manikde!(p1, bws, Euclidean(1))) )
 
 odo = Pose1Pose1Test(Normal(100.0,1.0))
 f2 = addFactor!(fg, [v1;v2], odo)
 
 tree = buildTreeReset!(fg)
 
-pts = getVal(getVariable(fg,:x1))
+pts_ = getBelief(fg,:x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 @test abs(Statistics.mean(pts)-0.0) < 10.0
-pts = getVal(getVariable(fg,:x2))
+pts_ = getBelief(fg,:x2) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-# inferOverTreeR!(fg, tree, N=N)
-# inferOverTreeR!(fg, tree)
-# @time [inferOverTreeR!(fg, tree, N=N) for i in 1:3];
+##
+
 tree, smt, hist = solveTree!(fg)
 
+##
 
-# using Gadfly
-# plot(y=rand(10))
-# plotKDE(getBelief(fg,:x2))
-
-pts = getVal(getVariable(fg,:x1))
+pts_ = getBelief(fg,:x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 @test abs(Statistics.mean(pts)-0.0) < 10.0
 
-pts = getVal(getVariable(fg,:x2))
+pts_ = getBelief(fg,:x2) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 @test abs(Statistics.mean(pts)-100.0) < 10.0
 
 ##

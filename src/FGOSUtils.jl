@@ -251,19 +251,21 @@ Related
 """
 function calcPPE( var::DFGVariable,
                   varType::InferenceVariable=getVariableType(var);
-                  method::Type{MeanMaxPPE}=MeanMaxPPE,
+                  ppeType::Type{MeanMaxPPE}=MeanMaxPPE,
                   solveKey::Symbol=:default,
-                  ppeKey::Symbol=solveKey  )
+                  ppeKey::Symbol=solveKey,
+                  timestamp=now()  )
   #
   P = getBelief(var, solveKey)
   maniDef = convert(MB.AbstractManifold, varType)
-  manis = getManifolds(maniDef) # varType # getManifolds(vnd)
+  manis = convert(Tuple, maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
   Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
 
   # suggested, max, mean, current time
-  MeanMaxPPE(ppeKey, Pme, Pma, Pme, now())
+  # TODO, poor constructor argument assumptions on `ppeType`
+  ppeType(ppeKey, Pme, Pma, Pme, timestamp)
 end
 
 
@@ -567,8 +569,8 @@ Related
 """
 function setPPE!( variable::DFGVariable,
                   solveKey::Symbol = :default,
-                  method::Type{T} = MeanMaxPPE,
-                  newPPEVal::T = calcPPE(variable, method=method, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
+                  ppeType::Type{T} = MeanMaxPPE,
+                  newPPEVal::T = calcPPE(variable, ppeType=ppeType, solveKey=solveKey) ) where {T <: AbstractPointParametricEst}
   #
   # vnd = getSolverData(variable, solveKey)
 
@@ -581,13 +583,13 @@ end
 function setPPE!( subfg::AbstractDFG,
                   label::Symbol,
                   solveKey::Symbol = :default,
-                  method::Type{T} = MeanMaxPPE,
+                  ppeType::Type{T} = MeanMaxPPE,
                   newPPEVal::NothingUnion{T} = nothing )  where {T <: AbstractPointParametricEst}
   #
   variable = getVariable(subfg,label)
   # slight optimization to avoid double variable lookup (should be optimized out during code lowering)
-  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, method=method)  
-  setPPE!(variable, solveKey, method, newppe)
+  newppe = newPPEVal !== nothing ? newPPEVal : calcPPE(variable, solveKey=solveKey, ppeType=ppeType)  
+  setPPE!(variable, solveKey, ppeType, newppe)
 end
 
 

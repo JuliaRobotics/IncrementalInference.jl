@@ -174,6 +174,7 @@ end
 Control the amount of entropy to add to null-hypothesis in multihypo case.
 
 Notes:
+- Basically calculating the covariance (with a bunch of assumptions TODO, fix)
 - FIXME, Currently only supports Euclidean domains.
 - FIXME, allow particle subpopulations instead of just all of a variable
 """
@@ -189,17 +190,27 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # @assert !(sfidx in certainidx) "null hypo distance does not work for sfidx in certainidx"
 
   # get mean of all fractional variables
+  # ccwl.params::Vector{Vector{P}}
   uncertainidx = setdiff(1:length(ccwl.params), certainidx)
-  uncMeans = zeros(size(ccwl.params[sfidx],1), length(uncertainidx))
+  uncMeans = zeros(length(ccwl.params[sfidx][1]), length(uncertainidx))
   dists = zeros(length(uncertainidx)+length(certainidx))
-  dims = size(ccwl.params[sfidx],1)
-  count = 0
-  for i in uncertainidx
-    count += 1
-    uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
+  dims = length(ccwl.params[sfidx][1])
+  for (count,i) in enumerate(uncertainidx)
+    # uncMeans[:,count] = Statistics.mean(ccwl.params[i], dims=2)[:]
+    for pr in ccwl.params[i]
+      uncMeans[:,count] .+= pr
+    end
+    uncMeans[:,count] ./= length(ccwl.params[i])
   end
   count = 0
-  refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
+  # refMean = Statistics.mean(ccwl.params[sfidx], dims=2)[:]
+  refMean = zeros(length(ccwl.params[sfidx][1]))
+  for pr in ccwl.params[sfidx]
+    refMean .+= pr
+  end
+  refMean ./= length(ccwl.params[sfidx])
+
+  # calc for uncertain and certain
   for i in uncertainidx
     count += 1
     dists[count] = norm(refMean - uncMeans[:,count])
@@ -207,7 +218,12 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   # also check distance to certainidx for general scale reference (workaround heuristic)
   for cidx in certainidx
     count += 1
-    cerMean = Statistics.mean(ccwl.params[cidx], dims=2)[:]
+    cerMean = zeros(length(ccwl.params[cidx][1]))
+    # cerMean = Statistics.mean(ccwl.params[cidx], dims=2)[:]
+    for pr in ccwl.params[cidx]
+      cerMean .+= pr
+    end
+    cerMean ./= length(ccwl.params[cidx])
     dists[count] = norm(refMean[1:dims] - cerMean[1:dims])
   end
 
@@ -221,7 +237,7 @@ function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
                                     spreadDist::Real,
                                     p::Union{Colon, <:AbstractVector}=: )
   #
-  manis = getManifolds(M)
+  manis = convert(Tuple, M) # LEGACY, TODO REMOVE
   # TODO deprecate
   maniAddOps, _, _, _ = buildHybridManifoldCallbacks(manis)
   # add 1σ "noise" level to max distance as control
@@ -285,7 +301,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # DEBUG sfidx=2, hypoidx=1 -- bad when do something like multihypo=[0.5;0.5] -- issue 424
       # ccwl.params[sfidx][:,allelements[count]] = view(ccwl.params[hypoidx],:,allelements[count])
         # NOTE make alternative case only operate as null hypo
-        addEntr = view(ccwl.params[sfidx], :, allelements[count])
+        addEntr = view(ccwl.params[sfidx], allelements[count])
         # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
         spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
         addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist)
@@ -294,7 +310,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # basically do nothing since the factor is not active for these allelements[count]
       # inject more entropy in nullhypo case
       # add noise (entropy) to spread out search in convolution proposals
-      addEntr = view(ccwl.params[sfidx], :, allelements[count])
+      addEntr = view(ccwl.params[sfidx], allelements[count])
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       # # make spread (1σ) equal to mean distance of other fractionals
@@ -853,7 +869,7 @@ function proposalbeliefs!(dfg::AbstractDFG,
                           destvertlabel::Symbol,
                           factors::AbstractVector{<:DFGFactor},
                           dens::Vector{<:ManifoldKernelDensity},
-                          partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
+                          # partials::Dict{Any, Vector{ManifoldKernelDensity}}, # TODO change this structure
                           measurement::Tuple=(Vector{Vector{Float64}}(),);
                           solveKey::Symbol=:default,
                           N::Int=100,
@@ -869,27 +885,16 @@ function proposalbeliefs!(dfg::AbstractDFG,
   for (count,fct) in enumerate(factors)
     data = getSolverData(fct)
     ccwl = _getCCW(data)
-    propBel, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
-    if isPartial(ccwl)   # partial density  # ccwl.partial
-      pardims = _getDimensionsPartial(ccwl) # _getCCW(data).usrfnc!.partial
+    propBel_, inferd = findRelatedFromPotential(dfg, fct, destvertlabel, measurement, N=N, dbg=dbg, solveKey=solveKey)
+    # partial density
+    propBel = if isPartial(ccwl)
+      pardims = _getDimensionsPartial(ccwl)
       @assert [getFactorType(fct).partial...] == [pardims...] "partial dims error $(getFactorType(fct).partial) vs $pardims"
-
-      marg_ = AMP.marginal(propBel, Int[pardims...])
-      if haskey(partials, pardims)
-        push!(partials[pardims], marg_)
-      else
-        partials[pardims] = ManifoldKernelDensity[marg_;]
-      end
-      # for dimnum in pardims
-      #   if haskey(partials, dimnum)
-      #     push!(partials[dimnum], marginal(propBel, Int.([dimnum;])))
-      #   else
-      #     partials[dimnum] = ManifoldKernelDensity[marginal(propBel, Int.([dimnum;]))]
-      #   end
-      # end
-    else # add onto full density list
-      push!(dens, propBel)
+      AMP.marginal(propBel_, Int[pardims...])
+    else
+      propBel_
     end
+    push!(dens, propBel)
     inferddimproposal[count] = inferd
   end
   inferddimproposal

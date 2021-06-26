@@ -40,7 +40,9 @@ tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.5
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.9
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 1.9
 
 # test free solvable variables (occurs in fixed-/ clique recycling)
 addVariable!(fg, :x1, ContinuousScalar, solvable=1)
@@ -63,7 +65,9 @@ tree, smt, hist = solveTree!(fg)
 
 # check mean and covariance
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1]-1000) < 0.5
-@test 0.4 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.8
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.4 < Statistics.cov( pts[1,:] ) < 1.8
 
 end
 
@@ -81,7 +85,9 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.4
 # should be sqrt(0.5) = 0.7, but lands near 0.6 instead -- computation is too confident.
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.0
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 1.0
 
 end
 
@@ -100,7 +106,9 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.4
 # should be sqrt(1/3) = 0.577, but lands near 0.35 instead -- computation is too confident.
-@test 0.1 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 0.75
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.1 < Statistics.cov( pts[1,:] ) < 0.75
 
 end
 
@@ -119,7 +127,9 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.8
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.5
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 1.5
 
 end
 
@@ -137,7 +147,9 @@ tree, smt, hist = solveTree!(fg)
 # check mean and covariance -- should be zero
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1] + 1000) < 0.6
 # should be sqrt(1/2) = 0.707 -- computation results nearer 0.7.
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.1
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 1.1
 
 end
 
@@ -159,8 +171,12 @@ tree, smt, hist = solveTree!(fg)
 @test (getBelief(fg, :x0) |> getKDEMean .|> abs)[1] < 0.6
 @test (getBelief(fg, :x1) |> getKDEMean .|> abs)[1] < 0.6
 
-@test 0.4 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 2.3
-@test 0.4 < Statistics.cov( getPoints(getBelief(fg, :x1))[1,:] ) < 2.4
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.4 < Statistics.cov( pts[1,:] ) < 2.3
+pts_ = getPoints(getBelief(fg, :x1))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.4 < Statistics.cov( pts[1,:] ) < 2.4
 
 end
 
@@ -181,8 +197,13 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getBelief(fg, :x0) |> getKDEMean)[1]+1) < 0.75
 @test abs((getBelief(fg, :x1) |> getKDEMean)[1]-1) < 0.75
 
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 2.5
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x1))[1,:] ) < 2.5
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 2.5
+
+pts_ = getPoints(getBelief(fg, :x1))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 2.5
 
 end
 
@@ -208,9 +229,17 @@ tree, smt, hist = solveTree!(fg)
 @test abs((getBelief(fg, :x1) |> getKDEMean)[1]) < 0.9
 @test abs((getBelief(fg, :x2) |> getKDEMean)[1] - 1) < 0.9
 
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 1.8
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x1))[1,:] ) < 2.0
-@test 0.3 < Statistics.cov( getPoints(getBelief(fg, :x2))[1,:] ) < 2.2
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 1.8
+
+pts_ = getPoints(getBelief(fg, :x1))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 2.0
+
+pts_ = getPoints(getBelief(fg, :x2))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.3 < Statistics.cov( pts[1,:] ) < 2.2
 
 end
 
@@ -255,11 +284,25 @@ X4 = (getBelief(fg, :x4) |> getKDEMean)[1]
 @test abs(X1+X3) < 2.2
 @test abs(X2) < 2.2
 
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x0))[1,:] ) < 2.3
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x1))[1,:] ) < 2.4
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x2))[1,:] ) < 2.6
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x3))[1,:] ) < 2.7
-@test 0.2 < Statistics.cov( getPoints(getBelief(fg, :x4))[1,:] ) < 2.8
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.3
+
+pts_ = getPoints(getBelief(fg, :x1))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.4
+
+pts_ = getPoints(getBelief(fg, :x2))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.6
+
+pts_ = getPoints(getBelief(fg, :x3))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.7
+
+pts_ = getPoints(getBelief(fg, :x4))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+@test 0.2 < Statistics.cov( pts[1,:] ) < 2.8
 
 @testset "Test localProduct on solveKey" begin
 
@@ -281,21 +324,27 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addFactor!(fg, [:x0;], Prior(Normal(1000.0,1.0)))
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 
 # init values before solve
-X0 = getPoints( getBelief(fg, :x0)) |> deepcopy
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+X0 = pts |> deepcopy
 
 tree, smt, hist = solveTree!(fg)
 
 # values after solve
-X0s = getPoints( getBelief(fg, :x0))
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+X0s = pts
 
 @test 1e-10 < norm(X0 - X0s)
 
 resetInitialValues!(fg)
 
-X0reset = getPoints( getBelief(fg, :x0)) |> deepcopy
+pts_ = getPoints(getBelief(fg, :x0))
+TensorCast.@cast pts[i,j] := pts_[j][i]
+X0reset = pts |> deepcopy
 
 @test norm(X0 - X0reset) < 1e-10
 

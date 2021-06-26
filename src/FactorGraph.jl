@@ -308,7 +308,7 @@ function DefaultNodeDataParametric( dodims::Int,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    return VariableNodeData(zeros(dims, 1),
+    return VariableNodeData([zeros(dims) for _ in 1:1],
                             zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
@@ -841,6 +841,7 @@ function doautoinit!( dfg::AbstractDFG,
         with_logger(logger) do
           @info "do init of $vsym"
         end
+        # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
         setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
