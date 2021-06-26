@@ -4,15 +4,19 @@ using Optim
 
 # TODO 2 variables x1 and x2 of type SE2 one factor and one prior on x1
 
-X = hat(M, ϵSE2, [1, 0, pi/4])
+# X = hat(M, ϵSE2, [1.1, 0.1, pi+0.1])
+X = hat(M, ϵSE2, [1.1, 0.1, pi + 0.05])
 priorx1 = compose(M, ϵSE2, exp(M, ϵSE2, X))
 
-X = hat(M, ϵSE2, [0, 0, pi/4])
+# X = hat(M, ϵSE2, [1.1, 0.1, pi-0.1])
+X = hat(M, ϵSE2, [0.9, -0.1, pi + 0.15])
 priorx2 = compose(M, ϵSE2, exp(M, ϵSE2, X))
 
 measX = hat(M, ϵSE2, [1, 0, pi/4])
 measx1x2 = compose(M, ϵSE2, exp(M, ϵSE2, measX))
 
+X2 = hat(M, ϵSE2, [0, 0, pi + pi/4])
+x2 = compose(M, ϵSE2, exp(M, ϵSE2, X2))
 
 ## ======================================================================================
 ## with Optim "point" as LieAlgebra coordinates and only one variable at a time as non-parametric
@@ -24,34 +28,67 @@ M = SpecialEuclidean(2)
 
 representation_size.(M.manifold.manifolds)
 
-# autodiff = :forward
-algorithm=Optim.BFGS
-autodiff = :finite
-# algorithm=Optim.NelderMead 
+
+# algorithm=Optim.BFGS
+algorithm=Optim.NelderMead 
 alg = algorithm()
+manifold = ManifoldsMani(SpecialEuclidean(2))
+alg = algorithm(;manifold, algorithmkwargs...)
+
+test_retract = false
+function Optim.retract!(MM::ManifoldsMani, X)
+    test_retract && (X[3] = rem2pi(X[3], RoundNearest))
+    return X 
+end
+
+function Optim.project_tangent!(MM::ManifoldsMani, G, x)
+    return G
+end
+
 options = Optim.Options(allow_f_increases=true, 
-                        iterations = 100,
+                        iterations = 200,
                         time_limit = 100,
                         show_trace = true,
-                        show_every = 1,
+                        show_every = 10,
                         )
 
 # NOTE 
-# Die gaan net op groepe werk
-# tangent coordinates kom in
-# gaan af na die manifold bereken en dan weer terug
+# Only for Lie Groups
+# Input: Lie Algebra coordinates 
+# f: exp to Group and calcuate residual
+# Output: sum of squares residual 
 
 function cost(X) 
-    # @info X
     x = exp(M, ϵSE2, hat(M, ϵSE2, X))    
-    return PriorPose2(priorx1, x)^2 + PriorPose2(priorx2, x)^2
+    return PriorPose2(priorx1, x)^2 + PriorPose2(priorx2, x)^2 + Pose2Pose2(measx1x2, x, x2)^2
 end
 
-initValues = @MVector [0.,0.,0.]
+initValues = @MVector [0.,0.,0.0]
 
-result = Optim.optimize(cost, initValues, alg, options)
+@time result = Optim.optimize(cost, initValues, alg, options)
 
 rv = Optim.minimizer(result)
+
+## result on group:
+
+rv_G = exp(M, ϵSE2, hat(M, ϵSE2, rv)) 
+
+##
+autodiff = :forward
+# autodiff = :finite
+
+initValues = [0.,0.,0.1]
+
+tdtotalCost = Optim.TwiceDifferentiable((x)->cost(x), initValues; autodiff)
+
+@time result = Optim.optimize(tdtotalCost, initValues, alg, options)
+
+rv = Optim.minimizer(result)
+
+
+##
+H = Optim.hessian!(tdtotalCost, rv)
+Σ = pinv(H)
 
 
 ## ======================================================================================
@@ -133,4 +170,5 @@ result = Optim.optimize(cost, initValues, alg, options)
 
 rv = Optim.minimizer(result)
 unflatten(M, rv)
+
 

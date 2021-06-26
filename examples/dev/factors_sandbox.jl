@@ -7,7 +7,7 @@ struct MeasurementOnTangent end
 
 function PointPoint_distance(M, m, p, q)
     q̂ = compose(M, p, m)
-    return distance(M, q, q̂)^2
+    return distance(M, q, q̂)
 end
 
 function grad_PointPoint_distance(M, m, p, q) 
@@ -17,17 +17,17 @@ end
 
 function PointPoint_distance(M, X, p, q, ::MeasurementOnTangent)
     q̂ = compose(M, p, exp(M, identity(M, X), X)) #FIXME
-    return distance(M, q, q̂)^2
+    return distance(M, q, q̂)
 end
 
 function PointPoint_velocity_distance(M, X, dt, p, q, ::MeasurementOnTangent)
     q̂ = compose(M, p, group_exp(M, X*dt))
-    return distance(M, q, q̂)^2
+    return distance(M, q, q̂)
 end
 
 function Prior_distance(M, meas, p)	
 #		
-    return distance(M, meas, p)^2
+    return distance(M, meas, p)
 end
 
 # Pose
