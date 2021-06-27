@@ -453,7 +453,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   addEntr = if length(solveForPts) == nn
     deepcopy(solveForPts)
   else
-    @show ret = typeof(solveForPts)(undef, nn)
+    ret = typeof(solveForPts)(undef, nn)
     for i in 1:length(solveForPts)
       ret[i] = solveForPts[i]
     end
@@ -845,7 +845,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
 
   # FIXME consolidate with approxConv method instead
   if Npoints != N # this is where we control the overall particle set size
-      proposal = resample(proposal,N)
+      proposal = AMP.resample(proposal,N)
   end
   return (proposal, inferdim)
 end

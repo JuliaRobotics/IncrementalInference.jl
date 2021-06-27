@@ -2,12 +2,14 @@
 
 using DistributedFactorGraphs
 using IncrementalInference
-
 using Test
+
+##
 
 @testset "test CSM runaway on upsolve, (issue 427)" begin
 
 ## parameters
+
 lm_prior_noise = 0.1
 meas_noise = 0.25
 odom_noise = 0.1
@@ -88,6 +90,7 @@ tree, smt, hist = solveTree!(fg, recordcliqs=ls(fg))
 # using RoMEPlotting
 # plotKDE(fg, ls(fg))
 
+##
 
 end
 

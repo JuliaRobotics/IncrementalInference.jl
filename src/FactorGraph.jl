@@ -516,22 +516,33 @@ function prepareparamsarray!( ARR::AbstractVector{P},
 
   for xi in Xi
     push!(ARR, getVal(xi, solveKey=solveKey))
-    len = size(ARR[end], 2)
-    push!(LEN, len)
-    if len > maxlen
-      maxlen = len
-    end
+    LEN = length.(ARR)
+    maxlen = maximum(LEN)
+    # @show len = size(ARR[end], 2)
+    # push!(LEN, len)
+    # if len > maxlen
+    #   maxlen = len
+    # end
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
     end
   end
+
+  # resample variables with too few kernels
   SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
+      Pr = getBelief(Xi[i], solveKey)
+      resize!(ARR[i], maxlen)
       for j in 1:maxlen
-        smp = AMP.sample(getBelief(Xi[i], solveKey), 1)[1]
-        ARR[i][j][:] = smp[:]
+        smp = AMP.sample(Pr, 1)[1]
+        arr_i = ARR[i]
+        if isdefined(arr_i, j)
+          arr_i[j][:] = smp[:]
+        else
+          arr_i[j] = smp[:]
+        end
       end
     end
   end
@@ -589,7 +600,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   zdim = if T != GenericMarginal
     # vnds = Xi # (x->getSolverData(x)).(Xi)
     # NOTE try to make sure we get matrix back (not a vector)
-    smpls = sampleFactor(cf, 2)[1]
+    @show smpls = sampleFactor(cf, 2)[1]
     length(smpls[1])
   else
     0

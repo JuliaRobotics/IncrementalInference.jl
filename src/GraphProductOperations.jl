@@ -44,7 +44,7 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{ManifoldKernelDensity,1}()  )
+                        dens = Vector{ManifoldKernelDensity}()  )
                         # partials = Dict{Any, Vector{ManifoldKernelDensity}}()  )
   #
   factors = getFactor.(dfg, factorsyms)
@@ -65,7 +65,7 @@ function predictbelief( dfg::AbstractDFG,
                         N::Int=0,
                         dbg::Bool=false,
                         logger=ConsoleLogger(),
-                        dens = Array{ManifoldKernelDensity,1}()  )
+                        dens = Vector{ManifoldKernelDensity}()  )
                         # partials = Dict{Any, Vector{ManifoldKernelDensity}}() )
   #
   predictbelief(dfg, destvertsym, getNeighbors(dfg, destvertsym), solveKey=solveKey, needFreshMeasurements=needFreshMeasurements, dens=dens, N=N, dbg=dbg, logger=logger  )
