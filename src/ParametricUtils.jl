@@ -273,7 +273,7 @@ function solveGraphParametric(fg::AbstractDFG;
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[:,1]
+    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
   end
 
   initValues = flatvar.X
@@ -393,7 +393,7 @@ end
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getVariableType(fg, k) |> AMP.getManifolds .== :Circular)
+    append!(circMask, convert(Tuple, getManifold(getVariableType(fg, k))) .== :Circular)
   end
   MixedCircular(circMask)
 end
@@ -530,15 +530,17 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
   else
     for var in getVariables(fg)
         fromvnd = getSolverData(var, fromkey)
+        ptr_ = fromvnd.val
+        @cast ptr[i,j] := ptr_[j][i]
         if fromvnd.dims == 1
-          nf = fit(Normal, fromvnd.val)
-          getSolverData(var, parkey).val[1,1] = nf.μ
+          nf = fit(Normal, ptr)
+          getSolverData(var, parkey).val[1][1] = nf.μ
           getSolverData(var, parkey).bw[1,1] = nf.σ
           # m = var.estimateDict[:default].mean
         else
           #FIXME circular will not work correctly with MvNormal
-          nf = fit(MvNormal, fromvnd.val)
-          getSolverData(var, parkey).val[1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
+          nf = fit(MvNormal, ptr)
+          getSolverData(var, parkey).val[1][1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
           getSolverData(var, parkey).bw = cov(nf)
         end
     end

@@ -150,7 +150,7 @@ N = size(X1,2)
 
 pred, meas = approxDeconv(fg, :x0x1f1)
 
-@test mmd(pred, meas) < 1e-2
+@test mmd(pred, meas) < 1e-1
 
 
 ##

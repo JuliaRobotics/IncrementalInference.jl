@@ -428,7 +428,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   
   # FIXME, NEEDS TO BE CLEANED UP AND WORK ON MANIFOLDS PROPER
   fnc = ccwl.usrfnc!
-  @show sfidx = findfirst(getLabel.(Xi) .== solvefor)
+  sfidx = findfirst(getLabel.(Xi) .== solvefor)
   # sfidx = 1 #  WHY HARDCODED TO 1??
   solveForPts = getVal(Xi[sfidx], solveKey=solveKey)
   nn = maximum([N; length(measurement[1]); length(solveForPts); length(ccwl.params[sfidx])])
@@ -468,9 +468,9 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
   # partials are treated differently
   if !ccwl.partial
       # TODO for now require measurements to be coordinates too
-      @show typeof(ccwl.measurement[1])
+      # @show typeof(ccwl.measurement[1])
       for m in (1:length(ahmask))[ahmask]
-        @show m, addEntr[m], ccwl.measurement[1][m]
+        # @show m, addEntr[m], ccwl.measurement[1][m]
         addEntr[m] .= ccwl.measurement[1][m]
       end
       # ongoing part of RoME.jl #244
@@ -837,10 +837,10 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   # vdim = getVariableDim(DFG.getVariable(dfg, target))
 
   # TODO -- better to upsample before the projection
-  @show Ndim = length(pts[1])
-  @show Npoints = length(pts) # size(pts,2)
+  Ndim = length(pts[1])
+  Npoints = length(pts) # size(pts,2)
   # Assume we only have large particle population sizes, thanks to addNode!
-  @show M = getManifold(getVariableType(dfg, target))
+  M = getManifold(getVariableType(dfg, target))
   proposal = AMP.manikde!(pts, M)
 
   # FIXME consolidate with approxConv method instead

@@ -231,7 +231,7 @@ function setValKDE!(vd::VariableNodeData,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0 )
   #
   ptsArr = AMP.getPoints(p)
-  @show typeof(ptsArr)
+  # @show typeof(ptsArr)
   # @cast ptsArr[j][i] := pts[i,j]
   bws = getBW(p)[:,1]
   setValKDE!(vd,ptsArr,bws,setinit,inferdim )
@@ -605,7 +605,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 threadmodel=MultiThreaded,
                                 inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
-  @show pttypes = getVariableType.(Xi) .|> getPointType
+  pttypes = getVariableType.(Xi) .|> getPointType
   sametype = 0 < length(pttypes) ? all( pttypes[1] .== pttypes ) : true
   P_type = 0 < length(pttypes) ? Vector{pttypes[1]} : Vector{Float64}
   @assert sametype "Current implementation only allows for same point type: $pttypes"

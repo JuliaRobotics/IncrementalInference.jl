@@ -6,7 +6,7 @@ _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixtur
 function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
   #
-  @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
+  # @info "ccwl zDim and xDim" ccwl.zDim ccwl.xDim
   if ccwl.zDim < ccwl.xDim && !ccwl.partial || testshuffle || ccwl.partial
     error("<:AbstractRelativeRoots factors with less measurement dimensions than variable dimensions have been discontinued, easy conversion to <:AbstractRelativeMinimize is the better option.")
   elseif !( ccwl.zDim >= ccwl.xDim && !ccwl.partial )

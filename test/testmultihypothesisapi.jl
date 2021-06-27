@@ -149,7 +149,7 @@ unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopPrior}},dd)
 
 
 fct = getFactor(fg, :x2x3x4f1)
-@show typeof(fct)
+# @show typeof(fct)
 topack = getSolverData(fct) # f3
 dd = convert(PackedFunctionNodeData{PackedDevelopLikelihood},topack)
 unpacked = convert(FunctionNodeData{CommonConvWrapper{DevelopLikelihood}},dd)

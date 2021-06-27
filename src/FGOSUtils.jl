@@ -136,7 +136,7 @@ end
 function manikde!(pts::AbstractVector{P}, 
                   vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
-  @show M = getManifold(vartype)
+  M = getManifold(vartype)
   return AMP.manikde!(pts, M)
 end
 
@@ -289,10 +289,10 @@ Related
 function calcPPE( dfg::AbstractDFG,
                   label::Symbol;
                   solveKey::Symbol=:default,
-                  method::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
+                  ppeType::Type{<:AbstractPointParametricEst}=MeanMaxPPE )
   #
   var = getVariable(dfg, label)
-  calcPPE(var, getVariableType(var), method=method, solveKey=solveKey)
+  calcPPE(var, getVariableType(var), ppeType=ppeType, solveKey=solveKey)
 end
 
 const calcVariablePPE = calcPPE

@@ -53,7 +53,7 @@ tree, smt, hist = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
   sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
   println("Testing ", var,": ", sppe)
-  @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.1)
+  @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.2)
 end
 
 
@@ -77,7 +77,7 @@ getSolverParams(fg).treeinit = true
 getSolverParams(fg).useMsgLikelihoods = true
 
 smtasks = Task[]
-tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
+tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks);
 
 
 ##
@@ -96,7 +96,7 @@ tree, smt, hists = IIF.solveTree!(fg; smtasks=smtasks); #, recordcliqs=ls(fg));
 for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
-    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.25)
+    @test isapprox(sppe[1], parse(Int,string(var)[end]), atol=0.4)
 end
 
 
@@ -121,7 +121,7 @@ for var in sortDFG(ls(fg))
     sppe = getVariable(fg,var) |> getPPE |> IIF.getPPESuggested
     println("Testing ", var,": ", sppe)
     s = findfirst(r"\d", string(var))[1]
-    @test isapprox(sppe[1], parse(Int,string(var)[s:end]), atol=0.2)
+    @test isapprox(sppe[1], parse(Int,string(var)[s:end]), atol=0.45)
 end
 
 ##

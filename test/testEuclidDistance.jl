@@ -2,6 +2,7 @@
 
 using IncrementalInference
 using Test
+using TensorCast
 
 ##
 
@@ -27,7 +28,8 @@ tree, _, = solveTree!(fg)
 
 @test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
 
-pts = getBelief(fg, :x1) |> getPoints
+pts_ = getBelief(fg, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 N = size(pts, 2)
 
 @test 0.3*N < sum( 5 .< pts )
@@ -58,9 +60,11 @@ tree, _, = solveTree!(fg)
 @test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
 @test isapprox(getPPE(fg, :x0).suggested[1], 0, atol=1)
 
-pts = getBelief(fg, :x1) |> getPoints
+pts_ = getBelief(fg, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 N = size(pts, 2)
 
+pts = collect(pts)
 pts .^= 2
 @test 0.5*N < sum( 7 .< sqrt.(sum(pts, dims=1)) .< 13 )
 
@@ -87,8 +91,8 @@ tree = buildTreeReset!(fg_, eo)
 hist,upMessage = solveCliqUp!(fg_, tree, :x2; recordcliq=true);
 
 sfg = hist[end].csmc.cliqSubFg
-L1_ = getBelief(sfg, :l1) |> getPoints
-
+L1__ = getBelief(sfg, :l1) |> getPoints
+@cast L1_[i,j] := L1__[j][i]
 
 # check for for ring density
 
@@ -98,7 +102,7 @@ L1_ = getBelief(sfg, :l1) |> getPoints
 @test 0.2*N < sum( -230 .< L1_[2,:] .< 100)
 
 # and must be in a ring
-
+L1_ = collect(L1_)
 L1_[2,:] .-= 100
 @test 0.95*N < sum( 90 .< sqrt.(sum(L1_.^2, dims=1)) .< 110)
 
@@ -112,20 +116,20 @@ fg = IIF.generateCanonicalFG_EuclidDistance(points)
 ## check regular full solution produces two modes
 
 
-TP = false
 for i in 1:3
   # global TP, N
   tree, _, = solveTree!(fg, eliminationOrder=eo);
 
-  L1 = getBelief(fg, :l1) |> getPoints
+  L1_ = getBelief(fg, :l1) |> getPoints
+  @cast L1[i,j] := L1_[j][i] 
   # check that two modes exist
-  tp = (0.1*N < sum(-50 .< L1[1,:] .< 50)) && (0.1*N < sum(-50 .< L1[2,:] .< 50))
-  tp &= (0.1*N < sum(50 .< L1[1,:] .< 150)) && (0.1*N < sum(50 .< L1[2,:] .< 150))
-  TP |= tp
+  @test (0.1*N < sum(-50 .< L1[1,:] .< 50))
+  @test (0.1*N < sum(-50 .< L1[2,:] .< 50))
+  @test (0.1*N < sum(50 .< L1[1,:] .< 150))
+  @test (0.1*N < sum(50 .< L1[2,:] .< 150))
 end
 
 # at least one of the 3 solves should produce the right result
-@test TP
 
 
 ##
@@ -146,7 +150,8 @@ solveTree!(fg)
 
 @test isapprox(getPPE(fg, :x1).suggested[1], 100, atol=1)
 
-pts = getBelief(fg, :l1) |> getPoints
+pts_ = getBelief(fg, :l1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
 N = size(pts, 2)
 
 # TODO add similar tests to the rest
@@ -161,9 +166,11 @@ pts = approxConv(fg, :x1l1f1, :l1)
 initManual!(fg, :l1, pts)
 # plotKDE(fg, ls(fg))
 
-pts = approxConv(fg, :x1l1f1, :l1)
-initManual!(fg, :l1, pts)
+pts_ = approxConv(fg, :x1l1f1, :l1)
+initManual!(fg, :l1, pts_)
 # plotKDE(fg, ls(fg))
+
+@cast pts[i,j] := pts_[j][i]
 
 @test 0.3*N < sum(isapprox.(pts,  0, atol=5)) < 0.7*N
 @test 0.3*N < sum(isapprox.(pts,200, atol=5)) < 0.7*N
@@ -195,14 +202,14 @@ points = [[0.0;100.0],[100.0;0.0]]
 fg = IIF.generateCanonicalFG_EuclidDistance(points)
 getSolverParams(fg).inflation=3.0
 
-initManual!(fg, :x1, rand(MvNormal([100.,0], [1.,1]),N))
-initManual!(fg, :x2, rand(MvNormal([0.,100], [1.,1]),N))
+initManual!(fg, :x1, [rand(MvNormal([100.,0], [1.,1])) for _ in 1:N])
+initManual!(fg, :x2, [rand(MvNormal([0.,100], [1.,1])) for _ in 1:N])
 
 # init = MixtureModel([MvNormal([100.,100], [10.,10]),
 #                        MvNormal([0.,0], [10.,10])],
 #                        [0.5, 0.5])
 init = MvNormal([25.,25], [1.,1])
-initManual!(fg, :l1, rand(init,N))
+initManual!(fg, :l1, [rand(init) for _ in 1:N])
 
 # plotKDE(fg, ls(fg))
 
@@ -211,6 +218,8 @@ eliminationOrder = [:l1; :x2; :x1]
 # one clique eliminationOrder
 eliminationOrder = [:l1; :x2; :x1]
 tree,_ = solveTree!(fg; eliminationOrder)
+
+##
 
 end
 
