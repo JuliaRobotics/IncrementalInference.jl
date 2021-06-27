@@ -25,16 +25,13 @@ getDimension(::InstanceType{<:EuclidDistance}) = 1
 getManifold(::InstanceType{<:EuclidDistance}) = ContinuousEuclid{1}
 
 function getSample(cf::CalcFactor{<:EuclidDistance}, N::Int=1)
-  ret = Vector{Vector{Float64}}(undef, N)
-  for i in 1:N
-    ret[i] = rand(cf.factor.Z,1)[:]
-  end
+  ret = [rand(cf.factor.Z,1) for _ in 1:N]
   (ret, )
 end
 
 # new and simplified interface for both nonparametric and parametric
 function (s::CalcFactor{<:EuclidDistance})(z, x1, x2)
-  # v0.21+, should return residual and not have residual parameter
+  # @info "distance?" z x1 x2
   return z .- norm(x2 .- x1)
 end
 

@@ -16,9 +16,9 @@ addVariable!(fg, :x0, ContinuousEuclid{2})
 addVariable!(fg, :x1, ContinuousEuclid{2})
 addVariable!(fg, :x2, ContinuousEuclid{2})
 
-initManual!(fg, :x0, randn(2,100))
-initManual!(fg, :x1, randn(2,100) .+ 10)
-initManual!(fg, :x2, randn(2,100) .+ 20)
+initManual!(fg, :x0, [randn(2) for _ in 1:100])
+initManual!(fg, :x1, [randn(2) .+ 10 for _ in 1:100])
+initManual!(fg, :x2, [randn(2) .+ 20 for _ in 1:100])
 
 addFactor!(fg , [:x0; :x1], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
 addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
@@ -33,7 +33,7 @@ addFactor!( fg, [:x0; :x3], EuclidDistance(Normal(30, 1)), graphinit=false )
 
 ##
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 # drawGraph(fg, show=true)
 
 
@@ -130,9 +130,9 @@ addVariable!(fg, :x0, ContinuousEuclid{2})
 addVariable!(fg, :x1, ContinuousEuclid{2})
 addVariable!(fg, :x2, ContinuousEuclid{2})
 
-initManual!(fg, :x0, randn(2,100))
-initManual!(fg, :x1, randn(2,100) .+ 10)
-initManual!(fg, :x2, randn(2,100) .+ 20)
+initManual!(fg, :x0, [randn(2) for _ in 1:100])
+initManual!(fg, :x1, [randn(2) .+ 10 for _ in 1:100])
+initManual!(fg, :x2, [randn(2) .+ 20 for _ in 1:100])
 
 addFactor!(fg , [:x0; :x1], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
 addFactor!(fg , [:x1; :x2], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))))
@@ -146,7 +146,7 @@ addFactor!( fg, [:x0; :x3], LinearRelative(MvNormal([10.0;10], diagm([1.0;1]))) 
 ##
 
 
-ensureAllInitialized!(fg)
+initAll!(fg)
 # drawGraph(fg, show=true)
 
 

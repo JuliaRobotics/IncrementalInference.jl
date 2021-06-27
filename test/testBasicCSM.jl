@@ -7,6 +7,7 @@ using Logging
 using Statistics
 using DistributedFactorGraphs
 using IncrementalInference
+using TensorCast
 
 
 @testset "test basic three variable graph with prior" begin

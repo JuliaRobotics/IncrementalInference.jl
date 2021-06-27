@@ -77,8 +77,8 @@ end
 
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
-_viewdim1or2(other, ind...) = other
-_viewdim1or2(arr::AbstractVector, ind1) = view(arr, ind1)
+# _viewdim1or2(other, ind...) = other
+_getindextuple(tup::Tuple, ind1) = [getindex(t, ind1) for t in tup]
 # _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
 
@@ -149,7 +149,8 @@ function _buildCalcFactorLambdaSample(ccwl::CommonConvWrapper,
   fill!(cpt_.res, 0.0) # Roots->xDim | Minimize->zDim
 
   # build static lambda
-  unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, smpid))..., (view.(varParams, smpid))... ) # :
+  # unrollHypo! =  ()->cf( (_viewdim1or2.(measurement_, smpid))..., (view.(varParams, smpid))... ) # :
+  unrollHypo! =  ()->cf( (_getindextuple(measurement_, smpid))..., (getindex.(varParams, smpid))... ) # :
 
   return unrollHypo!, target
 end
