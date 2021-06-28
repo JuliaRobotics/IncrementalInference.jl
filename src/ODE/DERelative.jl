@@ -154,8 +154,7 @@ function getSample( cf::CalcFactor{<:DERelative},
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end
 
-  @info "this is diffOp" diffOp
-  return (meas, diffOp)
+  return (meas, [diffOp for _ in 1:N])
 end
 # getDimension(oderel.domain)
 
@@ -195,8 +194,7 @@ function (cf::CalcFactor{<:DERelative})(meas1,
   res = zeros(size(X[2],1))
   for i in 1:size(X[2],1)
     # diffop( test, reference )   <===>   ΔX = test \ reference
-    @info "what what ode" i solveforIdx diffOp X[solveforIdx][i] meas1[i]
-    res[i] = diffOp( X[solveforIdx][i], meas1[i] )
+    res[i] = diffOp[i]( X[solveforIdx][i], meas1[i] )
   end
   res
 end

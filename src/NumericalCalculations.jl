@@ -78,7 +78,7 @@ end
 
 # internal function to dispatch view on either vector or matrix, rows are dims and samples are columns
 # _viewdim1or2(other, ind...) = other
-_getindextuple(tup::Tuple, ind1) = [getindex(t, ind1) for t in tup]
+_getindextuple(tup::Tuple, ind1::Int) = [getindex(t, ind1) for t in tup]
 # _viewdim1or2(arr::AbstractMatrix, ind1, ind2) = view(arr, ind1, ind2)
 
 
