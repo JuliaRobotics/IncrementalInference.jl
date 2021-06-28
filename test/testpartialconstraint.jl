@@ -214,9 +214,12 @@ global v2, fg
 # partial prior
 X2pts_ = getVal(v2)
 @cast X2pts[i,j] := X2pts_[j][i]
+# NOTE, SUPER IMPORTANT, predictbelief returns full dimension points (even if only partials are sent in for proposals)
 val_, = predictbelief(fg, v2, [f4], N=N)
 @cast val[i,j] := val_[j][i]
-@test norm(X2pts[1,:] - val[1,:]) < 1e-10
+@show X2pts_[1]';
+@show val_[1]';
+@test norm(X2pts[2,:] - val[2,:]) < 1e-10
 @test 0.0 < norm(X2pts[1,:] - val[1,:])
 @test norm(Statistics.mean(val[1,:]) .+ 20.0) < 0.75
 
@@ -237,8 +240,8 @@ val2_ = getVal(v1)
 val_, = predictbelief(fg, v2, [f3;f4], N=N)
 @cast val[i,j] := val_[j][i]
 # plotKDE(kde!(val),levels=3)
-@test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 2.0
-@test norm(Statistics.mean(val,dims=2)[2] .- [10.0]) < 2.0
+@test norm(Statistics.mean(val,dims=2)[1] .- [-20.0]) < 3.0
+@test norm(Statistics.mean(val,dims=2)[2] .- [10.0]) < 3.0
 @test (Statistics.std(val,dims=2)[1] .- 1.0) < 3.0
 @test (Statistics.std(val,dims=2)[2] .- 1.0) < 3.0
 
@@ -255,8 +258,8 @@ pts_ = getVal(fg, :x1)
 
 pts_ = getVal(fg, :x2)
 @cast pts[i,j] := pts_[j][i]
-@test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 2.0
-@test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 2.0
+@test norm(Statistics.mean(pts,dims=2)[1] .- [-20.0]) < 3.0
+@test norm(Statistics.mean(pts,dims=2)[2] .- [10.0]) < 3.0
 @test (Statistics.std(pts,dims=2)[1]-1.0) < 3.0
 @test (Statistics.std(pts,dims=2)[2]-1.0) < 3.0
 

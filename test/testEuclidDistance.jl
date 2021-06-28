@@ -123,10 +123,10 @@ for i in 1:3
   L1_ = getBelief(fg, :l1) |> getPoints
   @cast L1[i,j] := L1_[j][i] 
   # check that two modes exist
-  @test (0.1*N < sum(-50 .< L1[1,:] .< 50))
-  @test (0.1*N < sum(-50 .< L1[2,:] .< 50))
-  @test (0.1*N < sum(50 .< L1[1,:] .< 150))
-  @test (0.1*N < sum(50 .< L1[2,:] .< 150))
+  @test (0.08*N < sum(-50 .< L1[1,:] .< 50))
+  @test (0.08*N < sum(-50 .< L1[2,:] .< 50))
+  @test (0.08*N < sum(50 .< L1[1,:] .< 150))
+  @test (0.08*N < sum(50 .< L1[2,:] .< 150))
 end
 
 # at least one of the 3 solves should produce the right result

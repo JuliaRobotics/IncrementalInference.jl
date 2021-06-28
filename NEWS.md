@@ -15,6 +15,7 @@ The list below highlights major breaking changes, and please note that significa
 
 - PPE methods used keyword `method::AbstractPointParametricType` which is now replaced with the keyword `ppeType`.
 - Belief points are now stored as a `Vector{P}` (rather than legacy `Matrix`), and currently still under the restriction `P <: AbstractVector{<:Real}`.  Objective is moving to `P` any user desired point that fits with the JuliaManifolds/Manifolds.jl patterns.
+- Deprecating use of `ensureAllInitialized!`, use `initAll!` instead.
 # Major changes in v0.24
 
 - Update compat for ManifoldsBase.jl v0.11 with `AbstractManifold`.
