@@ -1,5 +1,7 @@
 using IncrementalInference
 
+##
+
 @testset "test fourdoor early example" begin
 
 ## example parameters
@@ -26,6 +28,7 @@ solveTree!(fg)
 
 
 ## drive to second pose location
+
 addVariable!(fg,:x2, ContinuousScalar, N=N)
 addFactor!(fg,[:x1;:x2],LinearRelative(Normal(50.0,2.0)))
 
@@ -50,8 +53,7 @@ addFactor!(fg,[:x4], doorPrior)
 # solve over all data
 tree, smt, hists = solveTree!(fg)
 
-
-
+##
 
 
 end
