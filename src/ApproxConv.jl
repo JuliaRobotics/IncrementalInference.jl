@@ -737,7 +737,7 @@ function approxConvBinary(arr::Vector{Vector{Float64}},
   #
   # N = N == 0 ? size(arr,2) : N
   pts = [zeros(outdims) for _ in 1:N];
-  ptsArr = Vector{Vector{Float64}}()
+  ptsArr = Vector{Vector{Vector{Float64}}}()
   push!(ptsArr,arr)
   push!(ptsArr,pts)
 

@@ -57,7 +57,6 @@ include("testMultiHypo2Door.jl")
 include("testMultimodal1D.jl")
 include("testMultihypoAndChain.jl")
 include("testMultithreaded.jl")
-
 include("testpartialconstraint.jl")
 include("testnullhypothesis.jl")
 include("testmultihypothesisapi.jl")

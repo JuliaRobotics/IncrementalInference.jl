@@ -122,7 +122,7 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   # calculate the projection
   varmask = (1:2)[varSyms .== trgsym][1]
 
-  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
+  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Vector{Vector{Float64}}}(), :null, nothing)
   currval_ = Vector{Vector{Float64}}()
   push!(currval_, currval)
   pts_ = approxConvBinary( currval_, meas, outdims, fmd, measT, varidx=varmask )

@@ -25,10 +25,7 @@ getDimension(::Type{MutableLinearRelative{N,<:SamplableBelief}}) where {N} = N
 
 
 function IIF.getSample(cf::CalcFactor{<:MutableLinearRelative}, N::Int=1)
-    ret = Vector{Vector{Float64}}(undef, N)
-    for i in 1:N
-        ret[i] = rand(cf.factor.Z,1)[:]
-    end
+    ret = [rand(cf.factor.Z,1) for _ in 1:N]
     (ret, )
 end
 
