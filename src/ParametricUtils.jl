@@ -111,7 +111,9 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   meas = getFactorType(fct)
   mea, = getParametricMeasurement(meas)
   # mea = getFactorMean(fct)
-  measT = (reshape(mea,:,1),)
+  mea_ = Vector{Vector{Float64}}()
+  push!(mea_, mea)
+  measT = (mea_,)
 
   # upgrade part of #639
   varSyms = getVariableOrder(fct)
@@ -121,11 +123,13 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   varmask = (1:2)[varSyms .== trgsym][1]
 
   fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
-  pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
+  currval_ = Vector{Vector{Float64}}()
+  push!(currval_, currval)
+  pts_ = approxConvBinary( currval_, meas, outdims, fmd, measT, varidx=varmask )
 
   # return the result
-  @assert length(pts) == outdims
-  return pts[:]
+  @assert length(pts_[1]) == outdims
+  return pts_[1]
 end
 
 

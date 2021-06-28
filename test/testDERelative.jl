@@ -6,6 +6,7 @@ using DifferentialEquations
 using IncrementalInference
 using Dates
 using Statistics
+using TensorCast
 
 ## plotting functions
 
@@ -55,7 +56,7 @@ for i in 1:3
                         problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], oder, graphinit=false )
-  initManual!(fg, nextSym, zeros(1,100))
+  initManual!(fg, nextSym, [zeros(1) for _ in 1:100])
 
   prev = nextSym
 end
@@ -64,25 +65,29 @@ end
 ## basic sample test
 
 meas = sampleFactor(fg, :x0x1f1, 10)
-@test size(meas[1],1) == 1
-@test size(meas[1],2) == 10
+@test size(meas[1][1],1) == 1
+@test size(meas[1],1) == 10
 
 
 ## do all forward solutions
 
 pts, = sampleFactor(fg, :x0f1, 100)
 initManual!(fg, :x0, pts)
-pts = approxConv(fg, :x0x1f1, :x1)
+pts_ = approxConv(fg, :x0x1f1, :x1)
+@cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.mean(pts) < 0.4
 
 
 ## check that the reverse solve also works
 
 initManual!(fg, :x1, pts)
-pts = approxConv(fg, :x0x1f1, :x0)
+pts_ = approxConv(fg, :x0x1f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 
 # check the reverse solve to be relatively accurate
-@test (pts - (getBelief(fg, :x0) |> getPoints)) |> norm < 1e-4
+ref_ = (getBelief(fg, :x0) |> getPoints)
+@cast ref[i,j] := ref_[j][i]
+@test (pts - ref) |> norm < 1e-4
 
 
 ##

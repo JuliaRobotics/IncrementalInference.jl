@@ -135,6 +135,7 @@ function getSample( cf::CalcFactor{<:DERelative},
   prob = oder.forwardProblem
   # buffer manifold operations for use during factor evaluation
   addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_.fullvariables[2]) )
+  
   # set boundary condition
   u0pts = if fmd_.solvefor == DFG.getLabel(fmd_.fullvariables[1])
     # backward direction

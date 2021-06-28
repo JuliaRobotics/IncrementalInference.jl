@@ -39,7 +39,7 @@ function (s::CalcFactor{<:MutableLinearRelative})(  meas,
     return meas .- (X2 .- X1)
 end
 
-
+##
 
 @testset "testing dead reckoning tether" begin
 
@@ -94,14 +94,11 @@ addFactor!(fg, [:x0; :deadreckon_x0], drec, solvable=0)
 vo = getEliminationOrder(fg)
 @test length(vo) == 8
 
-
 tree = buildTreeFromOrdering!(fg,vo)
-
 
 tree2, smt, hists = solveTree!(fg);
 
 @test !isInitialized(fg, :deadreckon_x0)
-
 
 val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 
@@ -111,5 +108,7 @@ val = accumulateFactorMeans(fg, [:x0deadreckon_x0f1])
 rebaseFactorVariable!(fg, :x0deadreckon_x0f1, [:x1; :deadreckon_x0])
 @test issetequal(ls2(fg, :x0), [:x1, :l1])
 @test issetequal(ls2(fg, :x1), [:x0, :deadreckon_x0, :x2])
+
+##
 
 end
