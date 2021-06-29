@@ -6,6 +6,7 @@ using DifferentialEquations
 using IncrementalInference
 using Dates
 using Statistics
+using TensorCast
 
 ## plotting functions
 
@@ -55,7 +56,7 @@ for i in 1:3
                         problemType=ODEProblem )
   #
   addFactor!( fg, [prev;nextSym], oder, graphinit=false )
-  initManual!(fg, nextSym, zeros(1,100))
+  initManual!(fg, nextSym, [zeros(1) for _ in 1:100])
 
   prev = nextSym
 end
@@ -64,25 +65,29 @@ end
 ## basic sample test
 
 meas = sampleFactor(fg, :x0x1f1, 10)
-@test size(meas[1],1) == 1
-@test size(meas[1],2) == 10
+@test size(meas[1][1],1) == 1
+@test size(meas[1],1) == 10
 
 
 ## do all forward solutions
 
 pts, = sampleFactor(fg, :x0f1, 100)
 initManual!(fg, :x0, pts)
-pts = approxConv(fg, :x0x1f1, :x1)
+pts_ = approxConv(fg, :x0x1f1, :x1)
+@cast pts[i,j] := pts_[j][i]
 @test 0.3 < Statistics.mean(pts) < 0.4
 
 
 ## check that the reverse solve also works
 
-initManual!(fg, :x1, pts)
-pts = approxConv(fg, :x0x1f1, :x0)
+initManual!(fg, :x1, pts_)
+pts_ = approxConv(fg, :x0x1f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 
 # check the reverse solve to be relatively accurate
-@test (pts - (getBelief(fg, :x0) |> getPoints)) |> norm < 1e-4
+ref_ = (getBelief(fg, :x0) |> getPoints)
+@cast ref[i,j] := ref_[j][i]
+@test (pts - ref) |> norm < 1e-4
 
 
 ##
@@ -114,17 +119,18 @@ sl = DifferentialEquations.solve(oder_.forwardProblem)
 
 
 tfg = initfg()
-pts = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
+pts_ = approxConv(fg, :x0f1, :x3, setPPE=true, tfg=tfg)
 # initManual!(tfg, :x3, pts)
 
 
 ##
 
+@cast pts[i,j] := pts_[j][i]
 
 @test getPPE(tfg, :x0).suggested - sl(getVariable(fg, :x0) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
 @test getPPE(tfg, :x1).suggested - sl(getVariable(fg, :x1) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
 @test getPPE(tfg, :x2).suggested - sl(getVariable(fg, :x2) |> getTimestamp |> DateTime |> datetime2unix) |> norm < 0.1
-@test       Statistics.mean(pts) - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)[1] < 0.1
+@test       Statistics.mean(pts) - sl(getVariable(fg, :x3) |> getTimestamp |> DateTime |> datetime2unix)[1] < 1.0
 
 
 ##
@@ -212,18 +218,21 @@ end
 
 ## check forward and backward solving
 
-pts = approxConv(fg, :x0f1, :x0)
+pts_ = approxConv(fg, :x0f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
 
-initManual!(fg, :x0, pts)
+initManual!(fg, :x0, pts_)
 X0_ = deepcopy(pts)
 
-pts = approxConv(fg, :x0x1f1, :x1)
+pts_ = approxConv(fg, :x0x1f1, :x1)
+@cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
 
 # now check the reverse direction solving
-initManual!(fg, :x1, pts)
-pts = approxConv(fg, :x0x1f1, :x0)
+initManual!(fg, :x1, pts_)
+pts_ = approxConv(fg, :x0x1f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 
 @test (X0_ - pts) |> norm < 1e-4
 
@@ -232,7 +241,7 @@ pts = approxConv(fg, :x0x1f1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, zeros(2,100))
+  initManual!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 pts = approxConv(fg, :x0f1, :x7, setPPE=true, tfg=tfg)
@@ -381,20 +390,23 @@ end
 
 ## check forward and backward solving
 
-pts = approxConv(fg, :x0f1, :x0)
+pts_ = approxConv(fg, :x0f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [1;0]) < 0.3
 
-initManual!(fg, :x0, pts)
+initManual!(fg, :x0, pts_)
 X0_ = deepcopy(pts)
 
-pts = approxConv(fg, :x0x1ωβf1, :x1)
+pts_ = approxConv(fg, :x0x1ωβf1, :x1)
+@cast pts[i,j] := pts_[j][i]
 @test norm(Statistics.mean(pts, dims=2) - [0;-0.6]) < 0.4
 
 # now check the reverse direction solving
-initManual!(fg, :x1, pts)
+initManual!(fg, :x1, pts_)
 
 # failing here
-pts = approxConv(fg, :x0x1ωβf1, :x0)
+pts_ = approxConv(fg, :x0x1ωβf1, :x0)
+@cast pts[i,j] := pts_[j][i]
 
 @test (X0_ - pts) |> norm < 1e-2
 
@@ -403,7 +415,7 @@ pts = approxConv(fg, :x0x1ωβf1, :x0)
 
 tfg = initfg()
 for s in ls(fg)
-  initManual!(fg, s, zeros(2,100))
+  initManual!(fg, s, [zeros(2) for _ in 1:100])
 end
 
 # must initialize the parameters
@@ -487,22 +499,26 @@ pts = approxConv(fg, :ωβf1, :ωβ)
 initManual!(fg, :ωβ, pts)
 
 # make sure the other variables are in the right place
-@test Statistics.mean(getBelief(fg, :x0) |> getPoints, dims=2) - [1;0] |> norm < 0.1
-@test Statistics.mean(getBelief(fg, :x1) |> getPoints, dims=2) - [0;-0.6] |> norm < 0.2
+pts_ = getBelief(fg, :x0) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test Statistics.mean(pts, dims=2) - [1;0] |> norm < 0.1
+pts_ = getBelief(fg, :x1) |> getPoints
+@cast pts[i,j] := pts_[j][i]
+@test Statistics.mean(pts, dims=2) - [0;-0.6] |> norm < 0.2
 
 
-pts = approxConv(fg, :x0x1ωβf1, :ωβ)
-
+pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
+@cast pts[i,j] := pts_[j][i]
 @test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 ##
 
 # repeat with more difficult starting point
 
-initManual!(fg, :ωβ, zeros(2,100))
+initManual!(fg, :ωβ, [zeros(2) for _ in 1:100])
 
-pts = approxConv(fg, :x0x1ωβf1, :ωβ)
-
+pts_ = approxConv(fg, :x0x1ωβf1, :ωβ)
+@cast pts[i,j] := pts_[j][i]
 @test Statistics.mean(pts, dims=2) - [0.7;-0.3] |> norm < 0.1
 
 

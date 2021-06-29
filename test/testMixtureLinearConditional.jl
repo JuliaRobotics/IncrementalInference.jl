@@ -3,6 +3,7 @@
 
 using IncrementalInference
 using Test
+using TensorCast
 # using Manifolds # should be done within regular exports
 
 ##
@@ -19,7 +20,8 @@ addFactor!(fg, [:x0], mp)
 
 ##
 
-pts = approxConv(fg, :x0f1, :x0)
+pts_ = approxConv(fg, :x0f1, :x0)
+@cast pts[i,j] := pts_[j][i]
 
 N = size(pts,2)
 @test 0.2*N < sum( -5 .< pts .< 5 )
@@ -41,14 +43,15 @@ addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 
 addFactor!(fg, [:x0], Prior(Normal()), graphinit=false)
-initManual!(fg, :x0, zeros(1,100))
+initManual!(fg, :x0, [zeros(1) for _ in 1:100])
 
 mlr = Mixture(LinearRelative, (Normal(), Normal(10,1)),(1/2,1/2) )
 addFactor!(fg, [:x0;:x1], mlr, graphinit=false)
 
 ##
 
-pts = approxConv(fg, :x0x1f1, :x1)
+pts_ = approxConv(fg, :x0x1f1, :x1)
+@cast pts[i,j] := pts_[j][i]
 
 # plotKDE(kde!(pts))
 
@@ -79,7 +82,7 @@ addVariable!(fg, :x1, ContinuousScalar)
 mp = Mixture(Prior, [Normal(); Normal(10,1)], [0.5;0.5])
 f0 = addFactor!(fg, [:x0;], mp)
 
-mr = Mixture(LinearRelative, (fancy=manikde!(randn(1,75), ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
+mr = Mixture(LinearRelative, (fancy=manikde!([randn(1) for _ in 1:75], ContinuousEuclid(1)), naive=Normal(0,10)), [0.4;0.6])
 f1 = addFactor!(fg, [:x0;:x1], mr)
 
 pf0 = DFG.packFactor(fg, f0)
@@ -151,7 +154,8 @@ btd = getBelief(getVariable(fg, :x0))
 @test isapprox(std(getKDEfit(btd,distribution=Normal)), 0.1; atol=0.05) 
 
 btd = getBelief(getVariable(fg, :x1))
-pts = getPoints(btd)
+pts_ = getPoints(btd)
+@cast pts[i,j] := pts_[j][i]
 pts_p = pts[pts .>= 0]
 pts_n = pts[pts .< 0]
 

@@ -24,19 +24,19 @@ Related
 
 `KDE.kld`
 """
-function mmd( p1::AbstractMatrix{<:Real}, 
-              p2::AbstractMatrix{<:Real}, 
-              varType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
-              bw::AbstractVector{<:Real}=[0.001;] )
+function mmd( p1::AbstractVector{P1}, 
+              p2::AbstractVector{P2}, 
+              varType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
+              bw::AbstractVector{<:Real}=[0.001;] ) where {P1 <: AbstractVector, P2 <: AbstractVector}
   #
-  manis = convert(MB.AbstractManifold, varType)
-  mmd(p1, p2, manis, bw=bw)  
+  mani = getManifold(varType)
+  mmd(p1, p2, mani, bw=bw)  
 end
 
 # TODO move to AMP?
-function mmd( p1::Union{<:BallTreeDensity,<:ManifoldKernelDensity}, 
-              p2::Union{<:BallTreeDensity,<:ManifoldKernelDensity}, 
-              nodeType::Union{InstanceType{InferenceVariable},InstanceType{FunctorInferenceType}};
+function mmd( p1::ManifoldKernelDensity, 
+              p2::ManifoldKernelDensity, 
+              nodeType::Union{InstanceType{<:InferenceVariable},InstanceType{<:AbstractFactor}};
               bw::AbstractVector{<:Real}=[0.001;])
   #
   mmd(getPoints(p1), getPoints(p2), nodeType, bw=bw)

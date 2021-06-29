@@ -5,12 +5,15 @@
 using Test
 using IncrementalInference
 using Statistics
+using TensorCast
 
+##
 
-@testset "Test basic convolution result..." begin
+@testset "Test basic convolution result (#477)..." begin
 
+##
 
-function forwardConvolve(X0::Array{Float64,2}, model)
+function forwardConvolve(X0::AbstractVector{P}, model) where P
 
   fg = initfg()
 
@@ -29,7 +32,7 @@ end
 
 # first numerical values -- samples from the marginal of X0
 z1 = Normal(0,0.1)
-X0 = rand(z1, 1,100)
+X0 = [rand(z1, 1) for _ in 1:100]
 
 
 ## predict -- project / conv
@@ -44,7 +47,7 @@ X1_ = forwardConvolve(X0, statemodel)
 
 predX1 = manikde!(X1_, ContinuousScalar)
 z3 = Normal(9.5,0.75)
-measX1 = manikde!(reshape(rand(z3,100),1,:), ContinuousScalar)
+measX1 = manikde!([rand(z3,1) for _ in 1:100], ContinuousScalar)
 
 # do actual product
 posterioriX1 = predX1 * measX1
@@ -52,11 +55,16 @@ X1 = getPoints(posterioriX1)
 
 
 ## predict, 1->2 seconds
+
 z4 = Normal(8,2.0) # odo
 statemodel = LinearRelative( z4 )
-X2_ = forwardConvolve(X1, statemodel)
+X2__ = forwardConvolve(X1, statemodel)
+
+@cast X2_[i,j] := X2__[j][i]
 
 @test size(X2_) == (1,100)
 @test 15 < Statistics.mean(X2_) < 25
+
+##
 
 end

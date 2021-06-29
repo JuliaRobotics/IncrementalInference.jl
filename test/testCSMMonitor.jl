@@ -6,11 +6,14 @@ struct BrokenFactor{T<: SamplableBelief} <: AbstractRelativeRoots
     Z::T
 end
 
-IncrementalInference.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1) = (reshape(rand(cf.factor.Z, N),:,N), )
+function IIF.getSample(cf::CalcFactor{<:BrokenFactor}, N::Int=1)
+  ret = [rand(cf.factor.Z, 1) for _ in 1:N]
+  return (ret, )
+end
 
 function (s::CalcFactor{<:BrokenFactor})(z,
-                                         wxi,
-                                         wxj)
+                                        wxi,
+                                        wxj)
     #
     error("User factor has a bug.")
 end
@@ -35,8 +38,9 @@ fg = generateCanonicalFG_lineStep(10;
                                   posePriorsAt=[0], 
                                   sightDistance=4,
                                   solverParams=SolverParams(algorithms=[:default, :parametric]))
-                            
-ensureAllInitialized!(fg)
+#
+
+initAll!(fg)
 
 ##
 
@@ -49,7 +53,12 @@ sleep(0.1)
 
 ## Test parametric solve also
 
+
+
 addFactor!(fg, [:x9, :lm10], BrokenFactor(Normal()); graphinit=false)
+##
+# IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
+##
 @test_throws CompositeException tree2, smt, hist = IIF.solveTree!(fg; smtasks=smtasks, algorithm = :parametric)
 sleep(0.1)
 
@@ -100,7 +109,7 @@ printCSMHistorySequential(hists)
 ## test CSM resolve steps
 
 @info "test repeatCSMStep"
-csmc_ = repeatCSMStep!(hists, 1, 1)
+csmc_ = repeatCSMStep!(hists, 1, 1);
 
 
 ##

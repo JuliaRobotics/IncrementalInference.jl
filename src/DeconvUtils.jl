@@ -59,7 +59,8 @@ function approxDeconv(fcto::DFGFactor,
   fmd = _getFMdThread(ccw)
   
   # TODO assuming vector on only first container in measurement::Tuple
-  makeTarget = (i) -> view(measurement[1], :, i)
+  makeTarget = (i) -> view(measurement[1][i],:)
+  # makeTarget = (i) -> view(measurement[1], :, i)
   
   # NOTE 
   # build a lambda that incorporates the multihypo selections
@@ -70,7 +71,7 @@ function approxDeconv(fcto::DFGFactor,
   @assert activehypo[2][1] == 1 "deconv was expecting hypothesis nr == (1, 1:d)"
   
   lent = length(makeTarget(1))
-  islen1 = size(makeTarget(1),1) == 1
+  islen1 = length(makeTarget(1)) == 1
   
 
   for idx in 1:N
@@ -93,7 +94,7 @@ function approxDeconv(fcto::DFGFactor,
     hypoObj = (tgt) -> (targeti_.=tgt; onehypo!() )
 
     # find solution via SubArray view pointing to original memory location
-    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][:,idx], islen1)
+    targeti_ .= _solveLambdaNumeric(fcttype, hypoObj, res_, measurement[1][idx], islen1)
   end
 
   # return (deconv-prediction-result, independent-measurement)
@@ -124,7 +125,8 @@ function approxDeconv(dfg::AbstractDFG,
   
   # which factor
   fct = getFactor(dfg, fctsym)
-  N = size(getPoints(getBelief(dfg,getVariableOrder(fct)[1], solveKey)), 2)
+  pts = getPoints(getBelief(dfg,getVariableOrder(fct)[1], solveKey))
+  N = length(pts)
   pts = approxDeconv(fct, N=N, retries=retries )
   return pts
 end

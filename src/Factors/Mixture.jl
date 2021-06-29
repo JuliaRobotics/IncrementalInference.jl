@@ -82,7 +82,7 @@ function getSample( cf::CalcFactor{<:Mixture},
   cf.factor.labels .= rand(cf.factor.diversity, N)
   for i in 1:N
     mixComponent = cf.factor.components[cf.factor.labels[i]]
-    smpls[1][:,i] = rand(mixComponent,1)
+    smpls[1][i][:] = rand(mixComponent,1)
   end
 
   # TODO only does first element of meas::Tuple at this stage, see #1099

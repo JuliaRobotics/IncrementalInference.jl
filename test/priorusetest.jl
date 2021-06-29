@@ -4,8 +4,11 @@
 using IncrementalInference
 using Test
 
+##
 
 @testset "Test priors" begin
+
+##
 
 N=100
 graphinits = [false, true]
@@ -54,6 +57,8 @@ meanval = mean(testvals)
 @test all(isapprox.(testvals, meanval, atol=0.4))
 
 end
+
+##
 
 for  graphinit = graphinits
 
@@ -112,5 +117,7 @@ l1_m = getKDEMean(getKDE(getVariable(fg, :l1)))[1]
 @test all(isapprox.(testvals, meanval, atol=0.3))
 
 end
+
+##
 
 end

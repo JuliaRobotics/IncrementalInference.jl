@@ -15,10 +15,7 @@ export testFactorResidualBinary
 """
     $TYPEDEF
 
-New generation user factor interface method for computing the residual values of factors.
-
-Notes
-- Under development and still experimental.  Expected to become default method in IIF v0.20.0
+User factor interface method for computing the residual values of factors.
 """
 struct CalcFactor{T <: AbstractFactor, M, P <: Tuple, X <: AbstractVector}
   # the interface compliant user object functor containing the data and logic

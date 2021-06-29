@@ -129,17 +129,18 @@ function getSample( cf::CalcFactor{<:DERelative},
 
   # how many trajectories to propagate?
   # @show getLabel(fmd_.fullvariables[2]), getDimension(fmd_.fullvariables[2])
-  meas = zeros(getDimension(fmd_.fullvariables[2]), N)
+  meas = [zeros(getDimension(fmd_.fullvariables[2])) for _ in 1:N]
   
   # pick forward or backward direction
   prob = oder.forwardProblem
   # buffer manifold operations for use during factor evaluation
-  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_.fullvariables[2]) )
+  addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(fmd_.fullvariables[2]))) )
+  
   # set boundary condition
   u0pts = if fmd_.solvefor == DFG.getLabel(fmd_.fullvariables[1])
     # backward direction
     prob = oder.backwardProblem
-    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( getManifolds(fmd_.fullvariables[1]) )
+    addOp, diffOp, _, _ = AMP.buildHybridManifoldCallbacks( convert(Tuple, getManifold(getVariableType(fmd_.fullvariables[1]))) )
     getBelief( fmd_.fullvariables[2] ) |> getPoints
   else
     # forward backward
@@ -148,12 +149,12 @@ function getSample( cf::CalcFactor{<:DERelative},
 
   # solve likely elements
   for i in 1:N
-    idxArr = view.(fmd_.arrRef,:,i)
-    _solveFactorODE!(view(meas, :,i), prob, view(u0pts, :,i), _maketuplebeyond2args(idxArr...)...)
+    idxArr = getindex.(fmd_.arrRef, i)
+    _solveFactorODE!(meas[i], prob, u0pts[i], _maketuplebeyond2args(idxArr...)...)
     # _solveFactorODE!(meas, prob, u0pts, i, _maketuplebeyond2args(fmd_.arrRef...)...)
   end
 
-  return (meas, diffOp)
+  return (meas, [diffOp for _ in 1:N])
 end
 # getDimension(oderel.domain)
 
@@ -181,7 +182,7 @@ function (cf::CalcFactor{<:DERelative})(meas1,
     # use forward solve for all solvefor not in [1;2]
     u0pts = getBelief(cf.metadata.fullvariables[1]) |> getPoints
     # update parameters for additional variables
-    _solveFactorODE!(meas1, oderel.forwardProblem, u0pts[:,cf._sampleIdx], _maketuplebeyond2args(X...)...)
+    _solveFactorODE!(meas1, oderel.forwardProblem, u0pts[cf._sampleIdx], _maketuplebeyond2args(X...)...)
   end
 
   # find the difference between measured and predicted.

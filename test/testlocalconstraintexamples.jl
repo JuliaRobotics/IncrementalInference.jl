@@ -2,8 +2,9 @@
 using IncrementalInference
 using Statistics
 using Test
+using TensorCast
 
-
+##
 
 N=100
 fg = initfg()
@@ -14,8 +15,11 @@ pd = resample(pd,N);
 bws = getBW(pd)[:,1]
 doors2 = getPoints(pd);
 
+##
 
 @testset "test evaluation of pose pose constraint" begin
+
+##
 
 v1 = addVariable!(fg,:x1, ContinuousScalar,N=N)
 f1  = addFactor!(fg,[v1], Prior( pd )) #, samplefnc=getSample
@@ -27,7 +31,8 @@ f2 = addFactor!(fg, [:x1; :x2], odoc ) #, samplefnc=getSample
 
 # @test isInitialized(fg, :x1)
 
-pts = approxConv(fg, :x1x2f1, :x2)
+pts_ = approxConv(fg, :x1x2f1, :x2)
+@cast pts[i,j] := pts_[j][i]
 # pts = evalFactor(fg, f2, v2.label)
 @show Statistics.mean(pts,dims=2)
 @test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
@@ -37,7 +42,11 @@ tree, smt, hist = solveTree!(fg)
 # tree = buildTreeReset!(fg, drawpdf=false)
 # inferOverTree!(fg, tree)
 
-@test norm(Statistics.mean(getVal(fg, :x2),dims=2)-[50.0]) < 15.0
+pts_ = getVal(fg, :x2)
+@cast pts[i,j] := pts_[j][i]
+@test norm(Statistics.mean(pts,dims=2)-[50.0]) < 15.0
+
+##
 
 end
 

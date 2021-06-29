@@ -41,10 +41,10 @@ function compileFMCMessages(fgl::AbstractDFG,
   d = Dict{Symbol,TreeBelief}()
   for vsym in lbls
     vari = DFG.getVariable(fgl,vsym)
-    pden = getBelief(vari, solveKey)
-    bws = vec(getBW(pden)[:,1])
-    manis = getVariableType(vari) |> getManifolds
-    d[vsym] = TreeBelief(vari, solveKey) # getVal(vari), bws, manis, getSolverData(vari).inferdim
+    # pden = getBelief(vari, solveKey)
+    # bws = vec(getBW(pden)[:,1])
+    # mani = getVariableType(vari) |> getManifold
+    d[vsym] = TreeBelief(vari, solveKey) 
     with_logger(logger) do
       @info "fmcmc! -- getSolverData(vari=$(vari.label)).inferdim=$(getSolverData(vari).inferdim)"
     end

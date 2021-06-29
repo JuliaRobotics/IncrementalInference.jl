@@ -42,20 +42,16 @@ end
 reshapeVec2Mat(vec::Vector, rows::Int) = reshape(vec, rows, round(Int,length(vec)/rows))
 
 
-# FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
 
-getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
-getManifolds(::DFGVariable{T}) where T <: InferenceVariable = getManifolds(T)
-getManifolds(dfg::AbstractDFG, sym::Symbol) = getManifolds(getVariable(dfg, sym))
+## ==============================================================================================
+## MOVE TO / CONSOLIDATE WITH DFG
+## ==============================================================================================
 
-
-# getManifolds(vartype::InferenceVariable) = vartype.manifolds
-# getManifolds(vartype::Type{<: InferenceVariable}) = getManifolds(vartype())
 
 """
     $(SIGNATURES)
 
-Convenience function to get point values sampled i.i.d from marginal of `lbl` variable in the current factor graph.
+Fetch the variable marginal joint sampled points.  Use [`getBelief`](@ref) to retrieve the full Belief object.
 """
 getVal(v::DFGVariable; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val
 getVal(v::DFGVariable, idx::Int; solveKey::Symbol=:default) = v.solverDataDict[solveKey].val[:,idx]
@@ -69,26 +65,8 @@ getVal(dfg::AbstractDFG, lbl::Symbol; solveKey::Symbol=:default) = getVariable(d
 Get the number of points used for the current marginal belief estimate represtation for a particular variable in the factor graph.
 """
 function getNumPts(v::DFGVariable; solveKey::Symbol=:default)::Int
-  return size(getSolverData(v, solveKey).val,2)
+  return length(getVal(getSolverData(v, solveKey)))
 end
-
-# import DistributedFactorGraphs: getfnctype
-# # TODO: Refactor - was is das?
-# function getfnctype(data::GenericFunctionNodeData)
-#   if typeof(data).name.name == :VariableNodeData
-#     return VariableNodeData
-#   end
-#   return data.fnc.usrfnc!
-# end
-#
-# function getfnctype(fact::DFGFactor; solveKey::Symbol=:default)
-#   data = getData(fact) # TODO , solveKey=solveKey)
-#   return getfnctype(data)
-# end
-#
-# function getfnctype(dfg::T, lbl::Symbol; solveKey::Symbol=:default) where T <: AbstractDFG
-#   getfnctype(getFactor(dfg, exvertid))
-# end
 
 function getBW(vnd::VariableNodeData)
   return vnd.bw
@@ -98,42 +76,42 @@ end
 function getBWVal(v::DFGVariable; solveKey::Symbol=:default)
   return getSolverData(v, solveKey).bw
 end
-function setBW!(vd::VariableNodeData, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setBW!(vd::VariableNodeData, bw::Array{Float64,2}; solveKey::Symbol=:default)
   vd.bw = bw
   nothing
 end
-function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)
   setBW!(getSolverData(v, solveKey), bw)
   nothing
 end
 
-function setVal!(vd::VariableNodeData, val::Array{Float64,2})::Nothing
-    vd.val = val
-    nothing
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}) where P <:AbstractVector
+  vd.val = val
+  nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setVal!(v::DFGVariable, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
     setVal!(getSolverData(v, solveKey), val)
     nothing
 end
-function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Array{Float64,2})::Nothing
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Array{Float64,2}) where P <:AbstractVector
     setVal!(vd, val)
     setBW!(vd, bw)
     nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Array{Float64,2}; solveKey::Symbol=:default)::Nothing
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Array{Float64,2}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(v, val, solveKey=solveKey)
   setBW!(v, bw, solveKey=solveKey)
   nothing
 end
-function setVal!(vd::VariableNodeData, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(vd, val, reshape(bw,length(bw),1))
   nothing
 end
-function setVal!(v::DFGVariable, val::Array{Float64,2}, bw::Vector{Float64}; solveKey::Symbol=:default)
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(getSolverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::AbstractDFG, sym::Symbol, val::Array{Float64,2}; solveKey::Symbol=:default)
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -147,10 +125,10 @@ Notes
 - `inferdim` is used to identify if the initialized was only partial.
 """
 function setValKDE!(vd::VariableNodeData,
-                    pts::Array{Float64,2},
+                    pts::AbstractVector{P},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0)::Nothing
+                    inferdim::Float64=0.0 ) where P <:AbstractVector
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -159,33 +137,22 @@ function setValKDE!(vd::VariableNodeData,
 end
 
 function setValKDE!(vd::VariableNodeData,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    val::AbstractVector{P},
                     setinit::Bool=true,
-                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
-  #
-  pts = getPoints(p)
-  bws = getBW(p)[:,1]
-  setValKDE!(vd,pts,bws,setinit,inferdim )
-  nothing
-end
-
-function setValKDE!(vd::VariableNodeData,
-                    val::Array{Float64,2},
-                    setinit::Bool=true,
-                    inferdim::Float64=0.0)::Nothing
+                    inferdim::Real=0.0  ) where P <:AbstractVector
   # recover variableType information
-  sty = getVariableType(vd)
-  p = AMP.manikde!(val, getManifolds(sty))
+  varType = getVariableType(vd)
+  p = AMP.manikde!(val, varType)
   setValKDE!(vd, p, setinit, inferdim)
   nothing
 end
 
 function setValKDE!(v::DFGVariable,
-                    val::Array{Float64,2},
-                    bws::Array{Float64,2},
+                    val::AbstractVector{P},
+                    bws::Array{<:Real,2},
                     setinit::Bool=true,
                     inferdim::Float64=0;
-                    solveKey::Symbol=:default)::Nothing
+                    solveKey::Symbol=:default) where P <:AbstractVector
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
@@ -193,10 +160,10 @@ function setValKDE!(v::DFGVariable,
 end
 
 function setValKDE!(v::DFGVariable,
-                    val::Array{Float64,2},
+                    val::AbstractVector{P},
                     setinit::Bool=true,
                     inferdim::Float64=0.0;
-                    solveKey::Symbol=:default)::Nothing
+                    solveKey::Symbol=:default) where P <:AbstractVector
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
   nothing
@@ -205,13 +172,13 @@ function setValKDE!(v::DFGVariable,
                     em::TreeBelief,
                     setinit::Bool=true;
                     # inferdim::Union{Float32, Float64, Int32, Int64}=0;
-                    solveKey::Symbol=:default  )::Nothing
+                    solveKey::Symbol=:default  )
   #
   setValKDE!(v, em.val, em.bw, setinit, em.inferdim, solveKey=solveKey)
   nothing
 end
 function setValKDE!(v::DFGVariable,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    p::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
                     solveKey::Symbol=:default  )
@@ -220,15 +187,15 @@ function setValKDE!(v::DFGVariable,
   setValKDE!(getSolverData(v,solveKey),p,setinit,Float64(inferdim))
   nothing
 end
-function setValKDE!(dfg::G,
+function setValKDE!(dfg::AbstractDFG,
                     sym::Symbol,
-                    p::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                    p::ManifoldKernelDensity,
                     setinit::Bool=true,
                     inferdim::Union{Float32, Float64, Int32, Int64}=0;
-                    solveKey::Symbol=:default  ) where G <: AbstractDFG
-    #
-    setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
-    nothing
+                    solveKey::Symbol=:default  )
+  #
+  setValKDE!(getVariable(dfg, sym), p, setinit, inferdim, solveKey=solveKey)
+  nothing
 end
 
 
@@ -254,6 +221,22 @@ Set method for the inferred dimension value in a variable.
 setVariableInferDim!(varid::VariableNodeData, val::Real) = varid.inferdim = convert(Float64,val)
 setVariableInferDim!(vari::DFGVariable, val::Real) = setVariableInferDim!(getSolverData(vari), val)
 
+## ==============================================================================================
+## ==============================================================================================
+
+
+function setValKDE!(vd::VariableNodeData,
+                    p::ManifoldKernelDensity,
+                    setinit::Bool=true,
+                    inferdim::Union{Float32, Float64, Int32, Int64}=0 )
+  #
+  ptsArr = AMP.getPoints(p)
+  # @show typeof(ptsArr)
+  # @cast ptsArr[j][i] := pts[i,j]
+  bws = getBW(p)[:,1]
+  setValKDE!(vd,ptsArr,bws,setinit,inferdim )
+  nothing
+end
 
 """
     $SIGNATURES
@@ -263,11 +246,13 @@ Reset the solve state of a variable to uninitialized/unsolved state.
 function resetVariable!(varid::VariableNodeData;
                         solveKey::Symbol=:default  )::Nothing
   #
-  val = getKDE(varid)
-  pts = getPoints(val)
+  val = getBelief(varid)
+  pts = AMP.getPoints(val)
   # TODO not all manifolds will initialize to zero
-  fill!(pts, 0.0)
-  pn = manikde!(pts, zeros(KDE.Ndim(val)), getManifolds(varid))
+  for pt in pts
+    fill!(pt, 0.0)
+  end
+  pn = manikde!(pts, zeros(AMP.Ndim(val)), getManifolds(varid))
   setValKDE!(varid, pn, false, 0.0)
   # setVariableInferDim!(varid, 0)
   # setVariableInitialized!(vari, false)
@@ -323,7 +308,7 @@ function DefaultNodeDataParametric( dodims::Int,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    return VariableNodeData(zeros(dims, 1),
+    return VariableNodeData([zeros(dims) for _ in 1:1],
                             zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end
@@ -373,10 +358,16 @@ function setDefaultNodeData!( v::DFGVariable,
                             varType, true, 0.0, false, dontmargin,0,0,solveKey), solveKey)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    setSolverData!(v, VariableNodeData(zeros(dims, N),
-                            zeros(dims,1), Symbol[], sp,
-                            dims, false, :_null, Symbol[], 
-                            varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    valpts = Vector{getPointType(varType)}(undef,N)
+    for i in 1:length(valpts)
+      valpts[i] = getPointIdentity(varType)
+    end
+    bws = zeros(dims,1)
+    setSolverData!(v, VariableNodeData(valpts, bws,
+                                        Symbol[], sp,
+                                        dims, false, :_null, Symbol[], 
+                                        varType, false, 0.0, false, dontmargin,0,0,solveKey), solveKey)
+    #
   end
   return nothing
 end
@@ -403,7 +394,7 @@ Notes
 """
 function setVariableRefence!( dfg::AbstractDFG,
                               sym::Symbol,
-                              val::Array{Float64,2};
+                              val::AbstractVector;
                               refKey::Symbol=:reference)
   #
   # which variable to update
@@ -496,36 +487,6 @@ function addVariable!(dfg::AbstractDFG,
 end
 
 
-"""
-    $(SIGNATURES)
-
-Fetch the variable marginal sample points without the KDE bandwidth parameter.  Use getVertKDE to retrieve the full KDE object.
-"""
-function getVal(vA::Vector{<:DFGVariable}, solveKey::Symbol=:default)
-  @warn "getVal(::Vector{DFGVariable}) is obsolete, use getVal.(DFGVariable) instead."
-  len = length(vA)
-  vals = Array{Array{Float64,2},1}()
-  cols = Array{Int,1}()
-  push!(cols,0)
-  rows = Array{Int,1}()
-  for v in vA
-      push!(vals, getVal(v, solveKey=solveKey))
-      c = size(vals[end],2)
-      r = size(vals[end],1)
-      push!(cols, floor(Int,c))
-      push!(rows, floor(Int,r))
-  end
-  cols = cumsum(cols)
-  sc = cols[end]
-  rw = floor(Int,rows[1])
-  val = Array{Float64,2}(undef,rw, sc)
-  for i in 1:(len-1)
-      val[:,(cols[i]+1):cols[i+1]] = vals[i]
-  end
-  val[:,(cols[len]+1):cols[len+1]] = vals[len] # and the last one
-  return val::Array{Float64, 2}
-end
-
 
 """
     $(SIGNATURES)
@@ -534,16 +495,19 @@ Prepare the particle arrays `ARR` to be used for approximate convolution.
 This function ensures that ARR has te same dimensions among all the parameters.
 Function returns with ARR[sfidx] pointing at newly allocated deepcopy of the
 existing values in getVal(Xi[.label==solvefor]).
-Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
-`maxlen` is length of all (possibly resampled) `ARR` contained particles.
-Note `Xi` is order sensitive.
-Note for initialization, solveFor = Nothing.
+
+Notes
+- Return values `sfidx` is the element in ARR where `Xi.label==solvefor` and
+- `maxlen` is length of all (possibly resampled) `ARR` contained particles.
+- `Xi` is order sensitive.
+- for initialization, solveFor = Nothing.
+- `P = getPointType(<:InferenceVariable)`
 """
-function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
+function prepareparamsarray!( ARR::AbstractVector{P},
                               Xi::Vector{<:DFGVariable},
                               solvefor::Union{Nothing, Symbol},
                               N::Int=0;
-                              solveKey::Symbol=:default  )
+                              solveKey::Symbol=:default  ) where P <: AbstractVector
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -552,33 +516,49 @@ function prepareparamsarray!( ARR::Array{Array{Float64,2},1},
 
   for xi in Xi
     push!(ARR, getVal(xi, solveKey=solveKey))
-    len = size(ARR[end], 2)
-    push!(LEN, len)
-    if len > maxlen
-      maxlen = len
-    end
+    LEN = length.(ARR)
+    maxlen = maximum(LEN)
+    # @show len = size(ARR[end], 2)
+    # push!(LEN, len)
+    # if len > maxlen
+    #   maxlen = len
+    # end
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
     end
   end
+
+  # resample variables with too few kernels
   SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
-      ARR[i] = KDE.sample(getBelief(Xi[i], solveKey), maxlen)[1]
+      Pr = getBelief(Xi[i], solveKey)
+      resize!(ARR[i], maxlen)
+      for j in 1:maxlen
+        smp = AMP.sample(Pr, 1)[1]
+        arr_i = ARR[i]
+        if isdefined(arr_i, j)
+          arr_i[j][:] = smp[:]
+        else
+          arr_i[j] = smp[:]
+        end
+      end
     end
   end
 
   # TODO --rather define reusable memory for the proposal
   # we are generating a proposal distribution, not direct replacement for existing memory and hence the deepcopy.
-  if sfidx > 0 ARR[sfidx] = deepcopy(ARR[sfidx]) end
+  if sfidx > 0 
+    ARR[sfidx] = deepcopy(ARR[sfidx]) 
+  end
 
   # get solvefor manifolds
-  manis = length(Xi)==0 || sfidx==0 ? (:null,) : getManifolds(Xi[sfidx])
+  mani = length(Xi)==0 || sfidx==0 ? (:null,) : getManifold(Xi[sfidx])
 
   # FIXME, forcing maxlen to N results in errors (see test/testVariousNSolveSize.jl) see #105
   # maxlen = N == 0 ? maxlen : N
-  return maxlen, sfidx, manis
+  return maxlen, sfidx, mani
 end
 
 function parseusermultihypo(multihypo::Nothing, nullhypo::Float64)
@@ -621,7 +601,7 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
     # vnds = Xi # (x->getSolverData(x)).(Xi)
     # NOTE try to make sure we get matrix back (not a vector)
     smpls = sampleFactor(cf, 2)[1]
-    size(smpls,1)
+    length(smpls[1])
   else
     0
   end
@@ -636,14 +616,18 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 threadmodel=MultiThreaded,
                                 inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
-  ARR = Array{Array{Float64,2},1}()
-  maxlen, sfidx, manis = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
-  fldnms = fieldnames(T) # typeof(usrfnc)
+  pttypes = getVariableType.(Xi) .|> getPointType
+  sametype = 0 < length(pttypes) ? all( pttypes[1] .== pttypes ) : true
+  P_type = 0 < length(pttypes) ? Vector{pttypes[1]} : Vector{Float64}
+  @assert sametype "Current implementation only allows for same point type: $pttypes"
+  ARR = Vector{P_type}()
+  maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
+  # fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
-  cf = CalcFactor( usrfnc, fmd, 0, 1, (Matrix{Float64}(undef,0,0),), ARR)
+  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{Vector{Float64}}(),), ARR)
 
   zdim = calcZDim(cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
@@ -659,7 +643,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   ccw = CommonConvWrapper(
           usrfnc,
-          zeros(1,0),
+          P_type(),
           zdim,
           ARR,
           fmd,
@@ -868,6 +852,7 @@ function doautoinit!( dfg::AbstractDFG,
         with_logger(logger) do
           @info "do init of $vsym"
         end
+        # FIXME ensure a product of only partial densities and returned pts are put to proper dimensions
         pts,inferdim = predictbelief(dfg, vsym, useinitfct, solveKey=solveKey, logger=logger)
         setValKDE!(xi, pts, true, inferdim, solveKey=solveKey)
         # Update the estimates (longer DFG function used so cloud is also updated)
@@ -954,7 +939,7 @@ DevNotes
 - TODO better document graphinit and treeinit.
 """
 function initManual!( variable::DFGVariable, 
-                      ptsArr::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      ptsArr::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=100 )
@@ -971,7 +956,7 @@ function initManual!( variable::DFGVariable,
 end
 function initManual!( dfg::AbstractDFG, 
                       label::Symbol, 
-                      belief::Union{<:BallTreeDensity,<:ManifoldKernelDensity},
+                      belief::ManifoldKernelDensity,
                       solveKey::Symbol=:default;
                       dontmargin::Bool=false,
                       N::Int=getSolverParams(dfg).N  )
@@ -998,11 +983,11 @@ end
 
 function initManual!( dfg::AbstractDFG, 
                       sym::Symbol, 
-                      pts::Array{Float64,2}, 
-                      solveKey::Symbol=:default)
+                      pts::AbstractVector{P}, 
+                      solveKey::Symbol=:default ) where {P <: AbstractVector}
   #
   var = getVariable(dfg, sym)
-  pp = manikde!(pts, getManifolds(var))
+  pp = manikde!(pts, getManifold(var))
   initManual!(var,pp, solveKey)
 end
 

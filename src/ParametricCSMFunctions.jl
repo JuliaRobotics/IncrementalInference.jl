@@ -40,7 +40,7 @@ function solveUp_ParametricStateMachine(csmc::CliqStateMachineContainer)
       vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
       # fill in the variable node data value
       logCSM(csmc, "$(csmc.cliq.id) up: updating $v : $val")
-      vnd.val .= val.val
+      vnd.val[1] .= val.val
       #calculate and fill in covariance
       #TODO rather broadcast than make new memory
       vnd.bw = val.cov

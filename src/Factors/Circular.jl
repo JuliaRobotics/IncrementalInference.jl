@@ -21,8 +21,13 @@ const Sphere1Sphere1 = CircularCircular
 CircularCircular(::UniformScaling) = CircularCircular(Normal())
 
 
-getSample(cf::CalcFactor{<:CircularCircular}, N::Int=1) = (reshape(rand(cf.factor.Z,N),:,N), )
-
+function getSample(cf::CalcFactor{<:CircularCircular}, N::Int=1)
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z,1)[:]
+  end
+  (ret, )
+end
 
 function (cf::CalcFactor{<:CircularCircular})(meas,
                                             wxi,
@@ -60,7 +65,11 @@ PriorCircular(::UniformScaling) = PriorCircular(Normal())
 
 
 function getSample(cf::CalcFactor{<:PriorCircular}, N::Int=1)
-  return (reshape(rand(cf.factor.Z,N),:,N), )
+  ret = Vector{Vector{Float64}}(undef, N)
+  for i in 1:N
+    ret[i] = rand(cf.factor.Z,1)[:]
+  end
+  return (ret, )
 end
 
 

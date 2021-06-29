@@ -7,6 +7,7 @@ using Logging
 using Statistics
 using DistributedFactorGraphs
 using IncrementalInference
+using TensorCast
 
 
 @testset "test basic three variable graph with prior" begin
@@ -36,7 +37,7 @@ addFactor!(dfg, [VAR1], Prior(Normal()))
 # getCliqFactors(tree, VAR3)
 # getCliqFactors(tree, VAR1)
 
-ensureAllInitialized!(dfg)
+initAll!(dfg)
 
 
 # cliq= getClique(tree, VAR3)
@@ -56,8 +57,10 @@ getSolverParams(dfg).limititers = 50
 
 tree, smtasks, hist = solveTree!(dfg) #, recordcliqs=ls(dfg))
 
+pts_ = getBelief(dfg, :c) |> getPoints
+TensorCast.@cast pts[i,j] := pts_[j][i]
 
-@test 70 < Statistics.mean(getKDE(dfg, :c) |> getPoints) < 130
+@test 70 < Statistics.mean(pts) < 130
 
 # #
 # using Gadfly, Cairo, Fontconfig

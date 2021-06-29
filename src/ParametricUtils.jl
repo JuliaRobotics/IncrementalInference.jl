@@ -111,7 +111,9 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   meas = getFactorType(fct)
   mea, = getParametricMeasurement(meas)
   # mea = getFactorMean(fct)
-  measT = (reshape(mea,:,1),)
+  mea_ = Vector{Vector{Float64}}()
+  push!(mea_, mea)
+  measT = (mea_,)
 
   # upgrade part of #639
   varSyms = getVariableOrder(fct)
@@ -120,12 +122,14 @@ function solveBinaryFactorParameteric(dfg::AbstractDFG,
   # calculate the projection
   varmask = (1:2)[varSyms .== trgsym][1]
 
-  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Matrix{Float64}}(), :null, nothing)
-  pts = approxConvBinary( reshape(currval,:,1), meas, outdims, fmd, measT, varidx=varmask )
+  fmd = FactorMetadata(Xi, getLabel.(Xi), Vector{Vector{Vector{Float64}}}(), :null, nothing)
+  currval_ = Vector{Vector{Float64}}()
+  push!(currval_, currval)
+  pts_ = approxConvBinary( currval_, meas, outdims, fmd, measT, varidx=varmask )
 
   # return the result
-  @assert length(pts) == outdims
-  return pts[:]
+  @assert length(pts_[1]) == outdims
+  return pts_[1]
 end
 
 
@@ -273,7 +277,7 @@ function solveGraphParametric(fg::AbstractDFG;
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[:,1]
+    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
   end
 
   initValues = flatvar.X
@@ -393,7 +397,7 @@ end
 function MixedCircular(fg::AbstractDFG, varIds::Vector{Symbol})
   circMask = Bool[]
   for k = varIds
-    append!(circMask, getVariableType(fg, k) |> AMP.getManifolds .== :Circular)
+    append!(circMask, convert(Tuple, getManifold(getVariableType(fg, k))) .== :Circular)
   end
   MixedCircular(circMask)
 end
@@ -530,15 +534,17 @@ function initParametricFrom!(fg::AbstractDFG, fromkey::Symbol = :default; parkey
   else
     for var in getVariables(fg)
         fromvnd = getSolverData(var, fromkey)
+        ptr_ = fromvnd.val
+        @cast ptr[i,j] := ptr_[j][i]
         if fromvnd.dims == 1
-          nf = fit(Normal, fromvnd.val)
-          getSolverData(var, parkey).val[1,1] = nf.μ
+          nf = fit(Normal, ptr)
+          getSolverData(var, parkey).val[1][1] = nf.μ
           getSolverData(var, parkey).bw[1,1] = nf.σ
           # m = var.estimateDict[:default].mean
         else
           #FIXME circular will not work correctly with MvNormal
-          nf = fit(MvNormal, fromvnd.val)
-          getSolverData(var, parkey).val[1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
+          nf = fit(MvNormal, ptr)
+          getSolverData(var, parkey).val[1][1:fromvnd.dims] .= mean(nf)[1:fromvnd.dims]
           getSolverData(var, parkey).bw = cov(nf)
         end
     end

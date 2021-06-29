@@ -76,7 +76,9 @@ tree, _, = solveTree!(fg, eliminationOrder=eo) #, smtasks=smtasks, recordcliqs=l
 @test isapprox(DFG.getPPESuggested(fg, :l1)[], 1, atol = 0.2) 
 
 L2 = getBelief(fg, :l2)
-L2_ = manikde!(2 .+ 0.1*randn(size(getPoints(L2),2)), ContinuousScalar)
+npts = length(getPoints(L2))
+pts = [2.0.+0.1*randn(1) for _ in 1:npts]
+L2_ = manikde!(pts, ContinuousScalar)
 
 # test that there is at least a mode present
 @test mmd(L2_, L2, ContinuousScalar) < 1e-3
