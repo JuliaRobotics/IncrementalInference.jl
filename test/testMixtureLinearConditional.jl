@@ -21,7 +21,7 @@ addFactor!(fg, [:x0], mp)
 ##
 
 pts_ = approxConv(fg, :x0f1, :x0)
-@cast pts[i,j] := pts[j][i]
+@cast pts[i,j] := pts_[j][i]
 
 N = size(pts,2)
 @test 0.2*N < sum( -5 .< pts .< 5 )
