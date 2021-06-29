@@ -82,8 +82,8 @@ tree, smt, hist = solveTree!(fg)
 pts_ = getVal(fg, :x1)
 @cast pts[i,j] := pts_[j][i]
 
-@test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.25
-@test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.25
+@test norm(Statistics.mean(pts,dims=2)[1] .- [0.0]) < 0.4
+@test norm(Statistics.mean(pts,dims=2)[2] .- [0.0]) < 0.4
 
 
 end
