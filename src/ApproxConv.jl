@@ -231,22 +231,47 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
   return kappa*maximum(dists)
 end
 
+# Add entrypy on a point in `points` on manifold M, only on dimIdx if in p 
 function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
-                                    addEntr::Union{<:AbstractVector{<:Real},SubArray}, 
+                                    points::Union{<:AbstractVector{<:Real},SubArray}, 
                                     dimIdx::AbstractVector, 
                                     spreadDist::Real,
                                     p::Union{Colon, <:AbstractVector}=: )
   #
-  manis = convert(Tuple, M) # LEGACY, TODO REMOVE
-  # TODO deprecate
-  maniAddOps, _, _, _ = buildHybridManifoldCallbacks(manis)
-  # add 1σ "noise" level to max distance as control
-  # 1:size(addEntr, 1)
-  for dim in dimIdx, idx in 1:length(addEntr)
-    if (p === :) || dim in p
-      addEntr[idx][dim] = maniAddOps[dim](addEntr[idx][dim], spreadDist*(rand()-0.5))
-    end
+  if length(points) == 0 
+    return nothing
   end
+  
+  # preallocate 
+  T = number_eltype(points[1])
+  @show T
+  Xc = zeros(T, manifold_dimension(M))
+  X = get_vector(M, points[1], Xc, DefaultOrthogonalBasis())  
+  
+  for idx in 1:length(points)
+    # build tangent coordinate random
+    for dim in dimIdx
+      if (p === :) || dim in p
+        Xc[dim] = spreadDist*(rand()-0.5)
+      end
+    end
+    # update tangent vector X
+    get_vector!(M, X, points[idx], Xc, DefaultOrthogonalBasis())  
+    #update point
+    exp!(M, points[idx], points[idx], X)
+    
+  end
+  #
+  # manis = convert(Tuple, M) # LEGACY, TODO REMOVE
+  # # TODO deprecate
+  # maniAddOps, _, _, _ = buildHybridManifoldCallbacks(manis)
+  # # add 1σ "noise" level to max distance as control
+  # # 1:size(addEntr, 1)
+  # for dim in dimIdx, idx in 1:length(addEntr)
+  #   if (p === :) || dim in p
+  #     addEntr[idx][dim] = maniAddOps[dim](addEntr[idx][dim], spreadDist*(rand()-0.5))
+  #   end
+  # end
   nothing
 end
 
