@@ -244,7 +244,6 @@ function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
   
   # preallocate 
   T = number_eltype(points[1])
-  @show T
   Xc = zeros(T, manifold_dimension(M))
   X = get_vector(M, points[1], Xc, DefaultOrthogonalBasis())  
   
@@ -359,7 +358,7 @@ end
 Internal method to set which dimensions should be used as the decision variables for later numerical optimization.
 """
 function _setCCWDecisionDimsConv!(ccwl::Union{CommonConvWrapper{F},
-                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
+                                              CommonConvWrapper{Mixture{N_,F,S,T}}} ) where {N_,F<:Union{AbstractManifoldMinimize, AbstractRelativeMinimize, AbstractRelativeRoots, AbstractPrior},S,T}
   #
   # return nothing
 

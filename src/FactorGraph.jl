@@ -608,6 +608,8 @@ function calcZDim(cf::CalcFactor{T}) where {T <: FunctorInferenceType}
   return zdim
 end
 
+calcZDim(cf::CalcFactor{<:ManifoldPrior}) = manifold_dimension(cf.factor.M)
+
 
 function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 usrfnc::T;
