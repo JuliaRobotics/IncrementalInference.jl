@@ -414,6 +414,37 @@ end
 # project_tangent!(m, g, x): project g on the tangent space to m at x
 Optim.project_tangent!(S::MixedCircular,g,x) = g
 
+## ================================================================================================
+## Manifolds.jl Consolidation
+## TODO: Still to be completed and tested.
+## ================================================================================================
+# struct ManifoldsVector <: Optim.Manifold
+#   manis::Vector{Manifold}
+# end
+
+# Base.getindex(mv::ManifoldsVector, inds...) = getindex(mv.mani, inds...)
+# Base.setindex!(mv, X, inds...) =  setindex!(mv.mani, X, inds...)
+
+# function ManifoldsVector(fg::AbstractDFG, varIds::Vector{Symbol})
+#   manis = Bool[]
+#   for k = varIds
+#     push!(manis, getVariableType(fg, k) |> getManifold)
+#   end
+#   ManifoldsVector(manis)
+# end
+
+# function Optim.retract!(manis::ManifoldsVector, x)
+#   for (i,M) = enumerate(manis)
+#     x[i] = project(M, x[i])
+#   end
+#   return x 
+# end
+# function Optim.project_tangent!(manis::ManifoldsVector, G, x)
+#   for (i, M) = enumerate(manis)
+#     G[i] = project(M, x[i], G)
+#   end
+#   return G
+# end
 
 ## ================================================================================================
 ## UNDER DEVELOPMENT Parametric solveTree utils
