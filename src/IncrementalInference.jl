@@ -412,7 +412,7 @@ getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
 
 include("AliasScalarSampling.jl")
-include("Flux/entities.jl")
+include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
 include("CalcFactor.jl")
 
