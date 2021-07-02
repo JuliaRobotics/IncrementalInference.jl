@@ -21,10 +21,13 @@ function Base.isapprox( p1::Union{<:BallTreeDensity, <:ManifoldKernelDensity},
   mmd(p1,p2) < atol
 end
 
-function compareAllSpecial(A::T1, B::T2;
-                    skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
+function compareAllSpecial( A::T1, B::T2;
+                            skip=Symbol[], show::Bool=true) where {T1 <: CommonConvWrapper, T2 <: CommonConvWrapper}
   #
-  T1 != T2 && return false
+  if T1 != T2
+    @warn "CCW types not equal" T1 T2
+    return false
+  end
   return compareAll(A, B, skip=skip, show=show)
 end
 

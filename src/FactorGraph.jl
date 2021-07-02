@@ -85,33 +85,33 @@ function setBW!(v::DFGVariable, bw::Array{Float64,2}; solveKey::Symbol=:default)
   nothing
 end
 
-function setVal!(vd::VariableNodeData, val::AbstractVector{P}) where P <:AbstractVector
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}) where P
   vd.val = val
   nothing
 end
-function setVal!(v::DFGVariable, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
+function setVal!(v::DFGVariable, val::AbstractVector{P}; solveKey::Symbol=:default) where P
     setVal!(getSolverData(v, solveKey), val)
     nothing
 end
-function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Array{Float64,2}) where P <:AbstractVector
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Array{Float64,2}) where P
     setVal!(vd, val)
     setBW!(vd, bw)
     nothing
 end
-function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Array{Float64,2}; solveKey::Symbol=:default) where P <:AbstractVector
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Array{Float64,2}; solveKey::Symbol=:default) where P
   setVal!(v, val, solveKey=solveKey)
   setBW!(v, bw, solveKey=solveKey)
   nothing
 end
-function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
+function setVal!(vd::VariableNodeData, val::AbstractVector{P}, bw::Vector{Float64}) where P
   setVal!(vd, val, reshape(bw,length(bw),1))
   nothing
 end
-function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P <:AbstractVector
+function setVal!(v::DFGVariable, val::AbstractVector{P}, bw::Vector{Float64}; solveKey::Symbol=:default) where P
   setVal!(getSolverData(v, solveKey=solveKey), val, bw)
   nothing
 end
-function setVal!(dfg::AbstractDFG, sym::Symbol, val::AbstractVector{P}; solveKey::Symbol=:default) where P <:AbstractVector
+function setVal!(dfg::AbstractDFG, sym::Symbol, val::AbstractVector{P}; solveKey::Symbol=:default) where P
   setVal!(getVariable(dfg, sym), val, solveKey=solveKey)
 end
 
@@ -128,7 +128,7 @@ function setValKDE!(vd::VariableNodeData,
                     pts::AbstractVector{P},
                     bws::Vector{Float64},
                     setinit::Bool=true,
-                    inferdim::Float64=0.0 ) where P <:AbstractVector
+                    inferdim::Float64=0.0 ) where P
   #
   setVal!(vd, pts, bws) # BUG ...al!(., val, . ) ## TODO -- this can be a little faster
   setinit ? (vd.initialized = true) : nothing
@@ -139,7 +139,7 @@ end
 function setValKDE!(vd::VariableNodeData,
                     val::AbstractVector{P},
                     setinit::Bool=true,
-                    inferdim::Real=0.0  ) where P <:AbstractVector
+                    inferdim::Real=0.0  ) where P
   # recover variableType information
   varType = getVariableType(vd)
   p = AMP.manikde!(val, varType)
@@ -152,7 +152,7 @@ function setValKDE!(v::DFGVariable,
                     bws::Array{<:Real,2},
                     setinit::Bool=true,
                     inferdim::Float64=0;
-                    solveKey::Symbol=:default) where P <:AbstractVector
+                    solveKey::Symbol=:default) where P
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey), val, bws[:,1], setinit, inferdim )
 
@@ -163,7 +163,7 @@ function setValKDE!(v::DFGVariable,
                     val::AbstractVector{P},
                     setinit::Bool=true,
                     inferdim::Float64=0.0;
-                    solveKey::Symbol=:default) where P <:AbstractVector
+                    solveKey::Symbol=:default) where P
   # recover variableType information
   setValKDE!(getSolverData(v, solveKey),val, setinit, inferdim )
   nothing
@@ -486,6 +486,18 @@ function addVariable!(dfg::AbstractDFG,
   return v
 end
 
+function _resizePointsVector!(vecP::AbstractVector{P}, mkd::ManifoldKernelDensity, N::Int) where P
+  #
+  pN = length(vecP)
+  resize!(vecP, N)
+  for j in pN:N
+    smp = AMP.sample(mkd, 1)[1]
+    @show j, smp, typeof(smp), typeof(vecP[j])
+    vecP[j] = smp
+  end
+
+  vecP
+end
 
 
 """
@@ -503,11 +515,11 @@ Notes
 - for initialization, solveFor = Nothing.
 - `P = getPointType(<:InferenceVariable)`
 """
-function prepareparamsarray!( ARR::AbstractVector{P},
+function prepareparamsarray!( ARR::AbstractVector{<:AbstractVector{P}},
                               Xi::Vector{<:DFGVariable},
                               solvefor::Union{Nothing, Symbol},
                               N::Int=0;
-                              solveKey::Symbol=:default  ) where P <: AbstractVector
+                              solveKey::Symbol=:default  ) where P
   #
   LEN = Int[]
   maxlen = N # FIXME see #105
@@ -515,35 +527,22 @@ function prepareparamsarray!( ARR::AbstractVector{P},
   sfidx = 0
 
   for xi in Xi
-    push!(ARR, getVal(xi, solveKey=solveKey))
+    vecP = getVal(xi, solveKey=solveKey)
+    push!(ARR, vecP)
     LEN = length.(ARR)
     maxlen = maximum(LEN)
-    # @show len = size(ARR[end], 2)
-    # push!(LEN, len)
-    # if len > maxlen
-    #   maxlen = len
-    # end
     count += 1
     if xi.label == solvefor
       sfidx = count #xi.index
     end
   end
 
-  # resample variables with too few kernels
+  # resample variables with too few kernels (manifolds points)
   SAMP = LEN .< maxlen
   for i in 1:count
     if SAMP[i]
       Pr = getBelief(Xi[i], solveKey)
-      resize!(ARR[i], maxlen)
-      for j in 1:maxlen
-        smp = AMP.sample(Pr, 1)[1]
-        arr_i = ARR[i]
-        if isdefined(arr_i, j)
-          arr_i[j][:] = smp[:]
-        else
-          arr_i[j] = smp[:]
-        end
-      end
+      _resizePointsVector!(ARR[i], Pr, maxlen)
     end
   end
 
@@ -617,17 +616,16 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
                                 inflation::Real=0.0  ) where {T <: FunctorInferenceType}
   #
   pttypes = getVariableType.(Xi) .|> getPointType
-  sametype = 0 < length(pttypes) ? all( pttypes[1] .== pttypes ) : true
-  P_type = 0 < length(pttypes) ? Vector{pttypes[1]} : Vector{Float64}
-  @assert sametype "Current implementation only allows for same point type: $pttypes"
-  ARR = Vector{P_type}()
+  PointType = 0 < length(pttypes) ? pttypes[1] : Vector{Float64}
+  ARR = Vector{Vector{PointType}}()
   maxlen, sfidx, mani = prepareparamsarray!(ARR, Xi, nothing, 0) # Nothing for init.
-  # fldnms = fieldnames(T) # typeof(usrfnc)
 
   # standard factor metadata
   sflbl = 0==length(Xi) ? :null : getLabel(Xi[end])
   fmd = FactorMetadata(Xi, getLabel.(Xi), ARR, sflbl, nothing)
-  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{Vector{Float64}}(),), ARR)
+  # guess measurement points type
+  MeasType = Vector{Float64} # FIXME use `usrfnc` to get this information instead
+  cf = CalcFactor( usrfnc, fmd, 0, 1, (Vector{MeasType}(),), ARR)
 
   zdim = calcZDim(cf)
   # zdim = T != GenericMarginal ? size(getSample(usrfnc, 2)[1],1) : 0
@@ -643,7 +641,7 @@ function prepgenericconvolution(Xi::Vector{<:DFGVariable},
 
   ccw = CommonConvWrapper(
           usrfnc,
-          P_type(),
+          PointType[],
           zdim,
           ARR,
           fmd,
@@ -984,7 +982,7 @@ end
 function initManual!( dfg::AbstractDFG, 
                       sym::Symbol, 
                       pts::AbstractVector{P}, 
-                      solveKey::Symbol=:default ) where {P <: AbstractVector}
+                      solveKey::Symbol=:default ) where {P}
   #
   var = getVariable(dfg, sym)
   pp = manikde!(pts, getManifold(var))
