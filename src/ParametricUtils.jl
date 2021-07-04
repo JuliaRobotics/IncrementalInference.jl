@@ -340,7 +340,7 @@ function solveConditionalsParametric(fg::AbstractDFG,
   flatvar = FlatVariables(fg, varIds)
 
   for vId in varIds
-    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[:,1]
+    flatvar[vId] = getVariableSolverData(fg, vId, solvekey).val[1][:]
   end
   initValues = flatvar.X
 

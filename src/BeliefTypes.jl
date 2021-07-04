@@ -60,7 +60,7 @@ TreeBelief( val::AbstractVector{P},
             inferdim::Real=0,
             variableType::T=ContinuousScalar(),
             manifold::M=getManifold(variableType),
-            solvableDim::Real=0) where {P <: AbstractVector, T <: InferenceVariable, M <:MB.AbstractManifold} = TreeBelief{T,P,M}(val, bw, inferdim, variableType, manifold, solvableDim)
+            solvableDim::Real=0) where {P, T <: InferenceVariable, M <:MB.AbstractManifold} = TreeBelief{T,P,M}(val, bw, inferdim, variableType, manifold, solvableDim)
 
 function TreeBelief(vnd::VariableNodeData{T}, solvDim::Real=0) where T
   TreeBelief( vnd.val, vnd.bw, vnd.inferdim, getVariableType(vnd), getManifold(T), solvDim )

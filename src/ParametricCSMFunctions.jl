@@ -142,7 +142,7 @@ function solveDown_ParametricStateMachine(csmc::CliqStateMachineContainer)
         logCSM(csmc, "$(csmc.cliq.id) down: updating $v : $val"; loglevel=Logging.Info)
         vnd = getSolverData(getVariable(csmc.cliqSubFg, v), :parametric)
         #Update subfg variables
-        vnd.val .= val.val
+        vnd.val[1] .= val.val
         vnd.bw .= val.cov
       end
     else

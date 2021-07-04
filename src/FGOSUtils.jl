@@ -130,14 +130,14 @@ function manikde!(pts::AbstractVector{P},
                   variableType::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}  ) where P
   #
   M = getManifold(variableType)
-  return AMP.manikde!(pts, bws, M)
+  return AMP.manikde!(M, pts, bws)
 end
 
 function manikde!(pts::AbstractVector{P}, 
                   vartype::Union{InstanceType{<:InferenceVariable}, InstanceType{<:AbstractFactor}}) where P
   #
   M = getManifold(vartype)
-  return AMP.manikde!(pts, M)
+  return AMP.manikde!(M, pts)
 end
 
 # manikde!( pts::AbstractVector{<:Real}, 

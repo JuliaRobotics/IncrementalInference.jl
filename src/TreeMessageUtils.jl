@@ -105,7 +105,7 @@ end
 
 
 function generateMsgPrior(belief_::TreeBelief, ::NonparametricMessage)
-  kdePr = manikde!(belief_.val, belief_.bw[:,1], getManifold(belief_.variableType))
+  kdePr = manikde!(getManifold(belief_.variableType), belief_.val, belief_.bw[:,1])
   MsgPrior(kdePr, belief_.inferdim)
 end
 

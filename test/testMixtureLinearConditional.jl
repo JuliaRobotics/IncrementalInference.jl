@@ -96,6 +96,8 @@ addVariable!(fg_, :x1, ContinuousScalar)
 f0_ = DFG.unpackFactor(fg_, pf0)
 f1_ = DFG.unpackFactor(fg_, pf1)
 
+##
+
 # ENV["JULIA_DEBUG"] = "DistributedFactorGraphs"
 @warn("Skipping pack/unpack compareFactor test for `timezone` and `zone`")
 @test DFG.compareFactor(f1, f1_, skip=[:components;:labels;:timezone;:zone])
@@ -121,6 +123,8 @@ fg = initfg()
 addVariable!(fg, :x0, ContinuousScalar)
 addVariable!(fg, :x1, ContinuousScalar)
 addFactor!(fg, [:x0], Prior(Normal(0.0,0.1)))
+
+##
 
 # require default ::UnitScaling constructor from all factors
 mlr = Mixture(LinearRelative(I), [Normal(-1.0, 0.1), Normal(1.0, 0.1)], Categorical([0.5; 0.5]))

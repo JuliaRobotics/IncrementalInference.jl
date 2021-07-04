@@ -25,6 +25,11 @@ end
 ## Deprecate code below before v0.27
 ##==============================================================================
 
+# getManifold(::InstanceType{LinearRelative{N}}) where {N} = Euclidean(N)
+# getManifolds(::T) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
+# getManifolds(::Type{<:T}) where {T <: LinearRelative} = convert(Tuple, getManifold(T))
+# getManifolds(fctType::Type{LinearRelative}) = getManifolds(getDomain(fctType))
+
 # # FIXME, why is Manifolds depdendent on the solveKey?? Should just be at DFGVariable level?
 
 # getManifolds(vd::VariableNodeData) = getVariableType(vd) |> getManifolds
