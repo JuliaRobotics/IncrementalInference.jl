@@ -91,7 +91,7 @@ for i in 0:10
   sym = Symbol("x",i)
   var = getVariable(fg,sym)
   @show val = var.solverDataDict[:parametric].val
-  @error("parametric solveTree! temporarily broken due to type and size of vnd.val -- WIP with Manifolds.jl `::Vector{P}` upgrade, see")
+  @error("parametric solveTree! temporarily broken due to type and size of vnd.val -- WIP with Manifolds.jl `::Vector{P}` upgrade, see #1289")
   @test_broken isapprox(val[1], i, atol=1e-6)
   @test_broken isapprox(val[2], i, atol=1e-6)
 end
