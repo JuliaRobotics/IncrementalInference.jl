@@ -2,6 +2,7 @@
 
 # TODO deprecate testshuffle
 _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, testshuffle::Bool=false)  where {N_,F<:AbstractRelativeMinimize,S,T} = nothing
+_checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}}, testshuffle::Bool=false)  where {N_,F<:AbstractManifoldMinimize,S,T} = nothing
 
 function _checkErrorCCWNumerics(ccwl::Union{CommonConvWrapper{F},CommonConvWrapper{Mixture{N_,F,S,T}}},
                                 testshuffle::Bool=false)  where {N_,F<:AbstractRelativeRoots,S,T}
@@ -19,6 +20,10 @@ end
 _perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
                     len::Int=1,
                     perturbation::Real=1e-10 ) where {N_,F<:AbstractRelativeMinimize,S,T} = 0
+
+_perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                    len::Int=1,
+                    perturbation::Real=1e-10 ) where {N_,F<:AbstractManifoldMinimize,S,T} = 0
 #
 
 _perturbIfNecessary(fcttype::Union{F,<:Mixture{N_,F,S,T}},
@@ -66,6 +71,35 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
 
   # 
   return r.minimizer
+end
+
+
+function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
+                              objResX::Function,
+                              residual::AbstractVector{<:Real},
+                              u0::AbstractVector{<:Real},
+                              islen1::Bool=false  )  where {N_,F<:AbstractManifoldMinimize,S,T}
+                              # retries::Int=3 )
+  #
+
+  M = fcttype.M
+  # the variable is a manifold point, we are working on the tangent plane in optim for now.
+  # 
+  ϵ = identity(M, u0)
+  # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
+  X0c = vee(M, u0, log(M, ϵ, u0)) 
+
+  function cost(Xc)
+    x = exp(M, ϵ, hat(M, ϵ, Xc))  
+    return objResX(x)^2
+  end
+
+  alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
+
+  r = Optim.optimize(cost, X0c, alg)
+  
+  return exp(M, ϵ, hat(M, ϵ, r.minimizer)) 
+
 end
 
 

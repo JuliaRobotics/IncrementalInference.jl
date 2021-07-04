@@ -416,6 +416,9 @@ include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
 include("CalcFactor.jl")
 
+
+include("Factors/GenericFunctions.jl")
+
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
