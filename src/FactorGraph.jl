@@ -492,8 +492,8 @@ function _resizePointsVector!(vecP::AbstractVector{P}, mkd::ManifoldKernelDensit
   resize!(vecP, N)
   for j in pN:N
     smp = AMP.sample(mkd, 1)[1]
-    @show j, smp, typeof(smp), typeof(vecP[j])
-    vecP[j] = smp
+    # @show j, smp, typeof(smp), typeof(vecP[j])
+    vecP[j] = smp[1]
   end
 
   vecP

@@ -841,7 +841,7 @@ function findRelatedFromPotential(dfg::AbstractDFG,
   Npoints = length(pts) # size(pts,2)
   # Assume we only have large particle population sizes, thanks to addNode!
   M = getManifold(getVariableType(dfg, target))
-  proposal = AMP.manikde!(pts, M)
+  proposal = AMP.manikde!(M, pts)
 
   # FIXME consolidate with approxConv method instead
   if Npoints != N # this is where we control the overall particle set size

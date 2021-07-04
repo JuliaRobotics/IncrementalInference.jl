@@ -59,7 +59,8 @@ function approxDeconv(fcto::DFGFactor,
   fmd = _getFMdThread(ccw)
   
   # TODO assuming vector on only first container in measurement::Tuple
-  makeTarget = (i) -> view(measurement[1][i],:)
+  makeTarget = (i) -> measurement[1][i] # TODO does not support copy-primitive types like Float64, only Ref()
+  # makeTarget = (i) -> view(measurement[1][i],:)
   # makeTarget = (i) -> view(measurement[1], :, i)
   
   # NOTE 
