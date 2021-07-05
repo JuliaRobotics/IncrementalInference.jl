@@ -4,8 +4,8 @@ using Test
 
 @testset "Test Sphere(2) prior" begin
 
-Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid, :Euclid)
-Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid, :Euclid)
+Base.convert(::Type{<:Tuple}, M::Sphere{2, ℝ}) = (:Euclid, :Euclid)
+Base.convert(::Type{<:Tuple}, ::IIF.InstanceType{Sphere{2, ℝ}})  = (:Euclid, :Euclid)
 
 @defVariable Sphere2 Sphere(2) [1.0, 0.0, 0.0]
 M = getManifold(Sphere2)

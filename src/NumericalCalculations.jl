@@ -224,6 +224,12 @@ function _solveCCWNumeric!( ccwl::Union{CommonConvWrapper{F},
   #
   thrid = Threads.threadid()
   cpt_ = ccwl.cpt[thrid]
+
+  #FIXME hack to test manifold factors, cpt_.p should be full dimensions
+  if F <: AbstractManifoldMinimize
+    cpt_.p =  collect(1:length(cpt_.X[1]))
+  end
+
   smpid = cpt_.particleidx
   # cannot Nelder-Mead on 1dim, partial can be 1dim or more but being conservative.
   islen1 = length(cpt_.p) == 1 || ccwl.partial
