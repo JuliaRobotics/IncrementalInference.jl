@@ -63,6 +63,13 @@ function getParametricMeasurement(Z::MvNormal)
   return meas, iΣ
 end
 
+# the point `p` on the manifold is the mean
+function getParametricMeasurement(s::ManifoldPrior)
+  meas = s.p
+  iΣ = invcov(s.Z)
+  return meas, iΣ
+end
+ 
 function getParametricMeasurement(s::FunctorInferenceType)
   if hasfield(typeof(s), :Zij)
     Z = s.Zij
@@ -145,7 +152,7 @@ Internal parametric extension to [`CalcFactor`](@ref) used for buffering measure
 struct CalcFactorMahalanobis{CF<:CalcFactor, S, N}
   calcfactor!::CF
   varOrder::Vector{Symbol}
-  meas::NTuple{N, Vector{Float64}}
+  meas::NTuple{N, <:AbstractVector{Float64}}
   iΣ::NTuple{N, Matrix{Float64}}
   specialAlg::S
 end
@@ -182,9 +189,27 @@ end
 # This is where the actual parametric calculation happens, CalcFactor equivalent for parametric
 function (cfp::CalcFactorMahalanobis)(variables...)
   # call the user function (be careful to call the new CalcFactor version only!!!)
-  res = cfp.calcfactor!(cfp.meas[1], variables...)
+  M = cfp.calcfactor!.factor.M
+  X = cfp.calcfactor!(cfp.meas[1], variables...)
   # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
-  return res' * cfp.iΣ[1] * res
+  # return mahalanobus_distance2(M, X, cfp.iΣ[1])
+  # Xc = vee(M, variables[1], X)
+  #TODO do something about basis?
+  # Xc = get_coordinates(M, variables[1], X, DefaultOrthogonalBasis())
+
+  # @time _X = rand(3)+X
+  # @time _Xc = get_coordinates(M, variables[1], _X, DefaultOrthonormalBasis())
+  # @show X
+  Xc = get_coordinates(M, variables[1], X, DefaultOrthonormalBasis())
+
+  # @show variables
+  # @show X
+  # @show Xc
+  # @show cfp.iΣ[1] 
+
+  return Xc' * cfp.iΣ[1] * Xc
+  
+  # return res' * cfp.iΣ[1] * res
 end
 
 function calcFactorMahalanobisDict(fg)
@@ -193,6 +218,27 @@ function calcFactorMahalanobisDict(fg)
     calcFactors[fct.label] = CalcFactorMahalanobis(fct)
   end
   return calcFactors
+end
+
+# new experimental Manifold ProductRepr version
+function _totalCost(M, cfvec::Vector{<:CalcFactorMahalanobis}, labeldict, points)
+  #
+  obj = 0
+
+  for cfp in cfvec
+
+      varOrder = getindex.(Ref(labeldict), cfp.varOrder)
+
+      factor_point_params = [points[M, i] for i in varOrder]
+
+      # call the user function
+      retval = cfp(factor_point_params...)
+
+      # 1/2*log(1/(  sqrt(det(Σ)*(2pi)^k) ))  ## k = dim(μ)
+      obj += 1/2*retval
+  end
+
+  return obj
 end
 
 function _totalCost(cfdict::Dict{Symbol, CalcFactorMahalanobis},

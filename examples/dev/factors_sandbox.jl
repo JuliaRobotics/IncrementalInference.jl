@@ -16,7 +16,7 @@ function grad_PointPoint_distance(M, m, p, q)
 end
 
 function PointPoint_distance(M, X, p, q, ::MeasurementOnTangent)
-    q̂ = compose(M, p, exp(M, identity(M, X), X)) #FIXME
+    q̂ = compose(M, p, exp(M, identity(M, p), X))
     return distance(M, q, q̂)
 end
 

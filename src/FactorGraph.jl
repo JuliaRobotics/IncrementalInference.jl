@@ -308,7 +308,8 @@ function DefaultNodeDataParametric( dodims::Int,
     #                         dims, false, :_null, Symbol[], variableType, true, 0.0, false, dontmargin)
   else
     sp = round.(Int,range(dodims,stop=dodims+dims-1,length=dims))
-    return VariableNodeData([zeros(dims) for _ in 1:1],
+    ϵ = getPointIdentity(variableType)
+    return VariableNodeData([ϵ],
                             zeros(dims,dims), Symbol[], sp,
                             dims, false, :_null, Symbol[], variableType, false, 0.0, false, dontmargin, 0, 0, :parametric)
   end

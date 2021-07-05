@@ -3,6 +3,7 @@ using Test
 # using Compat
 # using IncrementalInference
 
+include("testSphereMani.jl")
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")

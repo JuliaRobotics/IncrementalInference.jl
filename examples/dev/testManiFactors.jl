@@ -3,6 +3,24 @@ using IncrementalInference
 using StaticArrays
 using Manifolds
 
+
+##
+
+
+
+fg = initfg()
+
+v0 = addVariable!(fg, :x0, Pose2)
+v1 = addVariable!(fg, :x1, Point2)
+v2 = addVariable!(fg, :x2, Pose2)
+
+fg.solverParams.graphinit = false
+
+addFactor!(fg, [:x0], Prior(Normal()))
+addFactor!(fg, [:x0,:x1], Prior(Normal()))
+addFactor!(fg, [:x1,:x2], Prior(Normal()))
+addFactor!(fg, [:x0,:x2], Prior(Normal()))
+
 ## ======================================================================================
 ## 
 ## ======================================================================================
@@ -17,7 +35,7 @@ v0 = addVariable!(fg, :x0, Pose2)
 v1 = addVariable!(fg, :x1, Pose2)
 
 
-mp = ManifoldPrior(SpecialEuclidean(2), MvNormal([1.0, 1.0, 0.0]), ProductRepr(SA[0., 0], SA[1.0 0; 0 1]))
+mp = ManifoldPrior(SpecialEuclidean(2),ProductRepr(SA[0., 0], SA[1.0 0; 0 1]), MvNormal([1.0, 1.0, 0.0]))
 p = addFactor!(fg, [:x0], mp;  graphinit=true)
 
 mf = ManifoldFactor(SpecialEuclidean(2), MvNormal([0.1, 0.2, 0.01]))
@@ -44,7 +62,7 @@ v0 = addVariable!(fg, :x0, Point2)
 v1 = addVariable!(fg, :x1, Point2)
 
 
-mp = ManifoldPrior(TranslationGroup(2), MvNormal([10.0, 20.0], [1.0,1.0]), SA[0., 0])
+mp = ManifoldPrior(TranslationGroup(2), SA[10., 20], MvNormal([1.0,1.0]))
 p = addFactor!(fg, [:x0], mp;  graphinit=true)
 
 doautoinit!(fg, :x0)
@@ -62,7 +80,7 @@ solveGraph!(fg)
 ## 
 ## ======================================================================================
 
-# Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
+Base.convert(::Type{<:Tuple}, M::SpecialOrthogonal{2}) = (:Circular,)
 
 @defVariable SO2 SpecialOrthogonal(2) [0.0]
 getManifold(SO2)
@@ -75,7 +93,7 @@ v0 = addVariable!(fg, :x0, SO2)
 v1 = addVariable!(fg, :x1, SO2)
 
 
-mp = ManifoldPrior(SpecialOrthogonal(2), MvNormal([1.0]), SA[1.0 0.0; 0 1])
+mp = ManifoldPrior(SpecialOrthogonal(2), SA[1.0 0.0; 0 1], MvNormal([1.0]))
 p = addFactor!(fg, [:x0], mp;  graphinit=true)
 
 doautoinit!(fg, :x0)
@@ -109,11 +127,11 @@ v0 = addVariable!(fg, :x0, Sphere2)
 v1 = addVariable!(fg, :x1, Sphere2)
 
 
-mp = ManifoldPrior(Sphere(2), MvNormal([0.0, 0.0], [0.01, 0.01]), SA[1., 0, 0])
+mp = ManifoldPrior(Sphere(2), SA[1., 0, 0], MvNormal([0.01, 0.01]))
 p = addFactor!(fg, [:x0], mp)
 
 doautoinit!(fg, :x0)
-@enter doautoinit!(fg, :x0)
+# @enter doautoinit!(fg, :x0)
 
 # @enter addFactor!(fg, [:x0], mp;  graphinit=true)
 

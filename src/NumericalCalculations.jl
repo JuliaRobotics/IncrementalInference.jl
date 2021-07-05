@@ -89,9 +89,12 @@ function _solveLambdaNumeric( fcttype::Union{F,<:Mixture{N_,F,S,T}},
   # X0c = get_coordinates(M, u0, log(M, ϵ, u0), DefaultOrthogonalBasis()) 
   X0c = vee(M, u0, log(M, ϵ, u0)) 
 
+  # objResX(p) returns tangent vector at p, X=log(M, p, ...)
+  # norm(M, p, X) == distance(M, p, X)
   function cost(Xc)
-    x = exp(M, ϵ, hat(M, ϵ, Xc))  
-    return objResX(x)^2
+    p = exp(M, ϵ, hat(M, ϵ, Xc))  
+    X = objResX(p)
+    return norm(M, p, X)^2 #TODO verify 
   end
 
   alg = islen1 ? Optim.BFGS() : Optim.NelderMead() 
