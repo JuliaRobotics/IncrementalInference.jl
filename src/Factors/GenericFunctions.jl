@@ -57,7 +57,7 @@ end
 ## ======================================================================================
 ## ManifoldFactor
 ## ======================================================================================
-abstract type AbstractManifoldMinimize <: AbstractRelative end
+
 
 export ManifoldFactor
 # DEV NOTES
@@ -87,84 +87,4 @@ function (cf::CalcFactor{<:ManifoldFactor})(X, p, q)
     return distanceTangent2Point(M, X, p, q)
 end
 
-## ======================================================================================
-## ManifoldPrior
-## ======================================================================================
-export ManifoldPrior
-# `p` is a point on manifold `M`
-# `Z` is a measurement at the tangent space of `p` on manifold `M` 
-struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P} <: AbstractPrior
-    M::M 
-    Z::T
-    p::P
-end
 
-#TODO
-# function ManifoldPrior(M::AbstractGroupManifold, Z::SamplableBelief)
-#     # p = identity(M, #TOOD)
-#     # similar to getPointIdentity(M)
-#     return ManifoldPrior(M, Z, p)
-# end
-
-# ManifoldPrior{M}(Z::SamplableBelief, p) where M = ManifoldPrior{M, typeof(Z), typeof(p)}(Z, p)
-
-# function getSample(cf::ManifoldPrior, N::Int=1)
-function getSample(cf::CalcFactor{<:ManifoldPrior}, N::Int=1)
-    Z = cf.factor.Z
-    p = cf.factor.p
-    M = cf.factor.M
-    # Z = cf.Z
-    # p = cf.p
-    # M = cf.M
-    
-    Xc = [rand(Z) for _ in 1:N]
-    
-    X = get_vector.(Ref(M), Ref(p), Xc, Ref(DefaultOrthogonalBasis()))
-    points = exp.(Ref(M), Ref(p), X)
-
-    return (points, )
-end
-
-#TODO investigate SVector if small dims, this is slower
-# dim = manifold_dimension(M)
-# Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
-
-# function (cf::ManifoldPrior)(m, p)
-function (cf::CalcFactor{<:ManifoldPrior})(m, p)
-    M = cf.factor.M
-    # M = cf.M
-    return distancePrior(M, m, p)
-end
-
-
-if false
-using IncrementalInference
-using Manifolds
-using LinearAlgebra
-using StaticArrays
-
-f = ManifoldFactor(SpecialOrthogonal(3), MvNormal([0.1, 0.02, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-f = ManifoldFactor(SpecialEuclidean(2), MvNormal([0.1, 0.2, 0.01]))
-s = getSample(f,10)[1]
-s[1]
-
-
-f = ManifoldPrior(SpecialOrthogonal(2), MvNormal([0.1]), SA[1.0 0; 0 1])
-meas = getSample(f,10)[1]
-meas[1]
-f.(meas, Ref(SA[1.0 0; 0 1]))
-
-f = ManifoldPrior(SpecialOrthogonal(3), MvNormal([0.1, 0.02, 0.01]), SA[1.0 0 0; 0 1 0; 0 0 1])
-s = getSample(f,10)[1]
-s[1]
-
-f = ManifoldPrior(SpecialEuclidean(2), MvNormal([0.1, 0.2, 0.01]), ProductRepr(SA[0,0], SA[1.0 0; 0 1]))
-s = getSample(f,10)[1]
-s[1]
-
-
-
-end

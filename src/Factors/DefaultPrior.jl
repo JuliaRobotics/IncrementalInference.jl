@@ -1,4 +1,6 @@
 
+export ManifoldPrior
+
 
 
 """
@@ -67,3 +69,52 @@ function convert(::Type{<:Prior}, prior::Dict{String, Any})
 end
 
 
+
+## ======================================================================================
+## ManifoldPrior
+## ======================================================================================
+# `p` is a point on manifold `M`
+# `Z` is a measurement at the tangent space of `p` on manifold `M` 
+# PLEASE NOTE, ManifoldPrior CANNOT BE SERIALIZED, DO NOT USE!
+struct ManifoldPrior{M <: AbstractManifold, T <: SamplableBelief, P} <: AbstractPrior
+  M::M 
+  Z::T
+  p::P
+end
+
+#TODO
+# function ManifoldPrior(M::AbstractGroupManifold, Z::SamplableBelief)
+#     # p = identity(M, #TOOD)
+#     # similar to getPointIdentity(M)
+#     return ManifoldPrior(M, Z, p)
+# end
+
+# ManifoldPrior{M}(Z::SamplableBelief, p) where M = ManifoldPrior{M, typeof(Z), typeof(p)}(Z, p)
+
+# function getSample(cf::ManifoldPrior, N::Int=1)
+function getSample(cf::CalcFactor{<:ManifoldPrior}, N::Int=1)
+  Z = cf.factor.Z
+  p = cf.factor.p
+  M = cf.factor.M
+  # Z = cf.Z
+  # p = cf.p
+  # M = cf.M
+  
+  Xc = [rand(Z) for _ in 1:N]
+  
+  X = get_vector.(Ref(M), Ref(p), Xc, Ref(DefaultOrthogonalBasis()))
+  points = exp.(Ref(M), Ref(p), X)
+
+  return (points, )
+end
+
+#TODO investigate SVector if small dims, this is slower
+# dim = manifold_dimension(M)
+# Xc = [SVector{dim}(rand(Z)) for _ in 1:N]
+
+# function (cf::ManifoldPrior)(m, p)
+function (cf::CalcFactor{<:ManifoldPrior})(m, p)
+  M = cf.factor.M
+  # M = cf.M
+  return distancePrior(M, m, p)
+end

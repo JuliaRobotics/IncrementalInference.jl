@@ -68,10 +68,21 @@ import DistributedFactorGraphs: compare, compareAllSpecial
 import DistributedFactorGraphs: rebuildFactorMetadata!
 import DistributedFactorGraphs: getDimension, getManifold, getPointType, getPointIdentity
 import DistributedFactorGraphs: getPPE, getPPEDict
+import DistributedFactorGraphs: getFactorOperationalMemoryType
 
 # will be deprecated in IIF
 import DistributedFactorGraphs: isSolvable
 
+
+# Package aliases
+export KDE, AMP, DFG, FSM, IIF
+
+# MOVE TO DFG
+abstract type AbstractManifoldMinimize <: AbstractRelative end
+
+
+# TODO temporary for initial version of on-manifold products
+KernelDensityEstimate.setForceEvalDirect!(true)
 
 # must be moved to their own repos
 const KDE = KernelDensityEstimate
@@ -80,14 +91,10 @@ const AMP = ApproxManifoldProducts
 const FSM = FunctionalStateMachine
 const IIF = IncrementalInference
 
-# Package aliases
-export KDE, AMP, DFG, FSM, IIF
-
-
-# TODO temporary for initial version of on-manifold products
-KDE.setForceEvalDirect!(true)
+const NothingUnion{T} = Union{Nothing, T}
 
 const InstanceType{T} = Union{Type{<:T},T}
+
 
 # DFG SpecialDefinitions
 export AbstractDFG,
@@ -292,7 +299,7 @@ export *,
   fifoFreeze!,
 
   # temp const types TODO
-  TempUpMsgPlotting,
+  # TempUpMsgPlotting,
 
   #functors need
   getSample,
@@ -390,23 +397,15 @@ export *,
   getPointIdentity,
   setVariableRefence!,
   reshapeVec2Mat,
-  accumulateFactorChain
+  accumulateFactorChain,
+  buildCliqSubgraph_StateMachine
 
-
-
-
-export  buildCliqSubgraph_StateMachine
-
-
-const NothingUnion{T} = Union{Nothing, T}
 
 # regular
 include("FactorGraphTypes.jl")
 
-# JT TODO move to somewhere more fitting? (DF, perhaps not remember its IIF.SolverParams)
 const InMemDFGType = DFG.LightDFG{SolverParams}
 
-import DistributedFactorGraphs: getFactorOperationalMemoryType
 
 getFactorOperationalMemoryType(dfg::SolverParams) = CommonConvWrapper
 
@@ -416,12 +415,12 @@ include("entities/OptionalDensities.jl")
 include("BeliefTypes.jl")
 include("CalcFactor.jl")
 
-
 include("Factors/GenericFunctions.jl")
 
 # Refactoring in progress
 include("Factors/MsgLikelihoods.jl")
 
+include("entities/GraphConstraintTypes.jl")
 include("CliqueTypes.jl")
 
 include("JunctionTreeTypes.jl")
@@ -444,7 +443,6 @@ include("TreeBasedInitialization.jl")
 include("HeatmapSampler.jl")
 
 # special variables and factors, see RoME.jl for more examples
-include("GraphConstraintTypes.jl")
 include("Factors/Mixture.jl")
 include("Factors/DefaultPrior.jl")
 include("Factors/LinearRelative.jl")

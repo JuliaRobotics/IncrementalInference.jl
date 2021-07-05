@@ -6,6 +6,7 @@ using Test
 
 include("testCliqSolveDbgUtils.jl")
 include("TestModuleFunctions.jl")
+include("testManifoldFactors.jl")
 include("testApproxConv.jl")
 include("testCompareVariablesFactors.jl")
 include("typeReturnMemRef.jl")

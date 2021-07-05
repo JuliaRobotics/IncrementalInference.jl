@@ -232,11 +232,11 @@ function calcVariableDistanceExpectedFractional(ccwl::CommonConvWrapper,
 end
 
 # Add entrypy on a point in `points` on manifold M, only on dimIdx if in p 
-function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
-                                    points::Union{<:AbstractVector{<:Real},SubArray}, 
-                                    dimIdx::AbstractVector, 
-                                    spreadDist::Real,
-                                    p::Union{Colon, <:AbstractVector}=: )
+function addEntropyOnManifold!( M::ManifoldsBase.AbstractManifold,
+                                points::Union{<:AbstractVector{<:Real},SubArray}, 
+                                dimIdx::AbstractVector, 
+                                spreadDist::Real,
+                                p::Union{Colon, <:AbstractVector}=: )
   #
   if length(points) == 0 
     return nothing
@@ -260,17 +260,7 @@ function addEntropyOnManifoldHack!( M::ManifoldsBase.AbstractManifold,
     exp!(M, points[idx], points[idx], X)
     
   end
-  #
-  # manis = convert(Tuple, M) # LEGACY, TODO REMOVE
-  # # TODO deprecate
-  # maniAddOps, _, _, _ = buildHybridManifoldCallbacks(manis)
-  # # add 1σ "noise" level to max distance as control
-  # # 1:size(addEntr, 1)
-  # for dim in dimIdx, idx in 1:length(addEntr)
-  #   if (p === :) || dim in p
-  #     addEntr[idx][dim] = maniAddOps[dim](addEntr[idx][dim], spreadDist*(rand()-0.5))
-  #   end
-  # end
+
   nothing
 end
 
@@ -313,7 +303,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # consider duplicate convolution approximations for inflation off-zero
       # ultimately set by dfg.params.inflateCycles
       for iflc in 1:inflateCycles
-        addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
+        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist, cpt_.p)
         # no calculate new proposal belief on kernels `allelements[count]`
         skipSolve ? @warn("skipping numerical solve operation") : approxConvOnElements!(ccwl, allelements[count])
       end
@@ -328,7 +318,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
         addEntr = view(ccwl.params[sfidx], allelements[count])
         # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
         spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
-        addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist)
+        addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
 
     elseif hypoidx == 0
       # basically do nothing since the factor is not active for these allelements[count]
@@ -338,7 +328,7 @@ function computeAcrossHypothesis!(ccwl::Union{<:CommonConvWrapper{F},
       # dynamic estimate with user requested speadNH of how much noise to inject (inflation or nullhypo)
       spreadDist = calcVariableDistanceExpectedFractional(ccwl, sfidx, certainidx, kappa=spreadNH)
       # # make spread (1σ) equal to mean distance of other fractionals
-      addEntropyOnManifoldHack!(mani, addEntr, 1:getDimension(mani), spreadDist)
+      addEntropyOnManifold!(mani, addEntr, 1:getDimension(mani), spreadDist)
     else
       error("computeAcrossHypothesis -- not dealing with multi-hypothesis case correctly")
     end
@@ -498,7 +488,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
         addEntr[m] .= ccwl.measurement[1][m]
       end
       # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
+      addEntropyOnManifold!(mani, addEntrNH, 1:getDimension(mani), spreadDist)
   else
     i = 0
     for dimnum in fnc.partial
@@ -509,7 +499,7 @@ function evalPotentialSpecific( Xi::AbstractVector{<:DFGVariable},
       # @show size(addEntr), dimnum, nhmask
       addEntrNHp = view(view(addEntr, (1:length(ahmask))[ahmask]), dimnum)
       # ongoing part of RoME.jl #244
-      addEntropyOnManifoldHack!(mani, addEntrNHp, dimnum:dimnum, spreadDist)
+      addEntropyOnManifold!(mani, addEntrNHp, dimnum:dimnum, spreadDist)
     end
   end
   return addEntr
