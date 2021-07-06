@@ -261,8 +261,15 @@ function calcPPE( var::DFGVariable,
   manis = convert(Tuple, maniDef) # LEGACY, TODO REMOVE
   ops = buildHybridManifoldCallbacks(manis)
   Pme = calcMean(P)  # getKDEMean(P) #, addop=ops[1], diffop=ops[2]
-  Pma = getKDEMax(P, addop=ops[1], diffop=ops[2])
 
+  # returns coordinates at identify
+  Xc_max = getKDEMax(P, addop=ops[1], diffop=ops[2])
+  # calculate point
+  M = getManifold(varType)
+  ϵ = identity(M, Pme)
+  X = hat(M, ϵ, Xc_max)
+  Pma = exp(M, ϵ, X)
+  
   # suggested, max, mean, current time
   # TODO, poor constructor argument assumptions on `ppeType`
   ppeType(ppeKey, Pme, Pma, Pme, timestamp)
